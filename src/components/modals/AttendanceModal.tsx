@@ -149,7 +149,7 @@ const AttendanceModal = ({ onClose, userRole }: AttendanceModalProps) => {
                                 id={`morning-${student.id}`}
                                 checked={attendance[student.id]?.morning || false}
                                 onCheckedChange={(checked) => 
-                                  handleAttendanceChange(student.id, 'morning', checked as boolean)
+                                  handleAttendanceChange(student.id, 'morning', !!checked)
                                 }
                               />
                               <label 
@@ -164,7 +164,7 @@ const AttendanceModal = ({ onClose, userRole }: AttendanceModalProps) => {
                                 id={`afternoon-${student.id}`}
                                 checked={attendance[student.id]?.afternoon || false}
                                 onCheckedChange={(checked) => 
-                                  handleAttendanceChange(student.id, 'afternoon', checked as boolean)
+                                  handleAttendanceChange(student.id, 'afternoon', !!checked)
                                 }
                               />
                               <label 

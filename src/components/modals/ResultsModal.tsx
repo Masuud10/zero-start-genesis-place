@@ -115,7 +115,7 @@ const ResultsModal = ({ onClose }: ResultsModalProps) => {
                             id={`class-${index}`}
                             checked={selectedClasses.includes(result.class)}
                             onCheckedChange={(checked) => 
-                              handleClassSelection(result.class, checked as boolean)
+                              handleClassSelection(result.class, !!checked)
                             }
                             disabled={result.status === 'pending'}
                           />
@@ -157,7 +157,7 @@ const ResultsModal = ({ onClose }: ResultsModalProps) => {
                   <Checkbox 
                     id="release-to-parents"
                     checked={releaseToParents}
-                    onCheckedChange={setReleaseToParents}
+                    onCheckedChange={(checked) => setReleaseToParents(!!checked)}
                   />
                   <label 
                     htmlFor="release-to-parents" 

@@ -104,7 +104,7 @@ const ReportsModal = ({ onClose }: ReportsModalProps) => {
                         id={`class-${className}`}
                         checked={selectedClasses.includes(className)}
                         onCheckedChange={(checked) => 
-                          handleClassSelection(className, checked as boolean)
+                          handleClassSelection(className, !!checked)
                         }
                       />
                       <label 
@@ -148,7 +148,7 @@ const ReportsModal = ({ onClose }: ReportsModalProps) => {
                   <Checkbox 
                     id="include-charts"
                     checked={includeCharts}
-                    onCheckedChange={setIncludeCharts}
+                    onCheckedChange={(checked) => setIncludeCharts(!!checked)}
                   />
                   <label 
                     htmlFor="include-charts" 

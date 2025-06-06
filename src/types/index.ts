@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -9,6 +8,8 @@ export interface User {
   isFirstLogin?: boolean;
   emailVerified?: boolean;
 }
+
+export type UserRole = 'school_owner' | 'principal' | 'teacher' | 'parent' | 'finance_officer' | 'edufam_admin';
 
 export interface School {
   id: string;
