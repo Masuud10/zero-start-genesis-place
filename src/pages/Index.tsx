@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/LoginForm';
@@ -12,12 +11,12 @@ const Index = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto gradient-academic rounded-2xl flex items-center justify-center animate-pulse">
+          <div className="w-16 h-16 mx-auto gradient-navy rounded-2xl flex items-center justify-center animate-pulse">
             <span className="text-2xl text-white">🎓</span>
           </div>
-          <p className="text-muted-foreground">Loading school management system...</p>
+          <p className="text-muted-foreground">Loading EduFam school management system...</p>
         </div>
       </div>
     );
@@ -31,34 +30,42 @@ const Index = () => {
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />;
+      case 'analytics':
+        return (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
+              Analytics & Reports
+            </h1>
+            <div className="bg-white rounded-xl shadow-lg p-8 border-0">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 mx-auto gradient-navy rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl text-white">📈</span>
+                </div>
+                <h2 className="text-2xl font-semibold">Advanced Analytics</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Comprehensive analytics dashboard with real-time insights, performance tracking, 
+                  and detailed reporting for data-driven decision making.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
       case 'grades':
         return (
           <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
               Grade Management
             </h1>
             <div className="bg-white rounded-xl shadow-lg p-8 border-0">
               <div className="text-center space-y-4">
-                <div className="w-20 h-20 mx-auto gradient-academic rounded-2xl flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto gradient-navy rounded-2xl flex items-center justify-center">
                   <span className="text-3xl text-white">📝</span>
                 </div>
-                <h2 className="text-2xl font-semibold">Grades Module</h2>
+                <h2 className="text-2xl font-semibold">Secure Grading System</h2>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Secure grade management with Excel-like interface, bulk upload capabilities, 
-                  immutable records, and admin approval workflows for grade modifications.
+                  Excel-like interface for bulk grade entry, immutable records, 
+                  admin approval workflows, and automated position calculations.
                 </p>
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    🚧 This module is being built with advanced features including:
-                  </p>
-                  <ul className="text-sm text-blue-700 mt-2 space-y-1">
-                    <li>• Excel-like bulk grade entry interface</li>
-                    <li>• Immutable grade records with audit trails</li>
-                    <li>• Admin approval for grade modifications</li>
-                    <li>• Automatic calculation of totals and positions</li>
-                    <li>• Release toggle for parent visibility</li>
-                  </ul>
-                </div>
               </div>
             </div>
           </div>
@@ -66,7 +73,7 @@ const Index = () => {
       case 'attendance':
         return (
           <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
               Attendance Management
             </h1>
             <div className="bg-white rounded-xl shadow-lg p-8 border-0">
@@ -74,23 +81,105 @@ const Index = () => {
                 <div className="w-20 h-20 mx-auto gradient-success rounded-2xl flex items-center justify-center">
                   <span className="text-3xl text-white">📅</span>
                 </div>
-                <h2 className="text-2xl font-semibold">Attendance Module</h2>
+                <h2 className="text-2xl font-semibold">Smart Attendance Tracking</h2>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Comprehensive attendance tracking with bulk entry, session management, 
-                  analytics, and detailed reporting capabilities.
+                  Bulk entry, morning/afternoon sessions, analytics, and comprehensive reporting.
                 </p>
-                <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-800">
-                    🚧 This module includes advanced features:
-                  </p>
-                  <ul className="text-sm text-green-700 mt-2 space-y-1">
-                    <li>• Morning/Afternoon session tracking</li>
-                    <li>• Bulk class-level attendance entry</li>
-                    <li>• Student remarks and behavioral notes</li>
-                    <li>• Attendance analytics and trends</li>
-                    <li>• Export capabilities (PDF, CSV, Excel)</li>
-                  </ul>
+              </div>
+            </div>
+          </div>
+        );
+      case 'finance':
+        return (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
+              Finance Management
+            </h1>
+            <div className="bg-white rounded-xl shadow-lg p-8 border-0">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl text-white">💰</span>
                 </div>
+                <h2 className="text-2xl font-semibold">MPESA-Integrated Finance</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Automated fee collection, expense tracking, real-time analytics, and audit-ready reports.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'timetable':
+        return (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
+              Timetable Generator
+            </h1>
+            <div className="bg-white rounded-xl shadow-lg p-8 border-0">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl text-white">🗓️</span>
+                </div>
+                <h2 className="text-2xl font-semibold">Smart Scheduling</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Automated timetable generation with conflict resolution and multi-format exports.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'announcements':
+        return (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
+              Announcements
+            </h1>
+            <div className="bg-white rounded-xl shadow-lg p-8 border-0">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl text-white">📢</span>
+                </div>
+                <h2 className="text-2xl font-semibold">Communication Hub</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Broadcast announcements with read tracking, file attachments, and audience targeting.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'messages':
+        return (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
+              Messages
+            </h1>
+            <div className="bg-white rounded-xl shadow-lg p-8 border-0">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl text-white">💬</span>
+                </div>
+                <h2 className="text-2xl font-semibold">Secure Messaging</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Real-time communication between parents, teachers, and administrators.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'support':
+        return (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
+              Support Center
+            </h1>
+            <div className="bg-white rounded-xl shadow-lg p-8 border-0">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-r from-teal-500 to-green-500 rounded-2xl flex items-center justify-center">
+                  <span className="text-3xl text-white">🎧</span>
+                </div>
+                <h2 className="text-2xl font-semibold">Help & Support</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Submit tickets, track issues, and get help from the EduFam support team.
+                </p>
               </div>
             </div>
           </div>
