@@ -52,13 +52,13 @@ const Dashboard = () => {
     },
     {
       action: "Results released for Term 1 Examinations",
-      user: "Admin",
+      user: "Principal",
       time: "1 hour ago",
       type: "admin"
     },
     {
       action: "New student enrolled in Class 8C",
-      user: "Admin",
+      user: "Principal",
       time: "2 hours ago",
       type: "student"
     }
@@ -187,7 +187,7 @@ const Dashboard = () => {
                   </button>
                 </>
               )}
-              {user?.role === 'admin' && (
+              {(user?.role === 'school_owner' || user?.role === 'principal' || user?.role === 'edufam_admin') && (
                 <>
                   <button className="flex items-center space-x-3 p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left">
                     <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -227,6 +227,28 @@ const Dashboard = () => {
                     <div>
                       <p className="font-medium">Attendance Report</p>
                       <p className="text-xs text-muted-foreground">Daily attendance overview</p>
+                    </div>
+                  </button>
+                </>
+              )}
+              {user?.role === 'finance_officer' && (
+                <>
+                  <button className="flex items-center space-x-3 p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left">
+                    <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-sm">💰</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Fee Collection</p>
+                      <p className="text-xs text-muted-foreground">Manage student fees and payments</p>
+                    </div>
+                  </button>
+                  <button className="flex items-center space-x-3 p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left">
+                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-sm">📊</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Financial Reports</p>
+                      <p className="text-xs text-muted-foreground">Generate finance analytics</p>
                     </div>
                   </button>
                 </>
