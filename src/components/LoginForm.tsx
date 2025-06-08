@@ -96,9 +96,12 @@ const LoginForm = () => {
             <div className="mt-6 space-y-2 text-sm text-muted-foreground">
               <p className="font-medium">Demo Accounts:</p>
               <div className="space-y-1">
-                <p>• Admin: admin@school.com</p>
+                <p>• Admin: admin@edufam.com</p>
+                <p>• School Owner: owner@school.com</p>
+                <p>• Principal: principal@school.com</p>
                 <p>• Teacher: teacher@school.com</p>
                 <p>• Parent: parent@school.com</p>
+                <p>• Finance: finance@school.com</p>
                 <p className="text-xs">Password: password</p>
               </div>
             </div>
