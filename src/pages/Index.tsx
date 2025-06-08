@@ -4,6 +4,7 @@ import LoginForm from '@/components/LoginForm';
 import Layout from '@/components/Layout';
 import Dashboard from '@/components/Dashboard';
 import Sidebar from '@/components/Sidebar';
+import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
@@ -31,25 +32,7 @@ const Index = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'analytics':
-        return (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
-              Analytics & Reports
-            </h1>
-            <div className="bg-white rounded-xl shadow-lg p-8 border-0">
-              <div className="text-center space-y-4">
-                <div className="w-20 h-20 mx-auto gradient-navy rounded-2xl flex items-center justify-center">
-                  <span className="text-3xl text-white">📈</span>
-                </div>
-                <h2 className="text-2xl font-semibold">Advanced Analytics</h2>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Comprehensive analytics dashboard with real-time insights, performance tracking, 
-                  and detailed reporting for data-driven decision making.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
+        return <AnalyticsDashboard />;
       case 'grades':
         return (
           <div className="animate-fade-in">
