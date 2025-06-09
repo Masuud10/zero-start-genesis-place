@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/LoginForm';
 import Dashboard from '@/components/Dashboard';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
-import ElimishaLayout from '@/components/ElimishaLayout';
+import ElimshaLayout from '@/components/ElimshaLayout';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
