@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/LoginForm';
 import Dashboard from '@/components/Dashboard';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
@@ -17,10 +17,10 @@ import ReportsModule from '@/components/modules/ReportsModule';
 import SettingsModule from '@/components/modules/SettingsModule';
 
 const Index = () => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center space-y-4">
