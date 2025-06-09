@@ -11,25 +11,29 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const success = await login(email, password);
+    console.log('Attempting to sign in with:', email);
+
+    const { data, error } = await signIn(email, password);
     
-    if (success) {
+    if (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid email or password. Please try again.",
+        variant: "destructive",
+      });
+    } else if (data?.user) {
+      console.log('Login successful:', data.user.email);
       toast({
         title: "Welcome back!",
         description: "Successfully logged in to the school management system.",
-      });
-    } else {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password. Please try again.",
-        variant: "destructive",
       });
     }
     
