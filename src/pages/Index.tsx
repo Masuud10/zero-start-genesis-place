@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/LoginForm';
-import Layout from '@/components/Layout';
 import Dashboard from '@/components/Dashboard';
-import Sidebar from '@/components/Sidebar';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import ElimishaLayout from '@/components/ElimishaLayout';
 
 const Index = () => {
   const { user, isLoading } = useAuth();
@@ -14,10 +13,10 @@ const Index = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto gradient-navy rounded-2xl flex items-center justify-center animate-pulse">
+          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
             <span className="text-2xl text-white">🎓</span>
           </div>
-          <p className="text-muted-foreground">Loading EduFam school management system...</p>
+          <p className="text-muted-foreground">Loading Elimisha school management system...</p>
         </div>
       </div>
     );
@@ -41,7 +40,7 @@ const Index = () => {
             </h1>
             <div className="bg-white rounded-xl shadow-lg p-8 border-0">
               <div className="text-center space-y-4">
-                <div className="w-20 h-20 mx-auto gradient-navy rounded-2xl flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
                   <span className="text-3xl text-white">📝</span>
                 </div>
                 <h2 className="text-2xl font-semibold">Secure Grading System</h2>
@@ -61,7 +60,7 @@ const Index = () => {
             </h1>
             <div className="bg-white rounded-xl shadow-lg p-8 border-0">
               <div className="text-center space-y-4">
-                <div className="w-20 h-20 mx-auto gradient-success rounded-2xl flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center">
                   <span className="text-3xl text-white">📅</span>
                 </div>
                 <h2 className="text-2xl font-semibold">Smart Attendance Tracking</h2>
@@ -161,7 +160,7 @@ const Index = () => {
                 </div>
                 <h2 className="text-2xl font-semibold">Help & Support</h2>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Submit tickets, track issues, and get help from the EduFam support team.
+                  Submit tickets, track issues, and get help from the Elimisha support team.
                 </p>
               </div>
             </div>
@@ -175,7 +174,7 @@ const Index = () => {
             </h1>
             <div className="bg-white rounded-xl shadow-lg p-8 border-0">
               <div className="text-center space-y-4">
-                <div className="w-20 h-20 mx-auto gradient-warning rounded-2xl flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center">
                   <span className="text-3xl text-white">👥</span>
                 </div>
                 <h2 className="text-2xl font-semibold">Student Records</h2>
@@ -233,14 +232,12 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Layout>
-          {renderContent()}
-        </Layout>
-      </div>
-    </div>
+    <ElimishaLayout 
+      activeSection={activeSection} 
+      onSectionChange={setActiveSection}
+    >
+      {renderContent()}
+    </ElimishaLayout>
   );
 };
 

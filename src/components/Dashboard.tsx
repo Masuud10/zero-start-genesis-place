@@ -79,7 +79,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in p-4 md:p-0">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -125,176 +125,174 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
-        {/* Recent Activities */}
-        <Card className="shadow-lg border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
-              <span>📋</span>
-              <span>Recent Activities</span>
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Latest updates from the school management system
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 md:space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3 p-2 md:p-3 rounded-lg hover:bg-accent transition-colors">
-                  <div className={`w-2 h-2 rounded-full mt-2 ${
-                    activity.type === 'grade' ? 'bg-blue-500' :
-                    activity.type === 'attendance' ? 'bg-green-500' :
-                    activity.type === 'admin' ? 'bg-purple-500' :
-                    'bg-orange-500'
-                  }`}></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">
-                      {activity.action}
+      {/* Recent Activities */}
+      <Card className="shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
+            <span>📋</span>
+            <span>Recent Activities</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Latest updates from the Elimisha school management system
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 md:space-y-4">
+            {recentActivities.map((activity, index) => (
+              <div key={index} className="flex items-start space-x-3 p-2 md:p-3 rounded-lg hover:bg-accent transition-colors">
+                <div className={`w-2 h-2 rounded-full mt-2 ${
+                  activity.type === 'grade' ? 'bg-blue-500' :
+                  activity.type === 'attendance' ? 'bg-green-500' :
+                  activity.type === 'admin' ? 'bg-purple-500' :
+                  'bg-orange-500'
+                }`}></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {activity.action}
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-1 gap-1">
+                    <p className="text-xs text-muted-foreground">
+                      by {activity.user}
                     </p>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-1 gap-1">
-                      <p className="text-xs text-muted-foreground">
-                        by {activity.user}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.time}
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {activity.time}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Quick Actions */}
-        <Card className="shadow-lg border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
-              <span>⚡</span>
-              <span>Quick Actions</span>
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Frequently used features for efficient workflow
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 md:gap-3">
-              {user?.role === 'teacher' && (
-                <>
-                  <button 
-                    onClick={() => openModal('grades')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">📝</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">Submit Grades</p>
-                      <p className="text-xs text-muted-foreground">Upload and manage student grades</p>
-                    </div>
-                  </button>
-                  <button 
-                    onClick={() => openModal('attendance')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">📅</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">Mark Attendance</p>
-                      <p className="text-xs text-muted-foreground">Record daily attendance</p>
-                    </div>
-                  </button>
-                </>
-              )}
-              {(user?.role === 'school_owner' || user?.role === 'principal' || user?.role === 'edufam_admin') && (
-                <>
-                  <button 
-                    onClick={() => openModal('results')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">🔓</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">Release Results</p>
-                      <p className="text-xs text-muted-foreground">Publish grades to parents</p>
-                    </div>
-                  </button>
-                  <button 
-                    onClick={() => openModal('reports')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">📊</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">Generate Reports</p>
-                      <p className="text-xs text-muted-foreground">Academic performance reports</p>
-                    </div>
-                  </button>
-                </>
-              )}
-              {user?.role === 'parent' && (
-                <>
-                  <button 
-                    onClick={() => openModal('grades')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">👦</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">View Child's Grades</p>
-                      <p className="text-xs text-muted-foreground">Academic performance tracking</p>
-                    </div>
-                  </button>
-                  <button 
-                    onClick={() => openModal('attendance')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">📅</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">Attendance Report</p>
-                      <p className="text-xs text-muted-foreground">Daily attendance overview</p>
-                    </div>
-                  </button>
-                </>
-              )}
-              {user?.role === 'finance_officer' && (
-                <>
-                  <button 
-                    onClick={() => openModal('fee-collection')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">💰</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">Fee Collection</p>
-                      <p className="text-xs text-muted-foreground">Manage student fees and payments</p>
-                    </div>
-                  </button>
-                  <button 
-                    onClick={() => openModal('financial-reports')}
-                    className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs md:text-sm">📊</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm md:text-base">Financial Reports</p>
-                      <p className="text-xs text-muted-foreground">Generate finance analytics</p>
-                    </div>
-                  </button>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Quick Actions */}
+      <Card className="shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
+            <span>⚡</span>
+            <span>Quick Actions</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Frequently used features for efficient workflow
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2 md:gap-3">
+            {user?.role === 'teacher' && (
+              <>
+                <button 
+                  onClick={() => openModal('grades')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">📝</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">Submit Grades</p>
+                    <p className="text-xs text-muted-foreground">Upload and manage student grades</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => openModal('attendance')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">📅</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">Mark Attendance</p>
+                    <p className="text-xs text-muted-foreground">Record daily attendance</p>
+                  </div>
+                </button>
+              </>
+            )}
+            {(user?.role === 'school_owner' || user?.role === 'principal' || user?.role === 'edufam_admin') && (
+              <>
+                <button 
+                  onClick={() => openModal('results')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">🔓</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">Release Results</p>
+                    <p className="text-xs text-muted-foreground">Publish grades to parents</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => openModal('reports')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">📊</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">Generate Reports</p>
+                    <p className="text-xs text-muted-foreground">Academic performance reports</p>
+                  </div>
+                </button>
+              </>
+            )}
+            {user?.role === 'parent' && (
+              <>
+                <button 
+                  onClick={() => openModal('grades')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">👦</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">View Child's Grades</p>
+                    <p className="text-xs text-muted-foreground">Academic performance tracking</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => openModal('attendance')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">📅</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">Attendance Report</p>
+                    <p className="text-xs text-muted-foreground">Daily attendance overview</p>
+                  </div>
+                </button>
+              </>
+            )}
+            {user?.role === 'finance_officer' && (
+              <>
+                <button 
+                  onClick={() => openModal('fee-collection')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">💰</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">Fee Collection</p>
+                    <p className="text-xs text-muted-foreground">Manage student fees and payments</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => openModal('financial-reports')}
+                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
+                >
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-xs md:text-sm">📊</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm md:text-base">Financial Reports</p>
+                    <p className="text-xs text-muted-foreground">Generate finance analytics</p>
+                  </div>
+                </button>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Modals */}
       {activeModal === 'grades' && <GradesModal onClose={closeModal} userRole={user?.role} />}
