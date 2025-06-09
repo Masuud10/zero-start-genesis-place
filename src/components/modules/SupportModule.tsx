@@ -20,7 +20,8 @@ const SupportModule = () => {
     title: '',
     description: '',
     type: 'technical' as const,
-    priority: 'medium' as const
+    priority: 'medium' as const,
+    status: 'open' as const
   });
 
   const handleCreateTicket = async () => {
@@ -45,7 +46,8 @@ const SupportModule = () => {
         title: '',
         description: '',
         type: 'technical',
-        priority: 'medium'
+        priority: 'medium',
+        status: 'open'
       });
     } else {
       toast({

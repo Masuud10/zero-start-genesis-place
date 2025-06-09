@@ -7,6 +7,7 @@ interface AuthUser extends User {
   role?: string;
   name?: string;
   school_id?: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {
@@ -15,6 +16,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, metadata?: any) => Promise<any>;
   signOut: () => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,7 +69,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ...authUser,
         role: profile?.role,
         name: profile?.name,
-        school_id: profile?.school_id
+        school_id: profile?.school_id,
+        avatar_url: profile?.avatar_url
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -82,6 +86,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       password,
     });
     return { data, error };
+  };
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return !error;
   };
 
   const signUp = async (email: string, password: string, metadata = {}) => {
@@ -100,8 +112,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error;
   };
 
+  const logout = async () => {
+    await signOut();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

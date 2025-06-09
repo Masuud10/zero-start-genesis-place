@@ -295,8 +295,8 @@ const Dashboard = () => {
       </Card>
 
       {/* Modals */}
-      {activeModal === 'grades' && <GradesModal onClose={closeModal} userRole={user?.role} />}
-      {activeModal === 'attendance' && <AttendanceModal onClose={closeModal} userRole={user?.role} />}
+      {activeModal === 'grades' && <GradesModal onClose={closeModal} userRole={user?.role as any} />}
+      {activeModal === 'attendance' && <AttendanceModal onClose={closeModal} userRole={user?.role as any} />}
       {activeModal === 'results' && <ResultsModal onClose={closeModal} />}
       {activeModal === 'reports' && <ReportsModal onClose={closeModal} />}
       {activeModal === 'fee-collection' && <FeeCollectionModal onClose={closeModal} />}

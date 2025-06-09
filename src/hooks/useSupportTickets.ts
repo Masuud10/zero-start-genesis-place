@@ -43,7 +43,18 @@ export const useSupportTickets = () => {
       if (error) throw error;
 
       const formattedData = data?.map(item => ({
-        ...item,
+        id: item.id,
+        school_id: item.school_id,
+        created_by: item.created_by,
+        title: item.title,
+        description: item.description,
+        type: item.type as 'technical' | 'feature_request' | 'billing' | 'feedback',
+        status: item.status as 'open' | 'in_progress' | 'resolved' | 'closed',
+        priority: item.priority as 'low' | 'medium' | 'high' | 'urgent',
+        assigned_to: item.assigned_to,
+        attachments: item.attachments,
+        created_at: item.created_at,
+        resolved_at: item.resolved_at,
         creator_name: item.profiles?.name
       })) || [];
 
