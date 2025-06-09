@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -202,7 +201,7 @@ const FeeCollectionModal = ({ onClose }: FeeCollectionModalProps) => {
                     <SelectValue placeholder="All classes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Classes</SelectItem>
+                    <SelectItem value="all-classes">All Classes</SelectItem>
                     <SelectItem value="grade-1a">Grade 1A</SelectItem>
                     <SelectItem value="grade-1b">Grade 1B</SelectItem>
                     <SelectItem value="grade-2a">Grade 2A</SelectItem>
