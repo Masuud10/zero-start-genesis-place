@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from '@/components/LoginForm';
@@ -232,12 +233,12 @@ const Index = () => {
   };
 
   return (
-    <ElimishaLayout 
+    <ElimshaLayout 
       activeSection={activeSection} 
       onSectionChange={setActiveSection}
     >
       {renderContent()}
-    </ElimishaLayout>
+    </ElimshaLayout>
   );
 };
 
