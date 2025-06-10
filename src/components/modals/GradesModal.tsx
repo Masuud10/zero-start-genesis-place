@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Download, Save } from 'lucide-react';
+import { Upload, Download, Save, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface GradesModalProps {
@@ -40,6 +40,13 @@ const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
     });
   };
 
+  const handleApproveGrades = () => {
+    toast({
+      title: "Grades Approved",
+      description: "Grades have been approved and released to students.",
+    });
+  };
+
   const handleScoreChange = (id: number, newScore: number) => {
     setGrades(prev => prev.map(grade => 
       grade.id === id 
@@ -62,6 +69,8 @@ const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
   };
 
   const canEdit = ['teacher', 'principal', 'school_owner'].includes(userRole);
+  const canApprove = ['principal', 'school_owner'].includes(userRole);
+  const canSubmit = userRole === 'teacher';
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -185,13 +194,19 @@ const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
             {canEdit && (
-              <>
-                <Button onClick={handleSaveGrades}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Draft
-                </Button>
-                <Button onClick={handleSubmitGrades}>Submit for Approval</Button>
-              </>
+              <Button onClick={handleSaveGrades}>
+                <Save className="w-4 h-4 mr-2" />
+                Save Draft
+              </Button>
+            )}
+            {canSubmit && (
+              <Button onClick={handleSubmitGrades}>Submit for Approval</Button>
+            )}
+            {canApprove && (
+              <Button onClick={handleApproveGrades} className="bg-green-600 hover:bg-green-700">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Approve & Release
+              </Button>
             )}
           </div>
         </div>
