@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +12,8 @@ import FinancialReportsModal from './modals/FinancialReportsModal';
 const Dashboard = () => {
   const { user } = useAuth();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+
+  console.log('📊 Dashboard: Rendering for user', user?.email, 'role:', user?.role);
 
   const stats = [
     {
@@ -71,12 +74,104 @@ const Dashboard = () => {
   ];
 
   const openModal = (modalType: string) => {
+    console.log('📊 Dashboard: Opening modal', modalType);
     setActiveModal(modalType);
   };
 
   const closeModal = () => {
+    console.log('📊 Dashboard: Closing modal');
     setActiveModal(null);
   };
+
+  const getRoleBasedQuickActions = () => {
+    const userRole = user?.role;
+    const actions = [];
+
+    if (userRole === 'teacher') {
+      actions.push(
+        {
+          title: "Submit Grades",
+          description: "Upload and manage student grades",
+          icon: "📝",
+          color: "from-blue-500 to-blue-600",
+          action: () => openModal('grades')
+        },
+        {
+          title: "Mark Attendance",
+          description: "Record daily attendance",
+          icon: "📅",
+          color: "from-green-500 to-green-600",
+          action: () => openModal('attendance')
+        }
+      );
+    }
+
+    if (['school_owner', 'principal', 'edufam_admin'].includes(userRole || '')) {
+      actions.push(
+        {
+          title: "Release Results",
+          description: "Publish grades to parents",
+          icon: "🔓",
+          color: "from-purple-500 to-purple-600",
+          action: () => openModal('results')
+        },
+        {
+          title: "Generate Reports",
+          description: "Academic performance reports",
+          icon: "📊",
+          color: "from-orange-500 to-orange-600",
+          action: () => openModal('reports')
+        }
+      );
+    }
+
+    if (userRole === 'parent') {
+      actions.push(
+        {
+          title: "View Child's Grades",
+          description: "Academic performance tracking",
+          icon: "👦",
+          color: "from-blue-500 to-blue-600",
+          action: () => openModal('grades')
+        },
+        {
+          title: "Attendance Report",
+          description: "Daily attendance overview",
+          icon: "📅",
+          color: "from-green-500 to-green-600",
+          action: () => openModal('attendance')
+        }
+      );
+    }
+
+    if (userRole === 'finance_officer') {
+      actions.push(
+        {
+          title: "Fee Collection",
+          description: "Manage student fees and payments",
+          icon: "💰",
+          color: "from-green-500 to-green-600",
+          action: () => openModal('fee-collection')
+        },
+        {
+          title: "Financial Reports",
+          description: "Generate finance analytics",
+          icon: "📊",
+          color: "from-purple-500 to-purple-600",
+          action: () => openModal('financial-reports')
+        }
+      );
+    }
+
+    return actions;
+  };
+
+  const quickActions = getRoleBasedQuickActions();
+
+  if (!user) {
+    console.log('📊 Dashboard: No user found, should not render');
+    return null;
+  }
 
   return (
     <div className="space-y-4 md:space-y-6 animate-fade-in">
@@ -166,133 +261,38 @@ const Dashboard = () => {
       </Card>
 
       {/* Quick Actions */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
-            <span>⚡</span>
-            <span>Quick Actions</span>
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Frequently used features for efficient workflow
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 md:gap-3">
-            {user?.role === 'teacher' && (
-              <>
+      {quickActions.length > 0 && (
+        <Card className="shadow-lg border-0">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
+              <span>⚡</span>
+              <span>Quick Actions</span>
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Frequently used features for efficient workflow
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 md:gap-3">
+              {quickActions.map((action, index) => (
                 <button 
-                  onClick={() => openModal('grades')}
+                  key={index}
+                  onClick={action.action}
                   className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
                 >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">📝</span>
+                  <div className={`w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center`}>
+                    <span className="text-white text-xs md:text-sm">{action.icon}</span>
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">Submit Grades</p>
-                    <p className="text-xs text-muted-foreground">Upload and manage student grades</p>
+                    <p className="font-medium text-sm md:text-base">{action.title}</p>
+                    <p className="text-xs text-muted-foreground">{action.description}</p>
                   </div>
                 </button>
-                <button 
-                  onClick={() => openModal('attendance')}
-                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">📅</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">Mark Attendance</p>
-                    <p className="text-xs text-muted-foreground">Record daily attendance</p>
-                  </div>
-                </button>
-              </>
-            )}
-            {(user?.role === 'school_owner' || user?.role === 'principal' || user?.role === 'edufam_admin') && (
-              <>
-                <button 
-                  onClick={() => openModal('results')}
-                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">🔓</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">Release Results</p>
-                    <p className="text-xs text-muted-foreground">Publish grades to parents</p>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => openModal('reports')}
-                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">📊</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">Generate Reports</p>
-                    <p className="text-xs text-muted-foreground">Academic performance reports</p>
-                  </div>
-                </button>
-              </>
-            )}
-            {user?.role === 'parent' && (
-              <>
-                <button 
-                  onClick={() => openModal('grades')}
-                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">👦</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">View Child's Grades</p>
-                    <p className="text-xs text-muted-foreground">Academic performance tracking</p>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => openModal('attendance')}
-                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">📅</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">Attendance Report</p>
-                    <p className="text-xs text-muted-foreground">Daily attendance overview</p>
-                  </div>
-                </button>
-              </>
-            )}
-            {user?.role === 'finance_officer' && (
-              <>
-                <button 
-                  onClick={() => openModal('fee-collection')}
-                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">💰</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">Fee Collection</p>
-                    <p className="text-xs text-muted-foreground">Manage student fees and payments</p>
-                  </div>
-                </button>
-                <button 
-                  onClick={() => openModal('financial-reports')}
-                  className="flex items-center space-x-3 p-3 md:p-4 rounded-lg border border-border hover:bg-accent transition-all duration-200 text-left w-full"
-                >
-                  <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-xs md:text-sm">📊</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm md:text-base">Financial Reports</p>
-                    <p className="text-xs text-muted-foreground">Generate finance analytics</p>
-                  </div>
-                </button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modals */}
       {activeModal === 'grades' && <GradesModal onClose={closeModal} userRole={user?.role as any} />}
