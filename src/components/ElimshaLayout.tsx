@@ -11,6 +11,13 @@ import UsersModule from './modules/UsersModule';
 import SupportModule from './modules/SupportModule';
 import SettingsModule from './modules/SettingsModule';
 import ReportsModule from './modules/ReportsModule';
+import GradesModule from './modules/GradesModule';
+import AttendanceModule from './modules/AttendanceModule';
+import StudentsModule from './modules/StudentsModule';
+import FinanceModule from './modules/FinanceModule';
+import TimetableModule from './modules/TimetableModule';
+import AnnouncementsModule from './modules/AnnouncementsModule';
+import MessagesModule from './modules/MessagesModule';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -22,6 +29,20 @@ const ElimshaLayout = () => {
       case 'analytics':
       case 'system-analytics':
         return <AnalyticsDashboard />;
+      case 'grades':
+        return <GradesModule />;
+      case 'attendance':
+        return <AttendanceModule />;
+      case 'students':
+        return <StudentsModule />;
+      case 'finance':
+        return <FinanceModule />;
+      case 'timetable':
+        return <TimetableModule />;
+      case 'announcements':
+        return <AnnouncementsModule />;
+      case 'messages':
+        return <MessagesModule />;
       case 'schools':
         return <SchoolsModule />;
       case 'users':

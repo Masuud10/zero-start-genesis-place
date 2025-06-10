@@ -30,6 +30,19 @@ const Dashboard = () => {
     setActiveModal(null);
   };
 
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  // Get first name from user name
+  const getFirstName = (fullName: string) => {
+    return fullName?.split(' ')[0] || 'User';
+  };
+
   const getRoleBasedDashboard = () => {
     switch (user?.role) {
       case 'school_owner':
@@ -66,40 +79,49 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-4 md:space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Welcome back, {user?.name?.split(' ')[0]}!
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            {user?.role === 'elimisha_admin' || user?.role === 'edufam_admin'
-              ? "System-wide management and monitoring dashboard."
-              : user?.role === 'school_owner'
-              ? "Monitor your school's financial, academic, and operational performance."
-              : user?.role === 'principal'
-              ? "Oversee daily operations and academic excellence at your school."
-              : user?.role === 'teacher'
-              ? "Manage your classes, grades, and student interactions."
-              : user?.role === 'parent'
-              ? "Stay updated on your child's academic progress and school activities."
-              : "Here's what's happening in your school today."
-            }
-          </p>
-        </div>
-        <div className="block">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl shadow-lg">
-            <div className="text-xs md:text-sm opacity-90">Today's Date</div>
-            <div className="font-semibold text-sm md:text-base">
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: window.innerWidth < 768 ? 'short' : 'long', 
-                year: 'numeric', 
-                month: window.innerWidth < 768 ? 'short' : 'long', 
-                day: 'numeric' 
-              })}
+      {/* Main Greeting Container */}
+      <Card className="shadow-lg border-0 bg-gradient-to-r from-blue-50 to-purple-50">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+                {getGreeting()}, {getFirstName(user?.name || 'User')}! 👋
+              </h1>
+              <p className="text-gray-600 mt-1 text-sm md:text-base">
+                {user?.role === 'elimisha_admin' || user?.role === 'edufam_admin'
+                  ? "System-wide management and monitoring dashboard."
+                  : user?.role === 'school_owner'
+                  ? "Monitor your school's financial, academic, and operational performance."
+                  : user?.role === 'principal'
+                  ? "Oversee daily operations and academic excellence at your school."
+                  : user?.role === 'teacher'
+                  ? "Manage your classes, grades, and student interactions."
+                  : user?.role === 'parent'
+                  ? "Stay updated on your child's academic progress and school activities."
+                  : "Here's what's happening in your school today."
+                }
+              </p>
+            </div>
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl shadow-lg">
+              <div className="text-xs md:text-sm opacity-90">
+                {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </div>
+              <div className="font-semibold text-sm md:text-base">
+                {new Date().toLocaleTimeString('en-US', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {getRoleBasedDashboard()}
 

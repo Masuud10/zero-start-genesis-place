@@ -18,18 +18,6 @@ const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Get first name from user name
-  const getFirstName = (fullName: string) => {
-    return fullName?.split(' ')[0] || 'Principal';
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
   const todayStats = [
     {
       title: "Today's Attendance",
@@ -147,18 +135,6 @@ const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Greeting */}
-      <Card className="shadow-lg border-0 bg-gradient-to-r from-blue-50 to-purple-50">
-        <CardContent className="p-6">
-          <h1 className="text-2xl font-bold text-gray-800">
-            {getGreeting()}, {getFirstName(user?.name || 'Principal')}! 👋
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Welcome to your principal dashboard. Here's what's happening at your school today.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Today's Overview */}
       <Card className="shadow-lg border-0">
         <CardHeader>
