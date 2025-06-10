@@ -37,10 +37,14 @@ const ParentAdmissionModal: React.FC<ParentAdmissionModalProps> = ({ onClose, on
     setIsSubmitting(true);
 
     try {
+      // Generate a UUID for the profile
+      const profileId = crypto.randomUUID();
+      
       // Create parent profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .insert({
+          id: profileId,
           name: formData.name,
           email: formData.email,
           role: 'parent',

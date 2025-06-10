@@ -39,10 +39,14 @@ const TeacherAdmissionModal: React.FC<TeacherAdmissionModalProps> = ({ onClose, 
     setIsSubmitting(true);
 
     try {
+      // Generate a UUID for the profile
+      const profileId = crypto.randomUUID();
+      
       // Create teacher profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .insert({
+          id: profileId,
           name: formData.name,
           email: formData.email,
           role: 'teacher',
