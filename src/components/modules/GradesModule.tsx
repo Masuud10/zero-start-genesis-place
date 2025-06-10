@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -46,19 +45,23 @@ const GradesModule = () => {
     { id: 'term3', name: 'Term 3' },
   ];
 
-  // Mock grading session data
+  // Mock grading session data with all required properties
   const mockGradingSession = {
     id: '1',
     classId: selectedClass,
     subjectId: selectedSubject,
     term: selectedTerm,
-    examType: 'mid-term',
+    examType: 'MID_TERM' as const,
     maxScore: 100,
+    teacherId: user?.id || 'teacher-1',
+    createdAt: new Date(),
+    isActive: true,
     students: [
       {
         studentId: '1',
         name: 'John Doe',
         admissionNumber: 'ADM001',
+        rollNumber: 'R001',
         currentScore: undefined,
         percentage: undefined,
         position: undefined,
@@ -68,6 +71,7 @@ const GradesModule = () => {
         studentId: '2',
         name: 'Jane Smith',
         admissionNumber: 'ADM002',
+        rollNumber: 'R002',
         currentScore: undefined,
         percentage: undefined,
         position: undefined,
@@ -77,6 +81,7 @@ const GradesModule = () => {
         studentId: '3',
         name: 'Mike Johnson',
         admissionNumber: 'ADM003',
+        rollNumber: 'R003',
         currentScore: undefined,
         percentage: undefined,
         position: undefined,
@@ -85,15 +90,22 @@ const GradesModule = () => {
     ]
   };
 
-  // Mock grade for override request
+  // Mock grade for override request with all required properties
   const mockGrade = {
     id: '1',
     score: 85,
     maxScore: 100,
     studentId: '1',
     subjectId: 'math',
+    classId: selectedClass,
     term: 'term1',
-    isImmutable: true
+    examType: 'MID_TERM' as const,
+    submittedBy: user?.id || 'teacher-1',
+    submittedAt: new Date(),
+    isReleased: false,
+    isImmutable: true,
+    percentage: 85.0,
+    position: 1
   };
 
   const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
