@@ -248,7 +248,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   console.log('🔐 AuthProvider: Rendering with state', { 
     hasUser: !!user, 
     isLoading, 
-    userEmail: user?.email 
+    userEmail: user?.email,
+    userRole: user?.role,
+    userSchoolId: user?.school_id
   });
 
   return (

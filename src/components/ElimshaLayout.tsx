@@ -25,6 +25,29 @@ const ElimshaLayout = () => {
   const { user } = useAuth();
 
   const renderContent = () => {
+    // Check if user has access to the requested section
+    const hasAccess = (section: string) => {
+      if (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') {
+        return true; // Admin has access to everything
+      }
+
+      // School owner restrictions
+      if (user?.role === 'school_owner') {
+        const restrictedSections = ['grades', 'attendance', 'students', 'timetable', 'support'];
+        if (restrictedSections.includes(section)) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    // If user doesn't have access, redirect to dashboard
+    if (!hasAccess(activeSection)) {
+      setActiveSection('dashboard');
+      return <Dashboard />;
+    }
+
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />;
@@ -68,12 +91,17 @@ const ElimshaLayout = () => {
     }
   };
 
+  const handleSectionChange = (section: string) => {
+    console.log(`🔄 Switching to section: ${section} for user role: ${user?.role}`);
+    setActiveSection(section);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar 
           activeSection={activeSection} 
-          onSectionChange={setActiveSection} 
+          onSectionChange={handleSectionChange} 
         />
         <SidebarInset className="flex-1">
           <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +32,8 @@ import {
   Activity,
   TrendingUp,
   UserCheck,
-  LogOut
+  LogOut,
+  Settings
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -59,23 +61,27 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
         { id: 'system-health', label: 'System Health', icon: Activity, roles: ['elimisha_admin', 'edufam_admin'] },
         { id: 'system-analytics', label: 'System Analytics', icon: TrendingUp, roles: ['elimisha_admin', 'edufam_admin'] },
         { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['elimisha_admin', 'edufam_admin'] },
-        { id: 'settings', label: 'Settings', icon: Building2, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'settings', label: 'Settings', icon: Settings, roles: ['elimisha_admin', 'edufam_admin'] },
       ];
     }
 
-    // Regular school items
-    return [
-      ...baseItems,
-      { id: 'grades', label: 'Grades', icon: GraduationCap, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
-      { id: 'attendance', label: 'Attendance', icon: CalendarCheck, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
-      { id: 'students', label: 'Students', icon: Users, roles: ['school_owner', 'principal', 'teacher'] },
+    // Regular school items - school owners have restricted access
+    const schoolItems = [
+      // Available to all school users
       { id: 'finance', label: 'Finance', icon: DollarSign, roles: ['school_owner', 'principal', 'finance_officer', 'parent'] },
-      { id: 'timetable', label: 'Timetable', icon: Calendar, roles: ['school_owner', 'principal', 'teacher'] },
       { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
       { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
       { id: 'reports', label: 'Reports', icon: FileText, roles: ['school_owner', 'principal', 'teacher', 'finance_officer'] },
-      { id: 'support', label: 'Support', icon: Headphones, roles: ['school_owner', 'principal'] },
+      
+      // Restricted items - NOT available to school_owner
+      { id: 'grades', label: 'Grades', icon: GraduationCap, roles: ['principal', 'teacher', 'parent'] },
+      { id: 'attendance', label: 'Attendance', icon: CalendarCheck, roles: ['principal', 'teacher', 'parent'] },
+      { id: 'students', label: 'Students', icon: Users, roles: ['principal', 'teacher'] },
+      { id: 'timetable', label: 'Timetable', icon: Calendar, roles: ['principal', 'teacher'] },
+      { id: 'support', label: 'Support', icon: Headphones, roles: ['principal'] },
     ];
+
+    return [...baseItems, ...schoolItems];
   };
 
   const menuItems = getMenuItems();

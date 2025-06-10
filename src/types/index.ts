@@ -1,15 +1,16 @@
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'school_owner' | 'principal' | 'teacher' | 'parent' | 'finance_officer' | 'edufam_admin';
+  role: 'school_owner' | 'principal' | 'teacher' | 'parent' | 'finance_officer' | 'edufam_admin' | 'elimisha_admin';
   avatar?: string;
   schoolId?: string;
   isFirstLogin?: boolean;
   emailVerified?: boolean;
 }
 
-export type UserRole = 'school_owner' | 'principal' | 'teacher' | 'parent' | 'finance_officer' | 'edufam_admin';
+export type UserRole = 'school_owner' | 'principal' | 'teacher' | 'parent' | 'finance_officer' | 'edufam_admin' | 'elimisha_admin';
 
 export interface School {
   id: string;
@@ -51,6 +52,7 @@ export interface Student {
   address: string;
   parentContact: string;
   isActive: boolean;
+  schoolId: string; // Required for multi-tenancy
 }
 
 export interface Class {
@@ -59,7 +61,7 @@ export interface Class {
   teacherId: string;
   students: Student[];
   subjects: Subject[];
-  schoolId: string;
+  schoolId: string; // Required for multi-tenancy
 }
 
 export interface Subject {
@@ -68,7 +70,7 @@ export interface Subject {
   code: string;
   teacherId: string;
   classId: string;
-  schoolId: string;
+  schoolId: string; // Required for multi-tenancy
 }
 
 export interface Grade {
