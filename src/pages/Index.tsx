@@ -5,6 +5,7 @@ import LoginForm from '@/components/LoginForm';
 import Dashboard from '@/components/Dashboard';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import ElimshaLayout from '@/components/ElimshaLayout';
+import LandingPage from '@/components/LandingPage';
 import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
 import MessagesModule from '@/components/modules/MessagesModule';
 import SupportModule from '@/components/modules/SupportModule';
@@ -19,12 +20,14 @@ import SettingsModule from '@/components/modules/SettingsModule';
 const Index = () => {
   const { user, isLoading } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [showLogin, setShowLogin] = useState(false);
 
   console.log('📄 Index: Rendering with state', { 
     hasUser: !!user, 
     isLoading, 
     userEmail: user?.email,
-    activeSection 
+    activeSection,
+    showLogin
   });
 
   if (isLoading) {
@@ -45,8 +48,13 @@ const Index = () => {
   }
 
   if (!user) {
-    console.log('📄 Index: Showing login form - no user');
-    return <LoginForm />;
+    console.log('📄 Index: Showing landing page or login form');
+    
+    if (showLogin) {
+      return <LoginForm />;
+    }
+    
+    return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
   console.log('📄 Index: Showing main app for user:', user.email);
