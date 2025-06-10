@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface FinancialReportsModalProps {
   onClose: () => void;
@@ -15,6 +15,7 @@ interface FinancialReportsModalProps {
 const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }) => {
   const [reportPeriod, setReportPeriod] = useState('');
   const [reportType, setReportType] = useState('');
+  const { toast } = useToast();
 
   const periods = ['This Month', 'Last Month', 'This Term', 'Last Term', 'This Year'];
   const reportTypes = ['Revenue Summary', 'Outstanding Fees', 'Payment Methods', 'Collection Trends'];

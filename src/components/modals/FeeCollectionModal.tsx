@@ -59,7 +59,7 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.admissionNo.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClass = !selectedClass || student.class === selectedClass;
+    const matchesClass = !selectedClass || selectedClass === 'all' || student.class === selectedClass;
     return matchesSearch && matchesClass;
   });
 
@@ -202,7 +202,7 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
                     <SelectValue placeholder="All classes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Classes</SelectItem>
+                    <SelectItem value="all">All Classes</SelectItem>
                     <SelectItem value="Grade 8A">Grade 8A</SelectItem>
                     <SelectItem value="Grade 8B">Grade 8B</SelectItem>
                     <SelectItem value="Grade 7A">Grade 7A</SelectItem>
