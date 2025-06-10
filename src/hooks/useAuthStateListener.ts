@@ -1,0 +1,87 @@
+
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface UseAuthStateListenerProps {
+  setUser: (user: any) => void;
+  setIsLoading: (loading: boolean) => void;
+  fetchUserProfile: (user: any) => Promise<void>;
+}
+
+export const useAuthStateListener = ({ 
+  setUser, 
+  setIsLoading, 
+  fetchUserProfile 
+}: UseAuthStateListenerProps) => {
+  useEffect(() => {
+    console.log('🔐 AuthProvider: Initializing authentication');
+    
+    let isMounted = true;
+
+    // Set up auth state change listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 AuthProvider: Auth state changed', { event, user: session?.user?.email });
+      
+      if (!isMounted) return;
+
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        console.log('🔐 AuthProvider: User signed out or no session');
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('🔐 AuthProvider: User signed in or token refreshed');
+        // Defer profile fetching to avoid blocking
+        setTimeout(() => {
+          if (isMounted && session?.user) {
+            fetchUserProfile(session.user);
+          }
+        }, 0);
+      }
+    });
+
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        console.log('🔐 AuthProvider: Getting initial session');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('🔐 AuthProvider: Error getting session:', error);
+          if (isMounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        console.log('🔐 AuthProvider: Initial session check', { hasSession: !!session });
+        
+        if (!isMounted) return;
+
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+        } else {
+          setUser(null);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('🔐 AuthProvider: Exception getting initial session:', error);
+        if (isMounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
+
+    return () => {
+      console.log('🔐 AuthProvider: Cleaning up');
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [setUser, setIsLoading, fetchUserProfile]);
+};

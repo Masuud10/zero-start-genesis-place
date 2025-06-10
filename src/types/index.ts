@@ -9,3 +9,4 @@ export * from './finance';
 export * from './communication';
 export * from './analytics';
 export * from './attendance';
+export * from './auth';
