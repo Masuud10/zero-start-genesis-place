@@ -1,14 +1,20 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import UserManagementSettings from './settings/UserManagementSettings';
+import SecuritySettings from './settings/SecuritySettings';
+import SystemMaintenanceSettings from './settings/SystemMaintenanceSettings';
 import { Settings, Users, Shield, Database } from 'lucide-react';
 
 const SettingsModule = () => {
+  const [activeTab, setActiveTab] = useState('user-management');
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          System Settings
+          System Configuration
         </h1>
         <p className="text-muted-foreground">Configure system settings and preferences</p>
       </div>
@@ -21,7 +27,7 @@ const SettingsModule = () => {
                 <Settings className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">System Settings</p>
+                <p className="text-sm text-muted-foreground">Active Settings</p>
                 <p className="text-2xl font-bold">12</p>
               </div>
             </div>
@@ -63,8 +69,8 @@ const SettingsModule = () => {
                 <Database className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Data Backups</p>
-                <p className="text-2xl font-bold">Daily</p>
+                <p className="text-sm text-muted-foreground">Last Backup</p>
+                <p className="text-2xl font-bold">2h ago</p>
               </div>
             </div>
           </CardContent>
@@ -73,40 +79,37 @@ const SettingsModule = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>System Configuration</CardTitle>
+          <CardTitle>Configuration Management</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="font-semibold mb-2">User Management</h3>
-              <p className="text-sm text-muted-foreground">
-                Manage user accounts, roles, and permissions
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Security Settings</h3>
-              <p className="text-sm text-muted-foreground">
-                Configure security policies and access controls
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Database className="w-8 h-8 text-orange-600" />
-              </div>
-              <h3 className="font-semibold mb-2">System Maintenance</h3>
-              <p className="text-sm text-muted-foreground">
-                Backup management and system maintenance tools
-              </p>
-            </div>
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="user-management" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                User Management
+              </TabsTrigger>
+              <TabsTrigger value="security" className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Security Settings
+              </TabsTrigger>
+              <TabsTrigger value="maintenance" className="flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                System Maintenance
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="user-management" className="mt-6">
+              <UserManagementSettings />
+            </TabsContent>
+            
+            <TabsContent value="security" className="mt-6">
+              <SecuritySettings />
+            </TabsContent>
+            
+            <TabsContent value="maintenance" className="mt-6">
+              <SystemMaintenanceSettings />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
