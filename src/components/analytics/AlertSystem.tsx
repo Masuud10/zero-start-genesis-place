@@ -47,7 +47,7 @@ const AlertSystem = () => {
       id: '4',
       type: 'warning',
       title: 'Support Ticket Backlog',
-      message: '15+ open tickets awaiting response for >24h',
+      message: '15+ open tickets awaiting response for {">"}24h',
       timestamp: '2025-06-10 08:30:00',
       resolved: false
     }
@@ -179,10 +179,10 @@ const AlertSystem = () => {
             <div>
               <h4 className="font-medium mb-2">Automated Triggers</h4>
               <ul className="space-y-1 text-muted-foreground">
-                <li>• System downtime > 10 minutes</li>
+                <li>• System downtime {">"}10 minutes</li>
                 <li>• Transaction volume ±30% from baseline</li>
-                <li>• Support tickets > 20 pending</li>
-                <li>• Error rate > 2%</li>
+                <li>• Support tickets {">"} 20 pending</li>
+                <li>• Error rate {">"} 2%</li>
               </ul>
             </div>
             <div>
