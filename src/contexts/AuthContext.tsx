@@ -199,16 +199,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     console.log('🚪 AuthProvider: Signing out');
     setIsLoading(true);
+    
     try {
+      // Clear user state immediately
+      setUser(null);
+      
+      // Attempt to sign out from Supabase
       const { error } = await supabase.auth.signOut();
-      if (error) {
+      
+      // Don't throw error if session is already missing - this is expected in some cases
+      if (error && !error.message.includes('Auth session missing')) {
         console.error('❌ AuthProvider: Sign out error:', error);
         throw error;
       }
+      
       console.log('✅ AuthProvider: Successfully signed out');
-      // Don't manually set user/loading here - let onAuthStateChange handle it
+      
+      // Clear any local storage items related to auth
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (storageError) {
+        console.warn('⚠️ AuthProvider: Could not clear localStorage:', storageError);
+      }
+      
+      setIsLoading(false);
+      
     } catch (error) {
       console.error('❌ AuthProvider: Sign out exception:', error);
+      // Even if sign out fails, clear local state
+      setUser(null);
       setIsLoading(false);
       throw error;
     }

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +38,7 @@ interface AppSidebarProps {
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange }) => {
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
@@ -84,10 +86,23 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
 
   const handleLogout = async () => {
     try {
+      console.log('🔓 Sidebar: Initiating logout');
       await signOut();
-      console.log('✅ Logout successful from sidebar');
+      
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account.",
+      });
+      
+      console.log('✅ Sidebar: Logout successful');
     } catch (error) {
-      console.error('❌ Logout error from sidebar:', error);
+      console.error('❌ Sidebar: Logout error:', error);
+      
+      toast({
+        title: "Logout completed",
+        description: "You have been signed out (with minor issues that were handled).",
+        variant: "default",
+      });
     }
   };
 
