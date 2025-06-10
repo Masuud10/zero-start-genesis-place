@@ -1,17 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge, BadgeProps } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Building2, Plus, Users, Calendar, DollarSign, Search, Filter, Edit, Trash2 } from 'lucide-react';
+import SchoolStatsCards from './schools/SchoolStatsCards';
+import AddSchoolDialog from './schools/AddSchoolDialog';
+import SchoolsFilter from './schools/SchoolsFilter';
+import SchoolsTable from './schools/SchoolsTable';
 
 interface School {
   id: string;
@@ -33,16 +27,6 @@ const SchoolsModule = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newSchool, setNewSchool] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    planType: 'basic',
-    amount: 50
-  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,73 +58,6 @@ const SchoolsModule = () => {
     }
   };
 
-  const handleAddSchool = async () => {
-    if (!newSchool.name || !newSchool.email) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      
-      // Insert school
-      const { data: schoolData, error: schoolError } = await supabase
-        .from('schools')
-        .insert([{
-          name: newSchool.name,
-          email: newSchool.email,
-          phone: newSchool.phone,
-          address: newSchool.address
-        }])
-        .select()
-        .single();
-
-      if (schoolError) throw schoolError;
-
-      // Create subscription for the school
-      const { error: subscriptionError } = await supabase
-        .from('subscriptions')
-        .insert([{
-          school_id: schoolData.id,
-          plan_type: newSchool.planType,
-          amount: newSchool.amount,
-          start_date: new Date().toISOString().split('T')[0],
-          end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        }]);
-
-      if (subscriptionError) throw subscriptionError;
-
-      toast({
-        title: "Success",
-        description: "School added successfully with subscription",
-      });
-
-      setIsAddDialogOpen(false);
-      setNewSchool({ 
-        name: '', 
-        email: '', 
-        phone: '', 
-        address: '',
-        planType: 'basic',
-        amount: 50
-      });
-      fetchSchools();
-    } catch (error) {
-      console.error('Error adding school:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add school. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const filteredSchools = schools.filter(school => {
     const matchesSearch = school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          school.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -149,16 +66,6 @@ const SchoolsModule = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, BadgeProps['variant']> = {
-      active: 'default',
-      inactive: 'secondary',
-      suspended: 'destructive',
-      cancelled: 'outline'
-    };
-    return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -166,228 +73,19 @@ const SchoolsModule = () => {
           <h2 className="text-3xl font-bold tracking-tight">Schools Management</h2>
           <p className="text-muted-foreground">Manage all schools in the Elimisha network</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add School
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New School</DialogTitle>
-              <DialogDescription>
-                Add a new school to the Elimisha network with subscription
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">School Name *</Label>
-                <Input
-                  id="name"
-                  value={newSchool.name}
-                  onChange={(e) => setNewSchool({ ...newSchool, name: e.target.value })}
-                  placeholder="Enter school name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newSchool.email}
-                  onChange={(e) => setNewSchool({ ...newSchool, email: e.target.value })}
-                  placeholder="Enter school email"
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={newSchool.phone}
-                  onChange={(e) => setNewSchool({ ...newSchool, phone: e.target.value })}
-                  placeholder="Enter phone number"
-                />
-              </div>
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Textarea
-                  id="address"
-                  value={newSchool.address}
-                  onChange={(e) => setNewSchool({ ...newSchool, address: e.target.value })}
-                  placeholder="Enter school address"
-                />
-              </div>
-              <div>
-                <Label htmlFor="planType">Subscription Plan</Label>
-                <Select value={newSchool.planType} onValueChange={(value) => setNewSchool({ ...newSchool, planType: value, amount: value === 'basic' ? 50 : value === 'premium' ? 100 : 200 })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic - $50/month</SelectItem>
-                    <SelectItem value="premium">Premium - $100/month</SelectItem>
-                    <SelectItem value="enterprise">Enterprise - $200/month</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleAddSchool} className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Adding School...' : 'Add School'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <AddSchoolDialog onSchoolAdded={fetchSchools} />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Schools</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{schools.length}</div>
-            <p className="text-xs text-muted-foreground">Active institutions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {schools.filter(s => s.subscriptions?.[0]?.status === 'active').length}
-            </div>
-            <p className="text-xs text-muted-foreground">Paying customers</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              $
-              {schools
-                .filter(s => s.subscriptions?.[0]?.status === 'active')
-                .reduce((sum, s) => sum + (s.subscriptions?.[0]?.amount || 0), 0)
-                .toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">From active subscriptions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {schools.filter(s => {
-                const created = new Date(s.created_at);
-                const now = new Date();
-                return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-              }).length}
-            </div>
-            <p className="text-xs text-muted-foreground">Schools added</p>
-          </CardContent>
-        </Card>
-      </div>
+      <SchoolStatsCards schools={schools} />
 
-      {/* Filters */}
-      <div className="flex space-x-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search schools..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="suspended">Suspended</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <SchoolsFilter 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+      />
 
-      {/* Schools Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Schools Directory</CardTitle>
-          <CardDescription>
-            All schools registered in the Elimisha platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="text-center">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p>Loading schools...</p>
-              </div>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>School Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Subscription</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Monthly Fee</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSchools.map((school) => {
-                  const subscription = school.subscriptions?.[0];
-                  return (
-                    <TableRow key={school.id}>
-                      <TableCell className="font-medium">{school.name}</TableCell>
-                      <TableCell>{school.email}</TableCell>
-                      <TableCell>{school.phone || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {subscription?.plan_type || 'No Plan'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(subscription?.status || 'inactive')}
-                      </TableCell>
-                      <TableCell>${subscription?.amount || 0}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <SchoolsTable schools={filteredSchools} loading={loading} />
     </div>
   );
 };
