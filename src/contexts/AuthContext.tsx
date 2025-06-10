@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -47,12 +47,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (session?.user) {
             await fetchUserProfile(session.user);
           } else {
+            setUser(null);
             setIsLoading(false);
           }
         }
       } catch (error) {
         console.error('🔐 AuthProvider: Error getting initial session:', error);
         if (mounted) {
+          setUser(null);
           setIsLoading(false);
         }
       }
@@ -64,13 +66,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 AuthProvider: Auth state changed', { event, user: session?.user?.email });
       
-      if (mounted) {
-        if (session?.user) {
-          await fetchUserProfile(session.user);
-        } else {
-          setUser(null);
-          setIsLoading(false);
-        }
+      if (!mounted) return;
+      
+      if (session?.user) {
+        await fetchUserProfile(session.user);
+      } else {
+        setUser(null);
+        setIsLoading(false);
       }
     });
 
@@ -87,23 +89,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        console.warn('⚠️ AuthProvider: Profile fetch error:', error);
-      }
+      console.log('👤 AuthProvider: Profile query result:', { profile, error });
 
-      console.log('👤 AuthProvider: Profile data:', profile);
-
-      setUser({
+      const userData: AuthUser = {
         ...authUser,
         role: profile?.role || 'parent',
         name: profile?.name || authUser.email?.split('@')[0] || 'User',
         school_id: profile?.school_id,
         avatar_url: profile?.avatar_url
-      });
+      };
+
+      console.log('👤 AuthProvider: Final user data:', userData);
+      setUser(userData);
     } catch (error) {
       console.error('❌ AuthProvider: Error fetching user profile:', error);
+      // Set user with basic info even if profile fetch fails
       setUser({
         ...authUser,
         role: 'parent',
@@ -116,6 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 AuthProvider: Attempting sign in for', email);
+    setIsLoading(true);
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -133,11 +136,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('❌ AuthProvider: Sign in exception:', error);
       return { data: null, error };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, metadata = {}) => {
     console.log('📝 AuthProvider: Attempting sign up for', email);
+    setIsLoading(true);
     
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -158,11 +164,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('❌ AuthProvider: Sign up exception:', error);
       return { data: null, error };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
     console.log('🚪 AuthProvider: Signing out');
+    setIsLoading(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -170,14 +179,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       console.log('✅ AuthProvider: Successfully signed out');
+      setUser(null);
     } catch (error) {
       console.error('❌ AuthProvider: Sign out exception:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const value = {
+    user,
+    isLoading,
+    signIn,
+    signUp,
+    signOut
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

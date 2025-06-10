@@ -18,16 +18,21 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut();
+      console.log('✅ Logout successful');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout error:', error);
     }
   };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <header className="h-16 border-b border-border bg-white/80 backdrop-blur-sm flex items-center justify-between px-6 shadow-sm">
       <div className="flex items-center space-x-4">
         <h1 className="text-xl font-semibold text-foreground">
-          Academic Management System
+          Elimisha School Management
         </h1>
       </div>
 
@@ -42,8 +47,8 @@ const Header = () => {
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={user?.avatar_url} alt={user?.name} />
-                <AvatarFallback className="gradient-academic text-white">
-                  {user?.name?.charAt(0)}
+                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white">
+                  {user?.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -56,7 +61,7 @@ const Header = () => {
                   {user?.email}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground capitalize">
-                  {user?.role}
+                  {user?.role?.replace('_', ' ')}
                 </p>
               </div>
             </DropdownMenuLabel>

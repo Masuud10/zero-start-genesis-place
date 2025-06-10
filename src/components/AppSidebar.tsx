@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -25,7 +26,8 @@ import {
   MessageSquare, 
   FileText, 
   Headphones, 
-  Settings 
+  Settings,
+  LogOut 
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -34,7 +36,7 @@ interface AppSidebarProps {
 }
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
@@ -78,6 +80,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
     onSectionChange?.(section);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      console.log('✅ Logout successful from sidebar');
+    } catch (error) {
+      console.error('❌ Logout error from sidebar:', error);
+    }
+  };
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b px-6 py-4">
@@ -116,10 +127,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
 
       <SidebarFooter className="border-t p-4">
         <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg p-4 border">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 mb-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
               <span className="text-white text-sm font-bold">
-                {user?.name?.charAt(0)}
+                {user?.name?.charAt(0) || 'U'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
@@ -131,6 +142,15 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
               </p>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </Button>
         </div>
       </SidebarFooter>
     </Sidebar>
