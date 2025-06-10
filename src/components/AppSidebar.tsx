@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -27,13 +26,12 @@ import {
   MessageSquare, 
   FileText, 
   Headphones, 
-  Settings,
-  LogOut,
   Building2,
   CreditCard,
   Activity,
   TrendingUp,
-  UserCheck
+  UserCheck,
+  LogOut
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -61,7 +59,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
         { id: 'system-health', label: 'System Health', icon: Activity, roles: ['elimisha_admin', 'edufam_admin'] },
         { id: 'system-analytics', label: 'System Analytics', icon: TrendingUp, roles: ['elimisha_admin', 'edufam_admin'] },
         { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['elimisha_admin', 'edufam_admin'] },
-        { id: 'settings', label: 'Settings', icon: Settings, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'settings', label: 'Settings', icon: Building2, roles: ['elimisha_admin', 'edufam_admin'] },
       ];
     }
 
@@ -77,7 +75,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
       { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
       { id: 'reports', label: 'Reports', icon: FileText, roles: ['school_owner', 'principal', 'teacher', 'finance_officer'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['school_owner', 'principal'] },
-      { id: 'settings', label: 'Settings', icon: Settings, roles: ['school_owner', 'principal'] },
     ];
   };
 

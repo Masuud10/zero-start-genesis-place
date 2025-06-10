@@ -1,211 +1,243 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { DollarSign, CreditCard, TrendingUp, PieChart, Smartphone, Receipt, Plus, FileText } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import FeeCollectionModal from '@/components/modals/FeeCollectionModal';
-import FinancialReportsModal from '@/components/modals/FinancialReportsModal';
-import MpesaPaymentModal from '@/components/modals/MpesaPaymentModal';
-import ExpenseModal from '@/components/modals/ExpenseModal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DollarSign, TrendingUp, Users, FileText, Plus, Download, CreditCard } from 'lucide-react';
 
 const FinanceModule = () => {
-  const { user } = useAuth();
-  const [showFeeCollection, setShowFeeCollection] = useState(false);
-  const [showReports, setShowReports] = useState(false);
-  const [showMpesa, setShowMpesa] = useState(false);
-  const [showExpenses, setShowExpenses] = useState(false);
+  const [selectedTerm, setSelectedTerm] = useState('term1');
+  const [selectedClass, setSelectedClass] = useState('all');
 
-  const isFinanceOfficer = user?.role === 'finance_officer' || user?.role === 'principal' || user?.role === 'school_owner';
+  const financeStats = {
+    totalRevenue: 2450000,
+    collected: 2100000,
+    pending: 350000,
+    expenses: 1800000
+  };
 
-  // Calculate net revenue (revenue - expenses)
-  const totalRevenue = 2500000;
-  const totalExpenses = 1200000;
-  const netRevenue = totalRevenue - totalExpenses;
+  const terms = [
+    { id: 'term1', name: 'Term 1' },
+    { id: 'term2', name: 'Term 2' },
+    { id: 'term3', name: 'Term 3' },
+  ];
+
+  const classes = [
+    { id: 'all', name: 'All Classes' },
+    { id: '8a', name: 'Grade 8A' },
+    { id: '8b', name: 'Grade 8B' },
+    { id: '7a', name: 'Grade 7A' },
+    { id: '7b', name: 'Grade 7B' },
+  ];
+
+  const mockFeeRecords = [
+    {
+      id: '1',
+      studentName: 'John Doe',
+      admissionNumber: 'ADM001',
+      class: 'Grade 8A',
+      feeType: 'Tuition',
+      amount: 15000,
+      paid: 15000,
+      balance: 0,
+      status: 'paid',
+      dueDate: '2024-03-15'
+    },
+    {
+      id: '2',
+      studentName: 'Jane Smith',
+      admissionNumber: 'ADM002',
+      class: 'Grade 8A',
+      feeType: 'Tuition',
+      amount: 15000,
+      paid: 10000,
+      balance: 5000,
+      status: 'partial',
+      dueDate: '2024-03-15'
+    },
+  ];
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES'
+    }).format(amount);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
+      case 'partial':
+        return <Badge className="bg-yellow-100 text-yellow-800">Partial</Badge>;
+      case 'overdue':
+        return <Badge className="bg-red-100 text-red-800">Overdue</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
-          Finance Management
-        </h1>
-        <p className="text-muted-foreground">Manage fees, payments, and financial records</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Finance Management
+          </h1>
+          <p className="text-muted-foreground">Manage school finances and fee collection</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Record Payment
+          </Button>
+        </div>
       </div>
 
+      {/* Finance Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">KES {totalRevenue.toLocaleString()}</p>
-              </div>
-            </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(financeStats.totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground">Expected this term</p>
           </CardContent>
         </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <Receipt className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Expenses</p>
-                <p className="text-2xl font-bold">KES {totalExpenses.toLocaleString()}</p>
-              </div>
-            </div>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Collected</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(financeStats.collected)}</div>
+            <p className="text-xs text-muted-foreground">85.7% of target</p>
           </CardContent>
         </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Net Revenue</p>
-                <p className="text-2xl font-bold">KES {netRevenue.toLocaleString()}</p>
-              </div>
-            </div>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <FileText className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{formatCurrency(financeStats.pending)}</div>
+            <p className="text-xs text-muted-foreground">Outstanding fees</p>
           </CardContent>
         </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <PieChart className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Collection Rate</p>
-                <p className="text-2xl font-bold">87%</p>
-              </div>
-            </div>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Expenses</CardTitle>
+            <CreditCard className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(financeStats.expenses)}</div>
+            <p className="text-xs text-muted-foreground">This term</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Button 
-          onClick={() => setShowMpesa(true)}
-          className="h-16 flex flex-col items-center gap-2"
-        >
-          <Smartphone className="w-6 h-6" />
-          M-PESA Payments
-        </Button>
-        
-        {isFinanceOfficer && (
-          <Button 
-            onClick={() => setShowFeeCollection(true)}
-            variant="outline"
-            className="h-16 flex flex-col items-center gap-2"
-          >
-            <CreditCard className="w-6 h-6" />
-            Fee Collection
-          </Button>
-        )}
-        
-        {isFinanceOfficer && (
-          <Button 
-            onClick={() => setShowExpenses(true)}
-            variant="outline"
-            className="h-16 flex flex-col items-center gap-2"
-          >
-            <Plus className="w-6 h-6" />
-            Add Expenses
-          </Button>
-        )}
-        
-        <Button 
-          onClick={() => setShowReports(true)}
-          variant="outline"
-          className="h-16 flex flex-col items-center gap-2"
-        >
-          <FileText className="w-6 h-6" />
-          Financial Reports
-        </Button>
-      </div>
-
+      {/* Main Content */}
       <Card>
         <CardHeader>
-          <CardTitle>Financial Management Features</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Smartphone className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="font-semibold mb-2">M-PESA Integration</h3>
-              <p className="text-sm text-muted-foreground">
-                Automated fee collection through M-PESA mobile payments using Safaricom Daraja API
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Fee Management</h3>
-              <p className="text-sm text-muted-foreground">
-                Track student fees, payments, and outstanding balances automatically
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Receipt className="w-8 h-8 text-orange-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Expense Management</h3>
-              <p className="text-sm text-muted-foreground">
-                Record and track school expenses with automatic revenue deduction
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <PieChart className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Financial Reports</h3>
-              <p className="text-sm text-muted-foreground">
-                Generate comprehensive financial reports and analytics
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-indigo-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Revenue Tracking</h3>
-              <p className="text-sm text-muted-foreground">
-                Monitor net revenue after automatic expense deductions
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <CreditCard className="w-8 h-8 text-pink-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Payment Processing</h3>
-              <p className="text-sm text-muted-foreground">
-                Secure payment processing with real-time transaction tracking
-              </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle>Financial Records</CardTitle>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Select value={selectedTerm} onValueChange={setSelectedTerm}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Select term" />
+                </SelectTrigger>
+                <SelectContent>
+                  {terms.map((term) => (
+                    <SelectItem key={term.id} value={term.id}>{term.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="fees" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="fees">Fee Collection</TabsTrigger>
+              <TabsTrigger value="expenses">Expenses</TabsTrigger>
+              <TabsTrigger value="reports">Financial Reports</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="fees" className="mt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student</TableHead>
+                    <TableHead>Admission No.</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Fee Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Paid</TableHead>
+                    <TableHead>Balance</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockFeeRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.studentName}</TableCell>
+                      <TableCell>{record.admissionNumber}</TableCell>
+                      <TableCell>{record.class}</TableCell>
+                      <TableCell>{record.feeType}</TableCell>
+                      <TableCell>{formatCurrency(record.amount)}</TableCell>
+                      <TableCell>{formatCurrency(record.paid)}</TableCell>
+                      <TableCell>{formatCurrency(record.balance)}</TableCell>
+                      <TableCell>{getStatusBadge(record.status)}</TableCell>
+                      <TableCell>{record.dueDate}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">
+                          Record Payment
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+            
+            <TabsContent value="expenses" className="mt-6">
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Expense tracking coming soon...</p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="reports" className="mt-6">
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Financial reports coming soon...</p>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
-
-      {/* Modals */}
-      {showMpesa && <MpesaPaymentModal onClose={() => setShowMpesa(false)} />}
-      {showFeeCollection && <FeeCollectionModal onClose={() => setShowFeeCollection(false)} />}
-      {showReports && <FinancialReportsModal onClose={() => setShowReports(false)} />}
-      {showExpenses && <ExpenseModal onClose={() => setShowExpenses(false)} />}
     </div>
   );
 };

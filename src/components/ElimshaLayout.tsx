@@ -1,33 +1,34 @@
 
 import React, { useState } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import AppSidebar from './AppSidebar';
-import Dashboard from './Dashboard';
-import AnalyticsDashboard from './analytics/AnalyticsDashboard';
-import SchoolsModule from './modules/SchoolsModule';
-import BillingModule from './modules/BillingModule';
-import SystemHealthModule from './modules/SystemHealthModule';
-import UsersModule from './modules/UsersModule';
-import SupportModule from './modules/SupportModule';
-import SettingsModule from './modules/SettingsModule';
-import ReportsModule from './modules/ReportsModule';
-import GradesModule from './modules/GradesModule';
-import AttendanceModule from './modules/AttendanceModule';
-import StudentsModule from './modules/StudentsModule';
-import FinanceModule from './modules/FinanceModule';
-import TimetableModule from './modules/TimetableModule';
-import AnnouncementsModule from './modules/AnnouncementsModule';
-import MessagesModule from './modules/MessagesModule';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import AppSidebar from '@/components/AppSidebar';
+import Dashboard from '@/components/Dashboard';
+import GradesModule from '@/components/modules/GradesModule';
+import AttendanceModule from '@/components/modules/AttendanceModule';
+import StudentsModule from '@/components/modules/StudentsModule';
+import FinanceModule from '@/components/modules/FinanceModule';
+import TimetableModule from '@/components/modules/TimetableModule';
+import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
+import MessagesModule from '@/components/modules/MessagesModule';
+import ReportsModule from '@/components/modules/ReportsModule';
+import SupportModule from '@/components/modules/SupportModule';
+import SettingsModule from '@/components/modules/SettingsModule';
+import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import SchoolsModule from '@/components/modules/SchoolsModule';
+import UsersModule from '@/components/modules/UsersModule';
+import BillingModule from '@/components/modules/BillingModule';
+import SystemHealthModule from '@/components/modules/SystemHealthModule';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
+  const { user } = useAuth();
 
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />;
       case 'analytics':
-      case 'system-analytics':
         return <AnalyticsDashboard />;
       case 'grades':
         return <GradesModule />;
@@ -43,6 +44,15 @@ const ElimshaLayout = () => {
         return <AnnouncementsModule />;
       case 'messages':
         return <MessagesModule />;
+      case 'reports':
+        return <ReportsModule />;
+      case 'support':
+        return <SupportModule />;
+      case 'settings':
+        // Only show settings for elimisha_admin and edufam_admin
+        return (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') 
+          ? <SettingsModule /> 
+          : <Dashboard />;
       case 'schools':
         return <SchoolsModule />;
       case 'users':
@@ -51,12 +61,8 @@ const ElimshaLayout = () => {
         return <BillingModule />;
       case 'system-health':
         return <SystemHealthModule />;
-      case 'support':
-        return <SupportModule />;
-      case 'reports':
-        return <ReportsModule />;
-      case 'settings':
-        return <SettingsModule />;
+      case 'system-analytics':
+        return <AnalyticsDashboard />;
       default:
         return <Dashboard />;
     }
@@ -64,14 +70,16 @@ const ElimshaLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="flex min-h-screen w-full">
         <AppSidebar 
           activeSection={activeSection} 
           onSectionChange={setActiveSection} 
         />
-        <main className="flex-1 overflow-auto p-6 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50">
-          {renderContent()}
-        </main>
+        <SidebarInset className="flex-1">
+          <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+            {renderContent()}
+          </main>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
