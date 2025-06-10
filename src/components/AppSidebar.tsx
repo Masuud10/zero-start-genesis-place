@@ -28,7 +28,12 @@ import {
   FileText, 
   Headphones, 
   Settings,
-  LogOut 
+  LogOut,
+  Building2,
+  CreditCard,
+  Activity,
+  TrendingUp,
+  UserCheck
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -40,21 +45,43 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
   const { user, signOut } = useAuth();
   const { toast } = useToast();
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['school_owner', 'principal', 'teacher', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
-    { id: 'grades', label: 'Grades', icon: GraduationCap, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
-    { id: 'attendance', label: 'Attendance', icon: CalendarCheck, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
-    { id: 'students', label: 'Students', icon: Users, roles: ['school_owner', 'principal', 'teacher'] },
-    { id: 'finance', label: 'Finance', icon: DollarSign, roles: ['school_owner', 'principal', 'finance_officer', 'parent'] },
-    { id: 'timetable', label: 'Timetable', icon: Calendar, roles: ['school_owner', 'principal', 'teacher'] },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
-    { id: 'reports', label: 'Reports', icon: FileText, roles: ['school_owner', 'principal', 'teacher', 'finance_officer'] },
-    { id: 'support', label: 'Support', icon: Headphones, roles: ['school_owner', 'principal'] },
-    { id: 'settings', label: 'Settings', icon: Settings, roles: ['school_owner', 'principal', 'edufam_admin', 'elimisha_admin'] },
-  ];
+  const getMenuItems = () => {
+    const baseItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
+      { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['school_owner', 'principal', 'teacher', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
+    ];
 
+    // Elimisha admin specific items
+    if (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') {
+      return [
+        ...baseItems,
+        { id: 'schools', label: 'Schools', icon: Building2, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'users', label: 'Users', icon: UserCheck, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'billing', label: 'Billing Management', icon: CreditCard, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'system-health', label: 'System Health', icon: Activity, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'system-analytics', label: 'System Analytics', icon: TrendingUp, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['elimisha_admin', 'edufam_admin'] },
+        { id: 'settings', label: 'Settings', icon: Settings, roles: ['elimisha_admin', 'edufam_admin'] },
+      ];
+    }
+
+    // Regular school items
+    return [
+      ...baseItems,
+      { id: 'grades', label: 'Grades', icon: GraduationCap, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
+      { id: 'attendance', label: 'Attendance', icon: CalendarCheck, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
+      { id: 'students', label: 'Students', icon: Users, roles: ['school_owner', 'principal', 'teacher'] },
+      { id: 'finance', label: 'Finance', icon: DollarSign, roles: ['school_owner', 'principal', 'finance_officer', 'parent'] },
+      { id: 'timetable', label: 'Timetable', icon: Calendar, roles: ['school_owner', 'principal', 'teacher'] },
+      { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
+      { id: 'reports', label: 'Reports', icon: FileText, roles: ['school_owner', 'principal', 'teacher', 'finance_officer'] },
+      { id: 'support', label: 'Support', icon: Headphones, roles: ['school_owner', 'principal'] },
+      { id: 'settings', label: 'Settings', icon: Settings, roles: ['school_owner', 'principal'] },
+    ];
+  };
+
+  const menuItems = getMenuItems();
   const filteredItems = menuItems.filter(item => 
     item.roles.includes(user?.role || '')
   );

@@ -157,6 +157,63 @@ export type Database = {
           },
         ]
       }
+      billing_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          payment_method: string | null
+          processed_at: string | null
+          school_id: string
+          status: string
+          stripe_payment_id: string | null
+          subscription_id: string | null
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method?: string | null
+          processed_at?: string | null
+          school_id: string
+          status?: string
+          stripe_payment_id?: string | null
+          subscription_id?: string | null
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method?: string | null
+          processed_at?: string | null
+          school_id?: string
+          status?: string
+          stripe_payment_id?: string | null
+          subscription_id?: string | null
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string | null
@@ -589,6 +646,59 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          amount: number
+          billing_cycle: string
+          created_at: string
+          currency: string
+          end_date: string
+          id: string
+          plan_type: string
+          school_id: string
+          start_date: string
+          status: string
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          end_date: string
+          id?: string
+          plan_type: string
+          school_id: string
+          start_date: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          end_date?: string
+          id?: string
+          plan_type?: string
+          school_id?: string
+          start_date?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
@@ -655,6 +765,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_metrics: {
+        Row: {
+          id: string
+          metadata: Json | null
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          metric_name?: string
+          metric_type?: string
+          metric_value?: number
+          recorded_at?: string
+        }
+        Relationships: []
       }
       timetable_slots: {
         Row: {

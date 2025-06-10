@@ -41,11 +41,10 @@ const Dashboard = () => {
       case 'parent':
         return <ParentDashboard onModalOpen={openModal} />;
       case 'elimisha_admin':
+      case 'edufam_admin':
         return <ElimshaAdminDashboard onModalOpen={openModal} />;
       case 'finance_officer':
         return <SchoolOwnerDashboard onModalOpen={openModal} />; // Same as school owner for now
-      case 'edufam_admin':
-        return <ElimshaAdminDashboard onModalOpen={openModal} />; // Same as elimisha admin for now
       default:
         return (
           <Card>
@@ -73,7 +72,7 @@ const Dashboard = () => {
             Welcome back, {user?.name?.split(' ')[0]}!
           </h1>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            {user?.role === 'elimisha_admin' 
+            {user?.role === 'elimisha_admin' || user?.role === 'edufam_admin'
               ? "System-wide management and monitoring dashboard."
               : user?.role === 'school_owner'
               ? "Monitor your school's financial, academic, and operational performance."
