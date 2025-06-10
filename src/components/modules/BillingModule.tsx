@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Badge, BadgeProps } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -60,7 +60,7 @@ const BillingModule = () => {
         .from('subscriptions')
         .select(`
           *,
-          schools(name, email)
+          school:schools(name, email)
         `);
 
       if (subsError) throw subsError;
@@ -70,14 +70,25 @@ const BillingModule = () => {
         .from('billing_transactions')
         .select(`
           *,
-          schools(name)
+          school:schools(name)
         `)
         .order('created_at', { ascending: false });
 
       if (transError) throw transError;
 
-      setSubscriptions(subscriptionsData || []);
-      setTransactions(transactionsData || []);
+      // Transform the data to match our interfaces
+      const transformedSubscriptions = subscriptionsData?.map(sub => ({
+        ...sub,
+        school: sub.school
+      })) || [];
+
+      const transformedTransactions = transactionsData?.map(trans => ({
+        ...trans,
+        school: trans.school
+      })) || [];
+
+      setSubscriptions(transformedSubscriptions);
+      setTransactions(transformedTransactions);
     } catch (error) {
       console.error('Error fetching billing data:', error);
       toast({
@@ -107,7 +118,7 @@ const BillingModule = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
+    const variants: Record<string, BadgeProps['variant']> = {
       active: 'default',
       inactive: 'secondary',
       suspended: 'destructive',
@@ -116,16 +127,16 @@ const BillingModule = () => {
       completed: 'default',
       failed: 'destructive'
     };
-    return <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>{status}</Badge>;
+    return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
   };
 
   const getPlanBadge = (plan: string) => {
-    const variants = {
+    const variants: Record<string, BadgeProps['variant']> = {
       basic: 'secondary',
       premium: 'default',
       enterprise: 'destructive'
     };
-    return <Badge variant={variants[plan as keyof typeof variants] || 'secondary'}>{plan}</Badge>;
+    return <Badge variant={variants[plan] || 'secondary'}>{plan}</Badge>;
   };
 
   const filteredSubscriptions = subscriptions.filter(sub => {
