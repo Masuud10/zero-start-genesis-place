@@ -10,6 +10,7 @@ import SystemHealthModule from './modules/SystemHealthModule';
 import UsersModule from './modules/UsersModule';
 import SupportModule from './modules/SupportModule';
 import SettingsModule from './modules/SettingsModule';
+import ReportsModule from './modules/ReportsModule';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -31,6 +32,8 @@ const ElimshaLayout = () => {
         return <SystemHealthModule />;
       case 'support':
         return <SupportModule />;
+      case 'reports':
+        return <ReportsModule />;
       case 'settings':
         return <SettingsModule />;
       default:

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,11 +21,11 @@ interface School {
   address: string;
   created_at: string;
   updated_at: string;
-  subscription?: {
+  subscriptions?: {
     plan_type: string;
     status: string;
     amount: number;
-  };
+  }[];
 }
 
 const SchoolsModule = () => {
@@ -33,11 +34,14 @@ const SchoolsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newSchool, setNewSchool] = useState({
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    planType: 'basic',
+    amount: 50
   });
   const { toast } = useToast();
 
@@ -71,36 +75,77 @@ const SchoolsModule = () => {
   };
 
   const handleAddSchool = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('schools')
-        .insert([newSchool])
-        .select();
+    if (!newSchool.name || !newSchool.email) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (error) throw error;
+    try {
+      setIsSubmitting(true);
+      
+      // Insert school
+      const { data: schoolData, error: schoolError } = await supabase
+        .from('schools')
+        .insert([{
+          name: newSchool.name,
+          email: newSchool.email,
+          phone: newSchool.phone,
+          address: newSchool.address
+        }])
+        .select()
+        .single();
+
+      if (schoolError) throw schoolError;
+
+      // Create subscription for the school
+      const { error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .insert([{
+          school_id: schoolData.id,
+          plan_type: newSchool.planType,
+          amount: newSchool.amount,
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        }]);
+
+      if (subscriptionError) throw subscriptionError;
 
       toast({
         title: "Success",
-        description: "School added successfully",
+        description: "School added successfully with subscription",
       });
 
       setIsAddDialogOpen(false);
-      setNewSchool({ name: '', email: '', phone: '', address: '' });
+      setNewSchool({ 
+        name: '', 
+        email: '', 
+        phone: '', 
+        address: '',
+        planType: 'basic',
+        amount: 50
+      });
       fetchSchools();
     } catch (error) {
       console.error('Error adding school:', error);
       toast({
         title: "Error",
-        description: "Failed to add school",
+        description: "Failed to add school. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const filteredSchools = schools.filter(school => {
     const matchesSearch = school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          school.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || school.subscription?.status === statusFilter;
+    const subscription = school.subscriptions?.[0];
+    const matchesStatus = statusFilter === 'all' || subscription?.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -132,12 +177,12 @@ const SchoolsModule = () => {
             <DialogHeader>
               <DialogTitle>Add New School</DialogTitle>
               <DialogDescription>
-                Add a new school to the Elimisha network
+                Add a new school to the Elimisha network with subscription
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="name">School Name</Label>
+                <Label htmlFor="name">School Name *</Label>
                 <Input
                   id="name"
                   value={newSchool.name}
@@ -146,7 +191,7 @@ const SchoolsModule = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -173,8 +218,21 @@ const SchoolsModule = () => {
                   placeholder="Enter school address"
                 />
               </div>
-              <Button onClick={handleAddSchool} className="w-full">
-                Add School
+              <div>
+                <Label htmlFor="planType">Subscription Plan</Label>
+                <Select value={newSchool.planType} onValueChange={(value) => setNewSchool({ ...newSchool, planType: value, amount: value === 'basic' ? 50 : value === 'premium' ? 100 : 200 })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="basic">Basic - $50/month</SelectItem>
+                    <SelectItem value="premium">Premium - $100/month</SelectItem>
+                    <SelectItem value="enterprise">Enterprise - $200/month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleAddSchool} className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding School...' : 'Add School'}
               </Button>
             </div>
           </DialogContent>
@@ -200,7 +258,7 @@ const SchoolsModule = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {schools.filter(s => s.subscription?.status === 'active').length}
+              {schools.filter(s => s.subscriptions?.[0]?.status === 'active').length}
             </div>
             <p className="text-xs text-muted-foreground">Paying customers</p>
           </CardContent>
@@ -214,8 +272,8 @@ const SchoolsModule = () => {
             <div className="text-2xl font-bold">
               $
               {schools
-                .filter(s => s.subscription?.status === 'active')
-                .reduce((sum, s) => sum + (s.subscription?.amount || 0), 0)
+                .filter(s => s.subscriptions?.[0]?.status === 'active')
+                .reduce((sum, s) => sum + (s.subscriptions?.[0]?.amount || 0), 0)
                 .toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">From active subscriptions</p>
@@ -276,7 +334,12 @@ const SchoolsModule = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div>Loading schools...</div>
+            <div className="flex items-center justify-center p-8">
+              <div className="text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p>Loading schools...</p>
+              </div>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -291,32 +354,35 @@ const SchoolsModule = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSchools.map((school) => (
-                  <TableRow key={school.id}>
-                    <TableCell className="font-medium">{school.name}</TableCell>
-                    <TableCell>{school.email}</TableCell>
-                    <TableCell>{school.phone}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {school.subscription?.plan_type || 'No Plan'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(school.subscription?.status || 'inactive')}
-                    </TableCell>
-                    <TableCell>${school.subscription?.amount || 0}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredSchools.map((school) => {
+                  const subscription = school.subscriptions?.[0];
+                  return (
+                    <TableRow key={school.id}>
+                      <TableCell className="font-medium">{school.name}</TableCell>
+                      <TableCell>{school.email}</TableCell>
+                      <TableCell>{school.phone || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {subscription?.plan_type || 'No Plan'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(subscription?.status || 'inactive')}
+                      </TableCell>
+                      <TableCell>${subscription?.amount || 0}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
