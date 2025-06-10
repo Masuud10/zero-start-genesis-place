@@ -39,8 +39,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
   const { user, signOut } = useAuth();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['school_owner', 'principal', 'teacher', 'finance_officer', 'edufam_admin'] },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['school_owner', 'principal', 'teacher', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
     { id: 'grades', label: 'Grades', icon: GraduationCap, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'attendance', label: 'Attendance', icon: CalendarCheck, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'students', label: 'Students', icon: Users, roles: ['school_owner', 'principal', 'teacher'] },
@@ -50,7 +50,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
     { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'reports', label: 'Reports', icon: FileText, roles: ['school_owner', 'principal', 'teacher', 'finance_officer'] },
     { id: 'support', label: 'Support', icon: Headphones, roles: ['school_owner', 'principal'] },
-    { id: 'settings', label: 'Settings', icon: Settings, roles: ['school_owner', 'principal', 'edufam_admin'] },
+    { id: 'settings', label: 'Settings', icon: Settings, roles: ['school_owner', 'principal', 'edufam_admin', 'elimisha_admin'] },
   ];
 
   const filteredItems = menuItems.filter(item => 
@@ -71,6 +71,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
         return 'Finance Officer';
       case 'edufam_admin':
         return 'EduFam Admin';
+      case 'elimisha_admin':
+        return 'Elimisha Admin';
       default:
         return role;
     }
