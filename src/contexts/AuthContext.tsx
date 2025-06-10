@@ -37,7 +37,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     let mounted = true;
     
-    // Get initial session
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -62,7 +61,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     initializeAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 AuthProvider: Auth state changed', { event, user: session?.user?.email });
       
@@ -105,7 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
     } catch (error) {
       console.error('❌ AuthProvider: Error fetching user profile:', error);
-      // Set user with basic info even if profile fetch fails
       setUser({
         ...authUser,
         role: 'parent',
@@ -136,8 +133,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('❌ AuthProvider: Sign in exception:', error);
       return { data: null, error };
-    } finally {
-      setIsLoading(false);
     }
   };
 
