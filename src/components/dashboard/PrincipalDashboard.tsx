@@ -1,14 +1,10 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import StudentAdmissionModal from '../modals/StudentAdmissionModal';
-import TeacherAdmissionModal from '../modals/TeacherAdmissionModal';
-import ParentAdmissionModal from '../modals/ParentAdmissionModal';
-import PrincipalReportsModal from '../modals/PrincipalReportsModal';
+import TodayStatsSection from './principal/TodayStatsSection';
+import QuickActionsSection from './principal/QuickActionsSection';
+import ClassPerformanceSection from './principal/ClassPerformanceSection';
+import RecentActivitiesSection from './principal/RecentActivitiesSection';
+import PrincipalModals from './principal/PrincipalModals';
 
 interface PrincipalDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -16,7 +12,6 @@ interface PrincipalDashboardProps {
 
 const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  const { user } = useAuth();
 
   const todayStats = [
     {
@@ -129,161 +124,21 @@ const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
   ];
 
   const handleModalSuccess = () => {
-    // Refresh data after successful admission
     console.log('Admission successful, refreshing data...');
   };
 
   return (
     <div className="space-y-6">
-      {/* Today's Overview */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📊</span>
-            <span>Today's Overview</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {todayStats.map((stat, index) => (
-              <div key={index} className="relative overflow-hidden border rounded-lg p-4">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5`}></div>
-                <div className="flex items-center justify-between space-y-0 pb-2">
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <div className="text-xl">{stat.icon}</div>
-                </div>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.count}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>⚡</span>
-            <span>Principal Actions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {quickActions.map((action, index) => (
-              <button 
-                key={index}
-                onClick={action.action}
-                className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-all duration-200 text-left w-full"
-              >
-                <div className={`w-10 h-10 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center`}>
-                  <span className="text-white text-sm">{action.icon}</span>
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-base">{action.title}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Class Performance */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📚</span>
-            <span>Class Performance Overview</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {classPerformance.map((cls, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="font-medium">{cls.class}</p>
-                    <p className="text-sm text-muted-foreground">Teacher: {cls.teacher}</p>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {cls.students} students
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <p className="text-sm font-medium">{cls.attendance}%</p>
-                    <p className="text-xs text-muted-foreground">Attendance</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-medium">{cls.avgGrade}%</p>
-                    <p className="text-xs text-muted-foreground">Avg Grade</p>
-                  </div>
-                  <Badge variant={cls.avgGrade >= 80 ? 'default' : cls.avgGrade >= 70 ? 'secondary' : 'destructive'}>
-                    {cls.avgGrade >= 80 ? 'Excellent' : cls.avgGrade >= 70 ? 'Good' : 'Needs Attention'}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activities */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📋</span>
-            <span>Recent School Activities</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-accent transition-colors">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.type === 'grade' ? 'bg-blue-500' :
-                  activity.type === 'attendance' ? 'bg-green-500' :
-                  activity.type === 'admin' ? 'bg-purple-500' :
-                  'bg-orange-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{activity.action}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-muted-foreground">by {activity.user}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Modals */}
-      {activeModal === 'student-admission' && (
-        <StudentAdmissionModal 
-          onClose={() => setActiveModal(null)} 
-          onSuccess={handleModalSuccess}
-        />
-      )}
-      {activeModal === 'teacher-admission' && (
-        <TeacherAdmissionModal 
-          onClose={() => setActiveModal(null)} 
-          onSuccess={handleModalSuccess}
-        />
-      )}
-      {activeModal === 'parent-admission' && (
-        <ParentAdmissionModal 
-          onClose={() => setActiveModal(null)} 
-          onSuccess={handleModalSuccess}
-        />
-      )}
-      {activeModal === 'principal-reports' && (
-        <PrincipalReportsModal 
-          onClose={() => setActiveModal(null)} 
-        />
-      )}
+      <TodayStatsSection stats={todayStats} />
+      <QuickActionsSection actions={quickActions} />
+      <ClassPerformanceSection classPerformance={classPerformance} />
+      <RecentActivitiesSection activities={recentActivities} />
+      
+      <PrincipalModals 
+        activeModal={activeModal}
+        onClose={() => setActiveModal(null)}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   );
 };
