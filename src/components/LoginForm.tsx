@@ -6,44 +6,30 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Info } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [showSignUp, setShowSignUp] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
-  const addDebugInfo = (message: string) => {
-    console.log('🐛 DEBUG:', message);
-    setDebugInfo(prev => [...prev.slice(-4), `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setDebugInfo([]);
-
-    addDebugInfo(`Attempting to ${showSignUp ? 'sign up' : 'sign in'} with: ${email}`);
 
     try {
       let result;
       if (showSignUp) {
-        addDebugInfo('Calling signUp function...');
         result = await signUp(email, password, { name: email.split('@')[0] });
       } else {
-        addDebugInfo('Calling signIn function...');
         result = await signIn(email, password);
       }
       
       const { data, error } = result;
       
       if (error) {
-        addDebugInfo(`Authentication error: ${error.message}`);
         console.error('🔴 Login error details:', error);
         
         let errorMessage = error.message;
@@ -57,7 +43,6 @@ const LoginForm = () => {
           variant: "destructive",
         });
       } else if (data?.user) {
-        addDebugInfo(`${showSignUp ? 'Sign up' : 'Login'} successful for: ${data.user.email}`);
         console.log('✅ Authentication successful:', data.user.email);
         
         if (showSignUp) {
@@ -73,7 +58,6 @@ const LoginForm = () => {
         }
       }
     } catch (error) {
-      addDebugInfo(`Unexpected error: ${error}`);
       console.error('🔴 Unexpected login error:', error);
       
       toast({
@@ -86,36 +70,22 @@ const LoginForm = () => {
     setIsLoading(false);
   };
 
-  const fillDemoCredentials = (role: string) => {
-    const credentials: Record<string, { email: string; password: string }> = {
-      admin: { email: 'admin@edufam.com', password: 'password' },
-      owner: { email: 'owner@school.com', password: 'password' },
-      principal: { email: 'principal@school.com', password: 'password' },
-      teacher: { email: 'teacher@school.com', password: 'password' },
-      parent: { email: 'parent@school.com', password: 'password' },
-      finance: { email: 'finance@school.com', password: 'password' }
-    };
-
-    const cred = credentials[role];
-    if (cred) {
-      setEmail(cred.email);
-      setPassword(cred.password);
-      addDebugInfo(`Filled demo credentials for ${role}`);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 mx-auto gradient-academic rounded-2xl flex items-center justify-center mb-4 float-animation">
-            <span className="text-2xl font-bold text-white">🎓</span>
+          <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+            <img 
+              src="/lovable-uploads/ae278d7f-ba0b-4bb3-b868-639625b0caf0.png" 
+              alt="Elimisha Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            School Management
+            Elimisha
           </h1>
           <p className="text-muted-foreground">
-            Secure access to academic records and attendance
+            School Management System
           </p>
         </div>
 
@@ -175,56 +145,6 @@ const LoginForm = () => {
                 {showSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </Button>
             </div>
-
-            {!showSignUp && (
-              <div className="mt-6 space-y-2 text-sm text-muted-foreground">
-                <p className="font-medium">Demo Accounts (click to fill):</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { key: 'admin', label: 'Admin' },
-                    { key: 'owner', label: 'School Owner' },
-                    { key: 'principal', label: 'Principal' },
-                    { key: 'teacher', label: 'Teacher' },
-                    { key: 'parent', label: 'Parent' },
-                    { key: 'finance', label: 'Finance' }
-                  ].map(({ key, label }) => (
-                    <Button
-                      key={key}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fillDemoCredentials(key)}
-                      className="text-xs h-8"
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-xs mt-2">Password for all demo accounts: password</p>
-              </div>
-            )}
-
-            {debugInfo.length > 0 && (
-              <Alert className="mt-4">
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-1">
-                    <p className="font-medium">Debug Information:</p>
-                    {debugInfo.map((info, index) => (
-                      <p key={index} className="text-xs font-mono">{info}</p>
-                    ))}
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <Alert className="mt-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <p className="text-xs">
-                  <strong>Note:</strong> Demo accounts need to be created first. If login fails, try signing up with the demo credentials above, then sign in.
-                </p>
-              </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
       </div>

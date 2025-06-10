@@ -31,6 +31,11 @@ const Header = () => {
   return (
     <header className="h-16 border-b border-border bg-white/80 backdrop-blur-sm flex items-center justify-between px-6 shadow-sm">
       <div className="flex items-center space-x-4">
+        <img 
+          src="/lovable-uploads/ae278d7f-ba0b-4bb3-b868-639625b0caf0.png" 
+          alt="Elimisha Logo" 
+          className="w-8 h-8 object-contain"
+        />
         <h1 className="text-xl font-semibold text-foreground">
           Elimisha School Management
         </h1>

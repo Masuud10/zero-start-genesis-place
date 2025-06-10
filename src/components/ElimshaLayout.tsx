@@ -30,9 +30,16 @@ const ElimishaLayout: React.FC<ElimishaLayoutProps> = ({
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white/80 backdrop-blur-sm">
             <SidebarTrigger className="-ml-1" />
             <div className="flex-1 flex items-center justify-between">
-              <h1 className="text-xl font-semibold text-foreground">
-                Elimisha School Management
-              </h1>
+              <div className="flex items-center space-x-3">
+                <img 
+                  src="/lovable-uploads/ae278d7f-ba0b-4bb3-b868-639625b0caf0.png" 
+                  alt="Elimisha Logo" 
+                  className="w-8 h-8 object-contain"
+                />
+                <h1 className="text-xl font-semibold text-foreground">
+                  Elimisha School Management
+                </h1>
+              </div>
               <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-sm text-muted-foreground">System Online</span>
