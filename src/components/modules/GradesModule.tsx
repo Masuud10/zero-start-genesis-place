@@ -15,6 +15,7 @@ const GradesModule = () => {
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedTerm, setSelectedTerm] = useState('term1');
+  const [showOverrideRequest, setShowOverrideRequest] = useState(false);
 
   const gradeStats = {
     totalStudents: 1247,
@@ -44,6 +45,69 @@ const GradesModule = () => {
     { id: 'term2', name: 'Term 2' },
     { id: 'term3', name: 'Term 3' },
   ];
+
+  // Mock grading session data
+  const mockGradingSession = {
+    id: '1',
+    classId: selectedClass,
+    subjectId: selectedSubject,
+    term: selectedTerm,
+    examType: 'mid-term',
+    maxScore: 100,
+    students: [
+      {
+        studentId: '1',
+        name: 'John Doe',
+        admissionNumber: 'ADM001',
+        currentScore: undefined,
+        percentage: undefined,
+        position: undefined,
+        isAbsent: false
+      },
+      {
+        studentId: '2',
+        name: 'Jane Smith',
+        admissionNumber: 'ADM002',
+        currentScore: undefined,
+        percentage: undefined,
+        position: undefined,
+        isAbsent: false
+      },
+      {
+        studentId: '3',
+        name: 'Mike Johnson',
+        admissionNumber: 'ADM003',
+        currentScore: undefined,
+        percentage: undefined,
+        position: undefined,
+        isAbsent: false
+      }
+    ]
+  };
+
+  // Mock grade for override request
+  const mockGrade = {
+    id: '1',
+    score: 85,
+    maxScore: 100,
+    studentId: '1',
+    subjectId: 'math',
+    term: 'term1',
+    isImmutable: true
+  };
+
+  const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
+    console.log('Grades saved:', grades);
+  };
+
+  const handleSubmitGrades = () => {
+    console.log('Grades submitted for approval');
+  };
+
+  const handleOverrideRequest = (request: { newScore: number; reason: string }) => {
+    console.log('Override request submitted:', request);
+    setShowOverrideRequest(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -150,23 +214,36 @@ const GradesModule = () => {
             
             <TabsContent value="enter" className="mt-6">
               <BulkGradingTable 
-                selectedClass={selectedClass} 
-                selectedSubject={selectedSubject}
-                selectedTerm={selectedTerm}
+                session={mockGradingSession}
+                onSave={handleSaveGrades}
+                onSubmit={handleSubmitGrades}
+                isSubmitted={false}
               />
             </TabsContent>
             
             <TabsContent value="approve" className="mt-6">
               <BulkGradingTable 
-                selectedClass={selectedClass} 
-                selectedSubject={selectedSubject}
-                selectedTerm={selectedTerm}
-                approvalMode={true}
+                session={mockGradingSession}
+                onSave={handleSaveGrades}
+                onSubmit={handleSubmitGrades}
+                isSubmitted={false}
               />
             </TabsContent>
             
             <TabsContent value="override" className="mt-6">
-              <GradeOverrideRequest />
+              <div className="space-y-4">
+                <Button onClick={() => setShowOverrideRequest(true)}>
+                  Request Grade Override
+                </Button>
+                
+                {showOverrideRequest && (
+                  <GradeOverrideRequest 
+                    grade={mockGrade}
+                    onClose={() => setShowOverrideRequest(false)}
+                    onSubmit={handleOverrideRequest}
+                  />
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>

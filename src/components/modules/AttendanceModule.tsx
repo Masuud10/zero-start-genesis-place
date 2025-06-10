@@ -28,6 +28,51 @@ const AttendanceModule = () => {
     { id: '7b', name: 'Grade 7B' },
   ];
 
+  // Mock students data for the selected class
+  const mockStudents = [
+    { id: '1', name: 'John Doe', admissionNumber: 'ADM001', rollNumber: 'R001' },
+    { id: '2', name: 'Jane Smith', admissionNumber: 'ADM002', rollNumber: 'R002' },
+    { id: '3', name: 'Mike Johnson', admissionNumber: 'ADM003', rollNumber: 'R003' },
+  ];
+
+  // Mock attendance stats for analytics
+  const mockAttendanceStats = [
+    {
+      studentId: '1',
+      totalDays: 100,
+      presentDays: 95,
+      absentDays: 3,
+      lateDays: 2,
+      attendanceRate: 95.0,
+      morningAttendanceRate: 96.0,
+      afternoonAttendanceRate: 94.0
+    },
+    {
+      studentId: '2',
+      totalDays: 100,
+      presentDays: 88,
+      absentDays: 10,
+      lateDays: 2,
+      attendanceRate: 88.0,
+      morningAttendanceRate: 90.0,
+      afternoonAttendanceRate: 86.0
+    },
+    {
+      studentId: '3',
+      totalDays: 100,
+      presentDays: 92,
+      absentDays: 6,
+      lateDays: 2,
+      attendanceRate: 92.0,
+      morningAttendanceRate: 94.0,
+      afternoonAttendanceRate: 90.0
+    }
+  ];
+
+  const handleAttendanceSubmit = (entries: any[]) => {
+    console.log('Attendance entries submitted:', entries);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -118,15 +163,27 @@ const AttendanceModule = () => {
             </TabsList>
             
             <TabsContent value="mark" className="mt-6">
-              <BulkAttendanceTable selectedClass={selectedClass} selectedDate={selectedDate} />
+              <BulkAttendanceTable 
+                students={mockStudents}
+                date={selectedDate}
+                sessionType="full-day"
+                onSubmit={handleAttendanceSubmit}
+                isSubmitting={false}
+              />
             </TabsContent>
             
             <TabsContent value="view" className="mt-6">
-              <BulkAttendanceTable selectedClass={selectedClass} selectedDate={selectedDate} viewMode={true} />
+              <BulkAttendanceTable 
+                students={mockStudents}
+                date={selectedDate}
+                sessionType="full-day"
+                onSubmit={handleAttendanceSubmit}
+                isSubmitting={false}
+              />
             </TabsContent>
             
             <TabsContent value="analytics" className="mt-6">
-              <AttendanceAnalytics />
+              <AttendanceAnalytics stats={mockAttendanceStats} />
             </TabsContent>
           </Tabs>
         </CardContent>
