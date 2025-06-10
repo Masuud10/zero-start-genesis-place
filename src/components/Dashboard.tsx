@@ -106,7 +106,7 @@ const Dashboard = () => {
       );
     }
 
-    if (['school_owner', 'principal', 'edufam_admin'].includes(userRole || '')) {
+    if (['school_owner', 'principal', 'edufam_admin', 'elimisha_admin'].includes(userRole || '')) {
       actions.push(
         {
           title: "Release Results",
@@ -163,6 +163,40 @@ const Dashboard = () => {
       );
     }
 
+    // Elimisha admin gets access to system-wide management actions
+    if (userRole === 'elimisha_admin') {
+      actions.push(
+        {
+          title: "System Analytics",
+          description: "Monitor network-wide performance",
+          icon: "📊",
+          color: "from-blue-500 to-blue-600",
+          action: () => openModal('reports')
+        },
+        {
+          title: "School Management",
+          description: "Manage all schools in network",
+          icon: "🏫",
+          color: "from-green-500 to-green-600",
+          action: () => openModal('results')
+        },
+        {
+          title: "System Health",
+          description: "Monitor uptime and performance",
+          icon: "⚡",
+          color: "from-purple-500 to-purple-600",
+          action: () => openModal('reports')
+        },
+        {
+          title: "Support Dashboard",
+          description: "Manage customer support tickets",
+          icon: "🎧",
+          color: "from-orange-500 to-orange-600",
+          action: () => openModal('reports')
+        }
+      );
+    }
+
     return actions;
   };
 
@@ -181,7 +215,10 @@ const Dashboard = () => {
             Welcome back, {user?.name?.split(' ')[0]}!
           </h1>
           <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Here's what's happening in your school today.
+            {user?.role === 'elimisha_admin' 
+              ? "Here's your system-wide overview and network management dashboard."
+              : "Here's what's happening in your school today."
+            }
           </p>
         </div>
         <div className="block">
@@ -269,7 +306,10 @@ const Dashboard = () => {
               <span>Quick Actions</span>
             </CardTitle>
             <CardDescription className="text-sm">
-              Frequently used features for efficient workflow
+              {user?.role === 'elimisha_admin' 
+                ? "System management and monitoring tools"
+                : "Frequently used features for efficient workflow"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
