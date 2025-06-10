@@ -35,47 +35,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     console.log('🔐 AuthProvider: Initializing authentication');
     
-    let mounted = true;
-    
-    const initializeAuth = async () => {
+    let isMounted = true;
+
+    // Set up auth state change listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 AuthProvider: Auth state changed', { event, user: session?.user?.email });
+      
+      if (!isMounted) return;
+
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        console.log('🔐 AuthProvider: User signed out or no session');
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('🔐 AuthProvider: User signed in or token refreshed');
+        // Defer profile fetching to avoid blocking
+        setTimeout(() => {
+          if (isMounted && session?.user) {
+            fetchUserProfile(session.user);
+          }
+        }, 0);
+      }
+    });
+
+    // Get initial session
+    const getInitialSession = async () => {
       try {
+        console.log('🔐 AuthProvider: Getting initial session');
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('🔐 AuthProvider: Initial session check', { session: !!session, error });
         
-        if (mounted) {
-          if (session?.user) {
-            await fetchUserProfile(session.user);
-          } else {
+        if (error) {
+          console.error('🔐 AuthProvider: Error getting session:', error);
+          if (isMounted) {
             setUser(null);
             setIsLoading(false);
           }
+          return;
+        }
+
+        console.log('🔐 AuthProvider: Initial session check', { hasSession: !!session });
+        
+        if (!isMounted) return;
+
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+        } else {
+          setUser(null);
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('🔐 AuthProvider: Error getting initial session:', error);
-        if (mounted) {
+        console.error('🔐 AuthProvider: Exception getting initial session:', error);
+        if (isMounted) {
           setUser(null);
           setIsLoading(false);
         }
       }
     };
 
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 AuthProvider: Auth state changed', { event, user: session?.user?.email });
-      
-      if (!mounted) return;
-      
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setUser(null);
-        setIsLoading(false);
-      }
-    });
+    getInitialSession();
 
     return () => {
-      mounted = false;
+      console.log('🔐 AuthProvider: Cleaning up');
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -89,6 +113,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', authUser.id)
         .maybeSingle();
 
+      if (error) {
+        console.error('👤 AuthProvider: Error fetching profile:', error);
+      }
+
       console.log('👤 AuthProvider: Profile query result:', { profile, error });
 
       const userData: AuthUser = {
@@ -99,16 +127,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         avatar_url: profile?.avatar_url
       };
 
-      console.log('👤 AuthProvider: Final user data:', userData);
+      console.log('👤 AuthProvider: Setting user data:', userData);
       setUser(userData);
+      setIsLoading(false);
     } catch (error) {
-      console.error('❌ AuthProvider: Error fetching user profile:', error);
-      setUser({
+      console.error('❌ AuthProvider: Exception fetching user profile:', error);
+      // Even if profile fetch fails, set user with basic info
+      const userData: AuthUser = {
         ...authUser,
         role: 'parent',
         name: authUser.email?.split('@')[0] || 'User'
-      } as AuthUser);
-    } finally {
+      };
+      setUser(userData);
       setIsLoading(false);
     }
   };
@@ -129,9 +159,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user: data.user?.email 
       });
       
+      // Don't set loading to false here - let onAuthStateChange handle it
       return { data, error };
     } catch (error) {
       console.error('❌ AuthProvider: Sign in exception:', error);
+      setIsLoading(false);
       return { data: null, error };
     }
   };
@@ -155,12 +187,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         error: error?.message 
       });
       
+      // Don't set loading to false here - let onAuthStateChange handle it
       return { data, error };
     } catch (error) {
       console.error('❌ AuthProvider: Sign up exception:', error);
-      return { data: null, error };
-    } finally {
       setIsLoading(false);
+      return { data: null, error };
     }
   };
 
@@ -174,12 +206,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       console.log('✅ AuthProvider: Successfully signed out');
-      setUser(null);
+      // Don't manually set user/loading here - let onAuthStateChange handle it
     } catch (error) {
       console.error('❌ AuthProvider: Sign out exception:', error);
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 
@@ -190,6 +221,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUp,
     signOut
   };
+
+  console.log('🔐 AuthProvider: Rendering with state', { 
+    hasUser: !!user, 
+    isLoading, 
+    userEmail: user?.email 
+  });
 
   return (
     <AuthContext.Provider value={value}>

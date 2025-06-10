@@ -20,7 +20,15 @@ const Index = () => {
   const { user, isLoading } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
 
+  console.log('📄 Index: Rendering with state', { 
+    hasUser: !!user, 
+    isLoading, 
+    userEmail: user?.email,
+    activeSection 
+  });
+
   if (isLoading) {
+    console.log('📄 Index: Showing loading screen');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center space-y-4">
@@ -28,14 +36,20 @@ const Index = () => {
             <span className="text-2xl text-white">🎓</span>
           </div>
           <p className="text-muted-foreground">Loading Elimisha school management system...</p>
+          <div className="text-xs text-gray-400">
+            Debug: {isLoading ? 'Loading...' : 'Not loading'} | User: {user ? 'Present' : 'None'}
+          </div>
         </div>
       </div>
     );
   }
 
   if (!user) {
+    console.log('📄 Index: Showing login form - no user');
     return <LoginForm />;
   }
+
+  console.log('📄 Index: Showing main app for user:', user.email);
 
   const renderContent = () => {
     switch (activeSection) {
