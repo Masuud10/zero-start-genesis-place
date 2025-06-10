@@ -1,10 +1,11 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import ReportExporter from './ReportExporter';
+import AlertSystem from './AlertSystem';
 
 interface ElimshaAdminAnalyticsProps {
   filters: {
@@ -62,6 +63,12 @@ const ElimshaAdminAnalytics = ({ filters }: ElimshaAdminAnalyticsProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Alert System - Priority placement at top */}
+      <AlertSystem />
+
+      {/* Report Export */}
+      <ReportExporter />
+
       {/* System Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
