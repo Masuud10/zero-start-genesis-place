@@ -2,7 +2,7 @@
 import { UserRole } from '@/types/user';
 
 // Define role hierarchy and permissions
-export const ROLE_PERMISSIONS = {
+export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   'edufam_admin': ['*'], // Full access
   'elimisha_admin': ['*'], // Full access
   'principal': ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
@@ -10,7 +10,7 @@ export const ROLE_PERMISSIONS = {
   'school_owner': ['dashboard', 'analytics', 'finance', 'announcements', 'messages', 'reports'],
   'finance_officer': ['dashboard', 'analytics', 'finance', 'announcements', 'messages', 'reports'],
   'parent': ['dashboard', 'grades', 'attendance', 'finance', 'announcements', 'messages']
-} as const;
+};
 
 export const hasAccess = (userRole: UserRole | undefined, section: string): boolean => {
   if (!userRole) return false;
@@ -40,5 +40,5 @@ export const getAccessibleSections = (userRole: UserRole | undefined): string[] 
     return ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support', 'settings', 'schools', 'users', 'billing', 'system-health'];
   }
   
-  return permissions as string[];
+  return [...permissions];
 };
