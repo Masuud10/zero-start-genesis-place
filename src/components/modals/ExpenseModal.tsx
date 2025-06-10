@@ -4,140 +4,242 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/use-toast';
+import { Upload, Save, Receipt } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ExpenseModalProps {
   onClose: () => void;
 }
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
-  const [expenseType, setExpenseType] = useState('');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [approvalStatus, setApprovalStatus] = useState('pending');
+  const [expenseData, setExpenseData] = useState({
+    title: '',
+    category: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    vendor: '',
+    receiptNumber: ''
+  });
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const { toast } = useToast();
 
   const expenseCategories = [
-    'Salaries & Benefits',
+    'Salaries & Wages',
     'Utilities',
+    'Maintenance',
     'Supplies & Materials',
-    'Maintenance & Repairs',
     'Transportation',
-    'Marketing',
-    'Professional Services',
     'Insurance',
+    'Professional Services',
+    'Marketing',
+    'Food & Catering',
+    'Equipment',
     'Other'
   ];
 
-  const mockExpenses = [
-    { id: 1, type: 'Utilities', amount: 35000, date: '2024-01-15', description: 'Electricity bill for January', status: 'approved' },
-    { id: 2, type: 'Supplies', amount: 15000, date: '2024-01-14', description: 'Classroom supplies and stationery', status: 'pending' },
-    { id: 3, type: 'Maintenance', amount: 25000, date: '2024-01-13', description: 'Plumbing repairs in Block A', status: 'approved' },
-  ];
+  const handleInputChange = (field: string, value: string) => {
+    setExpenseData(prev => ({ ...prev, [field]: value }));
+  };
 
-  const handleSubmitExpense = () => {
-    if (!expenseType || !amount || !description) {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachment(file);
+    }
+  };
+
+  const handleSaveExpense = () => {
+    if (!expenseData.title || !expenseData.category || !expenseData.amount) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
         variant: "destructive"
       });
       return;
     }
 
+    const amount = parseFloat(expenseData.amount);
+    if (amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid expense amount.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simulate saving expense
     toast({
-      title: "Success",
-      description: "Expense recorded successfully and pending approval",
+      title: "Expense Recorded",
+      description: `Expense of KES ${amount.toLocaleString()} has been recorded successfully.`,
     });
-    
-    setExpenseType('');
-    setAmount('');
-    setDescription('');
+
+    onClose();
   };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Expense Management</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Receipt className="w-5 h-5" />
+            Record Expense
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Add New Expense</CardTitle>
+              <CardTitle>Expense Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="expenseType">Expense Category</Label>
-                  <Select value={expenseType} onValueChange={setExpenseType}>
+                  <Label htmlFor="title">Expense Title *</Label>
+                  <Input
+                    value={expenseData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="Enter expense title"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category *</Label>
+                  <Select 
+                    value={expenseData.category} 
+                    onValueChange={(value) => handleInputChange('category', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {expenseCategories.map(category => (
-                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      {expenseCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="amount">Amount (KES)</Label>
+                  <Label htmlFor="amount">Amount (KES) *</Label>
                   <Input
-                    id="amount"
                     type="number"
+                    value={expenseData.amount}
+                    onChange={(e) => handleInputChange('amount', e.target.value)}
                     placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="date">Date *</Label>
+                  <Input
+                    type="date"
+                    value={expenseData.date}
+                    onChange={(e) => handleInputChange('date', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vendor">Vendor/Supplier</Label>
+                  <Input
+                    value={expenseData.vendor}
+                    onChange={(e) => handleInputChange('vendor', e.target.value)}
+                    placeholder="Enter vendor name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="receiptNumber">Receipt Number</Label>
+                  <Input
+                    value={expenseData.receiptNumber}
+                    onChange={(e) => handleInputChange('receiptNumber', e.target.value)}
+                    placeholder="Enter receipt number"
                   />
                 </div>
               </div>
+
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
-                  id="description"
-                  placeholder="Describe the expense purpose"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={expenseData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Enter expense description"
+                  rows={3}
                 />
               </div>
-              <Button onClick={handleSubmitExpense} className="w-full">
-                Submit for Approval
-              </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Expenses</CardTitle>
+              <CardTitle>Attachments</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {mockExpenses.map((expense) => (
-                  <div key={expense.id} className="flex justify-between items-center p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{expense.type}</p>
-                      <p className="text-sm text-muted-foreground">{expense.description}</p>
-                      <p className="text-xs text-muted-foreground">{expense.date}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-lg text-red-600">-KES {expense.amount.toLocaleString()}</p>
-                      <Badge variant={expense.status === 'approved' ? "default" : "secondary"}>
-                        {expense.status}
-                      </Badge>
-                    </div>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Upload receipt or supporting documents
+                </p>
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  id="file-upload"
+                />
+                <Label htmlFor="file-upload" className="cursor-pointer">
+                  <Button variant="outline" size="sm">
+                    Choose File
+                  </Button>
+                </Label>
+                {attachment && (
+                  <p className="text-sm text-green-600 mt-2">
+                    File uploaded: {attachment.name}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Expense Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Title:</span>
+                    <span className="ml-2 font-medium">{expenseData.title || 'Not specified'}</span>
                   </div>
-                ))}
+                  <div>
+                    <span className="text-muted-foreground">Category:</span>
+                    <span className="ml-2 font-medium">{expenseData.category || 'Not selected'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="ml-2 font-medium">
+                      KES {expenseData.amount ? parseFloat(expenseData.amount).toLocaleString() : '0'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Date:</span>
+                    <span className="ml-2 font-medium">{expenseData.date}</span>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>Close</Button>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveExpense}>
+              <Save className="w-4 h-4 mr-2" />
+              Record Expense
+            </Button>
           </div>
         </div>
       </DialogContent>

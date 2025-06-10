@@ -1,97 +1,95 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export interface Message {
+interface Message {
   id: string;
   sender_id: string;
   receiver_id: string;
   content: string;
-  is_read: boolean;
-  attachments?: string[];
-  conversation_id: string;
   created_at: string;
-  sender_name?: string;
-  receiver_name?: string;
+  is_read: boolean;
+  sender_name: string;
+  receiver_name: string;
+}
+
+interface Conversation {
+  id: string;
+  name: string;
+  role: string;
 }
 
 export const useMessages = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Simulate loading messages
+    const loadMessages = async () => {
+      setLoading(true);
+      
+      // Mock data
+      const mockMessages: Message[] = [
+        {
+          id: '1',
+          sender_id: 'user1',
+          receiver_id: user?.id || '',
+          content: 'Welcome to the school management system!',
+          created_at: new Date().toISOString(),
+          is_read: false,
+          sender_name: 'Principal Smith',
+          receiver_name: user?.name || ''
+        },
+        {
+          id: '2',
+          sender_id: user?.id || '',
+          receiver_id: 'user2',
+          content: 'Thank you for the update on my child\'s progress.',
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+          is_read: true,
+          sender_name: user?.name || '',
+          receiver_name: 'Teacher Johnson'
+        }
+      ];
+
+      const mockConversations: Conversation[] = [
+        { id: 'user1', name: 'Principal Smith', role: 'Principal' },
+        { id: 'user2', name: 'Teacher Johnson', role: 'Teacher' },
+        { id: 'user3', name: 'Finance Officer', role: 'Finance' },
+        { id: 'user4', name: 'School Admin', role: 'Admin' }
+      ];
+
+      setTimeout(() => {
+        setMessages(mockMessages);
+        setConversations(mockConversations);
+        setLoading(false);
+      }, 1000);
+    };
+
     if (user) {
-      fetchMessages();
-      fetchConversations();
+      loadMessages();
     }
   }, [user]);
 
-  const fetchMessages = async () => {
+  const sendMessage = async (receiverId: string, content: string) => {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(name),
-          receiver:profiles!messages_receiver_id_fkey(name)
-        `)
-        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
-        .order('created_at', { ascending: false });
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        sender_id: user?.id || '',
+        receiver_id: receiverId,
+        content,
+        created_at: new Date().toISOString(),
+        is_read: false,
+        sender_name: user?.name || '',
+        receiver_name: conversations.find(c => c.id === receiverId)?.name || ''
+      };
 
-      if (error) throw error;
-
-      const formattedData = data?.map(item => ({
-        ...item,
-        sender_name: item.sender?.name,
-        receiver_name: item.receiver?.name
-      })) || [];
-
-      setMessages(formattedData);
+      setMessages(prev => [newMessage, ...prev]);
+      return { error: null };
     } catch (error) {
-      console.error('Error fetching messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchConversations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, role')
-        .neq('id', user?.id);
-
-      if (error) throw error;
-      setConversations(data || []);
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-    }
-  };
-
-  const sendMessage = async (receiverId: string, content: string, conversationId?: string) => {
-    try {
-      const finalConversationId = conversationId || `${user?.id}-${receiverId}`;
-      
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: user?.id,
-          receiver_id: receiverId,
-          content,
-          conversation_id: finalConversationId
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      await fetchMessages();
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error sending message:', error);
-      return { data: null, error };
+      return { error };
     }
   };
 
@@ -99,7 +97,6 @@ export const useMessages = () => {
     messages,
     conversations,
     loading,
-    sendMessage,
-    refetch: fetchMessages
+    sendMessage
   };
 };

@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Upload, Download, Save } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -16,56 +18,66 @@ interface GradesModalProps {
 const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState('');
-  const [grade, setGrade] = useState('');
+  const [examType, setExamType] = useState('');
+  const [grades, setGrades] = useState([
+    { id: 1, name: 'John Doe', admissionNo: 'STU001', score: 85, maxScore: 100, grade: 'B+', position: 2 },
+    { id: 2, name: 'Jane Smith', admissionNo: 'STU002', score: 92, maxScore: 100, grade: 'A-', position: 1 },
+    { id: 3, name: 'Mike Johnson', admissionNo: 'STU003', score: 78, maxScore: 100, grade: 'B', position: 3 },
+  ]);
+  const { toast } = useToast();
 
-  const mockClasses = ['Grade 1A', 'Grade 1B', 'Grade 2A', 'Grade 2B'];
-  const mockSubjects = ['Mathematics', 'English', 'Science', 'Social Studies'];
-  const mockStudents = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson'];
-  const mockGrades = [
-    { student: 'John Doe', subject: 'Mathematics', grade: '85%', term: 'Term 1' },
-    { student: 'Jane Smith', subject: 'Mathematics', grade: '92%', term: 'Term 1' },
-    { student: 'Mike Johnson', subject: 'English', grade: '78%', term: 'Term 1' },
-  ];
-
-  const handleSubmitGrade = () => {
-    if (!selectedClass || !selectedSubject || !selectedStudent || !grade) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleSaveGrades = () => {
     toast({
-      title: "Success",
-      description: "Grade submitted successfully",
+      title: "Grades Saved",
+      description: "Student grades have been successfully saved.",
     });
-    
-    onClose();
   };
 
-  const isTeacher = userRole === 'teacher';
-  const isParent = userRole === 'parent';
+  const handleSubmitGrades = () => {
+    toast({
+      title: "Grades Submitted",
+      description: "Grades have been submitted for approval.",
+    });
+  };
+
+  const handleScoreChange = (id: number, newScore: number) => {
+    setGrades(prev => prev.map(grade => 
+      grade.id === id 
+        ? { 
+            ...grade, 
+            score: newScore,
+            grade: getGradeLetter(newScore),
+          }
+        : grade
+    ));
+  };
+
+  const getGradeLetter = (score: number): string => {
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B+';
+    if (score >= 70) return 'B';
+    if (score >= 60) return 'C+';
+    if (score >= 50) return 'C';
+    return 'D';
+  };
+
+  const canEdit = ['teacher', 'principal', 'school_owner'].includes(userRole);
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isTeacher ? 'Submit Grades' : isParent ? "View Child's Grades" : 'Grade Management'}
-          </DialogTitle>
+          <DialogTitle>Grade Management</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {isTeacher && (
+          {canEdit && (
             <Card>
               <CardHeader>
-                <CardTitle>Submit New Grade</CardTitle>
+                <CardTitle>Grade Entry Configuration</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="class">Class</Label>
                     <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -73,9 +85,9 @@ const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
                         <SelectValue placeholder="Select class" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockClasses.map(cls => (
-                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                        ))}
+                        <SelectItem value="grade8a">Grade 8A</SelectItem>
+                        <SelectItem value="grade8b">Grade 8B</SelectItem>
+                        <SelectItem value="grade7a">Grade 7A</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -86,59 +98,83 @@ const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
                         <SelectValue placeholder="Select subject" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockSubjects.map(subject => (
-                          <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                        ))}
+                        <SelectItem value="mathematics">Mathematics</SelectItem>
+                        <SelectItem value="english">English</SelectItem>
+                        <SelectItem value="science">Science</SelectItem>
+                        <SelectItem value="social">Social Studies</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="student">Student</Label>
-                    <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                    <Label htmlFor="examType">Exam Type</Label>
+                    <Select value={examType} onValueChange={setExamType}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select student" />
+                        <SelectValue placeholder="Select exam type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockStudents.map(student => (
-                          <SelectItem key={student} value={student}>{student}</SelectItem>
-                        ))}
+                        <SelectItem value="cat1">CAT 1</SelectItem>
+                        <SelectItem value="cat2">CAT 2</SelectItem>
+                        <SelectItem value="midterm">Mid-term</SelectItem>
+                        <SelectItem value="endterm">End-term</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="grade">Grade (%)</Label>
-                    <Input
-                      id="grade"
-                      type="number"
-                      placeholder="Enter grade"
-                      value={grade}
-                      onChange={(e) => setGrade(e.target.value)}
-                      min="0"
-                      max="100"
-                    />
-                  </div>
                 </div>
-                <Button onClick={handleSubmitGrade} className="w-full">
-                  Submit Grade
-                </Button>
               </CardContent>
             </Card>
           )}
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Grades</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Student Grades</span>
+                {canEdit && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-2" />
+                      Export
+                    </Button>
+                  </div>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {mockGrades.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{item.student}</p>
-                      <p className="text-sm text-muted-foreground">{item.subject} - {item.term}</p>
+              <div className="space-y-4">
+                {grades.map((student) => (
+                  <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="font-medium">{student.name}</p>
+                        <p className="text-sm text-muted-foreground">{student.admissionNo}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-lg">{item.grade}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Label>Score:</Label>
+                        {canEdit ? (
+                          <Input
+                            type="number"
+                            value={student.score}
+                            onChange={(e) => handleScoreChange(student.id, parseInt(e.target.value) || 0)}
+                            className="w-20"
+                            max={student.maxScore}
+                            min={0}
+                          />
+                        ) : (
+                          <span className="font-medium">{student.score}</span>
+                        )}
+                        <span>/ {student.maxScore}</span>
+                      </div>
+                      <Badge variant={student.score >= 80 ? 'default' : student.score >= 60 ? 'secondary' : 'destructive'}>
+                        {student.grade}
+                      </Badge>
+                      <div className="text-sm text-muted-foreground">
+                        Position: {student.position}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -147,7 +183,16 @@ const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
           </Card>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>Close</Button>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            {canEdit && (
+              <>
+                <Button onClick={handleSaveGrades}>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Draft
+                </Button>
+                <Button onClick={handleSubmitGrades}>Submit for Approval</Button>
+              </>
+            )}
           </div>
         </div>
       </DialogContent>
