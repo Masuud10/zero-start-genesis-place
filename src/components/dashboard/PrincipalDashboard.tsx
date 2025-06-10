@@ -1,14 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import StudentAdmissionModal from '../modals/StudentAdmissionModal';
+import TeacherAdmissionModal from '../modals/TeacherAdmissionModal';
+import ParentAdmissionModal from '../modals/ParentAdmissionModal';
+import PrincipalReportsModal from '../modals/PrincipalReportsModal';
 
 interface PrincipalDashboardProps {
   onModalOpen: (modalType: string) => void;
 }
 
 const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+
   const todayStats = [
     {
       title: "Today's Attendance",
@@ -49,31 +56,45 @@ const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
 
   const quickActions = [
     {
+      title: "Student Admission",
+      description: "Admit new students to the school",
+      icon: "👨‍🎓",
+      color: "from-blue-500 to-blue-600",
+      action: () => setActiveModal('student-admission')
+    },
+    {
+      title: "Teacher Registration",
+      description: "Add new teaching staff",
+      icon: "👨‍🏫",
+      color: "from-green-500 to-green-600",
+      action: () => setActiveModal('teacher-admission')
+    },
+    {
+      title: "Parent Registration",
+      description: "Register new parent accounts",
+      icon: "👨‍👩‍👧‍👦",
+      color: "from-purple-500 to-purple-600",
+      action: () => setActiveModal('parent-admission')
+    },
+    {
+      title: "Generate Reports",
+      description: "Create comprehensive school reports",
+      icon: "📊",
+      color: "from-orange-500 to-orange-600",
+      action: () => setActiveModal('principal-reports')
+    },
+    {
       title: "Approve Grades",
       description: "Review and approve submitted grades",
       icon: "✅",
-      color: "from-green-500 to-green-600",
+      color: "from-red-500 to-red-600",
       action: () => onModalOpen('grades')
-    },
-    {
-      title: "Release Results",
-      description: "Publish approved results to parents",
-      icon: "🔓",
-      color: "from-blue-500 to-blue-600",
-      action: () => onModalOpen('results')
-    },
-    {
-      title: "View Reports",
-      description: "Generate academic and administrative reports",
-      icon: "📊",
-      color: "from-purple-500 to-purple-600",
-      action: () => onModalOpen('reports')
     },
     {
       title: "Attendance Overview",
       description: "Monitor school-wide attendance",
       icon: "📅",
-      color: "from-orange-500 to-orange-600",
+      color: "from-teal-500 to-teal-600",
       action: () => onModalOpen('attendance')
     }
   ];
@@ -105,6 +126,11 @@ const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
     }
   ];
 
+  const handleModalSuccess = () => {
+    // Refresh data after successful admission
+    console.log('Admission successful, refreshing data...');
+  };
+
   return (
     <div className="space-y-6">
       {/* Today's Overview */}
@@ -127,6 +153,35 @@ const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
                 <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                 <p className="text-xs text-muted-foreground">{stat.count}</p>
               </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <Card className="shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>⚡</span>
+            <span>Principal Actions</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {quickActions.map((action, index) => (
+              <button 
+                key={index}
+                onClick={action.action}
+                className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-all duration-200 text-left w-full"
+              >
+                <div className={`w-10 h-10 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center`}>
+                  <span className="text-white text-sm">{action.icon}</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-base">{action.title}</p>
+                  <p className="text-xs text-muted-foreground">{action.description}</p>
+                </div>
+              </button>
             ))}
           </div>
         </CardContent>
@@ -203,34 +258,30 @@ const PrincipalDashboard = ({ onModalOpen }: PrincipalDashboardProps) => {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>⚡</span>
-            <span>Principal Actions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
-            {quickActions.map((action, index) => (
-              <button 
-                key={index}
-                onClick={action.action}
-                className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-all duration-200 text-left w-full"
-              >
-                <div className={`w-10 h-10 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center`}>
-                  <span className="text-white text-sm">{action.icon}</span>
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-base">{action.title}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Modals */}
+      {activeModal === 'student-admission' && (
+        <StudentAdmissionModal 
+          onClose={() => setActiveModal(null)} 
+          onSuccess={handleModalSuccess}
+        />
+      )}
+      {activeModal === 'teacher-admission' && (
+        <TeacherAdmissionModal 
+          onClose={() => setActiveModal(null)} 
+          onSuccess={handleModalSuccess}
+        />
+      )}
+      {activeModal === 'parent-admission' && (
+        <ParentAdmissionModal 
+          onClose={() => setActiveModal(null)} 
+          onSuccess={handleModalSuccess}
+        />
+      )}
+      {activeModal === 'principal-reports' && (
+        <PrincipalReportsModal 
+          onClose={() => setActiveModal(null)} 
+        />
+      )}
     </div>
   );
 };
