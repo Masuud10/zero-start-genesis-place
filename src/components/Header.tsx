@@ -13,7 +13,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <header className="h-16 border-b border-border bg-white/80 backdrop-blur-sm flex items-center justify-between px-6 shadow-sm">
@@ -62,7 +70,7 @@ const Header = () => {
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="cursor-pointer text-destructive focus:text-destructive"
-              onClick={logout}
+              onClick={handleLogout}
             >
               Log out
             </DropdownMenuItem>
