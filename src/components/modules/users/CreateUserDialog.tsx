@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,22 +7,59 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus } from 'lucide-react';
 
 interface CreateUserDialogProps {
   onUserCreated: () => void;
 }
 
+interface School {
+  id: string;
+  name: string;
+}
+
 const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [schools, setSchools] = useState<School[]>([]);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
     role: '',
-    password: ''
+    password: '',
+    school_id: ''
   });
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Check if current user is an admin who can assign schools
+  const canAssignSchools = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
+
+  useEffect(() => {
+    if (canAssignSchools && isCreateDialogOpen) {
+      fetchSchools();
+    }
+  }, [canAssignSchools, isCreateDialogOpen]);
+
+  const fetchSchools = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setSchools(data || []);
+    } catch (error) {
+      console.error('Error fetching schools:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch schools",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleCreateUser = async () => {
     if (!newUser.name || !newUser.email || !newUser.role || !newUser.password) {
@@ -34,33 +71,64 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
       return;
     }
 
+    // For school-level roles, require school assignment if admin is creating the user
+    if (canAssignSchools && 
+        ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(newUser.role) && 
+        !newUser.school_id) {
+      toast({
+        title: "Error",
+        description: "Please select a school for this user",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
-      // Create user account in Supabase Auth
+      console.log('Creating user with school assignment:', {
+        email: newUser.email,
+        role: newUser.role,
+        school_id: newUser.school_id
+      });
+
+      // Create user account in Supabase Auth with school assignment
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
         options: {
           data: {
             name: newUser.name,
-            role: newUser.role
+            role: newUser.role,
+            school_id: newUser.school_id || null
           }
         }
       });
 
       if (authError) throw authError;
 
-      // If successful, the user profile will be created automatically via the trigger
+      // If creating a principal, update the school's principal_id
+      if (newUser.role === 'principal' && newUser.school_id && authData.user) {
+        const { error: schoolUpdateError } = await supabase
+          .from('schools')
+          .update({ principal_id: authData.user.id })
+          .eq('id', newUser.school_id);
+
+        if (schoolUpdateError) {
+          console.error('Error updating school principal:', schoolUpdateError);
+          // Don't throw here as user creation was successful
+        }
+      }
+
       toast({
         title: "Success",
-        description: "User created successfully. They will receive a confirmation email.",
+        description: `User created successfully and linked to selected school. They will receive a confirmation email.`,
       });
 
       setIsCreateDialogOpen(false);
-      setNewUser({ name: '', email: '', role: '', password: '' });
+      setNewUser({ name: '', email: '', role: '', password: '', school_id: '' });
       
-      // Refresh users list after a short delay to allow for the trigger to complete
+      // Refresh users list after a short delay
       setTimeout(() => {
         onUserCreated();
       }, 1000);
@@ -77,6 +145,8 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
     }
   };
 
+  const roleRequiresSchool = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(newUser.role);
+
   return (
     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
       <DialogTrigger asChild>
@@ -85,7 +155,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
           Create User
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
@@ -119,8 +189,12 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
                 <SelectValue placeholder="Select user role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="elimisha_admin">Elimisha Admin</SelectItem>
-                <SelectItem value="edufam_admin">EduFam Admin</SelectItem>
+                {canAssignSchools && (
+                  <>
+                    <SelectItem value="elimisha_admin">Elimisha Admin</SelectItem>
+                    <SelectItem value="edufam_admin">EduFam Admin</SelectItem>
+                  </>
+                )}
                 <SelectItem value="school_owner">School Owner</SelectItem>
                 <SelectItem value="principal">Principal</SelectItem>
                 <SelectItem value="teacher">Teacher</SelectItem>
@@ -129,6 +203,26 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* School Selection - shown for admins creating school-level roles */}
+          {canAssignSchools && roleRequiresSchool && (
+            <div>
+              <Label htmlFor="school">School *</Label>
+              <Select value={newUser.school_id} onValueChange={(value) => setNewUser({ ...newUser, school_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select school" />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <Label htmlFor="password">Temporary Password *</Label>
             <Input

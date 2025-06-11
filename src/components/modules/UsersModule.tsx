@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import UserStatsCards from './users/UserStatsCards';
 import CreateUserDialog from './users/CreateUserDialog';
 import UsersFilter from './users/UsersFilter';
@@ -15,6 +16,9 @@ interface User {
   created_at: string;
   updated_at: string;
   school_id?: string;
+  school?: {
+    name: string;
+  };
 }
 
 const UsersModule = () => {
@@ -23,6 +27,7 @@ const UsersModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchUsers();
@@ -31,13 +36,25 @@ const UsersModule = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          school:schools(name)
+        `)
         .order('created_at', { ascending: false });
+
+      // If user is not a system admin, only show users from their school
+      if (user?.role !== 'elimisha_admin' && user?.role !== 'edufam_admin' && user?.school_id) {
+        query = query.eq('school_id', user.school_id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
+      console.log('Fetched users with school data:', data);
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -63,7 +80,12 @@ const UsersModule = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Users Management</h2>
-          <p className="text-muted-foreground">Manage all users across the Elimisha platform</p>
+          <p className="text-muted-foreground">
+            {user?.role === 'elimisha_admin' || user?.role === 'edufam_admin' 
+              ? 'Manage all users across the Elimisha platform'
+              : 'Manage users in your school'
+            }
+          </p>
         </div>
         <CreateUserDialog onUserCreated={fetchUsers} />
       </div>

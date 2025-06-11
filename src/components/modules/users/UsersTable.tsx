@@ -1,10 +1,9 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { UserX } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users } from 'lucide-react';
 
 interface User {
   id: string;
@@ -12,8 +11,10 @@ interface User {
   email: string;
   role: string;
   created_at: string;
-  updated_at: string;
   school_id?: string;
+  school?: {
+    name: string;
+  };
 }
 
 interface UsersTableProps {
@@ -21,48 +22,94 @@ interface UsersTableProps {
   loading: boolean;
 }
 
-const UsersTable = ({ users, loading }: UsersTableProps) => {
-  const getRoleBadge = (role: string) => {
-    const roleConfig = {
-      elimisha_admin: { variant: 'destructive' as const, label: 'Elimisha Admin' },
-      edufam_admin: { variant: 'destructive' as const, label: 'EduFam Admin' },
-      school_owner: { variant: 'default' as const, label: 'School Owner' },
-      principal: { variant: 'default' as const, label: 'Principal' },
-      teacher: { variant: 'secondary' as const, label: 'Teacher' },
-      parent: { variant: 'outline' as const, label: 'Parent' },
-      finance_officer: { variant: 'secondary' as const, label: 'Finance Officer' }
-    };
+const getRoleBadgeColor = (role: string) => {
+  switch (role) {
+    case 'elimisha_admin':
+    case 'edufam_admin':
+      return 'bg-red-100 text-red-800';
+    case 'school_owner':
+      return 'bg-purple-100 text-purple-800';
+    case 'principal':
+      return 'bg-blue-100 text-blue-800';
+    case 'teacher':
+      return 'bg-green-100 text-green-800';
+    case 'finance_officer':
+      return 'bg-orange-100 text-orange-800';
+    case 'parent':
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
 
-    const config = roleConfig[role as keyof typeof roleConfig] || { variant: 'outline' as const, label: role };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
+const formatRole = (role: string) => {
+  return role.split('_').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
+const UsersTable = ({ users, loading }: UsersTableProps) => {
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Users List
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-32">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-sm text-muted-foreground mt-2">Loading users...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Users List
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">No users found</h3>
+            <p className="text-sm text-muted-foreground">
+              No users match your current filters. Try adjusting your search criteria.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Users Directory</CardTitle>
-        <CardDescription>
-          All registered users in the Elimisha platform
-        </CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="w-5 h-5" />
+          Users List ({users.length})
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p>Loading users...</p>
-            </div>
-          </div>
-        ) : (
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Registered</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>School</TableHead>
+                <TableHead>Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -70,24 +117,26 @@ const UsersTable = ({ users, loading }: UsersTableProps) => {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(user.updated_at).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <UserX className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <Badge className={getRoleBadgeColor(user.role)}>
+                      {formatRole(user.role)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.school?.name || (
+                      user.role === 'elimisha_admin' || user.role === 'edufam_admin' 
+                        ? 'System Admin' 
+                        : 'Not Assigned'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(user.created_at).toLocaleDateString()}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        )}
+        </div>
       </CardContent>
     </Card>
   );
