@@ -903,12 +903,78 @@ export type Database = {
           },
         ]
       }
+      user_login_details: {
+        Row: {
+          access_level: number | null
+          created_at: string
+          department: string | null
+          employee_id: string | null
+          force_password_change: boolean | null
+          id: string
+          is_locked: boolean | null
+          last_login: string | null
+          locked_until: string | null
+          login_attempts: number | null
+          password_changed_at: string | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_level?: number | null
+          created_at?: string
+          department?: string | null
+          employee_id?: string | null
+          force_password_change?: boolean | null
+          id?: string
+          is_locked?: boolean | null
+          last_login?: string | null
+          locked_until?: string | null
+          login_attempts?: number | null
+          password_changed_at?: string | null
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_level?: number | null
+          created_at?: string
+          department?: string | null
+          employee_id?: string | null
+          force_password_change?: boolean | null
+          id?: string
+          is_locked?: boolean | null
+          last_login?: string | null
+          locked_until?: string | null
+          login_attempts?: number | null
+          password_changed_at?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: string
+      }
+      handle_login_attempt: {
+        Args: { user_email: string; success?: boolean }
+        Returns: Json
+      }
+      update_user_role: {
+        Args: { target_user_id: string; new_role: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

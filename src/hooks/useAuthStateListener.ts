@@ -18,7 +18,28 @@ export const useAuthStateListener = ({
     
     let isMounted = true;
 
-    // Set up auth state change listener first
+    // Clear any invalid tokens on startup
+    const clearInvalidTokens = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error && error.message.includes('Invalid Refresh Token')) {
+          console.log('🔐 AuthProvider: Clearing invalid tokens');
+          await supabase.auth.signOut();
+          // Clear localStorage of any auth tokens
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+              localStorage.removeItem(key);
+            }
+          });
+        }
+        return session;
+      } catch (err) {
+        console.error('🔐 AuthProvider: Error checking session:', err);
+        return null;
+      }
+    };
+
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 AuthProvider: Auth state changed', { event, user: session?.user?.email });
       
@@ -38,29 +59,20 @@ export const useAuthStateListener = ({
           if (isMounted && session?.user) {
             fetchUserProfile(session.user);
           }
-        }, 0);
+        }, 100);
       }
     });
 
-    // Get initial session
-    const getInitialSession = async () => {
+    // Get initial session with error handling
+    const initializeAuth = async () => {
       try {
         console.log('🔐 AuthProvider: Getting initial session');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('🔐 AuthProvider: Error getting session:', error);
-          if (isMounted) {
-            setUser(null);
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        console.log('🔐 AuthProvider: Initial session check', { hasSession: !!session });
+        const session = await clearInvalidTokens();
         
         if (!isMounted) return;
 
+        console.log('🔐 AuthProvider: Initial session check', { hasSession: !!session });
+        
         if (session?.user) {
           await fetchUserProfile(session.user);
         } else {
@@ -68,7 +80,7 @@ export const useAuthStateListener = ({
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('🔐 AuthProvider: Exception getting initial session:', error);
+        console.error('🔐 AuthProvider: Exception during initialization:', error);
         if (isMounted) {
           setUser(null);
           setIsLoading(false);
@@ -76,7 +88,7 @@ export const useAuthStateListener = ({
       }
     };
 
-    getInitialSession();
+    initializeAuth();
 
     return () => {
       console.log('🔐 AuthProvider: Cleaning up');

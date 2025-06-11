@@ -30,6 +30,7 @@ const App = () => {
               <Sonner />
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Index />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>

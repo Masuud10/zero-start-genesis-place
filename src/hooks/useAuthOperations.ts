@@ -17,7 +17,7 @@ export const useAuthOperations = () => {
         .eq('id', authUser.id)
         .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('👤 AuthProvider: Error fetching profile:', error);
       }
 
@@ -52,6 +52,13 @@ export const useAuthOperations = () => {
     setIsLoading(true);
     
     try {
+      // Clear any existing invalid sessions first
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        // Ignore errors when signing out
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -63,7 +70,10 @@ export const useAuthOperations = () => {
         user: data.user?.email 
       });
       
-      // Don't set loading to false here - let onAuthStateChange handle it
+      if (error) {
+        setIsLoading(false);
+      }
+      
       return { data, error };
     } catch (error) {
       console.error('❌ AuthProvider: Sign in exception:', error);
@@ -91,7 +101,10 @@ export const useAuthOperations = () => {
         error: error?.message 
       });
       
-      // Don't set loading to false here - let onAuthStateChange handle it
+      if (error) {
+        setIsLoading(false);
+      }
+      
       return { data, error };
     } catch (error) {
       console.error('❌ AuthProvider: Sign up exception:', error);
@@ -108,17 +121,6 @@ export const useAuthOperations = () => {
       // Clear user state immediately
       setUser(null);
       
-      // Attempt to sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      // Don't throw error if session is already missing - this is expected in some cases
-      if (error && !error.message.includes('Auth session missing')) {
-        console.error('❌ AuthProvider: Sign out error:', error);
-        throw error;
-      }
-      
-      console.log('✅ AuthProvider: Successfully signed out');
-      
       // Clear any local storage items related to auth
       try {
         Object.keys(localStorage).forEach(key => {
@@ -130,6 +132,14 @@ export const useAuthOperations = () => {
         console.warn('⚠️ AuthProvider: Could not clear localStorage:', storageError);
       }
       
+      // Attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error && !error.message.includes('Auth session missing')) {
+        console.error('❌ AuthProvider: Sign out error:', error);
+      }
+      
+      console.log('✅ AuthProvider: Successfully signed out');
       setIsLoading(false);
       
     } catch (error) {
@@ -137,7 +147,6 @@ export const useAuthOperations = () => {
       // Even if sign out fails, clear local state
       setUser(null);
       setIsLoading(false);
-      throw error;
     }
   };
 
