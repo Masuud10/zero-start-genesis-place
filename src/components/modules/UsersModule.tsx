@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +54,14 @@ const UsersModule = () => {
       if (error) throw error;
 
       console.log('Fetched users with school data:', data);
-      setUsers(data || []);
+      
+      // Transform the data to match our User interface
+      const transformedUsers: User[] = (data || []).map(user => ({
+        ...user,
+        school: Array.isArray(user.school) && user.school.length > 0 ? user.school[0] : user.school || undefined
+      }));
+      
+      setUsers(transformedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
