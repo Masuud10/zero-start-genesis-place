@@ -71,7 +71,7 @@ export const useAuthStateListener = ({
         console.log('🔐 AuthProvider: User signed in or token refreshed');
         
         // Defer profile fetching slightly to avoid potential conflicts
-        const timeoutId = setTimeout(async () => {
+        setTimeout(async () => {
           if (isMounted && session?.user) {
             try {
               await fetchUserProfile(session.user);
@@ -87,8 +87,6 @@ export const useAuthStateListener = ({
             }
           }
         }, 150);
-
-        return () => clearTimeout(timeoutId);
       }
     });
 
@@ -107,7 +105,7 @@ export const useAuthStateListener = ({
         
         if (session?.user) {
           // Use setTimeout to prevent potential blocking
-          const timeoutId = setTimeout(async () => {
+          setTimeout(async () => {
             if (isMounted) {
               try {
                 await fetchUserProfile(session.user);
@@ -123,8 +121,6 @@ export const useAuthStateListener = ({
               }
             }
           }, 100);
-
-          return () => clearTimeout(timeoutId);
         } else {
           setUser(null);
           setIsLoading(false);
