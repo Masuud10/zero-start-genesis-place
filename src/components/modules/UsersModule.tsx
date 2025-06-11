@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,10 +57,30 @@ const UsersModule = () => {
       console.log('Fetched users with school data:', data);
       
       // Transform the data to match our User interface
-      const transformedUsers: User[] = (data || []).map(user => ({
-        ...user,
-        school: Array.isArray(user.school) && user.school.length > 0 ? user.school[0] : user.school || undefined
-      }));
+      const transformedUsers: User[] = (data || []).map(user => {
+        let schoolInfo: { name: string } | undefined = undefined;
+        
+        if (user.school) {
+          if (Array.isArray(user.school)) {
+            // If school is an array, take the first element
+            schoolInfo = user.school.length > 0 ? user.school[0] : undefined;
+          } else {
+            // If school is already an object, use it directly
+            schoolInfo = user.school;
+          }
+        }
+        
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          school_id: user.school_id,
+          school: schoolInfo
+        };
+      });
       
       setUsers(transformedUsers);
     } catch (error) {
