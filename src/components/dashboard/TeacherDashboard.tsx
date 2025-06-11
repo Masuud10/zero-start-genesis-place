@@ -1,8 +1,10 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import StatsCard from './shared/StatsCard';
+import QuickActionCard from './shared/QuickActionCard';
+import ClassOverviewSection from './teacher/ClassOverviewSection';
+import UpcomingTasksSection from './teacher/UpcomingTasksSection';
 
 interface TeacherDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -95,25 +97,25 @@ const TeacherDashboard = ({ onModalOpen }: TeacherDashboardProps) => {
     {
       task: "Submit Grade 8A CAT 2 Mathematics results",
       dueDate: "Today, 5:00 PM",
-      priority: "high",
+      priority: "high" as const,
       type: "grade"
     },
     {
       task: "Prepare Grade 7A lesson plan for tomorrow",
       dueDate: "Tomorrow, 8:00 AM", 
-      priority: "medium",
+      priority: "medium" as const,
       type: "lesson"
     },
     {
       task: "Parent meeting for Grade 8B students",
       dueDate: "Friday, 2:00 PM",
-      priority: "medium",
+      priority: "medium" as const,
       type: "meeting"
     },
     {
       task: "Submit monthly progress report",
       dueDate: "Next Monday",
-      priority: "low",
+      priority: "low" as const,
       type: "report"
     }
   ];
@@ -131,103 +133,21 @@ const TeacherDashboard = ({ onModalOpen }: TeacherDashboardProps) => {
         <CardContent>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {todayStats.map((stat, index) => (
-              <div key={index} className="relative overflow-hidden border rounded-lg p-4">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5`}></div>
-                <div className="flex items-center justify-between space-y-0 pb-2">
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <div className="text-xl">{stat.icon}</div>
-                </div>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
-              </div>
+              <StatsCard
+                key={index}
+                title={stat.title}
+                value={stat.value}
+                subtitle={stat.subtitle}
+                icon={stat.icon}
+                color={stat.color}
+              />
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* My Classes */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📚</span>
-            <span>My Classes</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {myClasses.map((cls, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-medium">{cls.title}</h3>
-                    <p className="text-sm text-muted-foreground">Next class: {cls.nextClass}</p>
-                  </div>
-                  {cls.pendingGrades > 0 && (
-                    <Badge variant="destructive">
-                      {cls.pendingGrades} pending grades
-                    </Badge>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Students</p>
-                    <p className="font-medium">{cls.students}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Attendance</p>
-                    <p className="font-medium text-green-600">{cls.attendance}%</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Class Average</p>
-                    <p className="font-medium text-blue-600">{cls.avgGrade}%</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Status</p>
-                    <Badge variant={cls.pendingGrades === 0 ? 'default' : 'secondary'}>
-                      {cls.pendingGrades === 0 ? 'Up to date' : 'Pending work'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Upcoming Tasks */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📋</span>
-            <span>Upcoming Tasks</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {upcomingTasks.map((task, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <div className={`w-2 h-2 rounded-full mt-2 ${
-                    task.priority === 'high' ? 'bg-red-500' :
-                    task.priority === 'medium' ? 'bg-yellow-500' :
-                    'bg-green-500'
-                  }`}></div>
-                  <div>
-                    <p className="text-sm font-medium">{task.task}</p>
-                    <p className="text-xs text-muted-foreground">Due: {task.dueDate}</p>
-                  </div>
-                </div>
-                <Badge variant={
-                  task.priority === 'high' ? 'destructive' :
-                  task.priority === 'medium' ? 'secondary' : 'default'
-                }>
-                  {task.priority}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <ClassOverviewSection classes={myClasses} />
+      <UpcomingTasksSection tasks={upcomingTasks} />
 
       {/* Quick Actions */}
       <Card className="shadow-lg border-0">
@@ -240,19 +160,14 @@ const TeacherDashboard = ({ onModalOpen }: TeacherDashboardProps) => {
         <CardContent>
           <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
             {quickActions.map((action, index) => (
-              <button 
+              <QuickActionCard
                 key={index}
+                title={action.title}
+                description={action.description}
+                icon={action.icon}
+                color={action.color}
                 onClick={action.action}
-                className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-all duration-200 text-left w-full"
-              >
-                <div className={`w-10 h-10 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center`}>
-                  <span className="text-white text-sm">{action.icon}</span>
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-base">{action.title}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
-                </div>
-              </button>
+              />
             ))}
           </div>
         </CardContent>

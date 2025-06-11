@@ -1,8 +1,11 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import StatsCard from './shared/StatsCard';
+import QuickActionCard from './shared/QuickActionCard';
+import ActivityItem from './shared/ActivityItem';
+import ChildrenOverviewSection from './parent/ChildrenOverviewSection';
+import UpcomingEventsSection from './parent/UpcomingEventsSection';
 
 interface ParentDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -146,64 +149,20 @@ const ParentDashboard = ({ onModalOpen }: ParentDashboardProps) => {
         <CardContent>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {quickStats.map((stat, index) => (
-              <div key={index} className="relative overflow-hidden border rounded-lg p-4">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5`}></div>
-                <div className="flex items-center justify-between space-y-0 pb-2">
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <div className="text-xl">{stat.icon}</div>
-                </div>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
-              </div>
+              <StatsCard
+                key={index}
+                title={stat.title}
+                value={stat.value}
+                subtitle={stat.subtitle}
+                icon={stat.icon}
+                color={stat.color}
+              />
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Children Overview */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>👦</span>
-            <span>My Children</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {childrenData.map((child, index) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-medium">{child.name}</h3>
-                    <p className="text-sm text-muted-foreground">{child.class}</p>
-                  </div>
-                  <Badge variant={child.avgGrade >= 80 ? 'default' : child.avgGrade >= 70 ? 'secondary' : 'destructive'}>
-                    {child.avgGrade >= 80 ? 'Excellent' : child.avgGrade >= 70 ? 'Good' : 'Needs Attention'}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Average Grade</p>
-                    <p className="font-medium text-blue-600">{child.avgGrade}%</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Attendance</p>
-                    <p className="font-medium text-green-600">{child.attendance}%</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Recent Grade</p>
-                    <p className="font-medium">{child.recentGrade}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Next Fee</p>
-                    <p className="font-medium text-orange-600">{child.nextFee}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <ChildrenOverviewSection children={childrenData} />
 
       {/* Recent Updates */}
       <Card className="shadow-lg border-0">
@@ -216,51 +175,19 @@ const ParentDashboard = ({ onModalOpen }: ParentDashboardProps) => {
         <CardContent>
           <div className="space-y-3">
             {recentUpdates.map((update, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-accent transition-colors">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  update.type === 'grade' ? 'bg-blue-500' :
-                  update.type === 'attendance' ? 'bg-green-500' :
-                  update.type === 'fee' ? 'bg-orange-500' :
-                  'bg-purple-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{update.message}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-muted-foreground">Child: {update.child}</p>
-                    <p className="text-xs text-muted-foreground">{update.time}</p>
-                  </div>
-                </div>
-              </div>
+              <ActivityItem
+                key={index}
+                action={update.message}
+                time={update.time}
+                type={update.type}
+                child={update.child}
+              />
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Upcoming Events */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📅</span>
-            <span>Upcoming Events</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {upcomingEvents.map((event, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">{event.event}</p>
-                  <p className="text-xs text-muted-foreground">For: {event.child}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">{event.date}</p>
-                  <p className="text-xs text-muted-foreground">{event.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <UpcomingEventsSection events={upcomingEvents} />
 
       {/* Quick Actions */}
       <Card className="shadow-lg border-0">
@@ -273,19 +200,14 @@ const ParentDashboard = ({ onModalOpen }: ParentDashboardProps) => {
         <CardContent>
           <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
             {quickActions.map((action, index) => (
-              <button 
+              <QuickActionCard
                 key={index}
+                title={action.title}
+                description={action.description}
+                icon={action.icon}
+                color={action.color}
                 onClick={action.action}
-                className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-all duration-200 text-left w-full"
-              >
-                <div className={`w-10 h-10 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center`}>
-                  <span className="text-white text-sm">{action.icon}</span>
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-base">{action.title}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
-                </div>
-              </button>
+              />
             ))}
           </div>
         </CardContent>

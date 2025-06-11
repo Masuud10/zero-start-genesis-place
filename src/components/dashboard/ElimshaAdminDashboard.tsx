@@ -3,7 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import SystemOverviewSection from './admin/SystemOverviewSection';
+import SystemAlertsSection from './admin/SystemAlertsSection';
+import QuickActionCard from './shared/QuickActionCard';
 
 interface ElimshaAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -83,25 +85,25 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       type: "High Priority",
       message: "Server performance degradation detected in US-East region",
       time: "5 minutes ago",
-      severity: "high"
+      severity: "high" as const
     },
     {
       type: "Security",
       message: "Multiple failed login attempts from IP 192.168.1.100",
       time: "15 minutes ago", 
-      severity: "medium"
+      severity: "medium" as const
     },
     {
       type: "Billing",
       message: "Payment failed for Greenwood Primary School",
       time: "1 hour ago",
-      severity: "medium"
+      severity: "medium" as const
     },
     {
       type: "Feature",
       message: "New analytics module deployed successfully",
       time: "2 hours ago",
-      severity: "low"
+      severity: "low" as const
     }
   ];
 
@@ -152,30 +154,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
-      {/* System Overview */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>🌐</span>
-            <span>System Overview</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {systemStats.map((stat, index) => (
-              <div key={index} className="relative overflow-hidden border rounded-lg p-4">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5`}></div>
-                <div className="flex items-center justify-between space-y-0 pb-2">
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <div className="text-xl">{stat.icon}</div>
-                </div>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-green-600 font-medium">{stat.change}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <SystemOverviewSection stats={systemStats} />
 
       {/* User Breakdown */}
       <Card className="shadow-lg border-0">
@@ -214,7 +193,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
         <CardContent>
           <div className="space-y-4">
             {recentSchools.map((school, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+              <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-all duration-200">
                 <div>
                   <h3 className="font-medium">{school.name}</h3>
                   <p className="text-sm text-muted-foreground">{school.location}</p>
@@ -241,40 +220,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
         </CardContent>
       </Card>
 
-      {/* System Alerts */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>🚨</span>
-            <span>System Alerts</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {systemAlerts.map((alert, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  alert.severity === 'high' ? 'bg-red-500' :
-                  alert.severity === 'medium' ? 'bg-yellow-500' :
-                  'bg-green-500'
-                }`}></div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <Badge variant={
-                      alert.severity === 'high' ? 'destructive' :
-                      alert.severity === 'medium' ? 'secondary' : 'default'
-                    }>
-                      {alert.type}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground">{alert.time}</p>
-                  </div>
-                  <p className="text-sm font-medium mt-1">{alert.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <SystemAlertsSection alerts={systemAlerts} />
 
       {/* Admin Actions */}
       <Card className="shadow-lg border-0">
@@ -287,19 +233,14 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
         <CardContent>
           <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {quickActions.map((action, index) => (
-              <button 
+              <QuickActionCard
                 key={index}
+                title={action.title}
+                description={action.description}
+                icon={action.icon}
+                color={action.color}
                 onClick={action.action}
-                className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-all duration-200 text-left w-full"
-              >
-                <div className={`w-10 h-10 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center`}>
-                  <span className="text-white text-sm">{action.icon}</span>
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{action.title}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
-                </div>
-              </button>
+              />
             ))}
           </div>
         </CardContent>
