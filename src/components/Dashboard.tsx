@@ -13,6 +13,7 @@ import PrincipalDashboard from './dashboard/PrincipalDashboard';
 import TeacherDashboard from './dashboard/TeacherDashboard';
 import ParentDashboard from './dashboard/ParentDashboard';
 import ElimshaAdminDashboard from './dashboard/ElimshaAdminDashboard';
+import FinanceOfficerDashboard from './dashboard/FinanceOfficerDashboard';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -64,8 +65,8 @@ const Dashboard = () => {
         console.log('📊 Dashboard: Rendering ElimshaAdminDashboard');
         return <ElimshaAdminDashboard onModalOpen={openModal} />;
       case 'finance_officer':
-        console.log('📊 Dashboard: Rendering SchoolOwnerDashboard for finance officer');
-        return <SchoolOwnerDashboard onModalOpen={openModal} />; // Same as school owner for now
+        console.log('📊 Dashboard: Rendering FinanceOfficerDashboard');
+        return <FinanceOfficerDashboard onModalOpen={openModal} />;
       default:
         console.log('📊 Dashboard: Unknown role, showing access denied:', user?.role);
         return (
@@ -78,6 +79,26 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
         );
+    }
+  };
+
+  const getRoleDescription = () => {
+    switch (user?.role) {
+      case 'elimisha_admin':
+      case 'edufam_admin':
+        return "System-wide management and monitoring dashboard.";
+      case 'school_owner':
+        return "Monitor your school's financial and operational performance.";
+      case 'principal':
+        return "Oversee daily operations and academic excellence at your school.";
+      case 'teacher':
+        return "Manage your classes, grades, and student interactions.";
+      case 'parent':
+        return "Stay updated on your child's academic progress and school activities.";
+      case 'finance_officer':
+        return "Manage financial operations and fee collection for your school.";
+      default:
+        return "Here's what's happening in your school today.";
     }
   };
 
@@ -97,20 +118,7 @@ const Dashboard = () => {
                 {getGreeting()}, {getFirstName(user?.name || 'User')}! 👋
               </h1>
               <p className="text-gray-600 mt-1 text-sm md:text-base">
-                {user?.role === 'elimisha_admin' || user?.role === 'edufam_admin'
-                  ? "System-wide management and monitoring dashboard."
-                  : user?.role === 'school_owner'
-                  ? "Monitor your school's financial, academic, and operational performance."
-                  : user?.role === 'principal'
-                  ? "Oversee daily operations and academic excellence at your school."
-                  : user?.role === 'teacher'
-                  ? "Manage your classes, grades, and student interactions."
-                  : user?.role === 'parent'
-                  ? "Stay updated on your child's academic progress and school activities."
-                  : user?.role === 'finance_officer'
-                  ? "Manage financial operations and fee collection for your school."
-                  : "Here's what's happening in your school today."
-                }
+                {getRoleDescription()}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Role: {user?.role} | User ID: {user?.id?.slice(0, 8)}...
