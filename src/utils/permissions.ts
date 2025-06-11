@@ -188,9 +188,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
 export class PermissionManager {
   private userRole: UserRole;
   private userSchoolId?: string;
-  private userClassIds?: string[];
+  private userClassIds: string[];
 
-  constructor(userRole: UserRole, userSchoolId?: string, userClassIds?: string[] = []) {
+  constructor(userRole: UserRole, userSchoolId?: string, userClassIds: string[] = []) {
     this.userRole = userRole;
     this.userSchoolId = userSchoolId;
     this.userClassIds = userClassIds;
@@ -288,11 +288,11 @@ export const createPermissionManager = (
   userSchoolId?: string, 
   userClassIds?: string[]
 ): PermissionManager => {
-  return new PermissionManager(userRole, userSchoolId, userClassIds);
+  return new PermissionManager(userRole, userSchoolId, userClassIds || []);
 };
 
 // Hook for using permissions in React components
-export const usePermissions = (userRole: UserRole, userSchoolId?: string, userClassIds?: string[] = []) => {
+export const usePermissions = (userRole: UserRole, userSchoolId?: string, userClassIds: string[] = []) => {
   const permissionManager = new PermissionManager(userRole, userSchoolId, userClassIds);
   
   return {
