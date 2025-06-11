@@ -27,35 +27,55 @@ const LoginForm = () => {
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
+    console.log('🔐 LoginForm: Starting authentication process for:', email);
 
     try {
       let result;
-      console.log('🔐 LoginForm: Attempting', showSignUp ? 'sign up' : 'sign in', 'for:', email);
       
       if (showSignUp) {
-        result = await signUp(email, password, { name: email.split('@')[0] });
+        console.log('🔐 LoginForm: Attempting sign up');
+        result = await signUp(email, password, { 
+          name: email.split('@')[0],
+          role: 'parent' // Default role for new signups
+        });
       } else {
+        console.log('🔐 LoginForm: Attempting sign in');
         result = await signIn(email, password);
       }
       
       const { data, error } = result;
       
       if (error) {
-        console.error('🔴 Login error details:', error);
+        console.error('🔴 LoginForm: Authentication error:', error);
         
-        let errorMessage = error.message;
+        let errorMessage = error.message || 'An unknown error occurred';
         
-        // Handle specific error types
-        if (error.message === 'Invalid login credentials') {
-          errorMessage = 'Invalid email or password. Please check your credentials.';
-        } else if (error.message.includes('Email not confirmed')) {
+        // Handle specific error types with better user messages
+        if (error.message?.includes('Invalid login credentials') || 
+            error.message?.includes('invalid_credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message?.includes('Email not confirmed')) {
           errorMessage = 'Please check your email and click the confirmation link before logging in.';
-        } else if (error.message.includes('User already registered')) {
+        } else if (error.message?.includes('User already registered')) {
           errorMessage = 'An account with this email already exists. Please sign in instead.';
-        } else if (error.message.includes('500') || error.message.includes('server')) {
-          errorMessage = 'Server error occurred. Please try again in a moment.';
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          setShowSignUp(false);
+        } else if (error.message?.includes('signup_disabled')) {
+          errorMessage = 'New account registration is currently disabled. Please contact support.';
+        } else if (error.message?.includes('weak_password')) {
+          errorMessage = 'Password is too weak. Please use a stronger password with at least 6 characters.';
+        } else if (error.message?.includes('rate_limit')) {
+          errorMessage = 'Too many attempts. Please wait a few minutes before trying again.';
+        } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
           errorMessage = 'Network error. Please check your connection and try again.';
         }
         
@@ -65,26 +85,35 @@ const LoginForm = () => {
           variant: "destructive",
         });
       } else if (data?.user) {
-        console.log('✅ Authentication successful:', data.user.email);
+        console.log('✅ LoginForm: Authentication successful for user:', data.user.email);
         
         if (showSignUp) {
           toast({
-            title: "Account created!",
-            description: "Please check your email to verify your account.",
+            title: "Account created successfully!",
+            description: data.user?.email_confirmed_at 
+              ? "You can now use your account." 
+              : "Please check your email to verify your account before logging in.",
           });
+          
+          // If email confirmation is required, switch to sign in mode
+          if (!data.user?.email_confirmed_at) {
+            setShowSignUp(false);
+            setEmail('');
+            setPassword('');
+          }
         } else {
           toast({
             title: "Welcome back!",
-            description: "Successfully logged in to the school management system.",
+            description: "Successfully logged into Elimisha school management system.",
           });
         }
       }
-    } catch (error) {
-      console.error('🔴 Unexpected login error:', error);
+    } catch (error: any) {
+      console.error('🔴 LoginForm: Unexpected error during authentication:', error);
       
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Authentication Error",
+        description: "An unexpected error occurred. Please try again or contact support if the problem persists.",
         variant: "destructive",
       });
     } finally {
@@ -101,7 +130,14 @@ const LoginForm = () => {
               src="/lovable-uploads/ae278d7f-ba0b-4bb3-b868-639625b0caf0.png" 
               alt="Elimisha Logo" 
               className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
             />
+            <div className="hidden w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
+              <span className="text-2xl text-white">🎓</span>
+            </div>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Elimisha
@@ -118,7 +154,7 @@ const LoginForm = () => {
             </CardTitle>
             <CardDescription className="text-center">
               {showSignUp 
-                ? 'Create a new account to get started' 
+                ? 'Create a new account to get started with Elimisha' 
                 : 'Enter your credentials to access your account'
               }
             </CardDescription>
@@ -126,16 +162,17 @@ const LoginForm = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="Enter your email address"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value.trim())}
                   required
                   className="h-11"
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
               <div className="space-y-2">
@@ -143,19 +180,21 @@ const LoginForm = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={showSignUp ? "Create a password (min. 6 characters)" : "Enter your password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="h-11"
                   disabled={isLoading}
                   minLength={6}
+                  autoComplete={showSignUp ? "new-password" : "current-password"}
                 />
               </div>
+              
               <Button 
                 type="submit" 
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transition-all duration-200"
-                disabled={isLoading}
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transition-all duration-200 disabled:opacity-50"
+                disabled={isLoading || !email || !password}
               >
                 {isLoading ? (
                   <>
@@ -168,15 +207,30 @@ const LoginForm = () => {
               </Button>
             </form>
             
-            <div className="mt-4 text-center">
+            <div className="mt-6 text-center">
               <Button 
                 variant="link" 
-                onClick={() => setShowSignUp(!showSignUp)}
-                className="text-sm"
+                onClick={() => {
+                  setShowSignUp(!showSignUp);
+                  setEmail('');
+                  setPassword('');
+                }}
+                className="text-sm text-muted-foreground hover:text-primary"
                 disabled={isLoading}
               >
                 {showSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </Button>
+            </div>
+
+            {/* Demo accounts for testing */}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-600 mb-2 font-medium">Demo Accounts (for testing):</p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <div>Admin: admin@elimisha.com / password123</div>
+                <div>Principal: principal@school.com / password123</div>
+                <div>Teacher: teacher@school.com / password123</div>
+                <div>Parent: parent@gmail.com / password123</div>
+              </div>
             </div>
           </CardContent>
         </Card>

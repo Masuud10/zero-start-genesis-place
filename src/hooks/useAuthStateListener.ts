@@ -14,7 +14,7 @@ export const useAuthStateListener = ({
   fetchUserProfile 
 }: UseAuthStateListenerProps) => {
   useEffect(() => {
-    console.log('🔐 AuthProvider: Initializing authentication');
+    console.log('🔐 AuthProvider: Initializing authentication state listener');
     
     let isMounted = true;
 
@@ -28,9 +28,10 @@ export const useAuthStateListener = ({
           
           if (error.message.includes('Invalid Refresh Token') || 
               error.message.includes('refresh_token_not_found') ||
-              error.message.includes('invalid_grant')) {
+              error.message.includes('invalid_grant') ||
+              error.message.includes('Auth session missing')) {
             console.log('🔐 AuthProvider: Clearing invalid tokens');
-            await supabase.auth.signOut();
+            await supabase.auth.signOut({ scope: 'global' });
             
             // Clear localStorage of any auth tokens
             Object.keys(localStorage).forEach(key => {
@@ -51,7 +52,11 @@ export const useAuthStateListener = ({
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 AuthProvider: Auth state changed', { event, user: session?.user?.email });
+      console.log('🔐 AuthProvider: Auth state changed', { 
+        event, 
+        hasUser: !!session?.user, 
+        userEmail: session?.user?.email 
+      });
       
       if (!isMounted) return;
 
@@ -65,10 +70,12 @@ export const useAuthStateListener = ({
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         console.log('🔐 AuthProvider: User signed in or token refreshed');
         
-        // Defer profile fetching to avoid blocking and potential deadlocks
-        setTimeout(() => {
+        // Defer profile fetching slightly to avoid potential conflicts
+        const timeoutId = setTimeout(async () => {
           if (isMounted && session?.user) {
-            fetchUserProfile(session.user).catch(error => {
+            try {
+              await fetchUserProfile(session.user);
+            } catch (error) {
               console.error('🔐 AuthProvider: Error fetching profile in state change:', error);
               // Continue with basic user data even if profile fetch fails
               setUser({
@@ -77,9 +84,11 @@ export const useAuthStateListener = ({
                 name: session.user.email?.split('@')[0] || 'User'
               });
               setIsLoading(false);
-            });
+            }
           }
-        }, 100);
+        }, 150);
+
+        return () => clearTimeout(timeoutId);
       }
     });
 
@@ -91,13 +100,18 @@ export const useAuthStateListener = ({
         
         if (!isMounted) return;
 
-        console.log('🔐 AuthProvider: Initial session check', { hasSession: !!session });
+        console.log('🔐 AuthProvider: Initial session check', { 
+          hasSession: !!session,
+          hasUser: !!session?.user 
+        });
         
         if (session?.user) {
           // Use setTimeout to prevent potential blocking
-          setTimeout(() => {
+          const timeoutId = setTimeout(async () => {
             if (isMounted) {
-              fetchUserProfile(session.user).catch(error => {
+              try {
+                await fetchUserProfile(session.user);
+              } catch (error) {
                 console.error('🔐 AuthProvider: Error fetching profile during init:', error);
                 // Set fallback user data
                 setUser({
@@ -106,9 +120,11 @@ export const useAuthStateListener = ({
                   name: session.user.email?.split('@')[0] || 'User'
                 });
                 setIsLoading(false);
-              });
+              }
             }
-          }, 50);
+          }, 100);
+
+          return () => clearTimeout(timeoutId);
         } else {
           setUser(null);
           setIsLoading(false);
@@ -125,7 +141,7 @@ export const useAuthStateListener = ({
     initializeAuth();
 
     return () => {
-      console.log('🔐 AuthProvider: Cleaning up');
+      console.log('🔐 AuthProvider: Cleaning up auth state listener');
       isMounted = false;
       subscription.unsubscribe();
     };

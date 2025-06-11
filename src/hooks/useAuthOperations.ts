@@ -70,15 +70,21 @@ export const useAuthOperations = () => {
     setIsLoading(true);
     
     try {
-      // Clear any existing invalid sessions first
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {
-        console.log('🔑 AuthProvider: Ignoring signOut error during cleanup:', e);
-      }
+      // First, clear any existing session
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Clear localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Wait a bit for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
       
@@ -91,13 +97,19 @@ export const useAuthOperations = () => {
       if (error) {
         console.error('🔑 AuthProvider: Sign in error:', error);
         setIsLoading(false);
+        return { data: null, error };
       }
       
-      return { data, error };
-    } catch (error) {
+      if (data.user) {
+        console.log('🔑 AuthProvider: Sign in successful, user authenticated');
+        // Don't set loading to false here - let the auth state change handle it
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
       console.error('❌ AuthProvider: Sign in exception:', error);
       setIsLoading(false);
-      return { data: null, error };
+      return { data: null, error: { message: error.message || 'Authentication failed' } };
     }
   };
 
@@ -106,29 +118,43 @@ export const useAuthOperations = () => {
     setIsLoading(true);
     
     try {
+      // Clear any existing session first
+      await supabase.auth.signOut({ scope: 'global' });
+      
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
-          data: metadata,
+          data: {
+            name: email.split('@')[0],
+            ...metadata
+          },
           emailRedirectTo: `${window.location.origin}/`
         }
       });
       
       console.log('📝 AuthProvider: Sign up result', { 
         success: !!data.user, 
-        error: error?.message 
+        error: error?.message,
+        needsConfirmation: !data.user?.email_confirmed_at
       });
       
       if (error) {
         setIsLoading(false);
+        return { data: null, error };
       }
       
-      return { data, error };
-    } catch (error) {
+      // For sign up, we might not get an immediate session if email confirmation is required
+      if (data.user && !data.session) {
+        console.log('📝 AuthProvider: Sign up successful, email confirmation required');
+        setIsLoading(false);
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
       console.error('❌ AuthProvider: Sign up exception:', error);
       setIsLoading(false);
-      return { data: null, error };
+      return { data: null, error: { message: error.message || 'Sign up failed' } };
     }
   };
 
@@ -140,7 +166,7 @@ export const useAuthOperations = () => {
       // Clear user state immediately
       setUser(null);
       
-      // Clear any local storage items related to auth
+      // Clear local storage items related to auth
       try {
         Object.keys(localStorage).forEach(key => {
           if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
@@ -152,7 +178,7 @@ export const useAuthOperations = () => {
       }
       
       // Attempt to sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error && !error.message.includes('Auth session missing')) {
         console.error('❌ AuthProvider: Sign out error:', error);
@@ -160,6 +186,9 @@ export const useAuthOperations = () => {
       
       console.log('✅ AuthProvider: Successfully signed out');
       setIsLoading(false);
+      
+      // Force a page reload to ensure clean state
+      window.location.href = '/';
       
     } catch (error) {
       console.error('❌ AuthProvider: Sign out exception:', error);
