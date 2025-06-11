@@ -22,6 +22,8 @@ export interface Message {
   isRead: boolean;
   attachments?: string[];
   conversationId: string;
+  senderName?: string;
+  receiverName?: string;
 }
 
 export interface SupportTicket {
@@ -37,4 +39,12 @@ export interface SupportTicket {
   resolvedAt?: Date;
   assignedTo?: string;
   attachments?: string[];
+}
+
+export interface Conversation {
+  id: string;
+  name: string;
+  role: string;
+  lastMessage?: Message;
+  unreadCount?: number;
 }
