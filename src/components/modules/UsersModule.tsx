@@ -57,27 +57,28 @@ const UsersModule = () => {
       console.log('Fetched users with school data:', data);
       
       // Transform the data to match our User interface
-      const transformedUsers: User[] = (data || []).map(user => {
+      const transformedUsers: User[] = (data || []).map((profile: any) => {
         let schoolInfo: { name: string } | undefined = undefined;
         
-        if (user.school) {
-          if (Array.isArray(user.school)) {
+        // Handle school data - it can come as null, object, or array
+        if (profile.school) {
+          if (Array.isArray(profile.school)) {
             // If school is an array, take the first element
-            schoolInfo = user.school.length > 0 ? user.school[0] : undefined;
-          } else {
-            // If school is already an object, use it directly
-            schoolInfo = user.school;
+            schoolInfo = profile.school.length > 0 ? { name: profile.school[0].name } : undefined;
+          } else if (profile.school && typeof profile.school === 'object' && profile.school.name) {
+            // If school is already an object with name property
+            schoolInfo = { name: profile.school.name };
           }
         }
         
         return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          created_at: user.created_at,
-          updated_at: user.updated_at,
-          school_id: user.school_id,
+          id: profile.id,
+          name: profile.name || '',
+          email: profile.email || '',
+          role: profile.role || '',
+          created_at: profile.created_at || '',
+          updated_at: profile.updated_at || '',
+          school_id: profile.school_id || undefined,
           school: schoolInfo
         };
       });
