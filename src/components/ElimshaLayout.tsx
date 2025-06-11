@@ -21,15 +21,23 @@ import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions, PERMISSIONS } from '@/utils/permissions';
+import { UserRole } from '@/types/user';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Use the permissions system
+  const { hasPermission, getPermissionScope } = usePermissions(
+    user?.role as UserRole, 
+    user?.school_id
+  );
+
   console.log('🏗️ ElimshaLayout: Rendering for user role:', user?.role, 'active section:', activeSection);
 
-  const hasAccess = (section: string) => {
+  const checkAccess = (section: string): boolean => {
     if (!user?.role) {
       console.log('🏗️ ElimshaLayout: No user role, denying access to', section);
       return false;
@@ -37,58 +45,58 @@ const ElimshaLayout = () => {
 
     console.log('🏗️ ElimshaLayout: Checking access for role', user.role, 'to section', section);
 
-    // Admin roles have access to everything
-    if (user.role === 'elimisha_admin' || user.role === 'edufam_admin') {
-      console.log('🏗️ ElimshaLayout: Admin access granted');
-      return true;
-    }
+    // Always allow dashboard access
+    if (section === 'dashboard') return true;
 
-    // Role-based access control
-    switch (user.role) {
-      case 'school_owner':
-        // School owners CANNOT access settings, users, schools, system-health
-        const ownerRestrictedSections = ['users', 'schools', 'system-health', 'settings'];
-        const hasOwnerAccess = !ownerRestrictedSections.includes(section);
-        console.log('🏗️ ElimshaLayout: School owner access to', section, ':', hasOwnerAccess);
-        if (!hasOwnerAccess && ownerRestrictedSections.includes(section)) {
-          toast({
-            title: "Access Denied",
-            description: "This feature is only available to system administrators.",
-            variant: "destructive"
-          });
-        }
-        return hasOwnerAccess;
-
-      case 'principal':
-        // Principals have access to academic and operational sections
-        const principalAllowedSections = ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports', 'support', 'finance'];
-        const hasPrincipalAccess = principalAllowedSections.includes(section);
-        console.log('🏗️ ElimshaLayout: Principal access to', section, ':', hasPrincipalAccess);
-        return hasPrincipalAccess;
-
-      case 'teacher':
-        // Teachers have limited access to teaching-related sections
-        const teacherAllowedSections = ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports'];
-        const hasTeacherAccess = teacherAllowedSections.includes(section);
-        console.log('🏗️ ElimshaLayout: Teacher access to', section, ':', hasTeacherAccess);
-        return hasTeacherAccess;
-
-      case 'parent':
-        // Parents have very limited access
-        const parentAllowedSections = ['dashboard', 'grades', 'attendance', 'finance', 'announcements', 'messages'];
-        const hasParentAccess = parentAllowedSections.includes(section);
-        console.log('🏗️ ElimshaLayout: Parent access to', section, ':', hasParentAccess);
-        return hasParentAccess;
-
-      case 'finance_officer':
-        // Finance officers have access to financial and some operational sections
-        const financeAllowedSections = ['dashboard', 'analytics', 'finance', 'students', 'reports', 'announcements', 'messages', 'billing'];
-        const hasFinanceAccess = financeAllowedSections.includes(section);
-        console.log('🏗️ ElimshaLayout: Finance officer access to', section, ':', hasFinanceAccess);
-        return hasFinanceAccess;
-
+    // Check permissions based on section
+    switch (section) {
+      case 'grades':
+        return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
+      
+      case 'attendance':
+        // For now, allow if user can view gradebook (similar access pattern)
+        return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
+      
+      case 'students':
+        return hasPermission(PERMISSIONS.VIEW_CLASS_INFO);
+      
+      case 'finance':
+        return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE);
+      
+      case 'timetable':
+        return hasPermission(PERMISSIONS.VIEW_TIMETABLE);
+      
+      case 'announcements':
+        return hasPermission(PERMISSIONS.VIEW_ANNOUNCEMENTS);
+      
+      case 'messages':
+        return hasPermission(PERMISSIONS.SEND_MESSAGES);
+      
+      case 'schools':
+        return hasPermission(PERMISSIONS.VIEW_OTHER_SCHOOLS);
+      
+      case 'users':
+        return hasPermission(PERMISSIONS.MANAGE_USERS);
+      
+      case 'billing':
+        return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE) || 
+               user.role === 'edufam_admin' || 
+               user.role === 'elimisha_admin';
+      
+      case 'system-health':
+        return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
+      
+      case 'settings':
+        return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
+      
+      case 'analytics':
+      case 'reports':
+      case 'support':
+        // These are generally available based on role
+        return ['edufam_admin', 'elimisha_admin', 'school_owner', 'principal', 'teacher', 'finance_officer'].includes(user.role);
+      
       default:
-        console.log('🏗️ ElimshaLayout: Unknown role, denying access');
+        console.log('🏗️ ElimshaLayout: Unknown section, denying access:', section);
         return false;
     }
   };
@@ -97,20 +105,25 @@ const ElimshaLayout = () => {
     console.log('🏗️ ElimshaLayout: Rendering content for section:', activeSection);
 
     // Check access before rendering
-    if (!hasAccess(activeSection)) {
-      console.log('🏗️ ElimshaLayout: Access denied, redirecting to dashboard');
-      setTimeout(() => setActiveSection('dashboard'), 1000);
+    if (!checkAccess(activeSection)) {
+      console.log('🏗️ ElimshaLayout: Access denied, showing access denied message');
+      
+      const permissionScope = getPermissionScope(PERMISSIONS.VIEW_GRADEBOOK);
+      const scopeDescription = permissionScope ? ` (Scope: ${permissionScope})` : '';
+      
       return (
         <Card>
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              You don't have permission to access this section. Your role: {user?.role}
+              You don't have permission to access this section. 
+              <br />
+              Your role: {user?.role}{scopeDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Redirecting to dashboard...
+              Please contact your administrator if you believe you should have access to this feature.
             </p>
           </CardContent>
         </Card>
@@ -150,8 +163,6 @@ const ElimshaLayout = () => {
         return <BillingModule />;
       case 'system-health':
         return <SystemHealthModule />;
-      case 'system-analytics':
-        return <AnalyticsDashboard />;
       default:
         console.log('🏗️ ElimshaLayout: Unknown section, showing dashboard');
         return <Dashboard />;
@@ -161,12 +172,16 @@ const ElimshaLayout = () => {
   const handleSectionChange = (section: string) => {
     console.log(`🔄 ElimshaLayout: Attempting to switch to section: ${section} for user role: ${user?.role}`);
     
-    if (hasAccess(section)) {
+    if (checkAccess(section)) {
       console.log(`✅ ElimshaLayout: Access granted, switching to ${section}`);
       setActiveSection(section);
     } else {
-      console.log(`❌ ElimshaLayout: Access denied to ${section}, staying on current section`);
-      // Don't auto-redirect, just show the access denied message
+      console.log(`❌ ElimshaLayout: Access denied to ${section}`);
+      toast({
+        title: "Access Denied",
+        description: `You don't have permission to access ${section}. Your role: ${user?.role}`,
+        variant: "destructive"
+      });
     }
   };
 

@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMenuItems } from './SidebarMenuItems';
+import { usePermissions, PERMISSIONS } from '@/utils/permissions';
+import { UserRole } from '@/types/user';
 
 interface SidebarNavigationProps {
   activeSection?: string;
@@ -25,10 +27,42 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   
   console.log('🧭 SidebarNavigation: Rendering for user role:', user?.role);
   
-  const menuItems = getMenuItems(user?.role);
-  const filteredItems = menuItems.filter(item => 
-    item.roles.includes(user?.role || '')
+  // Use the permissions system to get filtered menu items
+  const { getFilteredMenuItems, hasPermission } = usePermissions(
+    user?.role as UserRole, 
+    user?.school_id
   );
+
+  const menuItems = getMenuItems(user?.role);
+  
+  // Filter menu items based on permissions
+  const filteredItems = menuItems.filter(item => {
+    // Always show dashboard
+    if (item.id === 'dashboard') return true;
+    
+    // Check specific permissions for certain menu items
+    switch (item.id) {
+      case 'grades':
+        return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
+      case 'finance':
+        return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE);
+      case 'timetable':
+        return hasPermission(PERMISSIONS.VIEW_TIMETABLE);
+      case 'announcements':
+        return hasPermission(PERMISSIONS.VIEW_ANNOUNCEMENTS);
+      case 'messages':
+        return hasPermission(PERMISSIONS.SEND_MESSAGES);
+      case 'students':
+        return hasPermission(PERMISSIONS.VIEW_CLASS_INFO);
+      case 'schools':
+        return hasPermission(PERMISSIONS.VIEW_OTHER_SCHOOLS);
+      case 'users':
+        return hasPermission(PERMISSIONS.MANAGE_USERS);
+      default:
+        // For other items, check if the role is included
+        return item.roles.includes(user?.role || '');
+    }
+  });
 
   console.log('🧭 SidebarNavigation: Filtered items for role', user?.role, ':', filteredItems.map(item => item.id));
 
@@ -45,7 +79,12 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   return (
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
+        <SidebarGroupLabel>
+          {user.role === 'edufam_admin' || user.role === 'elimisha_admin' 
+            ? 'System Administration' 
+            : 'Main Navigation'
+          }
+        </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {filteredItems.map((item) => (

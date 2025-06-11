@@ -24,6 +24,7 @@ export interface MenuItem {
   label: string;
   icon: any;
   roles: string[];
+  permission?: string;
 }
 
 export const getMenuItems = (userRole?: string): MenuItem[] => {
@@ -31,13 +32,21 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
   ];
 
-  // Elimisha/EduFam admin specific items - full system access
+  // System admin specific items - full system access
   if (userRole === 'elimisha_admin' || userRole === 'edufam_admin') {
     return [
       ...baseItems,
       { id: 'analytics', label: 'System Analytics', icon: BarChart3, roles: ['elimisha_admin', 'edufam_admin'] },
       { id: 'schools', label: 'Schools Management', icon: Building2, roles: ['elimisha_admin', 'edufam_admin'] },
       { id: 'users', label: 'User Management', icon: UserCheck, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'grades', label: 'All Grades', icon: GraduationCap, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'attendance', label: 'All Attendance', icon: CalendarCheck, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'students', label: 'All Students', icon: Users, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'finance', label: 'All Finance', icon: DollarSign, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'timetable', label: 'All Timetables', icon: Calendar, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'announcements', label: 'All Announcements', icon: Megaphone, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'messages', label: 'All Messages', icon: MessageSquare, roles: ['elimisha_admin', 'edufam_admin'] },
+      { id: 'reports', label: 'System Reports', icon: FileText, roles: ['elimisha_admin', 'edufam_admin'] },
       { id: 'billing', label: 'Billing Management', icon: CreditCard, roles: ['elimisha_admin', 'edufam_admin'] },
       { id: 'system-health', label: 'System Health', icon: Activity, roles: ['elimisha_admin', 'edufam_admin'] },
       { id: 'support', label: 'Support Center', icon: Headphones, roles: ['elimisha_admin', 'edufam_admin'] },
@@ -45,15 +54,19 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // School Owner - financial and administrative oversight, NO settings access
+  // School Owner - school-wide access, NO settings access
   if (userRole === 'school_owner') {
     return [
       ...baseItems,
       { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['school_owner'] },
+      { id: 'grades', label: 'School Grades', icon: GraduationCap, roles: ['school_owner'] },
+      { id: 'attendance', label: 'School Attendance', icon: CalendarCheck, roles: ['school_owner'] },
+      { id: 'students', label: 'Student Management', icon: Users, roles: ['school_owner'] },
       { id: 'finance', label: 'Financial Management', icon: DollarSign, roles: ['school_owner'] },
-      { id: 'reports', label: 'Financial Reports', icon: FileText, roles: ['school_owner'] },
-      { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['school_owner'] },
-      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner'] },
+      { id: 'timetable', label: 'School Timetables', icon: Calendar, roles: ['school_owner'] },
+      { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['school_owner'] },
+      { id: 'messages', label: 'School Messages', icon: MessageSquare, roles: ['school_owner'] },
+      { id: 'reports', label: 'School Reports', icon: FileText, roles: ['school_owner'] },
       { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['school_owner'] },
     ];
   }
@@ -64,28 +77,28 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       ...baseItems,
       { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['principal'] },
       { id: 'grades', label: 'Grades Management', icon: GraduationCap, roles: ['principal'] },
-      { id: 'attendance', label: 'Attendance', icon: CalendarCheck, roles: ['principal'] },
+      { id: 'attendance', label: 'Attendance Management', icon: CalendarCheck, roles: ['principal'] },
       { id: 'students', label: 'Student Management', icon: Users, roles: ['principal'] },
       { id: 'finance', label: 'Finance Overview', icon: DollarSign, roles: ['principal'] },
-      { id: 'timetable', label: 'Timetable', icon: Calendar, roles: ['principal'] },
-      { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['principal'] },
-      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['principal'] },
-      { id: 'reports', label: 'Reports', icon: FileText, roles: ['principal'] },
+      { id: 'timetable', label: 'Timetable Management', icon: Calendar, roles: ['principal'] },
+      { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['principal'] },
+      { id: 'messages', label: 'School Messages', icon: MessageSquare, roles: ['principal'] },
+      { id: 'reports', label: 'School Reports', icon: FileText, roles: ['principal'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['principal'] },
     ];
   }
 
-  // Teacher - academic and classroom management
+  // Teacher - class-level access only
   if (userRole === 'teacher') {
     return [
       ...baseItems,
       { id: 'analytics', label: 'Class Analytics', icon: BarChart3, roles: ['teacher'] },
-      { id: 'grades', label: 'Grade Entry', icon: GraduationCap, roles: ['teacher'] },
-      { id: 'attendance', label: 'Mark Attendance', icon: CalendarCheck, roles: ['teacher'] },
+      { id: 'grades', label: 'My Class Grades', icon: GraduationCap, roles: ['teacher'] },
+      { id: 'attendance', label: 'Class Attendance', icon: CalendarCheck, roles: ['teacher'] },
       { id: 'students', label: 'My Students', icon: Users, roles: ['teacher'] },
       { id: 'timetable', label: 'My Timetable', icon: Calendar, roles: ['teacher'] },
       { id: 'announcements', label: 'Class Announcements', icon: Megaphone, roles: ['teacher'] },
-      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['teacher'] },
+      { id: 'messages', label: 'Class Messages', icon: MessageSquare, roles: ['teacher'] },
       { id: 'reports', label: 'Class Reports', icon: FileText, roles: ['teacher'] },
     ];
   }
@@ -98,8 +111,8 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'finance', label: 'Fee Management', icon: DollarSign, roles: ['finance_officer'] },
       { id: 'students', label: 'Student Fees', icon: Users, roles: ['finance_officer'] },
       { id: 'reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
-      { id: 'announcements', label: 'Fee Notices', icon: Megaphone, roles: ['finance_officer'] },
-      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['finance_officer'] },
+      { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
+      { id: 'messages', label: 'Finance Messages', icon: MessageSquare, roles: ['finance_officer'] },
     ];
   }
 
@@ -110,6 +123,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'grades', label: "Child's Grades", icon: GraduationCap, roles: ['parent'] },
       { id: 'attendance', label: "Child's Attendance", icon: CalendarCheck, roles: ['parent'] },
       { id: 'finance', label: 'School Fees', icon: DollarSign, roles: ['parent'] },
+      { id: 'timetable', label: "Child's Timetable", icon: Calendar, roles: ['parent'] },
       { id: 'announcements', label: 'School News', icon: Megaphone, roles: ['parent'] },
       { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['parent'] },
     ];
