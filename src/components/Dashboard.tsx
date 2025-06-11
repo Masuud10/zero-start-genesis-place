@@ -44,27 +44,36 @@ const Dashboard = () => {
   };
 
   const getRoleBasedDashboard = () => {
+    console.log('📊 Dashboard: Getting role-based dashboard for role:', user?.role);
+    
     switch (user?.role) {
       case 'school_owner':
+        console.log('📊 Dashboard: Rendering SchoolOwnerDashboard');
         return <SchoolOwnerDashboard onModalOpen={openModal} />;
       case 'principal':
+        console.log('📊 Dashboard: Rendering PrincipalDashboard');
         return <PrincipalDashboard onModalOpen={openModal} />;
       case 'teacher':
+        console.log('📊 Dashboard: Rendering TeacherDashboard');
         return <TeacherDashboard onModalOpen={openModal} />;
       case 'parent':
+        console.log('📊 Dashboard: Rendering ParentDashboard');
         return <ParentDashboard onModalOpen={openModal} />;
       case 'elimisha_admin':
       case 'edufam_admin':
+        console.log('📊 Dashboard: Rendering ElimshaAdminDashboard');
         return <ElimshaAdminDashboard onModalOpen={openModal} />;
       case 'finance_officer':
+        console.log('📊 Dashboard: Rendering SchoolOwnerDashboard for finance officer');
         return <SchoolOwnerDashboard onModalOpen={openModal} />; // Same as school owner for now
       default:
+        console.log('📊 Dashboard: Unknown role, showing access denied:', user?.role);
         return (
           <Card>
             <CardHeader>
               <CardTitle>Access Denied</CardTitle>
               <CardDescription>
-                You don't have permission to view this dashboard.
+                You don't have permission to view this dashboard. Your role: {user?.role || 'undefined'}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -98,8 +107,13 @@ const Dashboard = () => {
                   ? "Manage your classes, grades, and student interactions."
                   : user?.role === 'parent'
                   ? "Stay updated on your child's academic progress and school activities."
+                  : user?.role === 'finance_officer'
+                  ? "Manage financial operations and fee collection for your school."
                   : "Here's what's happening in your school today."
                 }
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Role: {user?.role} | User ID: {user?.id?.slice(0, 8)}...
               </p>
             </div>
             <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl shadow-lg">
