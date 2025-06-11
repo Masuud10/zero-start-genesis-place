@@ -11,6 +11,8 @@ interface AppSidebarProps {
 }
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange }) => {
+  console.log('🏠 AppSidebar: Rendering with activeSection:', activeSection);
+  
   return (
     <Sidebar className="border-r">
       <SidebarHeader />

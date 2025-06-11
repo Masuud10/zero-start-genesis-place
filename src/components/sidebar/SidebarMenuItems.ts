@@ -45,7 +45,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // School Owner - financial and administrative oversight, NO direct academic access
+  // School Owner - financial and administrative oversight, NO settings access
   if (userRole === 'school_owner') {
     return [
       ...baseItems,
@@ -54,8 +54,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'reports', label: 'Financial Reports', icon: FileText, roles: ['school_owner'] },
       { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['school_owner'] },
       { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner'] },
-      { id: 'support', label: 'Support', icon: Headphones, roles: ['school_owner'] },
-      { id: 'settings', label: 'School Settings', icon: Settings, roles: ['school_owner'] },
+      { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['school_owner'] },
     ];
   }
 

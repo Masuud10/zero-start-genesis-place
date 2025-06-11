@@ -23,14 +23,24 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 }) => {
   const { user } = useAuth();
   
+  console.log('🧭 SidebarNavigation: Rendering for user role:', user?.role);
+  
   const menuItems = getMenuItems(user?.role);
   const filteredItems = menuItems.filter(item => 
     item.roles.includes(user?.role || '')
   );
 
+  console.log('🧭 SidebarNavigation: Filtered items for role', user?.role, ':', filteredItems.map(item => item.id));
+
   const handleSectionChange = (section: string) => {
+    console.log('🧭 SidebarNavigation: Section change requested:', section);
     onSectionChange?.(section);
   };
+
+  if (!user) {
+    console.log('🧭 SidebarNavigation: No user found');
+    return null;
+  }
 
   return (
     <SidebarContent>
@@ -43,7 +53,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
                 <SidebarMenuButton
                   onClick={() => handleSectionChange(item.id)}
                   isActive={activeSection === item.id}
-                  className="w-full"
+                  className="w-full transition-all duration-200 hover:bg-accent"
                 >
                   <item.icon className="w-4 h-4" />
                   <span>{item.label}</span>

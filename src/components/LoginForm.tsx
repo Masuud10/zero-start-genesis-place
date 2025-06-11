@@ -17,10 +17,22 @@ const LoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       let result;
+      console.log('🔐 LoginForm: Attempting', showSignUp ? 'sign up' : 'sign in', 'for:', email);
+      
       if (showSignUp) {
         result = await signUp(email, password, { name: email.split('@')[0] });
       } else {
@@ -36,11 +48,13 @@ const LoginForm = () => {
         
         // Handle specific error types
         if (error.message === 'Invalid login credentials') {
-          errorMessage = 'Invalid email or password. Please check your credentials or try signing up.';
+          errorMessage = 'Invalid email or password. Please check your credentials.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and click the confirmation link before logging in.';
+        } else if (error.message.includes('User already registered')) {
+          errorMessage = 'An account with this email already exists. Please sign in instead.';
         } else if (error.message.includes('500') || error.message.includes('server')) {
-          errorMessage = 'Server error occurred. Please try again in a moment. If the issue persists, contact support.';
-        } else if (error.message.includes('recursion') || error.message.includes('policy')) {
-          errorMessage = 'Authentication system is temporarily unavailable. Please try again.';
+          errorMessage = 'Server error occurred. Please try again in a moment.';
         } else if (error.message.includes('network') || error.message.includes('fetch')) {
           errorMessage = 'Network error. Please check your connection and try again.';
         }
@@ -70,12 +84,12 @@ const LoginForm = () => {
       
       toast({
         title: "Error",
-        description: "An unexpected error occurred. The server may be temporarily unavailable. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -100,7 +114,7 @@ const LoginForm = () => {
         <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">
-              {showSignUp ? 'Sign up' : 'Sign in'}
+              {showSignUp ? 'Create Account' : 'Welcome Back'}
             </CardTitle>
             <CardDescription className="text-center">
               {showSignUp 
@@ -121,6 +135,7 @@ const LoginForm = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="h-11"
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -133,14 +148,23 @@ const LoginForm = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="h-11"
+                  disabled={isLoading}
+                  minLength={6}
                 />
               </div>
               <Button 
                 type="submit" 
-                className="w-full h-11 gradient-academic text-white hover:opacity-90 transition-all duration-200"
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transition-all duration-200"
                 disabled={isLoading}
               >
-                {isLoading ? (showSignUp ? "Creating account..." : "Signing in...") : (showSignUp ? "Sign up" : "Sign in")}
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    {showSignUp ? "Creating account..." : "Signing in..."}
+                  </>
+                ) : (
+                  showSignUp ? "Create Account" : "Sign In"
+                )}
               </Button>
             </form>
             
@@ -149,6 +173,7 @@ const LoginForm = () => {
                 variant="link" 
                 onClick={() => setShowSignUp(!showSignUp)}
                 className="text-sm"
+                disabled={isLoading}
               >
                 {showSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </Button>
