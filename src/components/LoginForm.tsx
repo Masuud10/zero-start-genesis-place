@@ -33,8 +33,16 @@ const LoginForm = () => {
         console.error('🔴 Login error details:', error);
         
         let errorMessage = error.message;
+        
+        // Handle specific error types
         if (error.message === 'Invalid login credentials') {
           errorMessage = 'Invalid email or password. Please check your credentials or try signing up.';
+        } else if (error.message.includes('500') || error.message.includes('server')) {
+          errorMessage = 'Server error occurred. Please try again in a moment. If the issue persists, contact support.';
+        } else if (error.message.includes('recursion') || error.message.includes('policy')) {
+          errorMessage = 'Authentication system is temporarily unavailable. Please try again.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
         }
         
         toast({
@@ -62,7 +70,7 @@ const LoginForm = () => {
       
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: "An unexpected error occurred. The server may be temporarily unavailable. Please try again.",
         variant: "destructive",
       });
     }

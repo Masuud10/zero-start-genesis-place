@@ -22,16 +22,26 @@ export const useAuthStateListener = ({
     const clearInvalidTokens = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error && error.message.includes('Invalid Refresh Token')) {
-          console.log('🔐 AuthProvider: Clearing invalid tokens');
-          await supabase.auth.signOut();
-          // Clear localStorage of any auth tokens
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-              localStorage.removeItem(key);
-            }
-          });
+        
+        if (error) {
+          console.log('🔐 AuthProvider: Session error, clearing tokens:', error.message);
+          
+          if (error.message.includes('Invalid Refresh Token') || 
+              error.message.includes('refresh_token_not_found') ||
+              error.message.includes('invalid_grant')) {
+            console.log('🔐 AuthProvider: Clearing invalid tokens');
+            await supabase.auth.signOut();
+            
+            // Clear localStorage of any auth tokens
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+                localStorage.removeItem(key);
+              }
+            });
+          }
+          return null;
         }
+        
         return session;
       } catch (err) {
         console.error('🔐 AuthProvider: Error checking session:', err);
@@ -54,10 +64,20 @@ export const useAuthStateListener = ({
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         console.log('🔐 AuthProvider: User signed in or token refreshed');
-        // Defer profile fetching to avoid blocking
+        
+        // Defer profile fetching to avoid blocking and potential deadlocks
         setTimeout(() => {
           if (isMounted && session?.user) {
-            fetchUserProfile(session.user);
+            fetchUserProfile(session.user).catch(error => {
+              console.error('🔐 AuthProvider: Error fetching profile in state change:', error);
+              // Continue with basic user data even if profile fetch fails
+              setUser({
+                ...session.user,
+                role: 'parent',
+                name: session.user.email?.split('@')[0] || 'User'
+              });
+              setIsLoading(false);
+            });
           }
         }, 100);
       }
@@ -74,7 +94,21 @@ export const useAuthStateListener = ({
         console.log('🔐 AuthProvider: Initial session check', { hasSession: !!session });
         
         if (session?.user) {
-          await fetchUserProfile(session.user);
+          // Use setTimeout to prevent potential blocking
+          setTimeout(() => {
+            if (isMounted) {
+              fetchUserProfile(session.user).catch(error => {
+                console.error('🔐 AuthProvider: Error fetching profile during init:', error);
+                // Set fallback user data
+                setUser({
+                  ...session.user,
+                  role: 'parent',
+                  name: session.user.email?.split('@')[0] || 'User'
+                });
+                setIsLoading(false);
+              });
+            }
+          }, 50);
         } else {
           setUser(null);
           setIsLoading(false);

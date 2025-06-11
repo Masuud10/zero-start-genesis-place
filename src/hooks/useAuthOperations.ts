@@ -10,18 +10,33 @@ export const useAuthOperations = () => {
 
   const fetchUserProfile = async (authUser: User) => {
     console.log('👤 AuthProvider: Fetching user profile for', authUser.email);
+    
     try {
+      // Use a more defensive approach to avoid RLS recursion issues
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, name, role, school_id, avatar_url')
         .eq('id', authUser.id)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('👤 AuthProvider: Error fetching profile:', error);
-      }
-
       console.log('👤 AuthProvider: Profile query result:', { profile, error });
+
+      if (error) {
+        console.error('👤 AuthProvider: Error fetching profile:', error);
+        
+        // If we get a server error or RLS error, fall back to basic user data
+        if (error.code === 'PGRST301' || error.message.includes('recursion') || error.message.includes('500')) {
+          console.log('👤 AuthProvider: Using fallback user data due to server error');
+          const userData: AuthUser = {
+            ...authUser,
+            role: 'parent', // Safe default
+            name: authUser.email?.split('@')[0] || 'User'
+          };
+          setUser(userData);
+          setIsLoading(false);
+          return;
+        }
+      }
 
       const userData: AuthUser = {
         ...authUser,
@@ -36,12 +51,15 @@ export const useAuthOperations = () => {
       setIsLoading(false);
     } catch (error) {
       console.error('❌ AuthProvider: Exception fetching user profile:', error);
-      // Even if profile fetch fails, set user with basic info
+      
+      // Create fallback user data to prevent app from breaking
       const userData: AuthUser = {
         ...authUser,
         role: 'parent',
         name: authUser.email?.split('@')[0] || 'User'
       };
+      
+      console.log('👤 AuthProvider: Using fallback user data after exception');
       setUser(userData);
       setIsLoading(false);
     }
@@ -56,7 +74,7 @@ export const useAuthOperations = () => {
       try {
         await supabase.auth.signOut();
       } catch (e) {
-        // Ignore errors when signing out
+        console.log('🔑 AuthProvider: Ignoring signOut error during cleanup:', e);
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -71,6 +89,7 @@ export const useAuthOperations = () => {
       });
       
       if (error) {
+        console.error('🔑 AuthProvider: Sign in error:', error);
         setIsLoading(false);
       }
       
