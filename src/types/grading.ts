@@ -1,4 +1,3 @@
-
 export interface Grade {
   id: string;
   studentId: string;
@@ -10,11 +9,23 @@ export interface Grade {
   examType: 'CAT' | 'MID_TERM' | 'END_TERM' | 'FINAL';
   submittedBy: string;
   submittedAt: Date;
-  isReleased: boolean;
-  isImmutable: boolean; // New field to track if grade can be edited
-  position?: number; // Class position for this grade
-  percentage: number; // Calculated percentage
+  
+  // Enhanced workflow fields
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  releasedBy?: string;
+  releasedAt?: Date;
+  rejectionReason?: string;
+  
+  isImmutable: boolean;
+  position?: number;
+  percentage: number;
   overrideHistory?: GradeOverride[];
+  
+  // Audit trail
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface GradeOverride {
@@ -28,20 +39,37 @@ export interface GradeOverride {
   requestedAt: Date;
   approvedAt?: Date;
   status: 'pending' | 'approved' | 'rejected';
+  overrideType: 'teacher_request' | 'principal_override';
 }
 
-export interface BulkGradeUpload {
+export interface BulkGradeSubmission {
   id: string;
   classId: string;
   subjectId: string;
   term: string;
   examType: 'CAT' | 'MID_TERM' | 'END_TERM' | 'FINAL';
-  uploadedBy: string;
-  uploadedAt: Date;
+  teacherId: string;
+  submittedAt: Date;
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  releasedBy?: string;
+  releasedAt?: Date;
   grades: Grade[];
-  status: 'draft' | 'submitted' | 'approved';
   totalStudents: number;
   gradesEntered: number;
+  principalNotes?: string;
+}
+
+export interface GradingWorkflowNotification {
+  id: string;
+  type: 'grade_submitted' | 'grade_approved' | 'grade_rejected' | 'results_released';
+  fromUserId: string;
+  toUserId: string;
+  gradeSubmissionId?: string;
+  message: string;
+  isRead: boolean;
+  createdAt: Date;
 }
 
 export interface GradingSession {

@@ -7,9 +7,14 @@ export interface Permission {
 }
 
 export const PERMISSIONS = {
-  // Gradebook permissions
+  // Enhanced Gradebook permissions with workflow control
   VIEW_GRADEBOOK: 'view_gradebook',
   EDIT_GRADEBOOK: 'edit_gradebook',
+  SUBMIT_GRADES: 'submit_grades',
+  APPROVE_GRADES: 'approve_grades',
+  REJECT_GRADES: 'reject_grades',
+  RELEASE_RESULTS: 'release_results',
+  OVERRIDE_GRADES: 'override_grades',
   
   // Position permissions
   VIEW_POSITION: 'view_position',
@@ -52,7 +57,12 @@ export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed: boolean; scope?: string }>> = {
   edufam_admin: {
     [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false }, // Admins view only, don't edit
+    [PERMISSIONS.SUBMIT_GRADES]: { allowed: false },
+    [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
+    [PERMISSIONS.REJECT_GRADES]: { allowed: false },
+    [PERMISSIONS.RELEASE_RESULTS]: { allowed: false },
+    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: false },
     [PERMISSIONS.VIEW_POSITION]: { allowed: true, scope: 'all' },
     [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: true, scope: 'all' },
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: true, scope: 'all' },
@@ -71,7 +81,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
   
   elimisha_admin: {
     [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false }, // Admins view only, don't edit
+    [PERMISSIONS.SUBMIT_GRADES]: { allowed: false },
+    [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
+    [PERMISSIONS.REJECT_GRADES]: { allowed: false },
+    [PERMISSIONS.RELEASE_RESULTS]: { allowed: false },
+    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: false },
     [PERMISSIONS.VIEW_POSITION]: { allowed: true, scope: 'all' },
     [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: true, scope: 'all' },
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: true, scope: 'all' },
@@ -90,7 +105,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
 
   school_owner: {
     [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'school' },
-    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false }, // School owners view summaries only
+    [PERMISSIONS.SUBMIT_GRADES]: { allowed: false },
+    [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
+    [PERMISSIONS.REJECT_GRADES]: { allowed: false },
+    [PERMISSIONS.RELEASE_RESULTS]: { allowed: false },
+    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: false },
     [PERMISSIONS.VIEW_POSITION]: { allowed: true, scope: 'school' },
     [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: true, scope: 'school' },
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: true, scope: 'school' },
@@ -109,7 +129,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
 
   principal: {
     [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'school' },
-    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: true, scope: 'school' }, // Can edit for override purposes
+    [PERMISSIONS.SUBMIT_GRADES]: { allowed: false }, // Principals don't submit, they approve
+    [PERMISSIONS.APPROVE_GRADES]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.REJECT_GRADES]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.RELEASE_RESULTS]: { allowed: true, scope: 'school' }, // EXCLUSIVE right to release
+    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: true, scope: 'school' },
     [PERMISSIONS.VIEW_POSITION]: { allowed: true, scope: 'school' },
     [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: true, scope: 'school' },
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: false },
@@ -128,7 +153,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
 
   teacher: {
     [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'class' },
-    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: true, scope: 'class' }, // Only draft/rejected grades
+    [PERMISSIONS.SUBMIT_GRADES]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
+    [PERMISSIONS.REJECT_GRADES]: { allowed: false },
+    [PERMISSIONS.RELEASE_RESULTS]: { allowed: false }, // Teachers CANNOT release
+    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: false }, // Teachers can request, not override
     [PERMISSIONS.VIEW_POSITION]: { allowed: true, scope: 'class' },
     [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: false },
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: false },
@@ -146,8 +176,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
   },
 
   parent: {
-    [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'child' },
+    [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'child' }, // Only released grades
     [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false },
+    [PERMISSIONS.SUBMIT_GRADES]: { allowed: false },
+    [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
+    [PERMISSIONS.REJECT_GRADES]: { allowed: false },
+    [PERMISSIONS.RELEASE_RESULTS]: { allowed: false },
+    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: false },
     [PERMISSIONS.VIEW_POSITION]: { allowed: true, scope: 'child' },
     [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: true, scope: 'child' },
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: false },
@@ -165,8 +200,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
   },
 
   finance_officer: {
-    [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: false },
+    [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: false }, // Finance officers don't need grade access
     [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false },
+    [PERMISSIONS.SUBMIT_GRADES]: { allowed: false },
+    [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
+    [PERMISSIONS.REJECT_GRADES]: { allowed: false },
+    [PERMISSIONS.RELEASE_RESULTS]: { allowed: false },
+    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: false },
     [PERMISSIONS.VIEW_POSITION]: { allowed: false },
     [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: true, scope: 'school' },
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: true, scope: 'school' },
@@ -212,12 +252,10 @@ export class PermissionManager {
   }
 
   canAccessSchool(schoolId: string): boolean {
-    // System admins can access all schools
     if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
       return true;
     }
     
-    // Other users can only access their own school
     return this.userSchoolId === schoolId;
   }
 
@@ -225,35 +263,29 @@ export class PermissionManager {
     const scope = this.getPermissionScope(PERMISSIONS.VIEW_CLASS_INFO);
     
     if (scope === 'all') return true;
-    if (scope === 'school') return true; // School-level users can access all classes in their school
+    if (scope === 'school') return true;
     if (scope === 'class') return this.userClassIds?.includes(classId) || false;
     
     return false;
   }
 
   canAccessStudent(studentId: string, studentSchoolId?: string): boolean {
-    // System admin roles can access all students
     if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
       return true;
     }
 
-    // School-level roles can access students in their school
     if (['school_owner', 'principal'].includes(this.userRole)) {
       return this.userSchoolId === studentSchoolId;
     }
 
-    // Teachers can access students in their school (will be further filtered by class in actual queries)
     if (this.userRole === 'teacher') {
       return this.userSchoolId === studentSchoolId;
     }
 
-    // Parents can only access their own children (implementation depends on parent-child relationships)
     if (this.userRole === 'parent') {
-      // This would need to be enhanced with actual parent-child relationship checking
-      return false; // Placeholder - would check parent-child relationship in real implementation
+      return false;
     }
 
-    // Finance officers can access students in their school for fee-related data
     if (this.userRole === 'finance_officer') {
       return this.userSchoolId === studentSchoolId;
     }
@@ -261,14 +293,11 @@ export class PermissionManager {
     return false;
   }
 
-  // Check if user can create/modify data for a specific school
   canModifySchoolData(targetSchoolId?: string): boolean {
-    // System admins can modify data for any school
     if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
       return true;
     }
 
-    // Other users can only modify data for their own school
     if (!targetSchoolId || !this.userSchoolId) {
       return false;
     }
@@ -276,7 +305,6 @@ export class PermissionManager {
     return this.userSchoolId === targetSchoolId;
   }
 
-  // Get the school context for queries
   getSchoolContext(): { schoolId?: string; isSystemAdmin: boolean } {
     return {
       schoolId: this.userSchoolId,
@@ -305,13 +333,12 @@ export class PermissionManager {
     ];
 
     return allMenuItems.filter(item => {
-      if (!item.permission) return true; // Items without permission requirements are always visible
+      if (!item.permission) return true;
       return this.hasPermission(item.permission);
     });
   }
 }
 
-// Utility function to create a permission manager for a user
 export const createPermissionManager = (
   userRole: UserRole, 
   userSchoolId?: string, 
@@ -320,7 +347,6 @@ export const createPermissionManager = (
   return new PermissionManager(userRole, userSchoolId, userClassIds || []);
 };
 
-// Hook for using permissions in React components
 export const usePermissions = (userRole: UserRole, userSchoolId?: string, userClassIds: string[] = []) => {
   const permissionManager = new PermissionManager(userRole, userSchoolId, userClassIds);
   
