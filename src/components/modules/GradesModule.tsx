@@ -92,10 +92,12 @@ const GradesModule = () => {
     examType: 'MID_TERM' as const,
     submittedBy: user?.id || 'teacher-1',
     submittedAt: new Date(),
-    isReleased: false,
+    status: 'draft' as const,
     isImmutable: true,
     percentage: 85.0,
-    position: 1
+    position: 1,
+    createdAt: new Date(),
+    updatedAt: new Date()
   };
 
   const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
