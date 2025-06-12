@@ -21,18 +21,13 @@ const AppContent = () => {
     showLogin
   });
 
-  // Show loading while auth is initializing
+  // Show loading only while auth is initializing
   if (authLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;
   }
 
-  // Show loading when we have a user but schools are still loading
-  if (user && schoolLoading) {
-    console.log('🎯 AppContent: User authenticated but schools loading');
-    return <LoadingScreen />;
-  }
-
+  // If no user, show landing page or login
   if (!user) {
     console.log('🎯 AppContent: No user, showing landing page or login form');
     
@@ -41,6 +36,12 @@ const AppContent = () => {
     }
     
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+  }
+
+  // Show loading when we have a user but schools are still loading (only for non-admins)
+  if (user && schoolLoading && user.role !== 'parent') {
+    console.log('🎯 AppContent: User authenticated but schools loading');
+    return <LoadingScreen />;
   }
 
   console.log('🎯 AppContent: User authenticated, showing main layout');

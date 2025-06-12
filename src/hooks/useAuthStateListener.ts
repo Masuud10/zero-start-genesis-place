@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseAuthStateListenerProps {
@@ -13,64 +13,63 @@ export const useAuthStateListener = ({
   setIsLoading, 
   fetchUserProfile 
 }: UseAuthStateListenerProps) => {
-  // Memoize the profile fetcher to prevent recreation
-  const stableFetchUserProfile = useCallback(fetchUserProfile, []);
+  const isInitializedRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    console.log('🔐 AuthProvider: Setting up auth state listener (stable)');
+    // Prevent multiple initializations
+    if (isInitializedRef.current) {
+      return;
+    }
     
-    let isMounted = true;
-    let isInitialized = false;
+    console.log('🔐 AuthProvider: Setting up auth state listener');
+    isInitializedRef.current = true;
+    isMountedRef.current = true;
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const handleAuthStateChange = async (event: string, session: any) => {
       console.log('🔐 AuthProvider: Auth state changed', { 
         event, 
         hasUser: !!session?.user, 
-        userEmail: session?.user?.email,
-        isInitialized,
-        isMounted
+        userEmail: session?.user?.email
       });
       
-      if (!isMounted) {
+      if (!isMountedRef.current) {
         console.log('🔐 AuthProvider: Component unmounted, ignoring auth change');
         return;
       }
 
-      // Handle sign out or no session
-      if (event === 'SIGNED_OUT' || !session?.user) {
-        console.log('🔐 AuthProvider: User signed out or no session');
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
+      try {
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          console.log('🔐 AuthProvider: User signed out or no session');
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
 
-      // Handle authenticated states
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && session?.user)) {
-        console.log('🔐 AuthProvider: User authenticated, fetching profile');
-        
-        if (session?.user && isMounted) {
-          try {
-            await stableFetchUserProfile(session.user);
-          } catch (error) {
-            console.error('🔐 AuthProvider: Error fetching profile:', error);
-            // Set fallback user data
-            if (isMounted) {
-              setUser({
-                ...session.user,
-                role: 'parent',
-                name: session.user.email?.split('@')[0] || 'User'
-              });
-              setIsLoading(false);
-            }
-          }
+        if (session?.user) {
+          console.log('🔐 AuthProvider: User authenticated, fetching profile');
+          await fetchUserProfile(session.user);
+        }
+      } catch (error) {
+        console.error('🔐 AuthProvider: Error in auth state handler:', error);
+        // Set fallback user data to prevent app from breaking
+        if (session?.user && isMountedRef.current) {
+          setUser({
+            ...session.user,
+            role: 'parent',
+            name: session.user.email?.split('@')[0] || 'User'
+          });
+          setIsLoading(false);
         }
       }
-    });
+    };
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     // Get initial session
     const initializeAuth = async () => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       
       try {
         console.log('🔐 AuthProvider: Getting initial session');
@@ -79,45 +78,29 @@ export const useAuthStateListener = ({
         
         if (error) {
           console.error('🔐 AuthProvider: Session error:', error);
-          if (isMounted) {
+          if (isMountedRef.current) {
             setUser(null);
             setIsLoading(false);
           }
           return;
         }
 
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
 
         console.log('🔐 AuthProvider: Initial session check', { 
           hasSession: !!session,
           hasUser: !!session?.user 
         });
         
-        isInitialized = true;
-        
         if (session?.user) {
-          try {
-            await stableFetchUserProfile(session.user);
-          } catch (error) {
-            console.error('🔐 AuthProvider: Error fetching profile during init:', error);
-            // Set fallback user data
-            if (isMounted) {
-              setUser({
-                ...session.user,
-                role: 'parent',
-                name: session.user.email?.split('@')[0] || 'User'
-              });
-              setIsLoading(false);
-            }
-          }
+          await handleAuthStateChange('INITIAL_SESSION', session);
         } else {
           setUser(null);
           setIsLoading(false);
         }
       } catch (error) {
         console.error('🔐 AuthProvider: Exception during initialization:', error);
-        if (isMounted) {
-          isInitialized = true;
+        if (isMountedRef.current) {
           setUser(null);
           setIsLoading(false);
         }
@@ -128,8 +111,8 @@ export const useAuthStateListener = ({
 
     return () => {
       console.log('🔐 AuthProvider: Cleaning up auth state listener');
-      isMounted = false;
+      isMountedRef.current = false;
       subscription.unsubscribe();
     };
-  }, [setUser, setIsLoading, stableFetchUserProfile]); // Use stable reference
+  }, []); // Empty dependencies to run only once
 };
