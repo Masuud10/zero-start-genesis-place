@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import UserStatsCards from './users/UserStatsCards';
 import CreateUserDialog from './users/CreateUserDialog';
 import UsersFilter from './users/UsersFilter';
@@ -28,6 +28,7 @@ const UsersModule = () => {
   const [roleFilter, setRoleFilter] = useState('all');
   const { toast } = useToast();
   const { user } = useAuth();
+  const { createSchoolScopedQuery, isSystemAdmin } = useSchoolScopedData();
 
   useEffect(() => {
     fetchUsers();
@@ -37,18 +38,10 @@ const UsersModule = () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('profiles')
-        .select(`
-          *,
-          school:schools(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      // If user is not a system admin, only show users from their school
-      if (user?.role !== 'elimisha_admin' && user?.role !== 'edufam_admin' && user?.school_id) {
-        query = query.eq('school_id', user.school_id);
-      }
+      let query = createSchoolScopedQuery('profiles', `
+        *,
+        school:schools(name)
+      `).order('created_at', { ascending: false });
 
       const { data, error } = await query;
 
@@ -109,7 +102,7 @@ const UsersModule = () => {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Users Management</h2>
           <p className="text-muted-foreground">
-            {user?.role === 'elimisha_admin' || user?.role === 'edufam_admin' 
+            {isSystemAdmin 
               ? 'Manage all users across the Elimisha platform'
               : 'Manage users in your school'
             }

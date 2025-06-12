@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import SchoolStatsCards from './schools/SchoolStatsCards';
 import AddSchoolDialog from './schools/AddSchoolDialog';
 import SchoolsFilter from './schools/SchoolsFilter';
@@ -28,20 +28,23 @@ const SchoolsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const { toast } = useToast();
+  const { createSchoolScopedQuery, isSystemAdmin } = useSchoolScopedData();
 
   useEffect(() => {
-    fetchSchools();
-  }, []);
+    if (isSystemAdmin) {
+      fetchSchools();
+    } else {
+      setLoading(false);
+    }
+  }, [isSystemAdmin]);
 
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const { data: schoolsData, error } = await supabase
-        .from('schools')
-        .select(`
-          *,
-          subscriptions(plan_type, status, amount)
-        `);
+      const { data: schoolsData, error } = await createSchoolScopedQuery('schools', `
+        *,
+        subscriptions(plan_type, status, amount)
+      `);
 
       if (error) throw error;
 
@@ -57,6 +60,19 @@ const SchoolsModule = () => {
       setLoading(false);
     }
   };
+
+  if (!isSystemAdmin) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-muted-foreground">Access Denied</h2>
+          <p className="text-muted-foreground mt-2">
+            Only system administrators can manage schools.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredSchools = schools.filter(school => {
     const matchesSearch = school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

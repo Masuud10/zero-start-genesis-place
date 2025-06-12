@@ -19,6 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import SchoolSelector from "@/components/common/SchoolSelector";
 import GradesModal from "./modals/GradesModal";
 import AttendanceModal from "./modals/AttendanceModal";
 import ResultsModal from "./modals/ResultsModal";
@@ -35,6 +37,7 @@ import FinanceOfficerDashboard from "./dashboard/FinanceOfficerDashboard";
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { isSystemAdmin, currentSchool } = useSchoolScopedData();
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   console.log(
@@ -148,7 +151,7 @@ const Dashboard = () => {
     switch (user?.role) {
       case "elimisha_admin":
       case "edufam_admin":
-        return "System-wide management and monitoring dashboard.";
+        return `System-wide management and monitoring dashboard.${currentSchool ? ` Currently viewing: ${currentSchool.name}` : ''}`;
       case "school_owner":
         return "Monitor your school's financial and operational performance.";
       case "principal":
@@ -188,6 +191,11 @@ const Dashboard = () => {
                   <span className="bg-gray-100 px-2 py-1 rounded-full">
                     {user?.role?.replace('_', ' ').toUpperCase()}
                   </span>
+                  {currentSchool && (
+                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      {currentSchool.name}
+                    </span>
+                  )}
                   <span className="bg-gray-100 px-2 py-1 rounded-full">
                     {new Date().toLocaleDateString("en-US", {
                       weekday: "long",
@@ -203,6 +211,12 @@ const Dashboard = () => {
                     })}
                   </span>
                 </div>
+                {/* School Selector for System Admins */}
+                {isSystemAdmin && (
+                  <div className="mt-2">
+                    <SchoolSelector />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -229,6 +243,11 @@ const Dashboard = () => {
                       <p className="text-xs leading-none text-muted-foreground capitalize bg-blue-50 px-2 py-1 rounded-md">
                         {user?.role?.replace('_', ' ')}
                       </p>
+                      {currentSchool && (
+                        <p className="text-xs leading-none text-muted-foreground bg-green-50 px-2 py-1 rounded-md">
+                          {currentSchool.name}
+                        </p>
+                      )}
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -252,7 +271,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Dashboard Content - Close to Sidebar */}
+      {/* Main Dashboard Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="animate-fade-in">
           {getRoleBasedDashboard()}
