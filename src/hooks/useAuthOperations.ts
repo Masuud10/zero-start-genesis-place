@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -7,9 +7,12 @@ import { AuthUser } from '@/types/auth';
 export const useAuthOperations = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isMountedRef = useRef(true);
 
   const fetchUserProfile = useCallback(async (authUser: User) => {
-    console.log('👤 AuthProvider: Fetching user profile for', authUser.email);
+    if (!isMountedRef.current) return;
+    
+    console.log('👤 AuthOperations: Fetching user profile for', authUser.email);
     
     try {
       const { data: profile, error } = await supabase
@@ -18,10 +21,12 @@ export const useAuthOperations = () => {
         .eq('id', authUser.id)
         .maybeSingle();
 
-      console.log('👤 AuthProvider: Profile query result:', { profile, error });
+      if (!isMountedRef.current) return;
+
+      console.log('👤 AuthOperations: Profile query result:', { profile, error });
 
       if (error && !error.message.includes('0 rows')) {
-        console.error('👤 AuthProvider: Error fetching profile:', error);
+        console.error('👤 AuthOperations: Error fetching profile:', error);
       }
 
       const userData: AuthUser = {
@@ -32,11 +37,13 @@ export const useAuthOperations = () => {
         avatar_url: profile?.avatar_url
       };
 
-      console.log('👤 AuthProvider: Setting user data:', userData);
+      console.log('👤 AuthOperations: Setting user data:', userData);
       setUser(userData);
       setIsLoading(false);
     } catch (error) {
-      console.error('❌ AuthProvider: Exception fetching user profile:', error);
+      console.error('❌ AuthOperations: Exception fetching user profile:', error);
+      
+      if (!isMountedRef.current) return;
       
       // Create fallback user data to prevent app from breaking
       const userData: AuthUser = {
@@ -45,14 +52,16 @@ export const useAuthOperations = () => {
         name: authUser.email?.split('@')[0] || 'User'
       };
       
-      console.log('👤 AuthProvider: Using fallback user data after exception');
+      console.log('👤 AuthOperations: Using fallback user data after exception');
       setUser(userData);
       setIsLoading(false);
     }
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    console.log('🔑 AuthProvider: Attempting sign in for', email);
+    if (!isMountedRef.current) return { data: null, error: { message: 'Component unmounted' } };
+    
+    console.log('🔑 AuthOperations: Attempting sign in for', email);
     setIsLoading(true);
     
     try {
@@ -61,28 +70,34 @@ export const useAuthOperations = () => {
         password,
       });
       
-      console.log('🔑 AuthProvider: Sign in result', { 
+      console.log('🔑 AuthOperations: Sign in result', { 
         success: !!data.user, 
         error: error?.message,
         user: data.user?.email 
       });
       
       if (error) {
-        console.error('🔑 AuthProvider: Sign in error:', error);
-        setIsLoading(false);
+        console.error('🔑 AuthOperations: Sign in error:', error);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
         return { data: null, error };
       }
       
       return { data, error: null };
     } catch (error: any) {
-      console.error('❌ AuthProvider: Sign in exception:', error);
-      setIsLoading(false);
+      console.error('❌ AuthOperations: Sign in exception:', error);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
       return { data: null, error: { message: error.message || 'Authentication failed' } };
     }
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, metadata = {}) => {
-    console.log('📝 AuthProvider: Attempting sign up for', email);
+    if (!isMountedRef.current) return { data: null, error: { message: 'Component unmounted' } };
+    
+    console.log('📝 AuthOperations: Attempting sign up for', email);
     setIsLoading(true);
     
     try {
@@ -98,32 +113,38 @@ export const useAuthOperations = () => {
         }
       });
       
-      console.log('📝 AuthProvider: Sign up result', { 
+      console.log('📝 AuthOperations: Sign up result', { 
         success: !!data.user, 
         error: error?.message,
         needsConfirmation: !data.user?.email_confirmed_at
       });
       
       if (error) {
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
         return { data: null, error };
       }
       
       if (data.user && !data.session) {
-        console.log('📝 AuthProvider: Sign up successful, email confirmation required');
-        setIsLoading(false);
+        console.log('📝 AuthOperations: Sign up successful, email confirmation required');
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
       }
       
       return { data, error: null };
     } catch (error: any) {
-      console.error('❌ AuthProvider: Sign up exception:', error);
-      setIsLoading(false);
+      console.error('❌ AuthOperations: Sign up exception:', error);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
       return { data: null, error: { message: error.message || 'Sign up failed' } };
     }
   }, []);
 
   const signOut = useCallback(async () => {
-    console.log('🚪 AuthProvider: Signing out');
+    console.log('🚪 AuthOperations: Signing out');
     setIsLoading(true);
     
     try {
@@ -132,19 +153,25 @@ export const useAuthOperations = () => {
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error && !error.message.includes('Auth session missing')) {
-        console.error('❌ AuthProvider: Sign out error:', error);
+        console.error('❌ AuthOperations: Sign out error:', error);
       }
       
-      console.log('✅ AuthProvider: Successfully signed out');
+      console.log('✅ AuthOperations: Successfully signed out');
       setIsLoading(false);
       
+      // Force page reload to ensure clean state
       window.location.href = '/';
       
     } catch (error) {
-      console.error('❌ AuthProvider: Sign out exception:', error);
+      console.error('❌ AuthOperations: Sign out exception:', error);
       setUser(null);
       setIsLoading(false);
     }
+  }, []);
+
+  // Cleanup function
+  const cleanup = useCallback(() => {
+    isMountedRef.current = false;
   }, []);
 
   return {
@@ -155,6 +182,7 @@ export const useAuthOperations = () => {
     fetchUserProfile,
     signIn,
     signUp,
-    signOut
+    signOut,
+    cleanup
   };
 };

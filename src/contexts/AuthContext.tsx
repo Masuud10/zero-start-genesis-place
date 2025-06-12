@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { AuthContextType } from '@/types/auth';
 import { useAuthOperations } from '@/hooks/useAuthOperations';
 import { useAuthStateListener } from '@/hooks/useAuthStateListener';
@@ -23,7 +23,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchUserProfile,
     signIn,
     signUp,
-    signOut
+    signOut,
+    cleanup
   } = useAuthOperations();
 
   useAuthStateListener({
@@ -31,6 +32,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading,
     fetchUserProfile
   });
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   const value = {
     user,

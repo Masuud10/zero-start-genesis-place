@@ -38,7 +38,8 @@ const AppContent = () => {
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // Show loading when we have a user but schools are still loading (only for non-admins)
+  // For authenticated users, only show loading for school data if user needs school context
+  // Parents don't need school loading since they access their children's data differently
   if (user && schoolLoading && user.role !== 'parent') {
     console.log('🎯 AppContent: User authenticated but schools loading');
     return <LoadingScreen />;

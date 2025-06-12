@@ -13,45 +13,47 @@ export const useAuthStateListener = ({
   setIsLoading, 
   fetchUserProfile 
 }: UseAuthStateListenerProps) => {
-  const isInitializedRef = useRef(false);
   const isMountedRef = useRef(true);
+  const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Prevent multiple initializations
-    if (isInitializedRef.current) {
+    // Always update the mounted status
+    isMountedRef.current = true;
+
+    // Prevent multiple subscriptions
+    if (subscriptionRef.current) {
+      console.log('🔐 AuthStateListener: Subscription already exists, skipping setup');
       return;
     }
     
-    console.log('🔐 AuthProvider: Setting up auth state listener');
-    isInitializedRef.current = true;
-    isMountedRef.current = true;
+    console.log('🔐 AuthStateListener: Setting up auth state listener');
 
     const handleAuthStateChange = async (event: string, session: any) => {
-      console.log('🔐 AuthProvider: Auth state changed', { 
+      console.log('🔐 AuthStateListener: Auth state changed', { 
         event, 
         hasUser: !!session?.user, 
         userEmail: session?.user?.email
       });
       
       if (!isMountedRef.current) {
-        console.log('🔐 AuthProvider: Component unmounted, ignoring auth change');
+        console.log('🔐 AuthStateListener: Component unmounted, ignoring auth change');
         return;
       }
 
       try {
         if (event === 'SIGNED_OUT' || !session?.user) {
-          console.log('🔐 AuthProvider: User signed out or no session');
+          console.log('🔐 AuthStateListener: User signed out or no session');
           setUser(null);
           setIsLoading(false);
           return;
         }
 
         if (session?.user) {
-          console.log('🔐 AuthProvider: User authenticated, fetching profile');
+          console.log('🔐 AuthStateListener: User authenticated, fetching profile');
           await fetchUserProfile(session.user);
         }
       } catch (error) {
-        console.error('🔐 AuthProvider: Error in auth state handler:', error);
+        console.error('🔐 AuthStateListener: Error in auth state handler:', error);
         // Set fallback user data to prevent app from breaking
         if (session?.user && isMountedRef.current) {
           setUser({
@@ -66,18 +68,19 @@ export const useAuthStateListener = ({
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    subscriptionRef.current = subscription;
 
     // Get initial session
     const initializeAuth = async () => {
       if (!isMountedRef.current) return;
       
       try {
-        console.log('🔐 AuthProvider: Getting initial session');
+        console.log('🔐 AuthStateListener: Getting initial session');
         
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('🔐 AuthProvider: Session error:', error);
+          console.error('🔐 AuthStateListener: Session error:', error);
           if (isMountedRef.current) {
             setUser(null);
             setIsLoading(false);
@@ -87,7 +90,7 @@ export const useAuthStateListener = ({
 
         if (!isMountedRef.current) return;
 
-        console.log('🔐 AuthProvider: Initial session check', { 
+        console.log('🔐 AuthStateListener: Initial session check', { 
           hasSession: !!session,
           hasUser: !!session?.user 
         });
@@ -99,7 +102,7 @@ export const useAuthStateListener = ({
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('🔐 AuthProvider: Exception during initialization:', error);
+        console.error('🔐 AuthStateListener: Exception during initialization:', error);
         if (isMountedRef.current) {
           setUser(null);
           setIsLoading(false);
@@ -110,9 +113,12 @@ export const useAuthStateListener = ({
     initializeAuth();
 
     return () => {
-      console.log('🔐 AuthProvider: Cleaning up auth state listener');
+      console.log('🔐 AuthStateListener: Cleaning up auth state listener');
       isMountedRef.current = false;
-      subscription.unsubscribe();
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
     };
-  }, []); // Empty dependencies to run only once
+  }, [setUser, setIsLoading, fetchUserProfile]); // Keep dependencies stable
 };
