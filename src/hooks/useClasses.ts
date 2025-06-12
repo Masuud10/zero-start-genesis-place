@@ -20,13 +20,15 @@ export const useClasses = () => {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const { data, error } = await createSchoolScopedQuery('classes', `
+      const query = createSchoolScopedQuery('classes', `
         id,
         name,
         school_id,
         teacher_id,
         created_at
-      `).order('name');
+      `);
+
+      const { data, error } = await query.order('name');
 
       if (error) {
         console.error('Error fetching classes:', error);

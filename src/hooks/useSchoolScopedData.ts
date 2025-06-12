@@ -24,8 +24,7 @@ export const useSchoolScopedData = () => {
   const createSchoolScopedQuery = useCallback((tableName: string, selectClause = '*') => {
     const schoolId = getCurrentSchoolId();
     
-    // Use type assertion to handle the dynamic table name
-    let query = (supabase as any).from(tableName).select(selectClause);
+    let query = supabase.from(tableName).select(selectClause);
 
     // System admins can access all data
     if (isSystemAdmin()) {
@@ -45,8 +44,6 @@ export const useSchoolScopedData = () => {
     if (['students', 'classes', 'subjects', 'announcements', 'support_tickets', 'timetables', 'messages'].includes(tableName)) {
       query = query.eq('school_id', schoolId);
     }
-    
-    // For tables accessed through student relationships, RLS policies will handle filtering
     
     return query;
   }, [isSystemAdmin, getCurrentSchoolId, currentSchool?.id]);
@@ -86,7 +83,7 @@ export const useSchoolScopedData = () => {
       data.school_id = schoolId;
     }
 
-    return (supabase as any).from(tableName).insert(data);
+    return supabase.from(tableName).insert(data);
   }, [isSystemAdmin, getCurrentSchoolId]);
 
   return {

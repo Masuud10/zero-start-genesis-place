@@ -41,10 +41,12 @@ const SchoolsModule = () => {
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const { data: schoolsData, error } = await createSchoolScopedQuery('schools', `
+      const query = createSchoolScopedQuery('schools', `
         *,
         subscriptions(plan_type, status, amount)
       `);
+
+      const { data: schoolsData, error } = await query;
 
       if (error) {
         console.error('Error fetching schools:', error);
