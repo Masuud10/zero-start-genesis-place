@@ -17,68 +17,40 @@ export const useAuthStateListener = ({
     console.log('🔐 AuthProvider: Initializing authentication state listener');
     
     let isMounted = true;
-    let sessionCheckComplete = false;
-
-    // Clear any invalid tokens on startup
-    const clearInvalidTokens = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.log('🔐 AuthProvider: Session error, clearing tokens:', error.message);
-          
-          if (error.message.includes('Invalid Refresh Token') || 
-              error.message.includes('refresh_token_not_found') ||
-              error.message.includes('invalid_grant') ||
-              error.message.includes('Auth session missing')) {
-            console.log('🔐 AuthProvider: Clearing invalid tokens');
-            await supabase.auth.signOut({ scope: 'global' });
-            
-            // Clear localStorage of any auth tokens
-            Object.keys(localStorage).forEach(key => {
-              if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-                localStorage.removeItem(key);
-              }
-            });
-          }
-          return null;
-        }
-        
-        return session;
-      } catch (err) {
-        console.error('🔐 AuthProvider: Error checking session:', err);
-        return null;
-      }
-    };
+    let isInitialized = false;
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 AuthProvider: Auth state changed', { 
         event, 
         hasUser: !!session?.user, 
-        userEmail: session?.user?.email 
+        userEmail: session?.user?.email,
+        isInitialized
       });
       
       if (!isMounted) return;
 
-      if (event === 'SIGNED_OUT' || !session?.user) {
-        console.log('🔐 AuthProvider: User signed out or no session');
-        setUser(null);
-        if (sessionCheckComplete) {
-          setIsLoading(false);
-        }
+      // Skip processing during initial session check to avoid double processing
+      if (!isInitialized && event === 'INITIAL_SESSION') {
         return;
       }
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.log('🔐 AuthProvider: User signed in or token refreshed');
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        console.log('🔐 AuthProvider: User signed out or no session');
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && session?.user)) {
+        console.log('🔐 AuthProvider: User authenticated, fetching profile');
         
         if (session?.user && isMounted) {
           try {
             await fetchUserProfile(session.user);
           } catch (error) {
-            console.error('🔐 AuthProvider: Error fetching profile in state change:', error);
-            // Continue with basic user data even if profile fetch fails
+            console.error('🔐 AuthProvider: Error fetching profile:', error);
+            // Set fallback user data
             setUser({
               ...session.user,
               role: 'parent',
@@ -90,12 +62,22 @@ export const useAuthStateListener = ({
       }
     });
 
-    // Get initial session with error handling
+    // Get initial session
     const initializeAuth = async () => {
       try {
         console.log('🔐 AuthProvider: Getting initial session');
-        const session = await clearInvalidTokens();
         
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('🔐 AuthProvider: Session error:', error);
+          if (isMounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         if (!isMounted) return;
 
         console.log('🔐 AuthProvider: Initial session check', { 
@@ -103,7 +85,7 @@ export const useAuthStateListener = ({
           hasUser: !!session?.user 
         });
         
-        sessionCheckComplete = true;
+        isInitialized = true;
         
         if (session?.user) {
           try {
@@ -125,7 +107,7 @@ export const useAuthStateListener = ({
       } catch (error) {
         console.error('🔐 AuthProvider: Exception during initialization:', error);
         if (isMounted) {
-          sessionCheckComplete = true;
+          isInitialized = true;
           setUser(null);
           setIsLoading(false);
         }
@@ -139,5 +121,5 @@ export const useAuthStateListener = ({
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Remove dependencies to prevent re-initialization
+  }, [fetchUserProfile, setUser, setIsLoading]);
 };

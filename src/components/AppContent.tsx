@@ -21,7 +21,8 @@ const AppContent = () => {
     showLogin
   });
 
-  if (authLoading || schoolLoading) {
+  // Show loading only when auth is loading or when we have a user but schools are still loading
+  if (authLoading || (user && schoolLoading)) {
     return <LoadingScreen />;
   }
 

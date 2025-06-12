@@ -37,7 +37,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [currentSchool, setCurrentSchool] = useState<School | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const fetchSchools = async () => {
@@ -92,14 +92,18 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchSchools();
-    } else {
-      setSchools([]);
-      setCurrentSchool(null);
-      setIsLoading(false);
+    // Only fetch schools when auth is complete and we have a user or confirmed no user
+    if (!authLoading) {
+      if (user) {
+        fetchSchools();
+      } else {
+        // No user, clear schools and stop loading
+        setSchools([]);
+        setCurrentSchool(null);
+        setIsLoading(false);
+      }
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const value = {
     currentSchool,
