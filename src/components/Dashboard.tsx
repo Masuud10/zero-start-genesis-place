@@ -175,15 +175,15 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50/50">
       {/* Main Header Container */}
       <div className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
+        <div className="px-4 md:px-6">
+          <div className="flex items-center justify-between py-4 md:py-6">
             {/* Left: Greeting Section */}
             <div className="flex-1 min-w-0">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
                   {getGreeting()}, {getFirstName(user?.name || "User")}! 👋
                 </h1>
-                <p className="text-gray-600 text-sm sm:text-base max-w-3xl">
+                <p className="text-gray-600 text-sm md:text-base max-w-2xl lg:max-w-4xl">
                   {getRoleDescription()}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
@@ -207,11 +207,11 @@ const Dashboard = () => {
             </div>
 
             {/* Right: User Profile */}
-            <div className="flex-shrink-0 ml-6">
+            <div className="flex-shrink-0 ml-4 md:ml-6">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-12 w-12 rounded-full hover:shadow-lg transition-all">
-                    <Avatar className="h-12 w-12 ring-2 ring-blue-100">
+                  <Button variant="ghost" className="relative h-10 w-10 md:h-12 md:w-12 rounded-full hover:shadow-lg transition-all">
+                    <Avatar className="h-10 w-10 md:h-12 md:w-12 ring-2 ring-blue-100">
                       <AvatarImage src={user?.avatar_url} alt={user?.name} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-semibold">
                         {user?.name?.charAt(0) || 'U'}
@@ -258,8 +258,8 @@ const Dashboard = () => {
       </div>
 
       {/* Dashboard Content Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-6">
+      <div className="px-4 md:px-6">
+        <div className="py-4 md:py-6">
           <div className="animate-fade-in">
             {getRoleBasedDashboard()}
           </div>
