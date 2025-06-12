@@ -1,6 +1,9 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type TableName = keyof Database['public']['Tables'];
 
 export const useMultiTenantQuery = () => {
   const { user } = useAuth();
@@ -13,7 +16,7 @@ export const useMultiTenantQuery = () => {
     return user?.school_id;
   };
 
-  const addSchoolFilter = (query: any, tableName: string) => {
+  const addSchoolFilter = (query: any, tableName: TableName) => {
     // System admins can access all data
     if (isSystemAdmin()) {
       return query;
@@ -59,12 +62,12 @@ export const useMultiTenantQuery = () => {
     }
   };
 
-  const createSchoolScopedQuery = (tableName: string, selectClause = '*') => {
+  const createSchoolScopedQuery = (tableName: TableName, selectClause = '*') => {
     const baseQuery = supabase.from(tableName).select(selectClause);
     return addSchoolFilter(baseQuery, tableName);
   };
 
-  const ensureSchoolAccess = (data: any, tableName: string) => {
+  const ensureSchoolAccess = (data: any, tableName: TableName) => {
     if (isSystemAdmin()) {
       return true;
     }
