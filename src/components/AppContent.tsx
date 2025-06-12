@@ -7,7 +7,7 @@ import ElimshaLayout from '@/components/ElimshaLayout';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import LoginForm from '@/components/LoginForm';
 
-const AppContent = () => {
+const AppContent: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { isLoading: schoolLoading } = useSchool();
   const [showLogin, setShowLogin] = useState(false);
