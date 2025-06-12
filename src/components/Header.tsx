@@ -1,51 +1,9 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
-  const { user, signOut } = useAuth();
-  const { toast } = useToast();
-
-  const handleLogout = async () => {
-    try {
-      console.log('🔓 Header: Initiating logout');
-      
-      // Show immediate feedback
-      toast({
-        title: "Signing out...",
-        description: "Please wait while we sign you out.",
-      });
-      
-      await signOut();
-      
-      console.log('✅ Header: Logout completed');
-    } catch (error) {
-      console.error('❌ Header: Logout error:', error);
-      
-      // Even if there's an error, show success since we'll redirect anyway
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully.",
-        variant: "default",
-      });
-      
-      // Force redirect as fallback
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
-    }
-  };
+  const { user } = useAuth();
 
   if (!user) {
     return null;
@@ -69,46 +27,6 @@ const Header = () => {
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           <span className="text-sm text-muted-foreground">System Online</span>
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatar_url} alt={user?.name} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-                  {user?.name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 bg-white shadow-xl border-0" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
-                </p>
-                <p className="text-xs leading-none text-muted-foreground capitalize">
-                  {user?.role?.replace('_', ' ')}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
-              Profile Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              Preferences
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              className="cursor-pointer text-destructive focus:text-destructive"
-              onClick={handleLogout}
-            >
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   );
