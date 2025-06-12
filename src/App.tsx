@@ -1,12 +1,12 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { SchoolProvider } from '@/contexts/SchoolContext';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as SonnerToaster } from '@/components/ui/sonner';
+import AppContent from '@/components/AppContent';
+import './App.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,28 +17,20 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => {
-  console.log('🚀 App component rendering');
-  
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <div className="min-h-screen bg-background">
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Index />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <SchoolProvider>
+            <AppContent />
+            <Toaster />
+            <SonnerToaster />
+          </SchoolProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;

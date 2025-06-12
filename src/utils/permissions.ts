@@ -1,4 +1,3 @@
-
 import { UserRole } from '@/types/user';
 
 export interface Permission {
@@ -213,10 +212,13 @@ export class PermissionManager {
   }
 
   canAccessSchool(schoolId: string): boolean {
-    if (!this.hasPermission(PERMISSIONS.VIEW_OTHER_SCHOOLS)) {
-      return this.userSchoolId === schoolId;
+    // System admins can access all schools
+    if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
+      return true;
     }
-    return true;
+    
+    // Other users can only access their own school
+    return this.userSchoolId === schoolId;
   }
 
   canAccessClass(classId: string): boolean {
@@ -230,8 +232,8 @@ export class PermissionManager {
   }
 
   canAccessStudent(studentId: string, studentSchoolId?: string): boolean {
-    // Admin roles can access all students
-    if (this.userRole === 'edufam_admin' || this.userRole === 'elimisha_admin') {
+    // System admin roles can access all students
+    if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
       return true;
     }
 
@@ -240,19 +242,46 @@ export class PermissionManager {
       return this.userSchoolId === studentSchoolId;
     }
 
-    // Teachers can access students in their classes
+    // Teachers can access students in their school (will be further filtered by class in actual queries)
     if (this.userRole === 'teacher') {
-      // This would need to be enhanced with actual class-student relationships
       return this.userSchoolId === studentSchoolId;
     }
 
-    // Parents can only access their own children
+    // Parents can only access their own children (implementation depends on parent-child relationships)
     if (this.userRole === 'parent') {
-      // This would need to be enhanced with parent-child relationships
-      return false; // Placeholder - would check parent-child relationship
+      // This would need to be enhanced with actual parent-child relationship checking
+      return false; // Placeholder - would check parent-child relationship in real implementation
+    }
+
+    // Finance officers can access students in their school for fee-related data
+    if (this.userRole === 'finance_officer') {
+      return this.userSchoolId === studentSchoolId;
     }
 
     return false;
+  }
+
+  // Check if user can create/modify data for a specific school
+  canModifySchoolData(targetSchoolId?: string): boolean {
+    // System admins can modify data for any school
+    if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
+      return true;
+    }
+
+    // Other users can only modify data for their own school
+    if (!targetSchoolId || !this.userSchoolId) {
+      return false;
+    }
+
+    return this.userSchoolId === targetSchoolId;
+  }
+
+  // Get the school context for queries
+  getSchoolContext(): { schoolId?: string; isSystemAdmin: boolean } {
+    return {
+      schoolId: this.userSchoolId,
+      isSystemAdmin: this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin'
+    };
   }
 
   getFilteredMenuItems() {

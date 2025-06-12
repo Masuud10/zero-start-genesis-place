@@ -28,7 +28,9 @@ const Dashboard = () => {
     "📊 Dashboard: Rendering for user",
     user?.email,
     "role:",
-    user?.role
+    user?.role,
+    "school:",
+    user?.school_id
   );
 
   const openModal = (modalType: string) => {
@@ -57,7 +59,9 @@ const Dashboard = () => {
   const getRoleBasedDashboard = () => {
     console.log(
       "📊 Dashboard: Getting role-based dashboard for role:",
-      user?.role
+      user?.role,
+      "school:",
+      user?.school_id
     );
 
     switch (user?.role) {
@@ -92,6 +96,7 @@ const Dashboard = () => {
               <CardDescription>
                 You don't have the permission to view this dashboard. Your role:{" "}
                 {user?.role || "undefined"}
+                {user?.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -139,6 +144,7 @@ const Dashboard = () => {
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Role: {user?.role} | User ID: {user?.id?.slice(0, 8)}...
+                {user?.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
               </p>
             </div>
             <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl shadow-lg">

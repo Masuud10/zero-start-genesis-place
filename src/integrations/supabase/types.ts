@@ -323,6 +323,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_classes_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
         ]
       }
       competencies: {
@@ -595,6 +602,7 @@ export type Database = {
           id: string
           is_read: boolean | null
           receiver_id: string | null
+          school_id: string | null
           sender_id: string | null
         }
         Insert: {
@@ -605,6 +613,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           receiver_id?: string | null
+          school_id?: string | null
           sender_id?: string | null
         }
         Update: {
@@ -615,6 +624,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           receiver_id?: string | null
+          school_id?: string | null
           sender_id?: string | null
         }
         Relationships: [
@@ -623,6 +633,13 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
@@ -684,7 +701,7 @@ export type Database = {
           email: string
           id: string
           name: string
-          role: string
+          role?: string
           school_id?: string | null
           updated_at?: string | null
         }
@@ -698,7 +715,15 @@ export type Database = {
           school_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_profiles_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schools: {
         Row: {
@@ -802,6 +827,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_students_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "students_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
@@ -892,6 +924,13 @@ export type Database = {
           teacher_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_subjects_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subjects_class_id_fkey"
             columns: ["class_id"]
@@ -1228,6 +1267,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_admin_user: {
+        Args: {
+          user_email: string
+          user_password: string
+          user_name: string
+          user_role?: string
+          user_school_id?: string
+        }
+        Returns: Json
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
