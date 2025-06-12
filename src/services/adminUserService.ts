@@ -35,22 +35,24 @@ export class AdminUserService {
         throw error;
       }
 
-      // The function returns a JSONB object
-      if (data && typeof data === 'object') {
-        if ('error' in data) {
-          console.error('🔧 AdminUserService: Function returned error:', data.error);
+      // The function returns a JSONB object - need to properly handle the Json type
+      if (data && typeof data === 'object' && data !== null) {
+        const result = data as Record<string, any>;
+        
+        if ('error' in result && typeof result.error === 'string') {
+          console.error('🔧 AdminUserService: Function returned error:', result.error);
           return {
             success: false,
-            error: data.error
+            error: result.error
           };
         }
 
-        if ('success' in data && data.success) {
-          console.log('🔧 AdminUserService: User created successfully:', data);
+        if ('success' in result && result.success === true) {
+          console.log('🔧 AdminUserService: User created successfully:', result);
           return {
             success: true,
-            user_id: data.user_id,
-            message: data.message || 'User created successfully'
+            user_id: typeof result.user_id === 'string' ? result.user_id : undefined,
+            message: typeof result.message === 'string' ? result.message : 'User created successfully'
           };
         }
       }
