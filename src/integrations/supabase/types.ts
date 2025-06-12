@@ -214,6 +214,78 @@ export type Database = {
           },
         ]
       }
+      cbc_assessments: {
+        Row: {
+          assessment_date: string
+          assessment_type: string
+          class_id: string
+          competency_id: string | null
+          created_at: string
+          evidence_description: string | null
+          id: string
+          is_final: boolean | null
+          performance_level: string
+          student_id: string
+          subject_id: string | null
+          submitted_at: string
+          submitted_by: string
+          teacher_observation: string | null
+          term: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_date?: string
+          assessment_type: string
+          class_id: string
+          competency_id?: string | null
+          created_at?: string
+          evidence_description?: string | null
+          id?: string
+          is_final?: boolean | null
+          performance_level: string
+          student_id: string
+          subject_id?: string | null
+          submitted_at?: string
+          submitted_by: string
+          teacher_observation?: string | null
+          term: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_date?: string
+          assessment_type?: string
+          class_id?: string
+          competency_id?: string | null
+          created_at?: string
+          evidence_description?: string | null
+          id?: string
+          is_final?: boolean | null
+          performance_level?: string
+          student_id?: string
+          subject_id?: string | null
+          submitted_at?: string
+          submitted_by?: string
+          teacher_observation?: string | null
+          term?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cbc_assessments_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cbc_assessments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string | null
@@ -249,6 +321,74 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competencies: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      competency_progress: {
+        Row: {
+          competency_id: string | null
+          current_level: string
+          id: string
+          last_assessed_date: string | null
+          milestones_achieved: Json | null
+          progress_percentage: number | null
+          recommended_activities: string[] | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          competency_id?: string | null
+          current_level: string
+          id?: string
+          last_assessed_date?: string | null
+          milestones_achieved?: Json | null
+          progress_percentage?: number | null
+          recommended_activities?: string[] | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          competency_id?: string | null
+          current_level?: string
+          id?: string
+          last_assessed_date?: string | null
+          milestones_achieved?: Json | null
+          progress_percentage?: number | null
+          recommended_activities?: string[] | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competency_progress_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "competencies"
             referencedColumns: ["id"]
           },
         ]
@@ -389,6 +529,63 @@ export type Database = {
           },
         ]
       }
+      learner_portfolios: {
+        Row: {
+          competency_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          file_urls: string[] | null
+          id: string
+          reflection_notes: string | null
+          student_id: string
+          subject_id: string | null
+          teacher_feedback: string | null
+          title: string
+        }
+        Insert: {
+          competency_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          file_urls?: string[] | null
+          id?: string
+          reflection_notes?: string | null
+          student_id: string
+          subject_id?: string | null
+          teacher_feedback?: string | null
+          title: string
+        }
+        Update: {
+          competency_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          file_urls?: string[] | null
+          id?: string
+          reflection_notes?: string | null
+          student_id?: string
+          subject_id?: string | null
+          teacher_feedback?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learner_portfolios_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learner_portfolios_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           attachments: string[] | null
@@ -436,6 +633,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      parent_engagements: {
+        Row: {
+          competencies_addressed: string[] | null
+          created_at: string
+          date_recorded: string
+          description: string
+          engagement_type: string
+          id: string
+          parent_id: string
+          student_id: string
+        }
+        Insert: {
+          competencies_addressed?: string[] | null
+          created_at?: string
+          date_recorded?: string
+          description: string
+          engagement_type: string
+          id?: string
+          parent_id: string
+          student_id: string
+        }
+        Update: {
+          competencies_addressed?: string[] | null
+          created_at?: string
+          date_recorded?: string
+          description?: string
+          engagement_type?: string
+          id?: string
+          parent_id?: string
+          student_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -590,6 +820,45 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subject_competencies: {
+        Row: {
+          competency_id: string | null
+          created_at: string
+          id: string
+          subject_id: string | null
+          weight: number | null
+        }
+        Insert: {
+          competency_id?: string | null
+          created_at?: string
+          id?: string
+          subject_id?: string | null
+          weight?: number | null
+        }
+        Update: {
+          competency_id?: string | null
+          created_at?: string
+          id?: string
+          subject_id?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_competencies_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_competencies_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
