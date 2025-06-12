@@ -21,7 +21,7 @@ const AppContent = () => {
     showLogin
   });
 
-  // Show loading only while auth is initializing
+  // Show loading screen only while authentication is initializing
   if (authLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;
@@ -38,10 +38,12 @@ const AppContent = () => {
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // For authenticated users, only show loading for school data if user needs school context
-  // Parents don't need school loading since they access their children's data differently
-  if (user && schoolLoading && user.role !== 'parent') {
-    console.log('🎯 AppContent: User authenticated but schools loading');
+  // For authenticated users, show loading only for school data if needed
+  // Skip school loading for parents as they don't need school context
+  const shouldShowSchoolLoading = schoolLoading && user.role !== 'parent';
+  
+  if (shouldShowSchoolLoading) {
+    console.log('🎯 AppContent: User authenticated but schools loading for role:', user.role);
     return <LoadingScreen />;
   }
 

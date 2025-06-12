@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -8,55 +8,68 @@ export const useAuthOperations = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const isMountedRef = useRef(true);
+  const fetchingRef = useRef(false);
 
-  const fetchUserProfile = useCallback(async (authUser: User) => {
-    if (!isMountedRef.current) return;
-    
-    console.log('👤 AuthOperations: Fetching user profile for', authUser.email);
-    
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('id, email, name, role, school_id, avatar_url')
-        .eq('id', authUser.id)
-        .maybeSingle();
-
-      if (!isMountedRef.current) return;
-
-      console.log('👤 AuthOperations: Profile query result:', { profile, error });
-
-      if (error && !error.message.includes('0 rows')) {
-        console.error('👤 AuthOperations: Error fetching profile:', error);
+  // Memoize fetchUserProfile to prevent recreation on every render
+  const fetchUserProfile = useMemo(() => {
+    return async (authUser: User) => {
+      if (!isMountedRef.current || fetchingRef.current) {
+        console.log('👤 AuthOperations: Skipping fetch - unmounted or already fetching');
+        return;
       }
+      
+      fetchingRef.current = true;
+      console.log('👤 AuthOperations: Fetching user profile for', authUser.email);
+      
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('id, email, name, role, school_id, avatar_url')
+          .eq('id', authUser.id)
+          .maybeSingle();
 
-      const userData: AuthUser = {
-        ...authUser,
-        role: profile?.role || 'parent',
-        name: profile?.name || authUser.email?.split('@')[0] || 'User',
-        school_id: profile?.school_id,
-        avatar_url: profile?.avatar_url
-      };
+        if (!isMountedRef.current) {
+          console.log('👤 AuthOperations: Component unmounted during fetch');
+          return;
+        }
 
-      console.log('👤 AuthOperations: Setting user data:', userData);
-      setUser(userData);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('❌ AuthOperations: Exception fetching user profile:', error);
-      
-      if (!isMountedRef.current) return;
-      
-      // Create fallback user data to prevent app from breaking
-      const userData: AuthUser = {
-        ...authUser,
-        role: 'parent',
-        name: authUser.email?.split('@')[0] || 'User'
-      };
-      
-      console.log('👤 AuthOperations: Using fallback user data after exception');
-      setUser(userData);
-      setIsLoading(false);
-    }
-  }, []);
+        console.log('👤 AuthOperations: Profile query result:', { profile, error });
+
+        if (error && !error.message.includes('0 rows')) {
+          console.error('👤 AuthOperations: Error fetching profile:', error);
+        }
+
+        const userData: AuthUser = {
+          ...authUser,
+          role: profile?.role || 'parent',
+          name: profile?.name || authUser.email?.split('@')[0] || 'User',
+          school_id: profile?.school_id,
+          avatar_url: profile?.avatar_url
+        };
+
+        console.log('👤 AuthOperations: Setting user data:', userData);
+        setUser(userData);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('❌ AuthOperations: Exception fetching user profile:', error);
+        
+        if (!isMountedRef.current) return;
+        
+        // Create fallback user data to prevent app from breaking
+        const userData: AuthUser = {
+          ...authUser,
+          role: 'parent',
+          name: authUser.email?.split('@')[0] || 'User'
+        };
+        
+        console.log('👤 AuthOperations: Using fallback user data after exception');
+        setUser(userData);
+        setIsLoading(false);
+      } finally {
+        fetchingRef.current = false;
+      }
+    };
+  }, []); // Empty dependency array - this function should never change
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!isMountedRef.current) return { data: null, error: { message: 'Component unmounted' } };
@@ -171,7 +184,9 @@ export const useAuthOperations = () => {
 
   // Cleanup function
   const cleanup = useCallback(() => {
+    console.log('🧹 AuthOperations: Cleaning up');
     isMountedRef.current = false;
+    fetchingRef.current = false;
   }, []);
 
   return {

@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     cleanup
   } = useAuthOperations();
 
+  // Use the auth state listener with stable dependencies
   useAuthStateListener({
     setUser,
     setIsLoading,

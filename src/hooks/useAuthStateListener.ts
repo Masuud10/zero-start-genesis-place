@@ -15,10 +15,17 @@ export const useAuthStateListener = ({
 }: UseAuthStateListenerProps) => {
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
+  const initializingRef = useRef(false);
 
   useEffect(() => {
     // Always update the mounted status
     isMountedRef.current = true;
+
+    // Prevent multiple initializations
+    if (initializingRef.current) {
+      console.log('🔐 AuthStateListener: Already initializing, skipping');
+      return;
+    }
 
     // Prevent multiple subscriptions
     if (subscriptionRef.current) {
@@ -26,6 +33,7 @@ export const useAuthStateListener = ({
       return;
     }
     
+    initializingRef.current = true;
     console.log('🔐 AuthStateListener: Setting up auth state listener');
 
     const handleAuthStateChange = async (event: string, session: any) => {
@@ -50,7 +58,12 @@ export const useAuthStateListener = ({
 
         if (session?.user) {
           console.log('🔐 AuthStateListener: User authenticated, fetching profile');
-          await fetchUserProfile(session.user);
+          // Use setTimeout to prevent potential deadlocks
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              fetchUserProfile(session.user);
+            }
+          }, 0);
         }
       } catch (error) {
         console.error('🔐 AuthStateListener: Error in auth state handler:', error);
@@ -107,6 +120,8 @@ export const useAuthStateListener = ({
           setUser(null);
           setIsLoading(false);
         }
+      } finally {
+        initializingRef.current = false;
       }
     };
 
@@ -115,10 +130,11 @@ export const useAuthStateListener = ({
     return () => {
       console.log('🔐 AuthStateListener: Cleaning up auth state listener');
       isMountedRef.current = false;
+      initializingRef.current = false;
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
     };
-  }, [setUser, setIsLoading, fetchUserProfile]); // Keep dependencies stable
+  }, []); // Empty dependency array to prevent re-initialization
 };
