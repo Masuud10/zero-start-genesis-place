@@ -21,7 +21,7 @@ export class AdminUserService {
     try {
       console.log('🔧 AdminUserService: Creating user via database function', userData);
 
-      // Use the create_admin_user database function which bypasses signup restrictions
+      // Use the enhanced create_admin_user database function with multi-tenant support
       const { data, error } = await supabase.rpc('create_admin_user', {
         user_email: userData.email,
         user_password: userData.password,
@@ -35,7 +35,7 @@ export class AdminUserService {
         throw error;
       }
 
-      // The function returns a JSONB object - need to properly handle the Json type
+      // The function returns a JSONB object - handle the response properly
       if (data && typeof data === 'object' && data !== null) {
         const result = data as Record<string, any>;
         
@@ -60,8 +60,8 @@ export class AdminUserService {
       // Fallback for unexpected response format
       console.warn('🔧 AdminUserService: Unexpected response format:', data);
       return {
-        success: true,
-        message: 'User created successfully'
+        success: false,
+        error: 'Unexpected response from server'
       };
 
     } catch (error: any) {
@@ -91,6 +91,39 @@ export class AdminUserService {
     } catch (error) {
       console.error('🔧 AdminUserService: Validation exception:', error);
       return false;
+    }
+  }
+
+  static async getCurrentUserPermissions() {
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) {
+        return { canCreateUsers: false, userRole: null, schoolId: null };
+      }
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, school_id')
+        .eq('id', currentUser.user.id)
+        .single();
+
+      if (error) {
+        console.error('🔧 AdminUserService: Error fetching user permissions:', error);
+        return { canCreateUsers: false, userRole: null, schoolId: null };
+      }
+
+      const canCreateUsers = ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(profile.role);
+      
+      return {
+        canCreateUsers,
+        userRole: profile.role,
+        schoolId: profile.school_id,
+        isSystemAdmin: ['elimisha_admin', 'edufam_admin'].includes(profile.role),
+        isSchoolAdmin: ['school_owner', 'principal'].includes(profile.role)
+      };
+    } catch (error) {
+      console.error('🔧 AdminUserService: Permission check error:', error);
+      return { canCreateUsers: false, userRole: null, schoolId: null };
     }
   }
 }
