@@ -21,8 +21,15 @@ const AppContent = () => {
     showLogin
   });
 
-  // Show loading only when auth is loading or when we have a user but schools are still loading
-  if (authLoading || (user && schoolLoading)) {
+  // Show loading while auth is initializing
+  if (authLoading) {
+    console.log('🎯 AppContent: Auth loading, showing loading screen');
+    return <LoadingScreen />;
+  }
+
+  // Show loading when we have a user but schools are still loading
+  if (user && schoolLoading) {
+    console.log('🎯 AppContent: User authenticated but schools loading');
     return <LoadingScreen />;
   }
 

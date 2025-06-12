@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseAuthStateListenerProps {
@@ -13,8 +13,11 @@ export const useAuthStateListener = ({
   setIsLoading, 
   fetchUserProfile 
 }: UseAuthStateListenerProps) => {
+  // Memoize the profile fetcher to prevent recreation
+  const stableFetchUserProfile = useCallback(fetchUserProfile, []);
+
   useEffect(() => {
-    console.log('🔐 AuthProvider: Initializing authentication state listener');
+    console.log('🔐 AuthProvider: Setting up auth state listener (stable)');
     
     let isMounted = true;
     let isInitialized = false;
@@ -25,16 +28,16 @@ export const useAuthStateListener = ({
         event, 
         hasUser: !!session?.user, 
         userEmail: session?.user?.email,
-        isInitialized
+        isInitialized,
+        isMounted
       });
       
-      if (!isMounted) return;
-
-      // Skip processing during initial session check to avoid double processing
-      if (!isInitialized && event === 'INITIAL_SESSION') {
+      if (!isMounted) {
+        console.log('🔐 AuthProvider: Component unmounted, ignoring auth change');
         return;
       }
 
+      // Handle sign out or no session
       if (event === 'SIGNED_OUT' || !session?.user) {
         console.log('🔐 AuthProvider: User signed out or no session');
         setUser(null);
@@ -42,21 +45,24 @@ export const useAuthStateListener = ({
         return;
       }
 
+      // Handle authenticated states
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || (event === 'INITIAL_SESSION' && session?.user)) {
         console.log('🔐 AuthProvider: User authenticated, fetching profile');
         
         if (session?.user && isMounted) {
           try {
-            await fetchUserProfile(session.user);
+            await stableFetchUserProfile(session.user);
           } catch (error) {
             console.error('🔐 AuthProvider: Error fetching profile:', error);
             // Set fallback user data
-            setUser({
-              ...session.user,
-              role: 'parent',
-              name: session.user.email?.split('@')[0] || 'User'
-            });
-            setIsLoading(false);
+            if (isMounted) {
+              setUser({
+                ...session.user,
+                role: 'parent',
+                name: session.user.email?.split('@')[0] || 'User'
+              });
+              setIsLoading(false);
+            }
           }
         }
       }
@@ -64,6 +70,8 @@ export const useAuthStateListener = ({
 
     // Get initial session
     const initializeAuth = async () => {
+      if (!isMounted) return;
+      
       try {
         console.log('🔐 AuthProvider: Getting initial session');
         
@@ -89,16 +97,18 @@ export const useAuthStateListener = ({
         
         if (session?.user) {
           try {
-            await fetchUserProfile(session.user);
+            await stableFetchUserProfile(session.user);
           } catch (error) {
             console.error('🔐 AuthProvider: Error fetching profile during init:', error);
             // Set fallback user data
-            setUser({
-              ...session.user,
-              role: 'parent',
-              name: session.user.email?.split('@')[0] || 'User'
-            });
-            setIsLoading(false);
+            if (isMounted) {
+              setUser({
+                ...session.user,
+                role: 'parent',
+                name: session.user.email?.split('@')[0] || 'User'
+              });
+              setIsLoading(false);
+            }
           }
         } else {
           setUser(null);
@@ -121,5 +131,5 @@ export const useAuthStateListener = ({
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchUserProfile, setUser, setIsLoading]);
+  }, [setUser, setIsLoading, stableFetchUserProfile]); // Use stable reference
 };

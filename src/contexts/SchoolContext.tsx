@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -36,25 +36,37 @@ export const useSchool = () => {
 export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [currentSchool, setCurrentSchool] = useState<School | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const fetchSchools = async () => {
+  const fetchSchools = useCallback(async () => {
+    if (!user) {
+      console.log('🏫 SchoolProvider: No user, clearing schools');
+      setSchools([]);
+      setCurrentSchool(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
+      console.log('🏫 SchoolProvider: Fetching schools for user', user.email, 'role:', user.role);
       
       let query = supabase.from('schools').select('*');
       
       // Admin users can see all schools
       if (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') {
+        console.log('🏫 SchoolProvider: Admin user, fetching all schools');
         // No additional filtering needed
       } else {
         // Non-admin users only see their own school
         if (user?.school_id) {
+          console.log('🏫 SchoolProvider: Non-admin user, filtering by school_id:', user.school_id);
           query = query.eq('id', user.school_id);
         } else {
           // User doesn't belong to any school
+          console.log('🏫 SchoolProvider: User has no school_id, clearing schools');
           setSchools([]);
           setCurrentSchool(null);
           setIsLoading(false);
@@ -64,23 +76,29 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       
       const { data, error } = await query.order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('🏫 SchoolProvider: Error fetching schools:', error);
+        throw error;
+      }
       
+      console.log('🏫 SchoolProvider: Fetched schools:', data?.length || 0);
       setSchools(data || []);
       
       // Set current school based on user's school_id
       if (user?.school_id && data) {
         const userSchool = data.find(school => school.id === user.school_id);
         if (userSchool) {
+          console.log('🏫 SchoolProvider: Setting current school:', userSchool.name);
           setCurrentSchool(userSchool);
         }
       } else if (data && data.length === 1) {
         // If user is admin and there's only one school, set it as current
+        console.log('🏫 SchoolProvider: Setting single school as current:', data[0].name);
         setCurrentSchool(data[0]);
       }
       
     } catch (error) {
-      console.error('Error fetching schools:', error);
+      console.error('🏫 SchoolProvider: Error fetching schools:', error);
       toast({
         title: "Error",
         description: "Failed to fetch schools data",
@@ -89,21 +107,22 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
-    // Only fetch schools when auth is complete and we have a user or confirmed no user
+    console.log('🏫 SchoolProvider: Auth state changed', { 
+      authLoading, 
+      hasUser: !!user, 
+      userEmail: user?.email,
+      userRole: user?.role,
+      userSchoolId: user?.school_id
+    });
+
+    // Only fetch schools when auth is complete
     if (!authLoading) {
-      if (user) {
-        fetchSchools();
-      } else {
-        // No user, clear schools and stop loading
-        setSchools([]);
-        setCurrentSchool(null);
-        setIsLoading(false);
-      }
+      fetchSchools();
     }
-  }, [user, authLoading]);
+  }, [authLoading, user?.id, user?.role, user?.school_id, fetchSchools]);
 
   const value = {
     currentSchool,

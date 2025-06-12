@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -8,7 +8,7 @@ export const useAuthOperations = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserProfile = async (authUser: User) => {
+  const fetchUserProfile = useCallback(async (authUser: User) => {
     console.log('👤 AuthProvider: Fetching user profile for', authUser.email);
     
     try {
@@ -63,9 +63,9 @@ export const useAuthOperations = () => {
       setUser(userData);
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     console.log('🔑 AuthProvider: Attempting sign in for', email);
     setIsLoading(true);
     
@@ -111,9 +111,9 @@ export const useAuthOperations = () => {
       setIsLoading(false);
       return { data: null, error: { message: error.message || 'Authentication failed' } };
     }
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string, metadata = {}) => {
+  const signUp = useCallback(async (email: string, password: string, metadata = {}) => {
     console.log('📝 AuthProvider: Attempting sign up for', email);
     setIsLoading(true);
     
@@ -156,9 +156,9 @@ export const useAuthOperations = () => {
       setIsLoading(false);
       return { data: null, error: { message: error.message || 'Sign up failed' } };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     console.log('🚪 AuthProvider: Signing out');
     setIsLoading(true);
     
@@ -196,7 +196,7 @@ export const useAuthOperations = () => {
       setUser(null);
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     user,
