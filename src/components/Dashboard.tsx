@@ -64,16 +64,34 @@ const Dashboard = () => {
     return null;
   }
 
+  // Transform the school data to match the expected School interface
+  const transformedSchool = currentSchool ? {
+    id: currentSchool.id,
+    name: currentSchool.name,
+    ownerId: currentSchool.owner_id || '',
+    principalId: currentSchool.principal_id || '',
+    address: currentSchool.address || '',
+    phone: currentSchool.phone || '',
+    email: currentSchool.email || '',
+    logo: currentSchool.logo_url,
+    settings: {
+      academicYear: new Date().getFullYear().toString(),
+      terms: [],
+      gradeReleaseEnabled: true,
+      attendanceEnabled: true,
+    }
+  } : null;
+
   return (
     <div className="min-h-screen bg-gray-50/50">
       <DashboardHeader 
         user={user} 
-        currentSchool={currentSchool} 
+        currentSchool={transformedSchool} 
         onLogout={handleLogout} 
       />
 
       {/* Dashboard Content Container */}
-      <div className="px-4 md:px-6">
+      <div className="px-2 md:px-4 lg:px-6">
         <div className="py-4 md:py-6">
           <div className="animate-fade-in">
             <DashboardRoleBasedContent user={user} onModalOpen={openModal} />
