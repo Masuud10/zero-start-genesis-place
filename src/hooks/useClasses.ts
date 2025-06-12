@@ -35,6 +35,7 @@ export const useClasses = () => {
           description: "Failed to fetch classes data",
           variant: "destructive",
         });
+        setClasses([]);
         return;
       }
 
@@ -46,6 +47,7 @@ export const useClasses = () => {
         description: "Failed to fetch classes data",
         variant: "destructive",
       });
+      setClasses([]);
     } finally {
       setLoading(false);
     }

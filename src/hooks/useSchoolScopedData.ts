@@ -46,12 +46,7 @@ export const useSchoolScopedData = () => {
     
     // For tables accessed through student relationships
     if (['grades', 'attendance', 'fees', 'cbc_assessments', 'competency_progress', 'learner_portfolios', 'parent_engagements'].includes(tableName)) {
-      query = query.in('student_id', 
-        supabase
-          .from('students')
-          .select('id')
-          .eq('school_id', schoolId)
-      );
+      // These will be handled by RLS policies
     }
 
     return query;

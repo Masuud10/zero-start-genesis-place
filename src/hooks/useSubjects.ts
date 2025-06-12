@@ -45,6 +45,7 @@ export const useSubjects = (classId?: string) => {
           description: "Failed to fetch subjects data",
           variant: "destructive",
         });
+        setSubjects([]);
         return;
       }
 
@@ -56,6 +57,7 @@ export const useSubjects = (classId?: string) => {
         description: "Failed to fetch subjects data",
         variant: "destructive",
       });
+      setSubjects([]);
     } finally {
       setLoading(false);
     }

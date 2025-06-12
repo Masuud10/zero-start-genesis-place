@@ -46,7 +46,16 @@ const SchoolsModule = () => {
         subscriptions(plan_type, status, amount)
       `);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching schools:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch schools data",
+          variant: "destructive",
+        });
+        setSchools([]);
+        return;
+      }
 
       setSchools(schoolsData || []);
     } catch (error) {
@@ -56,6 +65,7 @@ const SchoolsModule = () => {
         description: "Failed to fetch schools data",
         variant: "destructive",
       });
+      setSchools([]);
     } finally {
       setLoading(false);
     }

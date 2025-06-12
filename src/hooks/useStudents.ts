@@ -57,6 +57,7 @@ export const useStudents = (classId?: string) => {
           description: "Failed to fetch students data",
           variant: "destructive",
         });
+        setStudents([]);
         return;
       }
 
@@ -68,6 +69,7 @@ export const useStudents = (classId?: string) => {
         description: "Failed to fetch students data",
         variant: "destructive",
       });
+      setStudents([]);
     } finally {
       setLoading(false);
     }
