@@ -17,6 +17,7 @@ export const useAuthStateListener = ({
     console.log('🔐 AuthProvider: Initializing authentication state listener');
     
     let isMounted = true;
+    let sessionCheckComplete = false;
 
     // Clear any invalid tokens on startup
     const clearInvalidTokens = async () => {
@@ -63,30 +64,29 @@ export const useAuthStateListener = ({
       if (event === 'SIGNED_OUT' || !session?.user) {
         console.log('🔐 AuthProvider: User signed out or no session');
         setUser(null);
-        setIsLoading(false);
+        if (sessionCheckComplete) {
+          setIsLoading(false);
+        }
         return;
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         console.log('🔐 AuthProvider: User signed in or token refreshed');
         
-        // Defer profile fetching slightly to avoid potential conflicts
-        setTimeout(async () => {
-          if (isMounted && session?.user) {
-            try {
-              await fetchUserProfile(session.user);
-            } catch (error) {
-              console.error('🔐 AuthProvider: Error fetching profile in state change:', error);
-              // Continue with basic user data even if profile fetch fails
-              setUser({
-                ...session.user,
-                role: 'parent',
-                name: session.user.email?.split('@')[0] || 'User'
-              });
-              setIsLoading(false);
-            }
+        if (session?.user && isMounted) {
+          try {
+            await fetchUserProfile(session.user);
+          } catch (error) {
+            console.error('🔐 AuthProvider: Error fetching profile in state change:', error);
+            // Continue with basic user data even if profile fetch fails
+            setUser({
+              ...session.user,
+              role: 'parent',
+              name: session.user.email?.split('@')[0] || 'User'
+            });
+            setIsLoading(false);
           }
-        }, 150);
+        }
       }
     });
 
@@ -103,24 +103,21 @@ export const useAuthStateListener = ({
           hasUser: !!session?.user 
         });
         
+        sessionCheckComplete = true;
+        
         if (session?.user) {
-          // Use setTimeout to prevent potential blocking
-          setTimeout(async () => {
-            if (isMounted) {
-              try {
-                await fetchUserProfile(session.user);
-              } catch (error) {
-                console.error('🔐 AuthProvider: Error fetching profile during init:', error);
-                // Set fallback user data
-                setUser({
-                  ...session.user,
-                  role: 'parent',
-                  name: session.user.email?.split('@')[0] || 'User'
-                });
-                setIsLoading(false);
-              }
-            }
-          }, 100);
+          try {
+            await fetchUserProfile(session.user);
+          } catch (error) {
+            console.error('🔐 AuthProvider: Error fetching profile during init:', error);
+            // Set fallback user data
+            setUser({
+              ...session.user,
+              role: 'parent',
+              name: session.user.email?.split('@')[0] || 'User'
+            });
+            setIsLoading(false);
+          }
         } else {
           setUser(null);
           setIsLoading(false);
@@ -128,6 +125,7 @@ export const useAuthStateListener = ({
       } catch (error) {
         console.error('🔐 AuthProvider: Exception during initialization:', error);
         if (isMounted) {
+          sessionCheckComplete = true;
           setUser(null);
           setIsLoading(false);
         }
@@ -141,5 +139,5 @@ export const useAuthStateListener = ({
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [setUser, setIsLoading, fetchUserProfile]);
+  }, []); // Remove dependencies to prevent re-initialization
 };
