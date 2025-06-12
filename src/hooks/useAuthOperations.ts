@@ -3,6 +3,8 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
+import { errorHandler, handleApiError } from '@/utils/errorHandler';
+import { PerformanceMonitor } from '@/utils/performance';
 
 export const useAuthOperations = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -10,7 +12,6 @@ export const useAuthOperations = () => {
   const isMountedRef = useRef(true);
   const fetchingRef = useRef(false);
 
-  // Memoize fetchUserProfile to prevent recreation on every render
   const fetchUserProfile = useMemo(() => {
     return async (authUser: User) => {
       if (!isMountedRef.current || fetchingRef.current) {
@@ -19,9 +20,11 @@ export const useAuthOperations = () => {
       }
       
       fetchingRef.current = true;
-      console.log('👤 AuthOperations: Fetching user profile for', authUser.email);
+      const endTimer = PerformanceMonitor.startTimer('fetch_user_profile');
       
       try {
+        console.log('👤 AuthOperations: Fetching user profile for', authUser.email);
+        
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('id, email, name, role, school_id, avatar_url')
@@ -33,10 +36,9 @@ export const useAuthOperations = () => {
           return;
         }
 
-        console.log('👤 AuthOperations: Profile query result:', { profile, error });
-
-        if (error && !error.message.includes('0 rows')) {
+        if (error) {
           console.error('👤 AuthOperations: Error fetching profile:', error);
+          handleApiError(error, 'fetch_user_profile');
         }
 
         const userData: AuthUser = {
@@ -52,10 +54,11 @@ export const useAuthOperations = () => {
         setIsLoading(false);
       } catch (error) {
         console.error('❌ AuthOperations: Exception fetching user profile:', error);
+        handleApiError(error, 'fetch_user_profile');
         
         if (!isMountedRef.current) return;
         
-        // Create fallback user data to prevent app from breaking
+        // Create fallback user data
         const userData: AuthUser = {
           ...authUser,
           role: 'parent',
@@ -67,13 +70,15 @@ export const useAuthOperations = () => {
         setIsLoading(false);
       } finally {
         fetchingRef.current = false;
+        endTimer();
       }
     };
-  }, []); // Empty dependency array - this function should never change
+  }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!isMountedRef.current) return { data: null, error: { message: 'Component unmounted' } };
     
+    const endTimer = PerformanceMonitor.startTimer('auth_signin');
     console.log('🔑 AuthOperations: Attempting sign in for', email);
     setIsLoading(true);
     
@@ -91,6 +96,7 @@ export const useAuthOperations = () => {
       
       if (error) {
         console.error('🔑 AuthOperations: Sign in error:', error);
+        errorHandler.handleAuthError(error, 'signin');
         if (isMountedRef.current) {
           setIsLoading(false);
         }
@@ -100,16 +106,20 @@ export const useAuthOperations = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error('❌ AuthOperations: Sign in exception:', error);
+      handleApiError(error, 'signin');
       if (isMountedRef.current) {
         setIsLoading(false);
       }
       return { data: null, error: { message: error.message || 'Authentication failed' } };
+    } finally {
+      endTimer();
     }
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, metadata = {}) => {
     if (!isMountedRef.current) return { data: null, error: { message: 'Component unmounted' } };
     
+    const endTimer = PerformanceMonitor.startTimer('auth_signup');
     console.log('📝 AuthOperations: Attempting sign up for', email);
     setIsLoading(true);
     
@@ -133,6 +143,7 @@ export const useAuthOperations = () => {
       });
       
       if (error) {
+        errorHandler.handleAuthError(error, 'signup');
         if (isMountedRef.current) {
           setIsLoading(false);
         }
@@ -149,14 +160,18 @@ export const useAuthOperations = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error('❌ AuthOperations: Sign up exception:', error);
+      handleApiError(error, 'signup');
       if (isMountedRef.current) {
         setIsLoading(false);
       }
       return { data: null, error: { message: error.message || 'Sign up failed' } };
+    } finally {
+      endTimer();
     }
   }, []);
 
   const signOut = useCallback(async () => {
+    const endTimer = PerformanceMonitor.startTimer('auth_signout');
     console.log('🚪 AuthOperations: Signing out');
     setIsLoading(true);
     
@@ -167,22 +182,26 @@ export const useAuthOperations = () => {
       
       if (error && !error.message.includes('Auth session missing')) {
         console.error('❌ AuthOperations: Sign out error:', error);
+        errorHandler.handleAuthError(error, 'signout');
       }
       
       console.log('✅ AuthOperations: Successfully signed out');
       setIsLoading(false);
       
-      // Force page reload to ensure clean state
+      // Clear session storage and force reload
+      sessionStorage.clear();
       window.location.href = '/';
       
     } catch (error) {
       console.error('❌ AuthOperations: Sign out exception:', error);
+      handleApiError(error, 'signout');
       setUser(null);
       setIsLoading(false);
+    } finally {
+      endTimer();
     }
   }, []);
 
-  // Cleanup function
   const cleanup = useCallback(() => {
     console.log('🧹 AuthOperations: Cleaning up');
     isMountedRef.current = false;
