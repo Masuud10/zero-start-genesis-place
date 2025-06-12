@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus } from 'lucide-react';
+import { AdminUserService } from '@/services/adminUserService';
 
 interface CreateUserDialogProps {
   onUserCreated: () => void;
@@ -86,32 +86,30 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
     try {
       setIsSubmitting(true);
 
-      console.log('Creating user with school assignment:', {
+      console.log('Creating user via AdminUserService:', {
         email: newUser.email,
         role: newUser.role,
         school_id: newUser.school_id
       });
 
-      // Create user account in Supabase Auth with school assignment
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Use the AdminUserService to create the user
+      const result = await AdminUserService.createUser({
         email: newUser.email,
         password: newUser.password,
-        options: {
-          data: {
-            name: newUser.name,
-            role: newUser.role,
-            school_id: newUser.school_id || null
-          }
-        }
+        name: newUser.name,
+        role: newUser.role,
+        school_id: newUser.school_id || undefined
       });
 
-      if (authError) throw authError;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create user');
+      }
 
       // If creating a principal, update the school's principal_id
-      if (newUser.role === 'principal' && newUser.school_id && authData.user) {
+      if (newUser.role === 'principal' && newUser.school_id && result.user_id) {
         const { error: schoolUpdateError } = await supabase
           .from('schools')
-          .update({ principal_id: authData.user.id })
+          .update({ principal_id: result.user_id })
           .eq('id', newUser.school_id);
 
         if (schoolUpdateError) {
@@ -122,7 +120,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
 
       toast({
         title: "Success",
-        description: `User created successfully and linked to selected school. They will receive a confirmation email.`,
+        description: result.message || "User created successfully and linked to selected school.",
       });
 
       setIsCreateDialogOpen(false);
@@ -135,6 +133,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
 
     } catch (error: any) {
       console.error('Error creating user:', error);
+      
       toast({
         title: "Error",
         description: error.message || "Failed to create user. Please try again.",
@@ -159,7 +158,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Create a new user account for the Elimisha platform
+            Create a new user account for the Elimisha platform using admin privileges
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -224,13 +223,13 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
           )}
 
           <div>
-            <Label htmlFor="password">Temporary Password *</Label>
+            <Label htmlFor="password">Password *</Label>
             <Input
               id="password"
               type="password"
               value={newUser.password}
               onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              placeholder="Enter temporary password"
+              placeholder="Enter password"
             />
           </div>
           <Button onClick={handleCreateUser} className="w-full" disabled={isSubmitting}>
