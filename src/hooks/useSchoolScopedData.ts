@@ -24,13 +24,14 @@ export const useSchoolScopedData = () => {
   const createSchoolScopedQuery = useCallback((tableName: string, selectClause = '*') => {
     const schoolId = getCurrentSchoolId();
     
-    let query = supabase.from(tableName).select(selectClause);
+    // Use proper type assertion for dynamic table access
+    const query = (supabase as any).from(tableName).select(selectClause);
 
     // System admins can access all data
     if (isSystemAdmin()) {
       // If a specific school is selected, filter by it
       if (currentSchool?.id) {
-        query = query.eq('school_id', currentSchool.id);
+        return query.eq('school_id', currentSchool.id);
       }
       return query;
     }
@@ -42,7 +43,7 @@ export const useSchoolScopedData = () => {
 
     // Add school_id filter for tables that have it directly
     if (['students', 'classes', 'subjects', 'announcements', 'support_tickets', 'timetables', 'messages'].includes(tableName)) {
-      query = query.eq('school_id', schoolId);
+      return query.eq('school_id', schoolId);
     }
     
     return query;
@@ -83,7 +84,7 @@ export const useSchoolScopedData = () => {
       data.school_id = schoolId;
     }
 
-    return supabase.from(tableName).insert(data);
+    return (supabase as any).from(tableName).insert(data);
   }, [isSystemAdmin, getCurrentSchoolId]);
 
   return {
