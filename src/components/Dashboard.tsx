@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
-import SchoolSelector from "@/components/common/SchoolSelector";
 import GradesModal from "./modals/GradesModal";
 import AttendanceModal from "./modals/AttendanceModal";
 import ResultsModal from "./modals/ResultsModal";
@@ -37,7 +36,7 @@ import FinanceOfficerDashboard from "./dashboard/FinanceOfficerDashboard";
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { isSystemAdmin, currentSchool } = useSchoolScopedData();
+  const { currentSchool } = useSchoolScopedData();
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   console.log(
@@ -174,25 +173,25 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      {/* Top Header with Greeting and User Profile */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+      {/* Main Header Container */}
+      <div className="bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-6">
             {/* Left: Greeting Section */}
-            <div className="flex-1">
-              <div className="space-y-1">
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 leading-tight">
+            <div className="flex-1 min-w-0">
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
                   {getGreeting()}, {getFirstName(user?.name || "User")}! 👋
                 </h1>
-                <p className="text-gray-600 text-sm lg:text-base">
+                <p className="text-gray-600 text-sm sm:text-base max-w-3xl">
                   {getRoleDescription()}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <span className="bg-gray-100 px-2 py-1 rounded-full">
+                  <span className="bg-gray-100 px-2 py-1 rounded-full font-medium">
                     {user?.role?.replace('_', ' ').toUpperCase()}
                   </span>
                   {currentSchool && (
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
                       {currentSchool.name}
                     </span>
                   )}
@@ -203,25 +202,12 @@ const Dashboard = () => {
                       day: "numeric",
                     })}
                   </span>
-                  <span className="bg-gray-100 px-2 py-1 rounded-full">
-                    {new Date().toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                  </span>
                 </div>
-                {/* School Selector for System Admins */}
-                {isSystemAdmin && (
-                  <div className="mt-2">
-                    <SchoolSelector />
-                  </div>
-                )}
               </div>
             </div>
 
             {/* Right: User Profile */}
-            <div className="flex-shrink-0 ml-4">
+            <div className="flex-shrink-0 ml-6">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-12 w-12 rounded-full hover:shadow-lg transition-all">
@@ -271,10 +257,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Dashboard Content */}
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
-        <div className="animate-fade-in">
-          {getRoleBasedDashboard()}
+      {/* Dashboard Content Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-6">
+          <div className="animate-fade-in">
+            {getRoleBasedDashboard()}
+          </div>
         </div>
       </div>
 
