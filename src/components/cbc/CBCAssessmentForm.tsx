@@ -118,6 +118,9 @@ const CBCAssessmentForm: React.FC<CBCAssessmentFormProps> = ({
 
     setLoading(true);
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const assessmentData = Object.entries(assessments)
         .filter(([_, assessment]) => assessment.performanceLevel)
         .map(([studentId, assessment]) => ({
@@ -130,7 +133,7 @@ const CBCAssessmentForm: React.FC<CBCAssessmentFormProps> = ({
           performance_level: assessment.performanceLevel,
           evidence_description: assessment.evidenceDescription,
           teacher_observation: assessment.teacherObservation,
-          submitted_by: (await supabase.auth.getUser()).data.user?.id
+          submitted_by: user?.id
         }));
 
       const { error } = await supabase

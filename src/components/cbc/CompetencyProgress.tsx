@@ -58,7 +58,23 @@ const CompetencyProgress: React.FC<CompetencyProgressProps> = ({ studentId, edit
         .eq('student_id', studentId);
 
       if (error) throw error;
-      setProgressData(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData = (data || []).map(item => ({
+        id: item.id,
+        competency: item.competency,
+        current_level: item.current_level,
+        progress_percentage: item.progress_percentage,
+        last_assessed_date: item.last_assessed_date,
+        milestones_achieved: Array.isArray(item.milestones_achieved) 
+          ? item.milestones_achieved 
+          : typeof item.milestones_achieved === 'string' 
+          ? JSON.parse(item.milestones_achieved) 
+          : [],
+        recommended_activities: item.recommended_activities || []
+      }));
+      
+      setProgressData(transformedData);
     } catch (error) {
       console.error('Error fetching competency progress:', error);
       toast({
