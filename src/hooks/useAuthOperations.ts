@@ -11,6 +11,7 @@ export const useAuthOperations = () => {
   const [isLoading, setIsLoading] = useState(true);
   const isMountedRef = useRef(true);
   const fetchingRef = useRef(false);
+  const signingOutRef = useRef(false);
 
   const fetchUserProfile = useMemo(() => {
     return async (authUser: User) => {
@@ -171,33 +172,76 @@ export const useAuthOperations = () => {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Prevent multiple simultaneous logout attempts
+    if (signingOutRef.current) {
+      console.log('🚪 AuthOperations: Logout already in progress, skipping');
+      return;
+    }
+
+    signingOutRef.current = true;
     const endTimer = PerformanceMonitor.startTimer('auth_signout');
-    console.log('🚪 AuthOperations: Signing out');
-    setIsLoading(true);
+    console.log('🚪 AuthOperations: Starting logout process');
     
     try {
+      // Clear user state immediately to prevent UI confusion
       setUser(null);
+      setIsLoading(true);
       
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error && !error.message.includes('Auth session missing')) {
-        console.error('❌ AuthOperations: Sign out error:', error);
-        errorHandler.handleAuthError(error, 'signout');
+      // Clear local storage first
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+        sessionStorage.clear();
+      } catch (storageError) {
+        console.warn('⚠️ AuthOperations: Storage cleanup error (non-critical):', storageError);
       }
       
-      console.log('✅ AuthOperations: Successfully signed out');
+      // Attempt to sign out from Supabase
+      try {
+        const { error } = await supabase.auth.signOut({ scope: 'global' });
+        
+        if (error) {
+          // Only log errors that aren't about missing sessions
+          if (!error.message.includes('Auth session missing') && 
+              !error.message.includes('Session not found') &&
+              !error.message.includes('session id') && 
+              !error.message.includes("doesn't exist")) {
+            console.error('❌ AuthOperations: Sign out error:', error);
+            errorHandler.handleAuthError(error, 'signout');
+          } else {
+            console.log('ℹ️ AuthOperations: Session was already expired/missing (handled gracefully)');
+          }
+        } else {
+          console.log('✅ AuthOperations: Successfully signed out from Supabase');
+        }
+      } catch (supabaseError: any) {
+        // Handle network errors or other exceptions gracefully
+        console.warn('⚠️ AuthOperations: Supabase signout error (handled):', supabaseError.message);
+      }
+      
+      console.log('✅ AuthOperations: Logout process completed');
       setIsLoading(false);
       
-      // Clear session storage and force reload
-      sessionStorage.clear();
-      window.location.href = '/';
+      // Force page reload for clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
       
-    } catch (error) {
-      console.error('❌ AuthOperations: Sign out exception:', error);
-      handleApiError(error, 'signout');
+    } catch (error: any) {
+      console.error('❌ AuthOperations: Critical logout error:', error);
+      // Even if logout fails, clear state and redirect
       setUser(null);
       setIsLoading(false);
+      
+      // Force page reload as fallback
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     } finally {
+      signingOutRef.current = false;
       endTimer();
     }
   }, []);
@@ -206,6 +250,7 @@ export const useAuthOperations = () => {
     console.log('🧹 AuthOperations: Cleaning up');
     isMountedRef.current = false;
     fetchingRef.current = false;
+    signingOutRef.current = false;
   }, []);
 
   return {

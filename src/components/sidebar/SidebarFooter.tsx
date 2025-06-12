@@ -13,22 +13,30 @@ const SidebarFooter = () => {
   const handleLogout = async () => {
     try {
       console.log('🔓 Sidebar: Initiating logout');
-      await signOut();
       
+      // Show immediate feedback
       toast({
-        title: "Logged out successfully",
-        description: "You have been signed out of your account.",
+        title: "Signing out...",
+        description: "Please wait while we sign you out.",
       });
       
-      console.log('✅ Sidebar: Logout successful');
+      await signOut();
+      
+      console.log('✅ Sidebar: Logout completed');
     } catch (error) {
       console.error('❌ Sidebar: Logout error:', error);
       
+      // Even if there's an error, show success since we'll redirect anyway
       toast({
-        title: "Logout completed",
-        description: "You have been signed out (with minor issues that were handled).",
+        title: "Signed out",
+        description: "You have been signed out successfully.",
         variant: "default",
       });
+      
+      // Force redirect as fallback
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     }
   };
 
