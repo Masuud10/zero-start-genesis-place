@@ -7,7 +7,7 @@ import CreateSchoolDialog from '@/components/modules/schools/CreateSchoolDialog'
 import CreateUserDialog from '@/components/modules/users/CreateUserDialog';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolService } from '@/services/schoolService';
-import { supabase } from '@/integrations/supabase/client';
+import { AdminUserService } from '@/services/adminUserService';
 
 interface ElimshaAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -26,43 +26,13 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
     }
   });
 
-  // Fetch system metrics
-  const { data: systemMetrics } = useQuery({
-    queryKey: ['system-metrics'],
+  // Fetch user statistics using AdminUserService
+  const { data: usersData, refetch: refetchUsers } = useQuery({
+    queryKey: ['admin-users', refreshKey],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_metrics')
-        .select('*')
-        .order('recorded_at', { ascending: false })
-        .limit(5);
-      
+      const { data, error } = await AdminUserService.getUsersForSchool();
       if (error) throw error;
-      return data;
-    }
-  });
-
-  // Fetch user statistics
-  const { data: userStats, refetch: refetchUsers } = useQuery({
-    queryKey: ['user-stats', refreshKey],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role, school_id')
-        .not('role', 'in', '("elimisha_admin","edufam_admin")');
-      
-      if (error) throw error;
-      
-      const stats = {
-        totalUsers: data.length,
-        usersWithSchools: data.filter(u => u.school_id).length,
-        usersWithoutSchools: data.filter(u => !u.school_id).length,
-        roleBreakdown: data.reduce((acc: Record<string, number>, user) => {
-          acc[user.role] = (acc[user.role] || 0) + 1;
-          return acc;
-        }, {})
-      };
-      
-      return stats;
+      return data || [];
     }
   });
 
@@ -76,6 +46,22 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
     refetchUsers();
   };
 
+  // Calculate user statistics
+  const userStats = usersData ? {
+    totalUsers: usersData.length,
+    usersWithSchools: usersData.filter(u => u.school_id).length,
+    usersWithoutSchools: usersData.filter(u => !u.school_id).length,
+    roleBreakdown: usersData.reduce((acc: Record<string, number>, user) => {
+      acc[user.role] = (acc[user.role] || 0) + 1;
+      return acc;
+    }, {})
+  } : {
+    totalUsers: 0,
+    usersWithSchools: 0,
+    usersWithoutSchools: 0,
+    roleBreakdown: {}
+  };
+
   const systemOverviewCards = [
     {
       title: "Total Schools",
@@ -86,21 +72,21 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
     },
     {
       title: "Total Users",
-      value: userStats?.totalUsers || 0,
+      value: userStats.totalUsers,
       description: "Across all schools",
       icon: Users,
       color: "text-green-600"
     },
     {
       title: "Users Assigned",
-      value: userStats?.usersWithSchools || 0,
+      value: userStats.usersWithSchools,
       description: "Users linked to schools",
       icon: Shield,
       color: "text-purple-600"
     },
     {
       title: "Unassigned Users",
-      value: userStats?.usersWithoutSchools || 0,
+      value: userStats.usersWithoutSchools,
       description: "Need school assignment",
       icon: Users,
       color: "text-orange-600"
@@ -225,7 +211,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       </Card>
 
       {/* User Role Breakdown */}
-      {userStats && userStats.totalUsers > 0 && (
+      {userStats.totalUsers > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>User Role Distribution</CardTitle>
@@ -239,36 +225,6 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
                 <div key={role} className="text-center p-3 bg-gray-50 rounded-lg">
                   <p className="text-2xl font-bold text-gray-900">{count as number}</p>
                   <p className="text-sm text-gray-600 capitalize">{role.replace('_', ' ')}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* System Health */}
-      {systemMetrics && systemMetrics.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>System Health Metrics</CardTitle>
-            <CardDescription>
-              Latest system performance indicators
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {systemMetrics.map((metric: any) => (
-                <div key={metric.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{metric.metric_name}</h4>
-                    <p className="text-sm text-gray-600">{metric.metric_type}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">{metric.metric_value}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(metric.recorded_at).toLocaleString()}
-                    </p>
-                  </div>
                 </div>
               ))}
             </div>

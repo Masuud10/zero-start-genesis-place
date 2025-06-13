@@ -8,13 +8,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { AdminUserService } from '@/services/adminUserService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateUserDialogProps {
   onUserCreated: () => void;
-  children?: React.ReactNode; // Support custom trigger
+  children?: React.ReactNode;
 }
 
 interface School {
@@ -34,6 +34,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
   const [permissions, setPermissions] = useState<UserPermissions>({
     canCreateUsers: false,
     userRole: null,
@@ -52,6 +53,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
   useEffect(() => {
     if (isCreateDialogOpen) {
       loadUserPermissions();
+      generateRandomPassword();
     }
   }, [isCreateDialogOpen]);
 
@@ -60,6 +62,15 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
       fetchSchools();
     }
   }, [permissions.isSystemAdmin, isCreateDialogOpen]);
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewUser(prev => ({ ...prev, password }));
+  };
 
   const loadUserPermissions = async () => {
     try {
@@ -143,13 +154,12 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
     try {
       setIsSubmitting(true);
 
-      console.log('Creating user with enhanced multi-tenant support:', {
+      console.log('Creating user with credentials:', {
         email: newUser.email,
         role: newUser.role,
         school_id: newUser.school_id || permissions.schoolId
       });
 
-      // Use the enhanced AdminUserService
       const result = await AdminUserService.createUser({
         email: newUser.email,
         password: newUser.password,
@@ -172,19 +182,18 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
 
         if (schoolUpdateError) {
           console.error('Error updating school principal:', schoolUpdateError);
-          // Don't throw here as user creation was successful
         }
       }
 
       toast({
         title: "Success",
-        description: result.message || "User created successfully with proper school assignment.",
+        description: `User created successfully! Email: ${newUser.email} | Password: ${newUser.password}`,
+        duration: 8000,
       });
 
       setIsCreateDialogOpen(false);
       setNewUser({ name: '', email: '', role: '', password: '', school_id: '' });
       
-      // Refresh users list after a short delay
       setTimeout(() => {
         onUserCreated();
       }, 1000);
@@ -212,7 +221,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
   const availableRoles = getAvailableRoles();
 
   if (!permissions.canCreateUsers) {
-    return null; // Don't show the dialog if user can't create users
+    return null;
   }
 
   const TriggerComponent = children || (
@@ -231,7 +240,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Create a new user account with proper school assignment and role-based permissions
+            Create a new user account with login credentials and school assignment
           </DialogDescription>
         </DialogHeader>
 
@@ -239,7 +248,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Users will be automatically assigned to your school and you can only create certain roles.
+              Users will be automatically assigned to your school.
             </AlertDescription>
           </Alert>
         )}
@@ -282,7 +291,6 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
             </Select>
           </div>
 
-          {/* School Selection - only shown for system admins creating school-level roles */}
           {shouldShowSchoolSelector() && (
             <div>
               <Label htmlFor="school">School *</Label>
@@ -302,14 +310,41 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
           )}
 
           <div>
-            <Label htmlFor="password">Password *</Label>
-            <Input
-              id="password"
-              type="password"
-              value={newUser.password}
-              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              placeholder="Enter password"
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password *</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={generateRandomPassword}
+                className="text-xs"
+              >
+                Generate New
+              </Button>
+            </div>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                placeholder="Enter password"
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
           
           <Button onClick={handleCreateUser} className="w-full" disabled={isSubmitting}>
