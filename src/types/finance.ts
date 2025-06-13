@@ -6,10 +6,10 @@ export interface Fee {
   dueDate: Date;
   term: string;
   category: 'tuition' | 'transport' | 'meals' | 'activities' | 'other';
-  status: 'pending' | 'paid' | 'overdue';
+  status: 'pending' | 'paid' | 'partial' | 'overdue';
   paidAmount?: number;
   paidDate?: Date;
-  paymentMethod?: 'mpesa' | 'cash' | 'bank';
+  paymentMethod?: 'mpesa' | 'cash' | 'bank_transfer' | 'card' | 'cheque';
   mpesaCode?: string;
   schoolId: string;
   academicYear: string;

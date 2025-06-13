@@ -105,9 +105,9 @@ const FinanceModule = () => {
       // Record the payment transaction
       const transactionData = {
         fee_id: feeId,
-        transaction_type: 'payment',
+        transaction_type: 'payment' as const,
         amount,
-        payment_method: paymentMethod,
+        payment_method: paymentMethod as 'mpesa' | 'cash' | 'bank_transfer' | 'card' | 'cheque',
         processed_at: new Date().toISOString(),
         academic_year: new Date().getFullYear().toString(),
         term: selectedTerm
@@ -123,12 +123,12 @@ const FinanceModule = () => {
       const fee = feeRecords.find(f => f.id === feeId);
       if (fee) {
         const newPaidAmount = (fee.paid_amount || 0) + amount;
-        const status = newPaidAmount >= fee.amount ? 'paid' : 'partial';
+        const status: 'pending' | 'paid' | 'partial' | 'overdue' = newPaidAmount >= fee.amount ? 'paid' : 'partial';
         
         await DataService.updateFee(feeId, {
           paid_amount: newPaidAmount,
           status,
-          payment_method: paymentMethod,
+          payment_method: paymentMethod as 'mpesa' | 'cash' | 'bank_transfer' | 'card' | 'cheque',
           paid_date: new Date().toISOString()
         });
       }

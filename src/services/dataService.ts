@@ -2,6 +2,94 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
+// Database row types that match the actual schema
+interface DatabaseStudentInsert {
+  name: string;
+  admission_number: string;
+  class_id?: string;
+  school_id?: string;
+  parent_id?: string;
+  roll_number?: string;
+  date_of_birth?: string;
+  gender?: string;
+  address?: string;
+  parent_contact?: string;
+  emergency_contact?: string;
+  medical_notes?: string;
+  avatar_url?: string;
+  is_active?: boolean;
+}
+
+interface DatabaseGradeInsert {
+  student_id: string;
+  subject_id: string;
+  class_id: string;
+  score: number;
+  max_score: number;
+  percentage?: number;
+  position?: number;
+  term: string;
+  exam_type?: string;
+  submitted_by?: string;
+  submitted_at?: string;
+  status?: 'draft' | 'submitted' | 'approved' | 'released';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  comments?: string;
+  is_released?: boolean;
+  is_immutable?: boolean;
+}
+
+interface DatabaseAttendanceInsert {
+  student_id: string;
+  class_id: string;
+  school_id?: string;
+  date: string;
+  status: 'present' | 'absent' | 'late' | 'excused';
+  session?: 'morning' | 'afternoon' | 'full_day';
+  remarks?: string;
+  submitted_by?: string;
+  submitted_at?: string;
+  academic_year?: string;
+  term?: string;
+}
+
+interface DatabaseFeeInsert {
+  student_id: string;
+  school_id?: string;
+  amount: number;
+  due_date: string;
+  term: string;
+  category?: 'tuition' | 'transport' | 'meals' | 'activities' | 'other';
+  status?: 'pending' | 'paid' | 'partial' | 'overdue';
+  paid_amount?: number;
+  paid_date?: string;
+  payment_method?: 'mpesa' | 'cash' | 'bank_transfer' | 'card' | 'cheque';
+  mpesa_code?: string;
+  academic_year?: string;
+  installment_number?: number;
+  late_fee_amount?: number;
+  discount_amount?: number;
+}
+
+interface DatabaseTransactionInsert {
+  school_id?: string;
+  student_id?: string;
+  fee_id?: string;
+  transaction_type: 'payment' | 'refund' | 'adjustment' | 'late_fee';
+  amount: number;
+  payment_method?: 'cash' | 'mpesa' | 'bank_transfer' | 'card' | 'cheque';
+  reference_number?: string;
+  mpesa_code?: string;
+  bank_reference?: string;
+  description?: string;
+  processed_by?: string;
+  processed_at?: string;
+  academic_year?: string;
+  term?: string;
+}
+
+// Legacy interfaces for backward compatibility
 export interface StudentData {
   id: string;
   name: string;
@@ -70,7 +158,7 @@ export interface FinancialData {
   due_date: string;
   term: string;
   category: 'tuition' | 'transport' | 'meals' | 'activities' | 'other';
-  status: 'pending' | 'paid' | 'overdue';
+  status: 'pending' | 'paid' | 'partial' | 'overdue';
   paid_amount: number;
   paid_date?: string;
   payment_method?: 'mpesa' | 'cash' | 'bank_transfer' | 'card' | 'cheque';
@@ -88,9 +176,28 @@ export class DataService {
   static async createStudent(studentData: Partial<StudentData>) {
     try {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(studentData);
+      
+      // Convert to database format
+      const dbData: DatabaseStudentInsert = {
+        name: scopedData.name!,
+        admission_number: scopedData.admission_number!,
+        class_id: scopedData.class_id,
+        school_id: scopedData.school_id,
+        parent_id: scopedData.parent_id,
+        roll_number: scopedData.roll_number,
+        date_of_birth: scopedData.date_of_birth,
+        gender: scopedData.gender,
+        address: scopedData.address,
+        parent_contact: scopedData.parent_contact,
+        emergency_contact: scopedData.emergency_contact,
+        medical_notes: scopedData.medical_notes,
+        avatar_url: scopedData.avatar_url,
+        is_active: scopedData.is_active ?? true
+      };
+
       const { data, error } = await supabase
         .from('students')
-        .insert(scopedData)
+        .insert(dbData)
         .select()
         .single();
 
@@ -137,9 +244,30 @@ export class DataService {
   // Grade Management
   static async createGrade(gradeData: Partial<GradeData>) {
     try {
+      // Convert to database format
+      const dbData: DatabaseGradeInsert = {
+        student_id: gradeData.student_id!,
+        subject_id: gradeData.subject_id!,
+        class_id: gradeData.class_id!,
+        score: gradeData.score!,
+        max_score: gradeData.max_score!,
+        percentage: gradeData.percentage,
+        position: gradeData.position,
+        term: gradeData.term!,
+        exam_type: gradeData.exam_type,
+        submitted_by: gradeData.submitted_by,
+        submitted_at: gradeData.submitted_at,
+        status: gradeData.status,
+        reviewed_by: gradeData.reviewed_by,
+        reviewed_at: gradeData.reviewed_at,
+        comments: gradeData.comments,
+        is_released: gradeData.is_released ?? false,
+        is_immutable: gradeData.is_immutable ?? false
+      };
+
       const { data, error } = await supabase
         .from('grades')
-        .insert(gradeData)
+        .insert(dbData)
         .select()
         .single();
 
@@ -172,9 +300,25 @@ export class DataService {
   static async recordAttendance(attendanceData: Partial<AttendanceData>) {
     try {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(attendanceData);
+      
+      // Convert to database format
+      const dbData: DatabaseAttendanceInsert = {
+        student_id: scopedData.student_id!,
+        class_id: scopedData.class_id!,
+        school_id: scopedData.school_id,
+        date: scopedData.date!,
+        status: scopedData.status!,
+        session: scopedData.session,
+        remarks: scopedData.remarks,
+        submitted_by: scopedData.submitted_by,
+        submitted_at: scopedData.submitted_at,
+        academic_year: scopedData.academic_year,
+        term: scopedData.term
+      };
+
       const { data, error } = await supabase
         .from('attendance')
-        .insert(scopedData)
+        .insert(dbData)
         .select()
         .single();
 
@@ -207,9 +351,29 @@ export class DataService {
   static async createFee(feeData: Partial<FinancialData>) {
     try {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(feeData);
+      
+      // Convert to database format
+      const dbData: DatabaseFeeInsert = {
+        student_id: scopedData.student_id!,
+        school_id: scopedData.school_id,
+        amount: scopedData.amount!,
+        due_date: scopedData.due_date!,
+        term: scopedData.term!,
+        category: scopedData.category,
+        status: scopedData.status,
+        paid_amount: scopedData.paid_amount,
+        paid_date: scopedData.paid_date,
+        payment_method: scopedData.payment_method,
+        mpesa_code: scopedData.mpesa_code,
+        academic_year: scopedData.academic_year,
+        installment_number: scopedData.installment_number,
+        late_fee_amount: scopedData.late_fee_amount,
+        discount_amount: scopedData.discount_amount
+      };
+
       const { data, error } = await supabase
         .from('fees')
-        .insert(scopedData)
+        .insert(dbData)
         .select()
         .single();
 
@@ -241,9 +405,28 @@ export class DataService {
   static async recordPayment(transactionData: any) {
     try {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(transactionData);
+      
+      // Convert to database format
+      const dbData: DatabaseTransactionInsert = {
+        school_id: scopedData.school_id,
+        student_id: scopedData.student_id,
+        fee_id: scopedData.fee_id,
+        transaction_type: scopedData.transaction_type,
+        amount: scopedData.amount,
+        payment_method: scopedData.payment_method,
+        reference_number: scopedData.reference_number,
+        mpesa_code: scopedData.mpesa_code,
+        bank_reference: scopedData.bank_reference,
+        description: scopedData.description,
+        processed_by: scopedData.processed_by,
+        processed_at: scopedData.processed_at,
+        academic_year: scopedData.academic_year,
+        term: scopedData.term
+      };
+
       const { data, error } = await supabase
         .from('financial_transactions')
-        .insert(scopedData)
+        .insert(dbData)
         .select()
         .single();
 
