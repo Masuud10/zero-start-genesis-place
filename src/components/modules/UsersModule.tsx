@@ -8,6 +8,8 @@ import UserStatsCards from './users/UserStatsCards';
 import CreateUserDialog from './users/CreateUserDialog';
 import UsersFilter from './users/UsersFilter';
 import UsersTable from './users/UsersTable';
+import { Button } from '@/components/ui/button';
+import { UserPlus } from 'lucide-react';
 
 interface User {
   id: string;
@@ -130,7 +132,14 @@ const UsersModule = () => {
             }
           </p>
         </div>
-        <CreateUserDialog onUserCreated={fetchUsers} />
+        <div className="flex gap-3">
+          <CreateUserDialog onUserCreated={fetchUsers}>
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
+          </CreateUserDialog>
+        </div>
       </div>
 
       <UserStatsCards users={users} />
