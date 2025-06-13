@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
 export interface CreateUserRequest {
   email: string;
@@ -20,6 +21,22 @@ export class AdminUserService {
   static async createUser(userData: CreateUserRequest): Promise<CreateUserResponse> {
     try {
       console.log('🔧 AdminUserService: Creating user via database function', userData);
+
+      // Validate current user permissions
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      const capabilities = MultiTenantUtils.getRoleCapabilities(scope.userRole as any);
+      
+      if (!capabilities.canCreateUsers) {
+        return {
+          success: false,
+          error: 'You do not have permission to create users'
+        };
+      }
+
+      // For school-level admins, ensure school_id is set to their school
+      if (MultiTenantUtils.isSchoolAdmin(scope.userRole) && scope.schoolId) {
+        userData.school_id = scope.schoolId;
+      }
 
       // Use the enhanced create_admin_user database function with multi-tenant support
       const { data, error } = await supabase.rpc('create_admin_user', {
@@ -96,34 +113,71 @@ export class AdminUserService {
 
   static async getCurrentUserPermissions() {
     try {
-      const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser.user) {
-        return { canCreateUsers: false, userRole: null, schoolId: null };
-      }
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role, school_id')
-        .eq('id', currentUser.user.id)
-        .single();
-
-      if (error) {
-        console.error('🔧 AdminUserService: Error fetching user permissions:', error);
-        return { canCreateUsers: false, userRole: null, schoolId: null };
-      }
-
-      const canCreateUsers = ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(profile.role);
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      const capabilities = MultiTenantUtils.getRoleCapabilities(scope.userRole as any);
       
       return {
-        canCreateUsers,
-        userRole: profile.role,
-        schoolId: profile.school_id,
-        isSystemAdmin: ['elimisha_admin', 'edufam_admin'].includes(profile.role),
-        isSchoolAdmin: ['school_owner', 'principal'].includes(profile.role)
+        canCreateUsers: capabilities.canCreateUsers,
+        userRole: scope.userRole,
+        schoolId: scope.schoolId,
+        isSystemAdmin: scope.isSystemAdmin,
+        isSchoolAdmin: MultiTenantUtils.isSchoolAdmin(scope.userRole)
       };
     } catch (error) {
       console.error('🔧 AdminUserService: Permission check error:', error);
-      return { canCreateUsers: false, userRole: null, schoolId: null };
+      return { 
+        canCreateUsers: false, 
+        userRole: null, 
+        schoolId: null,
+        isSystemAdmin: false,
+        isSchoolAdmin: false
+      };
+    }
+  }
+
+  static async getUsersForSchool(schoolId?: string) {
+    try {
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      
+      let query = supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          name,
+          role,
+          school_id,
+          created_at,
+          updated_at
+        `)
+        .order('created_at', { ascending: false });
+
+      // System admins can see all users or filter by school
+      if (scope.isSystemAdmin) {
+        if (schoolId) {
+          query = query.eq('school_id', schoolId);
+        }
+      } else {
+        // Non-admin users only see users in their school
+        if (scope.schoolId) {
+          query = query.eq('school_id', scope.schoolId);
+        } else {
+          // User has no school, return empty result
+          return { data: [], error: null };
+        }
+      }
+
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('🔧 AdminUserService: Error fetching users:', error);
+        return { data: [], error };
+      }
+
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('🔧 AdminUserService: Service error:', error);
+      return { data: [], error };
     }
   }
 }

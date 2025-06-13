@@ -1277,6 +1277,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_school: {
+        Args: {
+          school_name: string
+          school_email: string
+          school_phone: string
+          school_address: string
+          owner_email?: string
+          owner_name?: string
+        }
+        Returns: Json
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
