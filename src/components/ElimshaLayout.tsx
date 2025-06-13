@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
@@ -54,49 +55,34 @@ const ElimshaLayout = () => {
     switch (section) {
       case 'grades':
         return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
-      
       case 'attendance':
-        // For now, allow if user can view gradebook (similar access pattern)
         return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
-      
       case 'students':
         return hasPermission(PERMISSIONS.VIEW_CLASS_INFO);
-      
       case 'finance':
         return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE);
-      
       case 'timetable':
         return hasPermission(PERMISSIONS.VIEW_TIMETABLE);
-      
       case 'announcements':
         return hasPermission(PERMISSIONS.VIEW_ANNOUNCEMENTS);
-      
       case 'messages':
         return hasPermission(PERMISSIONS.SEND_MESSAGES);
-      
       case 'schools':
         return hasPermission(PERMISSIONS.VIEW_OTHER_SCHOOLS);
-      
       case 'users':
         return hasPermission(PERMISSIONS.MANAGE_USERS);
-      
       case 'billing':
         return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE) || 
                user.role === 'edufam_admin' || 
                user.role === 'elimisha_admin';
-      
       case 'system-health':
         return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
-      
       case 'settings':
         return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
-      
       case 'analytics':
       case 'reports':
       case 'support':
-        // These are generally available based on role
         return ['edufam_admin', 'elimisha_admin', 'school_owner', 'principal', 'teacher', 'finance_officer'].includes(user.role);
-      
       default:
         console.log('🏗️ ElimshaLayout: Unknown section, denying access:', section);
         return false;
@@ -195,6 +181,24 @@ const ElimshaLayout = () => {
     }
   };
 
+  // Transform the school data to match the expected School interface
+  const transformedSchool = currentSchool ? {
+    id: currentSchool.id,
+    name: currentSchool.name,
+    ownerId: currentSchool.owner_id || '',
+    principalId: currentSchool.principal_id || '',
+    address: currentSchool.address || '',
+    phone: currentSchool.phone || '',
+    email: currentSchool.email || '',
+    logo: currentSchool.logo_url,
+    settings: {
+      academicYear: new Date().getFullYear().toString(),
+      terms: [],
+      gradeReleaseEnabled: true,
+      attendanceEnabled: true,
+    }
+  } : null;
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -205,8 +209,9 @@ const ElimshaLayout = () => {
         <SidebarInset className="flex-1">
           <DashboardContainer 
             user={user!} 
-            currentSchool={currentSchool} 
+            currentSchool={transformedSchool} 
             onLogout={handleLogout}
+            showHeader={activeSection === 'dashboard'} // Only show header on dashboard
           >
             {renderContent()}
           </DashboardContainer>

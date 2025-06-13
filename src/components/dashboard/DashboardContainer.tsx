@@ -20,9 +20,16 @@ interface DashboardContainerProps {
   currentSchool?: School | null;
   onLogout: () => Promise<void>;
   children: React.ReactNode;
+  showHeader?: boolean; // Control when to show the greeting header
 }
 
-const DashboardContainer = ({ user, currentSchool, onLogout, children }: DashboardContainerProps) => {
+const DashboardContainer = ({ 
+  user, 
+  currentSchool, 
+  onLogout, 
+  children, 
+  showHeader = true 
+}: DashboardContainerProps) => {
   const getTimeBasedGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -40,68 +47,73 @@ const DashboardContainer = ({ user, currentSchool, onLogout, children }: Dashboa
 
   return (
     <div className="min-h-screen">
-      {/* Top Header Container */}
-      <Card className="rounded-none border-x-0 border-t-0 border-b shadow-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between p-4 md:p-6">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground">
-              {getTimeBasedGreeting()}, {formatUserName(user.name)}!
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {getCurrentDateTime()}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {currentSchool && (
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-medium text-foreground">{currentSchool.name}</p>
-                <p className="text-xs text-muted-foreground">{user.role?.replace('_', ' ')}</p>
-              </div>
-            )}
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.avatar_url} alt={user.name} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium text-sm">{user.name}</p>
-                    <p className="w-[200px] truncate text-xs text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
+      {/* Conditional Top Header Container - only for dashboard */}
+      {showHeader && (
+        <Card className="rounded-none border-x-0 border-t-0 border-b shadow-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center justify-between p-4 md:p-6">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold text-foreground">
+                {getTimeBasedGreeting()}, {formatUserName(user.name)}! 👋
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {getCurrentDateTime()}
+              </p>
+              {currentSchool && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                    {currentSchool.name}
+                  </span>
+                  <span className="bg-gray-100 px-2 py-1 rounded-full font-medium">
+                    {user.role?.replace('_', ' ').toUpperCase()}
+                  </span>
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className="cursor-pointer text-red-600 focus:text-red-600"
-                  onClick={onLogout}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.avatar_url} alt={user.name} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium text-sm">{user.name}</p>
+                      <p className="w-[200px] truncate text-xs text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer">
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                    onClick={onLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Main Content */}
       <main className="p-4 md:p-6 lg:p-8">

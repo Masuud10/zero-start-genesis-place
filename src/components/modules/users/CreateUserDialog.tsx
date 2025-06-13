@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateUserDialogProps {
   onUserCreated: () => void;
+  children?: React.ReactNode; // Support custom trigger
 }
 
 interface School {
@@ -29,7 +30,7 @@ interface UserPermissions {
   isSchoolAdmin?: boolean;
 }
 
-const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
+const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
@@ -51,11 +52,14 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
   useEffect(() => {
     if (isCreateDialogOpen) {
       loadUserPermissions();
-      if (permissions.isSystemAdmin) {
-        fetchSchools();
-      }
     }
   }, [isCreateDialogOpen]);
+
+  useEffect(() => {
+    if (permissions.isSystemAdmin && isCreateDialogOpen) {
+      fetchSchools();
+    }
+  }, [permissions.isSystemAdmin, isCreateDialogOpen]);
 
   const loadUserPermissions = async () => {
     try {
@@ -121,6 +125,16 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For school-level roles, ensure school is selected (unless it's pre-filled)
+    if (shouldShowSchoolSelector() && !newUser.school_id) {
+      toast({
+        title: "Error",
+        description: "Please select a school for this user",
         variant: "destructive",
       });
       return;
@@ -201,13 +215,17 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
     return null; // Don't show the dialog if user can't create users
   }
 
+  const TriggerComponent = children || (
+    <Button>
+      <Plus className="w-4 h-4 mr-2" />
+      Create User
+    </Button>
+  );
+
   return (
     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Create User
-        </Button>
+        {TriggerComponent}
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>

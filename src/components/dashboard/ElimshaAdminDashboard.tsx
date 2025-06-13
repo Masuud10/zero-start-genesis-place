@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, BarChart3, Shield, Plus, School } from 'lucide-react';
+import { Building2, Users, BarChart3, Shield, Plus, School, UserPlus } from 'lucide-react';
 import CreateSchoolDialog from '@/components/modules/schools/CreateSchoolDialog';
+import CreateUserDialog from '@/components/modules/users/CreateUserDialog';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolService } from '@/services/schoolService';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +17,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Fetch schools data
-  const { data: schoolsData, isLoading: schoolsLoading } = useQuery({
+  const { data: schoolsData, isLoading: schoolsLoading, refetch: refetchSchools } = useQuery({
     queryKey: ['schools', refreshKey],
     queryFn: async () => {
       const result = await SchoolService.getAllSchools();
@@ -41,8 +42,8 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
   });
 
   // Fetch user statistics
-  const { data: userStats } = useQuery({
-    queryKey: ['user-stats'],
+  const { data: userStats, refetch: refetchUsers } = useQuery({
+    queryKey: ['user-stats', refreshKey],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -67,6 +68,12 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
 
   const handleSchoolCreated = () => {
     setRefreshKey(prev => prev + 1);
+    refetchSchools();
+  };
+
+  const handleUserCreated = () => {
+    setRefreshKey(prev => prev + 1);
+    refetchUsers();
   };
 
   const systemOverviewCards = [
@@ -102,19 +109,22 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Action Buttons */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Elimisha Admin Dashboard</h1>
           <p className="text-gray-600">System-wide overview and school management</p>
         </div>
-        <CreateSchoolDialog onSchoolCreated={handleSchoolCreated} />
+        <div className="flex gap-3">
+          <CreateUserDialog onUserCreated={handleUserCreated} />
+          <CreateSchoolDialog onSchoolCreated={handleSchoolCreated} />
+        </div>
       </div>
 
       {/* System Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {systemOverviewCards.map((card, index) => (
-          <Card key={index}>
+          <Card key={index} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -141,10 +151,10 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button 
               variant="outline" 
-              className="h-20 flex-col gap-2"
+              className="h-20 flex-col gap-2 hover:bg-blue-50"
               onClick={() => onModalOpen('schools')}
             >
               <School className="h-6 w-6" />
@@ -152,7 +162,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex-col gap-2"
+              className="h-20 flex-col gap-2 hover:bg-green-50"
               onClick={() => onModalOpen('users')}
             >
               <Users className="h-6 w-6" />
@@ -160,12 +170,21 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex-col gap-2"
+              className="h-20 flex-col gap-2 hover:bg-purple-50"
               onClick={() => onModalOpen('analytics')}
             >
               <BarChart3 className="h-6 w-6" />
               <span>System Analytics</span>
             </Button>
+            <CreateUserDialog onUserCreated={handleUserCreated}>
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2 hover:bg-orange-50 w-full"
+              >
+                <UserPlus className="h-6 w-6" />
+                <span>Create User</span>
+              </Button>
+            </CreateUserDialog>
           </div>
         </CardContent>
       </Card>
@@ -184,7 +203,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
           ) : schoolsData && schoolsData.length > 0 ? (
             <div className="space-y-3">
               {schoolsData.slice(0, 5).map((school: any) => (
-                <div key={school.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={school.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div>
                     <h4 className="font-medium">{school.name}</h4>
                     <p className="text-sm text-gray-600">{school.email}</p>
@@ -204,6 +223,28 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* User Role Breakdown */}
+      {userStats && userStats.totalUsers > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>User Role Distribution</CardTitle>
+            <CardDescription>
+              Breakdown of users by role across all schools
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Object.entries(userStats.roleBreakdown).map(([role, count]) => (
+                <div key={role} className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-gray-900">{count as number}</p>
+                  <p className="text-sm text-gray-600 capitalize">{role.replace('_', ' ')}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* System Health */}
       {systemMetrics && systemMetrics.length > 0 && (
