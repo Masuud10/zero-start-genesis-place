@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
@@ -144,7 +143,8 @@ export class AdminUserService {
       const scope = await MultiTenantUtils.getCurrentUserScope();
       console.log('🔧 AdminUserService: Getting users for scope:', scope);
       
-      let query = supabase
+      // First, get the profiles data
+      let profilesQuery = supabase
         .from('profiles')
         .select(`
           id,
@@ -153,8 +153,7 @@ export class AdminUserService {
           role,
           school_id,
           created_at,
-          updated_at,
-          school:schools(name)
+          updated_at
         `)
         .order('created_at', { ascending: false });
 
@@ -162,35 +161,65 @@ export class AdminUserService {
       if (scope.isSystemAdmin) {
         console.log('🔧 AdminUserService: System admin - fetching all users');
         if (schoolId) {
-          query = query.eq('school_id', schoolId);
+          profilesQuery = profilesQuery.eq('school_id', schoolId);
         }
-        // For system admins, don't filter by school_id to see all users
       } else {
         // Non-admin users only see users in their school
         if (scope.schoolId) {
           console.log('🔧 AdminUserService: School admin - filtering by school:', scope.schoolId);
-          query = query.eq('school_id', scope.schoolId);
+          profilesQuery = profilesQuery.eq('school_id', scope.schoolId);
         } else {
-          // User has no school, return empty result
           console.log('🔧 AdminUserService: User has no school, returning empty');
           return { data: [], error: null };
         }
       }
 
-      const { data, error } = await query;
+      const { data: profiles, error: profilesError } = await profilesQuery;
       
-      if (error) {
-        console.error('🔧 AdminUserService: Error fetching users:', {
-          error,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+      if (profilesError) {
+        console.error('🔧 AdminUserService: Error fetching profiles:', {
+          error: profilesError,
+          message: profilesError.message,
+          details: profilesError.details,
+          hint: profilesError.hint
         });
-        throw new Error(`Database query failed: ${error.message}`);
+        throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
       }
 
-      console.log('🔧 AdminUserService: Successfully fetched users:', data?.length || 0, 'users');
-      return { data: data || [], error: null };
+      if (!profiles || profiles.length === 0) {
+        console.log('🔧 AdminUserService: No profiles found');
+        return { data: [], error: null };
+      }
+
+      // Get unique school IDs from profiles
+      const schoolIds = [...new Set(profiles.map(p => p.school_id).filter(Boolean))];
+      
+      // Fetch school data separately to avoid relationship ambiguity
+      let schoolsData: any[] = [];
+      if (schoolIds.length > 0) {
+        const { data: schools, error: schoolsError } = await supabase
+          .from('schools')
+          .select('id, name')
+          .in('id', schoolIds);
+
+        if (schoolsError) {
+          console.warn('🔧 AdminUserService: Warning - could not fetch schools:', schoolsError);
+        } else {
+          schoolsData = schools || [];
+        }
+      }
+
+      // Create a map of school ID to school data
+      const schoolMap = new Map(schoolsData.map(school => [school.id, school]));
+
+      // Combine profiles with school data
+      const enrichedProfiles = profiles.map(profile => ({
+        ...profile,
+        school: profile.school_id ? schoolMap.get(profile.school_id) : null
+      }));
+
+      console.log('🔧 AdminUserService: Successfully fetched users:', enrichedProfiles.length, 'users');
+      return { data: enrichedProfiles, error: null };
 
     } catch (error: any) {
       console.error('🔧 AdminUserService: Service error in getUsersForSchool:', {
