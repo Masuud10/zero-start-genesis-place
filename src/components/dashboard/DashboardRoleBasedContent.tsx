@@ -72,19 +72,19 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
   switch (user?.role) {
     case "school_owner":
       console.log("📊 Dashboard: Rendering SchoolOwnerDashboard");
-      return <SchoolOwnerDashboard onModalOpen={onModalOpen} />;
+      return <SchoolOwnerDashboard />;
     case "principal":
       console.log("📊 Dashboard: Rendering PrincipalDashboard");
-      return <PrincipalDashboard onModalOpen={onModalOpen} />;
+      return <PrincipalDashboard />;
     case "teacher":
       console.log("📊 Dashboard: Rendering TeacherDashboard");
-      return <TeacherDashboard onModalOpen={onModalOpen} />;
+      return <TeacherDashboard />;
     case "parent":
       console.log("📊 Dashboard: Rendering ParentDashboard");
-      return <ParentDashboard onModalOpen={onModalOpen} />;
+      return <ParentDashboard />;
     case "finance_officer":
       console.log("📊 Dashboard: Rendering FinanceOfficerDashboard");
-      return <FinanceOfficerDashboard onModalOpen={onModalOpen} />;
+      return <FinanceOfficerDashboard />;
     default:
       console.log(
         "📊 Dashboard: Unknown role, showing access denied:",
