@@ -73,7 +73,7 @@ interface DatabaseFeeInsert {
 }
 
 interface DatabaseTransactionInsert {
-  school_id?: string;
+  school_id: string; // Make this required to match database schema
   student_id?: string;
   fee_id?: string;
   transaction_type: 'payment' | 'refund' | 'adjustment' | 'late_fee';
@@ -406,9 +406,14 @@ export class DataService {
     try {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(transactionData);
       
-      // Convert to database format
+      // Ensure school_id is set before database operation
+      if (!scopedData.school_id) {
+        throw new Error('School ID is required for payment transactions');
+      }
+      
+      // Convert to database format with required school_id
       const dbData: DatabaseTransactionInsert = {
-        school_id: scopedData.school_id,
+        school_id: scopedData.school_id, // Now guaranteed to be present
         student_id: scopedData.student_id,
         fee_id: scopedData.fee_id,
         transaction_type: scopedData.transaction_type,
