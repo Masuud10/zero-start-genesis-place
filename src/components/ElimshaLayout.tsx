@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
@@ -28,7 +27,7 @@ import { UserRole } from '@/types/user';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { currentSchool } = useSchool();
   const { toast } = useToast();
 
@@ -188,6 +187,14 @@ const ElimshaLayout = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -199,7 +206,7 @@ const ElimshaLayout = () => {
           <DashboardContainer 
             user={user!} 
             currentSchool={currentSchool} 
-            onLogout={logout}
+            onLogout={handleLogout}
           >
             {renderContent()}
           </DashboardContainer>

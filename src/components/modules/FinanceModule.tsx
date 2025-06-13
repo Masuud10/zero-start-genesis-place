@@ -125,7 +125,7 @@ const FinanceModule = () => {
         const newPaidAmount = (fee.paid_amount || 0) + amount;
         const status = newPaidAmount >= fee.amount ? 'paid' : 'partial';
         
-        await DataService.updateStudent(feeId, {
+        await DataService.updateFee(feeId, {
           paid_amount: newPaidAmount,
           status,
           payment_method: paymentMethod,

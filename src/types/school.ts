@@ -2,13 +2,13 @@
 export interface School {
   id: string;
   name: string;
-  ownerId: string;
-  principalId: string;
-  address: string;
-  phone: string;
-  email: string;
+  ownerId?: string;
+  principalId?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
   logo?: string;
-  settings: SchoolSettings;
+  settings?: SchoolSettings;
 }
 
 export interface SchoolSettings {

@@ -161,7 +161,7 @@ const GradesModule = () => {
           term: selectedTerm,
           exam_type: 'MID_TERM',
           submitted_by: user?.id,
-          status: 'draft'
+          status: 'draft' as const
         };
 
         const existingGrade = grades.find(g => 
@@ -199,7 +199,7 @@ const GradesModule = () => {
       const updatesPromises = grades
         .filter(g => g.class_id === selectedClass && g.subject_id === selectedSubject && g.term === selectedTerm && g.status === 'draft')
         .map(grade => DataService.updateGrade(grade.id, { 
-          status: 'submitted',
+          status: 'submitted' as const,
           submitted_at: new Date().toISOString()
         }));
 

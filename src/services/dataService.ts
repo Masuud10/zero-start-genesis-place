@@ -90,7 +90,7 @@ export class DataService {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(studentData);
       const { data, error } = await supabase
         .from('students')
-        .insert([scopedData])
+        .insert(scopedData)
         .select()
         .single();
 
@@ -139,7 +139,7 @@ export class DataService {
     try {
       const { data, error } = await supabase
         .from('grades')
-        .insert([gradeData])
+        .insert(gradeData)
         .select()
         .single();
 
@@ -174,7 +174,7 @@ export class DataService {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(attendanceData);
       const { data, error } = await supabase
         .from('attendance')
-        .insert([scopedData])
+        .insert(scopedData)
         .select()
         .single();
 
@@ -209,7 +209,7 @@ export class DataService {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(feeData);
       const { data, error } = await supabase
         .from('fees')
-        .insert([scopedData])
+        .insert(scopedData)
         .select()
         .single();
 
@@ -221,12 +221,29 @@ export class DataService {
     }
   }
 
+  static async updateFee(id: string, updates: Partial<FinancialData>) {
+    try {
+      const { data, error } = await supabase
+        .from('fees')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error updating fee:', error);
+      return { data: null, error };
+    }
+  }
+
   static async recordPayment(transactionData: any) {
     try {
       const scopedData = await MultiTenantUtils.ensureSchoolScope(transactionData);
       const { data, error } = await supabase
         .from('financial_transactions')
-        .insert([scopedData])
+        .insert(scopedData)
         .select()
         .single();
 
