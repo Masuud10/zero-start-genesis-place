@@ -84,7 +84,7 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
       return <ParentDashboard />;
     case "finance_officer":
       console.log("📊 Dashboard: Rendering FinanceOfficerDashboard");
-      return <FinanceOfficerDashboard />;
+      return <FinanceOfficerDashboard onModalOpen={onModalOpen} />;
     default:
       console.log(
         "📊 Dashboard: Unknown role, showing access denied:",
