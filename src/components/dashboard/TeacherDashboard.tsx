@@ -65,30 +65,81 @@ const TeacherDashboard = () => {
     }
   ];
 
-  // Check if stats is defined and has length
-  const hasStats = todayStats && todayStats.length > 0;
+  // Mock data for classes
+  const mockClasses = [
+    {
+      title: "Mathematics Grade 7",
+      students: 32,
+      attendance: 94,
+      avgGrade: 78,
+      pendingGrades: 5,
+      nextClass: "Today 10:00 AM"
+    },
+    {
+      title: "Science Grade 8",
+      students: 28,
+      attendance: 89,
+      avgGrade: 82,
+      pendingGrades: 0,
+      nextClass: "Tomorrow 2:00 PM"
+    },
+    {
+      title: "Mathematics Grade 6",
+      students: 30,
+      attendance: 96,
+      avgGrade: 75,
+      pendingGrades: 3,
+      nextClass: "Monday 9:00 AM"
+    }
+  ];
+
+  // Mock data for upcoming tasks
+  const mockTasks = [
+    {
+      task: "Grade Math Test Papers",
+      dueDate: "Today",
+      priority: "high" as const,
+      type: "Grading"
+    },
+    {
+      task: "Prepare Science Lab Materials",
+      dueDate: "Tomorrow",
+      priority: "medium" as const,
+      type: "Preparation"
+    },
+    {
+      task: "Submit Monthly Report",
+      dueDate: "Friday",
+      priority: "low" as const,
+      type: "Administrative"
+    },
+    {
+      task: "Parent-Teacher Meeting Prep",
+      dueDate: "Next Week",
+      priority: "medium" as const,
+      type: "Meeting"
+    }
+  ];
 
   return (
     <div className="space-y-6">
       {/* Today's Stats */}
-      {hasStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {todayStats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-xs text-gray-500">{stat.description}</p>
-                  </div>
-                  <stat.icon className="h-8 w-8 text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {todayStats.map((stat, index) => (
+          <Card key={index} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-xs text-gray-500">{stat.description}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                <stat.icon className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Quick Actions */}
       <Card>
@@ -119,10 +170,10 @@ const TeacherDashboard = () => {
       </Card>
 
       {/* Class Overview */}
-      <ClassOverviewSection />
+      <ClassOverviewSection classes={mockClasses} />
 
       {/* Upcoming Tasks */}
-      <UpcomingTasksSection />
+      <UpcomingTasksSection tasks={mockTasks} />
     </div>
   );
 };
