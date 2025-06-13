@@ -98,7 +98,6 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       {/* Header with Action Buttons */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Elimisha Admin Dashboard</h1>
           <p className="text-gray-600">System-wide overview and school management</p>
         </div>
         <div className="flex gap-3">

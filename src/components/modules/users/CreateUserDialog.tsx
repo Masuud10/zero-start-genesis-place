@@ -131,30 +131,67 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
     return [];
   };
 
-  const handleCreateUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.role || !newUser.password) {
+  const validateForm = () => {
+    if (!newUser.name.trim()) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: "Validation Error",
+        description: "Please enter the user's full name",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
-    // For school-level roles, ensure school is selected (unless it's pre-filled)
-    if (shouldShowSchoolSelector() && !newUser.school_id) {
+    if (!newUser.email.trim()) {
       toast({
-        title: "Error",
-        description: "Please select a school for this user",
+        title: "Validation Error",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
+      return false;
+    }
+
+    if (!newUser.role) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a role for the user",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!newUser.password.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please set a password for the user",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // School assignment validation
+    if (permissions.isSystemAdmin && ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(newUser.role)) {
+      if (!newUser.school_id) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a school for this role",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleCreateUser = async () => {
+    if (!validateForm()) {
       return;
     }
 
     try {
       setIsSubmitting(true);
 
-      console.log('Creating user with credentials:', {
+      console.log('Creating user with data:', {
         email: newUser.email,
         role: newUser.role,
         school_id: newUser.school_id || permissions.schoolId
@@ -185,10 +222,13 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
         }
       }
 
+      const selectedSchool = schools.find(s => s.id === (newUser.school_id || permissions.schoolId));
+      const schoolName = selectedSchool ? selectedSchool.name : 'the assigned school';
+
       toast({
-        title: "Success",
-        description: `User created successfully! Email: ${newUser.email} | Password: ${newUser.password}`,
-        duration: 8000,
+        title: "User Created Successfully",
+        description: `${newUser.name} has been created as ${newUser.role} for ${schoolName}. Login credentials: ${newUser.email} / ${newUser.password}`,
+        duration: 10000,
       });
 
       setIsCreateDialogOpen(false);
@@ -202,7 +242,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
       console.error('Error creating user:', error);
       
       toast({
-        title: "Error",
+        title: "Error Creating User",
         description: error.message || "Failed to create user. Please try again.",
         variant: "destructive",
       });
@@ -212,10 +252,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
   };
 
   const shouldShowSchoolSelector = () => {
-    if (permissions.isSystemAdmin && ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(newUser.role)) {
-      return true;
-    }
-    return false;
+    return permissions.isSystemAdmin && ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(newUser.role);
   };
 
   const availableRoles = getAvailableRoles();
@@ -240,7 +277,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Create a new user account with login credentials and school assignment
+            Create a new user account with school assignment and login credentials
           </DialogDescription>
         </DialogHeader>
 
@@ -265,7 +302,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
           </div>
           
           <div>
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="email">Email Address *</Label>
             <Input
               id="email"
               type="email"
@@ -276,7 +313,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
           </div>
           
           <div>
-            <Label htmlFor="role">Role *</Label>
+            <Label htmlFor="role">User Role *</Label>
             <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select user role" />
@@ -293,7 +330,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
 
           {shouldShowSchoolSelector() && (
             <div>
-              <Label htmlFor="school">School *</Label>
+              <Label htmlFor="school">Assign to School *</Label>
               <Select value={newUser.school_id} onValueChange={(value) => setNewUser({ ...newUser, school_id: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select school" />
@@ -311,7 +348,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
 
           <div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password *</Label>
+              <Label htmlFor="password">Initial Password *</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -328,7 +365,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
                 type={showPassword ? "text" : "password"}
                 value={newUser.password}
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                placeholder="Enter password"
+                placeholder="Set initial password"
                 className="pr-10"
               />
               <Button
@@ -348,7 +385,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
           </div>
           
           <Button onClick={handleCreateUser} className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating User...' : 'Create User'}
+            {isSubmitting ? 'Creating User...' : 'Create User Account'}
           </Button>
         </div>
       </DialogContent>
