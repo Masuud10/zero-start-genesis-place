@@ -18,7 +18,9 @@ import SchoolsModule from '@/components/modules/SchoolsModule';
 import UsersModule from '@/components/modules/UsersModule';
 import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
+import DashboardContainer from '@/components/dashboard/DashboardContainer';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSchool } from '@/contexts/SchoolContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions, PERMISSIONS } from '@/utils/permissions';
@@ -26,7 +28,8 @@ import { UserRole } from '@/types/user';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { currentSchool } = useSchool();
   const { toast } = useToast();
 
   // Use the permissions system
@@ -193,9 +196,13 @@ const ElimshaLayout = () => {
           onSectionChange={handleSectionChange} 
         />
         <SidebarInset className="flex-1">
-          <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          <DashboardContainer 
+            user={user!} 
+            currentSchool={currentSchool} 
+            onLogout={logout}
+          >
             {renderContent()}
-          </main>
+          </DashboardContainer>
         </SidebarInset>
       </div>
     </SidebarProvider>

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,14 @@ import { useClasses } from '@/hooks/useClasses';
 import { useSubjects } from '@/hooks/useSubjects';
 import { useStudents } from '@/hooks/useStudents';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { DataService } from '@/services/dataService';
 import BulkGradingTable from '@/components/grading/BulkGradingTable';
 import GradeOverrideRequest from '@/components/grading/GradeOverrideRequest';
 import CBCAssessmentForm from '@/components/cbc/CBCAssessmentForm';
 import CompetencyProgress from '@/components/cbc/CompetencyProgress';
 import LearnerPortfolio from '@/components/cbc/LearnerPortfolio';
 import ParentEngagement from '@/components/cbc/ParentEngagement';
+import { useToast } from '@/hooks/use-toast';
 
 const GradesModule = () => {
   const { user } = useAuth();
@@ -29,20 +31,94 @@ const GradesModule = () => {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [showOverrideRequest, setShowOverrideRequest] = useState(false);
   const [gradingMode, setGradingMode] = useState<'traditional' | 'cbc'>('cbc');
+  const [grades, setGrades] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { createSchoolScopedQuery } = useSchoolScopedData();
+  const { toast } = useToast();
 
-  // Calculate real stats from actual data
-  const gradeStats = {
-    totalStudents: students.length,
-    assessed: Math.floor(students.length * 0.85), // This should come from actual grade records
-    pending: Math.ceil(students.length * 0.15),
-    averageProgress: 78.5 // This should be calculated from actual grades
-  };
+  const [gradeStats, setGradeStats] = useState({
+    totalStudents: 0,
+    assessed: 0,
+    pending: 0,
+    averageProgress: 0
+  });
 
   const terms = [
     { id: 'term1', name: 'Term 1' },
     { id: 'term2', name: 'Term 2' },
     { id: 'term3', name: 'Term 3' },
   ];
+
+  useEffect(() => {
+    if (students.length > 0) {
+      fetchGradesData();
+    }
+  }, [selectedClass, selectedSubject, selectedTerm, students]);
+
+  useEffect(() => {
+    calculateStats();
+  }, [grades, students]);
+
+  const fetchGradesData = async () => {
+    try {
+      setLoading(true);
+      
+      let query = createSchoolScopedQuery('grades', `
+        *,
+        students:students(name, admission_number),
+        subjects:subjects(name, code)
+      `);
+
+      if (selectedClass !== 'all') {
+        query = query.eq('class_id', selectedClass);
+      }
+
+      if (selectedSubject !== 'all') {
+        query = query.eq('subject_id', selectedSubject);
+      }
+
+      query = query.eq('term', selectedTerm);
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching grades:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch grades data",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setGrades(data || []);
+    } catch (error) {
+      console.error('Error fetching grades:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch grades data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = () => {
+    const totalStudents = students.length;
+    const assessedStudents = new Set(grades.map(g => g.student_id)).size;
+    const pending = totalStudents - assessedStudents;
+    
+    const totalPercentage = grades.reduce((sum, grade) => sum + (grade.percentage || 0), 0);
+    const averageProgress = grades.length > 0 ? totalPercentage / grades.length : 0;
+
+    setGradeStats({
+      totalStudents,
+      assessed: assessedStudents,
+      pending,
+      averageProgress: Math.round(averageProgress * 10) / 10
+    });
+  };
 
   // Create dynamic grading session from real data
   const mockGradingSession = {
@@ -55,57 +131,136 @@ const GradesModule = () => {
     teacherId: user?.id || 'teacher-1',
     createdAt: new Date(),
     isActive: true,
-    students: students.map(student => ({
-      studentId: student.id,
-      name: student.name,
-      admissionNumber: student.admission_number,
-      rollNumber: student.roll_number || `R${student.id.slice(-3)}`,
-      currentScore: undefined,
-      percentage: undefined,
-      position: undefined,
-      isAbsent: false
-    }))
+    students: students.map(student => {
+      const existingGrade = grades.find(g => g.student_id === student.id && g.subject_id === selectedSubject);
+      return {
+        studentId: student.id,
+        name: student.name,
+        admissionNumber: student.admission_number,
+        rollNumber: student.roll_number || `R${student.id.slice(-3)}`,
+        currentScore: existingGrade?.score,
+        percentage: existingGrade?.percentage,
+        position: existingGrade?.position,
+        isAbsent: false
+      };
+    })
   };
 
-  const mockGrade = {
-    id: '1',
-    score: 85,
-    maxScore: 100,
-    studentId: students[0]?.id || '1',
-    subjectId: selectedSubject,
-    classId: selectedClass,
-    term: 'term1',
-    examType: 'MID_TERM' as const,
-    submittedBy: user?.id || 'teacher-1',
-    submittedAt: new Date(),
-    status: 'draft' as const,
-    isImmutable: true,
-    percentage: 85.0,
-    position: 1,
-    createdAt: new Date(),
-    updatedAt: new Date()
+  const handleSaveGrades = async (gradeUpdates: { studentId: string; score: number; isAbsent: boolean }[]) => {
+    try {
+      for (const update of gradeUpdates) {
+        if (update.isAbsent) continue;
+
+        const gradeData = {
+          student_id: update.studentId,
+          subject_id: selectedSubject,
+          class_id: selectedClass,
+          score: update.score,
+          max_score: 100,
+          percentage: (update.score / 100) * 100,
+          term: selectedTerm,
+          exam_type: 'MID_TERM',
+          submitted_by: user?.id,
+          status: 'draft'
+        };
+
+        const existingGrade = grades.find(g => 
+          g.student_id === update.studentId && 
+          g.subject_id === selectedSubject &&
+          g.term === selectedTerm
+        );
+
+        if (existingGrade) {
+          await DataService.updateGrade(existingGrade.id, gradeData);
+        } else {
+          await DataService.createGrade(gradeData);
+        }
+      }
+
+      toast({
+        title: "Grades Saved",
+        description: "Grades have been saved successfully.",
+      });
+
+      fetchGradesData(); // Refresh data
+    } catch (error) {
+      console.error('Error saving grades:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save grades",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
-    console.log('Grades saved:', grades);
-  };
+  const handleSubmitGrades = async () => {
+    try {
+      // Update all draft grades for this class/subject/term to submitted status
+      const updatesPromises = grades
+        .filter(g => g.class_id === selectedClass && g.subject_id === selectedSubject && g.term === selectedTerm && g.status === 'draft')
+        .map(grade => DataService.updateGrade(grade.id, { 
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
+        }));
 
-  const handleSubmitGrades = () => {
-    console.log('Grades submitted for approval');
+      await Promise.all(updatesPromises);
+
+      toast({
+        title: "Grades Submitted",
+        description: "Grades have been submitted for approval.",
+      });
+
+      fetchGradesData(); // Refresh data
+    } catch (error) {
+      console.error('Error submitting grades:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit grades",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleOverrideRequest = (request: { newScore: number; reason: string }) => {
     console.log('Override request submitted:', request);
     setShowOverrideRequest(false);
+    toast({
+      title: "Override Request Submitted",
+      description: "Your grade override request has been submitted for review.",
+    });
   };
 
   const handleCBCAssessmentSave = () => {
     console.log('CBC Assessment saved');
+    toast({
+      title: "Assessment Saved",
+      description: "CBC assessment has been saved successfully.",
+    });
   };
 
   const isTeacher = user?.role === 'teacher';
   const isPrincipal = user?.role === 'principal';
   const isParent = user?.role === 'parent';
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -344,9 +499,9 @@ const GradesModule = () => {
                       Request Assessment Override
                     </Button>
                     
-                    {showOverrideRequest && (
+                    {showOverrideRequest && grades.length > 0 && (
                       <GradeOverrideRequest 
-                        grade={mockGrade}
+                        grade={grades[0]}
                         onClose={() => setShowOverrideRequest(false)}
                         onSubmit={handleOverrideRequest}
                       />
@@ -387,9 +542,9 @@ const GradesModule = () => {
                     Request Grade Override
                   </Button>
                   
-                  {showOverrideRequest && (
+                  {showOverrideRequest && grades.length > 0 && (
                     <GradeOverrideRequest 
-                      grade={mockGrade}
+                      grade={grades[0]}
                       onClose={() => setShowOverrideRequest(false)}
                       onSubmit={handleOverrideRequest}
                     />

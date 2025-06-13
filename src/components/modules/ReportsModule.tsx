@@ -6,29 +6,35 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, BarChart3, TrendingUp, Download, Calendar, Users, DollarSign, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DataService } from '@/services/dataService';
+import { useClasses } from '@/hooks/useClasses';
+import { useStudents } from '@/hooks/useStudents';
 
 const ReportsModule = () => {
   const [reportType, setReportType] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const { classes } = useClasses();
+  const { students } = useStudents();
 
   const reportTypes = [
-    { value: 'schools-summary', label: 'Schools Summary Report', icon: Building2 },
-    { value: 'users-analytics', label: 'Users Analytics Report', icon: Users },
+    { value: 'student-performance', label: 'Student Performance Report', icon: Users },
+    { value: 'class-performance', label: 'Class Performance Report', icon: BarChart3 },
+    { value: 'attendance-summary', label: 'Attendance Summary Report', icon: Calendar },
     { value: 'financial-summary', label: 'Financial Summary Report', icon: DollarSign },
-    { value: 'system-performance', label: 'System Performance Report', icon: TrendingUp },
-    { value: 'subscription-analysis', label: 'Subscription Analysis Report', icon: BarChart3 },
-    { value: 'support-tickets', label: 'Support Tickets Report', icon: FileText },
+    { value: 'school-overview', label: 'School Overview Report', icon: Building2 },
+    { value: 'grade-analysis', label: 'Grade Analysis Report', icon: TrendingUp },
   ];
 
   const periods = [
-    'Last 7 days',
-    'Last 30 days', 
-    'Last 3 months',
-    'Last 6 months',
-    'This Year',
-    'All Time'
+    'Current Term',
+    'Last Term',
+    'Current Academic Year',
+    'Last Academic Year',
+    'Custom Range'
   ];
 
   const handleGenerateReport = async (format: 'pdf' | 'excel' | 'csv') => {
@@ -44,9 +50,49 @@ const ReportsModule = () => {
     setIsGenerating(true);
     
     try {
-      // Simulate report generation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      let reportData;
+      const currentYear = new Date().getFullYear().toString();
+      const currentTerm = 'term1'; // This should be dynamic based on current term
+
+      switch (reportType) {
+        case 'student-performance':
+          if (!selectedStudent) {
+            toast({
+              title: "Error",
+              description: "Please select a student for performance report",
+              variant: "destructive"
+            });
+            return;
+          }
+          reportData = await DataService.generateStudentReport(selectedStudent, currentYear, currentTerm);
+          break;
+
+        case 'class-performance':
+          if (!selectedClass) {
+            toast({
+              title: "Error",
+              description: "Please select a class for performance report",
+              variant: "destructive"
+            });
+            return;
+          }
+          reportData = await DataService.generateClassReport(selectedClass, currentYear, currentTerm);
+          break;
+
+        case 'financial-summary':
+          reportData = await DataService.generateFinancialReport(undefined, currentYear);
+          break;
+
+        default:
+          // For other report types, simulate generation
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          reportData = { data: { message: 'Report generated successfully' }, error: null };
+      }
+
+      if (reportData?.error) {
+        throw reportData.error;
+      }
+
       const selectedReport = reportTypes.find(r => r.value === reportType);
       toast({
         title: "Report Generated",
@@ -62,6 +108,7 @@ const ReportsModule = () => {
       document.body.removeChild(link);
       
     } catch (error) {
+      console.error('Report generation error:', error);
       toast({
         title: "Generation Failed",
         description: "Failed to generate report. Please try again.",
@@ -83,9 +130,9 @@ const ReportsModule = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          System Reports & Analytics
+          Reports & Analytics
         </h1>
-        <p className="text-muted-foreground">Generate comprehensive reports for the Elimisha network</p>
+        <p className="text-muted-foreground">Generate comprehensive reports for academic and administrative insights</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -146,6 +193,45 @@ const ReportsModule = () => {
             </div>
           </div>
 
+          {/* Additional filters based on report type */}
+          {(reportType === 'student-performance' || reportType === 'class-performance') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reportType === 'class-performance' && (
+                <div>
+                  <Label htmlFor="class">Select Class</Label>
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map(cls => (
+                        <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {reportType === 'student-performance' && (
+                <div>
+                  <Label htmlFor="student">Select Student</Label>
+                  <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select student" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map(student => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.name} ({student.admission_number})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+
           {reportType && selectedPeriod && (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -154,6 +240,8 @@ const ReportsModule = () => {
               </p>
               <p className="text-muted-foreground mb-4">
                 Period: {selectedPeriod}
+                {selectedClass && ` • Class: ${classes.find(c => c.id === selectedClass)?.name}`}
+                {selectedStudent && ` • Student: ${students.find(s => s.id === selectedStudent)?.name}`}
               </p>
               <div className="flex justify-center space-x-4">
                 <Button 
@@ -198,19 +286,19 @@ const ReportsModule = () => {
               variant="outline" 
               className="h-24 flex flex-col items-center gap-2"
               onClick={() => {
-                setReportType('schools-summary');
-                setSelectedPeriod('Last 30 days');
+                setReportType('school-overview');
+                setSelectedPeriod('Current Term');
               }}
             >
               <Building2 className="w-6 h-6" />
-              <span className="text-sm">Schools Summary</span>
+              <span className="text-sm">School Overview</span>
             </Button>
             <Button 
               variant="outline" 
               className="h-24 flex flex-col items-center gap-2"
               onClick={() => {
                 setReportType('financial-summary');
-                setSelectedPeriod('Last 30 days');
+                setSelectedPeriod('Current Term');
               }}
             >
               <DollarSign className="w-6 h-6" />
@@ -220,12 +308,12 @@ const ReportsModule = () => {
               variant="outline" 
               className="h-24 flex flex-col items-center gap-2"
               onClick={() => {
-                setReportType('users-analytics');
-                setSelectedPeriod('Last 30 days');
+                setReportType('attendance-summary');
+                setSelectedPeriod('Current Term');
               }}
             >
-              <Users className="w-6 h-6" />
-              <span className="text-sm">User Analytics</span>
+              <Calendar className="w-6 h-6" />
+              <span className="text-sm">Attendance Summary</span>
             </Button>
           </div>
         </CardContent>

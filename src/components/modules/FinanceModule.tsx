@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -7,17 +7,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DollarSign, TrendingUp, Users, FileText, Plus, Download, CreditCard } from 'lucide-react';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { DataService } from '@/services/dataService';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 const FinanceModule = () => {
   const [selectedTerm, setSelectedTerm] = useState('term1');
   const [selectedClass, setSelectedClass] = useState('all');
-
-  const financeStats = {
-    totalRevenue: 2450000,
-    collected: 2100000,
-    pending: 350000,
-    expenses: 1800000
-  };
+  const [feeRecords, setFeeRecords] = useState([]);
+  const [financialStats, setFinancialStats] = useState({
+    totalRevenue: 0,
+    collected: 0,
+    pending: 0,
+    expenses: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const { createSchoolScopedQuery } = useSchoolScopedData();
+  const { toast } = useToast();
 
   const terms = [
     { id: 'term1', name: 'Term 1' },
@@ -33,32 +40,114 @@ const FinanceModule = () => {
     { id: '7b', name: 'Grade 7B' },
   ];
 
-  const mockFeeRecords = [
-    {
-      id: '1',
-      studentName: 'John Doe',
-      admissionNumber: 'ADM001',
-      class: 'Grade 8A',
-      feeType: 'Tuition',
-      amount: 15000,
-      paid: 15000,
-      balance: 0,
-      status: 'paid',
-      dueDate: '2024-03-15'
-    },
-    {
-      id: '2',
-      studentName: 'Jane Smith',
-      admissionNumber: 'ADM002',
-      class: 'Grade 8A',
-      feeType: 'Tuition',
-      amount: 15000,
-      paid: 10000,
-      balance: 5000,
-      status: 'partial',
-      dueDate: '2024-03-15'
-    },
-  ];
+  useEffect(() => {
+    fetchFinancialData();
+  }, [selectedTerm, selectedClass]);
+
+  const fetchFinancialData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch fee records with student information
+      let query = createSchoolScopedQuery('fees', `
+        *,
+        students:students(
+          name,
+          admission_number,
+          classes:classes(name)
+        )
+      `);
+
+      if (selectedTerm !== 'all') {
+        query = query.eq('term', selectedTerm);
+      }
+
+      const { data: fees, error } = await query.order('due_date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching fees:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch financial data",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFeeRecords(fees || []);
+
+      // Calculate statistics
+      const total = fees?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
+      const collected = fees?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+      const pending = total - collected;
+
+      setFinancialStats({
+        totalRevenue: total,
+        collected,
+        pending,
+        expenses: 0 // This would come from expenses table when implemented
+      });
+
+    } catch (error) {
+      console.error('Error fetching financial data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch financial data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecordPayment = async (feeId: string, amount: number, paymentMethod: string) => {
+    try {
+      // Record the payment transaction
+      const transactionData = {
+        fee_id: feeId,
+        transaction_type: 'payment',
+        amount,
+        payment_method: paymentMethod,
+        processed_at: new Date().toISOString(),
+        academic_year: new Date().getFullYear().toString(),
+        term: selectedTerm
+      };
+
+      const { error: transactionError } = await DataService.recordPayment(transactionData);
+      
+      if (transactionError) {
+        throw transactionError;
+      }
+
+      // Update the fee record
+      const fee = feeRecords.find(f => f.id === feeId);
+      if (fee) {
+        const newPaidAmount = (fee.paid_amount || 0) + amount;
+        const status = newPaidAmount >= fee.amount ? 'paid' : 'partial';
+        
+        await DataService.updateStudent(feeId, {
+          paid_amount: newPaidAmount,
+          status,
+          payment_method: paymentMethod,
+          paid_date: new Date().toISOString()
+        });
+      }
+
+      toast({
+        title: "Payment Recorded",
+        description: `Payment of ${formatCurrency(amount)} has been recorded successfully.`,
+      });
+
+      fetchFinancialData(); // Refresh data
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment",
+        variant: "destructive",
+      });
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -79,6 +168,26 @@ const FinanceModule = () => {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -109,7 +218,7 @@ const FinanceModule = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(financeStats.totalRevenue)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(financialStats.totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">Expected this term</p>
           </CardContent>
         </Card>
@@ -120,8 +229,13 @@ const FinanceModule = () => {
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(financeStats.collected)}</div>
-            <p className="text-xs text-muted-foreground">85.7% of target</p>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(financialStats.collected)}</div>
+            <p className="text-xs text-muted-foreground">
+              {financialStats.totalRevenue > 0 ? 
+                `${((financialStats.collected / financialStats.totalRevenue) * 100).toFixed(1)}% of target` : 
+                '0% of target'
+              }
+            </p>
           </CardContent>
         </Card>
         
@@ -131,7 +245,7 @@ const FinanceModule = () => {
             <FileText className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{formatCurrency(financeStats.pending)}</div>
+            <div className="text-2xl font-bold text-orange-600">{formatCurrency(financialStats.pending)}</div>
             <p className="text-xs text-muted-foreground">Outstanding fees</p>
           </CardContent>
         </Card>
@@ -142,7 +256,7 @@ const FinanceModule = () => {
             <CreditCard className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(financeStats.expenses)}</div>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(financialStats.expenses)}</div>
             <p className="text-xs text-muted-foreground">This term</p>
           </CardContent>
         </Card>
@@ -202,24 +316,38 @@ const FinanceModule = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockFeeRecords.map((record) => (
+                  {feeRecords.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell className="font-medium">{record.studentName}</TableCell>
-                      <TableCell>{record.admissionNumber}</TableCell>
-                      <TableCell>{record.class}</TableCell>
-                      <TableCell>{record.feeType}</TableCell>
+                      <TableCell className="font-medium">
+                        {record.students?.name || 'Unknown Student'}
+                      </TableCell>
+                      <TableCell>{record.students?.admission_number || 'N/A'}</TableCell>
+                      <TableCell>{record.students?.classes?.name || 'N/A'}</TableCell>
+                      <TableCell className="capitalize">{record.category}</TableCell>
                       <TableCell>{formatCurrency(record.amount)}</TableCell>
-                      <TableCell>{formatCurrency(record.paid)}</TableCell>
-                      <TableCell>{formatCurrency(record.balance)}</TableCell>
+                      <TableCell>{formatCurrency(record.paid_amount || 0)}</TableCell>
+                      <TableCell>{formatCurrency(record.amount - (record.paid_amount || 0))}</TableCell>
                       <TableCell>{getStatusBadge(record.status)}</TableCell>
-                      <TableCell>{record.dueDate}</TableCell>
+                      <TableCell>{format(new Date(record.due_date), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleRecordPayment(record.id, 1000, 'mpesa')}
+                          disabled={record.status === 'paid'}
+                        >
                           Record Payment
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {feeRecords.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        No financial records found for the selected criteria.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TabsContent>
