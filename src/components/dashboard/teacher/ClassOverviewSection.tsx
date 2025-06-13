@@ -1,9 +1,11 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Users, TrendingUp, Clock, FileText } from 'lucide-react';
 
-interface ClassItem {
+interface ClassData {
   title: string;
   students: number;
   attendance: number;
@@ -13,54 +15,89 @@ interface ClassItem {
 }
 
 interface ClassOverviewSectionProps {
-  classes: ClassItem[];
+  classes: ClassData[];
 }
 
-const ClassOverviewSection: React.FC<ClassOverviewSectionProps> = ({ classes }) => {
+const ClassOverviewSection = ({ classes }: ClassOverviewSectionProps) => {
+  const getGradeColor = (grade: number) => {
+    if (grade >= 80) return "text-green-600";
+    if (grade >= 70) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getAttendanceColor = (attendance: number) => {
+    if (attendance >= 90) return "bg-green-500";
+    if (attendance >= 80) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+
   return (
-    <Card className="shadow-lg border-0">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <span>📚</span>
-          <span>My Classes</span>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Class Overview
         </CardTitle>
+        <CardDescription>
+          Monitor your classes' performance and upcoming sessions
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {classes.map((cls, index) => (
-            <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-all duration-200">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-medium">{cls.title}</h3>
-                  <p className="text-sm text-muted-foreground">Next class: {cls.nextClass}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {classes.map((classData, index) => (
+            <Card key={index} className="border border-gray-200">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold text-lg">{classData.title}</h4>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span>{classData.students} students</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Attendance</span>
+                      <span className="text-sm">{classData.attendance}%</span>
+                    </div>
+                    <Progress 
+                      value={classData.attendance} 
+                      className={`h-2 ${getAttendanceColor(classData.attendance)}`}
+                    />
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium">Avg Grade</span>
+                    </div>
+                    <span className={`text-sm font-bold ${getGradeColor(classData.avgGrade)}`}>
+                      {classData.avgGrade}%
+                    </span>
+                  </div>
+
+                  {classData.pendingGrades > 0 && (
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-orange-500" />
+                      <span className="text-sm text-orange-600">
+                        {classData.pendingGrades} pending grades
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        Action needed
+                      </Badge>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">
+                      Next: {classData.nextClass}
+                    </span>
+                  </div>
                 </div>
-                {cls.pendingGrades > 0 && (
-                  <Badge variant="destructive">
-                    {cls.pendingGrades} pending grades
-                  </Badge>
-                )}
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Students</p>
-                  <p className="font-medium">{cls.students}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Attendance</p>
-                  <p className="font-medium text-green-600">{cls.attendance}%</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Class Average</p>
-                  <p className="font-medium text-blue-600">{cls.avgGrade}%</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <Badge variant={cls.pendingGrades === 0 ? 'default' : 'secondary'}>
-                    {cls.pendingGrades === 0 ? 'Up to date' : 'Pending work'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </CardContent>

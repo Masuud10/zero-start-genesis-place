@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
@@ -143,7 +144,7 @@ export class AdminUserService {
       const scope = await MultiTenantUtils.getCurrentUserScope();
       console.log('🔧 AdminUserService: Getting users for scope:', scope);
       
-      // First, get the profiles data
+      // First, get the profiles data with better error handling
       let profilesQuery = supabase
         .from('profiles')
         .select(`
@@ -183,7 +184,12 @@ export class AdminUserService {
           details: profilesError.details,
           hint: profilesError.hint
         });
-        throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
+        
+        // Return a more user-friendly error
+        return { 
+          data: [], 
+          error: new Error(`Database access error: ${profilesError.message}. Please check your permissions.`)
+        };
       }
 
       if (!profiles || profiles.length === 0) {

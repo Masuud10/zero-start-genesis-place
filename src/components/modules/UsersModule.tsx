@@ -9,7 +9,7 @@ import CreateUserDialog from './users/CreateUserDialog';
 import UsersFilter from './users/UsersFilter';
 import UsersTable from './users/UsersTable';
 import { Button } from '@/components/ui/button';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, RefreshCw } from 'lucide-react';
 
 interface User {
   id: string;
@@ -133,6 +133,14 @@ const UsersModule = () => {
           </p>
         </div>
         <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={fetchUsers}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <CreateUserDialog onUserCreated={fetchUsers}>
             <Button>
               <UserPlus className="w-4 h-4 mr-2" />

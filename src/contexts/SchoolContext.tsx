@@ -74,7 +74,15 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error('🏫 SchoolProvider: Error fetching schools:', error);
-        throw error;
+        // Don't throw here, just log and continue with empty data
+        setSchools([]);
+        setCurrentSchool(null);
+        toast({
+          title: "Warning",
+          description: "Could not load schools data. Some features may be limited.",
+          variant: "destructive",
+        });
+        return;
       }
       
       console.log('🏫 SchoolProvider: Fetched schools:', data?.length || 0);
@@ -93,6 +101,8 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       
     } catch (error) {
       console.error('🏫 SchoolProvider: Error fetching schools:', error);
+      setSchools([]);
+      setCurrentSchool(null);
       toast({
         title: "Error",
         description: "Failed to fetch schools data",

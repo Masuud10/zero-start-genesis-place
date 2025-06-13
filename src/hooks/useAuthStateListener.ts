@@ -58,21 +58,32 @@ export const useAuthStateListener = ({
 
         if (session?.user) {
           console.log('🔐 AuthStateListener: User authenticated, fetching profile');
-          // Use setTimeout to prevent potential deadlocks
-          setTimeout(() => {
-            if (isMountedRef.current) {
-              fetchUserProfile(session.user);
-            }
-          }, 0);
+          // Fetch profile with better error handling
+          try {
+            await fetchUserProfile(session.user);
+          } catch (profileError) {
+            console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
+            // Set basic user data if profile fetch fails
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.email?.split('@')[0] || 'User',
+              role: 'parent', // Default role
+              school_id: null
+            });
+            setIsLoading(false);
+          }
         }
       } catch (error) {
         console.error('🔐 AuthStateListener: Error in auth state handler:', error);
         // Set fallback user data to prevent app from breaking
         if (session?.user && isMountedRef.current) {
           setUser({
-            ...session.user,
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.email?.split('@')[0] || 'User',
             role: 'parent',
-            name: session.user.email?.split('@')[0] || 'User'
+            school_id: null
           });
           setIsLoading(false);
         }
