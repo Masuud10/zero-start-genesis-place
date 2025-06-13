@@ -49,7 +49,7 @@ export class AdminUserService {
 
       if (error) {
         console.error('🔧 AdminUserService: Database function error:', error);
-        throw error;
+        throw new Error(error.message || 'Database operation failed');
       }
 
       // The function returns a JSONB object - handle the response properly
@@ -82,10 +82,14 @@ export class AdminUserService {
       };
 
     } catch (error: any) {
-      console.error('🔧 AdminUserService: Service error:', error);
+      console.error('🔧 AdminUserService: Service error:', {
+        error,
+        message: error?.message,
+        stack: error?.stack
+      });
       return {
         success: false,
-        error: error.message || 'Failed to create user'
+        error: error?.message || 'Failed to create user'
       };
     }
   }
@@ -138,6 +142,7 @@ export class AdminUserService {
   static async getUsersForSchool(schoolId?: string) {
     try {
       const scope = await MultiTenantUtils.getCurrentUserScope();
+      console.log('🔧 AdminUserService: Getting users for scope:', scope);
       
       let query = supabase
         .from('profiles')
@@ -148,21 +153,26 @@ export class AdminUserService {
           role,
           school_id,
           created_at,
-          updated_at
+          updated_at,
+          school:schools(name)
         `)
         .order('created_at', { ascending: false });
 
       // System admins can see all users or filter by school
       if (scope.isSystemAdmin) {
+        console.log('🔧 AdminUserService: System admin - fetching all users');
         if (schoolId) {
           query = query.eq('school_id', schoolId);
         }
+        // For system admins, don't filter by school_id to see all users
       } else {
         // Non-admin users only see users in their school
         if (scope.schoolId) {
+          console.log('🔧 AdminUserService: School admin - filtering by school:', scope.schoolId);
           query = query.eq('school_id', scope.schoolId);
         } else {
           // User has no school, return empty result
+          console.log('🔧 AdminUserService: User has no school, returning empty');
           return { data: [], error: null };
         }
       }
@@ -170,14 +180,28 @@ export class AdminUserService {
       const { data, error } = await query;
       
       if (error) {
-        console.error('🔧 AdminUserService: Error fetching users:', error);
-        return { data: [], error };
+        console.error('🔧 AdminUserService: Error fetching users:', {
+          error,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw new Error(`Database query failed: ${error.message}`);
       }
 
+      console.log('🔧 AdminUserService: Successfully fetched users:', data?.length || 0, 'users');
       return { data: data || [], error: null };
-    } catch (error) {
-      console.error('🔧 AdminUserService: Service error:', error);
-      return { data: [], error };
+
+    } catch (error: any) {
+      console.error('🔧 AdminUserService: Service error in getUsersForSchool:', {
+        error,
+        message: error?.message,
+        stack: error?.stack
+      });
+      return { 
+        data: [], 
+        error: new Error(error?.message || 'Failed to fetch users')
+      };
     }
   }
 }

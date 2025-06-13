@@ -1,8 +1,11 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, AlertCircle, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface User {
   id: string;
@@ -19,6 +22,8 @@ interface User {
 interface UsersTableProps {
   users: User[];
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 const getRoleBadgeColor = (role: string) => {
@@ -47,7 +52,7 @@ const formatRole = (role: string) => {
   ).join(' ');
 };
 
-const UsersTable = ({ users, loading }: UsersTableProps) => {
+const UsersTable = ({ users, loading, error, onRetry }: UsersTableProps) => {
   if (loading) {
     return (
       <Card>
@@ -64,6 +69,37 @@ const UsersTable = ({ users, loading }: UsersTableProps) => {
               <p className="text-sm text-muted-foreground mt-2">Loading users...</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Users List
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <div>
+                <strong>Error loading users:</strong> {error}
+                <br />
+                <span className="text-sm">Please check your connection and try again.</span>
+              </div>
+              {onRetry && (
+                <Button variant="outline" size="sm" onClick={onRetry} className="ml-4">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { AdminUserService } from '@/services/adminUserService';
 import UserStatsCards from './users/UserStatsCards';
 import CreateUserDialog from './users/CreateUserDialog';
 import UsersFilter from './users/UsersFilter';
@@ -26,9 +27,10 @@ const UsersModule = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { createSchoolScopedQuery, isSystemAdmin } = useSchoolScopedData();
+  const { isSystemAdmin } = useSchoolScopedData();
 
   useEffect(() => {
     fetchUsers();
@@ -37,20 +39,28 @@ const UsersModule = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      let query = createSchoolScopedQuery('profiles', `
-        *,
-        school:schools(name)
-      `).order('created_at', { ascending: false });
+      console.log('🔍 UsersModule: Fetching users for role:', user?.role, 'isSystemAdmin:', isSystemAdmin);
 
-      const { data, error } = await query;
+      // Use AdminUserService for better multi-tenant support
+      const { data, error: fetchError } = await AdminUserService.getUsersForSchool();
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('🔍 UsersModule: Fetch error:', fetchError);
+        throw fetchError;
+      }
 
-      console.log('Fetched users with school data:', data);
+      if (!data) {
+        console.warn('🔍 UsersModule: No data returned from service');
+        setUsers([]);
+        return;
+      }
+
+      console.log('🔍 UsersModule: Raw data from service:', data);
       
       // Transform the data to match our User interface
-      const transformedUsers: User[] = (data || []).map((profile: any) => {
+      const transformedUsers: User[] = data.map((profile: any) => {
         let schoolInfo: { name: string } | undefined = undefined;
         
         // Handle school data - it can come as null, object, or array
@@ -76,12 +86,24 @@ const UsersModule = () => {
         };
       });
       
+      console.log('🔍 UsersModule: Transformed users:', transformedUsers);
       setUsers(transformedUsers);
-    } catch (error) {
-      console.error('Error fetching users:', error);
+
+    } catch (error: any) {
+      console.error('🔍 UsersModule: Error in fetchUsers:', {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+        cause: error?.cause
+      });
+      
+      const errorMessage = error?.message || 'Unknown error occurred while fetching users';
+      setError(errorMessage);
+      
       toast({
         title: "Error",
-        description: "Failed to fetch users data",
+        description: `Failed to fetch users: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -120,7 +142,12 @@ const UsersModule = () => {
         onRoleFilterChange={setRoleFilter}
       />
 
-      <UsersTable users={filteredUsers} loading={loading} />
+      <UsersTable 
+        users={filteredUsers} 
+        loading={loading} 
+        error={error}
+        onRetry={fetchUsers}
+      />
     </div>
   );
 };
