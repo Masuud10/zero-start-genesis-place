@@ -72,8 +72,8 @@ const PrincipalDashboard = () => {
 
       console.log('📊 PrincipalDashboard: Fetching data for school:', effectiveSchoolId);
 
-      // Validate school access
-      if (validateSchoolAccess && !validateSchoolAccess({ school_id: effectiveSchoolId })) {
+      // Validate school access - fix the type error
+      if (validateSchoolAccess && !validateSchoolAccess(effectiveSchoolId)) {
         throw new Error('Access denied to school data');
       }
 

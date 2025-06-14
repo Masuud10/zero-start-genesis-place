@@ -54,8 +54,8 @@ const SchoolOwnerDashboard = () => {
 
       console.log('📈 SchoolOwnerDashboard: Fetching metrics for school:', schoolId);
 
-      // Validate school access
-      if (!validateSchoolAccess({ school_id: schoolId })) {
+      // Validate school access - fix the type error
+      if (!validateSchoolAccess(schoolId)) {
         throw new Error('Access denied to school data');
       }
 
