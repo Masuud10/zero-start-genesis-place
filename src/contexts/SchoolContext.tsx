@@ -53,7 +53,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchSchools = async () => {
     if (!user) {
-      console.log('🏫 SchoolProvider: No authenticated user, skipping school fetch');
+      console.log('🏫 SchoolProvider: No authenticated user, clearing state');
       setIsLoading(false);
       setSchools([]);
       setCurrentSchool(null);
@@ -127,12 +127,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (user?.id) {
       console.log('🏫 SchoolProvider: User authenticated, fetching schools');
-      // Small delay to ensure user data is stable
-      const timer = setTimeout(() => {
-        fetchSchools();
-      }, 100);
-      
-      return () => clearTimeout(timer);
+      fetchSchools();
     } else {
       console.log('🏫 SchoolProvider: No user, clearing schools');
       setSchools([]);

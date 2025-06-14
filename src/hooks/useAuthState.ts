@@ -11,9 +11,9 @@ export const useAuthState = () => {
   const [error, setError] = useState<string | null>(null);
   
   const isMountedRef = useRef(true);
-  const hasInitializedRef = useRef(false);
+  const initializedRef = useRef(false);
 
-  const processUser = async (authUser: SupabaseUser | null) => {
+  const processUser = async (authUser: SupabaseUser | null): Promise<void> => {
     if (!isMountedRef.current) return;
     
     console.log('🔐 AuthState: Processing user:', authUser?.email || 'null');
@@ -29,34 +29,26 @@ export const useAuthState = () => {
     try {
       setError(null);
       
+      // Fetch profile with a simple timeout
       let profile = null;
-      
-      // Fetch profile data with timeout
       try {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-        );
-        
-        const profilePromise = supabase
+        const { data, error: profileError } = await supabase
           .from('profiles')
           .select('role, name, school_id, avatar_url')
           .eq('id', authUser.id)
           .maybeSingle();
         
-        const { data, error: profileError } = await Promise.race([profilePromise, timeoutPromise]) as any;
-        
-        if (profileError && !profileError.message.includes('timeout')) {
-          console.warn('🔐 AuthState: Profile fetch error:', profileError);
+        if (profileError) {
+          console.warn('🔐 AuthState: Profile fetch error (continuing):', profileError.message);
         } else if (data) {
           profile = data;
           console.log('🔐 AuthState: Profile loaded:', { role: data.role, school_id: data.school_id });
         }
-      } catch (profileError: any) {
-        console.warn('🔐 AuthState: Profile fetch failed:', profileError.message);
-        // Continue without profile - we'll use fallback role detection
+      } catch (err: any) {
+        console.warn('🔐 AuthState: Profile fetch failed (continuing):', err.message);
       }
       
-      // Resolve role using the role resolver
+      // Resolve role
       const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
       // Create user data
@@ -98,63 +90,66 @@ export const useAuthState = () => {
   useEffect(() => {
     let subscription: any = null;
     
-    const setupAuth = async () => {
+    const initializeAuth = async () => {
+      if (initializedRef.current) return;
+      
       try {
-        console.log('🔐 AuthState: Setting up auth state management');
+        console.log('🔐 AuthState: Initializing auth state');
         
-        // Set up auth listener first
+        // Get initial session first
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('🔐 AuthState: Session error:', sessionError);
+          setError(`Session error: ${sessionError.message}`);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Process initial user
+        await processUser(session?.user || null);
+        
+        // Set up auth listener
         const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!isMountedRef.current) return;
             
-            console.log('🔐 AuthState: Auth state changed:', event, 'hasSession:', !!session);
+            console.log('🔐 AuthState: Auth state changed:', event);
             
-            // Only process if this is a significant change
+            // Only process significant changes
             if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-              await processUser(session?.user || null);
+              // Use setTimeout to prevent blocking
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  processUser(session?.user || null);
+                }
+              }, 0);
             }
           }
         );
         
         subscription = authSubscription;
+        initializedRef.current = true;
         
-        // Get initial session only once
-        if (!hasInitializedRef.current && isMountedRef.current) {
-          console.log('🔐 AuthState: Getting initial session');
-          
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.warn('🔐 AuthState: Initial session error:', sessionError);
-            if (isMountedRef.current) {
-              setError(`Session error: ${sessionError.message}`);
-              setIsLoading(false);
-            }
-          } else {
-            await processUser(session?.user || null);
-          }
-          
-          hasInitializedRef.current = true;
-        }
       } catch (error: any) {
-        console.error('🔐 AuthState: Error in auth setup:', error);
+        console.error('🔐 AuthState: Init error:', error);
         if (isMountedRef.current) {
-          setError(`Auth setup failed: ${error.message}`);
+          setError(`Auth init failed: ${error.message}`);
           setIsLoading(false);
         }
       }
     };
     
-    setupAuth();
+    initializeAuth();
     
     return () => {
-      console.log('🔐 AuthState: Cleaning up auth state management');
+      console.log('🔐 AuthState: Cleaning up');
       isMountedRef.current = false;
       if (subscription) {
         subscription.unsubscribe();
       }
     };
-  }, []); // Empty dependency array - only run once
+  }, []); // Run only once
 
   return {
     user,
