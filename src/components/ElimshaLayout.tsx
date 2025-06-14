@@ -33,6 +33,12 @@ const ElimshaLayout = () => {
   const { toast } = useToast();
 
   console.log('🏗️ ElimshaLayout: Rendering for user role:', user?.role, 'active section:', activeSection);
+  console.log('🏗️ ElimshaLayout: User details:', {
+    email: user?.email,
+    role: user?.role,
+    schoolId: user?.school_id,
+    userId: user?.id?.slice(0, 8) + '...'
+  });
 
   // Early return if no user
   if (!user) {
@@ -110,7 +116,7 @@ const ElimshaLayout = () => {
   };
 
   const renderContent = () => {
-    console.log('🏗️ ElimshaLayout: Rendering content for section:', activeSection);
+    console.log('🏗️ ElimshaLayout: Rendering content for section:', activeSection, 'user role:', user?.role);
 
     // Check access before rendering
     if (!checkAccess(activeSection)) {
@@ -140,6 +146,7 @@ const ElimshaLayout = () => {
 
     switch (activeSection) {
       case 'dashboard':
+        console.log('🏗️ ElimshaLayout: Rendering Dashboard component for role:', user?.role);
         return <Dashboard />;
       case 'analytics':
         return <AnalyticsDashboard />;

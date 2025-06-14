@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
     if (!authLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 300); // Reduced timeout for better responsiveness
+      }, 300);
       
       return () => clearTimeout(timer);
     } else {
@@ -98,6 +98,9 @@ const AppContent: React.FC = () => {
           <p className="text-gray-600 mb-4">
             Your account role has not been configured. Please contact your administrator.
           </p>
+          <div className="text-xs text-gray-400 mb-4">
+            Email: {user.email} | Role: {user.role || 'None'} | ID: {user.id?.slice(0, 8)}...
+          </div>
           <button 
             onClick={() => window.location.reload()} 
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -109,8 +112,10 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // For authenticated users, show loading only for school data if needed
-  // Skip school loading for system admins and parents as they don't need school context initially
+  // Log the final role that will be used for routing
+  console.log('🎯 AppContent: User authenticated with role:', user.role, 'proceeding to main layout');
+
+  // For authenticated users with valid roles, determine if school loading should block
   const shouldShowSchoolLoading = schoolLoading && 
     user.role !== 'parent' && 
     user.role !== 'elimisha_admin' && 
@@ -121,7 +126,7 @@ const AppContent: React.FC = () => {
     return <LoadingScreen />;
   }
 
-  console.log('🎯 AppContent: User authenticated and stable, showing main layout');
+  console.log('🎯 AppContent: User authenticated and stable, showing main layout for role:', user.role);
   return <ElimshaLayout />;
 };
 

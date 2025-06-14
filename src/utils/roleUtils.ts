@@ -1,3 +1,4 @@
+
 import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/user';
 
@@ -42,26 +43,30 @@ const normalizeRole = (role: string): string => {
     return 'parent';
   }
 
-  // Normalize role formatting
-  const normalized = role.toLowerCase().trim();
+  // Normalize role formatting and handle common variations
+  const normalized = role.toLowerCase().trim().replace(/[_\s-]/g, '');
   
-  // Handle common variations
+  // Handle common role variations and map them to standard roles
   const roleMap: { [key: string]: string } = {
+    // School owner variations
     'schoolowner': 'school_owner',
-    'school-owner': 'school_owner',
-    'school owner': 'school_owner',
+    'owner': 'school_owner',
+    
+    // Finance officer variations
     'financeofficer': 'finance_officer',
-    'finance-officer': 'finance_officer',
-    'finance officer': 'finance_officer',
+    'finance': 'finance_officer',
+    
+    // Admin variations - all map to edufam_admin
     'edufamadmin': 'edufam_admin',
-    'edufam-admin': 'edufam_admin',
-    'edufam admin': 'edufam_admin',
     'elimishaadmin': 'edufam_admin',
-    'elimisha-admin': 'edufam_admin',
-    'elimisha admin': 'edufam_admin',
     'admin': 'edufam_admin',
     'systemadmin': 'edufam_admin',
-    'system_admin': 'edufam_admin'
+    'superadmin': 'edufam_admin',
+    
+    // Standard roles (no change needed)
+    'principal': 'principal',
+    'teacher': 'teacher',
+    'parent': 'parent'
   };
   
   const mappedRole = roleMap[normalized] || normalized;
