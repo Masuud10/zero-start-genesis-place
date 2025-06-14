@@ -780,7 +780,7 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
                   activeFeature === index ? 'ring-2 ring-blue-400 shadow-2xl scale-105' : ''
                 }`}
                 style={{ animationDelay: `${index * 150}ms` }}
-                onClick={() => handleLearnMore(feature.title)}
+                onClick={() => handleNavClick('features')}
                 onMouseEnter={() => setActiveFeature(index)}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-green-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
