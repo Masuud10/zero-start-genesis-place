@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
@@ -8,17 +7,37 @@ import LoadingScreen from '@/components/common/LoadingScreen';
 import LoginForm from '@/components/LoginForm';
 
 const AppContent: React.FC = () => {
-  const { user, isLoading: authLoading } = useAuth();
-  const { isLoading: schoolLoading } = useSchool();
   const [showLogin, setShowLogin] = useState(false);
   const [isStable, setIsStable] = useState(false);
+
+  // Use try-catch to safely access auth context
+  let user: any = null;
+  let authLoading = true;
+  let schoolLoading = false;
+
+  try {
+    const authContext = useAuth();
+    user = authContext.user;
+    authLoading = authContext.isLoading;
+  } catch (error) {
+    console.error('🎯 AppContent: Auth context error, using defaults:', error);
+    // Keep defaults: user = null, authLoading = true
+  }
+
+  try {
+    const schoolContext = useSchool();
+    schoolLoading = schoolContext.isLoading;
+  } catch (error) {
+    console.error('🎯 AppContent: School context error, using defaults:', error);
+    // Keep default: schoolLoading = false
+  }
 
   // Add stability check to prevent premature renders
   useEffect(() => {
     if (!authLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 500); // Increased delay for better stability
+      }, 500);
       
       return () => clearTimeout(timer);
     } else {

@@ -29,8 +29,11 @@ export const useAuthOperations = () => {
 
   const cleanup = useCallback(() => {
     console.log('🧹 AuthOperations: Cleaning up');
-    profileCleanup();
-    actionsCleanup();
+    // Don't cleanup immediately to prevent context loss
+    setTimeout(() => {
+      profileCleanup();
+      actionsCleanup();
+    }, 100);
   }, [profileCleanup, actionsCleanup]);
 
   return {
