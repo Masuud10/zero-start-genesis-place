@@ -555,7 +555,7 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-green-400/30 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 blur-sm"></div>
               </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-900 via-green-600 to-blue-900 bg-clip-text text-transparent animate-gradient-x">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-900 via-green-600 to-blue-900 bg-clip-text text-transparent">
                 EduFam
               </span>
             </div>
@@ -610,7 +610,7 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
           {[...Array(12)].map((_, i) => (
             <div
               key={i}
-              className={`absolute rounded-full opacity-20 animate-float`}
+              className="absolute rounded-full opacity-20 animate-bounce"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
@@ -634,7 +634,7 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
               </div>
               <h1 className="text-5xl md:text-7xl font-bold text-blue-900 leading-tight">
                 Empower Your
-                <span className="block bg-gradient-to-r from-blue-600 via-green-500 to-purple-600 bg-clip-text text-transparent animate-gradient-x bg-[length:200%_auto]">
+                <span className="block bg-gradient-to-r from-blue-600 via-green-500 to-purple-600 bg-clip-text text-transparent">
                   School's Future
                 </span>
               </h1>
@@ -813,14 +813,16 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
           <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-green-800 to-purple-900"></div>
           
           {/* Animated mesh overlay */}
-          <div className="absolute inset-0" style={{
-            background: `
-              radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
-              radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.3) 0%, transparent 50%),
-              radial-gradient(circle at 40% 80%, rgba(168, 85, 247, 0.3) 0%, transparent 50%)
-            `,
-            animation: 'float 8s ease-in-out infinite'
-          }}></div>
+          <div 
+            className="absolute inset-0 animate-pulse"
+            style={{
+              background: `
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(168, 85, 247, 0.3) 0%, transparent 50%)
+              `
+            }}
+          ></div>
           
           {/* Floating particles */}
           <div className="absolute inset-0">
@@ -1109,23 +1111,25 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
 
   return (
     <>
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          33% { transform: translateY(-20px) rotate(5deg); }
-          66% { transform: translateY(-10px) rotate(-5deg); }
-        }
-        @keyframes gradient-x {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        .animate-gradient-x {
-          animation: gradient-x 3s ease infinite;
-        }
-      `}</style>
+      <style>
+        {`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(5deg); }
+            66% { transform: translateY(-10px) rotate(-5deg); }
+          }
+          @keyframes gradient-x {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+          .animate-float {
+            animation: float 6s ease-in-out infinite;
+          }
+          .animate-gradient-x {
+            animation: gradient-x 3s ease infinite;
+          }
+        `}
+      </style>
       {renderCurrentPage()}
       {showVideoModal && <VideoModal />}
     </>
