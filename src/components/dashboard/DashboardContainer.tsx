@@ -1,123 +1,175 @@
 
 import React from 'react';
-import { User } from '@/types/auth';
-import { School } from '@/types/school';
-import { Card } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator 
-} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings, User as UserIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { LogOut, Settings, User, Bell, School } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AuthUser } from '@/types/auth';
 
-interface DashboardContainerProps {
-  user: User;
-  currentSchool?: School | null;
-  onLogout: () => Promise<void>;
-  children: React.ReactNode;
-  showHeader?: boolean; // Control when to show the greeting header
+interface School {
+  id: string;
+  name: string;
+  ownerId: string;
+  principalId: string;
+  address: string;
+  phone: string;
+  email: string;
+  logo?: string;
+  settings: {
+    academicYear: string;
+    terms: string[];
+    gradeReleaseEnabled: boolean;
+    attendanceEnabled: boolean;
+  };
 }
 
-const DashboardContainer = ({ 
-  user, 
-  currentSchool, 
-  onLogout, 
-  children, 
-  showHeader = true 
-}: DashboardContainerProps) => {
-  const getTimeBasedGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+interface DashboardContainerProps {
+  user: AuthUser;
+  currentSchool: School | null;
+  onLogout: () => void;
+  showHeader?: boolean;
+  children: React.ReactNode;
+}
+
+const DashboardContainer: React.FC<DashboardContainerProps> = ({
+  user,
+  currentSchool,
+  onLogout,
+  showHeader = true,
+  children
+}) => {
+  console.log('🏗️ DashboardContainer: Rendering with user:', user?.email, 'school:', currentSchool?.name);
+
+  if (!user) {
+    console.log('🏗️ DashboardContainer: No user provided, showing error');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Required</CardTitle>
+            <CardDescription>
+              Please log in to access the dashboard.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'elimisha_admin':
+        return 'Elimisha Admin';
+      case 'edufam_admin':
+        return 'EduFam Admin';
+      case 'school_owner':
+        return 'School Owner';
+      case 'principal':
+        return 'Principal';
+      case 'teacher':
+        return 'Teacher';
+      case 'finance_officer':
+        return 'Finance Officer';
+      case 'parent':
+        return 'Parent';
+      default:
+        return role;
+    }
   };
 
-  const formatUserName = (name: string) => {
-    return name.split(' ')[0]; // Use first name only
-  };
-
-  const getCurrentDateTime = () => {
-    return format(new Date(), 'EEEE, MMMM do, yyyy • h:mm a');
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'elimisha_admin':
+        return 'bg-purple-100 text-purple-800';
+      case 'edufam_admin':
+        return 'bg-blue-100 text-blue-800';
+      case 'school_owner':
+        return 'bg-green-100 text-green-800';
+      case 'principal':
+        return 'bg-orange-100 text-orange-800';
+      case 'teacher':
+        return 'bg-cyan-100 text-cyan-800';
+      case 'finance_officer':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'parent':
+        return 'bg-pink-100 text-pink-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Conditional Top Header Container - only for dashboard */}
+    <div className="min-h-screen bg-gray-50">
       {showHeader && (
-        <Card className="rounded-none border-x-0 border-t-0 border-b shadow-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center justify-between p-4 md:p-6">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold text-foreground">
-                {getTimeBasedGreeting()}, {formatUserName(user.name)}! 👋
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {getCurrentDateTime()}
-              </p>
-              {currentSchool && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                    {currentSchool.name}
-                  </span>
-                  <span className="bg-gray-100 px-2 py-1 rounded-full font-medium">
-                    {user.role?.replace('_', ' ').toUpperCase()}
-                  </span>
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              {/* Left side - Logo and School Info */}
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <School className="h-8 w-8 text-blue-600" />
+                  <span className="text-xl font-bold text-gray-900">EduFam</span>
                 </div>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.avatar_url} alt={user.name} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium text-sm">{user.name}</p>
-                      <p className="w-[200px] truncate text-xs text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
+                
+                {currentSchool && (
+                  <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                    <span>/</span>
+                    <span className="font-medium">{currentSchool.name}</span>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer">
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    className="cursor-pointer text-red-600 focus:text-red-600"
+                )}
+              </div>
+
+              {/* Right side - User info and actions */}
+              <div className="flex items-center space-x-4">
+                {/* Notifications */}
+                <Button variant="ghost" size="sm" className="text-gray-600">
+                  <Bell className="h-5 w-5" />
+                </Button>
+
+                {/* User info */}
+                <div className="flex items-center space-x-3">
+                  <div className="hidden md:block text-right">
+                    <div className="text-sm font-medium text-gray-900">
+                      {user.name || user.email?.split('@')[0] || 'User'}
+                    </div>
+                    <div className="text-xs text-gray-500">{user.email}</div>
+                  </div>
+                  
+                  <Badge className={getRoleBadgeColor(user.role)}>
+                    {getRoleDisplayName(user.role)}
+                  </Badge>
+                  
+                  <Button variant="ghost" size="sm" className="text-gray-600">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Settings and Logout */}
+                <div className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm" className="text-gray-600">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     onClick={onLogout}
+                    className="text-gray-600 hover:text-red-600"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </Card>
+        </header>
       )}
 
-      {/* Main Content */}
-      <main className="p-4 md:p-6 lg:p-8">
-        {children}
+      {/* Main content */}
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {children}
+        </div>
       </main>
     </div>
   );

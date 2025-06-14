@@ -32,13 +32,30 @@ const ElimshaLayout = () => {
   const { currentSchool } = useSchool();
   const { toast } = useToast();
 
+  console.log('🏗️ ElimshaLayout: Rendering for user role:', user?.role, 'active section:', activeSection);
+
+  // Early return if no user
+  if (!user) {
+    console.log('🏗️ ElimshaLayout: No user found, this should not happen');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Error</CardTitle>
+            <CardDescription>
+              User authentication failed. Please try logging in again.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   // Use the permissions system
   const { hasPermission, getPermissionScope } = usePermissions(
     user?.role as UserRole, 
     user?.school_id
   );
-
-  console.log('🏗️ ElimshaLayout: Rendering for user role:', user?.role, 'active section:', activeSection);
 
   const checkAccess = (section: string): boolean => {
     if (!user?.role) {
@@ -208,7 +225,7 @@ const ElimshaLayout = () => {
         />
         <SidebarInset className="flex-1">
           <DashboardContainer 
-            user={user!} 
+            user={user} 
             currentSchool={transformedSchool} 
             onLogout={handleLogout}
             showHeader={activeSection === 'dashboard'} // Only show header on dashboard

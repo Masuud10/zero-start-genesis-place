@@ -21,7 +21,7 @@ const AppContent: React.FC = () => {
     showLogin
   });
 
-  // Show loading screen only while authentication is initializing
+  // Show loading screen while authentication is initializing
   if (authLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;
@@ -39,8 +39,11 @@ const AppContent: React.FC = () => {
   }
 
   // For authenticated users, show loading only for school data if needed
-  // Skip school loading for parents as they don't need school context
-  const shouldShowSchoolLoading = schoolLoading && user.role !== 'parent';
+  // Skip school loading for system admins and parents as they don't need school context initially
+  const shouldShowSchoolLoading = schoolLoading && 
+    user.role !== 'parent' && 
+    user.role !== 'elimisha_admin' && 
+    user.role !== 'edufam_admin';
   
   if (shouldShowSchoolLoading) {
     console.log('🎯 AppContent: User authenticated but schools loading for role:', user.role);

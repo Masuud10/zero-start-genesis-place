@@ -1,13 +1,19 @@
 
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
 
-const container = document.getElementById("root");
-if (!container) {
-  throw new Error("Root element not found");
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Failed to find the root element");
 }
 
-const root = createRoot(container);
-root.render(<App />);
+console.log('🚀 Application starting...');
+
+ReactDOM.createRoot(rootElement).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
