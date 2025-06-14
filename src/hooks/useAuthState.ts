@@ -29,7 +29,6 @@ export const useAuthState = () => {
         return;
       }
 
-      // Ensure email is present
       if (!authUser.email) {
         console.error('🔐 AuthState: User has no email address');
         if (isMountedRef.current) {
@@ -41,7 +40,7 @@ export const useAuthState = () => {
 
       setError(null);
       
-      // Fetch profile with timeout
+      // Fetch profile with simplified approach
       let profile = null;
       try {
         const { data, error: profileError } = await supabase
@@ -50,20 +49,17 @@ export const useAuthState = () => {
           .eq('id', authUser.id)
           .maybeSingle();
         
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.warn('🔐 AuthState: Profile fetch error (continuing):', profileError.message);
-        } else if (data) {
+        if (!profileError && data) {
           profile = data;
-          console.log('🔐 AuthState: Profile loaded:', { role: data.role, school_id: data.school_id });
         }
       } catch (err: any) {
-        console.warn('🔐 AuthState: Profile fetch failed (continuing):', err.message);
+        console.warn('🔐 AuthState: Profile fetch failed, continuing with defaults:', err.message);
       }
       
       // Resolve role
       const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
-      // Create user data with guaranteed email and all metadata
+      // Create user data
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email,
@@ -89,8 +85,7 @@ export const useAuthState = () => {
       console.log('🔐 AuthState: User processed successfully:', {
         email: userData.email,
         role: userData.role,
-        school_id: userData.school_id,
-        hasProfile: !!profile
+        school_id: userData.school_id
       });
       
       if (isMountedRef.current) {
@@ -117,32 +112,31 @@ export const useAuthState = () => {
       try {
         console.log('🔐 AuthState: Initializing auth state');
         
-        // Set a timeout to prevent infinite loading
+        // Shorter timeout to prevent long loading
         timeoutId = setTimeout(() => {
           if (isMountedRef.current && isLoading) {
-            console.warn('🔐 AuthState: Auth initialization timeout');
+            console.warn('🔐 AuthState: Auth initialization timeout, stopping loading');
             setIsLoading(false);
-            setError(null); // Don't show error for timeout, just stop loading
+            setError(null);
           }
-        }, 5000); // Reduced timeout to 5 seconds
+        }, 3000); // Reduced to 3 seconds
         
-        // Set up auth listener first
+        // Set up auth listener
         const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!isMountedRef.current) return;
             
             console.log('🔐 AuthState: Auth state changed:', event);
             
-            // Process auth changes immediately but safely
             if (event === 'SIGNED_OUT' || !session) {
-              console.log('🔐 AuthState: User signed out or session cleared');
+              console.log('🔐 AuthState: User signed out');
               if (isMountedRef.current) {
                 setUser(null);
                 setError(null);
                 setIsLoading(false);
               }
             } else if (session?.user) {
-              // Use setTimeout to prevent blocking
+              // Process user in next tick to prevent blocking
               setTimeout(async () => {
                 if (isMountedRef.current) {
                   await processUser(session.user);
@@ -155,32 +149,22 @@ export const useAuthState = () => {
         subscription = authSubscription;
         
         // Get initial session
-        try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.error('🔐 AuthState: Session error:', sessionError);
-            if (isMountedRef.current) {
-              setError(`Session error: ${sessionError.message}`);
-              setIsLoading(false);
-            }
-            return;
-          }
-          
-          // Process initial user
-          await processUser(session?.user || null);
-          
-        } catch (error: any) {
-          console.error('🔐 AuthState: Session fetch error:', error);
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('🔐 AuthState: Session error:', sessionError);
           if (isMountedRef.current) {
-            setError(`Session fetch failed: ${error.message}`);
+            setError(`Session error: ${sessionError.message}`);
             setIsLoading(false);
           }
+          return;
         }
+        
+        // Process initial user
+        await processUser(session?.user || null);
         
         initializedRef.current = true;
         
-        // Clear timeout if we reached this point
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
@@ -208,7 +192,7 @@ export const useAuthState = () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      // Reset refs to prevent memory leaks
+      // Reset initialization flag
       setTimeout(() => {
         initializedRef.current = false;
       }, 100);

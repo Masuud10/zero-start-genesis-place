@@ -15,7 +15,6 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Ensure hooks are always called in the same order
   const authState = useAuthState();
   const authActions = useAuthActions();
 
@@ -25,13 +24,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   console.log('🔐 AuthProvider: Rendering with state', { 
     hasUser: !!user, 
     isLoading, 
-    error,
+    error: error ? 'Error present' : 'No error',
     userEmail: user?.email,
     userRole: user?.role,
     userSchoolId: user?.school_id
   });
 
-  // Always create the same value object structure
   const value: AuthContextType = {
     user,
     isLoading,

@@ -8,7 +8,7 @@ const LoadingScreen = () => {
     const timer = setTimeout(() => {
       setShowSlowWarning(true);
       console.warn('LoadingScreen: Taking longer than expected');
-    }, 10000); // Show warning after 10 seconds
+    }, 5000); // Reduced from 10 to 5 seconds
 
     return () => clearTimeout(timer);
   }, []);
@@ -22,17 +22,22 @@ const LoadingScreen = () => {
         <h2 className="text-xl font-semibold text-gray-800">Loading EduFam</h2>
         <p className="text-muted-foreground">
           {showSlowWarning 
-            ? "This is taking longer than usual. Please check your connection."
+            ? "This is taking longer than usual. Please check your connection or try refreshing."
             : "Setting up your school management system..."
           }
         </p>
         {showSlowWarning && (
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-          >
-            Refresh Page
-          </button>
+          <div className="space-y-2">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="block mx-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+            >
+              Refresh Page
+            </button>
+            <p className="text-xs text-gray-500">
+              If this continues, there may be a connectivity issue.
+            </p>
+          </div>
         )}
       </div>
     </div>
