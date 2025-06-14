@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking';
 import SchoolPerformanceChart from './charts/SchoolPerformanceChart';
 import AttendanceTrendChart from './charts/AttendanceTrendChart';
 import FilterSection from './elimisha/FilterSection';
@@ -36,6 +36,15 @@ const ElimshaAdminAnalytics = ({ filters }: ElimshaAdminAnalyticsProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState('current_term');
   const { toast } = useToast();
+  const { trackUserActivity } = useAnalyticsTracking();
+
+  // Track analytics dashboard view
+  React.useEffect(() => {
+    trackUserActivity('analytics_dashboard_viewed', {
+      dashboard_type: 'elimisha_admin',
+      filters: { selectedSchool, dateRange }
+    });
+  }, [trackUserActivity, selectedSchool, dateRange]);
 
   // Fetch schools for dropdown
   const { data: schools = [], isLoading: schoolsLoading } = useQuery({
@@ -273,6 +282,9 @@ const ElimshaAdminAnalytics = ({ filters }: ElimshaAdminAnalyticsProps) => {
 
   const handleRefresh = () => {
     refetch();
+    trackUserActivity('analytics_refreshed', {
+      dashboard_type: 'elimisha_admin'
+    });
     toast({
       title: "Data Refreshed",
       description: "School summaries have been updated successfully"
