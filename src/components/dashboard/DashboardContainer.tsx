@@ -63,95 +63,118 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'edufam_admin':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'school_owner':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'principal':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'teacher':
-        return 'bg-cyan-100 text-cyan-800';
+        return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       case 'finance_officer':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'parent':
-        return 'bg-pink-100 text-pink-800';
+        return 'bg-pink-100 text-pink-800 border-pink-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  const getFirstName = (fullName: string) => {
+    return fullName?.split(" ")[0] || "User";
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Greetings Container with user actions on the right */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Left side - Logo and greeting */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
-              {/* EduFam icon */}
+      {/* Enhanced Greetings Container */}
+      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            
+            {/* Left side - Logo and Brand */}
+            <div className="flex items-center space-x-4">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 via-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
-                  <BookOpen className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-600 via-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <BookOpen className="w-7 h-7 text-white" />
                 </div>
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
               </div>
               <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
                   EduFam
                 </span>
-                <div className="text-xs text-gray-500">School Management</div>
+                <div className="text-sm text-gray-500 font-medium">School Management</div>
               </div>
             </div>
-            
-            {currentSchool && (
-              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
-                <span>/</span>
-                <span className="font-medium">{currentSchool.name}</span>
-              </div>
-            )}
-          </div>
 
-          {/* Center - Greeting */}
-          <div className="flex-1 mx-8">
-            <DashboardGreeting user={user} currentSchool={currentSchool} />
-          </div>
-
-          {/* Right side - User actions */}
-          <div className="flex items-center space-x-4">
-            {/* Notifications */}
-            <Button variant="ghost" size="sm" className="text-gray-600 relative">
-              <Bell className="h-5 w-5" />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-            </Button>
-
-            {/* User info */}
-            <div className="flex items-center space-x-3">
-              <div className="hidden md:block text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {user.name || user.email?.split('@')[0] || 'User'}
+            {/* Center - Main Greeting and Info */}
+            <div className="flex-1 mx-8 text-center">
+              <div className="space-y-3">
+                {/* Main Greeting */}
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                  {getGreeting()}, {getFirstName(user?.name || "User")}! 👋
+                </h1>
+                
+                {/* Role and School Info */}
+                <div className="flex items-center justify-center space-x-3">
+                  <Badge className={`${getRoleBadgeColor(user.role)} font-medium px-3 py-1`}>
+                    {getRoleDisplayName(user.role)}
+                  </Badge>
+                  {currentSchool && (
+                    <>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-700 font-medium">{currentSchool.name}</span>
+                    </>
+                  )}
                 </div>
-                <div className="text-xs text-gray-500">{user.email}</div>
+
+                {/* Date */}
+                <div className="text-sm text-gray-500">
+                  {new Date().toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric"
+                  })}
+                </div>
               </div>
-              
-              <Badge className={getRoleBadgeColor(user.role)}>
-                {getRoleDisplayName(user.role)}
-              </Badge>
-              
-              <Button variant="ghost" size="sm" className="text-gray-600">
-                <User className="h-5 w-5" />
-              </Button>
             </div>
 
-            {/* Settings and Logout */}
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="text-gray-600">
+            {/* Right side - User Actions */}
+            <div className="flex items-center space-x-3">
+              {/* Notifications */}
+              <Button variant="ghost" size="sm" className="relative text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-colors">
+                <Bell className="h-5 w-5" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              </Button>
+
+              {/* User Profile */}
+              <div className="flex items-center space-x-2 bg-white/50 rounded-lg px-3 py-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+                <div className="hidden md:block text-sm">
+                  <div className="font-medium text-gray-900">{user.email?.split('@')[0]}</div>
+                </div>
+              </div>
+
+              {/* Settings */}
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-colors">
                 <Settings className="h-5 w-5" />
               </Button>
               
+              {/* Logout */}
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={onLogout}
-                className="text-gray-600 hover:text-red-600"
+                className="text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
               >
                 <LogOut className="h-5 w-5" />
               </Button>
