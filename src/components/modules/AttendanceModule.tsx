@@ -1,13 +1,15 @@
-
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, UserCheck, UserX, Clock, TrendingUp } from 'lucide-react';
+import { Calendar, Users, UserCheck, UserX, Clock, TrendingUp, BarChart3 } from 'lucide-react';
 import BulkAttendanceTable from '@/components/attendance/BulkAttendanceTable';
 import AttendanceAnalytics from '@/components/attendance/AttendanceAnalytics';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions, PERMISSIONS } from '@/utils/permissions';
+import { UserRole } from '@/types/user';
 
 const AttendanceModule = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
