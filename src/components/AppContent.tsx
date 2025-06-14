@@ -54,7 +54,7 @@ const AppContent: React.FC = () => {
     }
   }, [authLoading, authError]);
 
-  console.log('🎯 AppContent: Rendering', { 
+  console.log('🎯 AppContent: Rendering state:', { 
     hasUser: !!user, 
     authLoading, 
     authError,
@@ -62,7 +62,8 @@ const AppContent: React.FC = () => {
     isStable,
     userRole: user?.role,
     userSchoolId: user?.school_id,
-    showLogin
+    showLogin,
+    userEmail: user?.email
   });
 
   // Handle auth errors by showing login
@@ -79,7 +80,7 @@ const AppContent: React.FC = () => {
 
   // If no user, show landing page or login
   if (!user) {
-    console.log('🎯 AppContent: No user, showing landing page or login form');
+    console.log('🎯 AppContent: No user authenticated, showing landing page or login form');
     
     if (showLogin) {
       return <LoginForm />;
@@ -88,9 +89,14 @@ const AppContent: React.FC = () => {
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // Enhanced role validation before proceeding
+  // Enhanced role validation and logging
   if (!user.role) {
-    console.log('🎯 AppContent: User has no role, showing error');
+    console.error('🎯 AppContent: Authenticated user has no role - critical error:', {
+      userId: user.id,
+      email: user.email,
+      user_metadata: user.user_metadata,
+      app_metadata: user.app_metadata
+    });
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
@@ -98,8 +104,12 @@ const AppContent: React.FC = () => {
           <p className="text-gray-600 mb-4">
             Your account role has not been configured. Please contact your administrator.
           </p>
-          <div className="text-xs text-gray-400 mb-4">
-            Email: {user.email} | Role: {user.role || 'None'} | ID: {user.id?.slice(0, 8)}...
+          <div className="text-xs text-gray-400 mb-4 bg-gray-100 p-2 rounded text-left">
+            <strong>Debug Information:</strong><br />
+            Email: {user.email}<br />
+            Role: {user.role || 'None'}<br />
+            User ID: {user.id?.slice(0, 8)}...<br />
+            School ID: {user.school_id || 'None'}
           </div>
           <button 
             onClick={() => window.location.reload()} 
@@ -112,8 +122,13 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Log the final role that will be used for routing
-  console.log('🎯 AppContent: User authenticated with role:', user.role, 'proceeding to main layout');
+  // Log successful authentication with role
+  console.log('🎯 AppContent: User authenticated successfully, proceeding to main layout:', {
+    role: user.role,
+    email: user.email,
+    schoolId: user.school_id,
+    userId: user.id?.slice(0, 8) + '...'
+  });
 
   // For authenticated users with valid roles, determine if school loading should block
   const shouldShowSchoolLoading = schoolLoading && 
@@ -122,11 +137,11 @@ const AppContent: React.FC = () => {
     user.role !== 'edufam_admin';
   
   if (shouldShowSchoolLoading) {
-    console.log('🎯 AppContent: User authenticated but schools loading for role:', user.role);
+    console.log('🎯 AppContent: School data loading for role:', user.role);
     return <LoadingScreen />;
   }
 
-  console.log('🎯 AppContent: User authenticated and stable, showing main layout for role:', user.role);
+  console.log('🎯 AppContent: All checks passed, rendering main layout for user with role:', user.role);
   return <ElimshaLayout />;
 };
 

@@ -30,14 +30,17 @@ export const useUserProfile = () => {
     
     try {
       console.log('👤 UserProfile: Starting profile fetch for', authUser.email);
+      console.log('👤 UserProfile: Auth user metadata:', {
+        user_metadata: authUser.user_metadata,
+        app_metadata: authUser.app_metadata
+      });
       
-      // Removed the aggressive 8-second timeout that was causing failures
-      // Instead, rely on Supabase's built-in timeouts and retry logic
+      // Try to fetch profile from database
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('id, email, name, role, school_id, avatar_url')
         .eq('id', authUser.id)
-        .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
+        .maybeSingle();
 
       if (!isMountedRef.current) {
         console.log('👤 UserProfile: Component unmounted during fetch');
@@ -45,27 +48,35 @@ export const useUserProfile = () => {
       }
 
       if (error) {
-        console.warn('👤 UserProfile: Profile fetch error (non-critical):', error);
-        // Don't throw error for profile fetch failures - proceed with fallback
+        console.warn('👤 UserProfile: Profile fetch error (proceeding with fallback):', error);
       }
 
-      // Use improved role determination logic
+      // Determine user role with enhanced logic
       const finalRole = determineUserRole(authUser, profile?.role);
 
       const userData: AuthUser = {
         ...authUser,
         role: finalRole,
-        name: profile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        school_id: profile?.school_id || authUser.user_metadata?.school_id || authUser.app_metadata?.school_id,
-        avatar_url: profile?.avatar_url
+        name: profile?.name || 
+              authUser.user_metadata?.name || 
+              authUser.user_metadata?.full_name ||
+              authUser.email?.split('@')[0] || 
+              'User',
+        school_id: profile?.school_id || 
+                   authUser.user_metadata?.school_id || 
+                   authUser.app_metadata?.school_id,
+        avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url
       };
 
-      console.log('👤 UserProfile: Profile fetch completed, setting user data:', {
+      console.log('👤 UserProfile: Profile fetch completed, final user data:', {
         email: userData.email,
         role: userData.role,
         school_id: userData.school_id,
         hasProfile: !!profile,
-        profileError: !!error
+        profileError: !!error,
+        roleSource: profile?.role ? 'database_profile' : 
+                   authUser.app_metadata?.role ? 'app_metadata' :
+                   authUser.user_metadata?.role ? 'user_metadata' : 'email_pattern'
       });
       
       if (isMountedRef.current) {
@@ -83,8 +94,12 @@ export const useUserProfile = () => {
       const userData: AuthUser = {
         ...authUser,
         role: fallbackRole,
-        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-        school_id: authUser.user_metadata?.school_id || authUser.app_metadata?.school_id
+        name: authUser.user_metadata?.name || 
+              authUser.user_metadata?.full_name ||
+              authUser.email?.split('@')[0] || 
+              'User',
+        school_id: authUser.user_metadata?.school_id || 
+                   authUser.app_metadata?.school_id
       };
       
       console.log('👤 UserProfile: Using fallback user data due to error:', {

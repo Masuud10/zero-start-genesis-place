@@ -17,17 +17,17 @@ export const determineUserRole = (authUser: User, profileRole?: string): UserRol
     return normalizedRole as UserRole;
   }
 
-  // Priority 2: Use user_metadata role if it exists and is valid
-  if (authUser.user_metadata?.role && isValidRole(authUser.user_metadata.role)) {
-    const normalizedRole = normalizeRole(authUser.user_metadata.role);
-    console.log('🔍 RoleUtils: Using user_metadata role:', normalizedRole);
-    return normalizedRole as UserRole;
-  }
-
-  // Priority 3: Use app_metadata role if it exists and is valid
+  // Priority 2: Use app_metadata role (set by server/admin)
   if (authUser.app_metadata?.role && isValidRole(authUser.app_metadata.role)) {
     const normalizedRole = normalizeRole(authUser.app_metadata.role);
     console.log('🔍 RoleUtils: Using app_metadata role:', normalizedRole);
+    return normalizedRole as UserRole;
+  }
+
+  // Priority 3: Use user_metadata role (set during signup)
+  if (authUser.user_metadata?.role && isValidRole(authUser.user_metadata.role)) {
+    const normalizedRole = normalizeRole(authUser.user_metadata.role);
+    console.log('🔍 RoleUtils: Using user_metadata role:', normalizedRole);
     return normalizedRole as UserRole;
   }
 
@@ -43,27 +43,31 @@ const normalizeRole = (role: string): string => {
     return 'parent';
   }
 
-  // Normalize role formatting and handle common variations
-  const normalized = role.toLowerCase().trim().replace(/[_\s-]/g, '');
+  // Clean and normalize the role string
+  const normalized = role.toLowerCase().trim();
   
   // Handle common role variations and map them to standard roles
   const roleMap: { [key: string]: string } = {
     // School owner variations
+    'school_owner': 'school_owner',
     'schoolowner': 'school_owner',
     'owner': 'school_owner',
     
     // Finance officer variations
+    'finance_officer': 'finance_officer',
     'financeofficer': 'finance_officer',
     'finance': 'finance_officer',
     
     // Admin variations - all map to edufam_admin
+    'edufam_admin': 'edufam_admin',
     'edufamadmin': 'edufam_admin',
+    'elimisha_admin': 'edufam_admin',
     'elimishaadmin': 'edufam_admin',
     'admin': 'edufam_admin',
     'systemadmin': 'edufam_admin',
     'superadmin': 'edufam_admin',
     
-    // Standard roles (no change needed)
+    // Standard roles
     'principal': 'principal',
     'teacher': 'teacher',
     'parent': 'parent'
@@ -96,39 +100,38 @@ const determineRoleFromEmail = (email: string): UserRole => {
 
   const emailLower = email.toLowerCase();
   
-  // System admin patterns - check for both elimisha and edufam admin patterns
+  // System admin patterns - prioritize official admin emails
   if (emailLower.includes('@elimisha.com') || 
       emailLower === 'masuud@gmail.com' ||
-      emailLower.includes('elimisha') ||
-      emailLower.includes('edufam') ||
-      emailLower.includes('admin@')) {
+      emailLower.includes('admin@') ||
+      emailLower.includes('system@')) {
     console.log('🔍 RoleUtils: Email matches admin pattern:', email);
     return 'edufam_admin';
   }
   
   // School role patterns
-  if (emailLower.includes('principal')) {
+  if (emailLower.includes('principal@') || emailLower.includes('head@')) {
     console.log('🔍 RoleUtils: Email matches principal pattern:', email);
     return 'principal';
   }
   
-  if (emailLower.includes('teacher')) {
+  if (emailLower.includes('teacher@') || emailLower.includes('staff@')) {
     console.log('🔍 RoleUtils: Email matches teacher pattern:', email);
     return 'teacher';
   }
   
-  if (emailLower.includes('owner')) {
+  if (emailLower.includes('owner@') || emailLower.includes('proprietor@')) {
     console.log('🔍 RoleUtils: Email matches owner pattern:', email);
     return 'school_owner';
   }
   
-  if (emailLower.includes('finance')) {
+  if (emailLower.includes('finance@') || emailLower.includes('accounts@')) {
     console.log('🔍 RoleUtils: Email matches finance pattern:', email);
     return 'finance_officer';
   }
   
-  // Default to parent
-  console.log('🔍 RoleUtils: Email matches no patterns, defaulting to parent:', email);
+  // Default to parent - this should be the fallback for regular users
+  console.log('🔍 RoleUtils: Email matches no specific patterns, defaulting to parent:', email);
   return 'parent';
 };
 
