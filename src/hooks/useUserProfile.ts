@@ -1,0 +1,101 @@
+
+import { useCallback, useRef } from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { AuthUser } from '@/types/auth';
+import { handleApiError } from '@/utils/errorHandler';
+import { PerformanceMonitor } from '@/utils/performance';
+import { determineUserRole } from '@/utils/roleUtils';
+
+export const useUserProfile = () => {
+  const isMountedRef = useRef(true);
+  const fetchingRef = useRef(false);
+
+  const fetchUserProfile = useCallback(async (authUser: User, setUser: (user: AuthUser | null) => void, setIsLoading: (loading: boolean) => void) => {
+    if (!isMountedRef.current || fetchingRef.current) {
+      console.log('👤 UserProfile: Skipping fetch - unmounted or already fetching');
+      return;
+    }
+    
+    fetchingRef.current = true;
+    const endTimer = PerformanceMonitor.startTimer('fetch_user_profile');
+    
+    try {
+      console.log('👤 UserProfile: Fetching user profile for', authUser.email);
+      
+      // Add timeout to profile fetch
+      const profilePromise = supabase
+        .from('profiles')
+        .select('id, email, name, role, school_id, avatar_url')
+        .eq('id', authUser.id)
+        .maybeSingle();
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+      );
+
+      const { data: profile, error } = await Promise.race([
+        profilePromise,
+        timeoutPromise
+      ]) as any;
+
+      if (!isMountedRef.current) {
+        console.log('👤 UserProfile: Component unmounted during fetch');
+        return;
+      }
+
+      if (error) {
+        console.error('👤 UserProfile: Error fetching profile:', error);
+        handleApiError(error, 'fetch_user_profile');
+      }
+
+      // Use improved role determination logic
+      const finalRole = determineUserRole(authUser, profile?.role);
+
+      const userData: AuthUser = {
+        ...authUser,
+        role: finalRole,
+        name: profile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+        school_id: profile?.school_id || authUser.user_metadata?.school_id || authUser.app_metadata?.school_id,
+        avatar_url: profile?.avatar_url
+      };
+
+      console.log('👤 UserProfile: Final user data with role:', userData.role, 'for user:', userData.email, 'school_id:', userData.school_id);
+      setUser(userData);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('❌ UserProfile: Exception fetching user profile:', error);
+      handleApiError(error, 'fetch_user_profile');
+      
+      if (!isMountedRef.current) return;
+      
+      // Create fallback user data with improved role determination
+      const fallbackRole = determineUserRole(authUser);
+      
+      const userData: AuthUser = {
+        ...authUser,
+        role: fallbackRole,
+        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+        school_id: authUser.user_metadata?.school_id || authUser.app_metadata?.school_id
+      };
+      
+      console.log('👤 UserProfile: Using fallback user data with role:', userData.role, 'for user:', userData.email, 'school_id:', userData.school_id);
+      setUser(userData);
+      setIsLoading(false);
+    } finally {
+      fetchingRef.current = false;
+      endTimer();
+    }
+  }, []);
+
+  const cleanup = useCallback(() => {
+    console.log('🧹 UserProfile: Cleaning up');
+    isMountedRef.current = false;
+    fetchingRef.current = false;
+  }, []);
+
+  return {
+    fetchUserProfile,
+    cleanup
+  };
+};
