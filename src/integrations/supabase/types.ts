@@ -172,42 +172,122 @@ export type Database = {
           },
         ]
       }
+      announcement_recipients: {
+        Row: {
+          announcement_id: string
+          created_at: string | null
+          delivered_at: string | null
+          delivery_channel: string | null
+          delivery_status: string | null
+          id: string
+          read_at: string | null
+          region: string | null
+          school_id: string | null
+          school_type: string | null
+          user_id: string
+          user_role: string
+        }
+        Insert: {
+          announcement_id: string
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_channel?: string | null
+          delivery_status?: string | null
+          id?: string
+          read_at?: string | null
+          region?: string | null
+          school_id?: string | null
+          school_type?: string | null
+          user_id: string
+          user_role: string
+        }
+        Update: {
+          announcement_id?: string
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_channel?: string | null
+          delivery_status?: string | null
+          id?: string
+          read_at?: string | null
+          region?: string | null
+          school_id?: string | null
+          school_type?: string | null
+          user_id?: string
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_recipients_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           attachments: string[] | null
+          auto_archive_date: string | null
           content: string
           created_at: string | null
           created_by: string | null
+          delivery_channels: string[] | null
           expiry_date: string | null
           id: string
+          is_archived: boolean | null
           is_global: boolean | null
+          priority: string | null
+          read_count: number | null
+          region: string | null
           school_id: string | null
+          school_type: string | null
+          tags: string[] | null
           target_audience: string[]
           title: string
+          total_recipients: number | null
         }
         Insert: {
           attachments?: string[] | null
+          auto_archive_date?: string | null
           content: string
           created_at?: string | null
           created_by?: string | null
+          delivery_channels?: string[] | null
           expiry_date?: string | null
           id?: string
+          is_archived?: boolean | null
           is_global?: boolean | null
+          priority?: string | null
+          read_count?: number | null
+          region?: string | null
           school_id?: string | null
+          school_type?: string | null
+          tags?: string[] | null
           target_audience: string[]
           title: string
+          total_recipients?: number | null
         }
         Update: {
           attachments?: string[] | null
+          auto_archive_date?: string | null
           content?: string
           created_at?: string | null
           created_by?: string | null
+          delivery_channels?: string[] | null
           expiry_date?: string | null
           id?: string
+          is_archived?: boolean | null
           is_global?: boolean | null
+          priority?: string | null
+          read_count?: number | null
+          region?: string | null
           school_id?: string | null
+          school_type?: string | null
+          tags?: string[] | null
           target_audience?: string[]
           title?: string
+          total_recipients?: number | null
         }
         Relationships: [
           {
@@ -2132,6 +2212,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_archive_announcements: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       check_rate_limit: {
         Args: {
           p_identifier: string

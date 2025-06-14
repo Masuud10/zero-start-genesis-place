@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Megaphone, Calendar, User } from 'lucide-react';
+import { Plus, Megaphone, Calendar, User, ArrowRight } from 'lucide-react';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { Link } from 'react-router-dom';
 
 const AnnouncementsModule = () => {
   const { announcements, loading, createAnnouncement } = useAnnouncements();
@@ -25,6 +25,7 @@ const AnnouncementsModule = () => {
   });
 
   const canCreateAnnouncement = user?.role && ['principal', 'school_owner', 'edufam_admin'].includes(user.role);
+  const isEduFamAdmin = user?.role === 'edufam_admin';
 
   const getAudienceOptions = () => {
     if (user?.role === 'edufam_admin') {
@@ -113,83 +114,114 @@ const AnnouncementsModule = () => {
           <p className="text-muted-foreground">Manage and view announcements</p>
         </div>
 
-        {canCreateAnnouncement && (
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Announcement
+        <div className="flex gap-2">
+          {isEduFamAdmin && (
+            <Link to="/communication-center">
+              <Button variant="outline" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 hover:from-purple-700 hover:to-blue-700">
+                <Megaphone className="w-4 h-4 mr-2" />
+                Communication Center
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Announcement</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Title</label>
-                  <Input
-                    value={newAnnouncement.title}
-                    onChange={(e) => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter announcement title"
-                  />
-                </div>
+            </Link>
+          )}
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Content</label>
-                  <Textarea
-                    value={newAnnouncement.content}
-                    onChange={(e) => setNewAnnouncement(prev => ({ ...prev, content: e.target.value }))}
-                    placeholder="Enter announcement content"
-                    rows={4}
-                  />
-                </div>
+          {canCreateAnnouncement && (
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Announcement
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create New Announcement</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Title</label>
+                    <Input
+                      value={newAnnouncement.title}
+                      onChange={(e) => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Enter announcement title"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Target Audience</label>
-                  <Select onValueChange={handleAudienceChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select audience" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAudienceOptions().map(audience => (
-                        <SelectItem key={audience} value={audience}>
-                          {audience.charAt(0).toUpperCase() + audience.slice(1)}
-                        </SelectItem>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Content</label>
+                    <Textarea
+                      value={newAnnouncement.content}
+                      onChange={(e) => setNewAnnouncement(prev => ({ ...prev, content: e.target.value }))}
+                      placeholder="Enter announcement content"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Target Audience</label>
+                    <Select onValueChange={handleAudienceChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select audience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAudienceOptions().map(audience => (
+                          <SelectItem key={audience} value={audience}>
+                            {audience.charAt(0).toUpperCase() + audience.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {newAnnouncement.target_audience.map(audience => (
+                        <Badge key={audience} variant="secondary" className="cursor-pointer" onClick={() => removeAudience(audience)}>
+                          {audience} ×
+                        </Badge>
                       ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {newAnnouncement.target_audience.map(audience => (
-                      <Badge key={audience} variant="secondary" className="cursor-pointer" onClick={() => removeAudience(audience)}>
-                        {audience} ×
-                      </Badge>
-                    ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Expiry Date (Optional)</label>
+                    <Input
+                      type="date"
+                      value={newAnnouncement.expiry_date}
+                      onChange={(e) => setNewAnnouncement(prev => ({ ...prev, expiry_date: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateAnnouncement}>
+                      Create Announcement
+                    </Button>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Expiry Date (Optional)</label>
-                  <Input
-                    type="date"
-                    value={newAnnouncement.expiry_date}
-                    onChange={(e) => setNewAnnouncement(prev => ({ ...prev, expiry_date: e.target.value }))}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateAnnouncement}>
-                    Create Announcement
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
+
+      {/* Enhanced Communication Center Notice for EduFam Admins */}
+      {isEduFamAdmin && (
+        <Card className="border-2 border-dashed border-blue-300 bg-gradient-to-r from-blue-50 to-purple-50">
+          <CardContent className="p-6 text-center">
+            <Megaphone className="w-12 h-12 mx-auto mb-4 text-blue-600" />
+            <h3 className="text-lg font-semibold mb-2 text-blue-900">Enhanced Communication Center Available</h3>
+            <p className="text-blue-700 mb-4">
+              Access advanced broadcast features including segmented messaging, read receipts, and detailed analytics.
+            </p>
+            <Link to="/communication-center">
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                Open Communication Center
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4">
         {announcements.length === 0 ? (
