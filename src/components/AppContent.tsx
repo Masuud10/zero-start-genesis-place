@@ -10,15 +10,26 @@ import LoginForm from '@/components/LoginForm';
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [isStable, setIsStable] = useState(false);
+  
+  // Always call hooks first - no conditional hook calls
   const { user, isLoading, error } = useAuth();
-  const { isLoading: schoolLoading } = useSchool();
+  
+  // Safe school context access - may not be available
+  let schoolLoading = false;
+  try {
+    const schoolContext = useSchool();
+    schoolLoading = schoolContext.isLoading;
+  } catch (err) {
+    // School context not available, continue without it
+    console.log('🎯 AppContent: School context not available, continuing without it');
+  }
 
   // Stability check with shorter delay
   useEffect(() => {
     if (!isLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 100); // Reduced delay
+      }, 50); // Very short delay
       
       return () => clearTimeout(timer);
     } else {
@@ -42,14 +53,14 @@ const AppContent: React.FC = () => {
     return <LoginForm />;
   }
 
-  // Show loading screen only while actively loading
+  // Show loading screen while actively loading
   if (isLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;
   }
 
-  // Wait for stability only if we had a loading state
-  if (!isStable && !user) {
+  // Wait for stability only briefly
+  if (!isStable) {
     console.log('🎯 AppContent: Waiting for auth state to stabilize');
     return <LoadingScreen />;
   }

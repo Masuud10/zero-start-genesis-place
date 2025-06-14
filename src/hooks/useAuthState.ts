@@ -16,8 +16,9 @@ export const useAuthState = () => {
   const processUser = async (authUser: SupabaseUser | null) => {
     if (!isMountedRef.current) return;
     
+    console.log('🔐 AuthState: Processing user:', authUser?.email || 'null');
+    
     if (!authUser) {
-      console.log('🔐 AuthState: No auth user, clearing state');
       setUser(null);
       setIsLoading(false);
       setError(null);
@@ -25,20 +26,21 @@ export const useAuthState = () => {
     }
 
     try {
-      console.log('🔐 AuthState: Processing user:', authUser.email);
+      setIsLoading(true);
+      setError(null);
       
       let profile = null;
       
-      // Try to fetch profile
+      // Try to fetch profile data
       try {
-        const { data, error } = await supabase
+        const { data, error: profileError } = await supabase
           .from('profiles')
           .select('role, name, school_id, avatar_url')
           .eq('id', authUser.id)
           .maybeSingle();
         
-        if (error) {
-          console.warn('🔐 AuthState: Profile fetch error:', error);
+        if (profileError) {
+          console.warn('🔐 AuthState: Profile fetch error:', profileError);
         } else {
           profile = data;
         }
@@ -46,13 +48,13 @@ export const useAuthState = () => {
         console.warn('🔐 AuthState: Profile fetch failed:', profileError.message);
       }
       
-      // Get role information
-      const roleInfo = RoleResolver.getRoleInfo(authUser, profile?.role);
+      // Resolve role using the role resolver
+      const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
-      // Construct user data
+      // Create user data
       const userData: AuthUser = {
         ...authUser,
-        role: roleInfo.role,
+        role: resolvedRole,
         name: profile?.name || 
               authUser.user_metadata?.name || 
               authUser.user_metadata?.full_name ||
@@ -78,51 +80,42 @@ export const useAuthState = () => {
     } catch (error: any) {
       console.error('🔐 AuthState: Error processing user:', error);
       if (isMountedRef.current) {
-        setError(`Failed to load user profile: ${error.message}`);
+        setError(`Failed to process user: ${error.message}`);
         setIsLoading(false);
       }
     }
   };
 
   useEffect(() => {
-    if (!isMountedRef.current) return;
-    
     console.log('🔐 AuthState: Setting up auth state management');
     
     let subscription: any = null;
     
     const setupAuth = async () => {
       try {
-        // Set up auth listener
+        // Set up auth listener first
         const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!isMountedRef.current) return;
             
             console.log('🔐 AuthState: Auth state changed:', event, 'hasSession:', !!session);
             
-            if (event === 'SIGNED_OUT' || !session?.user) {
-              await processUser(null);
-              return;
-            }
-            
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-              await processUser(session.user);
-            }
+            await processUser(session?.user || null);
           }
         );
         
         subscription = authSubscription;
         
-        // Get initial session if not already initialized
-        if (!initializedRef.current) {
+        // Get initial session only if not already initialized
+        if (!initializedRef.current && isMountedRef.current) {
           console.log('🔐 AuthState: Getting initial session');
           
-          const { data: { session }, error } = await supabase.auth.getSession();
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
-          if (error) {
-            console.warn('🔐 AuthState: Initial session error:', error);
+          if (sessionError) {
+            console.warn('🔐 AuthState: Initial session error:', sessionError);
             if (isMountedRef.current) {
-              setError(`Failed to get session: ${error.message}`);
+              setError(`Session error: ${sessionError.message}`);
               setIsLoading(false);
             }
           } else {
@@ -134,7 +127,7 @@ export const useAuthState = () => {
       } catch (error: any) {
         console.error('🔐 AuthState: Error in auth setup:', error);
         if (isMountedRef.current) {
-          setError(`Failed to initialize auth: ${error.message}`);
+          setError(`Auth setup failed: ${error.message}`);
           setIsLoading(false);
         }
       }

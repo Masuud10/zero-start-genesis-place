@@ -1,7 +1,15 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+
+// Safe auth context access
+let useAuth: any = null;
+try {
+  const authModule = require('@/contexts/AuthContext');
+  useAuth = authModule.useAuth;
+} catch (error) {
+  console.warn('🏫 SchoolProvider: Auth context not available');
+}
 
 interface School {
   id: string;
@@ -43,7 +51,15 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   // Get auth user safely
-  const { user: authUser } = useAuth();
+  let authUser = null;
+  if (useAuth) {
+    try {
+      const authState = useAuth();
+      authUser = authState.user;
+    } catch (err) {
+      console.warn('🏫 SchoolProvider: Could not access auth user');
+    }
+  }
 
   console.log('🏫 SchoolProvider: Initializing with user:', {
     hasUser: !!authUser,
