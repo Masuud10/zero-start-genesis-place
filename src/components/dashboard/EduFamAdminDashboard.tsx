@@ -99,6 +99,16 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     refetchUsers();
   };
 
+  const handleRetrySchools = () => {
+    console.log('🏫 EduFamAdmin: Retrying schools fetch');
+    refetchSchools();
+  };
+
+  const handleRetryUsers = () => {
+    console.log('👥 EduFamAdmin: Retrying users fetch');
+    refetchUsers();
+  };
+
   // Calculate user statistics with enhanced validation
   const userStats = React.useMemo(() => {
     try {
@@ -334,7 +344,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
               <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
               <p className="text-red-600 mb-3">Failed to load schools</p>
               <p className="text-sm text-red-500 mb-3">{schoolsError.message}</p>
-              <Button onClick={refetchSchools} variant="outline" size="sm">
+              <Button onClick={handleRetrySchools} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Retry
               </Button>
