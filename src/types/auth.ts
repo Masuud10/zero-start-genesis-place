@@ -5,6 +5,12 @@ export interface User extends SupabaseUser {
   name?: string;
   school_id?: string;
   avatar_url?: string;
+  mfa_enabled?: boolean;
+  last_login_at?: string;
+  last_login_ip?: string;
+  password_changed_at?: string;
+  failed_login_attempts?: number;
+  locked_until?: string;
 }
 
 // Keep the old AuthUser for backward compatibility

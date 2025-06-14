@@ -62,6 +62,22 @@ export class ErrorHandler {
       }
     );
   }
+
+  static logError(error: any, context: ErrorContext): void {
+    console.error(`General error in ${context.action}:`, error);
+    
+    SecurityUtils.logSecurityEvent(
+      'general_error',
+      'application',
+      context.userId,
+      false,
+      error.message || String(error),
+      {
+        action: context.action,
+        ...context.metadata
+      }
+    );
+  }
 }
 
 export const errorHandler = new ErrorHandler();

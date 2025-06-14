@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { errorHandler } from '@/utils/errorHandler';
+import { ErrorHandler } from '@/utils/errorHandler';
 import { ValidationUtils } from '@/utils/validation';
 import { PerformanceMonitor } from '@/utils/performance';
 
@@ -44,7 +44,7 @@ export const useSecureAuth = () => {
       });
 
       if (error) {
-        errorHandler.handleAuthError(error, 'secure_signin');
+        ErrorHandler.handleAuthError(error, { action: 'secure_signin' });
         throw error;
       }
 
@@ -53,7 +53,7 @@ export const useSecureAuth = () => {
 
       return { data, error: null };
     } catch (error: any) {
-      errorHandler.handleAuthError(error, 'secure_signin');
+      ErrorHandler.handleAuthError(error, { action: 'secure_signin' });
       return { data: null, error };
     } finally {
       setIsLoading(false);
@@ -102,13 +102,13 @@ export const useSecureAuth = () => {
       });
 
       if (error) {
-        errorHandler.handleAuthError(error, 'secure_signup');
+        ErrorHandler.handleAuthError(error, { action: 'secure_signup' });
         throw error;
       }
 
       return { data, error: null };
     } catch (error: any) {
-      errorHandler.handleAuthError(error, 'secure_signup');
+      ErrorHandler.handleAuthError(error, { action: 'secure_signup' });
       return { data: null, error };
     } finally {
       setIsLoading(false);
@@ -125,7 +125,7 @@ export const useSecureAuth = () => {
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
-        errorHandler.handleAuthError(error, 'secure_signout');
+        ErrorHandler.handleAuthError(error, { action: 'secure_signout' });
       }
 
       // Clear all stored tokens and cache
@@ -135,7 +135,7 @@ export const useSecureAuth = () => {
       // Force page reload for clean state
       window.location.href = '/';
     } catch (error: any) {
-      errorHandler.handleAuthError(error, 'secure_signout');
+      ErrorHandler.handleAuthError(error, { action: 'secure_signout' });
     } finally {
       setIsLoading(false);
       endTimer();

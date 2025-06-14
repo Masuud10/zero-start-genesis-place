@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 interface UserSession {
   id: string;
   session_token: string;
-  ip_address: string;
-  user_agent: string;
+  ip_address: string | null;
+  user_agent: string | null;
   expires_at: string;
   last_activity: string;
   is_active: boolean;
@@ -36,7 +36,14 @@ const SessionManager: React.FC = () => {
         throw error;
       }
 
-      setSessions(data || []);
+      // Transform the data to ensure proper types
+      const transformedData: UserSession[] = (data || []).map(session => ({
+        ...session,
+        ip_address: session.ip_address || 'Unknown',
+        user_agent: session.user_agent || 'Unknown'
+      }));
+
+      setSessions(transformedData);
     } catch (error: any) {
       console.error('Failed to fetch sessions:', error);
       toast({
@@ -79,7 +86,9 @@ const SessionManager: React.FC = () => {
     fetchSessions();
   }, []);
 
-  const getDeviceIcon = (userAgent: string) => {
+  const getDeviceIcon = (userAgent: string | null) => {
+    if (!userAgent) return <Monitor className="h-4 w-4" />;
+    
     const ua = userAgent.toLowerCase();
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
       return <Smartphone className="h-4 w-4" />;
@@ -90,7 +99,9 @@ const SessionManager: React.FC = () => {
     return <Monitor className="h-4 w-4" />;
   };
 
-  const getDeviceType = (userAgent: string) => {
+  const getDeviceType = (userAgent: string | null) => {
+    if (!userAgent) return 'Unknown';
+    
     const ua = userAgent.toLowerCase();
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
       return 'Mobile';
@@ -143,7 +154,7 @@ const SessionManager: React.FC = () => {
                       )}
                     </div>
                     <p className="text-xs text-gray-500">
-                      IP: {session.ip_address} • 
+                      IP: {session.ip_address || 'Unknown'} • 
                       Last active: {new Date(session.last_activity).toLocaleString()}
                     </p>
                   </div>

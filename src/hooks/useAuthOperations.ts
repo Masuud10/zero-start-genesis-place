@@ -174,7 +174,7 @@ export const useAuthOperations = () => {
       
       if (error) {
         console.error('🔑 AuthOperations: Sign in error:', error);
-        errorHandler.handleAuthError(error, 'signin');
+        ErrorHandler.handleAuthError(error, { action: 'signin' });
         if (isMountedRef.current) {
           setIsLoading(false);
         }
@@ -221,7 +221,7 @@ export const useAuthOperations = () => {
       });
       
       if (error) {
-        errorHandler.handleAuthError(error, 'signup');
+        ErrorHandler.handleAuthError(error, { action: 'signup' });
         if (isMountedRef.current) {
           setIsLoading(false);
         }
@@ -287,7 +287,7 @@ export const useAuthOperations = () => {
               !error.message.includes('session id') && 
               !error.message.includes("doesn't exist")) {
             console.error('❌ AuthOperations: Sign out error:', error);
-            errorHandler.handleAuthError(error, 'signout');
+            ErrorHandler.handleAuthError(error, { action: 'signout' });
           } else {
             console.log('ℹ️ AuthOperations: Session was already expired/missing (handled gracefully)');
           }
