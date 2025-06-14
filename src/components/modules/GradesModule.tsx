@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -297,3 +298,4 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
 };
 
 export default GradesModule;
+
