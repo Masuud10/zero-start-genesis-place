@@ -1,8 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, BookOpen, Calendar, MessageSquare, TrendingUp, DollarSign } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Users, BookOpen, Calendar, MessageSquare, TrendingUp, DollarSign, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +20,8 @@ interface Child {
   name: string;
   class_name: string;
   attendance_percentage: number;
+  current_average: number;
+  recent_grades: Array<{ subject: string; score: number; maxScore: number }>;
 }
 
 const ParentDashboard = () => {
@@ -32,6 +35,34 @@ const ParentDashboard = () => {
   });
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Mock detailed academic data for children
+  const mockChildrenData: Child[] = [
+    {
+      id: 'child-1',
+      name: 'Alice Johnson',
+      class_name: 'Grade 2A',
+      attendance_percentage: 96,
+      current_average: 88,
+      recent_grades: [
+        { subject: 'Mathematics', score: 85, maxScore: 100 },
+        { subject: 'English', score: 92, maxScore: 100 },
+        { subject: 'Science', score: 87, maxScore: 100 }
+      ]
+    },
+    {
+      id: 'child-2',
+      name: 'Bob Johnson',
+      class_name: 'Grade 5B',
+      attendance_percentage: 94,
+      current_average: 82,
+      recent_grades: [
+        { subject: 'Mathematics', score: 78, maxScore: 100 },
+        { subject: 'English', score: 86, maxScore: 100 },
+        { subject: 'Social Studies', score: 84, maxScore: 100 }
+      ]
+    }
+  ];
 
   useEffect(() => {
     if (user?.id && user?.school_id) {
@@ -129,7 +160,7 @@ const ParentDashboard = () => {
   const statsCards = [
     {
       title: "My Children",
-      value: stats.totalChildren,
+      value: mockChildrenData.length,
       description: "Children in school",
       icon: Users,
       color: "text-blue-600"
@@ -193,31 +224,88 @@ const ParentDashboard = () => {
         ))}
       </div>
 
-      {/* Children Overview */}
+      {/* Children Academic Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            My Children
+            <BookOpen className="h-5 w-5" />
+            Children's Academic Progress (Read-Only)
           </CardTitle>
           <CardDescription>
-            Overview of your children's academic progress
+            Overview of your children's academic performance and attendance
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2 text-blue-800">
+              <BarChart3 className="h-4 w-4" />
+              <span className="font-medium">Parent View</span>
+            </div>
+            <p className="text-blue-700 text-sm mt-1">
+              Academic summaries to help track your children's progress. Contact teachers for detailed reports.
+            </p>
+          </div>
+          
           {children.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-6">
               {children.map((child) => (
-                <div key={child.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div>
-                    <h4 className="font-medium">{child.name}</h4>
-                    <p className="text-sm text-gray-600">Class: {child.class_name}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Attendance</p>
-                    <p className="text-lg font-semibold text-green-600">{child.attendance_percentage}%</p>
-                  </div>
-                </div>
+                <Card key={child.id} className="border-l-4 border-l-blue-500">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">{child.name}</CardTitle>
+                        <CardDescription>{child.class_name}</CardDescription>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="outline" className="mb-1">
+                          {child.current_average}% Average
+                        </Badge>
+                        <p className="text-xs text-muted-foreground">Current Term</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Attendance Summary */}
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-green-600" />
+                        <div>
+                          <p className="font-medium">Attendance</p>
+                          <p className="text-sm text-muted-foreground">This term</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Progress value={child.attendance_percentage} className="w-20 h-2" />
+                        <Badge variant={child.attendance_percentage >= 90 ? 'default' : 'secondary'}>
+                          {child.attendance_percentage}%
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Recent Grades */}
+                    <div>
+                      <h4 className="font-medium mb-3 flex items-center gap-2">
+                        <BookOpen className="h-4 w-4" />
+                        Recent Grades
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {child.recent_grades.map((grade, index) => (
+                          <div key={index} className="p-3 border rounded-lg">
+                            <p className="font-medium text-sm">{grade.subject}</p>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-lg font-bold text-blue-600">
+                                {grade.score}/{grade.maxScore}
+                              </p>
+                              <Badge variant={grade.score >= 80 ? 'default' : 'secondary'}>
+                                {Math.round((grade.score / grade.maxScore) * 100)}%
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (

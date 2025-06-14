@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { BookOpen, Users, BarChart3, Calendar } from 'lucide-react';
 import StatsCard from './shared/StatsCard';
 import QuickActionCard from './shared/QuickActionCard';
 
@@ -47,6 +48,21 @@ const FinanceOfficerDashboard = ({ onModalOpen }: FinanceOfficerDashboardProps) 
     }
   ];
 
+  // Mock grade and attendance data for summary view
+  const gradeSummary = [
+    { class: 'Grade 1A', average: 85, students: 32 },
+    { class: 'Grade 1B', average: 82, students: 30 },
+    { class: 'Grade 2A', average: 88, students: 28 },
+    { class: 'Grade 2B', average: 79, students: 31 }
+  ];
+
+  const attendanceSummary = [
+    { class: 'Grade 1A', rate: 94, present: 30, total: 32 },
+    { class: 'Grade 1B', rate: 92, present: 28, total: 30 },
+    { class: 'Grade 2A', rate: 96, present: 27, total: 28 },
+    { class: 'Grade 2B', rate: 89, present: 28, total: 31 }
+  ];
+
   const handleCollectFees = () => {
     setIsProcessing(true);
     toast({
@@ -57,20 +73,6 @@ const FinanceOfficerDashboard = ({ onModalOpen }: FinanceOfficerDashboardProps) 
       setIsProcessing(false);
       onModalOpen('fee-collection');
     }, 1500);
-  };
-
-  const handleGenerateInvoice = () => {
-    toast({
-      title: "Invoice Generation",
-      description: "Generating student invoices...",
-    });
-  };
-
-  const handleReconcilePayments = () => {
-    toast({
-      title: "Payment Reconciliation",
-      description: "Reconciling MPESA payments...",
-    });
   };
 
   const quickActions = [
@@ -86,7 +88,7 @@ const FinanceOfficerDashboard = ({ onModalOpen }: FinanceOfficerDashboardProps) 
       description: "Create student invoices",
       icon: "📄",
       color: "from-blue-500 to-blue-600",
-      action: handleGenerateInvoice
+      action: () => toast({ title: "Invoice Generation", description: "Generating student invoices..." })
     },
     {
       title: "Payment Reports",
@@ -100,7 +102,7 @@ const FinanceOfficerDashboard = ({ onModalOpen }: FinanceOfficerDashboardProps) 
       description: "Reconcile mobile payments",
       icon: "📱",
       color: "from-orange-500 to-orange-600",
-      action: handleReconcilePayments
+      action: () => toast({ title: "MPESA Reconciliation", description: "Reconciling mobile payments..." })
     }
   ];
 
@@ -138,6 +140,73 @@ const FinanceOfficerDashboard = ({ onModalOpen }: FinanceOfficerDashboardProps) 
                 icon={stat.icon}
                 color={stat.color}
               />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Academic Performance Summary */}
+      <Card className="shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BookOpen className="h-5 w-5" />
+            <span>Academic Performance Summary (Read-Only)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2 text-blue-800">
+              <BarChart3 className="h-4 w-4" />
+              <span className="font-medium">Finance Officer View</span>
+            </div>
+            <p className="text-blue-700 text-sm mt-1">
+              Academic data shown for context only. Contact teachers for detailed grade information.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {gradeSummary.map((classData, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">{classData.class}</p>
+                  <p className="text-sm text-muted-foreground">{classData.students} students</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-blue-600">{classData.average}%</p>
+                  <p className="text-xs text-muted-foreground">Class Average</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Attendance Summary */}
+      <Card className="shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="h-5 w-5" />
+            <span>Attendance Summary (Read-Only)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {attendanceSummary.map((classData, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">{classData.class}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {classData.present}/{classData.total} students present
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-32">
+                    <Progress value={classData.rate} className="h-2" />
+                  </div>
+                  <Badge variant={classData.rate >= 90 ? 'default' : 'secondary'}>
+                    {classData.rate}%
+                  </Badge>
+                </div>
+              </div>
             ))}
           </div>
         </CardContent>
@@ -217,57 +286,6 @@ const FinanceOfficerDashboard = ({ onModalOpen }: FinanceOfficerDashboardProps) 
                 </div>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Financial Reports */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>📊</span>
-            <span>Generate Reports</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => onModalOpen('financial-reports')}
-              disabled={isProcessing}
-            >
-              <span className="text-xl">📈</span>
-              Fee Collection Report
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => {
-                toast({
-                  title: "Defaulters Report",
-                  description: "Generating fee defaulters report...",
-                });
-              }}
-              disabled={isProcessing}
-            >
-              <span className="text-xl">⚠️</span>
-              Defaulters Report
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex flex-col gap-2"
-              onClick={() => {
-                toast({
-                  title: "Financial Summary",
-                  description: "Generating monthly financial summary...",
-                });
-              }}
-              disabled={isProcessing}
-            >
-              <span className="text-xl">💰</span>
-              Monthly Summary
-            </Button>
           </div>
         </CardContent>
       </Card>

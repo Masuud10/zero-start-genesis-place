@@ -1,387 +1,241 @@
-
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Download, Save, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea
+} from '@/components/ui';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { getGradingPermissions, canEditGrade, getGradeStatusColor } from '@/utils/grading-permissions';
-import GradeWorkflowManager from '@/components/grading/GradeWorkflowManager';
+import { DataService } from '@/services/dataService';
+import { StudentData } from '@/services/dataService';
+import { GradeData } from '@/services/dataService';
+import { BulkGradeSubmission } from '@/types/grading';
 
 interface GradesModalProps {
   onClose: () => void;
   userRole: string;
 }
 
-const GradesModal: React.FC<GradesModalProps> = ({ onClose, userRole }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [examType, setExamType] = useState('');
-  const [grades, setGrades] = useState([
-    { 
-      id: 1, 
-      name: 'John Doe', 
-      admissionNo: 'STU001', 
-      score: 85, 
-      maxScore: 100, 
-      grade: 'B+', 
-      position: 2,
-      status: 'draft' as const,
-      submittedBy: user?.id || 'teacher-1',
-      canEdit: true
-    },
-    { 
-      id: 2, 
-      name: 'Jane Smith', 
-      admissionNo: 'STU002', 
-      score: 92, 
-      maxScore: 100, 
-      grade: 'A-', 
-      position: 1,
-      status: 'draft' as const,
-      submittedBy: user?.id || 'teacher-1',
-      canEdit: true
-    },
-    { 
-      id: 3, 
-      name: 'Mike Johnson', 
-      admissionNo: 'STU003', 
-      score: 78, 
-      maxScore: 100, 
-      grade: 'B', 
-      position: 3,
-      status: 'submitted' as const,
-      submittedBy: 'teacher-2',
-      canEdit: false
-    },
-  ]);
+  const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedExamType, setSelectedExamType] = useState('');
+  const [mockStudents, setMockStudents] = useState<any[]>([]);
+  const { toast } = useToast();
 
-  const [submissionStatus, setSubmissionStatus] = useState<'draft' | 'submitted' | 'approved' | 'released'>('draft');
-  
-  const permissions = getGradingPermissions(userRole as any);
+  useEffect(() => {
+    // Mock students data for the selected class
+    const mockStudentsData = [
+      { id: '1', name: 'John Doe', admissionNumber: 'ADM001', rollNumber: 'R001', grades: [] },
+      { id: '2', name: 'Jane Smith', admissionNumber: 'ADM002', rollNumber: 'R002', grades: [] },
+      { id: '3', name: 'Mike Johnson', admissionNumber: 'ADM003', rollNumber: 'R003', grades: [] },
+    ];
+    setMockStudents(mockStudentsData);
+  }, []);
 
-  // Mock submission for workflow demo
-  const mockSubmission = {
-    id: 'sub-1',
-    classId: selectedClass || 'grade8a',
-    subjectId: selectedSubject || 'mathematics',
-    term: 'term1',
-    examType: examType as any || 'MID_TERM',
-    teacherId: 'teacher-1',
-    submittedAt: new Date(),
-    status: submissionStatus,
-    grades: [],
-    totalStudents: grades.length,
-    gradesEntered: grades.filter(g => g.score > 0).length,
-    principalNotes: submissionStatus === 'approved' ? 'Grades look good. Ready for release.' : undefined
+  const mockClasses = [
+    { id: '8a', name: 'Grade 8A' },
+    { id: '8b', name: 'Grade 8B' },
+    { id: '7a', name: 'Grade 7A' },
+    { id: '7b', name: 'Grade 7B' },
+  ];
+
+  const mockSubjects = [
+    { id: 'math', name: 'Mathematics' },
+    { id: 'eng', name: 'English' },
+    { id: 'sci', name: 'Science' },
+  ];
+
+  const mockTerms = [
+    { id: 'term1', name: 'Term 1' },
+    { id: 'term2', name: 'Term 2' },
+    { id: 'term3', name: 'Term 3' },
+  ];
+
+  const mockExamTypes = [
+    { id: 'opener', name: 'Opener' },
+    { id: 'mid_term', name: 'Mid Term' },
+    { id: 'end_term', name: 'End Term' },
+  ];
+
+  const mockBulkSubmission: BulkGradeSubmission = {
+    id: 'bulk-001',
+    classId: selectedClass,
+    subjectId: selectedSubject,
+    term: selectedTerm,
+    examType: selectedExamType,
+    totalStudents: mockStudents.length,
+    gradesEntered: mockStudents.filter(s => s.grades.length > 0).length,
+    submittedBy: 'teacher-001',
+    submittedAt: new Date().toISOString(),
+    status: 'draft',
+    principalNotes: '',
+    releasedAt: undefined
   };
 
-  const handleSaveGrades = () => {
-    if (!permissions.canEditGrades) {
+  const handleSubmit = async () => {
+    try {
+      // Validate form inputs
+      if (!selectedClass || !selectedSubject || !selectedTerm || !selectedExamType) {
+        toast({
+          title: "Error",
+          description: "Please fill in all fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Prepare grade data for submission
+      const gradeData: GradeData = {
+        student_id: 'student-001',
+        subject_id: selectedSubject,
+        class_id: selectedClass,
+        score: 85,
+        max_score: 100,
+        percentage: 85,
+        term: selectedTerm,
+        exam_type: selectedExamType,
+        submitted_by: 'teacher-001',
+        submitted_at: new Date().toISOString(),
+        status: 'submitted',
+        is_released: false,
+        is_immutable: false
+      };
+
+      // Call DataService to create the grade
+      const { data, error } = await DataService.createGrade(gradeData);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to submit grade.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Grade submitted successfully.",
+        });
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error submitting grade:", error);
       toast({
-        title: "Access Denied",
-        description: "You don't have permission to edit grades.",
+        title: "Error",
+        description: "An unexpected error occurred.",
         variant: "destructive",
       });
-      return;
-    }
-
-    toast({
-      title: "Grades Saved",
-      description: "Student grades have been saved as draft.",
-    });
-  };
-
-  const handleSubmitGrades = () => {
-    if (!permissions.canSubmitGrades) {
-      toast({
-        title: "Access Denied", 
-        description: "You don't have permission to submit grades.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (userRole === 'teacher') {
-      setSubmissionStatus('submitted');
-      toast({
-        title: "Grades Submitted",
-        description: "Grades have been submitted to the Principal for approval.",
-      });
     }
   };
-
-  const handleApproveSubmission = (submissionId: string, notes?: string) => {
-    setSubmissionStatus('approved');
-    // In real implementation, this would update the backend
-  };
-
-  const handleRejectSubmission = (submissionId: string, reason: string) => {
-    setSubmissionStatus('draft');
-    // In real implementation, this would update the backend and notify teacher
-  };
-
-  const handleReleaseResults = (submissionId: string) => {
-    setSubmissionStatus('released');
-    // In real implementation, this would update the backend and notify parents
-  };
-
-  const handleReviewSubmission = (submissionId: string) => {
-    // Open detailed review modal
-    console.log('Opening detailed review for submission:', submissionId);
-  };
-
-  const handleScoreChange = (id: number, newScore: number) => {
-    const grade = grades.find(g => g.id === id);
-    if (!grade || !canEditGrade(grade as any, userRole as any, user?.id || '')) {
-      toast({
-        title: "Cannot Edit",
-        description: "You cannot edit this grade.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setGrades(prev => prev.map(grade => 
-      grade.id === id 
-        ? { 
-            ...grade, 
-            score: newScore,
-            grade: getGradeLetter(newScore),
-          }
-        : grade
-    ));
-  };
-
-  const getGradeLetter = (score: number): string => {
-    if (score >= 90) return 'A';
-    if (score >= 80) return 'B+';
-    if (score >= 70) return 'B';
-    if (score >= 60) return 'C+';
-    if (score >= 50) return 'C';
-    return 'D';
-  };
-
-  // Role-based view restrictions
-  if (!permissions.canViewDetailedGrades && !permissions.canViewGradeSummaries) {
-    return (
-      <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Access Denied</DialogTitle>
-          </DialogHeader>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              You don't have permission to view grades. Please contact your administrator.
-            </AlertDescription>
-          </Alert>
-          <Button onClick={onClose} className="mt-4">Close</Button>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Grade Management - {userRole.replace('_', ' ').toUpperCase()}</DialogTitle>
-        </DialogHeader>
+    <Modal open={true} onOpenChange={onClose}>
+      <ModalContent>
+        <ModalHeader>
+          <Label>Enter Grades</Label>
+        </ModalHeader>
+        <ModalBody>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="class" className="text-right">
+                Class
+              </Label>
+              <Select onValueChange={setSelectedClass}>
+                <SelectTrigger id="class" className="col-span-3">
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockClasses.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-6">
-          {/* Permission-based alerts */}
-          {userRole === 'teacher' && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You can edit grades for your classes. Submit grades to the Principal for approval before they can be released to parents.
-              </AlertDescription>
-            </Alert>
-          )}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="subject" className="text-right">
+                Subject
+              </Label>
+              <Select onValueChange={setSelectedSubject}>
+                <SelectTrigger id="subject" className="col-span-3">
+                  <SelectValue placeholder="Select Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockSubjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {userRole === 'principal' && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You can review, approve, and release all grades. Only you can make results visible to parents.
-              </AlertDescription>
-            </Alert>
-          )}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="term" className="text-right">
+                Term
+              </Label>
+              <Select onValueChange={setSelectedTerm}>
+                <SelectTrigger id="term" className="col-span-3">
+                  <SelectValue placeholder="Select Term" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockTerms.map((term) => (
+                    <SelectItem key={term.id} value={term.id}>
+                      {term.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {['school_owner', 'finance_officer', 'elimisha_admin', 'edufam_admin'].includes(userRole) && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You can view grade summaries and reports but cannot edit individual grades.
-              </AlertDescription>
-            </Alert>
-          )}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="examType" className="text-right">
+                Exam Type
+              </Label>
+              <Select onValueChange={setSelectedExamType}>
+                <SelectTrigger id="examType" className="col-span-3">
+                  <SelectValue placeholder="Select Exam Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockExamTypes.map((examType) => (
+                    <SelectItem key={examType.id} value={examType.id}>
+                      {examType.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Configuration Section - Only for users who can edit */}
-          {(permissions.canCreateGrades || permissions.canEditGrades) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Grade Entry Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="class">Class</Label>
-                    <Select value={selectedClass} onValueChange={setSelectedClass}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select class" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="grade8a">Grade 8A</SelectItem>
-                        <SelectItem value="grade8b">Grade 8B</SelectItem>
-                        <SelectItem value="grade7a">Grade 7A</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mathematics">Mathematics</SelectItem>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="science">Science</SelectItem>
-                        <SelectItem value="social">Social Studies</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="examType">Exam Type</Label>
-                    <Select value={examType} onValueChange={setExamType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select exam type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cat1">CAT 1</SelectItem>
-                        <SelectItem value="cat2">CAT 2</SelectItem>
-                        <SelectItem value="midterm">Mid-term</SelectItem>
-                        <SelectItem value="endterm">End-term</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Workflow Manager - Only for Principal */}
-          {userRole === 'principal' && (
-            <GradeWorkflowManager
-              submission={mockSubmission}
-              onApprove={handleApproveSubmission}
-              onReject={handleRejectSubmission}
-              onRelease={handleReleaseResults}
-              onReview={handleReviewSubmission}
-            />
-          )}
-
-          {/* Grades Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>
-                  {permissions.canViewDetailedGrades ? 'Student Grades' : 'Grade Summary'}
-                </span>
-                {permissions.canEditGrades && (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Import
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Export
-                    </Button>
-                  </div>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {grades.map((student) => (
-                  <div key={student.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="font-medium">{student.name}</p>
-                        <p className="text-sm text-muted-foreground">{student.admissionNo}</p>
-                      </div>
-                      <Badge className={getGradeStatusColor(student.status)}>
-                        {student.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Label>Score:</Label>
-                        {permissions.canEditGrades && student.canEdit ? (
-                          <Input
-                            type="number"
-                            value={student.score}
-                            onChange={(e) => handleScoreChange(student.id, parseInt(e.target.value) || 0)}
-                            className="w-20"
-                            max={student.maxScore}
-                            min={0}
-                          />
-                        ) : (
-                          <span className="font-medium">
-                            {permissions.canViewDetailedGrades ? student.score : '***'}
-                          </span>
-                        )}
-                        <span>/ {student.maxScore}</span>
-                      </div>
-                      {permissions.canViewDetailedGrades && (
-                        <>
-                          <Badge variant={student.score >= 80 ? 'default' : student.score >= 60 ? 'secondary' : 'destructive'}>
-                            {student.grade}
-                          </Badge>
-                          <div className="text-sm text-muted-foreground">
-                            Position: {student.position}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>Close</Button>
-            
-            {permissions.canEditGrades && (
-              <Button onClick={handleSaveGrades}>
-                <Save className="w-4 h-4 mr-2" />
-                Save Draft
-              </Button>
-            )}
-            
-            {permissions.canSubmitGrades && submissionStatus === 'draft' && (
-              <Button onClick={handleSubmitGrades}>
-                <Send className="w-4 h-4 mr-2" />
-                Submit for Approval
-              </Button>
-            )}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="score" className="text-right">
+                Score
+              </Label>
+              <Input type="number" id="score" className="col-span-3" />
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" onClick={handleSubmit}>
+            Submit
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
 
