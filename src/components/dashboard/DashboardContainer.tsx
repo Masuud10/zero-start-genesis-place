@@ -5,24 +5,8 @@ import { LogOut, Settings, User, Bell, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AuthUser } from '@/types/auth';
+import { School } from '@/types/school';
 import DashboardGreeting from './DashboardGreeting';
-
-interface School {
-  id: string;
-  name: string;
-  ownerId: string;
-  principalId: string;
-  address: string;
-  phone: string;
-  email: string;
-  logo?: string;
-  settings: {
-    academicYear: string;
-    terms: string[];
-    gradeReleaseEnabled: boolean;
-    attendanceEnabled: boolean;
-  };
-}
 
 interface DashboardContainerProps {
   user: AuthUser;
