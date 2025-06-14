@@ -13,6 +13,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(21);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const demoScript = [
     { time: 0, text: "Welcome to EduFam - Kenya's most comprehensive school management system" },
@@ -32,15 +33,36 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     return current?.text || demoScript[0].text;
   };
 
+  const speakText = (text: string) => {
+    if (!isMuted && 'speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 0.8;
+      
+      speechRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const handlePlayPause = () => {
     if (isPlaying) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      window.speechSynthesis.cancel();
       setIsPlaying(false);
     } else {
       setIsPlaying(true);
+      
+      // Start speaking current script
+      const currentScript = getCurrentScript();
+      speakText(currentScript);
+      
       intervalRef.current = setInterval(() => {
         setCurrentTime(prev => {
           const newTime = prev + 0.1;
@@ -48,6 +70,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
             clearInterval(intervalRef.current!);
             intervalRef.current = null;
             setIsPlaying(false);
+            window.speechSynthesis.cancel();
             setCurrentTime(0);
             return 0;
           }
@@ -58,7 +81,15 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    
+    if (newMuted) {
+      window.speechSynthesis.cancel();
+    } else if (isPlaying) {
+      const currentScript = getCurrentScript();
+      speakText(currentScript);
+    }
   };
 
   const formatTime = (time: number) => {
@@ -72,10 +103,31 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     const clickX = e.clientX - rect.left;
     const newTime = (clickX / rect.width) * duration;
     setCurrentTime(Math.max(0, Math.min(duration, newTime)));
+    
+    if (isPlaying) {
+      const currentScript = getCurrentScript();
+      speakText(currentScript);
+    }
   };
+
+  // Handle script changes to trigger voiceover
+  useEffect(() => {
+    if (isPlaying && !isMuted) {
+      const currentScript = getCurrentScript();
+      const scriptAtTime = demoScript.find(script => Math.abs(script.time - currentTime) < 0.2);
+      
+      if (scriptAtTime) {
+        speakText(scriptAtTime.text);
+      }
+    }
+  }, [Math.floor(currentTime), isPlaying, isMuted]);
 
   useEffect(() => {
     setIsPlaying(true);
+    
+    // Start with first script
+    speakText(demoScript[0].text);
+    
     intervalRef.current = setInterval(() => {
       setCurrentTime(prev => {
         const newTime = prev + 0.1;
@@ -83,6 +135,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
           clearInterval(intervalRef.current!);
           intervalRef.current = null;
           setIsPlaying(false);
+          window.speechSynthesis.cancel();
           setCurrentTime(0);
           return 0;
         }
@@ -94,6 +147,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      window.speechSynthesis.cancel();
     };
   }, [duration]);
 
@@ -134,10 +188,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
               className="w-10 h-10 md:w-16 md:h-16 object-contain"
             />
           </div>
-          
-          <p className="text-lg md:text-xl mb-4 md:mb-6 max-w-2xl animate-fade-in px-4">
-            Experience Kenya's most comprehensive school management system designed for CBC curriculum and M-Pesa integration
-          </p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-6 md:mb-8">
             {[
