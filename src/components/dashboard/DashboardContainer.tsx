@@ -58,8 +58,6 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'elimisha_admin':
-        return 'EduFam Admin';
       case 'edufam_admin':
         return 'EduFam Admin';
       case 'school_owner':
@@ -79,8 +77,6 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'elimisha_admin':
-        return 'bg-purple-100 text-purple-800';
       case 'edufam_admin':
         return 'bg-blue-100 text-blue-800';
       case 'school_owner':

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,7 +49,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
 
   const canManageGrades = hasPermission(PERMISSIONS.EDIT_GRADEBOOK);
   const canViewGrades = hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
-  const isSystemAdmin = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
+  const isSystemAdmin = user?.role === 'edufam_admin';
 
   // Early access check
   if (!canViewGrades) {
@@ -73,13 +72,6 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
       </Card>
     );
   }
-
-  const gradeStats = {
-    totalStudents: 1247,
-    averageScore: 78.5,
-    topPerformingSubject: 'Mathematics',
-    studentsAbove90: 320
-  };
 
   // Mock grading session for display purposes
   const mockGradingSession: GradingSession = {

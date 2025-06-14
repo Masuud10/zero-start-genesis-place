@@ -61,14 +61,14 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
     schoolId: user.school_id
   });
 
-  // For Elimisha/EduFam admins, ALWAYS show admin dashboard regardless of school assignment
-  if (user.role === 'elimisha_admin' || user.role === 'edufam_admin') {
+  // For EduFam admins, ALWAYS show admin dashboard regardless of school assignment
+  if (user.role === 'edufam_admin') {
     console.log("📊 Dashboard: Rendering ElimshaAdminDashboard for admin role:", user.role);
     return <ElimshaAdminDashboard onModalOpen={onModalOpen} />;
   }
 
   // For all other roles, check if they have school assignment when needed
-  if (!user.school_id && user.role !== 'elimisha_admin' && user.role !== 'edufam_admin') {
+  if (!user.school_id && user.role !== 'edufam_admin') {
     console.log("📊 Dashboard: User has no school assignment, role:", user.role);
     return (
       <Card>
