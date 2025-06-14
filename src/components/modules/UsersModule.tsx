@@ -120,6 +120,9 @@ const UsersModule = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Determine if current user can add users
+  const canAddUsers = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin' || user?.role === 'school_owner' || user?.role === 'principal';
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -141,12 +144,14 @@ const UsersModule = () => {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <CreateUserDialog onUserCreated={fetchUsers}>
-            <Button>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add User
-            </Button>
-          </CreateUserDialog>
+          {canAddUsers && (
+            <CreateUserDialog onUserCreated={fetchUsers}>
+              <Button>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add User
+              </Button>
+            </CreateUserDialog>
+          )}
         </div>
       </div>
 
