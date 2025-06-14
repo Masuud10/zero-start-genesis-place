@@ -26,7 +26,7 @@ const DashboardGreeting = ({ user, currentSchool }: DashboardGreetingProps) => {
     switch (user?.role) {
       case "elimisha_admin":
       case "edufam_admin":
-        return `System-wide management and monitoring dashboard.${currentSchool ? ` Currently viewing: ${currentSchool.name}` : ''}`;
+        return "Monitor and manage your entire educational ecosystem";
       case "school_owner":
         return "Monitor your school's financial and operational performance.";
       case "principal":

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -106,25 +107,6 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
 
   return (
     <div className="space-y-8">
-      {/* Enhanced Header with Action Buttons */}
-      <div className="flex justify-between items-start">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
-            System Administration
-          </h1>
-          <p className="text-gray-600 text-lg">Monitor and manage your entire educational ecosystem</p>
-        </div>
-        <div className="flex gap-3">
-          <CreateUserDialog onUserCreated={handleUserCreated}>
-            <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add User
-            </Button>
-          </CreateUserDialog>
-          <CreateSchoolDialog onSchoolCreated={handleSchoolCreated} />
-        </div>
-      </div>
-
       {/* Enhanced System Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {systemOverviewCards.map((card, index) => (
