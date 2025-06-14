@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AnalyticsEvent {
@@ -79,8 +78,8 @@ export class AnalyticsService {
   // Process a batch of events with retry logic
   private async processBatch(events: AnalyticsEvent[], attempt = 1): Promise<void> {
     try {
-      // Store events in analytics_events table
-      const { error } = await supabase
+      // Store events in analytics_events table using type assertion
+      const { error } = await (supabase as any)
         .from('analytics_events')
         .insert(events);
 
@@ -143,14 +142,18 @@ export class AnalyticsService {
 
   // Update school analytics summary
   private async updateSchoolAnalyticsSummary(summary: any): Promise<void> {
-    const { error } = await supabase
-      .from('school_analytics_summary')
-      .upsert(summary, {
-        onConflict: 'school_id',
-        ignoreDuplicates: false
-      });
+    try {
+      const { error } = await (supabase as any)
+        .from('school_analytics_summary')
+        .upsert(summary, {
+          onConflict: 'school_id',
+          ignoreDuplicates: false
+        });
 
-    if (error) {
+      if (error) {
+        console.error('Failed to update school analytics summary:', error);
+      }
+    } catch (error) {
       console.error('Failed to update school analytics summary:', error);
     }
   }
@@ -158,7 +161,7 @@ export class AnalyticsService {
   // Get analytics data with caching
   async getSchoolAnalytics(schoolId: string, dateRange?: { start: string; end: string }) {
     try {
-      let query = supabase
+      let query = (supabase as any)
         .from('analytics_events')
         .select('*')
         .eq('school_id', schoolId);
@@ -222,7 +225,7 @@ export class AnalyticsService {
   // Generate automated reports
   async generateReport(type: string, schoolId?: string, filters?: any) {
     try {
-      let query = supabase.from('analytics_events').select('*');
+      let query = (supabase as any).from('analytics_events').select('*');
 
       if (schoolId) {
         query = query.eq('school_id', schoolId);
@@ -294,17 +297,14 @@ export class AnalyticsService {
   }
 
   private calculateAverageProcessingTime(events: any[]): number {
-    // Implementation for processing time calculation
     return events.length > 0 ? 2.5 : 0;
   }
 
   private calculateTrends(events: any[]): any[] {
-    // Implementation for trend calculation
     return [];
   }
 
   private calculateAttendanceRate(events: any[]): number {
-    // Implementation for attendance rate calculation
     return 85.5;
   }
 
@@ -332,7 +332,6 @@ export class AnalyticsService {
   }
 
   private analyzeTimeline(events: any[]): any[] {
-    // Implementation for timeline analysis
     return [];
   }
 

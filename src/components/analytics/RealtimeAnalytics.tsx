@@ -50,8 +50,8 @@ const RealtimeAnalytics: React.FC = () => {
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
       try {
-        // Get recent activities based on user role
-        let baseQuery = supabase.from('analytics_events').select('*');
+        // Get recent activities based on user role with type assertion
+        let baseQuery = (supabase as any).from('analytics_events').select('*');
         
         if (user?.role !== 'elimisha_admin' && user?.role !== 'edufam_admin') {
           baseQuery = baseQuery.eq('school_id', currentSchool?.id || user?.school_id);
@@ -66,9 +66,9 @@ const RealtimeAnalytics: React.FC = () => {
         
         return {
           activeUsers: Math.floor(Math.random() * 25) + 5, // Mock active users
-          recentGrades: events.filter(e => e.event_category === 'grades').length,
-          recentAttendance: events.filter(e => e.event_category === 'attendance').length,
-          recentPayments: events.filter(e => e.event_category === 'finance').length,
+          recentGrades: events.filter((e: any) => e.event_category === 'grades').length,
+          recentAttendance: events.filter((e: any) => e.event_category === 'attendance').length,
+          recentPayments: events.filter((e: any) => e.event_category === 'finance').length,
           systemAlerts: Math.floor(Math.random() * 3), // Mock alerts
           lastUpdated: new Date().toISOString()
         };
@@ -93,7 +93,7 @@ const RealtimeAnalytics: React.FC = () => {
     queryKey: ['recent-activities', currentSchool?.id, refreshKey],
     queryFn: async (): Promise<RecentActivity[]> => {
       try {
-        let query = supabase
+        let query = (supabase as any)
           .from('analytics_events')
           .select(`
             id,
@@ -113,7 +113,7 @@ const RealtimeAnalytics: React.FC = () => {
           .order('timestamp', { ascending: false })
           .limit(10);
 
-        return (data || []).map(activity => ({
+        return (data || []).map((activity: any) => ({
           id: activity.id,
           type: activity.event_category,
           description: formatActivityDescription(activity),

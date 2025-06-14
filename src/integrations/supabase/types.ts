@@ -95,6 +95,47 @@ export type Database = {
           },
         ]
       }
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_category: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          school_id: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_category: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          school_id?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_category?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          school_id?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcement_reads: {
         Row: {
           announcement_id: string | null
@@ -1098,6 +1139,47 @@ export type Database = {
             foreignKeyName: "fk_profiles_school_id"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_analytics_summary: {
+        Row: {
+          attendance_updates: number | null
+          created_at: string
+          finance_transactions: number | null
+          grade_submissions: number | null
+          id: string
+          last_updated: string
+          school_id: string
+          user_activities: number | null
+        }
+        Insert: {
+          attendance_updates?: number | null
+          created_at?: string
+          finance_transactions?: number | null
+          grade_submissions?: number | null
+          id?: string
+          last_updated?: string
+          school_id: string
+          user_activities?: number | null
+        }
+        Update: {
+          attendance_updates?: number | null
+          created_at?: string
+          finance_transactions?: number | null
+          grade_submissions?: number | null
+          id?: string
+          last_updated?: string
+          school_id?: string
+          user_activities?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_analytics_summary_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
