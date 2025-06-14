@@ -8,7 +8,7 @@ import { SchoolProvider } from "@/contexts/SchoolContext";
 import AppContent from "@/components/AppContent";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 
-// Create query client with stable configuration
+// Create stable query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

@@ -10,16 +10,13 @@ export const useAuthState = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Initialize all refs at the top level
+  // Single ref to track if we're mounted and initialized
   const isMountedRef = useRef(true);
   const initializedRef = useRef(false);
-  const timeoutRef = useRef<NodeJS.Timeout>();
   const subscriptionRef = useRef<any>(null);
 
   const processUser = async (authUser: SupabaseUser | null): Promise<void> => {
     if (!isMountedRef.current) return;
-    
-    console.log('🔐 AuthState: Processing user:', authUser?.email || 'null');
     
     try {
       if (!authUser) {
@@ -41,9 +38,7 @@ export const useAuthState = () => {
         return;
       }
 
-      setError(null);
-      
-      // Fetch profile with better error handling
+      // Fetch profile data
       let profile = null;
       try {
         const { data, error: profileError } = await supabase
@@ -54,17 +49,17 @@ export const useAuthState = () => {
         
         if (profileError) {
           console.warn('🔐 AuthState: Profile fetch error:', profileError.message);
-        } else if (data) {
+        } else {
           profile = data;
         }
       } catch (err: any) {
         console.warn('🔐 AuthState: Profile fetch failed:', err.message);
       }
       
-      // Resolve role with fallback
+      // Resolve role
       const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
-      // Create user data with sensible defaults
+      // Create user data
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email,
@@ -107,14 +102,11 @@ export const useAuthState = () => {
     }
   };
 
-  // Single useEffect that runs once
   useEffect(() => {
-    // Reset mounted state
     isMountedRef.current = true;
     
-    // Skip if already initialized
+    // Only initialize once
     if (initializedRef.current) {
-      console.log('🔐 AuthState: Already initialized, skipping');
       return;
     }
     
@@ -122,15 +114,11 @@ export const useAuthState = () => {
     
     const initializeAuth = async () => {
       try {
-        // Set timeout to prevent infinite loading
-        timeoutRef.current = setTimeout(() => {
-          if (isMountedRef.current && isLoading) {
-            console.warn('🔐 AuthState: Auth timeout, setting loading to false');
-            setIsLoading(false);
-            setError(null);
-            setUser(null);
-          }
-        }, 8000);
+        // Clean up any existing subscription
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        }
         
         // Set up auth listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -138,12 +126,6 @@ export const useAuthState = () => {
             if (!isMountedRef.current) return;
             
             console.log('🔐 AuthState: Auth state changed:', event);
-            
-            // Clear timeout on any auth event
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-              timeoutRef.current = undefined;
-            }
             
             if (event === 'SIGNED_OUT' || !session) {
               await processUser(null);
@@ -184,25 +166,14 @@ export const useAuthState = () => {
     
     initializeAuth();
     
-    // Cleanup function
     return () => {
       console.log('🔐 AuthState: Cleaning up');
       isMountedRef.current = false;
-      
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = undefined;
-      }
       
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
-      
-      // Reset initialization flag after cleanup
-      setTimeout(() => {
-        initializedRef.current = false;
-      }, 100);
     };
   }, []); // Empty dependency array - only run once
 

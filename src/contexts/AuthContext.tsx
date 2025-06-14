@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { AuthContextType } from '@/types/auth';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthActions } from '@/hooks/useAuthActions';
@@ -15,7 +15,6 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Always call hooks in the same order
   const authState = useAuthState();
   const authActions = useAuthActions();
 
@@ -31,15 +30,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     userSchoolId: user?.school_id
   });
 
-  // Create stable value object
-  const value: AuthContextType = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo<AuthContextType>(() => ({
     user,
     isLoading,
     error,
     signIn,
     signUp,
     signOut
-  };
+  }), [user, isLoading, error, signIn, signUp, signOut]);
 
   return (
     <AuthContext.Provider value={value}>

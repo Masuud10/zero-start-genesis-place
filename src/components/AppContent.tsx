@@ -20,7 +20,7 @@ const AppContent: React.FC = () => {
     userEmail: user?.email
   });
 
-  // Handle critical authentication errors that prevent app usage
+  // Handle critical authentication errors
   if (authError && authError.includes('processing failed')) {
     console.log('🎯 AppContent: Critical auth error detected:', authError);
     return (
@@ -35,7 +35,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Show loading screen while auth is actively loading
+  // Show loading screen while auth is loading
   if (authLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;
@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // Validate user has a role before proceeding
+  // Validate user has a role
   if (!user.role) {
     console.error('🎯 AppContent: User has no role:', user.email);
     

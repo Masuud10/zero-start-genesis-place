@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { LoginCredentials, SignupCredentials } from '@/types/auth';
 
 export const useAuthActions = () => {
-  // Always call all hooks at the top level in the same order
   const signIn = useCallback(async (credentials: LoginCredentials) => {
     console.log('🔑 AuthActions: Attempting sign in for', credentials.email);
     
@@ -61,18 +60,22 @@ export const useAuthActions = () => {
     console.log('🚪 AuthActions: Starting logout process');
     
     try {
-      // Clear local storage
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // Sign out from Supabase
+      // Sign out from Supabase first
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error && !error.message.includes('Auth session missing')) {
         console.error('❌ AuthActions: Sign out error:', error);
+      }
+      
+      // Clear local storage
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {
+        console.warn('Failed to clear localStorage:', e);
       }
       
       console.log('✅ AuthActions: Logout completed');
@@ -91,7 +94,6 @@ export const useAuthActions = () => {
     }
   }, []);
 
-  // Always return the same object structure
   return {
     signIn,
     signUp,
