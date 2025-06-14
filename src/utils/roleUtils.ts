@@ -1,4 +1,3 @@
-
 import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/user';
 
@@ -12,20 +11,23 @@ export const determineUserRole = (authUser: User, profileRole?: string): UserRol
 
   // Priority 1: Use profile role if it exists and is valid
   if (profileRole && isValidRole(profileRole)) {
-    console.log('🔍 RoleUtils: Using profile role:', profileRole);
-    return normalizeRole(profileRole) as UserRole;
+    const normalizedRole = normalizeRole(profileRole);
+    console.log('🔍 RoleUtils: Using profile role:', normalizedRole);
+    return normalizedRole as UserRole;
   }
 
   // Priority 2: Use user_metadata role if it exists and is valid
   if (authUser.user_metadata?.role && isValidRole(authUser.user_metadata.role)) {
-    console.log('🔍 RoleUtils: Using user_metadata role:', authUser.user_metadata.role);
-    return normalizeRole(authUser.user_metadata.role) as UserRole;
+    const normalizedRole = normalizeRole(authUser.user_metadata.role);
+    console.log('🔍 RoleUtils: Using user_metadata role:', normalizedRole);
+    return normalizedRole as UserRole;
   }
 
   // Priority 3: Use app_metadata role if it exists and is valid
   if (authUser.app_metadata?.role && isValidRole(authUser.app_metadata.role)) {
-    console.log('🔍 RoleUtils: Using app_metadata role:', authUser.app_metadata.role);
-    return normalizeRole(authUser.app_metadata.role) as UserRole;
+    const normalizedRole = normalizeRole(authUser.app_metadata.role);
+    console.log('🔍 RoleUtils: Using app_metadata role:', normalizedRole);
+    return normalizedRole as UserRole;
   }
 
   // Priority 4: Determine role based on email patterns
@@ -35,11 +37,16 @@ export const determineUserRole = (authUser: User, profileRole?: string): UserRol
 };
 
 const normalizeRole = (role: string): string => {
+  if (!role || typeof role !== 'string') {
+    console.warn('🔍 RoleUtils: Invalid role provided for normalization:', role);
+    return 'parent';
+  }
+
   // Normalize role formatting
   const normalized = role.toLowerCase().trim();
   
   // Handle common variations
-  const roleMap = {
+  const roleMap: { [key: string]: string } = {
     'schoolowner': 'school_owner',
     'school-owner': 'school_owner',
     'school owner': 'school_owner',
@@ -52,19 +59,36 @@ const normalizeRole = (role: string): string => {
     'elimishaadmin': 'edufam_admin',
     'elimisha-admin': 'edufam_admin',
     'elimisha admin': 'edufam_admin',
-    'admin': 'edufam_admin'
+    'admin': 'edufam_admin',
+    'systemadmin': 'edufam_admin',
+    'system_admin': 'edufam_admin'
   };
   
-  return roleMap[normalized] || normalized;
+  const mappedRole = roleMap[normalized] || normalized;
+  console.log('🔍 RoleUtils: Role normalized from', role, 'to', mappedRole);
+  return mappedRole;
 };
 
 const isValidRole = (role: string): boolean => {
+  if (!role || typeof role !== 'string') {
+    console.warn('🔍 RoleUtils: Invalid role type for validation:', typeof role, role);
+    return false;
+  }
+
   const normalizedRole = normalizeRole(role);
   const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
-  return validRoles.includes(normalizedRole as UserRole);
+  const isValid = validRoles.includes(normalizedRole as UserRole);
+  
+  console.log('🔍 RoleUtils: Role validation for', role, '(normalized:', normalizedRole, ') =', isValid);
+  return isValid;
 };
 
 const determineRoleFromEmail = (email: string): UserRole => {
+  if (!email || typeof email !== 'string') {
+    console.warn('🔍 RoleUtils: Invalid email for role determination:', email);
+    return 'parent';
+  }
+
   const emailLower = email.toLowerCase();
   
   // System admin patterns - check for both elimisha and edufam admin patterns
@@ -73,27 +97,33 @@ const determineRoleFromEmail = (email: string): UserRole => {
       emailLower.includes('elimisha') ||
       emailLower.includes('edufam') ||
       emailLower.includes('admin@')) {
+    console.log('🔍 RoleUtils: Email matches admin pattern:', email);
     return 'edufam_admin';
   }
   
   // School role patterns
   if (emailLower.includes('principal')) {
+    console.log('🔍 RoleUtils: Email matches principal pattern:', email);
     return 'principal';
   }
   
   if (emailLower.includes('teacher')) {
+    console.log('🔍 RoleUtils: Email matches teacher pattern:', email);
     return 'teacher';
   }
   
   if (emailLower.includes('owner')) {
+    console.log('🔍 RoleUtils: Email matches owner pattern:', email);
     return 'school_owner';
   }
   
   if (emailLower.includes('finance')) {
+    console.log('🔍 RoleUtils: Email matches finance pattern:', email);
     return 'finance_officer';
   }
   
   // Default to parent
+  console.log('🔍 RoleUtils: Email matches no patterns, defaulting to parent:', email);
   return 'parent';
 };
 

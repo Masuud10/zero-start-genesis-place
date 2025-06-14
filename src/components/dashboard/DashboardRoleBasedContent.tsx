@@ -29,9 +29,9 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
     currentSchool
   );
 
-  // Ensure we have a valid user and role
-  if (!user || !user.role) {
-    console.log("📊 Dashboard: No user or role found, showing default message");
+  // Enhanced user and role validation
+  if (!user) {
+    console.log("📊 Dashboard: No user found, showing loading message");
     return (
       <Card>
         <CardHeader>
@@ -42,43 +42,60 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600">
-            Please wait while we load your role-specific dashboard.
+            Please wait while we load your dashboard.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!user.role) {
+    console.log("📊 Dashboard: User has no role, showing error");
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Role Configuration Required</CardTitle>
+          <CardDescription>
+            Your account role needs to be configured.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">
+            Please contact your administrator to assign you a role.
           </p>
           <div className="text-xs text-gray-400 mt-2">
-            Debug: User present: {user ? 'Yes' : 'No'} | Role: {user?.role || 'None'} | Email: {user?.email || 'None'}
+            Debug: Email: {user.email || 'None'} | Role: {user.role || 'None'}
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Log detailed role information for debugging
-  console.log("📊 Dashboard: User role details:", {
-    role: user.role,
+  // Enhanced role normalization and validation
+  const normalizedRole = user.role.toLowerCase().trim();
+  
+  console.log("📊 Dashboard: Processing user with role:", {
+    originalRole: user.role,
+    normalizedRole,
     email: user.email,
-    userMetadata: user.user_metadata,
-    appMetadata: user.app_metadata,
     schoolId: user.school_id
   });
 
-  // Normalize the role to handle any potential casing or formatting issues
-  const normalizedRole = user.role.toLowerCase().trim();
+  // System admin check - handle multiple admin role variations
+  const isSystemAdmin = ['edufam_admin', 'elimisha_admin', 'admin', 'systemadmin', 'system_admin'].includes(normalizedRole);
   
-  console.log("📊 Dashboard: Normalized role:", normalizedRole);
-
-  // For EduFam admins, ALWAYS show admin dashboard regardless of school assignment
-  if (normalizedRole === 'edufam_admin' || normalizedRole === 'elimisha_admin') {
+  if (isSystemAdmin) {
     console.log("📊 Dashboard: Rendering ElimshaAdminDashboard for admin role:", user.role);
     return <ElimshaAdminDashboard onModalOpen={onModalOpen} />;
   }
 
-  // For all other roles, check if they have school assignment when needed
-  if (!user.school_id && normalizedRole !== 'edufam_admin' && normalizedRole !== 'elimisha_admin') {
+  // School assignment check for non-admin roles
+  if (!user.school_id) {
     console.log("📊 Dashboard: User has no school assignment, role:", user.role);
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Account Setup Required</CardTitle>
+          <CardTitle>School Assignment Required</CardTitle>
           <CardDescription>
             Your account has not been assigned to a school yet.
           </CardDescription>
@@ -95,70 +112,80 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
     );
   }
 
-  // Render role-specific dashboard based on exact role match
+  // Role-based dashboard rendering with enhanced matching
   console.log("📊 Dashboard: Rendering dashboard for normalized role:", normalizedRole);
   
-  switch (normalizedRole) {
-    case "school_owner":
+  // Handle role variations and exact matches
+  const roleMapping: { [key: string]: () => React.ReactNode } = {
+    'school_owner': () => {
       console.log("📊 Dashboard: Rendering SchoolOwnerDashboard");
       return <SchoolOwnerDashboard />;
-      
-    case "principal":
+    },
+    'schoolowner': () => {
+      console.log("📊 Dashboard: Rendering SchoolOwnerDashboard (variant)");
+      return <SchoolOwnerDashboard />;
+    },
+    'principal': () => {
       console.log("📊 Dashboard: Rendering PrincipalDashboard");
       return <PrincipalDashboard />;
-      
-    case "teacher":
+    },
+    'teacher': () => {
       console.log("📊 Dashboard: Rendering TeacherDashboard");
       return <TeacherDashboard />;
-      
-    case "finance_officer":
+    },
+    'finance_officer': () => {
       console.log("📊 Dashboard: Rendering FinanceOfficerDashboard");
       return <FinanceOfficerDashboard onModalOpen={onModalOpen} />;
-      
-    case "parent":
+    },
+    'financeofficer': () => {
+      console.log("📊 Dashboard: Rendering FinanceOfficerDashboard (variant)");
+      return <FinanceOfficerDashboard onModalOpen={onModalOpen} />;
+    },
+    'parent': () => {
       console.log("📊 Dashboard: Rendering ParentDashboard");
       return <ParentDashboard />;
-      
-    default:
-      console.log("📊 Dashboard: Unknown role, checking if it's a valid role with different casing:", user.role);
-      
-      // Handle potential role variations and fallbacks
-      const roleVariations = {
-        'schoolowner': 'school_owner',
-        'financeofficer': 'finance_officer',
-        'edufamadmin': 'edufam_admin',
-        'elimishaadmin': 'elimisha_admin'
-      };
-      
-      const correctedRole = roleVariations[normalizedRole.replace(/[_\s-]/g, '')];
-      
-      if (correctedRole) {
-        console.log("📊 Dashboard: Found role variation, using:", correctedRole);
-        // Recursively call with corrected role
-        return <DashboardRoleBasedContent user={{...user, role: correctedRole}} onModalOpen={onModalOpen} />;
-      }
-      
-      console.log("📊 Dashboard: Truly unknown role, showing error:", user.role);
-      return (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invalid Role Configuration</CardTitle>
-            <CardDescription>
-              Your account role needs to be configured properly.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600">
-              Your role "{user.role}" is not recognized. Please contact your administrator to verify your account permissions.
-            </p>
-            <div className="text-xs text-gray-400 mt-2">
-              Debug: Role received: "{user.role || "undefined"}" | Normalized: "{normalizedRole}" | Email: {user.email}
-              {user.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
-            </div>
-          </CardContent>
-        </Card>
-      );
+    }
+  };
+
+  // Try exact match first
+  if (roleMapping[normalizedRole]) {
+    return roleMapping[normalizedRole]();
   }
+
+  // Try without underscores/spaces/hyphens
+  const cleanRole = normalizedRole.replace(/[_\s-]/g, '');
+  if (roleMapping[cleanRole]) {
+    console.log("📊 Dashboard: Found role variation, using:", cleanRole);
+    return roleMapping[cleanRole]();
+  }
+
+  // Fallback for unrecognized roles
+  console.log("📊 Dashboard: Unrecognized role, showing error:", user.role);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Invalid Role Configuration</CardTitle>
+        <CardDescription>
+          Your account role is not recognized.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-gray-600">
+          Your role "{user.role}" is not recognized. Please contact your administrator to verify your account permissions.
+        </p>
+        <div className="text-xs text-gray-400 mt-2">
+          Debug: Original Role: "{user.role}" | Normalized: "{normalizedRole}" | Email: {user.email}
+          {user.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
+        </div>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+        >
+          Refresh Page
+        </button>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default DashboardRoleBasedContent;

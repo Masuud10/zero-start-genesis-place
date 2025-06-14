@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
@@ -10,50 +11,65 @@ const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [isStable, setIsStable] = useState(false);
 
-  // Use try-catch to safely access auth context
+  // Safe auth context access with error handling
   let user: any = null;
   let authLoading = true;
   let schoolLoading = false;
+  let authError = false;
 
   try {
     const authContext = useAuth();
     user = authContext.user;
     authLoading = authContext.isLoading;
   } catch (error) {
-    console.error('🎯 AppContent: Auth context error, using defaults:', error);
-    // Keep defaults: user = null, authLoading = true
+    console.error('🎯 AppContent: Auth context error:', error);
+    authError = true;
+    authLoading = false;
   }
 
   try {
     const schoolContext = useSchool();
     schoolLoading = schoolContext.isLoading;
   } catch (error) {
-    console.error('🎯 AppContent: School context error, using defaults:', error);
-    // Keep default: schoolLoading = false
+    console.error('🎯 AppContent: School context error:', error);
+    schoolLoading = false;
   }
 
-  // Add stability check to prevent premature renders
+  // Enhanced stability check with error handling
   useEffect(() => {
+    if (authError) {
+      console.log('🎯 AppContent: Auth error detected, setting stable');
+      setIsStable(true);
+      return;
+    }
+
     if (!authLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 500);
+      }, 300); // Reduced timeout for better responsiveness
       
       return () => clearTimeout(timer);
     } else {
       setIsStable(false);
     }
-  }, [authLoading]);
+  }, [authLoading, authError]);
 
   console.log('🎯 AppContent: Rendering', { 
     hasUser: !!user, 
     authLoading, 
+    authError,
     schoolLoading,
     isStable,
     userRole: user?.role,
     userSchoolId: user?.school_id,
     showLogin
   });
+
+  // Handle auth errors by showing login
+  if (authError) {
+    console.log('🎯 AppContent: Auth error, showing login form');
+    return <LoginForm />;
+  }
 
   // Show loading screen while authentication is initializing or stabilizing
   if (authLoading || !isStable) {
@@ -70,6 +86,27 @@ const AppContent: React.FC = () => {
     }
     
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+  }
+
+  // Enhanced role validation before proceeding
+  if (!user.role) {
+    console.log('🎯 AppContent: User has no role, showing error');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Setup Required</h2>
+          <p className="text-gray-600 mb-4">
+            Your account role has not been configured. Please contact your administrator.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // For authenticated users, show loading only for school data if needed

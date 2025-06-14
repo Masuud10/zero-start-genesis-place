@@ -19,11 +19,18 @@ export const useAuthStateListener = ({
   const processingRef = useRef(false);
   const currentUserRef = useRef<string | null>(null);
   const subscriptionRef = useRef<any>(null);
+  const stableTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
     
     console.log('🔐 AuthStateListener: Setting up auth state listener');
+    
+    // Clear any existing stable timeout
+    if (stableTimeoutRef.current) {
+      clearTimeout(stableTimeoutRef.current);
+      stableTimeoutRef.current = null;
+    }
     
     // Set up auth state change listener with improved handling
     const setupAuthListener = () => {
@@ -169,22 +176,28 @@ export const useAuthStateListener = ({
     setupAuthListener();
     getInitialSession();
 
-    // Cleanup function that properly manages refs
+    // Cleanup function with improved stability
     return () => {
-      console.log('🔐 AuthStateListener: Cleaning up auth state listener');
+      console.log('🔐 AuthStateListener: Starting cleanup');
       isMountedRef.current = false;
+      
+      // Clear stable timeout
+      if (stableTimeoutRef.current) {
+        clearTimeout(stableTimeoutRef.current);
+        stableTimeoutRef.current = null;
+      }
       
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
       
-      // Don't reset these immediately to prevent context loss
-      setTimeout(() => {
+      // Use stable timeout to prevent premature context loss
+      stableTimeoutRef.current = setTimeout(() => {
         initializedRef.current = false;
         processingRef.current = false;
         currentUserRef.current = null;
-      }, 100);
+      }, 500); // Increased delay for stability
     };
   }, [setUser, setIsLoading, fetchUserProfile]);
 
@@ -192,6 +205,11 @@ export const useAuthStateListener = ({
     cleanup: () => {
       console.log('🔐 AuthStateListener: Manual cleanup requested');
       isMountedRef.current = false;
+      
+      if (stableTimeoutRef.current) {
+        clearTimeout(stableTimeoutRef.current);
+        stableTimeoutRef.current = null;
+      }
       
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
