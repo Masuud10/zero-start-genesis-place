@@ -5,6 +5,7 @@ import LandingPage from '@/components/LandingPage';
 import ElimshaLayout from '@/components/ElimshaLayout';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import LoginForm from '@/components/LoginForm';
+import { ErrorState } from '@/components/common/LoadingStates';
 
 // Safe school context access
 const useSchoolSafely = () => {
@@ -35,8 +36,17 @@ const AppContent: React.FC = () => {
 
   // Handle authentication errors
   if (authError) {
-    console.log('🎯 AppContent: Auth error detected, showing login form:', authError);
-    return <LoginForm />;
+    console.log('🎯 AppContent: Auth error detected, showing error state:', authError);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <ErrorState
+          title="Authentication Error"
+          description="There was a problem with your authentication"
+          error={authError}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
   }
 
   // Show loading screen while actively loading
@@ -62,18 +72,11 @@ const AppContent: React.FC = () => {
     
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Setup Required</h2>
-          <p className="text-gray-600 mb-4">
-            Your account role has not been configured. Please contact your administrator.
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Refresh Page
-          </button>
-        </div>
+        <ErrorState
+          title="Account Setup Required"
+          description="Your account role has not been configured. Please contact your administrator."
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
@@ -92,18 +95,12 @@ const AppContent: React.FC = () => {
     console.log('🎯 AppContent: School error for role that needs school data:', user.role, schoolError);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">School Data Error</h2>
-          <p className="text-gray-600 mb-4">
-            {schoolError}
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Refresh Page
-          </button>
-        </div>
+        <ErrorState
+          title="School Data Error"
+          description="Failed to load your school information"
+          error={schoolError}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }

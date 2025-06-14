@@ -12,33 +12,46 @@ export const useAuthState = () => {
   
   const isMountedRef = useRef(true);
   const initializedRef = useRef(false);
+  const processingRef = useRef(false);
 
   const processUser = async (authUser: SupabaseUser | null): Promise<void> => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || processingRef.current) return;
     
+    processingRef.current = true;
     console.log('🔐 AuthState: Processing user:', authUser?.email || 'null');
     
-    if (!authUser) {
-      console.log('🔐 AuthState: No auth user, clearing state');
-      setUser(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
     try {
+      if (!authUser) {
+        console.log('🔐 AuthState: No auth user, clearing state');
+        if (isMountedRef.current) {
+          setUser(null);
+          setError(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
       setError(null);
       
-      // Fetch profile with a simple timeout
+      // Fetch profile with timeout to prevent hanging
       let profile = null;
       try {
-        const { data, error: profileError } = await supabase
+        const profilePromise = supabase
           .from('profiles')
           .select('role, name, school_id, avatar_url')
           .eq('id', authUser.id)
           .maybeSingle();
         
-        if (profileError) {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+        );
+        
+        const { data, error: profileError } = await Promise.race([
+          profilePromise,
+          timeoutPromise
+        ]) as any;
+        
+        if (profileError && profileError.code !== 'PGRST116') {
           console.warn('🔐 AuthState: Profile fetch error (continuing):', profileError.message);
         } else if (data) {
           profile = data;
@@ -84,11 +97,14 @@ export const useAuthState = () => {
         setError(`User processing failed: ${error.message}`);
         setIsLoading(false);
       }
+    } finally {
+      processingRef.current = false;
     }
   };
 
   useEffect(() => {
     let subscription: any = null;
+    let timeoutId: NodeJS.Timeout;
     
     const initializeAuth = async () => {
       if (initializedRef.current) return;
@@ -96,13 +112,32 @@ export const useAuthState = () => {
       try {
         console.log('🔐 AuthState: Initializing auth state');
         
-        // Get initial session first
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Set a timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          if (isMountedRef.current && isLoading) {
+            console.warn('🔐 AuthState: Auth initialization timeout, setting loading to false');
+            setIsLoading(false);
+            setError('Authentication timeout - please refresh the page');
+          }
+        }, 10000);
+        
+        // Get initial session with timeout
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 8000)
+        );
+        
+        const { data: { session }, error: sessionError } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
         if (sessionError) {
           console.error('🔐 AuthState: Session error:', sessionError);
-          setError(`Session error: ${sessionError.message}`);
-          setIsLoading(false);
+          if (isMountedRef.current) {
+            setError(`Session error: ${sessionError.message}`);
+            setIsLoading(false);
+          }
           return;
         }
         
@@ -131,11 +166,19 @@ export const useAuthState = () => {
         subscription = authSubscription;
         initializedRef.current = true;
         
+        // Clear timeout if we reached this point
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        
       } catch (error: any) {
         console.error('🔐 AuthState: Init error:', error);
         if (isMountedRef.current) {
           setError(`Auth init failed: ${error.message}`);
           setIsLoading(false);
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
       }
     };
@@ -148,6 +191,14 @@ export const useAuthState = () => {
       if (subscription) {
         subscription.unsubscribe();
       }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      // Reset refs to prevent memory leaks
+      setTimeout(() => {
+        initializedRef.current = false;
+        processingRef.current = false;
+      }, 100);
     };
   }, []); // Run only once
 
