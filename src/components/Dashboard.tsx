@@ -89,6 +89,7 @@ const Dashboard = () => {
   // Add error boundary for modal operations
   const handleModalOpen = (modalType: string) => {
     try {
+      console.log('📊 Dashboard: Opening modal:', modalType);
       setActiveModal(modalType);
     } catch (error) {
       console.error('📊 Dashboard: Error opening modal:', error);
@@ -97,6 +98,7 @@ const Dashboard = () => {
 
   const handleModalClose = () => {
     try {
+      console.log('📊 Dashboard: Closing modal');
       setActiveModal(null);
     } catch (error) {
       console.error('📊 Dashboard: Error closing modal:', error);

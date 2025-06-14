@@ -6,12 +6,13 @@ import ElimshaLayout from '@/components/ElimshaLayout';
 import LandingPage from '@/components/LandingPage';
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, error } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
   console.log('📄 Index: Rendering with state', { 
     hasUser: !!user, 
     isLoading, 
+    error,
     userEmail: user?.email,
     showLogin
   });
@@ -25,9 +26,28 @@ const Index = () => {
             <span className="text-2xl text-white">🎓</span>
           </div>
           <p className="text-muted-foreground">Loading EduFam school management system...</p>
-          <div className="text-xs text-gray-400">
-            Debug: {isLoading ? 'Loading...' : 'Not loading'} | User: {user ? 'Present' : 'None'}
+        </div>
+      </div>
+    );
+  }
+
+  // Handle auth errors
+  if (error) {
+    console.error('📄 Index: Auth error:', error);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-red-50">
+        <div className="text-center space-y-4 max-w-md mx-auto p-6">
+          <div className="w-16 h-16 mx-auto bg-red-100 rounded-2xl flex items-center justify-center">
+            <span className="text-2xl">⚠️</span>
           </div>
+          <h2 className="text-xl font-semibold text-red-800">Authentication Error</h2>
+          <p className="text-red-600 text-sm">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     );

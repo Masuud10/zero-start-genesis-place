@@ -46,7 +46,7 @@ export const useAuthState = () => {
       try {
         const profilePromise = supabase
           .from('profiles')
-          .select('role, name, school_id, avatar_url')
+          .select('role, name, school_id, avatar_url, mfa_enabled')
           .eq('id', authUser.id)
           .maybeSingle();
         
@@ -88,9 +88,11 @@ export const useAuthState = () => {
                    authUser.user_metadata?.school_id || 
                    authUser.app_metadata?.school_id,
         avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
+        created_at: authUser.created_at,
+        updated_at: authUser.updated_at,
         // Include all metadata for compatibility
-        user_metadata: authUser.user_metadata,
-        app_metadata: authUser.app_metadata,
+        user_metadata: authUser.user_metadata || {},
+        app_metadata: authUser.app_metadata || {},
         // Security properties from profile or metadata
         mfa_enabled: profile?.mfa_enabled || false,
         last_login_at: authUser.last_sign_in_at || undefined,
