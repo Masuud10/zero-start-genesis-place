@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Class {
   id: string;
@@ -14,20 +15,27 @@ interface Class {
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
-  const { buildSchoolScopedQuery } = useSchoolScopedData();
+  const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchClasses = async () => {
     try {
       setLoading(true);
       
-      const { data, error } = await buildSchoolScopedQuery('classes', `
+      let query = supabase.from('classes').select(`
         id,
         name,
         school_id,
         teacher_id,
         created_at
-      `).order('name');
+      `);
+
+      // Apply school filter for non-admin users
+      if (!isSystemAdmin && schoolId) {
+        query = query.eq('school_id', schoolId);
+      }
+
+      const { data, error } = await query.order('name');
 
       if (error) {
         console.error('Error fetching classes:', error);
@@ -56,7 +64,7 @@ export const useClasses = () => {
 
   useEffect(() => {
     fetchClasses();
-  }, []);
+  }, [isSystemAdmin, schoolId]);
 
   return {
     classes,

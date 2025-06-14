@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DollarSign, TrendingUp, Users, FileText, Plus, Download, CreditCard } from 'lucide-react';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { DataService } from '@/services/dataService';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +39,7 @@ const FinanceModule = () => {
     expenses: 0
   });
   const [loading, setLoading] = useState(true);
-  const { buildSchoolScopedQuery } = useSchoolScopedData();
+  const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
   const terms = [
@@ -58,14 +58,21 @@ const FinanceModule = () => {
 
   useEffect(() => {
     fetchFinancialData();
-  }, [selectedTerm, selectedClass]);
+  }, [selectedTerm, selectedClass, isSystemAdmin, schoolId]);
 
   const fetchFinancialData = async () => {
     try {
       setLoading(true);
       
-      // Fetch fee records using the simplified query builder
-      const { data: fees, error } = await buildSchoolScopedQuery('fees', '*')
+      // Fetch fee records with school filtering
+      let feesQuery = supabase.from('fees').select('*');
+      
+      // Apply school filter for non-admin users
+      if (!isSystemAdmin && schoolId) {
+        feesQuery = feesQuery.eq('school_id', schoolId);
+      }
+      
+      const { data: fees, error } = await feesQuery
         .eq('term', selectedTerm)
         .order('due_date', { ascending: false });
 
@@ -97,7 +104,13 @@ const FinanceModule = () => {
       const enhancedFees: FeeRecord[] = (fees || []).map(fee => {
         const student = studentMap.get(fee.student_id);
         return {
-          ...fee,
+          id: fee.id || '',
+          student_id: fee.student_id || '',
+          amount: fee.amount || 0,
+          paid_amount: fee.paid_amount || 0,
+          category: fee.category || '',
+          status: fee.status || '',
+          due_date: fee.due_date || '',
           student,
           className: student ? classMap.get(student.class_id) : undefined
         };

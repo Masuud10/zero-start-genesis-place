@@ -1206,6 +1206,48 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_students: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_primary_contact: boolean | null
+          parent_id: string
+          relationship_type: string | null
+          student_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_primary_contact?: boolean | null
+          parent_id: string
+          relationship_type?: string | null
+          student_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_primary_contact?: boolean | null
+          parent_id?: string
+          relationship_type?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_students_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_students_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1434,6 +1476,51 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      student_classes: {
+        Row: {
+          academic_year: string
+          class_id: string
+          created_at: string | null
+          enrollment_date: string | null
+          id: string
+          is_active: boolean | null
+          student_id: string
+        }
+        Insert: {
+          academic_year?: string
+          class_id: string
+          created_at?: string | null
+          enrollment_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          student_id: string
+        }
+        Update: {
+          academic_year?: string
+          class_id?: string
+          created_at?: string | null
+          enrollment_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_classes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       students: {
         Row: {
@@ -1796,6 +1883,52 @@ export type Database = {
           recorded_at?: string
         }
         Relationships: []
+      }
+      teacher_classes: {
+        Row: {
+          class_id: string
+          created_at: string | null
+          id: string
+          subject_id: string | null
+          teacher_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string | null
+          id?: string
+          subject_id?: string | null
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string | null
+          id?: string
+          subject_id?: string | null
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_classes_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       timetable_slots: {
         Row: {

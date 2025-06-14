@@ -66,13 +66,14 @@ export const useSchoolScopedData = () => {
     return data.filter(item => item.school_id === schoolId);
   };
 
-  // Simplified query builder that returns a standard query builder
+  // Simple query builder that avoids complex type inference
   const buildSchoolScopedQuery = (tableName: string, selectClause: string = '*') => {
-    const baseQuery = supabase.from(tableName).select(selectClause);
+    // Create base query
+    let query = supabase.from(tableName).select(selectClause);
     
     // System admins can access all data
     if (isSystemAdmin) {
-      return baseQuery;
+      return query;
     }
 
     // Non-admin users are restricted to their school's data
@@ -81,7 +82,7 @@ export const useSchoolScopedData = () => {
     }
 
     // Add school_id filter for tables that have school_id directly
-    return baseQuery.eq('school_id', schoolId);
+    return query.eq('school_id', schoolId);
   };
 
   return {

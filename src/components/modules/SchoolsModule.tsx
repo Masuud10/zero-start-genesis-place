@@ -6,6 +6,7 @@ import SchoolStatsCards from './schools/SchoolStatsCards';
 import AddSchoolDialog from './schools/AddSchoolDialog';
 import SchoolsFilter from './schools/SchoolsFilter';
 import SchoolsTable from './schools/SchoolsTable';
+import { supabase } from '@/integrations/supabase/client';
 
 interface School {
   id: string;
@@ -28,7 +29,7 @@ const SchoolsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const { toast } = useToast();
-  const { buildSchoolScopedQuery, isSystemAdmin } = useSchoolScopedData();
+  const { isSystemAdmin } = useSchoolScopedData();
 
   useEffect(() => {
     if (isSystemAdmin) {
@@ -41,10 +42,12 @@ const SchoolsModule = () => {
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const { data: schoolsData, error } = await buildSchoolScopedQuery('schools', `
-        *,
-        subscriptions(plan_type, status, amount)
-      `);
+      const { data: schoolsData, error } = await supabase
+        .from('schools')
+        .select(`
+          *,
+          subscriptions(plan_type, status, amount)
+        `);
 
       if (error) {
         console.error('Error fetching schools:', error);
@@ -57,7 +60,19 @@ const SchoolsModule = () => {
         return;
       }
 
-      setSchools(schoolsData || []);
+      // Transform the data to match our School interface
+      const transformedSchools: School[] = (schoolsData || []).map(school => ({
+        id: school.id,
+        name: school.name,
+        email: school.email || '',
+        phone: school.phone || '',
+        address: school.address || '',
+        created_at: school.created_at,
+        updated_at: school.updated_at,
+        subscriptions: school.subscriptions || []
+      }));
+
+      setSchools(transformedSchools);
     } catch (error) {
       console.error('Error fetching schools:', error);
       toast({

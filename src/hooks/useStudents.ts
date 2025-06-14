@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Student {
   id: string;
@@ -22,13 +23,14 @@ interface Student {
 export const useStudents = (classId?: string) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const { buildSchoolScopedQuery } = useSchoolScopedData();
+  const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      let query = buildSchoolScopedQuery('students', `
+      
+      let query = supabase.from('students').select(`
         id,
         name,
         admission_number,
@@ -43,6 +45,11 @@ export const useStudents = (classId?: string) => {
         is_active,
         created_at
       `);
+
+      // Apply school filter for non-admin users
+      if (!isSystemAdmin && schoolId) {
+        query = query.eq('school_id', schoolId);
+      }
 
       if (classId && classId !== 'all') {
         query = query.eq('class_id', classId);
@@ -77,7 +84,7 @@ export const useStudents = (classId?: string) => {
 
   useEffect(() => {
     fetchStudents();
-  }, [classId]);
+  }, [classId, isSystemAdmin, schoolId]);
 
   return {
     students,
