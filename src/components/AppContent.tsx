@@ -12,7 +12,7 @@ const AppContent: React.FC = () => {
   
   console.log('🎯 AppContent: Starting render');
   
-  // Get auth state - this should not throw if AuthProvider is properly set up
+  // Get auth state with error boundary
   let authState;
   try {
     authState = useAuth();
@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Show loading screen while auth is loading (but not indefinitely)
+  // Show loading screen while auth is loading
   if (authLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;

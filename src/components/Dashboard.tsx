@@ -49,7 +49,7 @@ const Dashboard = () => {
 
   // Show no user state
   if (!user) {
-    console.error('📊 Dashboard: No user found - this should redirect to login');
+    console.error('📊 Dashboard: No user found - redirecting to login');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -87,7 +87,7 @@ const Dashboard = () => {
 
   console.log('📊 Dashboard: Rendering role-based content for role:', userRole);
 
-  // Add error boundary for modal operations
+  // Modal handlers with error boundaries
   const handleModalOpen = (modalType: string) => {
     try {
       console.log('📊 Dashboard: Opening modal:', modalType);
@@ -108,7 +108,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* EduFam Admin Announcements - Shows at top for non-admin users */}
+      {/* EduFam Admin Announcements */}
       <DashboardAnnouncements />
       
       <DashboardRoleBasedContent 

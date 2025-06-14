@@ -30,7 +30,7 @@ export const useAuthActions = () => {
         return { error: undefined };
       }
       
-      return { error: 'Sign in failed' };
+      return { error: 'Sign in failed - no user returned' };
     } catch (error: any) {
       console.error('❌ AuthActions: Sign in exception:', error);
       return { error: error.message || 'Authentication failed' };

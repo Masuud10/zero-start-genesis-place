@@ -14,10 +14,9 @@ export const useAuthState = () => {
   const subscriptionRef = useRef<any>(null);
   const initializedRef = useRef(false);
 
-  console.log('🔐 useAuthState: Hook called, mounted:', isMountedRef.current, 'initialized:', initializedRef.current);
+  console.log('🔐 useAuthState: Hook initialized');
 
   useEffect(() => {
-    // Prevent multiple initializations
     if (initializedRef.current) {
       console.log('🔐 useAuthState: Already initialized, skipping');
       return;
@@ -50,7 +49,7 @@ export const useAuthState = () => {
           return;
         }
 
-        // Try to fetch profile with timeout and fallback
+        // Try to fetch profile with timeout
         let profile = null;
         try {
           const { data, error: profileError } = await Promise.race([
@@ -60,7 +59,7 @@ export const useAuthState = () => {
               .eq('id', authUser.id)
               .maybeSingle(),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+              setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
             )
           ]) as any;
           
@@ -70,7 +69,7 @@ export const useAuthState = () => {
             profile = data;
           }
         } catch (err: any) {
-          console.warn('🔐 useAuthState: Profile fetch failed, using fallback:', err.message);
+          console.warn('🔐 useAuthState: Profile fetch failed:', err.message);
         }
         
         // Resolve role with fallback
@@ -139,7 +138,7 @@ export const useAuthState = () => {
               console.log('🔐 useAuthState: User signed out');
               await processUser(null);
             } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-              console.log('🔐 useAuthState: User signed in/token refreshed, processing...');
+              console.log('🔐 useAuthState: User signed in/token refreshed');
               await processUser(session.user);
             }
           }
@@ -168,7 +167,7 @@ export const useAuthState = () => {
       } catch (error: any) {
         console.error('🔐 useAuthState: Initialization error:', error);
         if (isMountedRef.current) {
-          setError(null); // Don't show initialization errors to user
+          setError(null);
           setIsLoading(false);
         }
       }
