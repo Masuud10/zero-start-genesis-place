@@ -13,6 +13,7 @@ export interface CreateUserRequest {
 export interface CreateUserResponse {
   success: boolean;
   user_id?: string;
+  school_id?: string;
   message?: string;
   error?: string;
 }
@@ -20,44 +21,49 @@ export interface CreateUserResponse {
 export class AdminUserService {
   static async createUser(userData: CreateUserRequest): Promise<CreateUserResponse> {
     try {
-      console.log('🔧 AdminUserService: Creating user via database function', userData);
+      console.log('👤 AdminUserService: Creating user', userData);
 
-      // Validate current user permissions
+      // Get current user scope for multi-tenancy validation
       const scope = await MultiTenantUtils.getCurrentUserScope();
-      const capabilities = MultiTenantUtils.getRoleCapabilities(scope.userRole as any);
       
-      if (!capabilities.canCreateUsers) {
-        return {
-          success: false,
-          error: 'You do not have permission to create users'
-        };
+      if (!scope.userId) {
+        throw new Error('Authentication required');
       }
 
-      // For school-level admins, ensure school_id is set to their school
-      if (MultiTenantUtils.isSchoolAdmin(scope.userRole) && scope.schoolId) {
-        userData.school_id = scope.schoolId;
+      // Validate permissions
+      if (!['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(scope.userRole || '')) {
+        throw new Error('Insufficient permissions to create users');
       }
 
-      // Use the enhanced create_admin_user database function with multi-tenant support
+      // For school-level admins, ensure they can only create users in their school
+      let targetSchoolId = userData.school_id;
+      if (!scope.isSystemAdmin) {
+        if (!scope.schoolId) {
+          throw new Error('School assignment required');
+        }
+        targetSchoolId = scope.schoolId; // Force school-level users to create users in their own school
+      }
+
+      // Use the database function to create the user
       const { data, error } = await supabase.rpc('create_admin_user', {
         user_email: userData.email,
         user_password: userData.password,
         user_name: userData.name,
         user_role: userData.role,
-        user_school_id: userData.school_id || null
+        user_school_id: targetSchoolId || null
       });
 
       if (error) {
-        console.error('🔧 AdminUserService: Database function error:', error);
-        throw new Error(error.message || 'Database operation failed');
+        console.error('👤 AdminUserService: Database function error:', error);
+        throw error;
       }
 
-      // The function returns a JSONB object - handle the response properly
+      // Handle the JSONB response
       if (data && typeof data === 'object' && data !== null) {
         const result = data as Record<string, any>;
         
         if ('error' in result && typeof result.error === 'string') {
-          console.error('🔧 AdminUserService: Function returned error:', result.error);
+          console.error('👤 AdminUserService: Function returned error:', result.error);
           return {
             success: false,
             error: result.error
@@ -65,143 +71,42 @@ export class AdminUserService {
         }
 
         if ('success' in result && result.success === true) {
-          console.log('🔧 AdminUserService: User created successfully:', result);
+          console.log('👤 AdminUserService: User created successfully:', result);
           return {
             success: true,
             user_id: typeof result.user_id === 'string' ? result.user_id : undefined,
+            school_id: typeof result.school_id === 'string' ? result.school_id : undefined,
             message: typeof result.message === 'string' ? result.message : 'User created successfully'
           };
         }
       }
 
-      // Fallback for unexpected response format
-      console.warn('🔧 AdminUserService: Unexpected response format:', data);
       return {
         success: false,
         error: 'Unexpected response from server'
       };
 
     } catch (error: any) {
-      console.error('🔧 AdminUserService: Service error:', {
-        error,
-        message: error?.message,
-        stack: error?.stack
-      });
+      console.error('👤 AdminUserService: Service error:', error);
       return {
         success: false,
-        error: error?.message || 'Failed to create user'
+        error: error.message || 'Failed to create user'
       };
     }
   }
 
-  static async validateUserCreation(email: string): Promise<boolean> {
+  static async getUsersForSchool() {
     try {
-      // Check if user exists in profiles table
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .eq('email', email)
-        .single();
+      console.log('👤 AdminUserService: Fetching users for current school');
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('🔧 AdminUserService: Validation error:', error);
-        return false;
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      
+      if (!scope.userId) {
+        throw new Error('Authentication required');
       }
 
-      return !!data; // Returns true if user exists
-    } catch (error) {
-      console.error('🔧 AdminUserService: Validation exception:', error);
-      return false;
-    }
-  }
-
-  static async getCurrentUserPermissions() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        return { 
-          canCreateUsers: false, 
-          userRole: null, 
-          schoolId: null,
-          isSystemAdmin: false,
-          isSchoolAdmin: false
-        };
-      }
-
-      // Get user profile to determine role and school
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role, school_id')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('🔧 AdminUserService: Error fetching user profile:', error);
-        return { 
-          canCreateUsers: false, 
-          userRole: null, 
-          schoolId: null,
-          isSystemAdmin: false,
-          isSchoolAdmin: false
-        };
-      }
-
-      const userRole = profile?.role;
-      const schoolId = profile?.school_id;
-      
-      // Determine permissions based on role
-      const isSystemAdmin = userRole === 'elimisha_admin' || userRole === 'edufam_admin';
-      const isSchoolAdmin = userRole === 'school_owner' || userRole === 'principal';
-      const canCreateUsers = isSystemAdmin || isSchoolAdmin;
-
-      return {
-        canCreateUsers,
-        userRole,
-        schoolId,
-        isSystemAdmin,
-        isSchoolAdmin
-      };
-    } catch (error) {
-      console.error('🔧 AdminUserService: Permission check error:', error);
-      return { 
-        canCreateUsers: false, 
-        userRole: null, 
-        schoolId: null,
-        isSystemAdmin: false,
-        isSchoolAdmin: false
-      };
-    }
-  }
-
-  static async getUsersForSchool(schoolId?: string) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        return { data: [], error: new Error('Not authenticated') };
-      }
-
-      // Get user profile to determine permissions
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, school_id')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('🔧 AdminUserService: Error fetching user profile:', profileError);
-        return { data: [], error: new Error('Failed to get user permissions') };
-      }
-
-      const userRole = profile?.role;
-      const userSchoolId = profile?.school_id;
-      const isSystemAdmin = userRole === 'elimisha_admin' || userRole === 'edufam_admin';
-      
-      console.log('🔧 AdminUserService: Getting users for scope:', { userRole, userSchoolId, isSystemAdmin });
-      
-      // First, get the profiles data with better error handling
-      let profilesQuery = supabase
+      // Build query based on user scope
+      let query = supabase
         .from('profiles')
         .select(`
           id,
@@ -210,89 +115,118 @@ export class AdminUserService {
           role,
           school_id,
           created_at,
-          updated_at
-        `)
-        .order('created_at', { ascending: false });
+          updated_at,
+          school:schools(name)
+        `);
 
-      // System admins can see all users or filter by school
-      if (isSystemAdmin) {
-        console.log('🔧 AdminUserService: System admin - fetching all users');
-        if (schoolId) {
-          profilesQuery = profilesQuery.eq('school_id', schoolId);
-        }
-      } else {
-        // Non-admin users only see users in their school
-        if (userSchoolId) {
-          console.log('🔧 AdminUserService: School admin - filtering by school:', userSchoolId);
-          profilesQuery = profilesQuery.eq('school_id', userSchoolId);
-        } else {
-          console.log('🔧 AdminUserService: User has no school, returning empty');
-          return { data: [], error: null };
-        }
+      // Apply school filtering for non-system admins
+      if (!scope.isSystemAdmin && scope.schoolId) {
+        query = query.eq('school_id', scope.schoolId);
       }
 
-      const { data: profiles, error: profilesError } = await profilesQuery;
+      // Order by creation date
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('👤 AdminUserService: Error fetching users:', error);
+        throw error;
+      }
+
+      console.log('👤 AdminUserService: Successfully fetched users:', data?.length || 0);
+      return { data, error: null };
+
+    } catch (error) {
+      console.error('👤 AdminUserService: Service error:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateUserRole(userId: string, newRole: string) {
+    try {
+      console.log('👤 AdminUserService: Updating user role:', { userId, newRole });
+
+      const scope = await MultiTenantUtils.getCurrentUserScope();
       
-      if (profilesError) {
-        console.error('🔧 AdminUserService: Error fetching profiles:', {
-          error: profilesError,
-          message: profilesError.message,
-          details: profilesError.details,
-          hint: profilesError.hint
-        });
-        
-        // Return a more user-friendly error
-        return { 
-          data: [], 
-          error: new Error(`Database access error: ${profilesError.message}. Please check your permissions.`)
-        };
+      if (!scope.userId) {
+        throw new Error('Authentication required');
       }
 
-      if (!profiles || profiles.length === 0) {
-        console.log('🔧 AdminUserService: No profiles found');
-        return { data: [], error: null };
+      // Only system admins can update roles
+      if (!scope.isSystemAdmin) {
+        throw new Error('Only system administrators can update user roles');
       }
 
-      // Get unique school IDs from profiles
-      const schoolIds = [...new Set(profiles.map(p => p.school_id).filter(Boolean))];
-      
-      // Fetch school data separately to avoid relationship ambiguity
-      let schoolsData: any[] = [];
-      if (schoolIds.length > 0) {
-        const { data: schools, error: schoolsError } = await supabase
-          .from('schools')
-          .select('id, name')
-          .in('id', schoolIds);
+      // Use the database function to update the role
+      const { error } = await supabase.rpc('update_user_role', {
+        target_user_id: userId,
+        new_role: newRole
+      });
 
-        if (schoolsError) {
-          console.warn('🔧 AdminUserService: Warning - could not fetch schools:', schoolsError);
-        } else {
-          schoolsData = schools || [];
-        }
+      if (error) {
+        console.error('👤 AdminUserService: Role update error:', error);
+        throw error;
       }
 
-      // Create a map of school ID to school data
-      const schoolMap = new Map(schoolsData.map(school => [school.id, school]));
-
-      // Combine profiles with school data
-      const enrichedProfiles = profiles.map(profile => ({
-        ...profile,
-        school: profile.school_id ? schoolMap.get(profile.school_id) : null
-      }));
-
-      console.log('🔧 AdminUserService: Successfully fetched users:', enrichedProfiles.length, 'users');
-      return { data: enrichedProfiles, error: null };
+      console.log('👤 AdminUserService: Role updated successfully');
+      return { success: true, error: null };
 
     } catch (error: any) {
-      console.error('🔧 AdminUserService: Service error in getUsersForSchool:', {
-        error,
-        message: error?.message,
-        stack: error?.stack
-      });
-      return { 
-        data: [], 
-        error: new Error(error?.message || 'Failed to fetch users')
-      };
+      console.error('👤 AdminUserService: Service error:', error);
+      return { success: false, error: error.message || 'Failed to update role' };
+    }
+  }
+
+  static async deleteUser(userId: string) {
+    try {
+      console.log('👤 AdminUserService: Deleting user:', userId);
+
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      
+      if (!scope.userId) {
+        throw new Error('Authentication required');
+      }
+
+      // Check permissions - only system admins or school admins can delete users
+      if (!['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(scope.userRole || '')) {
+        throw new Error('Insufficient permissions to delete users');
+      }
+
+      // For school-level admins, ensure they can only delete users from their school
+      if (!scope.isSystemAdmin) {
+        const { data: userToDelete, error: fetchError } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', userId)
+          .single();
+
+        if (fetchError) {
+          throw new Error('User not found');
+        }
+
+        if (userToDelete.school_id !== scope.schoolId) {
+          throw new Error('Cannot delete users from other schools');
+        }
+      }
+
+      // Delete from profiles table (this will cascade to related tables)
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('👤 AdminUserService: Delete error:', error);
+        throw error;
+      }
+
+      console.log('👤 AdminUserService: User deleted successfully');
+      return { success: true, error: null };
+
+    } catch (error: any) {
+      console.error('👤 AdminUserService: Service error:', error);
+      return { success: false, error: error.message || 'Failed to delete user' };
     }
   }
 }

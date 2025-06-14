@@ -1,114 +1,80 @@
 
-import { useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
 export const useSchoolScopedData = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  const [schoolId, setSchoolId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Safe school context access with error handling
-  let currentSchool: any = null;
-  let schoolError = false;
-
-  try {
-    const { useSchool } = require('@/contexts/SchoolContext');
-    const schoolContext = useSchool();
-    currentSchool = schoolContext.currentSchool;
-    // Only consider it an error if school context is explicitly in error state
-    // Not just when it's loading or undefined
-    schoolError = schoolContext.error || false;
-  } catch (error) {
-    console.warn('🏫 useSchoolScopedData: School context not available, using fallback');
-    // Don't treat missing context as an error for principals with school_id
-    schoolError = false;
-  }
-
-  const isSystemAdmin = useCallback(() => {
-    return user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
-  }, [user?.role]);
-
-  const getCurrentSchoolId = useCallback(() => {
-    if (isSystemAdmin()) {
-      return currentSchool?.id || user?.school_id;
-    }
-    return user?.school_id;
-  }, [isSystemAdmin, currentSchool?.id, user?.school_id]);
-
-  const createSchoolScopedQuery = useCallback((tableName: string, selectClause = '*') => {
-    const schoolId = getCurrentSchoolId();
-    
-    // Use proper type assertion for dynamic table access
-    const query = (supabase as any).from(tableName).select(selectClause);
-
-    // System admins can access all data
-    if (isSystemAdmin()) {
-      // If a specific school is selected, filter by it
-      if (currentSchool?.id) {
-        return query.eq('school_id', currentSchool.id);
-      }
-      return query;
-    }
-
-    // Non-admin users are restricted to their school's data
-    if (!schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-
-    // Add school_id filter for tables that have it directly
-    if (['students', 'classes', 'subjects', 'announcements', 'support_tickets', 'timetables', 'messages'].includes(tableName)) {
-      return query.eq('school_id', schoolId);
-    }
-    
-    return query;
-  }, [isSystemAdmin, getCurrentSchoolId, currentSchool?.id]);
-
-  const validateSchoolAccess = useCallback((data: any, requiredSchoolId?: string) => {
-    if (isSystemAdmin()) {
-      return true;
-    }
-
-    const userSchoolId = getCurrentSchoolId();
-    if (!userSchoolId) {
-      return false;
-    }
-
-    const targetSchoolId = requiredSchoolId || data?.school_id;
-    if (targetSchoolId && targetSchoolId !== userSchoolId) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access this data.",
-        variant: "destructive",
+  useEffect(() => {
+    if (user) {
+      const isAdmin = MultiTenantUtils.isSystemAdmin(user.role);
+      setIsSystemAdmin(isAdmin);
+      setSchoolId(user.school_id || null);
+      setUserRole(user.role);
+      
+      console.log('🏫 useSchoolScopedData: Updated scope:', {
+        userId: user.id,
+        userRole: user.role,
+        schoolId: user.school_id,
+        isSystemAdmin: isAdmin
       });
-      return false;
+    } else {
+      setIsSystemAdmin(false);
+      setSchoolId(null);
+      setUserRole(null);
     }
+  }, [user]);
 
-    return true;
-  }, [isSystemAdmin, getCurrentSchoolId, toast]);
+  const getCurrentSchoolId = () => {
+    return schoolId;
+  };
 
-  const insertWithSchoolId = useCallback(async (tableName: string, data: any) => {
-    const schoolId = getCurrentSchoolId();
+  const validateSchoolAccess = (targetSchoolId: string) => {
+    if (isSystemAdmin) {
+      return true; // System admins can access any school
+    }
     
-    if (!isSystemAdmin() && !schoolId) {
-      throw new Error('School assignment required');
+    return schoolId === targetSchoolId;
+  };
+
+  const canManageUsers = () => {
+    return user && ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role);
+  };
+
+  const canManageSchools = () => {
+    return user && ['elimisha_admin', 'edufam_admin'].includes(user.role);
+  };
+
+  const canViewAnalytics = () => {
+    return user && ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role);
+  };
+
+  const canManageFinances = () => {
+    return user && ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal', 'finance_officer'].includes(user.role);
+  };
+
+  const filterDataBySchoolScope = <T extends { school_id?: string }>(data: T[]): T[] => {
+    if (isSystemAdmin) {
+      return data; // System admins see all data
     }
 
-    // Add school_id for tables that require it
-    if (['students', 'classes', 'subjects', 'announcements', 'support_tickets', 'timetables', 'messages'].includes(tableName)) {
-      data.school_id = schoolId;
-    }
-
-    return (supabase as any).from(tableName).insert(data);
-  }, [isSystemAdmin, getCurrentSchoolId]);
+    return data.filter(item => item.school_id === schoolId);
+  };
 
   return {
-    isSystemAdmin: isSystemAdmin(),
+    isSystemAdmin,
+    schoolId,
+    userRole,
     getCurrentSchoolId,
-    createSchoolScopedQuery,
     validateSchoolAccess,
-    insertWithSchoolId,
-    currentSchool,
-    schoolError
+    canManageUsers,
+    canManageSchools,
+    canViewAnalytics,
+    canManageFinances,
+    filterDataBySchoolScope
   };
 };

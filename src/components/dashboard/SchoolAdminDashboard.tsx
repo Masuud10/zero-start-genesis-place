@@ -1,46 +1,49 @@
 
 import React from 'react';
 import { AuthUser } from '@/types/auth';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Receipt, TrendingUp, FileText, Plus } from 'lucide-react';
+import { Users, BookOpen, Calendar, DollarSign, Plus, BarChart3 } from 'lucide-react';
 
-interface FinanceOfficerDashboardProps {
+interface SchoolAdminDashboardProps {
   user: AuthUser;
   onModalOpen: (modalType: string) => void;
 }
 
-const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
+const SchoolAdminDashboard: React.FC<SchoolAdminDashboardProps> = ({
   user,
   onModalOpen
 }) => {
+  const { schoolId } = useSchoolScopedData();
+
   const quickActions = [
     {
-      title: 'Record Payment',
-      description: 'Process fee payments',
-      icon: DollarSign,
-      action: () => onModalOpen('record-payment'),
-      color: 'bg-green-500'
-    },
-    {
-      title: 'Generate Invoice',
-      description: 'Create student invoices',
-      icon: Receipt,
-      action: () => onModalOpen('generate-invoice'),
+      title: 'Add User',
+      description: 'Create new teachers, staff, or admins',
+      icon: Users,
+      action: () => onModalOpen('create-user'),
       color: 'bg-blue-500'
     },
     {
-      title: 'Financial Reports',
-      description: 'View financial analytics',
-      icon: TrendingUp,
-      action: () => onModalOpen('financial-reports'),
+      title: 'Create Class',
+      description: 'Set up a new class',
+      icon: BookOpen,
+      action: () => onModalOpen('create-class'),
+      color: 'bg-green-500'
+    },
+    {
+      title: 'Schedule Event',
+      description: 'Add events to the school calendar',
+      icon: Calendar,
+      action: () => onModalOpen('create-event'),
       color: 'bg-purple-500'
     },
     {
-      title: 'Fee Structure',
-      description: 'Manage fee categories',
-      icon: FileText,
-      action: () => onModalOpen('fee-structure'),
+      title: 'Financial Reports',
+      description: 'View school financial data',
+      icon: DollarSign,
+      action: () => onModalOpen('financial-reports'),
       color: 'bg-orange-500'
     }
   ];
@@ -49,61 +52,75 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Finance Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">School Management</h1>
           <p className="text-gray-600 mt-1">
-            Welcome back, {user.name}! Manage school finances and fee collections.
+            Welcome back, {user.name}! Manage your school operations from here.
           </p>
         </div>
         <div className="flex gap-3">
           <Button 
-            onClick={() => onModalOpen('record-payment')}
-            className="bg-green-600 hover:bg-green-700"
+            onClick={() => onModalOpen('create-user')}
+            className="bg-blue-600 hover:bg-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Record Payment
+            Add User
           </Button>
         </div>
       </div>
 
-      {/* Financial Stats */}
+      {/* School Info Alert */}
+      {!schoolId && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="text-yellow-800">School Assignment Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-yellow-700">
+              Your account needs to be properly linked to a school. Please contact the system administrator.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Students</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Loading...</div>
+            <p className="text-xs text-gray-500 mt-1">Active enrollment</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Teaching Staff</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Loading...</div>
+            <p className="text-xs text-gray-500 mt-1">Active teachers</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Classes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Loading...</div>
+            <p className="text-xs text-gray-500 mt-1">Active classes</p>
+          </CardContent>
+        </Card>
+        
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Monthly Revenue</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">This month</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Outstanding Fees</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Pending payments</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Payments Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Processed today</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Collection Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">This term</p>
+            <p className="text-xs text-gray-500 mt-1">Fee collections</p>
           </CardContent>
         </Card>
       </div>
@@ -141,18 +158,18 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
         </div>
       </div>
 
-      {/* Recent Transactions */}
+      {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle>Recent School Activity</CardTitle>
           <CardDescription>
-            Latest payment activities
+            Latest activities in your school
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <p className="text-sm text-gray-500 text-center py-8">
-              Transaction history will appear here once payments are processed
+              Activity feed will show real school data once students and classes are added
             </p>
           </div>
         </CardContent>
@@ -161,4 +178,4 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
   );
 };
 
-export default FinanceOfficerDashboard;
+export default SchoolAdminDashboard;

@@ -3,44 +3,44 @@ import React from 'react';
 import { AuthUser } from '@/types/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Receipt, TrendingUp, FileText, Plus } from 'lucide-react';
+import { School, Users, BarChart3, Settings, Plus } from 'lucide-react';
 
-interface FinanceOfficerDashboardProps {
+interface SystemAdminDashboardProps {
   user: AuthUser;
   onModalOpen: (modalType: string) => void;
 }
 
-const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
+const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({
   user,
   onModalOpen
 }) => {
   const quickActions = [
     {
-      title: 'Record Payment',
-      description: 'Process fee payments',
-      icon: DollarSign,
-      action: () => onModalOpen('record-payment'),
-      color: 'bg-green-500'
-    },
-    {
-      title: 'Generate Invoice',
-      description: 'Create student invoices',
-      icon: Receipt,
-      action: () => onModalOpen('generate-invoice'),
+      title: 'Create School',
+      description: 'Add a new school to the platform',
+      icon: School,
+      action: () => onModalOpen('create-school'),
       color: 'bg-blue-500'
     },
     {
-      title: 'Financial Reports',
-      description: 'View financial analytics',
-      icon: TrendingUp,
-      action: () => onModalOpen('financial-reports'),
+      title: 'Manage Users',
+      description: 'View and manage all platform users',
+      icon: Users,
+      action: () => onModalOpen('manage-users'),
+      color: 'bg-green-500'
+    },
+    {
+      title: 'System Analytics',
+      description: 'View platform-wide analytics',
+      icon: BarChart3,
+      action: () => onModalOpen('system-analytics'),
       color: 'bg-purple-500'
     },
     {
-      title: 'Fee Structure',
-      description: 'Manage fee categories',
-      icon: FileText,
-      action: () => onModalOpen('fee-structure'),
+      title: 'Platform Settings',
+      description: 'Configure system-wide settings',
+      icon: Settings,
+      action: () => onModalOpen('platform-settings'),
       color: 'bg-orange-500'
     }
   ];
@@ -49,61 +49,61 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Finance Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">System Administration</h1>
           <p className="text-gray-600 mt-1">
-            Welcome back, {user.name}! Manage school finances and fee collections.
+            Welcome back, {user.name}! Manage the entire EduFam platform from here.
           </p>
         </div>
         <div className="flex gap-3">
           <Button 
-            onClick={() => onModalOpen('record-payment')}
-            className="bg-green-600 hover:bg-green-700"
+            onClick={() => onModalOpen('create-school')}
+            className="bg-blue-600 hover:bg-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Record Payment
+            Create School
           </Button>
         </div>
       </div>
 
-      {/* Financial Stats */}
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total Schools</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">This month</p>
+            <p className="text-xs text-gray-500 mt-1">Active institutions</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Outstanding Fees</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Pending payments</p>
+            <p className="text-xs text-gray-500 mt-1">Platform users</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Payments Today</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Active Students</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Processed today</p>
+            <p className="text-xs text-gray-500 mt-1">Enrolled students</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Collection Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">System Health</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">This term</p>
+            <div className="text-2xl font-bold text-green-600">Excellent</div>
+            <p className="text-xs text-gray-500 mt-1">All systems operational</p>
           </CardContent>
         </Card>
       </div>
@@ -141,18 +141,18 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
         </div>
       </div>
 
-      {/* Recent Transactions */}
+      {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle>Recent Platform Activity</CardTitle>
           <CardDescription>
-            Latest payment activities
+            Latest activities across all schools
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <p className="text-sm text-gray-500 text-center py-8">
-              Transaction history will appear here once payments are processed
+              Activity feed will be populated with real data from schools
             </p>
           </div>
         </CardContent>
@@ -161,4 +161,4 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
   );
 };
 
-export default FinanceOfficerDashboard;
+export default SystemAdminDashboard;

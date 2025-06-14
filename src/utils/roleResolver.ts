@@ -1,125 +1,135 @@
-
-import { User } from '@supabase/supabase-js';
-import { UserRole } from '@/types/user';
-
 export class RoleResolver {
-  private static readonly VALID_ROLES: UserRole[] = [
-    'school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'
-  ];
-
-  private static readonly ADMIN_EMAILS = [
-    'masuud@gmail.com'
-  ];
-
-  private static readonly EMAIL_PATTERNS = {
-    'edufam_admin': ['@elimisha.com', 'admin@', 'system@'],
-    'principal': ['principal@', 'head@'],
-    'teacher': ['teacher@', 'staff@'],
-    'school_owner': ['owner@', 'proprietor@'],
-    'finance_officer': ['finance@', 'accounts@']
-  };
-
-  static resolveRole(authUser: User, profileRole?: string): UserRole {
-    console.log('🔍 RoleResolver: Resolving role for user:', authUser.email, {
+  /**
+   * Resolves the final role for a user based on auth user data and profile role
+   */
+  static resolveRole(authUser: any, profileRole?: string): string {
+    console.log('🔑 RoleResolver: Resolving role for user:', {
+      email: authUser?.email,
+      authMetaRole: authUser?.user_metadata?.role,
       profileRole,
-      userMetadataRole: authUser.user_metadata?.role,
-      appMetadataRole: authUser.app_metadata?.role,
-      email: authUser.email
+      authAppMetaRole: authUser?.app_metadata?.role
     });
 
-    // Priority 1: Profile role from database (most trusted)
-    if (profileRole && this.isValidRole(profileRole)) {
-      const normalizedRole = this.normalizeRole(profileRole);
-      console.log('🔍 RoleResolver: Using profile role:', normalizedRole);
-      return normalizedRole;
+    // Priority 1: Profile role (from database)
+    if (profileRole) {
+      console.log('🔑 RoleResolver: Using profile role:', profileRole);
+      return profileRole;
     }
 
-    // Priority 2: App metadata (set by admin)
-    if (authUser.app_metadata?.role && this.isValidRole(authUser.app_metadata.role)) {
-      const normalizedRole = this.normalizeRole(authUser.app_metadata.role);
-      console.log('🔍 RoleResolver: Using app_metadata role:', normalizedRole);
-      return normalizedRole;
+    // Priority 2: Auth user metadata role
+    if (authUser?.user_metadata?.role) {
+      console.log('🔑 RoleResolver: Using auth metadata role:', authUser.user_metadata.role);
+      return authUser.user_metadata.role;
     }
 
-    // Priority 3: User metadata (from signup)
-    if (authUser.user_metadata?.role && this.isValidRole(authUser.user_metadata.role)) {
-      const normalizedRole = this.normalizeRole(authUser.user_metadata.role);
-      console.log('🔍 RoleResolver: Using user_metadata role:', normalizedRole);
-      return normalizedRole;
+    // Priority 3: Auth app metadata role
+    if (authUser?.app_metadata?.role) {
+      console.log('🔑 RoleResolver: Using auth app metadata role:', authUser.app_metadata.role);
+      return authUser.app_metadata.role;
     }
 
-    // Priority 4: Email-based detection (fallback)
-    const emailRole = this.detectRoleFromEmail(authUser.email || '');
-    console.log('🔍 RoleResolver: Using email-based role:', emailRole);
-    return emailRole;
-  }
-
-  private static isValidRole(role: string): boolean {
-    if (!role) return false;
-    const normalized = this.normalizeRole(role);
-    const isValid = this.VALID_ROLES.includes(normalized);
-    console.log('🔍 RoleResolver: Role validation:', { role, normalized, isValid });
-    return isValid;
-  }
-
-  private static normalizeRole(role: string): UserRole {
-    if (!role) {
-      console.log('🔍 RoleResolver: Empty role, defaulting to parent');
-      return 'parent';
-    }
-    
-    const normalized = role.toLowerCase().trim();
-    console.log('🔍 RoleResolver: Normalizing role:', { original: role, normalized });
-    
-    // Handle admin variations
-    if (['elimisha_admin', 'edufam_admin', 'admin'].includes(normalized)) {
-      return 'edufam_admin';
-    }
-    
-    // Direct mapping for exact matches
-    if (this.VALID_ROLES.includes(normalized as UserRole)) {
-      return normalized as UserRole;
-    }
-    
-    // Handle variations
-    const roleMap: Record<string, UserRole> = {
-      'schoolowner': 'school_owner',
-      'owner': 'school_owner',
-      'financeofficer': 'finance_officer',
-      'finance': 'finance_officer',
-      'headteacher': 'principal',
-      'head': 'principal'
-    };
-    
-    const mappedRole = roleMap[normalized] || 'parent';
-    console.log('🔍 RoleResolver: Mapped role:', { normalized, mappedRole });
-    return mappedRole;
-  }
-
-  private static detectRoleFromEmail(email: string): UserRole {
-    if (!email) {
-      console.log('🔍 RoleResolver: No email, defaulting to parent');
-      return 'parent';
-    }
-    
-    const emailLower = email.toLowerCase();
-    console.log('🔍 RoleResolver: Detecting role from email:', emailLower);
-    
-    // Check admin emails first
-    if (this.ADMIN_EMAILS.includes(emailLower)) {
-      console.log('🔍 RoleResolver: Email matches admin list');
-      return 'edufam_admin';
-    }
-    
-    // Check email patterns
-    for (const [role, patterns] of Object.entries(this.EMAIL_PATTERNS)) {
-      if (patterns.some(pattern => emailLower.includes(pattern))) {
-        console.log('🔍 RoleResolver: Email matches pattern for role:', role);
-        return role as UserRole;
+    // Priority 4: Email-based role detection
+    if (authUser?.email) {
+      const emailRole = this.detectRoleFromEmail(authUser.email);
+      if (emailRole !== 'parent') {
+        console.log('🔑 RoleResolver: Using email-detected role:', emailRole);
+        return emailRole;
       }
     }
-    
-    console.log('🔍 RoleResolver: No pattern match, defaulting to parent');
+
+    // Default: parent role
+    console.log('🔑 RoleResolver: Using default role: parent');
     return 'parent';
+  }
+
+  /**
+   * Detects role based on email patterns
+   */
+  private static detectRoleFromEmail(email: string): string {
+    const emailLower = email.toLowerCase();
+
+    // System admin patterns
+    if (emailLower.includes('@elimisha.com') || emailLower === 'masuud@gmail.com') {
+      return 'elimisha_admin';
+    }
+
+    if (emailLower.includes('admin@') || emailLower.includes('edufam')) {
+      return 'edufam_admin';
+    }
+
+    // School role patterns
+    if (emailLower.includes('principal') || emailLower.includes('headteacher')) {
+      return 'principal';
+    }
+
+    if (emailLower.includes('owner') || emailLower.includes('proprietor')) {
+      return 'school_owner';
+    }
+
+    if (emailLower.includes('teacher') || emailLower.includes('tutor')) {
+      return 'teacher';
+    }
+
+    if (emailLower.includes('finance') || emailLower.includes('accounts') || emailLower.includes('bursar')) {
+      return 'finance_officer';
+    }
+
+    // Default role
+    return 'parent';
+  }
+
+  /**
+   * Validates if a role is valid
+   */
+  static isValidRole(role: string): boolean {
+    const validRoles = [
+      'elimisha_admin',
+      'edufam_admin', 
+      'school_owner',
+      'principal',
+      'teacher',
+      'parent',
+      'finance_officer'
+    ];
+
+    return validRoles.includes(role);
+  }
+
+  /**
+   * Gets role hierarchy level (higher number = more permissions)
+   */
+  static getRoleLevel(role: string): number {
+    const roleLevels: Record<string, number> = {
+      'elimisha_admin': 100,
+      'edufam_admin': 90,
+      'school_owner': 80,
+      'principal': 70,
+      'finance_officer': 50,
+      'teacher': 40,
+      'parent': 10
+    };
+
+    return roleLevels[role] || 0;
+  }
+
+  /**
+   * Checks if user can manage another user based on roles
+   */
+  static canManageRole(managerRole: string, targetRole: string): boolean {
+    const managerLevel = this.getRoleLevel(managerRole);
+    const targetLevel = this.getRoleLevel(targetRole);
+
+    // System admins can manage everyone
+    if (managerRole === 'elimisha_admin' || managerRole === 'edufam_admin') {
+      return true;
+    }
+
+    // School admins can manage school-level roles (but not system admins)
+    if (managerRole === 'school_owner' || managerRole === 'principal') {
+      return targetLevel < 90 && managerLevel > targetLevel;
+    }
+
+    // Others cannot manage roles
+    return false;
   }
 }
