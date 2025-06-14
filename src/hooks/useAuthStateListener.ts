@@ -16,7 +16,6 @@ export const useAuthStateListener = ({
 }: UseAuthStateListenerParams) => {
   const isMountedRef = useRef(true);
   const initializedRef = useRef(false);
-  const processingRef = useRef(false);
   const currentUserRef = useRef<string | null>(null);
   const subscriptionRef = useRef<any>(null);
 
@@ -44,8 +43,7 @@ export const useAuthStateListener = ({
           if (event === 'SIGNED_IN' && session?.user) {
             console.log('🔐 AuthStateListener: User signed in:', session.user.email);
             
-            if (currentUserRef.current !== session.user.id && !processingRef.current) {
-              processingRef.current = true;
+            if (currentUserRef.current !== session.user.id) {
               currentUserRef.current = session.user.id;
               
               try {
@@ -60,8 +58,6 @@ export const useAuthStateListener = ({
                   } as AuthUser);
                   setIsLoading(false);
                 }
-              } finally {
-                processingRef.current = false;
               }
             }
           } else if (event === 'SIGNED_OUT' || !session) {
@@ -76,15 +72,10 @@ export const useAuthStateListener = ({
             // Skip profile refetch on token refresh to avoid unnecessary calls
             if (currentUserRef.current !== session.user.id) {
               currentUserRef.current = session.user.id;
-              if (!processingRef.current) {
-                processingRef.current = true;
-                try {
-                  await fetchUserProfile(session.user);
-                } catch (profileError) {
-                  console.warn('🔐 AuthStateListener: Profile fetch failed during token refresh:', profileError);
-                } finally {
-                  processingRef.current = false;
-                }
+              try {
+                await fetchUserProfile(session.user);
+              } catch (profileError) {
+                console.warn('🔐 AuthStateListener: Profile fetch failed during token refresh:', profileError);
               }
             }
           }
@@ -103,29 +94,26 @@ export const useAuthStateListener = ({
 
     // Get initial session with improved error handling
     const getInitialSession = async () => {
-      if (initializedRef.current || processingRef.current) {
-        console.log('🔐 AuthStateListener: Already initialized/processing, skipping');
+      if (initializedRef.current) {
+        console.log('🔐 AuthStateListener: Already initialized, skipping');
         return;
       }
-      
-      processingRef.current = true;
       
       try {
         console.log('🔐 AuthStateListener: Getting initial session');
         setIsLoading(true);
         
-        // Use a more reasonable timeout for initial session check
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session check timeout')), 10000)
-        );
+        // Use a reasonable timeout for initial session check
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
         
-        const { data: { session }, error } = await Promise.race([
-          sessionPromise,
-          timeoutPromise
-        ]) as any;
+        const { data: { session }, error } = await supabase.auth
+          .getSession()
+          .abortSignal(controller.signal);
         
-        if (error) {
+        clearTimeout(timeoutId);
+        
+        if (error && error.name !== 'AbortError') {
           console.warn('🔐 AuthStateListener: Error getting initial session:', error);
         }
         
@@ -161,15 +149,15 @@ export const useAuthStateListener = ({
         }
         
         initializedRef.current = true;
-      } catch (error) {
-        console.warn('🔐 AuthStateListener: Exception getting initial session, proceeding without session:', error);
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.warn('🔐 AuthStateListener: Exception getting initial session, proceeding without session:', error);
+        }
         if (isMountedRef.current) {
           setUser(null);
           setIsLoading(false);
           initializedRef.current = true;
         }
-      } finally {
-        processingRef.current = false;
       }
     };
 
@@ -190,7 +178,6 @@ export const useAuthStateListener = ({
       // Reset refs after a delay to prevent race conditions
       setTimeout(() => {
         initializedRef.current = false;
-        processingRef.current = false;
         currentUserRef.current = null;
       }, 200);
     };

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardRoleBasedContent from '@/components/dashboard/DashboardRoleBasedContent';
 import DashboardModals from '@/components/dashboard/DashboardModals';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingCard, ErrorState } from '@/components/common/LoadingStates';
 import { UserRole } from '@/types/user';
 
 const Dashboard = () => {
@@ -23,14 +23,10 @@ const Dashboard = () => {
     console.log('📊 Dashboard: Still loading auth state');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span>Loading dashboard...</span>
-            </div>
-          </CardContent>
-        </Card>
+        <LoadingCard 
+          title="Loading dashboard..."
+          description="Please wait while we prepare your dashboard"
+        />
       </div>
     );
   }
@@ -40,23 +36,12 @@ const Dashboard = () => {
     console.error('📊 Dashboard: Auth error:', error);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-600">Authentication Error</CardTitle>
-            <CardDescription>
-              There was a problem with your authentication.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-red-600 mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-            >
-              Refresh Page
-            </button>
-          </CardContent>
-        </Card>
+        <ErrorState
+          title="Authentication Error"
+          description="There was a problem with your authentication."
+          error={error}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
@@ -66,22 +51,11 @@ const Dashboard = () => {
     console.error('📊 Dashboard: No user found - this should redirect to login');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-600">Access Denied</CardTitle>
-            <CardDescription>
-              You must be logged in to access the dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <button 
-              onClick={() => window.location.href = '/'} 
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-            >
-              Go to Login
-            </button>
-          </CardContent>
-        </Card>
+        <ErrorState
+          title="Access Denied"
+          description="You must be logged in to access the dashboard."
+          onRetry={() => window.location.href = '/'}
+        />
       </div>
     );
   }
@@ -100,28 +74,12 @@ const Dashboard = () => {
     
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-600">Role Configuration Error</CardTitle>
-            <CardDescription>
-              Your account role is not properly configured.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-red-600 mb-4">
-              Current role: "{user.role || 'None'}" is not valid.
-            </p>
-            <div className="text-xs text-gray-400 mb-4 bg-gray-100 p-2 rounded">
-              <strong>Valid roles:</strong> {validRoles.join(', ')}
-            </div>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-            >
-              Refresh Page
-            </button>
-          </CardContent>
-        </Card>
+        <ErrorState
+          title="Role Configuration Error"
+          description="Your account role is not properly configured."
+          error={`Current role: "${user.role || 'None'}" is not valid. Valid roles: ${validRoles.join(', ')}`}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
