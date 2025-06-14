@@ -15,8 +15,12 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { user, isLoading, error } = useAuthState();
-  const { signIn, signUp, signOut } = useAuthActions();
+  // Ensure hooks are always called in the same order
+  const authState = useAuthState();
+  const authActions = useAuthActions();
+
+  const { user, isLoading, error } = authState;
+  const { signIn, signUp, signOut } = authActions;
 
   console.log('🔐 AuthProvider: Rendering with state', { 
     hasUser: !!user, 
@@ -27,7 +31,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     userSchoolId: user?.school_id
   });
 
-  const value = {
+  // Always create the same value object structure
+  const value: AuthContextType = {
     user,
     isLoading,
     error,

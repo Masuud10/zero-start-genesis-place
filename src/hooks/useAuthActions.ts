@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useAuthActions = () => {
+  // Ensure all hooks are called unconditionally and in the same order
   const signIn = useCallback(async (email: string, password: string) => {
     console.log('🔑 AuthActions: Attempting sign in for', email);
     
@@ -23,7 +24,7 @@ export const useAuthActions = () => {
       console.error('❌ AuthActions: Sign in exception:', error);
       return { data: null, error: { message: error.message || 'Authentication failed' } };
     }
-  }, []);
+  }, []); // Empty dependency array to prevent recreation
 
   const signUp = useCallback(async (email: string, password: string, metadata = {}) => {
     console.log('📝 AuthActions: Attempting sign up for', email);
@@ -52,7 +53,7 @@ export const useAuthActions = () => {
       console.error('❌ AuthActions: Sign up exception:', error);
       return { data: null, error: { message: error.message || 'Sign up failed' } };
     }
-  }, []);
+  }, []); // Empty dependency array to prevent recreation
 
   const signOut = useCallback(async () => {
     console.log('🚪 AuthActions: Starting logout process');
@@ -86,8 +87,9 @@ export const useAuthActions = () => {
         window.location.href = '/';
       }, 100);
     }
-  }, []);
+  }, []); // Empty dependency array to prevent recreation
 
+  // Always return the same object structure
   return {
     signIn,
     signUp,
