@@ -13,12 +13,12 @@ const AppContent: React.FC = () => {
   const { user, isLoading, error } = useAuth();
   const { isLoading: schoolLoading } = useSchool();
 
-  // Stability check to prevent premature rendering
+  // Stability check with shorter delay
   useEffect(() => {
     if (!isLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 200); // Increased delay for better stability
+      }, 100); // Reduced delay
       
       return () => clearTimeout(timer);
     } else {
@@ -33,8 +33,6 @@ const AppContent: React.FC = () => {
     schoolLoading,
     isStable,
     userRole: user?.role,
-    userSchoolId: user?.school_id,
-    showLogin,
     userEmail: user?.email
   });
 
@@ -44,9 +42,15 @@ const AppContent: React.FC = () => {
     return <LoginForm />;
   }
 
-  // Show loading screen while authentication is initializing
-  if (isLoading || !isStable) {
-    console.log('🎯 AppContent: Auth loading or stabilizing, showing loading screen');
+  // Show loading screen only while actively loading
+  if (isLoading) {
+    console.log('🎯 AppContent: Auth loading, showing loading screen');
+    return <LoadingScreen />;
+  }
+
+  // Wait for stability only if we had a loading state
+  if (!isStable && !user) {
+    console.log('🎯 AppContent: Waiting for auth state to stabilize');
     return <LoadingScreen />;
   }
 
@@ -61,14 +65,9 @@ const AppContent: React.FC = () => {
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // Critical: Validate user has a role before proceeding
+  // Validate user has a role
   if (!user.role) {
-    console.error('🎯 AppContent: CRITICAL - Authenticated user has no role:', {
-      userId: user.id,
-      email: user.email,
-      user_metadata: user.user_metadata,
-      app_metadata: user.app_metadata
-    });
+    console.error('🎯 AppContent: User has no role:', user.email);
     
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -77,15 +76,6 @@ const AppContent: React.FC = () => {
           <p className="text-gray-600 mb-4">
             Your account role has not been configured. Please contact your administrator.
           </p>
-          <div className="text-xs text-gray-400 mb-4 bg-gray-100 p-2 rounded text-left">
-            <strong>Debug Information:</strong><br />
-            Email: {user.email}<br />
-            Role: {user.role || 'None'}<br />
-            User ID: {user.id?.slice(0, 8)}...<br />
-            School ID: {user.school_id || 'None'}<br />
-            User Metadata: {JSON.stringify(user.user_metadata)}<br />
-            App Metadata: {JSON.stringify(user.app_metadata)}
-          </div>
           <button 
             onClick={() => window.location.reload()} 
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -97,18 +87,17 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // School context loading check for roles that require school data
+  // Check if school data is still loading for roles that need it
   const rolesThatNeedSchoolData = ['principal', 'teacher', 'school_owner', 'finance_officer'];
   const needsSchoolData = rolesThatNeedSchoolData.includes(user.role);
   
   if (needsSchoolData && schoolLoading) {
-    console.log('🎯 AppContent: School data loading for role that requires it:', user.role);
+    console.log('🎯 AppContent: School data loading for role:', user.role);
     return <LoadingScreen />;
   }
 
-  console.log('🎯 AppContent: All checks passed, rendering main layout for user with role:', user.role);
+  console.log('🎯 AppContent: Rendering main layout for user with role:', user.role);
   
-  // Render the main application layout
   return <ElimshaLayout />;
 };
 

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
 import { RoleResolver } from '@/utils/roleResolver';
@@ -11,10 +11,9 @@ export const useAuthState = () => {
   const [error, setError] = useState<string | null>(null);
   
   const isMountedRef = useRef(true);
-  const processedUserRef = useRef<string | null>(null);
   const initializedRef = useRef(false);
 
-  const processUser = async (authUser: SupabaseUser | null, skipDuplicateCheck = false) => {
+  const processUser = async (authUser: SupabaseUser | null) => {
     if (!isMountedRef.current) return;
     
     if (!authUser) {
@@ -22,32 +21,16 @@ export const useAuthState = () => {
       setUser(null);
       setIsLoading(false);
       setError(null);
-      processedUserRef.current = null;
       return;
     }
 
-    // Avoid duplicate processing unless explicitly requested
-    if (!skipDuplicateCheck && processedUserRef.current === authUser.id) {
-      console.log('🔐 AuthState: User already processed, skipping:', authUser.id);
-      return;
-    }
-    
-    processedUserRef.current = authUser.id;
-    
     try {
-      console.log('🔐 AuthState: Processing user:', {
-        email: authUser.email,
-        id: authUser.id,
-        userMetadata: authUser.user_metadata,
-        appMetadata: authUser.app_metadata
-      });
+      console.log('🔐 AuthState: Processing user:', authUser.email);
       
       let profile = null;
       
-      // Try to fetch profile with proper error handling
+      // Try to fetch profile
       try {
-        console.log('🔐 AuthState: Fetching profile for user:', authUser.id);
-        
         const { data, error } = await supabase
           .from('profiles')
           .select('role, name, school_id, avatar_url')
@@ -58,18 +41,15 @@ export const useAuthState = () => {
           console.warn('🔐 AuthState: Profile fetch error:', error);
         } else {
           profile = data;
-          console.log('🔐 AuthState: Profile fetched successfully:', profile);
         }
-        
       } catch (profileError: any) {
-        console.warn('🔐 AuthState: Profile fetch failed, continuing with auth data only:', profileError.message);
+        console.warn('🔐 AuthState: Profile fetch failed:', profileError.message);
       }
       
-      // Get detailed role information using the improved resolver
+      // Get role information
       const roleInfo = RoleResolver.getRoleInfo(authUser, profile?.role);
-      console.log('🔐 AuthState: Role resolution result:', roleInfo);
       
-      // Construct user data with all available information
+      // Construct user data
       const userData: AuthUser = {
         ...authUser,
         role: roleInfo.role,
@@ -87,10 +67,7 @@ export const useAuthState = () => {
       console.log('🔐 AuthState: User processed successfully:', {
         email: userData.email,
         role: userData.role,
-        roleSource: roleInfo.source,
-        school_id: userData.school_id,
-        hasProfile: !!profile,
-        roleDebugInfo: roleInfo.debugInfo
+        school_id: userData.school_id
       });
       
       if (isMountedRef.current) {
@@ -116,7 +93,7 @@ export const useAuthState = () => {
     
     const setupAuth = async () => {
       try {
-        // Set up auth listener first
+        // Set up auth listener
         const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!isMountedRef.current) return;
@@ -124,26 +101,22 @@ export const useAuthState = () => {
             console.log('🔐 AuthState: Auth state changed:', event, 'hasSession:', !!session);
             
             if (event === 'SIGNED_OUT' || !session?.user) {
-              console.log('🔐 AuthState: User signed out or no session');
-              setUser(null);
-              setIsLoading(false);
-              setError(null);
-              processedUserRef.current = null;
+              await processUser(null);
               return;
             }
             
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-              console.log('🔐 AuthState: Processing auth state change for:', event);
-              await processUser(session.user, event === 'INITIAL_SESSION');
+              await processUser(session.user);
             }
           }
         );
         
         subscription = authSubscription;
         
-        // Then get initial session
+        // Get initial session if not already initialized
         if (!initializedRef.current) {
           console.log('🔐 AuthState: Getting initial session');
+          
           const { data: { session }, error } = await supabase.auth.getSession();
           
           if (error) {
@@ -153,7 +126,7 @@ export const useAuthState = () => {
               setIsLoading(false);
             }
           } else {
-            await processUser(session?.user || null, true);
+            await processUser(session?.user || null);
           }
           
           initializedRef.current = true;
@@ -185,8 +158,7 @@ export const useAuthState = () => {
     retry: () => {
       console.log('🔐 AuthState: Retry requested');
       if (user) {
-        processedUserRef.current = null;
-        processUser(user, true);
+        processUser(user);
       }
     }
   };

@@ -42,28 +42,19 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Safe auth access with error handling
-  let authUser = null;
-  let authError = false;
-  
-  try {
-    const auth = useAuth();
-    authUser = auth?.user;
-  } catch (err) {
-    console.error('🏫 SchoolProvider: Auth context not available:', err);
-    authError = true;
-  }
+  // Get auth user safely
+  const { user: authUser } = useAuth();
 
   console.log('🏫 SchoolProvider: Initializing with user:', {
     hasUser: !!authUser,
     userRole: authUser?.role,
-    userSchoolId: authUser?.school_id,
-    authError
+    userSchoolId: authUser?.school_id
   });
 
   const fetchSchools = async () => {
-    if (!authUser || authError) {
+    if (!authUser) {
       console.log('🏫 SchoolProvider: No authenticated user, skipping school fetch');
+      setIsLoading(false);
       return;
     }
 
@@ -91,13 +82,13 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
           .from('schools')
           .select('*')
           .eq('id', authUser.school_id)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-          throw error;
-        }
-
-        if (data) {
+        if (error) {
+          console.warn('🏫 SchoolProvider: School fetch error:', error);
+          setSchools([]);
+          setCurrentSchool(null);
+        } else if (data) {
           setSchools([data]);
           setCurrentSchool(data);
           console.log('🏫 SchoolProvider: Fetched user school:', data.name);
@@ -125,17 +116,17 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
 
   // Effect to fetch schools when user changes
   useEffect(() => {
-    if (authUser && !authError) {
+    if (authUser) {
       console.log('🏫 SchoolProvider: User changed, fetching schools');
       fetchSchools();
     } else {
-      console.log('🏫 SchoolProvider: No user or auth error, clearing schools');
+      console.log('🏫 SchoolProvider: No user, clearing schools');
       setSchools([]);
       setCurrentSchool(null);
       setIsLoading(false);
       setError(null);
     }
-  }, [authUser?.id, authUser?.role, authUser?.school_id, authError]);
+  }, [authUser?.id, authUser?.role, authUser?.school_id]);
 
   const value = {
     currentSchool,
