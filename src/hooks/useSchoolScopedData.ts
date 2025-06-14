@@ -16,9 +16,13 @@ export const useSchoolScopedData = () => {
     const { useSchool } = require('@/contexts/SchoolContext');
     const schoolContext = useSchool();
     currentSchool = schoolContext.currentSchool;
+    // Only consider it an error if school context is explicitly in error state
+    // Not just when it's loading or undefined
+    schoolError = schoolContext.error || false;
   } catch (error) {
-    console.error('🏫 useSchoolScopedData: School context not available:', error);
-    schoolError = true;
+    console.warn('🏫 useSchoolScopedData: School context not available, using fallback');
+    // Don't treat missing context as an error for principals with school_id
+    schoolError = false;
   }
 
   const isSystemAdmin = useCallback(() => {

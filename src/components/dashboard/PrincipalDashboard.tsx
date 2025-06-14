@@ -35,40 +35,42 @@ const PrincipalDashboard = () => {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const schoolId = getCurrentSchoolId();
 
   useEffect(() => {
-    // Wait for school context to be available
-    if (schoolError) {
-      console.log('🏫 PrincipalDashboard: School context error, will retry...');
-      const retryTimeout = setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-      return () => clearTimeout(retryTimeout);
-    }
-
-    if (schoolId && user) {
+    // If we have a school ID or the user has a school_id, proceed with loading
+    if (schoolId || user?.school_id) {
       fetchSchoolData();
+    } else if (!schoolError && retryCount < 3) {
+      // Retry after a short delay if no school error and retry count is low
+      const retryTimeout = setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+      }, 1000);
+      return () => clearTimeout(retryTimeout);
     } else {
+      // No school assignment and exhausted retries
       setLoading(false);
-      setError('No school assignment found');
+      setError('No school assignment found. Please contact your administrator.');
     }
-  }, [schoolId, user, schoolError]);
+  }, [schoolId, user?.school_id, schoolError, retryCount]);
 
   const fetchSchoolData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      if (!schoolId) {
+      const effectiveSchoolId = schoolId || user?.school_id;
+      
+      if (!effectiveSchoolId) {
         throw new Error('No school ID available');
       }
 
-      console.log('📊 PrincipalDashboard: Fetching data for school:', schoolId);
+      console.log('📊 PrincipalDashboard: Fetching data for school:', effectiveSchoolId);
 
-      // Validate school access
-      if (!validateSchoolAccess({ school_id: schoolId })) {
+      // Validate school access if we have the validation function
+      if (validateSchoolAccess && !validateSchoolAccess({ school_id: effectiveSchoolId })) {
         throw new Error('Access denied to school data');
       }
 
@@ -76,33 +78,33 @@ const PrincipalDashboard = () => {
       const studentsPromise = supabase
         .from('students')
         .select('id', { count: 'exact' })
-        .eq('school_id', schoolId)
+        .eq('school_id', effectiveSchoolId)
         .eq('is_active', true);
 
       // Fetch teachers count with error handling
       const teachersPromise = supabase
         .from('profiles')
         .select('id', { count: 'exact' })
-        .eq('school_id', schoolId)
+        .eq('school_id', effectiveSchoolId)
         .eq('role', 'teacher');
 
       // Fetch subjects count with error handling
       const subjectsPromise = supabase
         .from('subjects')
         .select('id', { count: 'exact' })
-        .eq('school_id', schoolId);
+        .eq('school_id', effectiveSchoolId);
 
       // Fetch classes count with error handling
       const classesPromise = supabase
         .from('classes')
         .select('id', { count: 'exact' })
-        .eq('school_id', schoolId);
+        .eq('school_id', effectiveSchoolId);
 
       // Fetch recent announcements for activities with error handling
       const announcementsPromise = supabase
         .from('announcements')
         .select('id, title, created_at')
-        .eq('school_id', schoolId)
+        .eq('school_id', effectiveSchoolId)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -194,31 +196,6 @@ const PrincipalDashboard = () => {
       color: "text-orange-600"
     }
   ];
-
-  // School context error state
-  if (schoolError) {
-    return (
-      <Card className="border-yellow-200 bg-yellow-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-yellow-600">
-            <AlertTriangle className="h-5 w-5" />
-            Loading School Context
-          </CardTitle>
-          <CardDescription>
-            Setting up school context. Please wait...
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-yellow-600 mb-4">The application is initializing. This should only take a moment.</p>
-          <div className="animate-pulse flex space-x-4">
-            <div className="rounded-full bg-yellow-200 h-3 w-3"></div>
-            <div className="rounded-full bg-yellow-200 h-3 w-3"></div>
-            <div className="rounded-full bg-yellow-200 h-3 w-3"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   // Error state
   if (error && !loading) {
