@@ -50,19 +50,19 @@ export const useSchoolScopedData = () => {
   };
 
   const canManageUsers = () => {
-    return user && ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role);
+    return user && ['edufam_admin', 'school_owner', 'principal'].includes(user.role);
   };
 
   const canManageSchools = () => {
-    return user && ['elimisha_admin', 'edufam_admin'].includes(user.role);
+    return user && ['edufam_admin'].includes(user.role);
   };
 
   const canViewAnalytics = () => {
-    return user && ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role);
+    return user && ['edufam_admin', 'school_owner', 'principal'].includes(user.role);
   };
 
   const canManageFinances = () => {
-    return user && ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal', 'finance_officer'].includes(user.role);
+    return user && ['edufam_admin', 'school_owner', 'principal', 'finance_officer'].includes(user.role);
   };
 
   const filterDataBySchoolScope = <T extends { school_id?: string }>(data: T[]): T[] => {

@@ -126,24 +126,21 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // Parent - comprehensive access to child-related information
+  // Parent - student-focused access
   if (userRole === 'parent') {
     return [
       ...baseItems,
-      { id: 'grades', label: "Child's Grades", icon: GraduationCap, roles: ['parent'] },
-      { id: 'attendance', label: "Child's Attendance", icon: CalendarCheck, roles: ['parent'] },
+      { id: 'grades', label: 'Child Grades', icon: GraduationCap, roles: ['parent'] },
+      { id: 'attendance', label: 'Child Attendance', icon: CalendarCheck, roles: ['parent'] },
       { id: 'finance', label: 'School Fees', icon: DollarSign, roles: ['parent'] },
-      { id: 'timetable', label: "Child's Timetable", icon: Calendar, roles: ['parent'] },
+      { id: 'timetable', label: 'Class Timetable', icon: Calendar, roles: ['parent'] },
       { id: 'announcements', label: 'School News', icon: Megaphone, roles: ['parent'] },
       { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['parent'] },
-      { id: 'students', label: 'Child Information', icon: Users, roles: ['parent'] },
-      { id: 'reports', label: 'Progress Reports', icon: FileText, roles: ['parent'] },
-      { id: 'analytics', label: 'Child Analytics', icon: BarChart3, roles: ['parent'] },
       { id: 'security', label: 'Security', icon: Shield, roles: ['parent'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['parent'] },
     ];
   }
 
-  // Default fallback
+  // Fallback - return base items only
   return baseItems;
 };

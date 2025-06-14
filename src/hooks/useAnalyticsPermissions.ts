@@ -8,7 +8,7 @@ export const useAnalyticsPermissions = () => {
   const { currentSchool } = useSchool();
 
   const canViewSystemAnalytics = useCallback(() => {
-    return user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
+    return user?.role === 'edufam_admin';
   }, [user?.role]);
 
   const canViewSchoolAnalytics = useCallback((schoolId?: string) => {
@@ -25,11 +25,11 @@ export const useAnalyticsPermissions = () => {
   }, [user?.school_id, currentSchool?.id, canViewSystemAnalytics]);
 
   const canManageAnalytics = useCallback(() => {
-    return ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user?.role || '');
+    return ['edufam_admin', 'school_owner', 'principal'].includes(user?.role || '');
   }, [user?.role]);
 
   const getAnalyticsScope = useCallback(() => {
-    if (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') {
+    if (user?.role === 'edufam_admin') {
       return 'system';
     }
     if (['school_owner', 'principal'].includes(user?.role || '')) {

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊', roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
-    { id: 'analytics', label: 'Analytics', icon: '📈', roles: ['school_owner', 'principal', 'teacher', 'finance_officer', 'edufam_admin', 'elimisha_admin'] },
+    { id: 'dashboard', label: 'Dashboard', icon: '📊', roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
+    { id: 'analytics', label: 'Analytics', icon: '📈', roles: ['school_owner', 'principal', 'teacher', 'finance_officer', 'edufam_admin'] },
     { id: 'grades', label: 'Grades', icon: '📝', roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'attendance', label: 'Attendance', icon: '📅', roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'students', label: 'Students', icon: '👥', roles: ['school_owner', 'principal', 'teacher'] },
@@ -25,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
     { id: 'messages', label: 'Messages', icon: '💬', roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'reports', label: 'Reports', icon: '📋', roles: ['school_owner', 'principal', 'teacher', 'finance_officer'] },
     { id: 'support', label: 'Support', icon: '🎧', roles: ['school_owner', 'principal'] },
-    { id: 'settings', label: 'Settings', icon: '⚙️', roles: ['school_owner', 'principal', 'edufam_admin', 'elimisha_admin'] },
+    { id: 'settings', label: 'Settings', icon: '⚙️', roles: ['school_owner', 'principal', 'edufam_admin'] },
   ];
 
   const filteredItems = menuItems.filter(item => 
@@ -46,8 +47,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
         return 'Finance Officer';
       case 'edufam_admin':
         return 'EduFam Admin';
-      case 'elimisha_admin':
-        return 'Elimisha Admin';
       default:
         return role;
     }

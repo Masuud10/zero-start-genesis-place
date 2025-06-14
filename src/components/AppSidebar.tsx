@@ -45,7 +45,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
     ];
 
     // Role-based menu items
-    if (['elimisha_admin', 'edufam_admin', 'school_owner', 'principal', 'teacher'].includes(user.role)) {
+    if (['edufam_admin', 'school_owner', 'principal', 'teacher'].includes(user.role)) {
       items.push(
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
         { id: 'grades', label: 'Grades', icon: GraduationCap },
@@ -58,12 +58,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
       );
     }
 
-    if (['elimisha_admin', 'edufam_admin', 'school_owner', 'principal', 'finance_officer'].includes(user.role)) {
+    if (['edufam_admin', 'school_owner', 'principal', 'finance_officer'].includes(user.role)) {
       items.push({ id: 'finance', label: 'Finance', icon: DollarSign });
     }
 
     // Admin-only items
-    if (['elimisha_admin', 'edufam_admin'].includes(user.role)) {
+    if (['edufam_admin'].includes(user.role)) {
       items.push(
         { id: 'schools', label: 'Schools', icon: School },
         { id: 'users', label: 'Users', icon: UserPlus },
@@ -79,7 +79,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange 
     );
 
     // Settings for admins only
-    if (['elimisha_admin', 'edufam_admin'].includes(user.role)) {
+    if (['edufam_admin'].includes(user.role)) {
       items.push({ id: 'settings', label: 'Settings', icon: Settings });
     }
 

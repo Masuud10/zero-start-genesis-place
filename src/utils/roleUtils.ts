@@ -61,8 +61,6 @@ const normalizeRole = (role: string): string => {
     // Admin variations - all map to edufam_admin
     'edufam_admin': 'edufam_admin',
     'edufamadmin': 'edufam_admin',
-    'elimisha_admin': 'edufam_admin',
-    'elimishaadmin': 'edufam_admin',
     'admin': 'edufam_admin',
     'systemadmin': 'edufam_admin',
     'superadmin': 'edufam_admin',
@@ -101,7 +99,7 @@ const determineRoleFromEmail = (email: string): UserRole => {
   const emailLower = email.toLowerCase();
   
   // System admin patterns - prioritize official admin emails
-  if (emailLower.includes('@elimisha.com') || 
+  if (emailLower.includes('@edufam.com') || 
       emailLower === 'masuud@gmail.com' ||
       emailLower.includes('admin@') ||
       emailLower.includes('system@')) {

@@ -80,7 +80,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     <SidebarContent>
       <SidebarGroup>
         <SidebarGroupLabel>
-          {user.role === 'edufam_admin' || user.role === 'elimisha_admin' 
+          {user.role === 'edufam_admin' 
             ? 'System Administration' 
             : 'Main Navigation'
           }
