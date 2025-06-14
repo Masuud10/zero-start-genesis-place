@@ -7,14 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Save, Receipt } from 'lucide-react';
+import { Save, Receipt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExpenseModalProps {
   onClose: () => void;
 }
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
+  const { user } = useAuth();
   const [expenseData, setExpenseData] = useState({
     title: '',
     category: '',
@@ -24,7 +27,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
     vendor: '',
     receiptNumber: ''
   });
-  const [attachment, setAttachment] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const expenseCategories = [
@@ -45,15 +48,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
     setExpenseData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAttachment(file);
-    }
-  };
-
-  const handleSaveExpense = () => {
-    if (!expenseData.title || !expenseData.category || !expenseData.amount) {
+  const handleSaveExpense = async () => {
+    if (!expenseData.title || !expenseData.category || !expenseData.amount || !user) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -72,13 +68,44 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
       return;
     }
 
-    // Simulate saving expense
-    toast({
-      title: "Expense Recorded",
-      description: `Expense of KES ${amount.toLocaleString()} has been recorded successfully.`,
-    });
+    try {
+      setLoading(true);
 
-    onClose();
+      // Record the expense in financial_transactions
+      const { error } = await supabase
+        .from('financial_transactions')
+        .insert({
+          transaction_type: 'expense',
+          amount: amount,
+          description: `${expenseData.title} - ${expenseData.description}`,
+          payment_method: 'cash', // Default payment method
+          reference_number: expenseData.receiptNumber || null,
+          processed_by: user.id,
+          school_id: user.school_id,
+          term: 'term1', // You might want to make this dynamic
+          academic_year: new Date().getFullYear().toString()
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Expense Recorded",
+        description: `Expense of KES ${amount.toLocaleString()} has been recorded successfully.`,
+      });
+
+      onClose();
+    } catch (error) {
+      console.error('Error recording expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record expense. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -173,37 +200,6 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Attachments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Upload receipt or supporting documents
-                </p>
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  id="file-upload"
-                />
-                <Label htmlFor="file-upload" className="cursor-pointer">
-                  <Button variant="outline" size="sm">
-                    Choose File
-                  </Button>
-                </Label>
-                {attachment && (
-                  <p className="text-sm text-green-600 mt-2">
-                    File uploaded: {attachment.name}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle>Expense Summary</CardTitle>
             </CardHeader>
             <CardContent>
@@ -236,9 +232,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSaveExpense}>
+            <Button onClick={handleSaveExpense} disabled={loading}>
               <Save className="w-4 h-4 mr-2" />
-              Record Expense
+              {loading ? 'Recording...' : 'Record Expense'}
             </Button>
           </div>
         </div>

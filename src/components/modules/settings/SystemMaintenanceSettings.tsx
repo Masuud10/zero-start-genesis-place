@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Database, HardDrive, Download, Upload, Clock, PlayCircle, StopCircle } from 'lucide-react';
 
 interface BackupRecord {
@@ -22,37 +23,28 @@ interface BackupRecord {
 }
 
 const SystemMaintenanceSettings = () => {
-  const [backups, setBackups] = useState<BackupRecord[]>([
-    {
-      id: '1',
-      type: 'Full Database',
-      size: '2.4 GB',
-      status: 'completed',
-      createdAt: '2024-01-15 02:00:00',
-      duration: '45 minutes'
-    },
-    {
-      id: '2',
-      type: 'Incremental',
-      size: '156 MB',
-      status: 'completed',
-      createdAt: '2024-01-15 06:00:00',
-      duration: '8 minutes'
-    },
-    {
-      id: '3',
-      type: 'Configuration',
-      size: '2.1 MB',
-      status: 'completed',
-      createdAt: '2024-01-15 12:00:00',
-      duration: '2 minutes'
-    }
-  ]);
-
+  const [backups, setBackups] = useState<BackupRecord[]>([]);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [backupProgress, setBackupProgress] = useState(0);
   const [isBackupRunning, setIsBackupRunning] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadSystemMetrics = async () => {
+      try {
+        // In a real implementation, you would fetch actual backup records
+        // For now, we'll show an empty state since we removed dummy data
+        setBackups([]);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading system metrics:', error);
+        setLoading(false);
+      }
+    };
+
+    loadSystemMetrics();
+  }, []);
 
   const handleManualBackup = async (type: string) => {
     setIsBackupRunning(true);
@@ -108,6 +100,17 @@ const SystemMaintenanceSettings = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground mt-2">Loading system settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -133,7 +136,7 @@ const SystemMaintenanceSettings = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Storage Used</p>
-                <p className="text-xl font-bold">8.2 GB</p>
+                <p className="text-xl font-bold">-</p>
               </div>
             </div>
           </CardContent>
@@ -147,7 +150,9 @@ const SystemMaintenanceSettings = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Last Backup</p>
-                <p className="text-xl font-bold">2h ago</p>
+                <p className="text-xl font-bold">
+                  {backups.length > 0 ? 'Recently' : 'Never'}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -272,43 +277,53 @@ const SystemMaintenanceSettings = () => {
           <CardTitle>Backup History</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {backups.map((backup) => (
-                <TableRow key={backup.id}>
-                  <TableCell className="font-medium">{backup.type}</TableCell>
-                  <TableCell>{backup.size}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusColor(backup.status) as any}>
-                      {backup.status.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{backup.createdAt}</TableCell>
-                  <TableCell>{backup.duration}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        Download
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Restore
-                      </Button>
-                    </div>
-                  </TableCell>
+          {backups.length === 0 ? (
+            <div className="text-center py-8">
+              <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-muted-foreground mb-2">No backups yet</h3>
+              <p className="text-sm text-muted-foreground">
+                Create your first backup using the buttons above.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {backups.map((backup) => (
+                  <TableRow key={backup.id}>
+                    <TableCell className="font-medium">{backup.type}</TableCell>
+                    <TableCell>{backup.size}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(backup.status) as any}>
+                        {backup.status.toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{backup.createdAt}</TableCell>
+                    <TableCell>{backup.duration}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          Download
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          Restore
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -331,37 +346,6 @@ const SystemMaintenanceSettings = () => {
                   onCheckedChange={handleMaintenanceMode}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Auto Database Optimization</Label>
-                  <p className="text-sm text-muted-foreground">Optimize database performance weekly</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Log Cleanup</Label>
-                  <p className="text-sm text-muted-foreground">Auto-delete old logs after 90 days</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <Button className="w-full" variant="outline">
-                <Database className="w-4 h-4 mr-2" />
-                Optimize Database
-              </Button>
-              <Button className="w-full" variant="outline">
-                <HardDrive className="w-4 h-4 mr-2" />
-                Clear Cache
-              </Button>
-              <Button className="w-full" variant="outline">
-                <Download className="w-4 h-4 mr-2" />
-                Export System Logs
-              </Button>
-              <Button className="w-full">
-                Save Maintenance Settings
-              </Button>
             </div>
           </div>
         </CardContent>

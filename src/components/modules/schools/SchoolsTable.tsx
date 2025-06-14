@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Edit, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface School {
   id: string;
@@ -14,11 +15,6 @@ interface School {
   address: string;
   created_at: string;
   updated_at: string;
-  subscriptions?: {
-    plan_type: string;
-    status: string;
-    amount: number;
-  }[];
 }
 
 interface SchoolsTableProps {
@@ -27,6 +23,41 @@ interface SchoolsTableProps {
 }
 
 const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
+  const [schoolsWithSubscriptions, setSchoolsWithSubscriptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      if (schools.length === 0) return;
+
+      try {
+        const { data: subscriptions, error } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .in('school_id', schools.map(s => s.id));
+
+        if (error) {
+          console.error('Error fetching subscriptions:', error);
+          return;
+        }
+
+        const schoolsWithSubs = schools.map(school => {
+          const schoolSubscriptions = subscriptions?.filter(sub => sub.school_id === school.id) || [];
+          return {
+            ...school,
+            subscriptions: schoolSubscriptions
+          };
+        });
+
+        setSchoolsWithSubscriptions(schoolsWithSubs);
+      } catch (error) {
+        console.error('Error processing subscriptions:', error);
+        setSchoolsWithSubscriptions(schools.map(school => ({ ...school, subscriptions: [] })));
+      }
+    };
+
+    fetchSubscriptions();
+  }, [schools]);
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       active: 'default',
@@ -53,6 +84,10 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
               <p>Loading schools...</p>
             </div>
           </div>
+        ) : schoolsWithSubscriptions.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No schools found.</p>
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -67,7 +102,7 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {schools.map((school) => {
+              {schoolsWithSubscriptions.map((school) => {
                 const subscription = school.subscriptions?.[0];
                 return (
                   <TableRow key={school.id}>

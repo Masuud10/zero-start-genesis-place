@@ -1,15 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import FeeStatsCards from './fee-collection/FeeStatsCards';
 import FeeFilters from './fee-collection/FeeFilters';
 import StudentFeeList from './fee-collection/StudentFeeList';
 import PaymentForm from './fee-collection/PaymentForm';
 
 interface Student {
-  id: number;
+  id: string;
   name: string;
   admissionNo: string;
   class: string;
@@ -24,46 +26,83 @@ interface FeeCollectionModalProps {
 }
 
 const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
-  const [students, setStudents] = useState<Student[]>([
-    { 
-      id: 1, 
-      name: 'John Doe', 
-      admissionNo: 'STU001', 
-      class: 'Grade 8A',
-      totalFees: 15000,
-      paidAmount: 10000,
-      balance: 5000,
-      lastPayment: '2024-01-15'
-    },
-    { 
-      id: 2, 
-      name: 'Jane Smith', 
-      admissionNo: 'STU002', 
-      class: 'Grade 8A',
-      totalFees: 15000,
-      paidAmount: 15000,
-      balance: 0,
-      lastPayment: '2024-01-20'
-    },
-    { 
-      id: 3, 
-      name: 'Mike Johnson', 
-      admissionNo: 'STU003', 
-      class: 'Grade 8B',
-      totalFees: 15000,
-      paidAmount: 8000,
-      balance: 7000,
-      lastPayment: '2024-01-10'
-    },
-  ]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [mpesaCode, setMpesaCode] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadStudentFees = async () => {
+      if (!user?.school_id) return;
+
+      try {
+        setLoading(true);
+        
+        // Fetch students with their fee information
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select(`
+            id,
+            name,
+            admission_number,
+            class:classes(name),
+            fees(
+              amount,
+              paid_amount,
+              due_date,
+              status,
+              created_at
+            )
+          `)
+          .eq('school_id', user.school_id)
+          .eq('is_active', true);
+
+        if (studentsError) {
+          throw studentsError;
+        }
+
+        // Transform the data
+        const transformedStudents: Student[] = (studentsData || []).map(student => {
+          const totalFees = student.fees?.reduce((sum: number, fee: any) => sum + (fee.amount || 0), 0) || 0;
+          const paidAmount = student.fees?.reduce((sum: number, fee: any) => sum + (fee.paid_amount || 0), 0) || 0;
+          const lastPayment = student.fees
+            ?.filter((fee: any) => fee.paid_amount > 0)
+            ?.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())?.[0]?.created_at || '';
+
+          return {
+            id: student.id,
+            name: student.name,
+            admissionNo: student.admission_number,
+            class: student.class?.name || 'Not Assigned',
+            totalFees,
+            paidAmount,
+            balance: totalFees - paidAmount,
+            lastPayment: lastPayment ? new Date(lastPayment).toLocaleDateString() : 'No payments'
+          };
+        });
+
+        setStudents(transformedStudents);
+      } catch (error) {
+        console.error('Error loading student fees:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load student fee data.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStudentFees();
+  }, [user?.school_id]);
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,8 +111,8 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
     return matchesSearch && matchesClass;
   });
 
-  const handlePayment = () => {
-    if (!selectedStudent || !paymentAmount || !paymentMethod) {
+  const handlePayment = async () => {
+    if (!selectedStudent || !paymentAmount || !paymentMethod || !user) {
       toast({
         title: "Missing Information",
         description: "Please fill in all payment details.",
@@ -92,28 +131,55 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
       return;
     }
 
-    // Update student payment
-    setStudents(prev => prev.map(student => 
-      student.id === selectedStudent.id 
-        ? { 
-            ...student, 
-            paidAmount: student.paidAmount + amount,
-            balance: student.balance - amount,
-            lastPayment: new Date().toISOString().split('T')[0]
-          }
-        : student
-    ));
+    try {
+      // Record the payment in financial_transactions
+      const { error: transactionError } = await supabase
+        .from('financial_transactions')
+        .insert({
+          student_id: selectedStudent.id,
+          amount: amount,
+          transaction_type: 'fee_payment',
+          payment_method: paymentMethod,
+          mpesa_code: paymentMethod === 'mpesa' ? mpesaCode : null,
+          processed_by: user.id,
+          school_id: user.school_id,
+          description: `Fee payment for ${selectedStudent.name}`
+        });
 
-    toast({
-      title: "Payment Recorded",
-      description: `Payment of KES ${amount.toLocaleString()} recorded for ${selectedStudent.name}.`,
-    });
+      if (transactionError) {
+        throw transactionError;
+      }
 
-    setShowPaymentForm(false);
-    setSelectedStudent(null);
-    setPaymentAmount('');
-    setPaymentMethod('');
-    setMpesaCode('');
+      // Update the local state
+      setStudents(prev => prev.map(student => 
+        student.id === selectedStudent.id 
+          ? { 
+              ...student, 
+              paidAmount: student.paidAmount + amount,
+              balance: student.balance - amount,
+              lastPayment: new Date().toLocaleDateString()
+            }
+          : student
+      ));
+
+      toast({
+        title: "Payment Recorded",
+        description: `Payment of KES ${amount.toLocaleString()} recorded for ${selectedStudent.name}.`,
+      });
+
+      setShowPaymentForm(false);
+      setSelectedStudent(null);
+      setPaymentAmount('');
+      setPaymentMethod('');
+      setMpesaCode('');
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const openPaymentForm = (student: Student) => {
@@ -131,6 +197,24 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
   };
 
   const stats = getTotalStats();
+
+  if (loading) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl">
+          <DialogHeader>
+            <DialogTitle>Fee Collection Management</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center h-32">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-sm text-muted-foreground mt-2">Loading fee data...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>

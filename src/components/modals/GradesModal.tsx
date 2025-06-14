@@ -18,10 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { DataService } from '@/services/dataService';
-import { StudentData } from '@/services/dataService';
-import { GradeData } from '@/services/dataService';
-import { BulkGradeSubmission } from '@/types/grading';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -29,52 +27,78 @@ interface GradesModalProps {
 }
 
 const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
+  const { user } = useAuth();
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
   const [selectedExamType, setSelectedExamType] = useState('');
-  const [mockStudents, setMockStudents] = useState<any[]>([]);
+  const [score, setScore] = useState('');
+  const [maxScore, setMaxScore] = useState('100');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  
   const { toast } = useToast();
 
   useEffect(() => {
-    // Mock students data for the selected class
-    const mockStudentsData = [
-      { id: '1', name: 'John Doe', admissionNumber: 'ADM001', rollNumber: 'R001', grades: [] },
-      { id: '2', name: 'Jane Smith', admissionNumber: 'ADM002', rollNumber: 'R002', grades: [] },
-      { id: '3', name: 'Mike Johnson', admissionNumber: 'ADM003', rollNumber: 'R003', grades: [] },
-    ];
-    setMockStudents(mockStudentsData);
-  }, []);
+    const loadClasses = async () => {
+      if (!user?.school_id) return;
+      
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('school_id', user.school_id);
+      
+      if (!error && data) {
+        setClasses(data);
+      }
+    };
 
-  const mockClasses = [
-    { id: '8a', name: 'Grade 8A' },
-    { id: '8b', name: 'Grade 8B' },
-    { id: '7a', name: 'Grade 7A' },
-    { id: '7b', name: 'Grade 7B' },
-  ];
+    loadClasses();
+  }, [user?.school_id]);
 
-  const mockSubjects = [
-    { id: 'math', name: 'Mathematics' },
-    { id: 'eng', name: 'English' },
-    { id: 'sci', name: 'Science' },
-  ];
+  useEffect(() => {
+    const loadSubjects = async () => {
+      if (!selectedClass || !user?.school_id) return;
+      
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('class_id', selectedClass)
+        .eq('school_id', user.school_id);
+      
+      if (!error && data) {
+        setSubjects(data);
+      }
+    };
 
-  const mockTerms = [
-    { id: 'term1', name: 'Term 1' },
-    { id: 'term2', name: 'Term 2' },
-    { id: 'term3', name: 'Term 3' },
-  ];
+    loadSubjects();
+  }, [selectedClass, user?.school_id]);
 
-  const mockExamTypes = [
-    { id: 'opener', name: 'Opener' },
-    { id: 'mid_term', name: 'Mid Term' },
-    { id: 'end_term', name: 'End Term' },
-  ];
+  useEffect(() => {
+    const loadStudents = async () => {
+      if (!selectedClass || !user?.school_id) return;
+      
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', selectedClass)
+        .eq('school_id', user.school_id);
+      
+      if (!error && data) {
+        setStudents(data);
+      }
+    };
+
+    loadStudents();
+  }, [selectedClass, user?.school_id]);
 
   const handleSubmit = async () => {
     try {
-      // Validate form inputs
-      if (!selectedClass || !selectedSubject || !selectedTerm || !selectedExamType) {
+      if (!selectedClass || !selectedSubject || !selectedTerm || !selectedExamType || !selectedStudent || !score) {
         toast({
           title: "Error",
           description: "Please fill in all fields.",
@@ -83,69 +107,61 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         return;
       }
 
-      // Prepare grade data for submission
-      const gradeData: GradeData = {
-        id: crypto.randomUUID(),
-        student_id: 'student-001',
+      setLoading(true);
+
+      const gradeData = {
+        student_id: selectedStudent,
         subject_id: selectedSubject,
         class_id: selectedClass,
-        score: 85,
-        max_score: 100,
-        percentage: 85,
+        score: parseFloat(score),
+        max_score: parseFloat(maxScore),
+        percentage: (parseFloat(score) / parseFloat(maxScore)) * 100,
         term: selectedTerm,
         exam_type: selectedExamType,
-        submitted_by: 'teacher-001',
-        submitted_at: new Date().toISOString(),
-        status: 'submitted',
-        is_released: false,
-        is_immutable: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        submitted_by: user?.id,
+        status: 'submitted'
       };
 
-      // Call DataService to create the grade
-      const { data, error } = await DataService.createGrade(gradeData);
+      const { error } = await supabase
+        .from('grades')
+        .insert(gradeData);
 
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to submit grade.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Grade submitted successfully.",
-        });
-        onClose();
+        throw error;
       }
+
+      toast({
+        title: "Success",
+        description: "Grade submitted successfully.",
+      });
+      onClose();
     } catch (error) {
       console.error("Error submitting grade:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred.",
+        description: "Failed to submit grade. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Enter Grades</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="class" className="text-right">
-              Class
-            </Label>
+            <Label htmlFor="class" className="text-right">Class</Label>
             <Select onValueChange={setSelectedClass}>
               <SelectTrigger id="class" className="col-span-3">
                 <SelectValue placeholder="Select Class" />
               </SelectTrigger>
               <SelectContent>
-                {mockClasses.map((cls) => (
+                {classes.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>
                     {cls.name}
                   </SelectItem>
@@ -155,15 +171,13 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="subject" className="text-right">
-              Subject
-            </Label>
-            <Select onValueChange={setSelectedSubject}>
+            <Label htmlFor="subject" className="text-right">Subject</Label>
+            <Select onValueChange={setSelectedSubject} disabled={!selectedClass}>
               <SelectTrigger id="subject" className="col-span-3">
                 <SelectValue placeholder="Select Subject" />
               </SelectTrigger>
               <SelectContent>
-                {mockSubjects.map((subject) => (
+                {subjects.map((subject) => (
                   <SelectItem key={subject.id} value={subject.id}>
                     {subject.name}
                   </SelectItem>
@@ -173,54 +187,76 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="term" className="text-right">
-              Term
-            </Label>
+            <Label htmlFor="student" className="text-right">Student</Label>
+            <Select onValueChange={setSelectedStudent} disabled={!selectedClass}>
+              <SelectTrigger id="student" className="col-span-3">
+                <SelectValue placeholder="Select Student" />
+              </SelectTrigger>
+              <SelectContent>
+                {students.map((student) => (
+                  <SelectItem key={student.id} value={student.id}>
+                    {student.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="term" className="text-right">Term</Label>
             <Select onValueChange={setSelectedTerm}>
               <SelectTrigger id="term" className="col-span-3">
                 <SelectValue placeholder="Select Term" />
               </SelectTrigger>
               <SelectContent>
-                {mockTerms.map((term) => (
-                  <SelectItem key={term.id} value={term.id}>
-                    {term.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="term1">Term 1</SelectItem>
+                <SelectItem value="term2">Term 2</SelectItem>
+                <SelectItem value="term3">Term 3</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="examType" className="text-right">
-              Exam Type
-            </Label>
+            <Label htmlFor="examType" className="text-right">Exam Type</Label>
             <Select onValueChange={setSelectedExamType}>
               <SelectTrigger id="examType" className="col-span-3">
                 <SelectValue placeholder="Select Exam Type" />
               </SelectTrigger>
               <SelectContent>
-                {mockExamTypes.map((examType) => (
-                  <SelectItem key={examType.id} value={examType.id}>
-                    {examType.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="opener">Opener</SelectItem>
+                <SelectItem value="mid_term">Mid Term</SelectItem>
+                <SelectItem value="end_term">End Term</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="score" className="text-right">
-              Score
-            </Label>
-            <Input type="number" id="score" className="col-span-3" />
+            <Label htmlFor="score" className="text-right">Score</Label>
+            <Input 
+              type="number" 
+              id="score" 
+              className="col-span-3" 
+              value={score}
+              onChange={(e) => setScore(e.target.value)}
+              max={maxScore}
+            />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="maxScore" className="text-right">Max Score</Label>
+            <Input 
+              type="number" 
+              id="maxScore" 
+              className="col-span-3"
+              value={maxScore}
+              onChange={(e) => setMaxScore(e.target.value)}
+            />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" onClick={handleSubmit}>
-            Submit
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Submitting...' : 'Submit'}
           </Button>
         </DialogFooter>
       </DialogContent>
