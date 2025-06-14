@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import BroadcastAnnouncementDialog from './communication/BroadcastAnnouncementDi
 import AnnouncementFiltersComponent from './communication/AnnouncementFilters';
 import AnnouncementsList from './communication/AnnouncementsList';
 import AnnouncementMetrics from './communication/AnnouncementMetrics';
+import AnnouncementQuickActions from './communication/AnnouncementQuickActions';
 
 const CommunicationCenterModule = () => {
   const { user } = useAuth();
@@ -38,6 +38,17 @@ const CommunicationCenterModule = () => {
     announcement.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const activeAnnouncements = filteredAnnouncements.filter(a => !a.is_archived);
+  const archivedAnnouncements = filteredAnnouncements.filter(a => a.is_archived);
+  const urgentAnnouncements = activeAnnouncements.filter(a => a.priority === 'urgent');
+  
+  const averageEngagement = announcements.length > 0
+    ? Math.round(announcements.reduce((sum, a) => {
+        const rate = a.total_recipients > 0 ? (a.read_count / a.total_recipients) * 100 : 0;
+        return sum + rate;
+      }, 0) / announcements.length)
+    : 0;
+
   const handleCreateBroadcast = async (announcementData: any) => {
     const { error } = await createBroadcastAnnouncement(announcementData);
 
@@ -61,6 +72,22 @@ const CommunicationCenterModule = () => {
     toast({
       title: "Refreshed",
       description: "Communication data has been updated"
+    });
+  };
+
+  const handleExport = () => {
+    // TODO: Implement export functionality
+    toast({
+      title: "Export",
+      description: "Export functionality coming soon"
+    });
+  };
+
+  const handleBulkArchive = () => {
+    // TODO: Implement bulk archive functionality
+    toast({
+      title: "Bulk Archive",
+      description: "Bulk archive functionality coming soon"
     });
   };
 
@@ -99,11 +126,6 @@ const CommunicationCenterModule = () => {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          
           {canCreateBroadcast && (
             <BroadcastAnnouncementDialog 
               open={isCreateOpen} 
@@ -132,15 +154,26 @@ const CommunicationCenterModule = () => {
       {/* Metrics Overview */}
       <AnnouncementMetrics announcements={announcements} />
 
+      {/* Quick Actions */}
+      <AnnouncementQuickActions
+        totalAnnouncements={activeAnnouncements.length}
+        urgentCount={urgentAnnouncements.length}
+        archivedCount={archivedAnnouncements.length}
+        averageEngagement={averageEngagement}
+        onRefresh={handleRefresh}
+        onExport={handleExport}
+        onBulkArchive={handleBulkArchive}
+      />
+
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
-            Active Communications ({filteredAnnouncements.filter(a => !a.is_archived).length})
+            Active Communications ({activeAnnouncements.length})
           </TabsTrigger>
           <TabsTrigger value="archived" className="flex items-center gap-2">
             <Archive className="w-4 h-4" />
-            Archived ({filteredAnnouncements.filter(a => a.is_archived).length})
+            Archived ({archivedAnnouncements.length})
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <Eye className="w-4 h-4" />
@@ -167,7 +200,7 @@ const CommunicationCenterModule = () => {
           </div>
 
           <AnnouncementsList 
-            announcements={filteredAnnouncements.filter(a => !a.is_archived)}
+            announcements={activeAnnouncements}
             onMarkAsRead={markAsRead}
             onArchive={archiveAnnouncement}
             getPriorityColor={getPriorityColor}
@@ -192,7 +225,7 @@ const CommunicationCenterModule = () => {
           </div>
 
           <AnnouncementsList 
-            announcements={filteredAnnouncements.filter(a => a.is_archived)}
+            announcements={archivedAnnouncements}
             onMarkAsRead={markAsRead}
             onArchive={archiveAnnouncement}
             getPriorityColor={getPriorityColor}
