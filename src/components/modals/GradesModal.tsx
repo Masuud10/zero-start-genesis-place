@@ -1,19 +1,22 @@
+
 import React, { useState, useEffect } from 'react';
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Input,
-  Label,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
   Select,
+  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Textarea
-} from '@/components/ui';
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { DataService } from '@/services/dataService';
 import { StudentData } from '@/services/dataService';
@@ -68,21 +71,6 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     { id: 'end_term', name: 'End Term' },
   ];
 
-  const mockBulkSubmission: BulkGradeSubmission = {
-    id: 'bulk-001',
-    classId: selectedClass,
-    subjectId: selectedSubject,
-    term: selectedTerm,
-    examType: selectedExamType,
-    totalStudents: mockStudents.length,
-    gradesEntered: mockStudents.filter(s => s.grades.length > 0).length,
-    submittedBy: 'teacher-001',
-    submittedAt: new Date().toISOString(),
-    status: 'draft',
-    principalNotes: '',
-    releasedAt: undefined
-  };
-
   const handleSubmit = async () => {
     try {
       // Validate form inputs
@@ -97,6 +85,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
 
       // Prepare grade data for submission
       const gradeData: GradeData = {
+        id: crypto.randomUUID(),
         student_id: 'student-001',
         subject_id: selectedSubject,
         class_id: selectedClass,
@@ -109,7 +98,9 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         submitted_at: new Date().toISOString(),
         status: 'submitted',
         is_released: false,
-        is_immutable: false
+        is_immutable: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       // Call DataService to create the grade
@@ -139,103 +130,101 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   };
 
   return (
-    <Modal open={true} onOpenChange={onClose}>
-      <ModalContent>
-        <ModalHeader>
-          <Label>Enter Grades</Label>
-        </ModalHeader>
-        <ModalBody>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="class" className="text-right">
-                Class
-              </Label>
-              <Select onValueChange={setSelectedClass}>
-                <SelectTrigger id="class" className="col-span-3">
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockClasses.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="subject" className="text-right">
-                Subject
-              </Label>
-              <Select onValueChange={setSelectedSubject}>
-                <SelectTrigger id="subject" className="col-span-3">
-                  <SelectValue placeholder="Select Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockSubjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="term" className="text-right">
-                Term
-              </Label>
-              <Select onValueChange={setSelectedTerm}>
-                <SelectTrigger id="term" className="col-span-3">
-                  <SelectValue placeholder="Select Term" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockTerms.map((term) => (
-                    <SelectItem key={term.id} value={term.id}>
-                      {term.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="examType" className="text-right">
-                Exam Type
-              </Label>
-              <Select onValueChange={setSelectedExamType}>
-                <SelectTrigger id="examType" className="col-span-3">
-                  <SelectValue placeholder="Select Exam Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockExamTypes.map((examType) => (
-                    <SelectItem key={examType.id} value={examType.id}>
-                      {examType.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="score" className="text-right">
-                Score
-              </Label>
-              <Input type="number" id="score" className="col-span-3" />
-            </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Enter Grades</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="class" className="text-right">
+              Class
+            </Label>
+            <Select onValueChange={setSelectedClass}>
+              <SelectTrigger id="class" className="col-span-3">
+                <SelectValue placeholder="Select Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockClasses.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </ModalBody>
-        <ModalFooter>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="subject" className="text-right">
+              Subject
+            </Label>
+            <Select onValueChange={setSelectedSubject}>
+              <SelectTrigger id="subject" className="col-span-3">
+                <SelectValue placeholder="Select Subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockSubjects.map((subject) => (
+                  <SelectItem key={subject.id} value={subject.id}>
+                    {subject.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="term" className="text-right">
+              Term
+            </Label>
+            <Select onValueChange={setSelectedTerm}>
+              <SelectTrigger id="term" className="col-span-3">
+                <SelectValue placeholder="Select Term" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockTerms.map((term) => (
+                  <SelectItem key={term.id} value={term.id}>
+                    {term.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="examType" className="text-right">
+              Exam Type
+            </Label>
+            <Select onValueChange={setSelectedExamType}>
+              <SelectTrigger id="examType" className="col-span-3">
+                <SelectValue placeholder="Select Exam Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockExamTypes.map((examType) => (
+                  <SelectItem key={examType.id} value={examType.id}>
+                    {examType.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="score" className="text-right">
+              Score
+            </Label>
+            <Input type="number" id="score" className="col-span-3" />
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" onClick={handleSubmit}>
             Submit
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

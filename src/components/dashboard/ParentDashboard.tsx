@@ -100,7 +100,12 @@ const ParentDashboard = () => {
         id: student.id,
         name: student.name,
         class_name: student.classes?.name || 'No Class',
-        attendance_percentage: 85 // This would come from attendance_summary table
+        attendance_percentage: 85, // This would come from attendance_summary table
+        current_average: 88,
+        recent_grades: [
+          { subject: 'Mathematics', score: 85, maxScore: 100 },
+          { subject: 'English', score: 92, maxScore: 100 }
+        ]
       })) || [];
 
       setChildren(childrenList);
@@ -246,9 +251,9 @@ const ParentDashboard = () => {
             </p>
           </div>
           
-          {children.length > 0 ? (
+          {mockChildrenData.length > 0 ? (
             <div className="space-y-6">
-              {children.map((child) => (
+              {mockChildrenData.map((child) => (
                 <Card key={child.id} className="border-l-4 border-l-blue-500">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
