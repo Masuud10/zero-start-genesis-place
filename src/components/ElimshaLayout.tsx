@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
@@ -39,8 +38,8 @@ const ElimshaLayout = () => {
     role: user?.role,
     schoolId: user?.school_id,
     userId: user?.id?.slice(0, 8) + '...',
-    userMetadata: user?.user_metadata,
-    appMetadata: user?.app_metadata
+    hasUserMetadata: !!user?.user_metadata,
+    hasAppMetadata: !!user?.app_metadata
   });
 
   // Early return if no user
@@ -65,8 +64,10 @@ const ElimshaLayout = () => {
     console.error('🏗️ ElimshaLayout: User has no role assigned:', {
       userId: user.id,
       email: user.email,
-      userMetadata: user.user_metadata,
-      appMetadata: user.app_metadata
+      hasUserMetadata: !!user.user_metadata,
+      hasAppMetadata: !!user.app_metadata,
+      userMetadataRole: user.user_metadata?.role || 'None',
+      appMetadataRole: user.app_metadata?.role || 'None'
     });
     
     return (
