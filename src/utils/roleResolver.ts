@@ -4,27 +4,41 @@ import { UserRole } from '@/types/user';
 
 export class RoleResolver {
   /**
-   * Resolves the user role from various sources with proper fallbacks
+   * Resolves user role from multiple sources with fallback priority
    */
   static resolveRole(authUser: SupabaseUser, profileRole?: string): UserRole {
-    console.log('🔍 RoleResolver: Resolving role for user:', authUser.email);
-    console.log('🔍 RoleResolver: Available sources:', {
+    console.log('🔍 RoleResolver: Resolving role for user:', authUser.email, {
       profileRole,
       userMetadataRole: authUser.user_metadata?.role,
-      appMetadataRole: authUser.app_metadata?.role,
-      email: authUser.email
+      appMetadataRole: authUser.app_metadata?.role
     });
 
-    // Priority order for role resolution
-    const candidates = [
-      profileRole,
-      authUser.user_metadata?.role,
-      authUser.app_metadata?.role
-    ].filter(Boolean);
+    // Priority order for role resolution:
+    // 1. Profile table role (most authoritative)
+    // 2. App metadata role (set by admin)
+    // 3. User metadata role (set during signup)
+    // 4. Default fallback based on email domain
 
-    console.log('🔍 RoleResolver: Role candidates:', candidates);
+    const possibleRole = profileRole || 
+                        authUser.app_metadata?.role || 
+                        authUser.user_metadata?.role;
 
-    // Valid roles in the system
+    if (possibleRole && this.isValidRole(possibleRole)) {
+      console.log('🔍 RoleResolver: Found valid role:', possibleRole);
+      return possibleRole as UserRole;
+    }
+
+    // Fallback: Determine role based on email domain
+    const fallbackRole = this.determineFallbackRole(authUser.email);
+    console.log('🔍 RoleResolver: Using fallback role:', fallbackRole);
+    
+    return fallbackRole;
+  }
+
+  /**
+   * Validates if a role is one of the allowed UserRole values
+   */
+  static isValidRole(role: string): boolean {
     const validRoles: UserRole[] = [
       'school_owner',
       'principal', 
@@ -33,72 +47,70 @@ export class RoleResolver {
       'finance_officer',
       'edufam_admin'
     ];
-
-    // Find first valid role
-    for (const candidate of candidates) {
-      if (validRoles.includes(candidate as UserRole)) {
-        console.log('🔍 RoleResolver: Selected role:', candidate);
-        return candidate as UserRole;
-      }
-    }
-
-    // Email-based role assignment for development
-    const email = authUser.email?.toLowerCase() || '';
-    
-    if (email.includes('admin') || email.includes('edufam')) {
-      console.log('🔍 RoleResolver: Assigned edufam_admin role based on email');
-      return 'edufam_admin';
-    }
-    
-    if (email.includes('principal')) {
-      console.log('🔍 RoleResolver: Assigned principal role based on email');
-      return 'principal';
-    }
-    
-    if (email.includes('teacher')) {
-      console.log('🔍 RoleResolver: Assigned teacher role based on email');
-      return 'teacher';
-    }
-    
-    if (email.includes('owner')) {
-      console.log('🔍 RoleResolver: Assigned school_owner role based on email');
-      return 'school_owner';
-    }
-
-    // Default fallback
-    console.log('🔍 RoleResolver: Using default parent role');
-    return 'parent';
-  }
-
-  /**
-   * Validates if a role is valid in the system
-   */
-  static isValidRole(role: string): role is UserRole {
-    const validRoles: UserRole[] = [
-      'school_owner',
-      'principal',
-      'teacher', 
-      'parent',
-      'finance_officer',
-      'edufam_admin'
-    ];
-    
     return validRoles.includes(role as UserRole);
   }
 
   /**
-   * Gets display name for a role
+   * Determines fallback role based on email domain or defaults to 'parent'
    */
-  static getRoleDisplayName(role: UserRole): string {
-    const roleNames: Record<UserRole, string> = {
-      'school_owner': 'School Owner',
-      'principal': 'Principal',
-      'teacher': 'Teacher',
-      'parent': 'Parent',
-      'finance_officer': 'Finance Officer',
-      'edufam_admin': 'EduFam Admin'
-    };
+  static determineFallbackRole(email?: string): UserRole {
+    if (!email) return 'parent';
 
-    return roleNames[role] || role;
+    // Check for admin email patterns
+    if (email.includes('admin') || email.includes('edufam')) {
+      return 'edufam_admin';
+    }
+
+    // Check for school staff patterns
+    if (email.includes('teacher') || email.includes('staff')) {
+      return 'teacher';
+    }
+
+    if (email.includes('principal') || email.includes('head')) {
+      return 'principal';
+    }
+
+    if (email.includes('owner') || email.includes('director')) {
+      return 'school_owner';
+    }
+
+    if (email.includes('finance') || email.includes('accounts')) {
+      return 'finance_officer';
+    }
+
+    // Default to parent for all other cases
+    return 'parent';
+  }
+
+  /**
+   * Checks if a role requires school assignment
+   */
+  static requiresSchoolAssignment(role: UserRole): boolean {
+    const schoolRequiredRoles: UserRole[] = [
+      'school_owner',
+      'principal',
+      'teacher', 
+      'finance_officer'
+    ];
+    return schoolRequiredRoles.includes(role);
+  }
+
+  /**
+   * Gets the default redirect path for a role
+   */
+  static getDefaultRedirectPath(role: UserRole, hasSchoolAssignment: boolean): string {
+    switch (role) {
+      case 'edufam_admin':
+        return '/dashboard';
+      case 'school_owner':
+      case 'principal':
+      case 'teacher':
+      case 'finance_officer':
+        return hasSchoolAssignment ? '/dashboard' : '/setup';
+      case 'parent':
+        return '/dashboard';
+      default:
+        return '/';
+    }
   }
 }

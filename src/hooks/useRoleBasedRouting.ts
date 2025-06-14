@@ -1,61 +1,79 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user';
+import { RoleResolver } from '@/utils/roleResolver';
 
 export const useRoleBasedRouting = () => {
   const { user, isLoading } = useAuth();
 
   const validateRole = (allowedRoles: UserRole[]): boolean => {
-    if (!user?.role) return false;
-    return allowedRoles.includes(user.role as UserRole);
+    if (!user?.role) {
+      console.log('🔍 useRoleBasedRouting: No user role found');
+      return false;
+    }
+    
+    const isValid = allowedRoles.includes(user.role as UserRole);
+    console.log('🔍 useRoleBasedRouting: Role validation:', {
+      userRole: user.role,
+      allowedRoles,
+      isValid
+    });
+    
+    return isValid;
   };
 
   const requiresSchoolAssignment = (role: UserRole): boolean => {
-    // These roles must be assigned to a specific school
-    const schoolRequiredRoles: UserRole[] = [
-      'school_owner',
-      'principal', 
-      'teacher',
-      'finance_officer'
-    ];
-    return schoolRequiredRoles.includes(role);
+    return RoleResolver.requiresSchoolAssignment(role);
   };
 
   const hasSchoolAssignment = (): boolean => {
-    return !!user?.school_id;
+    const hasAssignment = !!user?.school_id;
+    console.log('🔍 useRoleBasedRouting: School assignment check:', {
+      userSchoolId: user?.school_id,
+      hasAssignment
+    });
+    return hasAssignment;
   };
 
   const canAccessRoute = (allowedRoles: UserRole[], requireSchool = false): boolean => {
-    if (isLoading || !user) return false;
+    if (isLoading || !user) {
+      console.log('🔍 useRoleBasedRouting: Loading or no user');
+      return false;
+    }
     
     // Check role validation
-    if (!validateRole(allowedRoles)) return false;
+    if (!validateRole(allowedRoles)) {
+      console.log('🔍 useRoleBasedRouting: Role validation failed');
+      return false;
+    }
     
     // Check school assignment if required
-    if (requireSchool && !hasSchoolAssignment()) return false;
+    if (requireSchool && !hasSchoolAssignment()) {
+      console.log('🔍 useRoleBasedRouting: School assignment required but missing');
+      return false;
+    }
     
+    console.log('🔍 useRoleBasedRouting: Access granted for route');
     return true;
   };
 
   const getRedirectPath = (): string => {
-    if (!user) return '/';
-    
-    // Role-based default paths
-    switch (user.role) {
-      case 'edufam_admin':
-        return '/dashboard';
-      case 'school_owner':
-      case 'principal':
-        return user.school_id ? '/dashboard' : '/setup';
-      case 'teacher':
-        return user.school_id ? '/dashboard' : '/setup';
-      case 'finance_officer':
-        return user.school_id ? '/dashboard' : '/setup';
-      case 'parent':
-        return '/dashboard';
-      default:
-        return '/';
+    if (!user) {
+      console.log('🔍 useRoleBasedRouting: No user, redirecting to home');
+      return '/';
     }
+    
+    const userRole = user.role as UserRole;
+    const hasSchool = hasSchoolAssignment();
+    const redirectPath = RoleResolver.getDefaultRedirectPath(userRole, hasSchool);
+    
+    console.log('🔍 useRoleBasedRouting: Redirect path determined:', {
+      userRole,
+      hasSchool,
+      redirectPath
+    });
+    
+    return redirectPath;
   };
 
   const isSystemAdmin = (): boolean => {

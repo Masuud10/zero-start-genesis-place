@@ -6,11 +6,12 @@ import DashboardModals from '@/components/dashboard/DashboardModals';
 import DashboardAnnouncements from '@/components/dashboard/DashboardAnnouncements';
 import { LoadingCard, ErrorState } from '@/components/common/LoadingStates';
 import { UserRole } from '@/types/user';
-import { useRoleBasedRouting } from '@/hooks/useRoleBasedRouting';
+import { useRoleValidation } from '@/hooks/useRoleValidation';
+import RoleGuard from '@/components/common/RoleGuard';
 
 const Dashboard = () => {
   const { user, isLoading, error } = useAuth();
-  const { validateRole, getRedirectPath } = useRoleBasedRouting();
+  const { isValid, hasValidRole, redirectPath } = useRoleValidation();
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   console.log('📊 Dashboard: Rendering with user:', {
@@ -18,7 +19,10 @@ const Dashboard = () => {
     userEmail: user?.email,
     userRole: user?.role,
     isLoading,
-    error
+    error,
+    isValid,
+    hasValidRole,
+    redirectPath
   });
 
   // Show loading state
@@ -63,32 +67,6 @@ const Dashboard = () => {
     );
   }
 
-  // Validate user role using the new hook
-  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
-  const userRole = user.role as UserRole;
-  
-  if (!userRole || !validateRole(validRoles)) {
-    console.error('📊 Dashboard: Invalid or missing user role:', {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      validRoles
-    });
-    
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <ErrorState
-          title="Role Configuration Error"
-          description="Your account role is not properly configured."
-          error={`Current role: "${user.role || 'None'}" is not valid. Valid roles: ${validRoles.join(', ')}`}
-          onRetry={() => window.location.reload()}
-        />
-      </div>
-    );
-  }
-
-  console.log('📊 Dashboard: Rendering role-based content for role:', userRole);
-
   // Modal handlers with error boundaries
   const handleModalOpen = (modalType: string) => {
     try {
@@ -108,22 +86,26 @@ const Dashboard = () => {
     }
   };
 
+  console.log('📊 Dashboard: Rendering role-based content for role:', user.role);
+
   return (
-    <div className="space-y-6">
-      {/* EduFam Admin Announcements */}
-      <DashboardAnnouncements />
-      
-      <DashboardRoleBasedContent 
-        user={user} 
-        onModalOpen={handleModalOpen}
-      />
-      
-      <DashboardModals 
-        activeModal={activeModal}
-        onClose={handleModalClose}
-        user={user}
-      />
-    </div>
+    <RoleGuard requireSchoolAssignment={false}>
+      <div className="space-y-6">
+        {/* EduFam Admin Announcements */}
+        <DashboardAnnouncements />
+        
+        <DashboardRoleBasedContent 
+          user={user} 
+          onModalOpen={handleModalOpen}
+        />
+        
+        <DashboardModals 
+          activeModal={activeModal}
+          onClose={handleModalClose}
+          user={user}
+        />
+      </div>
+    </RoleGuard>
   );
 };
 
