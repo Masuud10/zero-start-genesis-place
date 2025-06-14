@@ -27,8 +27,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   
   console.log('🧭 SidebarNavigation: Rendering for user role:', user?.role);
   
-  // Use the permissions system to get filtered menu items
-  const { getFilteredMenuItems, hasPermission } = usePermissions(
+  // Use the permissions system to check individual permissions
+  const { hasPermission } = usePermissions(
     user?.role as UserRole, 
     user?.school_id
   );
