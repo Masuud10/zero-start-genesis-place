@@ -26,7 +26,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user, onModalOpen }) 
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Parent Dashboard</h2>
           <p className="text-muted-foreground">
-            Welcome {user.name}! Stay connected with your child's education.
+            Welcome {user.name || 'Parent'}! Stay connected with your child's education.
           </p>
         </div>
       </div>
