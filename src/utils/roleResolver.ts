@@ -23,7 +23,8 @@ export class RoleResolver {
     console.log('🔍 RoleResolver: Resolving role for user:', authUser.email, {
       profileRole,
       userMetadataRole: authUser.user_metadata?.role,
-      appMetadataRole: authUser.app_metadata?.role
+      appMetadataRole: authUser.app_metadata?.role,
+      email: authUser.email
     });
 
     // Priority 1: Profile role from database (most trusted)
@@ -56,13 +57,19 @@ export class RoleResolver {
   private static isValidRole(role: string): boolean {
     if (!role) return false;
     const normalized = this.normalizeRole(role);
-    return this.VALID_ROLES.includes(normalized);
+    const isValid = this.VALID_ROLES.includes(normalized);
+    console.log('🔍 RoleResolver: Role validation:', { role, normalized, isValid });
+    return isValid;
   }
 
   private static normalizeRole(role: string): UserRole {
-    if (!role) return 'parent';
+    if (!role) {
+      console.log('🔍 RoleResolver: Empty role, defaulting to parent');
+      return 'parent';
+    }
     
     const normalized = role.toLowerCase().trim();
+    console.log('🔍 RoleResolver: Normalizing role:', { original: role, normalized });
     
     // Handle admin variations
     if (['elimisha_admin', 'edufam_admin', 'admin'].includes(normalized)) {
@@ -84,26 +91,35 @@ export class RoleResolver {
       'head': 'principal'
     };
     
-    return roleMap[normalized] || 'parent';
+    const mappedRole = roleMap[normalized] || 'parent';
+    console.log('🔍 RoleResolver: Mapped role:', { normalized, mappedRole });
+    return mappedRole;
   }
 
   private static detectRoleFromEmail(email: string): UserRole {
-    if (!email) return 'parent';
+    if (!email) {
+      console.log('🔍 RoleResolver: No email, defaulting to parent');
+      return 'parent';
+    }
     
     const emailLower = email.toLowerCase();
+    console.log('🔍 RoleResolver: Detecting role from email:', emailLower);
     
     // Check admin emails first
     if (this.ADMIN_EMAILS.includes(emailLower)) {
+      console.log('🔍 RoleResolver: Email matches admin list');
       return 'edufam_admin';
     }
     
     // Check email patterns
     for (const [role, patterns] of Object.entries(this.EMAIL_PATTERNS)) {
       if (patterns.some(pattern => emailLower.includes(pattern))) {
+        console.log('🔍 RoleResolver: Email matches pattern for role:', role);
         return role as UserRole;
       }
     }
     
+    console.log('🔍 RoleResolver: No pattern match, defaulting to parent');
     return 'parent';
   }
 }

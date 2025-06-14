@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
@@ -37,7 +38,9 @@ const ElimshaLayout = () => {
     email: user?.email,
     role: user?.role,
     schoolId: user?.school_id,
-    userId: user?.id?.slice(0, 8) + '...'
+    userId: user?.id?.slice(0, 8) + '...',
+    userMetadata: user?.user_metadata,
+    appMetadata: user?.app_metadata
   });
 
   // Early return if no user
@@ -52,6 +55,47 @@ const ElimshaLayout = () => {
               User authentication failed. Please try logging in again.
             </CardDescription>
           </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Validate user role
+  if (!user.role) {
+    console.error('🏗️ ElimshaLayout: User has no role assigned:', {
+      userId: user.id,
+      email: user.email,
+      userMetadata: user.user_metadata,
+      appMetadata: user.app_metadata
+    });
+    
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-600">Role Configuration Error</CardTitle>
+            <CardDescription>Your account role is missing and needs to be configured.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-red-600 mb-4">
+              Your account does not have a role assigned. Please contact your administrator.
+            </p>
+            <div className="text-xs text-gray-400 mb-4 bg-gray-100 p-2 rounded text-left">
+              <strong>Debug Information:</strong><br />
+              Email: {user.email}<br />
+              Role: {user.role || 'None'}<br />
+              User ID: {user.id?.slice(0, 8)}...<br />
+              School ID: {user.school_id || 'None'}<br />
+              User Metadata Role: {user.user_metadata?.role || 'None'}<br />
+              App Metadata Role: {user.app_metadata?.role || 'None'}
+            </div>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            >
+              Refresh Page
+            </button>
+          </CardContent>
         </Card>
       </div>
     );
