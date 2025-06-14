@@ -51,7 +51,7 @@ export const useAuthStateListener = ({
               try {
                 await fetchUserProfile(session.user);
               } catch (profileError) {
-                console.error('🔐 AuthStateListener: Profile fetch failed during sign in:', profileError);
+                console.warn('🔐 AuthStateListener: Profile fetch failed during sign in, continuing with basic user data:', profileError);
                 if (isMountedRef.current) {
                   setUser({
                     ...session.user,
@@ -73,14 +73,18 @@ export const useAuthStateListener = ({
             }
           } else if (event === 'TOKEN_REFRESHED' && session?.user) {
             console.log('🔐 AuthStateListener: Token refreshed for user:', session.user.email);
-            if (currentUserRef.current === session.user.id && !processingRef.current) {
-              processingRef.current = true;
-              try {
-                await fetchUserProfile(session.user);
-              } catch (profileError) {
-                console.error('🔐 AuthStateListener: Profile fetch failed during token refresh:', profileError);
-              } finally {
-                processingRef.current = false;
+            // Skip profile refetch on token refresh to avoid unnecessary calls
+            if (currentUserRef.current !== session.user.id) {
+              currentUserRef.current = session.user.id;
+              if (!processingRef.current) {
+                processingRef.current = true;
+                try {
+                  await fetchUserProfile(session.user);
+                } catch (profileError) {
+                  console.warn('🔐 AuthStateListener: Profile fetch failed during token refresh:', profileError);
+                } finally {
+                  processingRef.current = false;
+                }
               }
             }
           }
@@ -97,7 +101,7 @@ export const useAuthStateListener = ({
       return subscription;
     };
 
-    // Get initial session
+    // Get initial session with improved error handling
     const getInitialSession = async () => {
       if (initializedRef.current || processingRef.current) {
         console.log('🔐 AuthStateListener: Already initialized/processing, skipping');
@@ -110,10 +114,19 @@ export const useAuthStateListener = ({
         console.log('🔐 AuthStateListener: Getting initial session');
         setIsLoading(true);
         
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Use a more reasonable timeout for initial session check
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 10000)
+        );
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
         if (error) {
-          console.error('🔐 AuthStateListener: Error getting initial session:', error);
+          console.warn('🔐 AuthStateListener: Error getting initial session:', error);
         }
         
         if (!isMountedRef.current) {
@@ -128,7 +141,7 @@ export const useAuthStateListener = ({
           try {
             await fetchUserProfile(session.user);
           } catch (profileError) {
-            console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
+            console.warn('🔐 AuthStateListener: Profile fetch failed for initial session, using fallback:', profileError);
             if (isMountedRef.current) {
               setUser({
                 ...session.user,
@@ -149,10 +162,11 @@ export const useAuthStateListener = ({
         
         initializedRef.current = true;
       } catch (error) {
-        console.error('🔐 AuthStateListener: Exception getting initial session:', error);
+        console.warn('🔐 AuthStateListener: Exception getting initial session, proceeding without session:', error);
         if (isMountedRef.current) {
           setUser(null);
           setIsLoading(false);
+          initializedRef.current = true;
         }
       } finally {
         processingRef.current = false;

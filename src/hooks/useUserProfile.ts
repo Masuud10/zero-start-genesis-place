@@ -31,21 +31,13 @@ export const useUserProfile = () => {
     try {
       console.log('👤 UserProfile: Starting profile fetch for', authUser.email);
       
-      // Add timeout to profile fetch
-      const profilePromise = supabase
+      // Removed the aggressive 8-second timeout that was causing failures
+      // Instead, rely on Supabase's built-in timeouts and retry logic
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('id, email, name, role, school_id, avatar_url')
         .eq('id', authUser.id)
-        .maybeSingle();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
-      );
-
-      const { data: profile, error } = await Promise.race([
-        profilePromise,
-        timeoutPromise
-      ]) as any;
+        .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
 
       if (!isMountedRef.current) {
         console.log('👤 UserProfile: Component unmounted during fetch');
@@ -53,8 +45,8 @@ export const useUserProfile = () => {
       }
 
       if (error) {
-        console.error('👤 UserProfile: Error fetching profile:', error);
-        handleApiError(error, 'fetch_user_profile');
+        console.warn('👤 UserProfile: Profile fetch error (non-critical):', error);
+        // Don't throw error for profile fetch failures - proceed with fallback
       }
 
       // Use improved role determination logic
@@ -68,11 +60,12 @@ export const useUserProfile = () => {
         avatar_url: profile?.avatar_url
       };
 
-      console.log('👤 UserProfile: Profile fetch completed successfully, setting user data:', {
+      console.log('👤 UserProfile: Profile fetch completed, setting user data:', {
         email: userData.email,
         role: userData.role,
         school_id: userData.school_id,
-        hasProfile: !!profile
+        hasProfile: !!profile,
+        profileError: !!error
       });
       
       if (isMountedRef.current) {
@@ -80,8 +73,7 @@ export const useUserProfile = () => {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('❌ UserProfile: Exception fetching user profile:', error);
-      handleApiError(error, 'fetch_user_profile');
+      console.warn('👤 UserProfile: Exception during profile fetch:', error);
       
       if (!isMountedRef.current) return;
       
@@ -95,10 +87,11 @@ export const useUserProfile = () => {
         school_id: authUser.user_metadata?.school_id || authUser.app_metadata?.school_id
       };
       
-      console.log('👤 UserProfile: Using fallback user data:', {
+      console.log('👤 UserProfile: Using fallback user data due to error:', {
         email: userData.email,
         role: userData.role,
-        school_id: userData.school_id
+        school_id: userData.school_id,
+        error: error
       });
       
       if (isMountedRef.current) {
