@@ -38,14 +38,20 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
     );
   }
 
-  // System admins (elimisha_admin, edufam_admin)
-  if (isSystemAdmin) {
+  console.log('📊 DashboardRoleBasedContent: Routing based on role:', user.role);
+
+  // System admins (edufam_admin) - these users have system-wide access
+  if (user.role === 'edufam_admin') {
+    console.log('📊 DashboardRoleBasedContent: Rendering SystemAdminDashboard for edufam_admin');
     return <SystemAdminDashboard user={user} onModalOpen={onModalOpen} />;
   }
 
-  // School-level administrators - fix validation logic
+  // School-level administrators (school_owner, principal)
   if (user.role === 'school_owner' || user.role === 'principal') {
-    if (!schoolId) {
+    console.log('📊 DashboardRoleBasedContent: Rendering SchoolAdminDashboard for:', user.role);
+    
+    // Validate school assignment for school-level roles
+    if (!user.school_id) {
       return (
         <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
           <h3 className="text-lg font-semibold text-yellow-800 mb-2">School Assignment Required</h3>
@@ -58,12 +64,15 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
         </div>
       );
     }
+    
     return <SchoolAdminDashboard user={user} onModalOpen={onModalOpen} />;
   }
 
-  // Teachers - fix validation logic
+  // Teachers - must be assigned to a school
   if (user.role === 'teacher') {
-    if (!schoolId) {
+    console.log('📊 DashboardRoleBasedContent: Rendering TeacherDashboard for teacher');
+    
+    if (!user.school_id) {
       return (
         <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
           <h3 className="text-lg font-semibold text-yellow-800 mb-2">School Assignment Required</h3>
@@ -76,12 +85,15 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
         </div>
       );
     }
+    
     return <TeacherDashboard user={user} onModalOpen={onModalOpen} />;
   }
 
-  // Finance officers - fix validation logic
+  // Finance officers - must be assigned to a school
   if (user.role === 'finance_officer') {
-    if (!schoolId) {
+    console.log('📊 DashboardRoleBasedContent: Rendering FinanceOfficerDashboard for finance_officer');
+    
+    if (!user.school_id) {
       return (
         <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
           <h3 className="text-lg font-semibold text-yellow-800 mb-2">School Assignment Required</h3>
@@ -94,15 +106,19 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
         </div>
       );
     }
+    
     return <FinanceOfficerDashboard user={user} onModalOpen={onModalOpen} />;
   }
 
-  // Parents - don't require school assignment as they may have children in multiple schools
+  // Parents - can access without school assignment as they may have children in multiple schools
   if (user.role === 'parent') {
+    console.log('📊 DashboardRoleBasedContent: Rendering ParentDashboard for parent');
     return <ParentDashboard user={user} onModalOpen={onModalOpen} />;
   }
 
-  // Fallback for unknown roles - add more debugging info
+  // Fallback for unknown or invalid roles
+  console.error('📊 DashboardRoleBasedContent: Unknown role detected:', user.role);
+  
   return (
     <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
       <h3 className="text-lg font-semibold text-red-800 mb-2">Role Configuration Error</h3>

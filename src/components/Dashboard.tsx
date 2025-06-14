@@ -6,9 +6,11 @@ import DashboardModals from '@/components/dashboard/DashboardModals';
 import DashboardAnnouncements from '@/components/dashboard/DashboardAnnouncements';
 import { LoadingCard, ErrorState } from '@/components/common/LoadingStates';
 import { UserRole } from '@/types/user';
+import { useRoleBasedRouting } from '@/hooks/useRoleBasedRouting';
 
 const Dashboard = () => {
   const { user, isLoading, error } = useAuth();
+  const { validateRole, getRedirectPath } = useRoleBasedRouting();
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   console.log('📊 Dashboard: Rendering with user:', {
@@ -61,11 +63,11 @@ const Dashboard = () => {
     );
   }
 
-  // Validate user role
+  // Validate user role using the new hook
   const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
   const userRole = user.role as UserRole;
   
-  if (!userRole || !validRoles.includes(userRole)) {
+  if (!userRole || !validateRole(validRoles)) {
     console.error('📊 Dashboard: Invalid or missing user role:', {
       userId: user.id,
       email: user.email,

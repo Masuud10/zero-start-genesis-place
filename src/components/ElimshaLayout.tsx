@@ -25,12 +25,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
+import { useRoleBasedRouting } from '@/hooks/useRoleBasedRouting';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const { user, signOut } = useAuth();
   const { currentSchool } = useSchool();
   const { toast } = useToast();
+  const { canAccessRoute, getRedirectPath } = useRoleBasedRouting();
 
   console.log('🏗️ ElimshaLayout: Rendering for user role:', user?.role, 'active section:', activeSection);
   console.log('🏗️ ElimshaLayout: User details:', {
