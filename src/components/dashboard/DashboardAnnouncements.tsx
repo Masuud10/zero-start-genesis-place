@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ const DashboardAnnouncements = () => {
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
   // Get announcements with error handling
-  const { announcements, markAsRead, loading } = useEnhancedAnnouncements({
+  const { announcements, markAsRead, loading, error } = useEnhancedAnnouncements({
     is_archived: false
   });
 
@@ -26,7 +25,13 @@ const DashboardAnnouncements = () => {
     return null;
   }
 
-  // Safely filter announcements
+  // Handle errors gracefully
+  if (error) {
+    console.warn('🔔 DashboardAnnouncements: Error loading announcements:', error);
+    return null;
+  }
+
+  // Safely filter announcements with better error handling
   const relevantAnnouncements = (announcements || []).filter(announcement => {
     try {
       // Check basic requirements
@@ -48,33 +53,49 @@ const DashboardAnnouncements = () => {
         return false;
       }
       
-      // Map user role to target audience format
-      const userRole = user.role === 'school_owner' ? 'school_owners' : 
-                      user.role === 'principal' ? 'principals' : 
-                      user.role === 'teacher' ? 'teachers' : 
-                      user.role === 'parent' ? 'parents' : 
-                      user.role === 'finance_officer' ? 'finance_officers' : 
-                      user.role;
+      // Map user role to target audience format with fallbacks
+      let userRole = user.role;
+      
+      // Convert role to target audience format
+      switch (user.role) {
+        case 'school_owner':
+          userRole = 'school_owners';
+          break;
+        case 'principal':
+          userRole = 'principals';
+          break;
+        case 'teacher':
+          userRole = 'teachers';
+          break;
+        case 'parent':
+          userRole = 'parents';
+          break;
+        case 'finance_officer':
+          userRole = 'finance_officers';
+          break;
+        default:
+          userRole = user.role;
+      }
       
       return targetAudience.includes(userRole);
     } catch (error) {
-      console.warn('Error filtering announcement:', error);
+      console.warn('🔔 DashboardAnnouncements: Error filtering announcement:', error);
       return false;
     }
   });
 
   const handleDismiss = async (announcementId: string) => {
     try {
+      // Dismiss locally first for immediate UI feedback
+      setDismissedIds(prev => [...prev, announcementId]);
+      
       // Mark as read in database
       if (markAsRead) {
         await markAsRead(announcementId);
       }
-      // Dismiss locally
-      setDismissedIds(prev => [...prev, announcementId]);
     } catch (error) {
-      console.warn('Error dismissing announcement:', error);
-      // Still dismiss locally even if database update fails
-      setDismissedIds(prev => [...prev, announcementId]);
+      console.warn('🔔 DashboardAnnouncements: Error dismissing announcement:', error);
+      // Keep local dismissal even if database update fails
     }
   };
 

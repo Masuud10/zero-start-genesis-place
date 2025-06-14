@@ -12,6 +12,7 @@ export const useAuthState = () => {
   
   const isMountedRef = useRef(true);
   const initializedRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
   const processUser = async (authUser: SupabaseUser | null): Promise<void> => {
     if (!isMountedRef.current) return;
@@ -40,7 +41,7 @@ export const useAuthState = () => {
 
       setError(null);
       
-      // Fetch profile with error handling
+      // Fetch profile with better error handling
       let profile = null;
       try {
         const { data, error: profileError } = await supabase
@@ -61,7 +62,7 @@ export const useAuthState = () => {
       // Resolve role with fallback
       const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
-      // Create user data with defaults
+      // Create user data with sensible defaults
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email,
@@ -105,23 +106,26 @@ export const useAuthState = () => {
   };
 
   useEffect(() => {
-    if (initializedRef.current) return;
+    if (initializedRef.current) {
+      console.log('🔐 AuthState: Already initialized, skipping');
+      return;
+    }
     
     let subscription: any = null;
-    let timeoutId: NodeJS.Timeout;
     
     const initializeAuth = async () => {
       try {
         console.log('🔐 AuthState: Initializing auth state');
         
-        // Set timeout to prevent infinite loading
-        timeoutId = setTimeout(() => {
+        // Set a reasonable timeout to prevent infinite loading
+        timeoutRef.current = setTimeout(() => {
           if (isMountedRef.current && isLoading) {
-            console.warn('🔐 AuthState: Auth initialization timeout');
+            console.warn('🔐 AuthState: Auth initialization timeout, proceeding without user');
             setIsLoading(false);
             setError(null);
+            setUser(null);
           }
-        }, 5000);
+        }, 8000);
         
         // Set up auth listener first
         const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
@@ -131,8 +135,9 @@ export const useAuthState = () => {
             console.log('🔐 AuthState: Auth state changed:', event);
             
             // Clear timeout since we got a response
-            if (timeoutId) {
-              clearTimeout(timeoutId);
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+              timeoutRef.current = undefined;
             }
             
             if (event === 'SIGNED_OUT' || !session) {
@@ -168,10 +173,6 @@ export const useAuthState = () => {
           setError(null); // Don't show init errors to user
           setIsLoading(false);
         }
-      } finally {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
       }
     };
     
@@ -180,12 +181,16 @@ export const useAuthState = () => {
     return () => {
       console.log('🔐 AuthState: Cleaning up');
       isMountedRef.current = false;
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+      
       if (subscription) {
         subscription.unsubscribe();
       }
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      
       // Reset for potential remount
       setTimeout(() => {
         initializedRef.current = false;
