@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface School {
@@ -39,26 +38,26 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastUserCheck, setLastUserCheck] = useState<string | null>(null);
   
-  // Safe auth context access with error handling
-  let user: any = null;
-  let authLoading = true;
-  let authError = false;
-
-  try {
-    const authContext = useAuth();
-    user = authContext.user;
-    authLoading = authContext.isLoading;
-  } catch (error) {
-    console.error('🏫 SchoolProvider: Auth context not available:', error);
-    authError = true;
-    authLoading = false;
-  }
-
   const { toast } = useToast();
 
   const fetchSchools = useCallback(async () => {
-    if (!user || authLoading || authError) {
-      console.log('🏫 SchoolProvider: No user, auth loading, or auth error - clearing schools');
+    // Import useAuth dynamically inside the function to avoid context timing issues
+    let authContext;
+    try {
+      const { useAuth } = await import('./AuthContext');
+      authContext = useAuth();
+    } catch (error) {
+      console.error('🏫 SchoolProvider: Auth context not available:', error);
+      setSchools([]);
+      setCurrentSchool(null);
+      setIsLoading(false);
+      return;
+    }
+
+    const { user, isLoading: authLoading } = authContext;
+
+    if (!user || authLoading) {
+      console.log('🏫 SchoolProvider: No user or auth loading - clearing schools');
       setSchools([]);
       setCurrentSchool(null);
       setIsLoading(false);
@@ -134,51 +133,20 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.role, user?.school_id, user?.email, authLoading, authError, toast, lastUserCheck]);
+  }, [toast, lastUserCheck]);
 
   useEffect(() => {
-    console.log('🏫 SchoolProvider: Auth state changed', { 
-      authLoading, 
-      authError,
-      hasUser: !!user, 
-      userEmail: user?.email,
-      userRole: user?.role,
-      userSchoolId: user?.school_id,
-      lastUserCheck
-    });
-
-    // Handle auth errors
-    if (authError) {
-      setLastUserCheck(null);
-      setSchools([]);
-      setCurrentSchool(null);
-      setIsLoading(false);
-      return;
-    }
-
-    // Reset last user check when user changes
-    if (!user) {
-      setLastUserCheck(null);
-      setSchools([]);
-      setCurrentSchool(null);
-      setIsLoading(false);
-      return;
-    }
-
-    // Only fetch schools when auth is complete, we have a user, and haven't fetched for this user yet
-    if (!authLoading && user && lastUserCheck !== user.id) {
-      // Add a small delay to ensure auth state has stabilized
-      const timeoutId = setTimeout(() => {
-        fetchSchools();
-      }, 200);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [user?.id, authLoading, authError, fetchSchools, lastUserCheck]);
+    // Delay the initial fetch to ensure auth context is ready
+    const timeoutId = setTimeout(() => {
+      fetchSchools();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [fetchSchools]);
 
   const value = {
     currentSchool,
-    isLoading: isLoading || authLoading,
+    isLoading,
     schools,
     fetchSchools,
     setCurrentSchool
