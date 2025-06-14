@@ -40,8 +40,8 @@ const SessionManager: React.FC = () => {
       const transformedData: UserSession[] = (data || []).map(session => ({
         id: session.id,
         session_token: session.session_token,
-        ip_address: session.ip_address || 'Unknown',
-        user_agent: session.user_agent || 'Unknown',
+        ip_address: typeof session.ip_address === 'string' ? session.ip_address : (session.ip_address as string | null),
+        user_agent: session.user_agent || null,
         expires_at: session.expires_at,
         last_activity: session.last_activity || new Date().toISOString(),
         is_active: session.is_active ?? true,
