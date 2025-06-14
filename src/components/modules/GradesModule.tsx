@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -72,6 +73,13 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
       </Card>
     );
   }
+
+  const gradeStats = {
+    totalStudents: 1247,
+    averageScore: 78.5,
+    topPerformingSubject: 'Mathematics',
+    studentsAbove90: 320
+  };
 
   // Mock grading session for display purposes
   const mockGradingSession: GradingSession = {
