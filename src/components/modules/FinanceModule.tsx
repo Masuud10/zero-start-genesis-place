@@ -64,14 +64,10 @@ const FinanceModule = () => {
     try {
       setLoading(true);
       
-      // Fetch fee records
-      let query = buildSchoolScopedQuery('fees', '*');
-
-      if (selectedTerm !== 'all') {
-        query = query.eq('term', selectedTerm);
-      }
-
-      const { data: fees, error } = await query.order('due_date', { ascending: false });
+      // Fetch fee records using the simplified query builder
+      const { data: fees, error } = await buildSchoolScopedQuery('fees', '*')
+        .eq('term', selectedTerm)
+        .order('due_date', { ascending: false });
 
       if (error) {
         console.error('Error fetching fees:', error);

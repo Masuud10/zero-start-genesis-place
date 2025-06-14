@@ -66,8 +66,8 @@ export const useSchoolScopedData = () => {
     return data.filter(item => item.school_id === schoolId);
   };
 
-  // Simplified query builder that returns the base query object
-  const buildSchoolScopedQuery = (tableName: string, selectClause = '*') => {
+  // Simplified query builder that returns a standard query builder
+  const buildSchoolScopedQuery = (tableName: string, selectClause: string = '*') => {
     const baseQuery = supabase.from(tableName).select(selectClause);
     
     // System admins can access all data
