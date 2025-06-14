@@ -117,15 +117,50 @@ export class AdminUserService {
 
   static async getCurrentUserPermissions() {
     try {
-      const scope = await MultiTenantUtils.getCurrentUserScope();
-      const capabilities = MultiTenantUtils.getRoleCapabilities(scope.userRole as any);
+      const { data: { user } } = await supabase.auth.getUser();
       
+      if (!user) {
+        return { 
+          canCreateUsers: false, 
+          userRole: null, 
+          schoolId: null,
+          isSystemAdmin: false,
+          isSchoolAdmin: false
+        };
+      }
+
+      // Get user profile to determine role and school
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, school_id')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('🔧 AdminUserService: Error fetching user profile:', error);
+        return { 
+          canCreateUsers: false, 
+          userRole: null, 
+          schoolId: null,
+          isSystemAdmin: false,
+          isSchoolAdmin: false
+        };
+      }
+
+      const userRole = profile?.role;
+      const schoolId = profile?.school_id;
+      
+      // Determine permissions based on role
+      const isSystemAdmin = userRole === 'elimisha_admin' || userRole === 'edufam_admin';
+      const isSchoolAdmin = userRole === 'school_owner' || userRole === 'principal';
+      const canCreateUsers = isSystemAdmin || isSchoolAdmin;
+
       return {
-        canCreateUsers: capabilities.canCreateUsers,
-        userRole: scope.userRole,
-        schoolId: scope.schoolId,
-        isSystemAdmin: scope.isSystemAdmin,
-        isSchoolAdmin: MultiTenantUtils.isSchoolAdmin(scope.userRole)
+        canCreateUsers,
+        userRole,
+        schoolId,
+        isSystemAdmin,
+        isSchoolAdmin
       };
     } catch (error) {
       console.error('🔧 AdminUserService: Permission check error:', error);
@@ -141,8 +176,29 @@ export class AdminUserService {
 
   static async getUsersForSchool(schoolId?: string) {
     try {
-      const scope = await MultiTenantUtils.getCurrentUserScope();
-      console.log('🔧 AdminUserService: Getting users for scope:', scope);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { data: [], error: new Error('Not authenticated') };
+      }
+
+      // Get user profile to determine permissions
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, school_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('🔧 AdminUserService: Error fetching user profile:', profileError);
+        return { data: [], error: new Error('Failed to get user permissions') };
+      }
+
+      const userRole = profile?.role;
+      const userSchoolId = profile?.school_id;
+      const isSystemAdmin = userRole === 'elimisha_admin' || userRole === 'edufam_admin';
+      
+      console.log('🔧 AdminUserService: Getting users for scope:', { userRole, userSchoolId, isSystemAdmin });
       
       // First, get the profiles data with better error handling
       let profilesQuery = supabase
@@ -159,16 +215,16 @@ export class AdminUserService {
         .order('created_at', { ascending: false });
 
       // System admins can see all users or filter by school
-      if (scope.isSystemAdmin) {
+      if (isSystemAdmin) {
         console.log('🔧 AdminUserService: System admin - fetching all users');
         if (schoolId) {
           profilesQuery = profilesQuery.eq('school_id', schoolId);
         }
       } else {
         // Non-admin users only see users in their school
-        if (scope.schoolId) {
-          console.log('🔧 AdminUserService: School admin - filtering by school:', scope.schoolId);
-          profilesQuery = profilesQuery.eq('school_id', scope.schoolId);
+        if (userSchoolId) {
+          console.log('🔧 AdminUserService: School admin - filtering by school:', userSchoolId);
+          profilesQuery = profilesQuery.eq('school_id', userSchoolId);
         } else {
           console.log('🔧 AdminUserService: User has no school, returning empty');
           return { data: [], error: null };

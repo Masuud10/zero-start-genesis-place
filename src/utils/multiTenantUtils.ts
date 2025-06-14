@@ -1,30 +1,23 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/types/user';
+
+interface UserScope {
+  userId: string | null;
+  userRole: string | null;
+  schoolId: string | null;
+  isSystemAdmin: boolean;
+}
+
+interface RoleCapabilities {
+  canCreateUsers: boolean;
+  canCreateSchools: boolean;
+  canViewAllSchools: boolean;
+  canManageFinance: boolean;
+  canViewAnalytics: boolean;
+}
 
 export class MultiTenantUtils {
-  /**
-   * Check if the current user is a system admin
-   */
-  static isSystemAdmin(role?: string): boolean {
-    return role === 'elimisha_admin' || role === 'edufam_admin';
-  }
-
-  /**
-   * Check if the current user is a school-level admin
-   */
-  static isSchoolAdmin(role?: string): boolean {
-    return role === 'school_owner' || role === 'principal';
-  }
-
-  /**
-   * Get the current user's school scope for data filtering
-   */
-  static async getCurrentUserScope(): Promise<{
-    userId: string | null;
-    userRole: string | null;
-    schoolId: string | null;
-    isSystemAdmin: boolean;
-  }> {
+  static async getCurrentUserScope(): Promise<UserScope> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -37,20 +30,34 @@ export class MultiTenantUtils {
         };
       }
 
-      const { data: profile } = await supabase
+      // Get user profile
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('role, school_id')
         .eq('id', user.id)
         .single();
 
+      if (error) {
+        console.error('MultiTenantUtils: Error fetching user profile:', error);
+        return {
+          userId: user.id,
+          userRole: null,
+          schoolId: null,
+          isSystemAdmin: false
+        };
+      }
+
+      const userRole = profile?.role;
+      const isSystemAdmin = userRole === 'elimisha_admin' || userRole === 'edufam_admin';
+
       return {
         userId: user.id,
-        userRole: profile?.role || null,
+        userRole,
         schoolId: profile?.school_id || null,
-        isSystemAdmin: this.isSystemAdmin(profile?.role)
+        isSystemAdmin
       };
     } catch (error) {
-      console.error('Error getting user scope:', error);
+      console.error('MultiTenantUtils: Error getting user scope:', error);
       return {
         userId: null,
         userRole: null,
@@ -60,197 +67,87 @@ export class MultiTenantUtils {
     }
   }
 
-  /**
-   * Validate that a user can access a specific school's data
-   */
-  static async validateSchoolAccess(schoolId: string): Promise<boolean> {
-    const scope = await this.getCurrentUserScope();
-
-    // System admins can access any school
-    if (scope.isSystemAdmin) {
-      return true;
-    }
-
-    // Other users can only access their assigned school
-    return scope.schoolId === schoolId;
-  }
-
-  /**
-   * Ensure data is scoped to the user's school on insert/update
-   */
-  static async ensureSchoolScope(data: any): Promise<any> {
-    const scope = await this.getCurrentUserScope();
-
-    // System admins can work with any school data
-    if (scope.isSystemAdmin) {
-      return data;
-    }
-
-    // For non-admin users, enforce school scoping if school_id is expected
-    if (!scope.schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-    
-    // Override school_id to ensure data belongs to user's school
-    if (typeof data === 'object' && data !== null) {
-      data.school_id = scope.schoolId;
-    }
-
-    return data;
-  }
-
-  /**
-   * Get role-specific capabilities
-   */
-  static getRoleCapabilities(role: UserRole): {
-    canCreateUsers: boolean;
-    canManageSchoolData: boolean;
-    canViewSystemData: boolean;
-    canCreateSchools: boolean;
-  } {
+  static getRoleCapabilities(role: string): RoleCapabilities {
     switch (role) {
       case 'elimisha_admin':
-        return {
-          canCreateUsers: true,
-          canManageSchoolData: true,
-          canViewSystemData: true,
-          canCreateSchools: true
-        };
       case 'edufam_admin':
         return {
           canCreateUsers: true,
-          canManageSchoolData: true,
-          canViewSystemData: true,
-          canCreateSchools: false
+          canCreateSchools: true,
+          canViewAllSchools: true,
+          canManageFinance: true,
+          canViewAnalytics: true
         };
+      
       case 'school_owner':
       case 'principal':
         return {
           canCreateUsers: true,
-          canManageSchoolData: true,
-          canViewSystemData: false,
-          canCreateSchools: false
+          canCreateSchools: false,
+          canViewAllSchools: false,
+          canManageFinance: true,
+          canViewAnalytics: true
         };
+      
       case 'teacher':
+        return {
+          canCreateUsers: false,
+          canCreateSchools: false,
+          canViewAllSchools: false,
+          canManageFinance: false,
+          canViewAnalytics: false
+        };
+      
+      case 'parent':
       case 'finance_officer':
         return {
           canCreateUsers: false,
-          canManageSchoolData: true,
-          canViewSystemData: false,
-          canCreateSchools: false
+          canCreateSchools: false,
+          canViewAllSchools: false,
+          canManageFinance: role === 'finance_officer',
+          canViewAnalytics: false
         };
-      case 'parent':
-        return {
-          canCreateUsers: false,
-          canManageSchoolData: false,
-          canViewSystemData: false,
-          canCreateSchools: false
-        };
+      
       default:
         return {
           canCreateUsers: false,
-          canManageSchoolData: false,
-          canViewSystemData: false,
-          canCreateSchools: false
+          canCreateSchools: false,
+          canViewAllSchools: false,
+          canManageFinance: false,
+          canViewAnalytics: false
         };
     }
   }
 
-  /**
-   * Create a school-scoped query for students
-   */
-  static async createStudentsQuery(selectClause: string = '*') {
-    const scope = await this.getCurrentUserScope();
-    
-    let query = supabase.from('students').select(selectClause);
-
-    // System admins can see all data
-    if (scope.isSystemAdmin) {
-      return query;
-    }
-
-    // Non-admin users are scoped to their school
-    if (!scope.schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-
-    return query.eq('school_id', scope.schoolId);
+  static isSystemAdmin(role: string): boolean {
+    return role === 'elimisha_admin' || role === 'edufam_admin';
   }
 
-  /**
-   * Create a school-scoped query for classes
-   */
-  static async createClassesQuery(selectClause: string = '*') {
-    const scope = await this.getCurrentUserScope();
-    
-    let query = supabase.from('classes').select(selectClause);
-
-    if (scope.isSystemAdmin) {
-      return query;
-    }
-
-    if (!scope.schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-
-    return query.eq('school_id', scope.schoolId);
+  static isSchoolAdmin(role: string): boolean {
+    return role === 'school_owner' || role === 'principal';
   }
 
-  /**
-   * Create a school-scoped query for subjects
-   */
-  static async createSubjectsQuery(selectClause: string = '*') {
-    const scope = await this.getCurrentUserScope();
-    
-    let query = supabase.from('subjects').select(selectClause);
-
-    if (scope.isSystemAdmin) {
-      return query;
+  static canAccessSchool(userRole: string, userSchoolId: string | null, targetSchoolId: string): boolean {
+    // System admins can access any school
+    if (this.isSystemAdmin(userRole)) {
+      return true;
     }
 
-    if (!scope.schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-
-    return query.eq('school_id', scope.schoolId);
+    // School-level users can only access their own school
+    return userSchoolId === targetSchoolId;
   }
 
-  /**
-   * Create a school-scoped query for announcements
-   */
-  static async createAnnouncementsQuery(selectClause: string = '*') {
-    const scope = await this.getCurrentUserScope();
-    
-    let query = supabase.from('announcements').select(selectClause);
-
-    if (scope.isSystemAdmin) {
-      return query;
+  static filterDataByTenant<T extends { school_id?: string }>(
+    data: T[], 
+    userRole: string, 
+    userSchoolId: string | null
+  ): T[] {
+    // System admins see all data
+    if (this.isSystemAdmin(userRole)) {
+      return data;
     }
 
-    if (!scope.schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-
-    return query.eq('school_id', scope.schoolId);
-  }
-
-  /**
-   * Create a school-scoped query for profiles
-   */
-  static async createProfilesQuery(selectClause: string = '*') {
-    const scope = await this.getCurrentUserScope();
-    
-    let query = supabase.from('profiles').select(selectClause);
-
-    if (scope.isSystemAdmin) {
-      return query;
-    }
-
-    if (!scope.schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-
-    // For profiles, show only users in the same school or the user themselves
-    return query.or(`id.eq.${scope.userId},school_id.eq.${scope.schoolId}`);
+    // School-level users only see their school's data
+    return data.filter(item => item.school_id === userSchoolId);
   }
 }

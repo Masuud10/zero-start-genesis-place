@@ -257,7 +257,15 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
 
   const availableRoles = getAvailableRoles();
 
-  if (!permissions.canCreateUsers) {
+  // Check if current user can create users - Elimisha and EduFam admins should be able to
+  const canCreateUsers = user && (
+    user.role === 'elimisha_admin' || 
+    user.role === 'edufam_admin' || 
+    user.role === 'school_owner' || 
+    user.role === 'principal'
+  );
+
+  if (!canCreateUsers) {
     return null;
   }
 
