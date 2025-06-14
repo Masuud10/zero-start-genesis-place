@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Settings, User, Bell } from 'lucide-react';
@@ -92,38 +91,38 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Enhanced Greetings Container */}
+      {/* Compact Greetings Container */}
       <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             
             {/* Main Greeting Section - Center */}
             <div className="flex-1 text-center">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* Welcome Message */}
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
                     {getGreeting()}, {getFirstName(user?.name || "User")}! 👋
                   </h1>
-                  <p className="text-gray-600 text-lg">
+                  <p className="text-gray-600 text-sm">
                     Welcome back to your dashboard
                   </p>
                 </div>
                 
                 {/* Role and School Info */}
-                <div className="flex items-center justify-center space-x-4 flex-wrap gap-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500 font-medium">Role:</span>
-                    <Badge className={`${getRoleBadgeColor(user.role)} font-medium px-3 py-1`}>
+                <div className="flex items-center justify-center space-x-3 flex-wrap gap-1">
+                  <div className="flex items-center space-x-1">
+                    <span className="text-xs text-gray-500 font-medium">Role:</span>
+                    <Badge className={`${getRoleBadgeColor(user.role)} font-medium px-2 py-0.5 text-xs`}>
                       {getRoleDisplayName(user.role)}
                     </Badge>
                   </div>
                   
                   {currentSchool && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-400">•</span>
-                      <span className="text-sm text-gray-500 font-medium">School:</span>
-                      <span className="text-gray-700 font-semibold bg-white/70 px-3 py-1 rounded-full text-sm">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-gray-400 text-xs">•</span>
+                      <span className="text-xs text-gray-500 font-medium">School:</span>
+                      <span className="text-gray-700 font-semibold bg-white/70 px-2 py-0.5 rounded-full text-xs">
                         {currentSchool.name}
                       </span>
                     </div>
@@ -131,7 +130,7 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
                 </div>
 
                 {/* Date */}
-                <div className="text-sm text-gray-500 font-medium">
+                <div className="text-xs text-gray-500 font-medium">
                   {new Date().toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
@@ -143,27 +142,27 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
             </div>
 
             {/* Right side - User Actions */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
               {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-colors">
-                <Bell className="h-5 w-5" />
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              <Button variant="ghost" size="sm" className="relative text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-colors p-2">
+                <Bell className="h-4 w-4" />
+                <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full"></div>
               </Button>
 
               {/* User Profile */}
-              <div className="flex items-center space-x-3 bg-white/60 rounded-lg px-4 py-2 border border-white/40">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                  <User className="h-5 w-5 text-white" />
+              <div className="flex items-center space-x-2 bg-white/60 rounded-lg px-3 py-1.5 border border-white/40">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
                 </div>
-                <div className="hidden md:block text-sm">
+                <div className="hidden md:block text-xs">
                   <div className="font-semibold text-gray-900">{user.email?.split('@')[0]}</div>
-                  <div className="text-gray-500 text-xs">{user.email}</div>
+                  <div className="text-gray-500 text-[10px]">{user.email}</div>
                 </div>
               </div>
 
               {/* Settings */}
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-colors">
-                <Settings className="h-5 w-5" />
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-colors p-2">
+                <Settings className="h-4 w-4" />
               </Button>
               
               {/* Logout */}
@@ -171,9 +170,9 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
                 variant="ghost" 
                 size="sm" 
                 onClick={onLogout}
-                className="text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
+                className="text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors p-2"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
