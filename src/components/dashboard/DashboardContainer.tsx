@@ -81,89 +81,84 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Greetings Container - Always visible at the very top */}
+      {/* Greetings Container with user actions on the right */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <DashboardGreeting user={user} currentSchool={currentSchool} />
-        </div>
-      </div>
-
-      {showHeader && (
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              {/* Left side - Logo and School Info moved to top left */}
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3">
-                  {/* New Education-focused icon */}
-                  <div className="relative">
-                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 via-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
-                      <BookOpen className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-                  </div>
-                  <div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      Elimisha
-                    </span>
-                    <div className="text-xs text-gray-500">School Management</div>
-                  </div>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          {/* Left side - Logo and greeting */}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {/* EduFam icon */}
+              <div className="relative">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 via-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <BookOpen className="w-6 h-6 text-white" />
                 </div>
-                
-                {currentSchool && (
-                  <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
-                    <span>/</span>
-                    <span className="font-medium">{currentSchool.name}</span>
-                  </div>
-                )}
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
               </div>
-
-              {/* Right side - User info and actions */}
-              <div className="flex items-center space-x-4">
-                {/* Notifications */}
-                <Button variant="ghost" size="sm" className="text-gray-600 relative">
-                  <Bell className="h-5 w-5" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-                </Button>
-
-                {/* User info */}
-                <div className="flex items-center space-x-3">
-                  <div className="hidden md:block text-right">
-                    <div className="text-sm font-medium text-gray-900">
-                      {user.name || user.email?.split('@')[0] || 'User'}
-                    </div>
-                    <div className="text-xs text-gray-500">{user.email}</div>
-                  </div>
-                  
-                  <Badge className={getRoleBadgeColor(user.role)}>
-                    {getRoleDisplayName(user.role)}
-                  </Badge>
-                  
-                  <Button variant="ghost" size="sm" className="text-gray-600">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                {/* Settings and Logout */}
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm" className="text-gray-600">
-                    <Settings className="h-5 w-5" />
-                  </Button>
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={onLogout}
-                    className="text-gray-600 hover:text-red-600"
-                  >
-                    <LogOut className="h-5 w-5" />
-                  </Button>
-                </div>
+              <div>
+                <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  EduFam
+                </span>
+                <div className="text-xs text-gray-500">School Management</div>
               </div>
             </div>
+            
+            {currentSchool && (
+              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                <span>/</span>
+                <span className="font-medium">{currentSchool.name}</span>
+              </div>
+            )}
           </div>
-        </header>
-      )}
+
+          {/* Center - Greeting */}
+          <div className="flex-1 mx-8">
+            <DashboardGreeting user={user} currentSchool={currentSchool} />
+          </div>
+
+          {/* Right side - User actions */}
+          <div className="flex items-center space-x-4">
+            {/* Notifications */}
+            <Button variant="ghost" size="sm" className="text-gray-600 relative">
+              <Bell className="h-5 w-5" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+            </Button>
+
+            {/* User info */}
+            <div className="flex items-center space-x-3">
+              <div className="hidden md:block text-right">
+                <div className="text-sm font-medium text-gray-900">
+                  {user.name || user.email?.split('@')[0] || 'User'}
+                </div>
+                <div className="text-xs text-gray-500">{user.email}</div>
+              </div>
+              
+              <Badge className={getRoleBadgeColor(user.role)}>
+                {getRoleDisplayName(user.role)}
+              </Badge>
+              
+              <Button variant="ghost" size="sm" className="text-gray-600">
+                <User className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Settings and Logout */}
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" className="text-gray-600">
+                <Settings className="h-5 w-5" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onLogout}
+                className="text-gray-600 hover:text-red-600"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
