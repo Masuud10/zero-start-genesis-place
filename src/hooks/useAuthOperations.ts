@@ -1,8 +1,9 @@
+
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
-import { errorHandler, handleApiError } from '@/utils/errorHandler';
+import { ErrorHandler, handleApiError } from '@/utils/errorHandler';
 import { PerformanceMonitor } from '@/utils/performance';
 
 // Helper function to determine user role with improved logic

@@ -3,7 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { errorHandler } from '@/utils/errorHandler';
+import { ErrorHandler } from '@/utils/errorHandler';
 
 interface Props {
   children: ReactNode;
@@ -26,13 +26,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to our error handler
-    errorHandler.logError({
-      code: 'REACT_ERROR_BOUNDARY',
-      message: error.message,
-      details: { error, errorInfo },
-      timestamp: new Date(),
-      context: 'react_error_boundary'
+    // Log error to our error handler using the static method
+    ErrorHandler.logError(error, {
+      action: 'react_error_boundary',
+      metadata: { errorInfo }
     });
 
     console.error('Error Boundary caught an error:', error, errorInfo);
