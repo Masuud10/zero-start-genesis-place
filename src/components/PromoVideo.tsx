@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
@@ -12,6 +11,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(21);
+  const [lastSpokenTime, setLastSpokenTime] = useState(-1);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -38,10 +38,23 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
       
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
+      // Improve EduFam pronunciation by replacing with phonetic spelling
+      const improvedText = text.replace(/EduFam/g, 'Edu-Fam');
+      
+      const utterance = new SpeechSynthesisUtterance(improvedText);
+      utterance.rate = 0.85; // Slightly slower for clarity
       utterance.pitch = 1;
-      utterance.volume = 0.8;
+      utterance.volume = 0.9;
+      
+      // Try to use a more natural voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(voice => 
+        voice.lang.startsWith('en') && voice.name.includes('Google')
+      ) || voices.find(voice => voice.lang.startsWith('en'));
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
       
       speechRef.current = utterance;
       window.speechSynthesis.speak(utterance);
@@ -62,6 +75,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
       // Start speaking current script
       const currentScript = getCurrentScript();
       speakText(currentScript);
+      setLastSpokenTime(Math.floor(currentTime));
       
       intervalRef.current = setInterval(() => {
         setCurrentTime(prev => {
@@ -72,6 +86,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
             setIsPlaying(false);
             window.speechSynthesis.cancel();
             setCurrentTime(0);
+            setLastSpokenTime(-1);
             return 0;
           }
           return newTime;
@@ -89,6 +104,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     } else if (isPlaying) {
       const currentScript = getCurrentScript();
       speakText(currentScript);
+      setLastSpokenTime(Math.floor(currentTime));
     }
   };
 
@@ -103,30 +119,35 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     const clickX = e.clientX - rect.left;
     const newTime = (clickX / rect.width) * duration;
     setCurrentTime(Math.max(0, Math.min(duration, newTime)));
+    setLastSpokenTime(-1); // Reset to allow immediate speech
     
-    if (isPlaying) {
+    if (isPlaying && !isMuted) {
       const currentScript = getCurrentScript();
       speakText(currentScript);
+      setLastSpokenTime(Math.floor(newTime));
     }
   };
 
-  // Handle script changes to trigger voiceover
+  // Handle script changes to trigger voiceover - improved logic to prevent glitching
   useEffect(() => {
     if (isPlaying && !isMuted) {
-      const currentScript = getCurrentScript();
-      const scriptAtTime = demoScript.find(script => Math.abs(script.time - currentTime) < 0.2);
+      const currentScriptTime = Math.floor(currentTime);
+      const scriptAtTime = demoScript.find(script => script.time === currentScriptTime);
       
-      if (scriptAtTime) {
+      // Only speak if we haven't spoken for this time yet and there's a script at this exact time
+      if (scriptAtTime && lastSpokenTime !== currentScriptTime) {
         speakText(scriptAtTime.text);
+        setLastSpokenTime(currentScriptTime);
       }
     }
-  }, [Math.floor(currentTime), isPlaying, isMuted]);
+  }, [Math.floor(currentTime), isPlaying, isMuted, lastSpokenTime]);
 
   useEffect(() => {
     setIsPlaying(true);
     
     // Start with first script
     speakText(demoScript[0].text);
+    setLastSpokenTime(0);
     
     intervalRef.current = setInterval(() => {
       setCurrentTime(prev => {
@@ -137,6 +158,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
           setIsPlaying(false);
           window.speechSynthesis.cancel();
           setCurrentTime(0);
+          setLastSpokenTime(-1);
           return 0;
         }
         return newTime;
