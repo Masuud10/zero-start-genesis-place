@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Show loading screen while auth is loading
+  // Show loading screen while auth is loading (but not indefinitely)
   if (authLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;

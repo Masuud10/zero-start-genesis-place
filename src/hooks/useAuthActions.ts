@@ -8,6 +8,13 @@ export const useAuthActions = () => {
     console.log('🔑 AuthActions: Attempting sign in for', credentials.email);
     
     try {
+      // Clean up any existing session first
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (cleanupError) {
+        console.warn('🔑 AuthActions: Cleanup warning:', cleanupError);
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: credentials.email.trim(),
         password: credentials.password,
@@ -18,8 +25,12 @@ export const useAuthActions = () => {
         return { error: error.message };
       }
       
-      console.log('🔑 AuthActions: Sign in successful for', credentials.email);
-      return { error: undefined };
+      if (data.user) {
+        console.log('🔑 AuthActions: Sign in successful for', credentials.email);
+        return { error: undefined };
+      }
+      
+      return { error: 'Sign in failed' };
     } catch (error: any) {
       console.error('❌ AuthActions: Sign in exception:', error);
       return { error: error.message || 'Authentication failed' };
@@ -36,7 +47,7 @@ export const useAuthActions = () => {
         options: {
           data: {
             name: credentials.name,
-            role: credentials.role,
+            role: credentials.role || 'parent',
             school_id: credentials.school_id
           },
           emailRedirectTo: `${window.location.origin}/`
@@ -60,16 +71,7 @@ export const useAuthActions = () => {
     console.log('🚪 AuthActions: Starting logout process');
     
     try {
-      // Clear any ongoing operations first
-      
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error && !error.message.includes('Auth session missing')) {
-        console.error('❌ AuthActions: Sign out error:', error);
-      }
-      
-      // Clear local storage more thoroughly
+      // Clear local storage first
       try {
         Object.keys(localStorage).forEach((key) => {
           if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
@@ -78,6 +80,13 @@ export const useAuthActions = () => {
         });
       } catch (e) {
         console.warn('Failed to clear localStorage:', e);
+      }
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      
+      if (error && !error.message.includes('Auth session missing')) {
+        console.error('❌ AuthActions: Sign out error:', error);
       }
       
       console.log('✅ AuthActions: Logout completed');
