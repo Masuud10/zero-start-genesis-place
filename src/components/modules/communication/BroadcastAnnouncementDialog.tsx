@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CalendarIcon, X, AlertCircle, Users, Globe, Target } from 'lucide-react';
+import { CalendarIcon, X, AlertCircle, Users, Globe, Target, Send } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface BroadcastAnnouncementDialogProps {
