@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardRoleBasedContent from '@/components/dashboard/DashboardRoleBasedContent';
 import DashboardModals from '@/components/dashboard/DashboardModals';
+import DashboardAnnouncements from '@/components/dashboard/DashboardAnnouncements';
 import { LoadingCard, ErrorState } from '@/components/common/LoadingStates';
 import { UserRole } from '@/types/user';
 
@@ -107,6 +108,9 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* EduFam Admin Announcements - Shows at top for non-admin users */}
+      <DashboardAnnouncements />
+      
       <DashboardRoleBasedContent 
         user={user} 
         onModalOpen={handleModalOpen}
