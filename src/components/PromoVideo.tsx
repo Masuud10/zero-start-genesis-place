@@ -11,38 +11,50 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(21);
-  const [voicesLoaded, setVoicesLoaded] = useState(false);
+  const [voicesReady, setVoicesReady] = useState(false);
   const [currentSpeechIndex, setCurrentSpeechIndex] = useState(-1);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechQueueRef = useRef<{ text: string; index: number } | null>(null);
+  const isPlayingRef = useRef(false);
+  const isMutedRef = useRef(false);
 
   const demoScript = [
-    { time: 0, text: "Welcome to Edu-Fam - Kenya's most comprehensive school management system" },
-    { time: 3, text: "Built specifically for CBC curriculum and M-Pesa integration" },
-    { time: 6, text: "Manage students, grades, attendance, and finances all in one place" },
-    { time: 9, text: "Real-time communication between teachers, students, and parents" },
-    { time: 12, text: "Advanced analytics and reporting for data-driven decisions" },
-    { time: 15, text: "Trusted by over 1,000 schools across Kenya" },
-    { time: 18, text: "Start your free trial today and transform your school's future" }
+    { time: 0, text: "Welcome to EduFam - Kenya's most comprehensive school management system", duration: 3.5 },
+    { time: 4, text: "Built specifically for CBC curriculum and M-Pesa integration", duration: 3 },
+    { time: 7.5, text: "Manage students, grades, attendance, and finances all in one place", duration: 3.5 },
+    { time: 11.5, text: "Real-time communication between teachers, students, and parents", duration: 3 },
+    { time: 15, text: "Advanced analytics and reporting for data-driven decisions", duration: 2.5 },
+    { time: 18, text: "Start your free trial today and transform your school's future", duration: 3 }
   ];
 
-  // Load voices on component mount
+  // Sync refs with state
   useEffect(() => {
-    const loadVoices = () => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    const initVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       if (voices.length > 0) {
-        console.log('Voices loaded:', voices.length);
-        setVoicesLoaded(true);
+        console.log('🎤 Voices initialized:', voices.length);
+        setVoicesReady(true);
+        return true;
       }
+      return false;
     };
 
-    // Check if voices are already loaded
-    if (window.speechSynthesis.getVoices().length > 0) {
-      loadVoices();
-    } else {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+    if (!initVoices()) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        if (initVoices()) {
+          window.speechSynthesis.onvoiceschanged = null;
+        }
+      };
     }
 
     return () => {
@@ -51,77 +63,78 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   }, []);
 
   const stopAllSpeech = () => {
-    if (speechTimeoutRef.current) {
-      clearTimeout(speechTimeoutRef.current);
-      speechTimeoutRef.current = null;
-    }
-    
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
-    
-    if (speechUtteranceRef.current) {
-      speechUtteranceRef.current = null;
-    }
+    speechQueueRef.current = null;
+    setCurrentSpeechIndex(-1);
   };
 
   const speakText = (text: string, index: number) => {
-    if (isMuted || !voicesLoaded || !('speechSynthesis' in window)) {
+    if (!voicesReady || isMutedRef.current || !isPlayingRef.current) {
       return;
     }
 
-    console.log('Speaking:', text, 'Index:', index);
-    
-    // Stop any existing speech
+    // Clear any existing speech
     stopAllSpeech();
-    
-    // Small delay to ensure cancellation is complete
-    speechTimeoutRef.current = setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.85;
-      utterance.pitch = 1;
-      utterance.volume = 0.9;
-      
-      // Select the best available voice
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(voice => 
-        voice.lang.startsWith('en') && 
-        (voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Natural'))
-      ) || voices.find(voice => voice.lang.startsWith('en-US')) || voices[0];
-      
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
+
+    // Queue the speech request
+    speechQueueRef.current = { text, index };
+
+    // Small delay to ensure clean speech synthesis
+    setTimeout(() => {
+      if (speechQueueRef.current?.index === index && isPlayingRef.current && !isMutedRef.current) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Configure speech settings
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        // Select best voice
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(voice => 
+          voice.lang.startsWith('en') && 
+          (voice.name.includes('Google') || voice.name.includes('Microsoft'))
+        ) || voices.find(voice => voice.lang === 'en-US') || voices[0];
+        
+        if (preferredVoice) {
+          utterance.voice = preferredVoice;
+        }
+
+        utterance.onstart = () => {
+          console.log('🎤 Speaking:', text.substring(0, 30) + '...');
+          setCurrentSpeechIndex(index);
+        };
+
+        utterance.onend = () => {
+          console.log('🎤 Speech completed for index:', index);
+          if (speechQueueRef.current?.index === index) {
+            speechQueueRef.current = null;
+          }
+        };
+
+        utterance.onerror = (event) => {
+          console.log('🎤 Speech error:', event.error);
+          if (speechQueueRef.current?.index === index) {
+            speechQueueRef.current = null;
+          }
+        };
+
+        window.speechSynthesis.speak(utterance);
       }
-
-      utterance.onstart = () => {
-        console.log('Speech started for index:', index);
-      };
-
-      utterance.onend = () => {
-        console.log('Speech ended for index:', index);
-        speechUtteranceRef.current = null;
-      };
-
-      utterance.onerror = (event) => {
-        console.error('Speech error:', event.error);
-        speechUtteranceRef.current = null;
-      };
-      
-      speechUtteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
-    }, 100);
+    }, 50);
   };
 
   const getCurrentScript = () => {
-    const scriptIndex = demoScript.findIndex((script, index) => {
-      const nextScript = demoScript[index + 1];
-      return currentTime >= script.time && (!nextScript || currentTime < nextScript.time);
-    });
-    
-    if (scriptIndex !== -1) {
-      return { script: demoScript[scriptIndex], index: scriptIndex };
+    for (let i = 0; i < demoScript.length; i++) {
+      const script = demoScript[i];
+      const nextScript = demoScript[i + 1];
+      
+      if (currentTime >= script.time && (!nextScript || currentTime < nextScript.time)) {
+        return { script, index: i };
+      }
     }
-    
     return { script: demoScript[0], index: 0 };
   };
 
@@ -134,30 +147,20 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
       }
       stopAllSpeech();
       setIsPlaying(false);
-      setCurrentSpeechIndex(-1);
     } else {
       // Play
       setIsPlaying(true);
       
-      // Start speaking current script immediately
-      const { script, index } = getCurrentScript();
-      if (!isMuted) {
-        speakText(script.text, index);
-        setCurrentSpeechIndex(index);
-      }
-      
-      // Start timer
+      // Start timer immediately
       intervalRef.current = setInterval(() => {
         setCurrentTime(prev => {
           const newTime = prev + 0.1;
           if (newTime >= duration) {
-            // End of video
             clearInterval(intervalRef.current!);
             intervalRef.current = null;
             stopAllSpeech();
             setIsPlaying(false);
             setCurrentTime(0);
-            setCurrentSpeechIndex(-1);
             return 0;
           }
           return newTime;
@@ -172,11 +175,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     
     if (newMuted) {
       stopAllSpeech();
-      setCurrentSpeechIndex(-1);
-    } else if (isPlaying && voicesLoaded) {
-      const { script, index } = getCurrentScript();
-      speakText(script.text, index);
-      setCurrentSpeechIndex(index);
     }
   };
 
@@ -193,42 +191,26 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     const clampedTime = Math.max(0, Math.min(duration, newTime));
     
     setCurrentTime(clampedTime);
-    setCurrentSpeechIndex(-1); // Reset speech tracking
-    
-    if (isPlaying && !isMuted && voicesLoaded) {
-      const { script, index } = getCurrentScript();
-      speakText(script.text, index);
-      setCurrentSpeechIndex(index);
-    }
+    stopAllSpeech();
   };
 
-  // Handle script changes for voiceover
+  // Handle script timing and speech synchronization
   useEffect(() => {
-    if (!isPlaying || isMuted || !voicesLoaded) {
-      return;
-    }
+    if (!isPlaying || !voicesReady) return;
 
-    const { index } = getCurrentScript();
+    const { script, index } = getCurrentScript();
     
-    // Only trigger new speech if we've moved to a different script
-    if (index !== currentSpeechIndex && index >= 0) {
-      const script = demoScript[index];
-      if (script) {
-        speakText(script.text, index);
-        setCurrentSpeechIndex(index);
-      }
+    // Only trigger speech if we're at a new script and not already speaking this one
+    if (index !== currentSpeechIndex && currentTime >= script.time) {
+      speakText(script.text, index);
     }
-  }, [Math.floor(currentTime), isPlaying, isMuted, voicesLoaded, currentSpeechIndex]);
+  }, [Math.floor(currentTime * 10), isPlaying, voicesReady, currentSpeechIndex]);
 
-  // Auto-start when voices are loaded
+  // Auto-start when voices are ready
   useEffect(() => {
-    if (voicesLoaded) {
-      console.log('Auto-starting video with voiceover');
+    if (voicesReady && !isPlaying) {
+      console.log('🎤 Auto-starting demo with voiceover');
       setIsPlaying(true);
-      
-      // Start with first script
-      speakText(demoScript[0].text, 0);
-      setCurrentSpeechIndex(0);
       
       intervalRef.current = setInterval(() => {
         setCurrentTime(prev => {
@@ -239,7 +221,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
             stopAllSpeech();
             setIsPlaying(false);
             setCurrentTime(0);
-            setCurrentSpeechIndex(-1);
             return 0;
           }
           return newTime;
@@ -253,7 +234,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
       }
       stopAllSpeech();
     };
-  }, [voicesLoaded]);
+  }, [voicesReady]);
 
   // Cleanup on unmount
   useEffect(() => {
