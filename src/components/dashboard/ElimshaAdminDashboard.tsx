@@ -101,7 +101,12 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
           <p className="text-gray-600">System-wide overview and school management</p>
         </div>
         <div className="flex gap-3">
-          <CreateUserDialog onUserCreated={handleUserCreated} />
+          <CreateUserDialog onUserCreated={handleUserCreated}>
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
+          </CreateUserDialog>
           <CreateSchoolDialog onSchoolCreated={handleSchoolCreated} />
         </div>
       </div>
