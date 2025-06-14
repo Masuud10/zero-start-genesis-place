@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
@@ -12,6 +13,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration] = useState(21);
   const [lastSpokenTime, setLastSpokenTime] = useState(-1);
+  const [voicesLoaded, setVoicesLoaded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -25,6 +27,23 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     { time: 18, text: "Start your free trial today and transform your school's future" }
   ];
 
+  // Load voices on component mount
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        setVoicesLoaded(true);
+      }
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
   const getCurrentScript = () => {
     const current = demoScript.find((script, index) => {
       const nextScript = demoScript[index + 1];
@@ -34,30 +53,33 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   };
 
   const speakText = (text: string) => {
-    if (!isMuted && 'speechSynthesis' in window) {
+    if (!isMuted && 'speechSynthesis' in window && voicesLoaded) {
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
       
-      // Improve EduFam pronunciation by replacing with phonetic spelling
-      const improvedText = text.replace(/EduFam/g, 'Edu-Fam');
-      
-      const utterance = new SpeechSynthesisUtterance(improvedText);
-      utterance.rate = 0.85; // Slightly slower for clarity
-      utterance.pitch = 1;
-      utterance.volume = 0.9;
-      
-      // Try to use a more natural voice if available
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(voice => 
-        voice.lang.startsWith('en') && voice.name.includes('Google')
-      ) || voices.find(voice => voice.lang.startsWith('en'));
-      
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-      
-      speechRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
+      // Wait a moment for cancellation to complete
+      setTimeout(() => {
+        // Improve EduFam pronunciation by replacing with phonetic spelling
+        const improvedText = text.replace(/EduFam/g, 'Edu-Fam');
+        
+        const utterance = new SpeechSynthesisUtterance(improvedText);
+        utterance.rate = 0.8; // Slower for better clarity
+        utterance.pitch = 1;
+        utterance.volume = 0.9;
+        
+        // Try to use a more natural voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(voice => 
+          voice.lang.startsWith('en') && (voice.name.includes('Google') || voice.name.includes('Microsoft'))
+        ) || voices.find(voice => voice.lang.startsWith('en'));
+        
+        if (preferredVoice) {
+          utterance.voice = preferredVoice;
+        }
+        
+        speechRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+      }, 50);
     }
   };
 
@@ -101,7 +123,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     
     if (newMuted) {
       window.speechSynthesis.cancel();
-    } else if (isPlaying) {
+    } else if (isPlaying && voicesLoaded) {
       const currentScript = getCurrentScript();
       speakText(currentScript);
       setLastSpokenTime(Math.floor(currentTime));
@@ -121,16 +143,16 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     setCurrentTime(Math.max(0, Math.min(duration, newTime)));
     setLastSpokenTime(-1); // Reset to allow immediate speech
     
-    if (isPlaying && !isMuted) {
+    if (isPlaying && !isMuted && voicesLoaded) {
       const currentScript = getCurrentScript();
       speakText(currentScript);
       setLastSpokenTime(Math.floor(newTime));
     }
   };
 
-  // Handle script changes to trigger voiceover - improved logic to prevent glitching
+  // Handle script changes to trigger voiceover with improved timing
   useEffect(() => {
-    if (isPlaying && !isMuted) {
+    if (isPlaying && !isMuted && voicesLoaded) {
       const currentScriptTime = Math.floor(currentTime);
       const scriptAtTime = demoScript.find(script => script.time === currentScriptTime);
       
@@ -140,30 +162,33 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
         setLastSpokenTime(currentScriptTime);
       }
     }
-  }, [Math.floor(currentTime), isPlaying, isMuted, lastSpokenTime]);
+  }, [Math.floor(currentTime), isPlaying, isMuted, lastSpokenTime, voicesLoaded]);
 
   useEffect(() => {
-    setIsPlaying(true);
-    
-    // Start with first script
-    speakText(demoScript[0].text);
-    setLastSpokenTime(0);
-    
-    intervalRef.current = setInterval(() => {
-      setCurrentTime(prev => {
-        const newTime = prev + 0.1;
-        if (newTime >= duration) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          setIsPlaying(false);
-          window.speechSynthesis.cancel();
-          setCurrentTime(0);
-          setLastSpokenTime(-1);
-          return 0;
-        }
-        return newTime;
-      });
-    }, 100);
+    // Only start automatically if voices are loaded
+    if (voicesLoaded) {
+      setIsPlaying(true);
+      
+      // Start with first script
+      speakText(demoScript[0].text);
+      setLastSpokenTime(0);
+      
+      intervalRef.current = setInterval(() => {
+        setCurrentTime(prev => {
+          const newTime = prev + 0.1;
+          if (newTime >= duration) {
+            clearInterval(intervalRef.current!);
+            intervalRef.current = null;
+            setIsPlaying(false);
+            window.speechSynthesis.cancel();
+            setCurrentTime(0);
+            setLastSpokenTime(-1);
+            return 0;
+          }
+          return newTime;
+        });
+      }, 100);
+    }
 
     return () => {
       if (intervalRef.current) {
@@ -171,7 +196,7 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
       }
       window.speechSynthesis.cancel();
     };
-  }, [duration]);
+  }, [voicesLoaded]);
 
   return (
     <div className="relative w-full h-full bg-gradient-to-br from-blue-900 via-green-800 to-purple-900 rounded-2xl overflow-hidden">
