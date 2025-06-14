@@ -135,10 +135,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
             />
           </div>
           
-          <h2 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4 animate-fade-in">
-            EduFam Demo Video
-          </h2>
-          
           <p className="text-lg md:text-xl mb-4 md:mb-6 max-w-2xl animate-fade-in px-4">
             Experience Kenya's most comprehensive school management system designed for CBC curriculum and M-Pesa integration
           </p>
