@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, BarChart3, Shield, Plus, School, UserPlus, TrendingUp, Activity, CheckCircle } from 'lucide-react';
+import { Building2, Users, BarChart3, Shield, School, UserPlus, TrendingUp, Activity, CheckCircle, AlertTriangle } from 'lucide-react';
 import CreateSchoolDialog from '@/components/modules/schools/CreateSchoolDialog';
 import CreateUserDialog from '@/components/modules/users/CreateUserDialog';
 import { useQuery } from '@tanstack/react-query';
@@ -16,73 +16,106 @@ interface ElimshaAdminDashboardProps {
 const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch schools data
-  const { data: schoolsData, isLoading: schoolsLoading, refetch: refetchSchools } = useQuery({
-    queryKey: ['schools', refreshKey],
+  // Fetch schools data with better error handling
+  const { data: schoolsData = [], isLoading: schoolsLoading, error: schoolsError, refetch: refetchSchools } = useQuery({
+    queryKey: ['admin-schools', refreshKey],
     queryFn: async () => {
+      console.log('🏫 ElimshaAdmin: Fetching schools data');
       try {
         const result = await SchoolService.getAllSchools();
-        if (result.error) throw result.error;
+        if (result.error) {
+          console.error('🏫 ElimshaAdmin: School fetch error:', result.error);
+          throw new Error(result.error.message || 'Failed to fetch schools');
+        }
+        console.log('🏫 ElimshaAdmin: Schools fetched successfully:', result.data?.length || 0);
         return result.data || [];
       } catch (error) {
-        console.error('Error fetching schools:', error);
-        return [];
+        console.error('🏫 ElimshaAdmin: Exception fetching schools:', error);
+        throw error;
       }
-    }
+    },
+    retry: 2,
+    refetchOnWindowFocus: false
   });
 
-  // Fetch user statistics using AdminUserService
-  const { data: usersData, refetch: refetchUsers } = useQuery({
+  // Fetch users data with better error handling
+  const { data: usersData = [], isLoading: usersLoading, error: usersError, refetch: refetchUsers } = useQuery({
     queryKey: ['admin-users', refreshKey],
     queryFn: async () => {
+      console.log('👥 ElimshaAdmin: Fetching users data');
       try {
         const { data, error } = await AdminUserService.getUsersForSchool();
-        if (error) throw error;
+        if (error) {
+          console.error('👥 ElimshaAdmin: User fetch error:', error);
+          throw new Error(error.message || 'Failed to fetch users');
+        }
+        console.log('👥 ElimshaAdmin: Users fetched successfully:', data?.length || 0);
         return data || [];
       } catch (error) {
-        console.error('Error fetching users:', error);
-        return [];
+        console.error('👥 ElimshaAdmin: Exception fetching users:', error);
+        throw error;
       }
-    }
+    },
+    retry: 2,
+    refetchOnWindowFocus: false
   });
 
   const handleSchoolCreated = () => {
+    console.log('🏫 ElimshaAdmin: School created, refreshing data');
     setRefreshKey(prev => prev + 1);
     refetchSchools();
   };
 
   const handleUserCreated = () => {
+    console.log('👥 ElimshaAdmin: User created, refreshing data');
     setRefreshKey(prev => prev + 1);
     refetchUsers();
   };
 
-  // Calculate user statistics with proper error handling
-  const userStats = usersData ? {
-    totalUsers: usersData.length,
-    usersWithSchools: usersData.filter(u => u.school_id).length,
-    usersWithoutSchools: usersData.filter(u => !u.school_id).length,
-    roleBreakdown: usersData.reduce((acc: Record<string, number>, user) => {
-      const role = user.role || 'unknown';
-      acc[role] = (acc[role] || 0) + 1;
-      return acc;
-    }, {})
-  } : {
-    totalUsers: 0,
-    usersWithSchools: 0,
-    usersWithoutSchools: 0,
-    roleBreakdown: {}
+  const handleRetry = () => {
+    console.log('🔄 ElimshaAdmin: Retrying data fetch');
+    setRefreshKey(prev => prev + 1);
+    refetchSchools();
+    refetchUsers();
   };
 
+  // Calculate user statistics with validation
+  const userStats = React.useMemo(() => {
+    if (!Array.isArray(usersData)) {
+      console.warn('👥 ElimshaAdmin: Invalid users data format');
+      return {
+        totalUsers: 0,
+        usersWithSchools: 0,
+        usersWithoutSchools: 0,
+        roleBreakdown: {}
+      };
+    }
+
+    const validUsers = usersData.filter(user => user && typeof user === 'object');
+    
+    return {
+      totalUsers: validUsers.length,
+      usersWithSchools: validUsers.filter(u => u.school_id).length,
+      usersWithoutSchools: validUsers.filter(u => !u.school_id).length,
+      roleBreakdown: validUsers.reduce((acc: Record<string, number>, user) => {
+        const role = user.role || 'unknown';
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      }, {})
+    };
+  }, [usersData]);
+
+  // System overview cards configuration
   const systemOverviewCards = [
     {
       title: "Total Schools",
-      value: schoolsData?.length || 0,
+      value: Array.isArray(schoolsData) ? schoolsData.length : 0,
       description: "Active school tenants",
       icon: Building2,
       gradient: "from-blue-500 to-blue-600",
       bgGradient: "from-blue-50 to-blue-100",
       change: "+12%",
-      trend: "up"
+      trend: "up" as const
     },
     {
       title: "Total Users",
@@ -92,7 +125,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       gradient: "from-emerald-500 to-emerald-600",
       bgGradient: "from-emerald-50 to-emerald-100",
       change: "+8%",
-      trend: "up"
+      trend: "up" as const
     },
     {
       title: "Users Assigned",
@@ -102,7 +135,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       gradient: "from-purple-500 to-purple-600",
       bgGradient: "from-purple-50 to-purple-100",
       change: "+15%",
-      trend: "up"
+      trend: "up" as const
     },
     {
       title: "Unassigned Users",
@@ -112,21 +145,41 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       gradient: "from-orange-500 to-orange-600",
       bgGradient: "from-orange-50 to-orange-100",
       change: "-5%",
-      trend: "down"
+      trend: "down" as const
     }
   ];
 
+  // Show error state if both queries failed
+  if (schoolsError && usersError) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Dashboard</h3>
+            <p className="text-red-700 mb-4">
+              Failed to load dashboard data. Please check your connection and try again.
+            </p>
+            <Button onClick={handleRetry} variant="outline" className="border-red-300 text-red-700">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Reduced Size System Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Compact System Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {systemOverviewCards.map((card, index) => (
-          <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md overflow-hidden relative">
-            <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-50`}></div>
-            <CardContent className="p-4 relative">
+          <Card key={index} className="group hover:shadow-md transition-all duration-200 border-0 shadow-sm overflow-hidden relative">
+            <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-40`}></div>
+            <CardContent className="p-3 relative">
               <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-lg bg-gradient-to-r ${card.gradient} shadow-md group-hover:scale-105 transition-transform duration-200`}>
-                  <card.icon className="h-4 w-4 text-white" />
+                <div className={`p-1.5 rounded-md bg-gradient-to-r ${card.gradient} shadow-sm group-hover:scale-105 transition-transform duration-200`}>
+                  <card.icon className="h-3.5 w-3.5 text-white" />
                 </div>
                 <div className="flex items-center space-x-1 text-xs">
                   <TrendingUp className={`h-3 w-3 ${card.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`} />
@@ -137,7 +190,9 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-medium text-gray-600">{card.title}</p>
-                <p className="text-xl font-bold text-gray-900">{card.value}</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {(schoolsLoading || usersLoading) ? '...' : card.value}
+                </p>
                 <p className="text-xs text-gray-500">{card.description}</p>
               </div>
             </CardContent>
@@ -146,11 +201,11 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       </div>
 
       {/* Quick Actions */}
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+      <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-3 text-xl">
+          <CardTitle className="flex items-center gap-3 text-lg">
             <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600">
-              <Shield className="h-5 w-5 text-white" />
+              <Shield className="h-4 w-4 text-white" />
             </div>
             Administrative Hub
           </CardTitle>
@@ -162,43 +217,43 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <Button 
               variant="outline" 
-              className="h-20 flex-col gap-2 hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100 border-2 hover:border-blue-200 transition-all duration-200 group"
+              className="h-16 flex-col gap-2 hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100 border-2 hover:border-blue-200 transition-all duration-200 group"
               onClick={() => onModalOpen('schools')}
             >
-              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 group-hover:scale-105 transition-transform duration-200">
-                <School className="h-4 w-4 text-white" />
+              <div className="p-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 group-hover:scale-105 transition-transform duration-200">
+                <School className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="font-medium text-sm">Manage Schools</span>
+              <span className="font-medium text-xs">Manage Schools</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex-col gap-2 hover:bg-gradient-to-br hover:from-emerald-50 hover:to-emerald-100 border-2 hover:border-emerald-200 transition-all duration-200 group"
+              className="h-16 flex-col gap-2 hover:bg-gradient-to-br hover:from-emerald-50 hover:to-emerald-100 border-2 hover:border-emerald-200 transition-all duration-200 group"
               onClick={() => onModalOpen('users')}
             >
-              <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 group-hover:scale-105 transition-transform duration-200">
-                <Users className="h-4 w-4 text-white" />
+              <div className="p-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 group-hover:scale-105 transition-transform duration-200">
+                <Users className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="font-medium text-sm">Manage Users</span>
+              <span className="font-medium text-xs">Manage Users</span>
             </Button>
             <Button 
               variant="outline" 
-              className="h-20 flex-col gap-2 hover:bg-gradient-to-br hover:from-purple-50 hover:to-purple-100 border-2 hover:border-purple-200 transition-all duration-200 group"
+              className="h-16 flex-col gap-2 hover:bg-gradient-to-br hover:from-purple-50 hover:to-purple-100 border-2 hover:border-purple-200 transition-all duration-200 group"
               onClick={() => onModalOpen('analytics')}
             >
-              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 group-hover:scale-105 transition-transform duration-200">
-                <BarChart3 className="h-4 w-4 text-white" />
+              <div className="p-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 group-hover:scale-105 transition-transform duration-200">
+                <BarChart3 className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="font-medium text-sm">System Analytics</span>
+              <span className="font-medium text-xs">System Analytics</span>
             </Button>
             <CreateUserDialog onUserCreated={handleUserCreated}>
               <Button 
                 variant="outline" 
-                className="h-20 flex-col gap-2 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100 border-2 hover:border-orange-200 transition-all duration-200 group w-full"
+                className="h-16 flex-col gap-2 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100 border-2 hover:border-orange-200 transition-all duration-200 group w-full"
               >
-                <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 group-hover:scale-105 transition-transform duration-200">
-                  <UserPlus className="h-4 w-4 text-white" />
+                <div className="p-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 group-hover:scale-105 transition-transform duration-200">
+                  <UserPlus className="h-3.5 w-3.5 text-white" />
                 </div>
-                <span className="font-medium text-sm">Create User</span>
+                <span className="font-medium text-xs">Create User</span>
               </Button>
             </CreateUserDialog>
           </div>
@@ -206,7 +261,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
       </Card>
 
       {/* Recent Schools */}
-      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+      <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-lg">
             <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600">
@@ -224,7 +279,15 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               <span className="ml-3 text-gray-600">Loading schools...</span>
             </div>
-          ) : schoolsData && schoolsData.length > 0 ? (
+          ) : schoolsError ? (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
+              <p className="text-red-600 mb-3">Failed to load schools</p>
+              <Button onClick={() => refetchSchools()} variant="outline" size="sm">
+                Retry
+              </Button>
+            </div>
+          ) : Array.isArray(schoolsData) && schoolsData.length > 0 ? (
             <div className="space-y-3">
               {schoolsData.slice(0, 5).map((school: any) => (
                 <div key={school.id} className="group flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg hover:from-blue-50 hover:to-white border hover:border-blue-200 transition-all duration-200 hover:shadow-sm">
@@ -233,13 +296,13 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
                       <Building2 className="h-3 w-3 text-white" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 text-sm">{school.name}</h4>
-                      <p className="text-xs text-gray-600">{school.email}</p>
+                      <h4 className="font-medium text-gray-900 text-sm">{school.name || 'Unnamed School'}</h4>
+                      <p className="text-xs text-gray-600">{school.email || 'No email'}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                      {new Date(school.created_at).toLocaleDateString()}
+                      {school.created_at ? new Date(school.created_at).toLocaleDateString() : 'No date'}
                     </div>
                   </div>
                 </div>
@@ -260,7 +323,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
 
       {/* User Role Breakdown */}
       {userStats.totalUsers > 0 && (
-        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+        <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-lg">
               <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600">
