@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Class {
   id: string;
@@ -14,21 +15,20 @@ interface Class {
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
-  const { createSchoolScopedQuery } = useSchoolScopedData();
+  const { buildSchoolScopedQuery } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const query = createSchoolScopedQuery('classes', `
+      
+      const { data, error } = await buildSchoolScopedQuery('classes', `
         id,
         name,
         school_id,
         teacher_id,
         created_at
-      `);
-
-      const { data, error } = await query.order('name');
+      `).order('name');
 
       if (error) {
         console.error('Error fetching classes:', error);

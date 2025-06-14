@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +10,7 @@ import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { DataService } from '@/services/dataService';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 const FinanceModule = () => {
   const [selectedTerm, setSelectedTerm] = useState('term1');
@@ -23,7 +23,7 @@ const FinanceModule = () => {
     expenses: 0
   });
   const [loading, setLoading] = useState(true);
-  const { createSchoolScopedQuery } = useSchoolScopedData();
+  const { buildSchoolScopedQuery } = useSchoolScopedData();
   const { toast } = useToast();
 
   const terms = [
@@ -48,15 +48,8 @@ const FinanceModule = () => {
     try {
       setLoading(true);
       
-      // Fetch fee records with student information
-      let query = createSchoolScopedQuery('fees', `
-        *,
-        students:students(
-          name,
-          admission_number,
-          classes:classes(name)
-        )
-      `);
+      // Fetch fee records
+      let query = buildSchoolScopedQuery('fees', '*');
 
       if (selectedTerm !== 'all') {
         query = query.eq('term', selectedTerm);
@@ -74,10 +67,30 @@ const FinanceModule = () => {
         return;
       }
 
-      setFeeRecords(fees || []);
+      // Fetch student and class data separately
+      const { data: studentsData } = await supabase
+        .from('students')
+        .select('id, name, admission_number, class_id');
+
+      const { data: classesData } = await supabase
+        .from('classes')
+        .select('id, name');
+
+      // Create lookup maps
+      const studentMap = new Map(studentsData?.map(s => [s.id, s]) || []);
+      const classMap = new Map(classesData?.map(c => [c.id, c.name]) || []);
+
+      // Enhance fee records with student and class info
+      const enhancedFees = (fees || []).map(fee => ({
+        ...fee,
+        student: studentMap.get(fee.student_id),
+        className: classMap.get(studentMap.get(fee.student_id)?.class_id)
+      }));
+
+      setFeeRecords(enhancedFees);
 
       // Calculate statistics
-      const total = fees?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
+      const total = fees?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
       const collected = fees?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
       const pending = total - collected;
 
@@ -319,10 +332,10 @@ const FinanceModule = () => {
                   {feeRecords.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">
-                        {record.students?.name || 'Unknown Student'}
+                        {record.student?.name || 'Unknown Student'}
                       </TableCell>
-                      <TableCell>{record.students?.admission_number || 'N/A'}</TableCell>
-                      <TableCell>{record.students?.classes?.name || 'N/A'}</TableCell>
+                      <TableCell>{record.student?.admission_number || 'N/A'}</TableCell>
+                      <TableCell>{record.className || 'N/A'}</TableCell>
                       <TableCell className="capitalize">{record.category}</TableCell>
                       <TableCell>{formatCurrency(record.amount)}</TableCell>
                       <TableCell>{formatCurrency(record.paid_amount || 0)}</TableCell>

@@ -16,13 +16,13 @@ interface Subject {
 export const useSubjects = (classId?: string) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
-  const { createSchoolScopedQuery } = useSchoolScopedData();
+  const { buildSchoolScopedQuery } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchSubjects = async () => {
     try {
       setLoading(true);
-      let query = createSchoolScopedQuery('subjects', `
+      let query = buildSchoolScopedQuery('subjects', `
         id,
         name,
         code,

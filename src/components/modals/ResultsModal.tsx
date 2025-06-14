@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -62,21 +61,10 @@ const ResultsModal: React.FC<ResultsModalProps> = ({ onClose }) => {
       try {
         setLoading(true);
 
-        // Build the query with filters
+        // Fetch grades with separate queries to avoid relationship conflicts
         let query = supabase
           .from('grades')
-          .select(`
-            id,
-            term,
-            exam_type,
-            status,
-            is_released,
-            score,
-            max_score,
-            student:students(name),
-            subject:subjects(name),
-            class:classes(name)
-          `)
+          .select('*')
           .eq('status', 'submitted');
 
         // Apply filters if selected
@@ -96,17 +84,34 @@ const ResultsModal: React.FC<ResultsModalProps> = ({ onClose }) => {
           throw error;
         }
 
+        // Get class and subject data separately
+        const { data: classesData } = await supabase
+          .from('classes')
+          .select('id, name')
+          .eq('school_id', user.school_id);
+
+        const { data: subjectsData } = await supabase
+          .from('subjects')
+          .select('id, name')
+          .eq('school_id', user.school_id);
+
+        // Create lookup maps
+        const classMap = new Map(classesData?.map(c => [c.id, c.name]) || []);
+        const subjectMap = new Map(subjectsData?.map(s => [s.id, s.name]) || []);
+
         // Group and aggregate the results
         const groupedResults = new Map<string, any>();
 
         gradesData?.forEach(grade => {
-          const key = `${grade.class?.name}-${grade.subject?.name}-${grade.exam_type}-${grade.term}`;
+          const className = classMap.get(grade.class_id) || 'Unknown';
+          const subjectName = subjectMap.get(grade.subject_id) || 'Unknown';
+          const key = `${className}-${subjectName}-${grade.exam_type}-${grade.term}`;
           
           if (!groupedResults.has(key)) {
             groupedResults.set(key, {
               id: key,
-              class_name: grade.class?.name || 'Unknown',
-              subject_name: grade.subject?.name || 'Unknown',
+              class_name: className,
+              subject_name: subjectName,
               exam_type: grade.exam_type,
               term: grade.term,
               status: 'approved', // Assuming submitted grades are approved
@@ -155,11 +160,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({ onClose }) => {
         .from('grades')
         .update({ is_released: release })
         .eq('term', result.term)
-        .eq('exam_type', result.exam_type)
-        .match({
-          'classes.name': result.class_name,
-          'subjects.name': result.subject_name
-        });
+        .eq('exam_type', result.exam_type);
 
       if (error) {
         throw error;

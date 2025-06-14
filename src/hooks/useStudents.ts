@@ -22,13 +22,13 @@ interface Student {
 export const useStudents = (classId?: string) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const { createSchoolScopedQuery } = useSchoolScopedData();
+  const { buildSchoolScopedQuery } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      let query = createSchoolScopedQuery('students', `
+      let query = buildSchoolScopedQuery('students', `
         id,
         name,
         admission_number,

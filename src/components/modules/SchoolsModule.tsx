@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
@@ -27,7 +28,7 @@ const SchoolsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const { toast } = useToast();
-  const { createSchoolScopedQuery, isSystemAdmin } = useSchoolScopedData();
+  const { buildSchoolScopedQuery, isSystemAdmin } = useSchoolScopedData();
 
   useEffect(() => {
     if (isSystemAdmin) {
@@ -40,12 +41,10 @@ const SchoolsModule = () => {
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const query = createSchoolScopedQuery('schools', `
+      const { data: schoolsData, error } = await buildSchoolScopedQuery('schools', `
         *,
         subscriptions(plan_type, status, amount)
       `);
-
-      const { data: schoolsData, error } = await query;
 
       if (error) {
         console.error('Error fetching schools:', error);

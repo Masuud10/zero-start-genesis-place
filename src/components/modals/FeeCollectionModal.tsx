@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -45,21 +44,14 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
       try {
         setLoading(true);
         
-        // Fetch students with their fee information
+        // Fetch students with their fee information - using explicit joins
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select(`
             id,
             name,
             admission_number,
-            class:classes(name),
-            fees(
-              amount,
-              paid_amount,
-              due_date,
-              status,
-              created_at
-            )
+            classes:class_id(name)
           `)
           .eq('school_id', user.school_id)
           .eq('is_active', true);
@@ -68,19 +60,30 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
           throw studentsError;
         }
 
+        // Fetch fees separately to avoid complex joins
+        const { data: feesData, error: feesError } = await supabase
+          .from('fees')
+          .select('*')
+          .eq('school_id', user.school_id);
+
+        if (feesError) {
+          throw feesError;
+        }
+
         // Transform the data
         const transformedStudents: FeeStudent[] = (studentsData || []).map(student => {
-          const totalFees = student.fees?.reduce((sum: number, fee: any) => sum + (fee.amount || 0), 0) || 0;
-          const paidAmount = student.fees?.reduce((sum: number, fee: any) => sum + (fee.paid_amount || 0), 0) || 0;
-          const lastPayment = student.fees
-            ?.filter((fee: any) => fee.paid_amount > 0)
-            ?.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())?.[0]?.created_at || '';
+          const studentFees = feesData?.filter(fee => fee.student_id === student.id) || [];
+          const totalFees = studentFees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+          const paidAmount = studentFees.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
+          const lastPayment = studentFees
+            ?.filter(fee => fee.paid_amount > 0)
+            ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())?.[0]?.created_at || '';
 
           return {
             id: student.id,
             name: student.name,
             admissionNo: student.admission_number,
-            class: student.class?.name || 'Not Assigned',
+            class: (student.classes as any)?.name || 'Not Assigned',
             totalFees,
             paidAmount,
             balance: totalFees - paidAmount,
