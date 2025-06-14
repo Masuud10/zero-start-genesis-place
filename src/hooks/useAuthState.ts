@@ -74,7 +74,7 @@ export const useAuthState = () => {
       // Resolve role
       const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
-      // Create user data with guaranteed email
+      // Create user data with guaranteed email and all metadata
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email, // Now guaranteed to exist
@@ -87,7 +87,14 @@ export const useAuthState = () => {
         school_id: profile?.school_id || 
                    authUser.user_metadata?.school_id || 
                    authUser.app_metadata?.school_id,
-        avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url
+        avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
+        // Include all metadata for compatibility
+        user_metadata: authUser.user_metadata,
+        app_metadata: authUser.app_metadata,
+        // Security properties from profile or metadata
+        mfa_enabled: profile?.mfa_enabled || false,
+        last_login_at: authUser.last_sign_in_at || undefined,
+        last_login_ip: undefined // This would come from custom tracking
       };
       
       console.log('🔐 AuthState: User processed successfully:', {

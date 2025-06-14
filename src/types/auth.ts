@@ -8,6 +8,13 @@ export interface AuthUser {
   avatar_url?: string;
   created_at?: string;
   updated_at?: string;
+  // Supabase auth metadata
+  user_metadata?: any;
+  app_metadata?: any;
+  // Security properties
+  mfa_enabled?: boolean;
+  last_login_at?: string;
+  last_login_ip?: string;
 }
 
 // Add User as an alias for AuthUser for backward compatibility

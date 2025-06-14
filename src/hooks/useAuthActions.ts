@@ -1,42 +1,44 @@
 
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { LoginCredentials, SignupCredentials } from '@/types/auth';
 
 export const useAuthActions = () => {
   // Ensure all hooks are called unconditionally and in the same order
-  const signIn = useCallback(async (email: string, password: string) => {
-    console.log('🔑 AuthActions: Attempting sign in for', email);
+  const signIn = useCallback(async (credentials: LoginCredentials) => {
+    console.log('🔑 AuthActions: Attempting sign in for', credentials.email);
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+        email: credentials.email.trim(),
+        password: credentials.password,
       });
       
       if (error) {
         console.error('🔑 AuthActions: Sign in error:', error);
-        return { data: null, error };
+        return { error: error.message };
       }
       
-      console.log('🔑 AuthActions: Sign in successful for', email);
-      return { data, error: null };
+      console.log('🔑 AuthActions: Sign in successful for', credentials.email);
+      return { error: undefined };
     } catch (error: any) {
       console.error('❌ AuthActions: Sign in exception:', error);
-      return { data: null, error: { message: error.message || 'Authentication failed' } };
+      return { error: error.message || 'Authentication failed' };
     }
   }, []); // Empty dependency array to prevent recreation
 
-  const signUp = useCallback(async (email: string, password: string, metadata = {}) => {
-    console.log('📝 AuthActions: Attempting sign up for', email);
+  const signUp = useCallback(async (credentials: SignupCredentials) => {
+    console.log('📝 AuthActions: Attempting sign up for', credentials.email);
     
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
+        email: credentials.email.trim(),
+        password: credentials.password,
         options: {
           data: {
-            name: email.split('@')[0],
-            ...metadata
+            name: credentials.name,
+            role: credentials.role,
+            school_id: credentials.school_id
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -44,14 +46,14 @@ export const useAuthActions = () => {
       
       if (error) {
         console.error('📝 AuthActions: Sign up error:', error);
-        return { data: null, error };
+        return { error: error.message };
       }
       
-      console.log('📝 AuthActions: Sign up successful for', email);
-      return { data, error: null };
+      console.log('📝 AuthActions: Sign up successful for', credentials.email);
+      return { error: undefined };
     } catch (error: any) {
       console.error('❌ AuthActions: Sign up exception:', error);
-      return { data: null, error: { message: error.message || 'Sign up failed' } };
+      return { error: error.message || 'Sign up failed' };
     }
   }, []); // Empty dependency array to prevent recreation
 
