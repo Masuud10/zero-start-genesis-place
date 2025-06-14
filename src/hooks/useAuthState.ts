@@ -17,47 +17,67 @@ export const useAuthState = () => {
     if (!isMountedRef.current) return;
     
     if (!authUser) {
+      console.log('🔐 AuthState: No auth user, clearing state');
       setUser(null);
       setIsLoading(false);
+      setError(null);
       processedUserRef.current = null;
       return;
     }
 
     // Avoid duplicate processing
     if (processedUserRef.current === authUser.id) {
+      console.log('🔐 AuthState: User already processed, skipping:', authUser.id);
       return;
     }
     
     processedUserRef.current = authUser.id;
     
     try {
-      console.log('🔐 AuthState: Processing user:', authUser.email);
-      
-      // Try to fetch profile with timeout
-      const profilePromise = supabase
-        .from('profiles')
-        .select('role, name, school_id, avatar_url')
-        .eq('id', authUser.id)
-        .maybeSingle();
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-      );
+      console.log('🔐 AuthState: Processing user:', {
+        email: authUser.email,
+        id: authUser.id,
+        userMetadata: authUser.user_metadata,
+        appMetadata: authUser.app_metadata
+      });
       
       let profile = null;
+      
+      // Try to fetch profile with timeout and proper error handling
       try {
-        const { data } = await Promise.race([profilePromise, timeoutPromise]) as any;
-        profile = data;
-      } catch (profileError) {
-        console.warn('🔐 AuthState: Profile fetch failed, using fallback:', profileError);
+        console.log('🔐 AuthState: Fetching profile for user:', authUser.id);
+        
+        const profilePromise = supabase
+          .from('profiles')
+          .select('role, name, school_id, avatar_url')
+          .eq('id', authUser.id)
+          .maybeSingle();
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile fetch timeout after 8 seconds')), 8000)
+        );
+        
+        const result = await Promise.race([profilePromise, timeoutPromise]) as any;
+        
+        if (result.error) {
+          console.warn('🔐 AuthState: Profile fetch error:', result.error);
+        } else {
+          profile = result.data;
+          console.log('🔐 AuthState: Profile fetched successfully:', profile);
+        }
+        
+      } catch (profileError: any) {
+        console.warn('🔐 AuthState: Profile fetch failed, continuing with auth data only:', profileError.message);
       }
       
-      // Resolve role using the new resolver
-      const role = RoleResolver.resolveRole(authUser, profile?.role);
+      // Get detailed role information using the improved resolver
+      const roleInfo = RoleResolver.getRoleInfo(authUser, profile?.role);
+      console.log('🔐 AuthState: Role resolution result:', roleInfo);
       
+      // Construct user data with all available information
       const userData: AuthUser = {
         ...authUser,
-        role,
+        role: roleInfo.role,
         name: profile?.name || 
               authUser.user_metadata?.name || 
               authUser.user_metadata?.full_name ||
@@ -72,8 +92,10 @@ export const useAuthState = () => {
       console.log('🔐 AuthState: User processed successfully:', {
         email: userData.email,
         role: userData.role,
+        roleSource: roleInfo.source,
         school_id: userData.school_id,
-        hasProfile: !!profile
+        hasProfile: !!profile,
+        roleDebugInfo: roleInfo.debugInfo
       });
       
       if (isMountedRef.current) {
@@ -81,10 +103,10 @@ export const useAuthState = () => {
         setError(null);
         setIsLoading(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('🔐 AuthState: Error processing user:', error);
       if (isMountedRef.current) {
-        setError('Failed to load user profile');
+        setError(`Failed to load user profile: ${error.message}`);
         setIsLoading(false);
       }
     }
@@ -93,12 +115,15 @@ export const useAuthState = () => {
   useEffect(() => {
     isMountedRef.current = true;
     
+    console.log('🔐 AuthState: Setting up auth state management');
+    
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 AuthState: Auth state changed:', event);
+        console.log('🔐 AuthState: Auth state changed:', event, 'hasSession:', !!session);
         
         if (event === 'SIGNED_OUT' || !session?.user) {
+          console.log('🔐 AuthState: User signed out or no session');
           setUser(null);
           setIsLoading(false);
           setError(null);
@@ -107,6 +132,7 @@ export const useAuthState = () => {
         }
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('🔐 AuthState: Processing auth state change for:', event);
           await processUser(session.user);
         }
       }
@@ -115,12 +141,18 @@ export const useAuthState = () => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔐 AuthState: Getting initial session');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.warn('🔐 AuthState: Initial session error:', error);
+        }
+        
         await processUser(session?.user || null);
-      } catch (error) {
+      } catch (error: any) {
         console.error('🔐 AuthState: Error getting initial session:', error);
         if (isMountedRef.current) {
-          setError('Failed to initialize session');
+          setError(`Failed to initialize session: ${error.message}`);
           setIsLoading(false);
         }
       }
@@ -129,6 +161,7 @@ export const useAuthState = () => {
     getInitialSession();
     
     return () => {
+      console.log('🔐 AuthState: Cleaning up auth state management');
       isMountedRef.current = false;
       subscription.unsubscribe();
     };
@@ -139,6 +172,7 @@ export const useAuthState = () => {
     isLoading,
     error,
     retry: () => {
+      console.log('🔐 AuthState: Retry requested');
       if (user) {
         processedUserRef.current = null;
         processUser(user);

@@ -25,7 +25,7 @@ interface RecentActivity {
 const PrincipalDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getCurrentSchoolId, validateSchoolAccess, schoolError } = useSchoolScopedData();
+  const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
   const [stats, setStats] = useState<SchoolStats>({
     totalStudents: 0,
     totalTeachers: 0,
@@ -35,26 +35,29 @@ const PrincipalDashboard = () => {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const schoolId = getCurrentSchoolId();
 
+  console.log('📊 PrincipalDashboard: Initializing for user:', {
+    email: user?.email,
+    role: user?.role,
+    schoolId: schoolId,
+    userSchoolId: user?.school_id
+  });
+
   useEffect(() => {
-    // If we have a school ID or the user has a school_id, proceed with loading
-    if (schoolId || user?.school_id) {
+    // Ensure we have proper access before loading data
+    const effectiveSchoolId = schoolId || user?.school_id;
+    
+    if (effectiveSchoolId) {
+      console.log('📊 PrincipalDashboard: Loading data for school:', effectiveSchoolId);
       fetchSchoolData();
-    } else if (!schoolError && retryCount < 3) {
-      // Retry after a short delay if no school error and retry count is low
-      const retryTimeout = setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-      }, 1000);
-      return () => clearTimeout(retryTimeout);
     } else {
-      // No school assignment and exhausted retries
+      console.warn('📊 PrincipalDashboard: No school ID available');
       setLoading(false);
       setError('No school assignment found. Please contact your administrator.');
     }
-  }, [schoolId, user?.school_id, schoolError, retryCount]);
+  }, [schoolId, user?.school_id]);
 
   const fetchSchoolData = async () => {
     try {
@@ -64,81 +67,66 @@ const PrincipalDashboard = () => {
       const effectiveSchoolId = schoolId || user?.school_id;
       
       if (!effectiveSchoolId) {
-        throw new Error('No school ID available');
+        throw new Error('No school ID available for data fetch');
       }
 
       console.log('📊 PrincipalDashboard: Fetching data for school:', effectiveSchoolId);
 
-      // Validate school access if we have the validation function
+      // Validate school access
       if (validateSchoolAccess && !validateSchoolAccess({ school_id: effectiveSchoolId })) {
         throw new Error('Access denied to school data');
       }
 
-      // Fetch students count with error handling
-      const studentsPromise = supabase
-        .from('students')
-        .select('id', { count: 'exact' })
-        .eq('school_id', effectiveSchoolId)
-        .eq('is_active', true);
-
-      // Fetch teachers count with error handling
-      const teachersPromise = supabase
-        .from('profiles')
-        .select('id', { count: 'exact' })
-        .eq('school_id', effectiveSchoolId)
-        .eq('role', 'teacher');
-
-      // Fetch subjects count with error handling
-      const subjectsPromise = supabase
-        .from('subjects')
-        .select('id', { count: 'exact' })
-        .eq('school_id', effectiveSchoolId);
-
-      // Fetch classes count with error handling
-      const classesPromise = supabase
-        .from('classes')
-        .select('id', { count: 'exact' })
-        .eq('school_id', effectiveSchoolId);
-
-      // Fetch recent announcements for activities with error handling
-      const announcementsPromise = supabase
-        .from('announcements')
-        .select('id, title, created_at')
-        .eq('school_id', effectiveSchoolId)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      // Execute all queries with proper error handling
+      // Fetch all data in parallel with proper error handling
       const [
-        { data: students, error: studentsError, count: studentsCount },
-        { data: teachers, error: teachersError, count: teachersCount },
-        { data: subjects, error: subjectsError, count: subjectsCount },
-        { data: classes, error: classesError, count: classesCount },
-        { data: announcements, error: announcementsError }
-      ] = await Promise.all([
-        studentsPromise,
-        teachersPromise,
-        subjectsPromise,
-        classesPromise,
-        announcementsPromise
+        studentsResult,
+        teachersResult,
+        subjectsResult,
+        classesResult,
+        announcementsResult
+      ] = await Promise.allSettled([
+        supabase
+          .from('students')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId)
+          .eq('is_active', true),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId)
+          .eq('role', 'teacher'),
+        supabase
+          .from('subjects')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId),
+        supabase
+          .from('classes')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId),
+        supabase
+          .from('announcements')
+          .select('id, title, created_at')
+          .eq('school_id', effectiveSchoolId)
+          .order('created_at', { ascending: false })
+          .limit(5)
       ]);
 
-      // Check for any errors and log them
-      const errors = [studentsError, teachersError, subjectsError, classesError, announcementsError].filter(Boolean);
-      if (errors.length > 0) {
-        console.error('📊 PrincipalDashboard: Some queries failed:', errors);
-        // Continue with partial data rather than failing completely
-      }
+      // Process results and handle individual failures gracefully
+      const studentsCount = studentsResult.status === 'fulfilled' ? (studentsResult.value.count || 0) : 0;
+      const teachersCount = teachersResult.status === 'fulfilled' ? (teachersResult.value.count || 0) : 0;
+      const subjectsCount = subjectsResult.status === 'fulfilled' ? (subjectsResult.value.count || 0) : 0;
+      const classesCount = classesResult.status === 'fulfilled' ? (classesResult.value.count || 0) : 0;
 
       setStats({
-        totalStudents: studentsCount || 0,
-        totalTeachers: teachersCount || 0,
-        totalSubjects: subjectsCount || 0,
-        totalClasses: classesCount || 0
+        totalStudents: studentsCount,
+        totalTeachers: teachersCount,
+        totalSubjects: subjectsCount,
+        totalClasses: classesCount
       });
 
-      // Transform announcements to activities with safe access
-      const activities = (announcements || []).map(announcement => ({
+      // Process announcements
+      const announcements = announcementsResult.status === 'fulfilled' ? (announcementsResult.value.data || []) : [];
+      const activities = announcements.map(announcement => ({
         id: announcement.id,
         type: 'announcement',
         description: `New announcement: ${announcement.title || 'Untitled'}`,
@@ -147,9 +135,16 @@ const PrincipalDashboard = () => {
 
       setRecentActivities(activities);
 
-      console.log('📊 PrincipalDashboard: Data fetched successfully', {
+      console.log('📊 PrincipalDashboard: Data loaded successfully:', {
         stats: { studentsCount, teachersCount, subjectsCount, classesCount },
         activitiesCount: activities.length
+      });
+
+      // Log any failed requests
+      [studentsResult, teachersResult, subjectsResult, classesResult, announcementsResult].forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`📊 PrincipalDashboard: Query ${index} failed:`, result.reason);
+        }
       });
 
     } catch (error: any) {
@@ -204,7 +199,7 @@ const PrincipalDashboard = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="h-5 w-5" />
-            Dashboard Error
+            Principal Dashboard Error
           </CardTitle>
           <CardDescription>
             There was a problem loading your dashboard data.
@@ -224,6 +219,10 @@ const PrincipalDashboard = () => {
   if (loading) {
     return (
       <div className="space-y-6">
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Principal Dashboard</h2>
+          <p className="text-gray-600">Loading your school data...</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -239,6 +238,11 @@ const PrincipalDashboard = () => {
 
   return (
     <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Principal Dashboard</h1>
+        <p className="text-gray-600">Welcome back, {user?.name || 'Principal'}!</p>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((card, index) => (

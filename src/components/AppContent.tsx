@@ -13,7 +13,7 @@ const AppContent: React.FC = () => {
   const { user, isLoading, error } = useAuth();
   const { isLoading: schoolLoading } = useSchool();
 
-  // Stability check
+  // Stability check to prevent premature rendering
   useEffect(() => {
     if (!isLoading) {
       const timer = setTimeout(() => {
@@ -38,9 +38,9 @@ const AppContent: React.FC = () => {
     userEmail: user?.email
   });
 
-  // Handle auth errors
+  // Handle authentication errors
   if (error) {
-    console.log('🎯 AppContent: Auth error, showing login form');
+    console.log('🎯 AppContent: Auth error detected, showing login form:', error);
     return <LoginForm />;
   }
 
@@ -61,14 +61,15 @@ const AppContent: React.FC = () => {
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // Role validation
+  // Critical: Validate user has a role before proceeding
   if (!user.role) {
-    console.error('🎯 AppContent: Authenticated user has no role - critical error:', {
+    console.error('🎯 AppContent: CRITICAL - Authenticated user has no role:', {
       userId: user.id,
       email: user.email,
       user_metadata: user.user_metadata,
       app_metadata: user.app_metadata
     });
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
@@ -81,7 +82,9 @@ const AppContent: React.FC = () => {
             Email: {user.email}<br />
             Role: {user.role || 'None'}<br />
             User ID: {user.id?.slice(0, 8)}...<br />
-            School ID: {user.school_id || 'None'}
+            School ID: {user.school_id || 'None'}<br />
+            User Metadata: {JSON.stringify(user.user_metadata)}<br />
+            App Metadata: {JSON.stringify(user.app_metadata)}
           </div>
           <button 
             onClick={() => window.location.reload()} 
@@ -94,14 +97,18 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // School loading check for roles that need school data
-  const needsSchoolData = !['parent', 'edufam_admin'].includes(user.role);
+  // School context loading check for roles that require school data
+  const rolesThatNeedSchoolData = ['principal', 'teacher', 'school_owner', 'finance_officer'];
+  const needsSchoolData = rolesThatNeedSchoolData.includes(user.role);
+  
   if (needsSchoolData && schoolLoading) {
-    console.log('🎯 AppContent: School data loading for role:', user.role);
+    console.log('🎯 AppContent: School data loading for role that requires it:', user.role);
     return <LoadingScreen />;
   }
 
   console.log('🎯 AppContent: All checks passed, rendering main layout for user with role:', user.role);
+  
+  // NO HARDCODED ROLE REDIRECTION - Let the layout handle role-based routing
   return <ElimshaLayout />;
 };
 
