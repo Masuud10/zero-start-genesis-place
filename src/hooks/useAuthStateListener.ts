@@ -17,13 +17,14 @@ export const useAuthStateListener = ({
   const isMountedRef = useRef(true);
   const initializedRef = useRef(false);
   const processingRef = useRef(false);
+  const currentUserRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
     
     console.log('🔐 AuthStateListener: Setting up auth state listener');
     
-    // Get initial session
+    // Get initial session with better error handling
     const getInitialSession = async () => {
       if (initializedRef.current || processingRef.current) {
         console.log('🔐 AuthStateListener: Already initialized/processing, skipping');
@@ -35,6 +36,7 @@ export const useAuthStateListener = ({
       try {
         console.log('🔐 AuthStateListener: Getting initial session');
         setIsLoading(true);
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -48,14 +50,26 @@ export const useAuthStateListener = ({
         
         if (session?.user) {
           console.log('🔐 AuthStateListener: Found initial session for user:', session.user.email);
-          // Defer profile fetch to prevent race conditions
-          setTimeout(async () => {
+          currentUserRef.current = session.user.id;
+          
+          // Fetch profile with stable reference
+          try {
+            await fetchUserProfile(session.user);
+          } catch (profileError) {
+            console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
+            // Set user even if profile fetch fails
             if (isMountedRef.current) {
-              await fetchUserProfile(session.user);
+              setUser({
+                ...session.user,
+                role: 'parent', // fallback role
+                name: session.user.email?.split('@')[0] || 'User'
+              } as AuthUser);
+              setIsLoading(false);
             }
-          }, 100);
+          }
         } else {
           console.log('🔐 AuthStateListener: No initial session found');
+          currentUserRef.current = null;
           setUser(null);
           setIsLoading(false);
         }
@@ -72,10 +86,10 @@ export const useAuthStateListener = ({
       }
     };
 
-    // Set up auth state change listener
+    // Set up auth state change listener with improved handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMountedRef.current || processingRef.current) {
-        console.log('🔐 AuthStateListener: Component unmounted or processing, skipping auth change');
+      if (!isMountedRef.current) {
+        console.log('🔐 AuthStateListener: Component unmounted, skipping auth change');
         return;
       }
       
@@ -85,30 +99,45 @@ export const useAuthStateListener = ({
         // Handle different auth events
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('🔐 AuthStateListener: User signed in:', session.user.email);
-          // Defer profile fetch to prevent deadlocks
-          setTimeout(async () => {
-            if (isMountedRef.current && !processingRef.current) {
-              processingRef.current = true;
-              try {
-                await fetchUserProfile(session.user);
-              } finally {
-                processingRef.current = false;
+          
+          // Only process if this is a different user or we haven't processed this user yet
+          if (currentUserRef.current !== session.user.id && !processingRef.current) {
+            processingRef.current = true;
+            currentUserRef.current = session.user.id;
+            
+            try {
+              await fetchUserProfile(session.user);
+            } catch (profileError) {
+              console.error('🔐 AuthStateListener: Profile fetch failed during sign in:', profileError);
+              // Set fallback user data
+              if (isMountedRef.current) {
+                setUser({
+                  ...session.user,
+                  role: 'parent', // fallback role
+                  name: session.user.email?.split('@')[0] || 'User'
+                } as AuthUser);
+                setIsLoading(false);
               }
+            } finally {
+              processingRef.current = false;
             }
-          }, 150);
+          }
         } else if (event === 'SIGNED_OUT' || !session) {
           console.log('🔐 AuthStateListener: User signed out or session cleared');
+          currentUserRef.current = null;
           if (isMountedRef.current) {
             setUser(null);
             setIsLoading(false);
           }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log('🔐 AuthStateListener: Token refreshed for user:', session.user.email);
-          // Update user data after token refresh only if not already processing
-          if (isMountedRef.current && !processingRef.current) {
+          // Only update if we have the same user
+          if (currentUserRef.current === session.user.id && !processingRef.current) {
             processingRef.current = true;
             try {
               await fetchUserProfile(session.user);
+            } catch (profileError) {
+              console.error('🔐 AuthStateListener: Profile fetch failed during token refresh:', profileError);
             } finally {
               processingRef.current = false;
             }
@@ -132,6 +161,7 @@ export const useAuthStateListener = ({
       isMountedRef.current = false;
       initializedRef.current = false;
       processingRef.current = false;
+      currentUserRef.current = null;
       subscription.unsubscribe();
     };
   }, [setUser, setIsLoading, fetchUserProfile]);
@@ -141,6 +171,7 @@ export const useAuthStateListener = ({
       isMountedRef.current = false;
       initializedRef.current = false;
       processingRef.current = false;
+      currentUserRef.current = null;
     }
   };
 };

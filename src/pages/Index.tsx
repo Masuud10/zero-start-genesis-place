@@ -24,7 +24,7 @@ const Index = () => {
           <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
             <span className="text-2xl text-white">🎓</span>
           </div>
-          <p className="text-muted-foreground">Loading Elimisha school management system...</p>
+          <p className="text-muted-foreground">Loading EduFam school management system...</p>
           <div className="text-xs text-gray-400">
             Debug: {isLoading ? 'Loading...' : 'Not loading'} | User: {user ? 'Present' : 'None'}
           </div>

@@ -18,7 +18,7 @@ const AppContent: React.FC = () => {
     if (!authLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 300); // Small delay to ensure auth state has stabilized
+      }, 500); // Increased delay for better stability
       
       return () => clearTimeout(timer);
     } else {

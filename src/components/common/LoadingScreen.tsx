@@ -10,7 +10,7 @@ const LoadingScreen = () => {
         </div>
         <div className="space-y-2">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-lg font-medium text-blue-900">Loading Elimisha...</p>
+          <p className="text-lg font-medium text-blue-900">Loading EduFam...</p>
           <p className="text-sm text-gray-600">Preparing your school management experience</p>
         </div>
         <div className="w-48 h-1 bg-gray-200 rounded-full mx-auto overflow-hidden">
