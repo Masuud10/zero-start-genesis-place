@@ -12,8 +12,13 @@ export const useUserProfile = () => {
   const fetchingRef = useRef(false);
 
   const fetchUserProfile = useCallback(async (authUser: User, setUser: (user: AuthUser | null) => void, setIsLoading: (loading: boolean) => void) => {
-    if (!isMountedRef.current || fetchingRef.current) {
-      console.log('👤 UserProfile: Skipping fetch - unmounted or already fetching');
+    if (!isMountedRef.current) {
+      console.log('👤 UserProfile: Component unmounted, skipping fetch');
+      return;
+    }
+    
+    if (fetchingRef.current) {
+      console.log('👤 UserProfile: Already fetching, skipping duplicate request');
       return;
     }
     
@@ -21,7 +26,7 @@ export const useUserProfile = () => {
     const endTimer = PerformanceMonitor.startTimer('fetch_user_profile');
     
     try {
-      console.log('👤 UserProfile: Fetching user profile for', authUser.email);
+      console.log('👤 UserProfile: Starting profile fetch for', authUser.email);
       
       // Add timeout to profile fetch
       const profilePromise = supabase
@@ -60,9 +65,16 @@ export const useUserProfile = () => {
         avatar_url: profile?.avatar_url
       };
 
-      console.log('👤 UserProfile: Final user data with role:', userData.role, 'for user:', userData.email, 'school_id:', userData.school_id);
-      setUser(userData);
-      setIsLoading(false);
+      console.log('👤 UserProfile: Profile fetch completed successfully, setting user data:', {
+        email: userData.email,
+        role: userData.role,
+        school_id: userData.school_id
+      });
+      
+      if (isMountedRef.current) {
+        setUser(userData);
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('❌ UserProfile: Exception fetching user profile:', error);
       handleApiError(error, 'fetch_user_profile');
@@ -79,9 +91,16 @@ export const useUserProfile = () => {
         school_id: authUser.user_metadata?.school_id || authUser.app_metadata?.school_id
       };
       
-      console.log('👤 UserProfile: Using fallback user data with role:', userData.role, 'for user:', userData.email, 'school_id:', userData.school_id);
-      setUser(userData);
-      setIsLoading(false);
+      console.log('👤 UserProfile: Using fallback user data:', {
+        email: userData.email,
+        role: userData.role,
+        school_id: userData.school_id
+      });
+      
+      if (isMountedRef.current) {
+        setUser(userData);
+        setIsLoading(false);
+      }
     } finally {
       fetchingRef.current = false;
       endTimer();

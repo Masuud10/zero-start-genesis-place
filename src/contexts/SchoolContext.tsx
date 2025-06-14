@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -55,7 +54,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       
       let query = supabase.from('schools').select('*');
       
-      if (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') {
+      if (user?.role === 'edufam_admin') {
         console.log('🏫 SchoolProvider: Admin user, fetching all schools');
       } else {
         if (user?.school_id) {

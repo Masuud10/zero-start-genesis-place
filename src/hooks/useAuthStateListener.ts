@@ -15,6 +15,7 @@ export const useAuthStateListener = ({
   fetchUserProfile
 }: UseAuthStateListenerParams) => {
   const isMountedRef = useRef(true);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -23,7 +24,13 @@ export const useAuthStateListener = ({
     
     // Get initial session
     const getInitialSession = async () => {
+      if (initializedRef.current) {
+        console.log('🔐 AuthStateListener: Already initialized, skipping');
+        return;
+      }
+      
       try {
+        console.log('🔐 AuthStateListener: Getting initial session');
         setIsLoading(true);
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -41,6 +48,8 @@ export const useAuthStateListener = ({
           setUser(null);
           setIsLoading(false);
         }
+        
+        initializedRef.current = true;
       } catch (error) {
         console.error('🔐 AuthStateListener: Exception getting initial session:', error);
         if (isMountedRef.current) {
@@ -59,12 +68,12 @@ export const useAuthStateListener = ({
       try {
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('🔐 AuthStateListener: User signed in:', session.user.email);
-          // Defer profile fetch to avoid deadlocks
+          // Use setTimeout to prevent race conditions
           setTimeout(async () => {
             if (isMountedRef.current) {
               await fetchUserProfile(session.user);
             }
-          }, 0);
+          }, 100);
         } else if (event === 'SIGNED_OUT' || !session) {
           console.log('🔐 AuthStateListener: User signed out or session cleared');
           if (isMountedRef.current) {
@@ -94,6 +103,7 @@ export const useAuthStateListener = ({
     return () => {
       console.log('🔐 AuthStateListener: Cleaning up auth state listener');
       isMountedRef.current = false;
+      initializedRef.current = false;
       subscription.unsubscribe();
     };
   }, [setUser, setIsLoading, fetchUserProfile]);
@@ -101,6 +111,7 @@ export const useAuthStateListener = ({
   return {
     cleanup: () => {
       isMountedRef.current = false;
+      initializedRef.current = false;
     }
   };
 };

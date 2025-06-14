@@ -1,64 +1,111 @@
 
 import { User } from '@supabase/supabase-js';
+import { UserRole } from '@/types/user';
 
-// Helper function to determine user role with improved logic
-export const determineUserRole = (authUser: User, profileRole?: string): string => {
-  console.log('👤 Determining role for user:', authUser.email, 'profile role:', profileRole, 'metadata:', authUser.user_metadata, 'app_metadata:', authUser.app_metadata);
+export const determineUserRole = (authUser: User, profileRole?: string): UserRole => {
+  console.log('🔍 RoleUtils: Determining role for user', authUser.email, {
+    profileRole,
+    userMetadataRole: authUser.user_metadata?.role,
+    appMetadataRole: authUser.app_metadata?.role,
+    email: authUser.email
+  });
 
-  // Priority 1: Use role from profile if available and valid
-  if (profileRole && profileRole !== 'parent') {
-    console.log('👤 Using profile role:', profileRole);
-    return profileRole;
+  // Priority 1: Use profile role if it exists and is valid
+  if (profileRole && isValidRole(profileRole)) {
+    console.log('🔍 RoleUtils: Using profile role:', profileRole);
+    return profileRole as UserRole;
   }
 
-  // Priority 2: Use role from user_metadata if available
-  const metadataRole = authUser.user_metadata?.role;
-  if (metadataRole && metadataRole !== 'parent') {
-    console.log('👤 Using user_metadata role:', metadataRole);
-    return metadataRole;
+  // Priority 2: Use user_metadata role if it exists and is valid
+  if (authUser.user_metadata?.role && isValidRole(authUser.user_metadata.role)) {
+    console.log('🔍 RoleUtils: Using user_metadata role:', authUser.user_metadata.role);
+    return authUser.user_metadata.role as UserRole;
   }
 
-  // Priority 3: Use role from app_metadata if available
-  const appMetadataRole = authUser.app_metadata?.role;
-  if (appMetadataRole && appMetadataRole !== 'parent') {
-    console.log('👤 Using app_metadata role:', appMetadataRole);
-    return appMetadataRole;
+  // Priority 3: Use app_metadata role if it exists and is valid
+  if (authUser.app_metadata?.role && isValidRole(authUser.app_metadata.role)) {
+    console.log('🔍 RoleUtils: Using app_metadata role:', authUser.app_metadata.role);
+    return authUser.app_metadata.role as UserRole;
   }
 
-  // Priority 4: Determine from email patterns (only if no other role found)
-  const email = authUser.email?.toLowerCase() || '';
+  // Priority 4: Determine role based on email patterns
+  const emailBasedRole = determineRoleFromEmail(authUser.email || '');
+  console.log('🔍 RoleUtils: Using email-based role:', emailBasedRole);
+  return emailBasedRole;
+};
+
+const isValidRole = (role: string): boolean => {
+  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
+  return validRoles.includes(role as UserRole);
+};
+
+const determineRoleFromEmail = (email: string): UserRole => {
+  const emailLower = email.toLowerCase();
   
-  if (email.includes('@edufam') || email === 'masuud@gmail.com') {
-    console.log('👤 Assigning edufam_admin role based on email pattern');
+  // System admin patterns - check for both elimisha and edufam admin patterns
+  if (emailLower.includes('@elimisha.com') || 
+      emailLower === 'masuud@gmail.com' ||
+      emailLower.includes('elimisha') ||
+      emailLower.includes('edufam') ||
+      emailLower.includes('admin@')) {
     return 'edufam_admin';
   }
   
-  if (email.includes('admin') && !email.includes('parent')) {
-    console.log('👤 Assigning edufam_admin role based on email pattern');
-    return 'edufam_admin';
-  }
-  
-  if (email.includes('principal') && !email.includes('parent')) {
-    console.log('👤 Assigning principal role based on email pattern');
+  // School role patterns
+  if (emailLower.includes('principal')) {
     return 'principal';
   }
   
-  if (email.includes('teacher') && !email.includes('parent')) {
-    console.log('👤 Assigning teacher role based on email pattern');
+  if (emailLower.includes('teacher')) {
     return 'teacher';
   }
   
-  if (email.includes('owner') && !email.includes('parent')) {
-    console.log('👤 Assigning school_owner role based on email pattern');
+  if (emailLower.includes('owner')) {
     return 'school_owner';
   }
   
-  if (email.includes('finance') && !email.includes('parent')) {
-    console.log('👤 Assigning finance_officer role based on email pattern');
+  if (emailLower.includes('finance')) {
     return 'finance_officer';
   }
-
-  // Default to parent only if no other role could be determined
-  console.log('👤 Defaulting to parent role for:', email);
+  
+  // Default to parent
   return 'parent';
+};
+
+export const getRoleDisplayName = (role: UserRole): string => {
+  switch (role) {
+    case 'edufam_admin':
+      return 'EduFam Admin';
+    case 'school_owner':
+      return 'School Owner';
+    case 'principal':
+      return 'Principal';
+    case 'teacher':
+      return 'Teacher';
+    case 'finance_officer':
+      return 'Finance Officer';
+    case 'parent':
+      return 'Parent';
+    default:
+      return role;
+  }
+};
+
+export const getRoleBadgeColor = (role: UserRole): string => {
+  switch (role) {
+    case 'edufam_admin':
+      return 'bg-blue-100 text-blue-800';
+    case 'school_owner':
+      return 'bg-green-100 text-green-800';
+    case 'principal':
+      return 'bg-orange-100 text-orange-800';
+    case 'teacher':
+      return 'bg-cyan-100 text-cyan-800';
+    case 'finance_officer':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'parent':
+      return 'bg-pink-100 text-pink-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
 };
