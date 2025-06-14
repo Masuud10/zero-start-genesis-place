@@ -18,7 +18,7 @@ const AppContent: React.FC = () => {
     if (!isLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 100);
+      }, 200); // Increased delay for better stability
       
       return () => clearTimeout(timer);
     } else {
@@ -108,7 +108,7 @@ const AppContent: React.FC = () => {
 
   console.log('🎯 AppContent: All checks passed, rendering main layout for user with role:', user.role);
   
-  // NO HARDCODED ROLE REDIRECTION - Let the layout handle role-based routing
+  // Render the main application layout
   return <ElimshaLayout />;
 };
 

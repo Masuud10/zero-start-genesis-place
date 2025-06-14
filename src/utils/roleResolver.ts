@@ -71,7 +71,7 @@ export class RoleResolver {
     const normalized = role.toLowerCase().trim();
     console.log('🔍 RoleResolver: Normalizing role:', role, '-> lowercase:', normalized);
     
-    // Handle admin role variations
+    // Handle admin role variations - map elimisha_admin to edufam_admin
     if (['elimisha_admin', 'edufam_admin', 'admin', 'systemadmin', 'system_admin'].includes(normalized)) {
       console.log('🔍 RoleResolver: Detected admin role variant:', normalized, '-> edufam_admin');
       return 'edufam_admin';

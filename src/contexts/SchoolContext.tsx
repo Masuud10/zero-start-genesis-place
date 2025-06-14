@@ -1,25 +1,29 @@
 
-import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface School {
   id: string;
   name: string;
-  email: string;
-  phone: string;
-  address: string;
+  email?: string;
+  phone?: string;
+  address?: string;
   logo_url?: string;
   owner_id?: string;
   principal_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface SchoolContextType {
   currentSchool: School | null;
-  isLoading: boolean;
   schools: School[];
-  fetchSchools: () => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
   setCurrentSchool: (school: School | null) => void;
+  fetchSchools: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -36,120 +40,111 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [currentSchool, setCurrentSchool] = useState<School | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [lastUserCheck, setLastUserCheck] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Safe auth access with error handling
+  let authUser = null;
+  let authError = false;
   
-  const { toast } = useToast();
+  try {
+    const auth = useAuth();
+    authUser = auth?.user;
+  } catch (err) {
+    console.error('🏫 SchoolProvider: Auth context not available:', err);
+    authError = true;
+  }
 
-  const fetchSchools = useCallback(async () => {
-    // Import useAuth dynamically inside the function to avoid context timing issues
-    let authContext;
-    try {
-      const { useAuth } = await import('./AuthContext');
-      authContext = useAuth();
-    } catch (error) {
-      console.error('🏫 SchoolProvider: Auth context not available:', error);
-      setSchools([]);
-      setCurrentSchool(null);
-      setIsLoading(false);
-      return;
-    }
+  console.log('🏫 SchoolProvider: Initializing with user:', {
+    hasUser: !!authUser,
+    userRole: authUser?.role,
+    userSchoolId: authUser?.school_id,
+    authError
+  });
 
-    const { user, isLoading: authLoading } = authContext;
-
-    if (!user || authLoading) {
-      console.log('🏫 SchoolProvider: No user or auth loading - clearing schools');
-      setSchools([]);
-      setCurrentSchool(null);
-      setIsLoading(false);
-      return;
-    }
-
-    // Prevent duplicate fetches for the same user
-    if (lastUserCheck === user.id) {
-      console.log('🏫 SchoolProvider: Already fetched for this user, skipping');
+  const fetchSchools = async () => {
+    if (!authUser || authError) {
+      console.log('🏫 SchoolProvider: No authenticated user, skipping school fetch');
       return;
     }
 
     try {
       setIsLoading(true);
-      setLastUserCheck(user.id);
-      console.log('🏫 SchoolProvider: Fetching schools for user', user.email, 'role:', user.role);
-      
-      let query = supabase.from('schools').select('*');
-      
-      if (user?.role === 'edufam_admin') {
-        console.log('🏫 SchoolProvider: Admin user, fetching all schools');
-      } else {
-        if (user?.school_id) {
-          console.log('🏫 SchoolProvider: Non-admin user, filtering by school_id:', user.school_id);
-          query = query.eq('id', user.school_id);
+      setError(null);
+
+      console.log('🏫 SchoolProvider: Fetching schools for user role:', authUser.role);
+
+      // For system admins, fetch all schools
+      if (authUser.role === 'elimisha_admin' || authUser.role === 'edufam_admin') {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('*')
+          .order('name');
+
+        if (error) throw error;
+        
+        setSchools(data || []);
+        console.log('🏫 SchoolProvider: Fetched', data?.length || 0, 'schools for admin');
+      } 
+      // For school-specific users, fetch their school
+      else if (authUser.school_id) {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('*')
+          .eq('id', authUser.school_id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+          throw error;
+        }
+
+        if (data) {
+          setSchools([data]);
+          setCurrentSchool(data);
+          console.log('🏫 SchoolProvider: Fetched user school:', data.name);
         } else {
-          console.log('🏫 SchoolProvider: User has no school_id, clearing schools');
+          console.warn('🏫 SchoolProvider: User school not found:', authUser.school_id);
           setSchools([]);
           setCurrentSchool(null);
-          setIsLoading(false);
-          return;
         }
-      }
-      
-      const { data, error } = await query.order('name');
-      
-      if (error) {
-        console.error('🏫 SchoolProvider: Error fetching schools:', error);
+      } else {
+        console.log('🏫 SchoolProvider: User has no school assignment');
         setSchools([]);
         setCurrentSchool(null);
-        toast({
-          title: "Warning",
-          description: "Could not load schools data. Some features may be limited.",
-          variant: "destructive",
-        });
-        return;
       }
-      
-      console.log('🏫 SchoolProvider: Fetched schools:', data?.length || 0);
-      setSchools(data || []);
-      
-      // Set current school logic
-      if (user?.school_id && data) {
-        const userSchool = data.find(school => school.id === user.school_id);
-        if (userSchool) {
-          console.log('🏫 SchoolProvider: Setting current school:', userSchool.name);
-          setCurrentSchool(userSchool);
-        }
-      } else if (data && data.length === 1) {
-        console.log('🏫 SchoolProvider: Setting single school as current:', data[0].name);
-        setCurrentSchool(data[0]);
-      }
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('🏫 SchoolProvider: Error fetching schools:', error);
+      setError(error.message || 'Failed to fetch schools');
       setSchools([]);
       setCurrentSchool(null);
-      toast({
-        title: "Error",
-        description: "Failed to fetch schools data",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
-  }, [toast, lastUserCheck]);
+  };
 
+  const refetch = fetchSchools;
+
+  // Effect to fetch schools when user changes
   useEffect(() => {
-    // Delay the initial fetch to ensure auth context is ready
-    const timeoutId = setTimeout(() => {
+    if (authUser && !authError) {
+      console.log('🏫 SchoolProvider: User changed, fetching schools');
       fetchSchools();
-    }, 500);
-    
-    return () => clearTimeout(timeoutId);
-  }, [fetchSchools]);
+    } else {
+      console.log('🏫 SchoolProvider: No user or auth error, clearing schools');
+      setSchools([]);
+      setCurrentSchool(null);
+      setIsLoading(false);
+      setError(null);
+    }
+  }, [authUser?.id, authUser?.role, authUser?.school_id, authError]);
 
   const value = {
     currentSchool,
-    isLoading,
     schools,
+    isLoading,
+    error,
+    setCurrentSchool,
     fetchSchools,
-    setCurrentSchool
+    refetch
   };
 
   return (

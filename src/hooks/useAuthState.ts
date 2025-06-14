@@ -12,8 +12,9 @@ export const useAuthState = () => {
   
   const isMountedRef = useRef(true);
   const processedUserRef = useRef<string | null>(null);
+  const initializedRef = useRef(false);
 
-  const processUser = async (authUser: SupabaseUser | null) => {
+  const processUser = async (authUser: SupabaseUser | null, skipDuplicateCheck = false) => {
     if (!isMountedRef.current) return;
     
     if (!authUser) {
@@ -25,8 +26,8 @@ export const useAuthState = () => {
       return;
     }
 
-    // Avoid duplicate processing
-    if (processedUserRef.current === authUser.id) {
+    // Avoid duplicate processing unless explicitly requested
+    if (!skipDuplicateCheck && processedUserRef.current === authUser.id) {
       console.log('🔐 AuthState: User already processed, skipping:', authUser.id);
       return;
     }
@@ -43,26 +44,20 @@ export const useAuthState = () => {
       
       let profile = null;
       
-      // Try to fetch profile with timeout and proper error handling
+      // Try to fetch profile with proper error handling
       try {
         console.log('🔐 AuthState: Fetching profile for user:', authUser.id);
         
-        const profilePromise = supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('role, name, school_id, avatar_url')
           .eq('id', authUser.id)
           .maybeSingle();
         
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile fetch timeout after 8 seconds')), 8000)
-        );
-        
-        const result = await Promise.race([profilePromise, timeoutPromise]) as any;
-        
-        if (result.error) {
-          console.warn('🔐 AuthState: Profile fetch error:', result.error);
+        if (error) {
+          console.warn('🔐 AuthState: Profile fetch error:', error);
         } else {
-          profile = result.data;
+          profile = data;
           console.log('🔐 AuthState: Profile fetched successfully:', profile);
         }
         
@@ -113,57 +108,73 @@ export const useAuthState = () => {
   };
 
   useEffect(() => {
-    isMountedRef.current = true;
+    if (!isMountedRef.current) return;
     
     console.log('🔐 AuthState: Setting up auth state management');
     
-    // Set up auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔐 AuthState: Auth state changed:', event, 'hasSession:', !!session);
-        
-        if (event === 'SIGNED_OUT' || !session?.user) {
-          console.log('🔐 AuthState: User signed out or no session');
-          setUser(null);
-          setIsLoading(false);
-          setError(null);
-          processedUserRef.current = null;
-          return;
-        }
-        
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('🔐 AuthState: Processing auth state change for:', event);
-          await processUser(session.user);
-        }
-      }
-    );
+    let subscription: any = null;
     
-    // Get initial session
-    const getInitialSession = async () => {
+    const setupAuth = async () => {
       try {
-        console.log('🔐 AuthState: Getting initial session');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Set up auth listener first
+        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            if (!isMountedRef.current) return;
+            
+            console.log('🔐 AuthState: Auth state changed:', event, 'hasSession:', !!session);
+            
+            if (event === 'SIGNED_OUT' || !session?.user) {
+              console.log('🔐 AuthState: User signed out or no session');
+              setUser(null);
+              setIsLoading(false);
+              setError(null);
+              processedUserRef.current = null;
+              return;
+            }
+            
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+              console.log('🔐 AuthState: Processing auth state change for:', event);
+              await processUser(session.user, event === 'INITIAL_SESSION');
+            }
+          }
+        );
         
-        if (error) {
-          console.warn('🔐 AuthState: Initial session error:', error);
+        subscription = authSubscription;
+        
+        // Then get initial session
+        if (!initializedRef.current) {
+          console.log('🔐 AuthState: Getting initial session');
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.warn('🔐 AuthState: Initial session error:', error);
+            if (isMountedRef.current) {
+              setError(`Failed to get session: ${error.message}`);
+              setIsLoading(false);
+            }
+          } else {
+            await processUser(session?.user || null, true);
+          }
+          
+          initializedRef.current = true;
         }
-        
-        await processUser(session?.user || null);
       } catch (error: any) {
-        console.error('🔐 AuthState: Error getting initial session:', error);
+        console.error('🔐 AuthState: Error in auth setup:', error);
         if (isMountedRef.current) {
-          setError(`Failed to initialize session: ${error.message}`);
+          setError(`Failed to initialize auth: ${error.message}`);
           setIsLoading(false);
         }
       }
     };
     
-    getInitialSession();
+    setupAuth();
     
     return () => {
       console.log('🔐 AuthState: Cleaning up auth state management');
       isMountedRef.current = false;
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
@@ -175,7 +186,7 @@ export const useAuthState = () => {
       console.log('🔐 AuthState: Retry requested');
       if (user) {
         processedUserRef.current = null;
-        processUser(user);
+        processUser(user, true);
       }
     }
   };
