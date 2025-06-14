@@ -70,7 +70,7 @@ export const PERMISSIONS = {
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
-// Role-based permission matrix based on the provided specification
+// Role-based permission matrix - Updated to include elimisha_admin with same permissions as edufam_admin
 export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed: boolean; scope?: string }>> = {
   edufam_admin: {
     [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'all' },
@@ -287,7 +287,7 @@ export class PermissionManager {
   }
 
   canAccessSchool(schoolId: string): boolean {
-    if (this.userRole === 'edufam_admin') {
+    if (this.userRole === 'edufam_admin' || this.userRole === 'elimisha_admin') {
       return true;
     }
     
@@ -305,7 +305,7 @@ export class PermissionManager {
   }
 
   canAccessStudent(studentId: string, studentSchoolId?: string): boolean {
-    if (this.userRole === 'edufam_admin') {
+    if (this.userRole === 'edufam_admin' || this.userRole === 'elimisha_admin') {
       return true;
     }
 
@@ -329,7 +329,7 @@ export class PermissionManager {
   }
 
   canModifySchoolData(targetSchoolId?: string): boolean {
-    if (this.userRole === 'edufam_admin') {
+    if (this.userRole === 'edufam_admin' || this.userRole === 'elimisha_admin') {
       return true;
     }
 
@@ -343,7 +343,7 @@ export class PermissionManager {
   getSchoolContext(): { schoolId?: string; isSystemAdmin: boolean } {
     return {
       schoolId: this.userSchoolId,
-      isSystemAdmin: this.userRole === 'edufam_admin'
+      isSystemAdmin: this.userRole === 'edufam_admin' || this.userRole === 'elimisha_admin'
     };
   }
 

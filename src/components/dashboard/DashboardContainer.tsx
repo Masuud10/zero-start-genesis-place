@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings, User, Bell, School } from 'lucide-react';
+import { LogOut, Settings, User, Bell, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AuthUser } from '@/types/auth';
@@ -59,7 +59,7 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'elimisha_admin':
-        return 'Elimisha Admin';
+        return 'EduFam Admin';
       case 'edufam_admin':
         return 'EduFam Admin';
       case 'school_owner':
@@ -104,11 +104,22 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              {/* Left side - Logo and School Info */}
+              {/* Left side - Beautiful Logo and School Info */}
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <School className="h-8 w-8 text-blue-600" />
-                  <span className="text-xl font-bold text-gray-900">EduFam</span>
+                <div className="flex items-center space-x-3">
+                  {/* Beautiful animated logo replacement */}
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-purple-600 to-green-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
+                      <Sparkles className="w-6 h-6 text-white animate-pulse" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                  </div>
+                  <div>
+                    <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
+                      EduFam
+                    </span>
+                    <div className="text-xs text-gray-500">Education Excellence</div>
+                  </div>
                 </div>
                 
                 {currentSchool && (
@@ -122,8 +133,9 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
               {/* Right side - User info and actions */}
               <div className="flex items-center space-x-4">
                 {/* Notifications */}
-                <Button variant="ghost" size="sm" className="text-gray-600">
+                <Button variant="ghost" size="sm" className="text-gray-600 relative">
                   <Bell className="h-5 w-5" />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
                 </Button>
 
                 {/* User info */}

@@ -49,7 +49,30 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   };
 
   const canManageGrades = hasPermission(PERMISSIONS.EDIT_GRADEBOOK);
-  const isElimshaAdmin = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
+  const canViewGrades = hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
+  const isSystemAdmin = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
+
+  // Early access check
+  if (!canViewGrades) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Access Denied</CardTitle>
+          <CardDescription>
+            You don't have permission to view grades.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Please contact your administrator if you believe you should have access to this feature.
+          </p>
+          <div className="text-xs text-gray-400 mt-2">
+            Role: {user?.role} | Permission: {canViewGrades ? 'Allowed' : 'Denied'}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const gradeStats = {
     totalStudents: 1247,
@@ -101,12 +124,12 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   };
 
   const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
-    // Mock handler - no actual saving for Elimisha admins
+    // Mock handler - no actual saving for system admins
     console.log('Mock save grades:', grades);
   };
 
   const handleSubmitGrades = () => {
-    // Mock handler - no actual submission for Elimisha admins
+    // Mock handler - no actual submission for system admins
     console.log('Mock submit grades');
   };
 
@@ -114,10 +137,10 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          {isElimshaAdmin ? 'System-Wide Grade Overview' : 'Grade Management'}
+          {isSystemAdmin ? 'System-Wide Grade Overview' : 'Grade Management'}
         </h1>
         <p className="text-muted-foreground">
-          {isElimshaAdmin 
+          {isSystemAdmin 
             ? 'System administrator view - grade summaries across all schools'
             : 'Manage and track student grades, performance analytics, and reporting.'
           }
@@ -134,7 +157,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
           <CardContent>
             <div className="text-2xl font-bold">{gradeStats.totalStudents}</div>
             <p className="text-xs text-muted-foreground">
-              {isElimshaAdmin ? 'Across all schools' : 'Enrolled students'}
+              {isSystemAdmin ? 'Across all schools' : 'Enrolled students'}
             </p>
           </CardContent>
         </Card>
@@ -178,10 +201,10 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
             <CardTitle>
-              {isElimshaAdmin ? 'Grade Overview (Read-Only)' : canManageGrades ? 'Manage Grades' : 'Grade Overview'}
+              {isSystemAdmin ? 'Grade Overview (Read-Only)' : canManageGrades ? 'Manage Grades' : 'Grade Overview'}
             </CardTitle>
             <div className="flex items-center space-x-2">
-              {canManageGrades && !isElimshaAdmin && (
+              {canManageGrades && !isSystemAdmin && (
                 <>
                   <Button onClick={handleOpenModal}>
                     Open Grades Modal
@@ -192,7 +215,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {isElimshaAdmin ? (
+          {isSystemAdmin ? (
             <div className="space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center gap-2 text-blue-800">
@@ -200,7 +223,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
                   <span className="font-medium">Administrator Access Level</span>
                 </div>
                 <p className="text-blue-700 text-sm mt-1">
-                  As an Elimisha administrator, you can view grade summaries and analytics but cannot enter or modify grades. 
+                  As a system administrator, you can view grade summaries and analytics but cannot enter or modify grades. 
                   Grade entry is restricted to teachers and school administrators.
                 </p>
               </div>
@@ -212,7 +235,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
                     Sample Grade Data (Read-Only)
                   </CardTitle>
                   <CardDescription>
-                    System-wide grade analytics - Elimisha admins have view-only access
+                    System-wide grade analytics - Admins have view-only access
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
