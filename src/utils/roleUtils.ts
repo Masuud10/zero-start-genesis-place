@@ -13,19 +13,19 @@ export const determineUserRole = (authUser: User, profileRole?: string): UserRol
   // Priority 1: Use profile role if it exists and is valid
   if (profileRole && isValidRole(profileRole)) {
     console.log('🔍 RoleUtils: Using profile role:', profileRole);
-    return profileRole as UserRole;
+    return normalizeRole(profileRole) as UserRole;
   }
 
   // Priority 2: Use user_metadata role if it exists and is valid
   if (authUser.user_metadata?.role && isValidRole(authUser.user_metadata.role)) {
     console.log('🔍 RoleUtils: Using user_metadata role:', authUser.user_metadata.role);
-    return authUser.user_metadata.role as UserRole;
+    return normalizeRole(authUser.user_metadata.role) as UserRole;
   }
 
   // Priority 3: Use app_metadata role if it exists and is valid
   if (authUser.app_metadata?.role && isValidRole(authUser.app_metadata.role)) {
     console.log('🔍 RoleUtils: Using app_metadata role:', authUser.app_metadata.role);
-    return authUser.app_metadata.role as UserRole;
+    return normalizeRole(authUser.app_metadata.role) as UserRole;
   }
 
   // Priority 4: Determine role based on email patterns
@@ -34,9 +34,34 @@ export const determineUserRole = (authUser: User, profileRole?: string): UserRol
   return emailBasedRole;
 };
 
+const normalizeRole = (role: string): string => {
+  // Normalize role formatting
+  const normalized = role.toLowerCase().trim();
+  
+  // Handle common variations
+  const roleMap = {
+    'schoolowner': 'school_owner',
+    'school-owner': 'school_owner',
+    'school owner': 'school_owner',
+    'financeofficer': 'finance_officer',
+    'finance-officer': 'finance_officer',
+    'finance officer': 'finance_officer',
+    'edufamadmin': 'edufam_admin',
+    'edufam-admin': 'edufam_admin',
+    'edufam admin': 'edufam_admin',
+    'elimishaadmin': 'edufam_admin',
+    'elimisha-admin': 'edufam_admin',
+    'elimisha admin': 'edufam_admin',
+    'admin': 'edufam_admin'
+  };
+  
+  return roleMap[normalized] || normalized;
+};
+
 const isValidRole = (role: string): boolean => {
+  const normalizedRole = normalizeRole(role);
   const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
-  return validRoles.includes(role as UserRole);
+  return validRoles.includes(normalizedRole as UserRole);
 };
 
 const determineRoleFromEmail = (email: string): UserRole => {

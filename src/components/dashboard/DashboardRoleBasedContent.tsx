@@ -61,14 +61,19 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
     schoolId: user.school_id
   });
 
+  // Normalize the role to handle any potential casing or formatting issues
+  const normalizedRole = user.role.toLowerCase().trim();
+  
+  console.log("📊 Dashboard: Normalized role:", normalizedRole);
+
   // For EduFam admins, ALWAYS show admin dashboard regardless of school assignment
-  if (user.role === 'edufam_admin') {
+  if (normalizedRole === 'edufam_admin' || normalizedRole === 'elimisha_admin') {
     console.log("📊 Dashboard: Rendering ElimshaAdminDashboard for admin role:", user.role);
     return <ElimshaAdminDashboard onModalOpen={onModalOpen} />;
   }
 
   // For all other roles, check if they have school assignment when needed
-  if (!user.school_id && user.role !== 'edufam_admin') {
+  if (!user.school_id && normalizedRole !== 'edufam_admin' && normalizedRole !== 'elimisha_admin') {
     console.log("📊 Dashboard: User has no school assignment, role:", user.role);
     return (
       <Card>
@@ -91,9 +96,9 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
   }
 
   // Render role-specific dashboard based on exact role match
-  console.log("📊 Dashboard: Rendering dashboard for role:", user.role);
+  console.log("📊 Dashboard: Rendering dashboard for normalized role:", normalizedRole);
   
-  switch (user.role) {
+  switch (normalizedRole) {
     case "school_owner":
       console.log("📊 Dashboard: Rendering SchoolOwnerDashboard");
       return <SchoolOwnerDashboard />;
@@ -115,7 +120,25 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
       return <ParentDashboard />;
       
     default:
-      console.log("📊 Dashboard: Unknown or invalid role, showing error:", user.role);
+      console.log("📊 Dashboard: Unknown role, checking if it's a valid role with different casing:", user.role);
+      
+      // Handle potential role variations and fallbacks
+      const roleVariations = {
+        'schoolowner': 'school_owner',
+        'financeofficer': 'finance_officer',
+        'edufamadmin': 'edufam_admin',
+        'elimishaadmin': 'elimisha_admin'
+      };
+      
+      const correctedRole = roleVariations[normalizedRole.replace(/[_\s-]/g, '')];
+      
+      if (correctedRole) {
+        console.log("📊 Dashboard: Found role variation, using:", correctedRole);
+        // Recursively call with corrected role
+        return <DashboardRoleBasedContent user={{...user, role: correctedRole}} onModalOpen={onModalOpen} />;
+      }
+      
+      console.log("📊 Dashboard: Truly unknown role, showing error:", user.role);
       return (
         <Card>
           <CardHeader>
@@ -126,10 +149,10 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600">
-              Please contact your administrator to verify your account permissions.
+              Your role "{user.role}" is not recognized. Please contact your administrator to verify your account permissions.
             </p>
             <div className="text-xs text-gray-400 mt-2">
-              Debug: Role received: "{user.role || "undefined"}" | Email: {user.email}
+              Debug: Role received: "{user.role || "undefined"}" | Normalized: "{normalizedRole}" | Email: {user.email}
               {user.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
             </div>
           </CardContent>
