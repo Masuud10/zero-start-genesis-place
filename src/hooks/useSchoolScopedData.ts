@@ -1,14 +1,25 @@
 
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const useSchoolScopedData = () => {
   const { user } = useAuth();
-  const { currentSchool } = useSchool();
   const { toast } = useToast();
+
+  // Safe school context access with error handling
+  let currentSchool: any = null;
+  let schoolError = false;
+
+  try {
+    const { useSchool } = require('@/contexts/SchoolContext');
+    const schoolContext = useSchool();
+    currentSchool = schoolContext.currentSchool;
+  } catch (error) {
+    console.error('🏫 useSchoolScopedData: School context not available:', error);
+    schoolError = true;
+  }
 
   const isSystemAdmin = useCallback(() => {
     return user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
@@ -93,6 +104,7 @@ export const useSchoolScopedData = () => {
     createSchoolScopedQuery,
     validateSchoolAccess,
     insertWithSchoolId,
-    currentSchool
+    currentSchool,
+    schoolError
   };
 };

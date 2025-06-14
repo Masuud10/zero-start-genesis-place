@@ -25,7 +25,7 @@ interface RecentActivity {
 const PrincipalDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
+  const { getCurrentSchoolId, validateSchoolAccess, schoolError } = useSchoolScopedData();
   const [stats, setStats] = useState<SchoolStats>({
     totalStudents: 0,
     totalTeachers: 0,
@@ -39,13 +39,22 @@ const PrincipalDashboard = () => {
   const schoolId = getCurrentSchoolId();
 
   useEffect(() => {
+    // Wait for school context to be available
+    if (schoolError) {
+      console.log('🏫 PrincipalDashboard: School context error, will retry...');
+      const retryTimeout = setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      return () => clearTimeout(retryTimeout);
+    }
+
     if (schoolId && user) {
       fetchSchoolData();
     } else {
       setLoading(false);
       setError('No school assignment found');
     }
-  }, [schoolId, user]);
+  }, [schoolId, user, schoolError]);
 
   const fetchSchoolData = async () => {
     try {
@@ -185,6 +194,31 @@ const PrincipalDashboard = () => {
       color: "text-orange-600"
     }
   ];
+
+  // School context error state
+  if (schoolError) {
+    return (
+      <Card className="border-yellow-200 bg-yellow-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-yellow-600">
+            <AlertTriangle className="h-5 w-5" />
+            Loading School Context
+          </CardTitle>
+          <CardDescription>
+            Setting up school context. Please wait...
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-yellow-600 mb-4">The application is initializing. This should only take a moment.</p>
+          <div className="animate-pulse flex space-x-4">
+            <div className="rounded-full bg-yellow-200 h-3 w-3"></div>
+            <div className="rounded-full bg-yellow-200 h-3 w-3"></div>
+            <div className="rounded-full bg-yellow-200 h-3 w-3"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Error state
   if (error && !loading) {
