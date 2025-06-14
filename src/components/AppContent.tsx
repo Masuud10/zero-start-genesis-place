@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import LandingPage from '@/components/LandingPage';
@@ -11,19 +11,34 @@ const AppContent: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { isLoading: schoolLoading } = useSchool();
   const [showLogin, setShowLogin] = useState(false);
+  const [isStable, setIsStable] = useState(false);
+
+  // Add stability check to prevent premature renders
+  useEffect(() => {
+    if (!authLoading) {
+      const timer = setTimeout(() => {
+        setIsStable(true);
+      }, 300); // Small delay to ensure auth state has stabilized
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsStable(false);
+    }
+  }, [authLoading]);
 
   console.log('🎯 AppContent: Rendering', { 
     hasUser: !!user, 
     authLoading, 
     schoolLoading,
+    isStable,
     userRole: user?.role,
     userSchoolId: user?.school_id,
     showLogin
   });
 
-  // Show loading screen while authentication is initializing
-  if (authLoading) {
-    console.log('🎯 AppContent: Auth loading, showing loading screen');
+  // Show loading screen while authentication is initializing or stabilizing
+  if (authLoading || !isStable) {
+    console.log('🎯 AppContent: Auth loading or stabilizing, showing loading screen');
     return <LoadingScreen />;
   }
 
@@ -50,7 +65,7 @@ const AppContent: React.FC = () => {
     return <LoadingScreen />;
   }
 
-  console.log('🎯 AppContent: User authenticated, showing main layout');
+  console.log('🎯 AppContent: User authenticated and stable, showing main layout');
   return <ElimshaLayout />;
 };
 

@@ -10,10 +10,17 @@ import { determineUserRole } from '@/utils/roleUtils';
 export const useUserProfile = () => {
   const isMountedRef = useRef(true);
   const fetchingRef = useRef(false);
+  const lastFetchRef = useRef<string | null>(null);
 
   const fetchUserProfile = useCallback(async (authUser: User, setUser: (user: AuthUser | null) => void, setIsLoading: (loading: boolean) => void) => {
     if (!isMountedRef.current) {
       console.log('👤 UserProfile: Component unmounted, skipping fetch');
+      return;
+    }
+    
+    // Prevent duplicate fetches for the same user
+    if (lastFetchRef.current === authUser.id) {
+      console.log('👤 UserProfile: Already fetching for this user, skipping');
       return;
     }
     
@@ -23,6 +30,7 @@ export const useUserProfile = () => {
     }
     
     fetchingRef.current = true;
+    lastFetchRef.current = authUser.id;
     const endTimer = PerformanceMonitor.startTimer('fetch_user_profile');
     
     try {
@@ -36,7 +44,7 @@ export const useUserProfile = () => {
         .maybeSingle();
 
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
       );
 
       const { data: profile, error } = await Promise.race([
@@ -68,7 +76,8 @@ export const useUserProfile = () => {
       console.log('👤 UserProfile: Profile fetch completed successfully, setting user data:', {
         email: userData.email,
         role: userData.role,
-        school_id: userData.school_id
+        school_id: userData.school_id,
+        hasProfile: !!profile
       });
       
       if (isMountedRef.current) {
@@ -103,6 +112,7 @@ export const useUserProfile = () => {
       }
     } finally {
       fetchingRef.current = false;
+      lastFetchRef.current = null;
       endTimer();
     }
   }, []);
@@ -111,6 +121,7 @@ export const useUserProfile = () => {
     console.log('🧹 UserProfile: Cleaning up');
     isMountedRef.current = false;
     fetchingRef.current = false;
+    lastFetchRef.current = null;
   }, []);
 
   return {

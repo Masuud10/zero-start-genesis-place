@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -36,6 +37,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [currentSchool, setCurrentSchool] = useState<School | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastUserCheck, setLastUserCheck] = useState<string | null>(null);
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
@@ -48,8 +50,15 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Prevent duplicate fetches for the same user
+    if (lastUserCheck === user.id) {
+      console.log('🏫 SchoolProvider: Already fetched for this user, skipping');
+      return;
+    }
+
     try {
       setIsLoading(true);
+      setLastUserCheck(user.id);
       console.log('🏫 SchoolProvider: Fetching schools for user', user.email, 'role:', user.role);
       
       let query = supabase.from('schools').select('*');
@@ -87,6 +96,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       console.log('🏫 SchoolProvider: Fetched schools:', data?.length || 0);
       setSchools(data || []);
       
+      // Set current school logic
       if (user?.school_id && data) {
         const userSchool = data.find(school => school.id === user.school_id);
         if (userSchool) {
@@ -110,7 +120,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.role, user?.school_id, user?.email, authLoading, toast]);
+  }, [user?.id, user?.role, user?.school_id, user?.email, authLoading, toast, lastUserCheck]);
 
   useEffect(() => {
     console.log('🏫 SchoolProvider: Auth state changed', { 
@@ -118,19 +128,29 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       hasUser: !!user, 
       userEmail: user?.email,
       userRole: user?.role,
-      userSchoolId: user?.school_id
+      userSchoolId: user?.school_id,
+      lastUserCheck
     });
 
-    // Only fetch schools when auth is complete and we have a user
-    if (!authLoading && user) {
-      fetchSchools();
-    } else if (!authLoading && !user) {
-      // Clear schools when no user
+    // Reset last user check when user changes
+    if (!user) {
+      setLastUserCheck(null);
       setSchools([]);
       setCurrentSchool(null);
       setIsLoading(false);
+      return;
     }
-  }, [fetchSchools]);
+
+    // Only fetch schools when auth is complete, we have a user, and haven't fetched for this user yet
+    if (!authLoading && user && lastUserCheck !== user.id) {
+      // Add a small delay to ensure auth state has stabilized
+      const timeoutId = setTimeout(() => {
+        fetchSchools();
+      }, 200);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user?.id, authLoading, fetchSchools, lastUserCheck]);
 
   const value = {
     currentSchool,
