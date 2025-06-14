@@ -29,6 +29,16 @@ export const useAuthState = () => {
         return;
       }
 
+      // Ensure email is present
+      if (!authUser.email) {
+        console.error('🔐 AuthState: User has no email address');
+        if (isMountedRef.current) {
+          setError('User account is missing email address');
+          setIsLoading(false);
+        }
+        return;
+      }
+
       setError(null);
       
       // Fetch profile with timeout using Promise.race
@@ -64,14 +74,15 @@ export const useAuthState = () => {
       // Resolve role
       const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
-      // Create user data
+      // Create user data with guaranteed email
       const userData: AuthUser = {
-        ...authUser,
+        id: authUser.id,
+        email: authUser.email, // Now guaranteed to exist
         role: resolvedRole,
         name: profile?.name || 
               authUser.user_metadata?.name || 
               authUser.user_metadata?.full_name ||
-              authUser.email?.split('@')[0] || 
+              authUser.email.split('@')[0] || 
               'User',
         school_id: profile?.school_id || 
                    authUser.user_metadata?.school_id || 
