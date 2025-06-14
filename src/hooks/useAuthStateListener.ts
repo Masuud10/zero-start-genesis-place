@@ -8,6 +8,62 @@ interface UseAuthStateListenerProps {
   fetchUserProfile: (user: any) => Promise<void>;
 }
 
+// Helper function to determine user role consistently
+const determineUserRole = (user: any): string => {
+  console.log('🔐 AuthStateListener: Determining role for user:', user?.email, 'metadata:', user?.user_metadata, 'app_metadata:', user?.app_metadata);
+
+  // Priority 1: Use role from user_metadata if available
+  const metadataRole = user?.user_metadata?.role;
+  if (metadataRole && metadataRole !== 'parent') {
+    console.log('🔐 AuthStateListener: Using user_metadata role:', metadataRole);
+    return metadataRole;
+  }
+
+  // Priority 2: Use role from app_metadata if available
+  const appMetadataRole = user?.app_metadata?.role;
+  if (appMetadataRole && appMetadataRole !== 'parent') {
+    console.log('🔐 AuthStateListener: Using app_metadata role:', appMetadataRole);
+    return appMetadataRole;
+  }
+
+  // Priority 3: Determine from email patterns (only if no other role found)
+  const email = user?.email?.toLowerCase() || '';
+  
+  if (email.includes('@elimisha') || email === 'masuud@gmail.com') {
+    console.log('🔐 AuthStateListener: Assigning elimisha_admin role based on email pattern');
+    return 'elimisha_admin';
+  }
+  
+  if (email.includes('admin') && !email.includes('parent')) {
+    console.log('🔐 AuthStateListener: Assigning edufam_admin role based on email pattern');
+    return 'edufam_admin';
+  }
+  
+  if (email.includes('principal') && !email.includes('parent')) {
+    console.log('🔐 AuthStateListener: Assigning principal role based on email pattern');
+    return 'principal';
+  }
+  
+  if (email.includes('teacher') && !email.includes('parent')) {
+    console.log('🔐 AuthStateListener: Assigning teacher role based on email pattern');
+    return 'teacher';
+  }
+  
+  if (email.includes('owner') && !email.includes('parent')) {
+    console.log('🔐 AuthStateListener: Assigning school_owner role based on email pattern');
+    return 'school_owner';
+  }
+  
+  if (email.includes('finance') && !email.includes('parent')) {
+    console.log('🔐 AuthStateListener: Assigning finance_officer role based on email pattern');
+    return 'finance_officer';
+  }
+
+  // Default to parent only if no other role could be determined
+  console.log('🔐 AuthStateListener: Defaulting to parent role for:', email);
+  return 'parent';
+};
+
 export const useAuthStateListener = ({ 
   setUser, 
   setIsLoading, 
@@ -59,6 +115,7 @@ export const useAuthStateListener = ({
 
         if (session?.user) {
           console.log('🔐 AuthStateListener: User authenticated, fetching profile for user:', session.user.email);
+          
           // Fetch profile with better error handling
           try {
             await fetchUserProfile(session.user);
@@ -66,29 +123,7 @@ export const useAuthStateListener = ({
             console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
             
             // Create enhanced fallback user with improved role determination
-            let fallbackRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
-            
-            if (!fallbackRole) {
-              console.log('🔐 AuthStateListener: Determining fallback role for user:', session.user.email);
-              
-              if (session.user.email?.includes('@elimisha') || session.user.email === 'masuud@gmail.com') {
-                fallbackRole = 'elimisha_admin';
-              } else if (session.user.email?.includes('admin')) {
-                fallbackRole = 'edufam_admin';
-              } else if (session.user.email?.includes('principal')) {
-                fallbackRole = 'principal';
-              } else if (session.user.email?.includes('teacher')) {
-                fallbackRole = 'teacher';
-              } else if (session.user.email?.includes('owner')) {
-                fallbackRole = 'school_owner';
-              } else if (session.user.email?.includes('finance')) {
-                fallbackRole = 'finance_officer';
-              } else {
-                fallbackRole = 'parent';
-              }
-              
-              console.log('🔐 AuthStateListener: Assigned fallback role:', fallbackRole, 'for email:', session.user.email);
-            }
+            const fallbackRole = determineUserRole(session.user);
             
             const fallbackUser = {
               id: session.user.id,
@@ -117,29 +152,7 @@ export const useAuthStateListener = ({
         console.error('🔐 AuthStateListener: Error in auth state handler:', error);
         // Set fallback user data to prevent app from breaking
         if (session?.user && isMountedRef.current) {
-          let fallbackRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
-          
-          if (!fallbackRole) {
-            console.log('🔐 AuthStateListener: Error fallback - determining role for user:', session.user.email);
-            
-            if (session.user.email?.includes('@elimisha') || session.user.email === 'masuud@gmail.com') {
-              fallbackRole = 'elimisha_admin';
-            } else if (session.user.email?.includes('admin')) {
-              fallbackRole = 'edufam_admin';
-            } else if (session.user.email?.includes('principal')) {
-              fallbackRole = 'principal';
-            } else if (session.user.email?.includes('teacher')) {
-              fallbackRole = 'teacher';
-            } else if (session.user.email?.includes('owner')) {
-              fallbackRole = 'school_owner';
-            } else if (session.user.email?.includes('finance')) {
-              fallbackRole = 'finance_officer';
-            } else {
-              fallbackRole = 'parent';
-            }
-            
-            console.log('🔐 AuthStateListener: Error fallback assigned role:', fallbackRole, 'for email:', session.user.email);
-          }
+          const fallbackRole = determineUserRole(session.user);
           
           const fallbackUser = {
             id: session.user.id,

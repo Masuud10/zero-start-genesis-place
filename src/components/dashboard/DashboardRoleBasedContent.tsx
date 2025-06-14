@@ -45,10 +45,22 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
           <p className="text-sm text-gray-600">
             Please wait while we load your role-specific dashboard.
           </p>
+          <div className="text-xs text-gray-400 mt-2">
+            Debug: User present: {user ? 'Yes' : 'No'} | Role: {user?.role || 'None'} | Email: {user?.email || 'None'}
+          </div>
         </CardContent>
       </Card>
     );
   }
+
+  // Log detailed role information for debugging
+  console.log("📊 Dashboard: User role details:", {
+    role: user.role,
+    email: user.email,
+    userMetadata: user.user_metadata,
+    appMetadata: user.app_metadata,
+    schoolId: user.school_id
+  });
 
   // For Elimisha/EduFam admins, ALWAYS show admin dashboard regardless of school assignment
   if (user.role === 'elimisha_admin' || user.role === 'edufam_admin') {
@@ -69,8 +81,11 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600">
-            Please contact your administrator to assign you to a school. Your role: {user.role}
+            Please contact your administrator to assign you to a school.
           </p>
+          <div className="text-xs text-gray-400 mt-2">
+            Debug: Role: {user.role} | Email: {user.email} | School ID: {user.school_id || 'None'}
+          </div>
         </CardContent>
       </Card>
     );
@@ -105,16 +120,19 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
       return (
         <Card>
           <CardHeader>
-            <CardTitle>Invalid Role</CardTitle>
+            <CardTitle>Invalid Role Configuration</CardTitle>
             <CardDescription>
-              Your account role is not recognized: {user.role || "undefined"}
+              Your account role needs to be configured properly.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600">
               Please contact your administrator to verify your account permissions.
-              {user.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
             </p>
+            <div className="text-xs text-gray-400 mt-2">
+              Debug: Role received: "{user.role || "undefined"}" | Email: {user.email}
+              {user.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
+            </div>
           </CardContent>
         </Card>
       );

@@ -1,9 +1,72 @@
+
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
 import { errorHandler, handleApiError } from '@/utils/errorHandler';
 import { PerformanceMonitor } from '@/utils/performance';
+
+// Helper function to determine user role with improved logic
+const determineUserRole = (authUser: User, profileRole?: string): string => {
+  console.log('👤 Determining role for user:', authUser.email, 'profile role:', profileRole, 'metadata:', authUser.user_metadata, 'app_metadata:', authUser.app_metadata);
+
+  // Priority 1: Use role from profile if available and valid
+  if (profileRole && profileRole !== 'parent') {
+    console.log('👤 Using profile role:', profileRole);
+    return profileRole;
+  }
+
+  // Priority 2: Use role from user_metadata if available
+  const metadataRole = authUser.user_metadata?.role;
+  if (metadataRole && metadataRole !== 'parent') {
+    console.log('👤 Using user_metadata role:', metadataRole);
+    return metadataRole;
+  }
+
+  // Priority 3: Use role from app_metadata if available
+  const appMetadataRole = authUser.app_metadata?.role;
+  if (appMetadataRole && appMetadataRole !== 'parent') {
+    console.log('👤 Using app_metadata role:', appMetadataRole);
+    return appMetadataRole;
+  }
+
+  // Priority 4: Determine from email patterns (only if no other role found)
+  const email = authUser.email?.toLowerCase() || '';
+  
+  if (email.includes('@elimisha') || email === 'masuud@gmail.com') {
+    console.log('👤 Assigning elimisha_admin role based on email pattern');
+    return 'elimisha_admin';
+  }
+  
+  if (email.includes('admin') && !email.includes('parent')) {
+    console.log('👤 Assigning edufam_admin role based on email pattern');
+    return 'edufam_admin';
+  }
+  
+  if (email.includes('principal') && !email.includes('parent')) {
+    console.log('👤 Assigning principal role based on email pattern');
+    return 'principal';
+  }
+  
+  if (email.includes('teacher') && !email.includes('parent')) {
+    console.log('👤 Assigning teacher role based on email pattern');
+    return 'teacher';
+  }
+  
+  if (email.includes('owner') && !email.includes('parent')) {
+    console.log('👤 Assigning school_owner role based on email pattern');
+    return 'school_owner';
+  }
+  
+  if (email.includes('finance') && !email.includes('parent')) {
+    console.log('👤 Assigning finance_officer role based on email pattern');
+    return 'finance_officer';
+  }
+
+  // Default to parent only if no other role could be determined
+  console.log('👤 Defaulting to parent role for:', email);
+  return 'parent';
+};
 
 export const useAuthOperations = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -23,7 +86,7 @@ export const useAuthOperations = () => {
       const endTimer = PerformanceMonitor.startTimer('fetch_user_profile');
       
       try {
-        console.log('👤 AuthOperations: Fetching user profile for', authUser.email, 'with metadata:', authUser.user_metadata);
+        console.log('👤 AuthOperations: Fetching user profile for', authUser.email);
         
         // Add timeout to profile fetch
         const profilePromise = supabase
@@ -51,45 +114,12 @@ export const useAuthOperations = () => {
           handleApiError(error, 'fetch_user_profile');
         }
 
-        // Determine user role with better fallback logic
-        let userRole = profile?.role;
-        
-        // If role exists in profile, use it directly
-        if (userRole) {
-          console.log('👤 AuthOperations: Using role from profile:', userRole);
-        } else {
-          // Check user metadata first
-          userRole = authUser.user_metadata?.role || authUser.app_metadata?.role;
-          
-          if (userRole) {
-            console.log('👤 AuthOperations: Using role from metadata:', userRole);
-          } else {
-            // Only fall back to email patterns if no role is found anywhere
-            console.log('👤 AuthOperations: No role found, determining from email patterns for:', authUser.email);
-            
-            if (authUser.email?.includes('@elimisha') || authUser.email === 'masuud@gmail.com') {
-              userRole = 'elimisha_admin';
-            } else if (authUser.email?.includes('admin')) {
-              userRole = 'edufam_admin';
-            } else if (authUser.email?.includes('principal')) {
-              userRole = 'principal';
-            } else if (authUser.email?.includes('teacher')) {
-              userRole = 'teacher';
-            } else if (authUser.email?.includes('owner')) {
-              userRole = 'school_owner';
-            } else if (authUser.email?.includes('finance')) {
-              userRole = 'finance_officer';
-            } else {
-              userRole = 'parent'; // Only default to parent as last resort
-            }
-            
-            console.log('👤 AuthOperations: Determined role from email pattern:', userRole);
-          }
-        }
+        // Use improved role determination logic
+        const finalRole = determineUserRole(authUser, profile?.role);
 
         const userData: AuthUser = {
           ...authUser,
-          role: userRole,
+          role: finalRole,
           name: profile?.name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
           school_id: profile?.school_id || authUser.user_metadata?.school_id || authUser.app_metadata?.school_id,
           avatar_url: profile?.avatar_url
@@ -104,28 +134,8 @@ export const useAuthOperations = () => {
         
         if (!isMountedRef.current) return;
         
-        // Create fallback user data with the same improved role determination
-        let fallbackRole = authUser.user_metadata?.role || authUser.app_metadata?.role;
-        
-        if (!fallbackRole) {
-          console.log('👤 AuthOperations: Creating fallback role for:', authUser.email);
-          
-          if (authUser.email?.includes('@elimisha') || authUser.email === 'masuud@gmail.com') {
-            fallbackRole = 'elimisha_admin';
-          } else if (authUser.email?.includes('admin')) {
-            fallbackRole = 'edufam_admin';
-          } else if (authUser.email?.includes('principal')) {
-            fallbackRole = 'principal';
-          } else if (authUser.email?.includes('teacher')) {
-            fallbackRole = 'teacher';
-          } else if (authUser.email?.includes('owner')) {
-            fallbackRole = 'school_owner';
-          } else if (authUser.email?.includes('finance')) {
-            fallbackRole = 'finance_officer';
-          } else {
-            fallbackRole = 'parent';
-          }
-        }
+        // Create fallback user data with improved role determination
+        const fallbackRole = determineUserRole(authUser);
         
         const userData: AuthUser = {
           ...authUser,
