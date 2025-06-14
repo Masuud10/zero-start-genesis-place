@@ -9,7 +9,8 @@ import CreateUserDialog from './users/CreateUserDialog';
 import UsersFilter from './users/UsersFilter';
 import UsersTable from './users/UsersTable';
 import { Button } from '@/components/ui/button';
-import { UserPlus, RefreshCw } from 'lucide-react';
+import { UserPlus, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface User {
   id: string;
@@ -32,18 +33,21 @@ const UsersModule = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isSystemAdmin } = useSchoolScopedData();
+  const { isSystemAdmin, getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
 
   console.log('🔍 UsersModule: Current user state:', {
     user: user,
     userRole: user?.role,
     userEmail: user?.email,
-    isSystemAdmin
+    isSystemAdmin,
+    schoolId: getCurrentSchoolId()
   });
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (user) {
+      fetchUsers();
+    }
+  }, [user]);
 
   const fetchUsers = async () => {
     try {
@@ -51,6 +55,11 @@ const UsersModule = () => {
       setError(null);
       
       console.log('🔍 UsersModule: Fetching users for role:', user?.role, 'isSystemAdmin:', isSystemAdmin);
+
+      // Check if user has permission to view users
+      if (!user || !['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role)) {
+        throw new Error('You do not have permission to view users');
+      }
 
       // Use AdminUserService for better multi-tenant support
       const { data, error: fetchError } = await AdminUserService.getUsersForSchool();
@@ -95,8 +104,14 @@ const UsersModule = () => {
         };
       });
       
-      console.log('🔍 UsersModule: Transformed users:', transformedUsers);
-      setUsers(transformedUsers);
+      // Additional filtering for non-system admins
+      const finalUsers = isSystemAdmin ? transformedUsers : transformedUsers.filter(u => {
+        const userSchoolId = getCurrentSchoolId();
+        return userSchoolId && u.school_id === userSchoolId;
+      });
+      
+      console.log('🔍 UsersModule: Final filtered users:', finalUsers);
+      setUsers(finalUsers);
 
     } catch (error: any) {
       console.error('🔍 UsersModule: Error in fetchUsers:', {
@@ -140,6 +155,28 @@ const UsersModule = () => {
     canAddUsers,
     userEmail: user?.email
   });
+
+  // Permission check - show error if user doesn't have access
+  if (user && !['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role)) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5" />
+            Access Denied
+          </CardTitle>
+          <CardDescription>
+            You don't have permission to access user management.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-600">
+            Only school owners, principals, and system administrators can manage users.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

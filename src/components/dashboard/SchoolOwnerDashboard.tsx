@@ -2,137 +2,116 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Users, GraduationCap, BookOpen, DollarSign, TrendingUp, Plus, Building, Calendar, BarChart3 } from 'lucide-react';
+import { Users, GraduationCap, DollarSign, TrendingUp, Settings, BarChart3, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import SchoolFilteredAnalytics from '../analytics/SchoolFilteredAnalytics';
+import AnalyticsSecurityGuard from '../analytics/AnalyticsSecurityGuard';
 
-interface SchoolOwnerStats {
+interface SchoolMetrics {
   totalStudents: number;
   totalTeachers: number;
   totalRevenue: number;
-  pendingFees: number;
-}
-
-interface FinancialTransaction {
-  id: string;
-  amount: number;
-  description: string;
-  date: string;
-  type: string;
+  outstandingFees: number;
+  monthlyGrowth: number;
 }
 
 const SchoolOwnerDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [stats, setStats] = useState<SchoolOwnerStats>({
+  const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
+  const [metrics, setMetrics] = useState<SchoolMetrics>({
     totalStudents: 0,
     totalTeachers: 0,
     totalRevenue: 0,
-    pendingFees: 0
+    outstandingFees: 0,
+    monthlyGrowth: 0
   });
-  const [recentTransactions, setRecentTransactions] = useState<FinancialTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock grade and attendance data for summary view
-  const gradeSummary = [
-    { class: 'Grade 1A', average: 85, students: 32, topStudent: 'Alice Johnson' },
-    { class: 'Grade 1B', average: 82, students: 30, topStudent: 'Bob Smith' },
-    { class: 'Grade 2A', average: 88, students: 28, topStudent: 'Carol Davis' },
-    { class: 'Grade 2B', average: 79, students: 31, topStudent: 'David Wilson' }
-  ];
-
-  const attendanceSummary = [
-    { class: 'Grade 1A', rate: 94, present: 30, total: 32, trend: 'up' },
-    { class: 'Grade 1B', rate: 92, present: 28, total: 30, trend: 'stable' },
-    { class: 'Grade 2A', rate: 96, present: 27, total: 28, trend: 'up' },
-    { class: 'Grade 2B', rate: 89, present: 28, total: 31, trend: 'down' }
-  ];
+  const schoolId = getCurrentSchoolId();
 
   useEffect(() => {
-    if (user?.school_id) {
-      fetchSchoolOwnerData();
+    if (schoolId && user) {
+      fetchSchoolMetrics();
+    } else {
+      setLoading(false);
+      setError('No school assignment found');
     }
-  }, [user?.school_id]);
+  }, [schoolId, user]);
 
-  const fetchSchoolOwnerData = async () => {
+  const fetchSchoolMetrics = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      if (!user?.school_id) {
-        console.log('No school_id found for user');
-        return;
+      if (!schoolId) {
+        throw new Error('No school ID available');
+      }
+
+      console.log('📈 SchoolOwnerDashboard: Fetching metrics for school:', schoolId);
+
+      // Validate school access
+      if (!validateSchoolAccess({ school_id: schoolId })) {
+        throw new Error('Access denied to school data');
       }
 
       // Fetch students count
-      const { data: students, error: studentsError } = await supabase
+      const { data: students, error: studentsError, count: studentsCount } = await supabase
         .from('students')
-        .select('id')
-        .eq('school_id', user.school_id)
+        .select('id', { count: 'exact' })
+        .eq('school_id', schoolId)
         .eq('is_active', true);
 
-      if (studentsError) throw studentsError;
-
       // Fetch teachers count
-      const { data: teachers, error: teachersError } = await supabase
+      const { data: teachers, error: teachersError, count: teachersCount } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('school_id', user.school_id)
-        .in('role', ['teacher', 'principal']);
-
-      if (teachersError) throw teachersError;
+        .select('id', { count: 'exact' })
+        .eq('school_id', schoolId)
+        .eq('role', 'teacher');
 
       // Fetch financial data
-      const { data: transactions, error: transactionsError } = await supabase
-        .from('financial_transactions')
-        .select('amount, transaction_type, description, created_at')
-        .eq('school_id', user.school_id)
-        .order('created_at', { ascending: false });
-
-      if (transactionsError) throw transactionsError;
-
-      // Calculate total revenue from completed transactions
-      const totalRevenue = transactions
-        ?.filter(t => t.transaction_type === 'fee_payment')
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-
-      // Fetch pending fees
-      const { data: pendingFees, error: feesError } = await supabase
+      const { data: fees, error: feesError } = await supabase
         .from('fees')
-        .select('amount, paid_amount')
-        .eq('school_id', user.school_id)
-        .eq('status', 'pending');
+        .select('amount, paid_amount, status')
+        .eq('school_id', schoolId);
 
-      if (feesError) throw feesError;
+      // Check for errors
+      if (studentsError || teachersError || feesError) {
+        const errors = [studentsError, teachersError, feesError].filter(Boolean);
+        console.error('📈 SchoolOwnerDashboard: Query errors:', errors);
+        throw new Error('Failed to fetch some data');
+      }
 
-      const totalPendingFees = pendingFees
-        ?.reduce((sum, fee) => sum + (Number(fee.amount) - Number(fee.paid_amount || 0)), 0) || 0;
+      // Calculate financial metrics
+      const totalRevenue = (fees || [])
+        .filter(fee => fee.status === 'paid')
+        .reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
 
-      // Format recent transactions
-      const formattedTransactions = transactions?.slice(0, 5).map(transaction => ({
-        id: transaction.created_at,
-        amount: Number(transaction.amount),
-        description: transaction.description || 'Financial transaction',
-        date: transaction.created_at,
-        type: transaction.transaction_type
-      })) || [];
+      const outstandingFees = (fees || [])
+        .filter(fee => fee.status === 'pending')
+        .reduce((sum, fee) => sum + (fee.amount - (fee.paid_amount || 0)), 0);
 
-      setStats({
-        totalStudents: students?.length || 0,
-        totalTeachers: teachers?.length || 0,
+      setMetrics({
+        totalStudents: studentsCount || 0,
+        totalTeachers: teachersCount || 0,
         totalRevenue,
-        pendingFees: totalPendingFees
+        outstandingFees,
+        monthlyGrowth: 5.2 // Mock data for now
       });
 
-      setRecentTransactions(formattedTransactions);
+      console.log('📈 SchoolOwnerDashboard: Metrics fetched successfully');
 
     } catch (error: any) {
-      console.error('Error fetching school owner data:', error);
+      console.error('📈 SchoolOwnerDashboard: Error fetching metrics:', error);
+      setError(error.message || 'Failed to fetch school metrics');
+      
       toast({
         title: "Error",
-        description: "Failed to fetch school data",
+        description: `Failed to fetch school metrics: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -140,37 +119,65 @@ const SchoolOwnerDashboard = () => {
     }
   };
 
-  const statsCards = [
+  const metricsCards = [
     {
       title: "Total Students",
-      value: stats.totalStudents,
-      description: "Active students enrolled",
+      value: metrics.totalStudents,
+      description: "Active enrollments",
       icon: Users,
-      color: "text-blue-600"
+      color: "text-blue-600",
+      change: "+12% from last month"
     },
     {
-      title: "Total Staff",
-      value: stats.totalTeachers,
-      description: "Teachers and administrators",
+      title: "Teaching Staff",
+      value: metrics.totalTeachers,
+      description: "Active teachers",
       icon: GraduationCap,
-      color: "text-green-600"
+      color: "text-green-600",
+      change: "+2 new hires"
     },
     {
-      title: "Total Revenue",
-      value: `KSh ${stats.totalRevenue.toLocaleString()}`,
-      description: "Fees collected this year",
+      title: "Revenue (YTD)",
+      value: `$${metrics.totalRevenue.toLocaleString()}`,
+      description: "Year to date",
       icon: DollarSign,
-      color: "text-purple-600"
+      color: "text-emerald-600",
+      change: `+${metrics.monthlyGrowth}% growth`
     },
     {
-      title: "Pending Fees",
-      value: `KSh ${stats.pendingFees.toLocaleString()}`,
-      description: "Outstanding payments",
+      title: "Outstanding Fees",
+      value: `$${metrics.outstandingFees.toLocaleString()}`,
+      description: "Pending payments",
       icon: TrendingUp,
-      color: "text-orange-600"
+      color: "text-orange-600",
+      change: "Follow up required"
     }
   ];
 
+  // Error state
+  if (error && !loading) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5" />
+            Dashboard Error
+          </CardTitle>
+          <CardDescription>
+            There was a problem loading your dashboard data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchSchoolMetrics} variant="outline">
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Loading state
   if (loading) {
     return (
       <div className="space-y-6">
@@ -178,7 +185,7 @@ const SchoolOwnerDashboard = () => {
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
-                <div className="h-16 bg-gray-200 rounded"></div>
+                <div className="h-20 bg-gray-200 rounded"></div>
               </CardContent>
             </Card>
           ))}
@@ -189,107 +196,30 @@ const SchoolOwnerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((card, index) => (
+        {metricsCards.map((card, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">{card.title}</p>
                   <p className="text-2xl font-bold text-gray-900">{card.value}</p>
                   <p className="text-xs text-gray-500">{card.description}</p>
                 </div>
                 <card.icon className={`h-8 w-8 ${card.color}`} />
               </div>
+              <div className="text-xs text-green-600 mt-2">{card.change}</div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Academic Performance Overview */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BookOpen className="h-5 w-5" />
-            <span>Academic Performance Overview (Read-Only)</span>
-          </CardTitle>
-          <CardDescription>
-            Summary view of school performance - contact teachers for detailed reports
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <div className="flex items-center gap-2 text-blue-800">
-              <BarChart3 className="h-4 w-4" />
-              <span className="font-medium">School Owner View</span>
-            </div>
-            <p className="text-blue-700 text-sm mt-1">
-              High-level academic insights for school management decisions.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {gradeSummary.map((classData, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">{classData.class}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {classData.students} students • Top: {classData.topStudent}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-blue-600">{classData.average}%</p>
-                  <p className="text-xs text-muted-foreground">Class Average</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Attendance Overview */}
-      <Card className="shadow-lg border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5" />
-            <span>Attendance Overview (Read-Only)</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {attendanceSummary.map((classData, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">{classData.class}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {classData.present}/{classData.total} present today
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-20">
-                    <Progress value={classData.rate} className="h-2" />
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={classData.rate >= 90 ? 'default' : 'secondary'}>
-                      {classData.rate}%
-                    </Badge>
-                    <p className="text-xs text-muted-foreground">
-                      {classData.trend === 'up' ? '↗️' : classData.trend === 'down' ? '↘️' : '→'} 
-                      {classData.trend}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
+      {/* Management Actions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
+            <Settings className="h-5 w-5" />
             School Management
           </CardTitle>
           <CardDescription>
@@ -297,61 +227,50 @@ const SchoolOwnerDashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-blue-50">
-              <Users className="h-6 w-6" />
-              <span>Manage Students</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="outline" className="h-24 flex-col gap-2 hover:bg-blue-50">
+              <Users className="h-8 w-8" />
+              <span className="font-medium">Manage Users</span>
+              <span className="text-xs text-gray-500">Teachers & Staff</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-green-50">
-              <GraduationCap className="h-6 w-6" />
-              <span>Manage Staff</span>
+            <Button variant="outline" className="h-24 flex-col gap-2 hover:bg-green-50">
+              <DollarSign className="h-8 w-8" />
+              <span className="font-medium">Financial Reports</span>
+              <span className="text-xs text-gray-500">Revenue & Expenses</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-purple-50">
-              <DollarSign className="h-6 w-6" />
-              <span>Financial Reports</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-orange-50">
-              <Plus className="h-6 w-6" />
-              <span>Add Resources</span>
+            <Button variant="outline" className="h-24 flex-col gap-2 hover:bg-purple-50">
+              <BarChart3 className="h-8 w-8" />
+              <span className="font-medium">Analytics</span>
+              <span className="text-xs text-gray-500">Performance Insights</span>
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Recent Financial Activities */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Financial Activities</CardTitle>
-          <CardDescription>
-            Latest transactions and fee payments
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recentTransactions.length > 0 ? (
-            <div className="space-y-3">
-              {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-gray-600">{transaction.type.replace('_', ' ')}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">KSh {transaction.amount.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No recent transactions</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* School Analytics */}
+      <AnalyticsSecurityGuard 
+        requiredPermission="school" 
+        schoolId={schoolId}
+        fallbackMessage="You need school owner permissions to view analytics."
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              School Performance Analytics
+            </CardTitle>
+            <CardDescription>
+              Real-time insights into your school's performance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SchoolFilteredAnalytics 
+              schoolId={schoolId} 
+              timeRange="30d"
+            />
+          </CardContent>
+        </Card>
+      </AnalyticsSecurityGuard>
     </div>
   );
 };

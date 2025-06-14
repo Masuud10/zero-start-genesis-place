@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,7 +124,7 @@ export const useAuthOperations = () => {
           avatar_url: profile?.avatar_url
         };
 
-        console.log('👤 AuthOperations: Final user data with role:', userData.role, 'for user:', userData.email);
+        console.log('👤 AuthOperations: Final user data with role:', userData.role, 'for user:', userData.email, 'school_id:', userData.school_id);
         setUser(userData);
         setIsLoading(false);
       } catch (error) {
@@ -144,7 +143,7 @@ export const useAuthOperations = () => {
           school_id: authUser.user_metadata?.school_id || authUser.app_metadata?.school_id
         };
         
-        console.log('👤 AuthOperations: Using fallback user data with role:', userData.role, 'for user:', userData.email);
+        console.log('👤 AuthOperations: Using fallback user data with role:', userData.role, 'for user:', userData.email, 'school_id:', userData.school_id);
         setUser(userData);
         setIsLoading(false);
       } finally {

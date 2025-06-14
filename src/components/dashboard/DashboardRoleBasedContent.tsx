@@ -7,7 +7,6 @@ import TeacherDashboard from "./TeacherDashboard";
 import ParentDashboard from "./ParentDashboard";
 import ElimshaAdminDashboard from "./ElimshaAdminDashboard";
 import FinanceOfficerDashboard from "./FinanceOfficerDashboard";
-import EmptySchoolDashboard from "./EmptySchoolDashboard";
 import { User } from '@/types/auth';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
