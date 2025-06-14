@@ -1,4 +1,3 @@
-
 import { UserRole } from '@/types/user';
 import { Grade, BulkGradeSubmission } from '@/types/grading';
 
@@ -78,7 +77,6 @@ export const getGradingPermissions = (role: UserRole): GradingPermissions => {
         canViewAttendance: false,
       };
 
-    case 'elimisha_admin':
     case 'edufam_admin':
       return {
         canCreateGrades: false,
