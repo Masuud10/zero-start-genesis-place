@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolService } from '@/services/schoolService';
@@ -8,9 +7,6 @@ import AdministrativeHub from './admin/AdministrativeHub';
 import RecentSchoolsSection from './admin/RecentSchoolsSection';
 import UserRoleBreakdown from './admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
-import CommunicationCenterModule from '@/components/modules/CommunicationCenterModule';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Megaphone } from 'lucide-react';
 
 interface EduFamAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -165,19 +161,6 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         schoolsRefetching={schoolsRefetching}
         usersRefetching={usersRefetching}
       />
-
-      {/* Communication Center for Broadcasting */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Megaphone className="w-5 h-5" />
-            Global Communication Center
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CommunicationCenterModule />
-        </CardContent>
-      </Card>
 
       {/* Administrative Hub */}
       <AdministrativeHub 

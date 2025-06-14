@@ -6,11 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Megaphone, Calendar, User, ArrowRight } from 'lucide-react';
+import { Plus, Megaphone, Calendar, User } from 'lucide-react';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
-import { Link } from 'react-router-dom';
+import CommunicationCenterModule from './CommunicationCenterModule';
 
 const AnnouncementsModule = () => {
   const { announcements, loading, createAnnouncement } = useAnnouncements();
@@ -26,6 +26,11 @@ const AnnouncementsModule = () => {
 
   const canCreateAnnouncement = user?.role && ['principal', 'school_owner', 'edufam_admin'].includes(user.role);
   const isEduFamAdmin = user?.role === 'edufam_admin';
+
+  // If user is EduFam admin, show the Communication Center instead
+  if (isEduFamAdmin) {
+    return <CommunicationCenterModule />;
+  }
 
   const getAudienceOptions = () => {
     if (user?.role === 'edufam_admin') {
@@ -115,16 +120,6 @@ const AnnouncementsModule = () => {
         </div>
 
         <div className="flex gap-2">
-          {isEduFamAdmin && (
-            <Link to="/communication-center">
-              <Button variant="outline" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 hover:from-purple-700 hover:to-blue-700">
-                <Megaphone className="w-4 h-4 mr-2" />
-                Communication Center
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          )}
-
           {canCreateAnnouncement && (
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger asChild>
@@ -203,25 +198,6 @@ const AnnouncementsModule = () => {
           )}
         </div>
       </div>
-
-      {/* Enhanced Communication Center Notice for EduFam Admins */}
-      {isEduFamAdmin && (
-        <Card className="border-2 border-dashed border-blue-300 bg-gradient-to-r from-blue-50 to-purple-50">
-          <CardContent className="p-6 text-center">
-            <Megaphone className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-            <h3 className="text-lg font-semibold mb-2 text-blue-900">Enhanced Communication Center Available</h3>
-            <p className="text-blue-700 mb-4">
-              Access advanced broadcast features including segmented messaging, read receipts, and detailed analytics.
-            </p>
-            <Link to="/communication-center">
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                Open Communication Center
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="grid gap-4">
         {announcements.length === 0 ? (
