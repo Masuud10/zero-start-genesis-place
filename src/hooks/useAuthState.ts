@@ -10,9 +10,11 @@ export const useAuthState = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Initialize all refs at the top level
   const isMountedRef = useRef(true);
   const initializedRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const subscriptionRef = useRef<any>(null);
 
   const processUser = async (authUser: SupabaseUser | null): Promise<void> => {
     if (!isMountedRef.current) return;
@@ -105,36 +107,39 @@ export const useAuthState = () => {
     }
   };
 
+  // Single useEffect that runs once
   useEffect(() => {
+    // Reset mounted state
+    isMountedRef.current = true;
+    
+    // Skip if already initialized
     if (initializedRef.current) {
       console.log('🔐 AuthState: Already initialized, skipping');
       return;
     }
     
-    let subscription: any = null;
+    console.log('🔐 AuthState: Initializing auth state');
     
     const initializeAuth = async () => {
       try {
-        console.log('🔐 AuthState: Initializing auth state');
-        
-        // Set a reasonable timeout to prevent infinite loading
+        // Set timeout to prevent infinite loading
         timeoutRef.current = setTimeout(() => {
           if (isMountedRef.current && isLoading) {
-            console.warn('🔐 AuthState: Auth initialization timeout, proceeding without user');
+            console.warn('🔐 AuthState: Auth timeout, setting loading to false');
             setIsLoading(false);
             setError(null);
             setUser(null);
           }
         }, 8000);
         
-        // Set up auth listener first
-        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+        // Set up auth listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!isMountedRef.current) return;
             
             console.log('🔐 AuthState: Auth state changed:', event);
             
-            // Clear timeout since we got a response
+            // Clear timeout on any auth event
             if (timeoutRef.current) {
               clearTimeout(timeoutRef.current);
               timeoutRef.current = undefined;
@@ -148,7 +153,7 @@ export const useAuthState = () => {
           }
         );
         
-        subscription = authSubscription;
+        subscriptionRef.current = subscription;
         
         // Get initial session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -156,7 +161,7 @@ export const useAuthState = () => {
         if (sessionError) {
           console.warn('🔐 AuthState: Session error:', sessionError);
           if (isMountedRef.current) {
-            setError(null); // Don't treat session errors as fatal
+            setError(null);
             setIsLoading(false);
           }
           return;
@@ -165,12 +170,13 @@ export const useAuthState = () => {
         // Process initial user
         await processUser(session?.user || null);
         
+        // Mark as initialized
         initializedRef.current = true;
         
       } catch (error: any) {
         console.error('🔐 AuthState: Init error:', error);
         if (isMountedRef.current) {
-          setError(null); // Don't show init errors to user
+          setError(null);
           setIsLoading(false);
         }
       }
@@ -178,6 +184,7 @@ export const useAuthState = () => {
     
     initializeAuth();
     
+    // Cleanup function
     return () => {
       console.log('🔐 AuthState: Cleaning up');
       isMountedRef.current = false;
@@ -187,16 +194,17 @@ export const useAuthState = () => {
         timeoutRef.current = undefined;
       }
       
-      if (subscription) {
-        subscription.unsubscribe();
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
       }
       
-      // Reset for potential remount
+      // Reset initialization flag after cleanup
       setTimeout(() => {
         initializedRef.current = false;
       }, 100);
     };
-  }, []); // Only run once
+  }, []); // Empty dependency array - only run once
 
   return {
     user,

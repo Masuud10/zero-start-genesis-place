@@ -15,6 +15,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  // Always call hooks in the same order
   const authState = useAuthState();
   const authActions = useAuthActions();
 
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     userSchoolId: user?.school_id
   });
 
+  // Create stable value object
   const value: AuthContextType = {
     user,
     isLoading,
