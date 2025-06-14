@@ -285,7 +285,7 @@ const ElimshaLayout = () => {
             user={user} 
             currentSchool={transformedSchool} 
             onLogout={handleLogout}
-            showHeader={activeSection === 'dashboard'} // Only show header on dashboard
+            showHeader={true} // Always show header to include greetings
           >
             {renderContent()}
           </DashboardContainer>

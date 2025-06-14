@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings, User, Bell, Sparkles } from 'lucide-react';
+import { LogOut, Settings, User, Bell, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AuthUser } from '@/types/auth';
+import DashboardGreeting from './DashboardGreeting';
 
 interface School {
   id: string;
@@ -96,25 +97,32 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Greetings Container - Always visible at the very top */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 py-4 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <DashboardGreeting user={user} currentSchool={currentSchool} />
+        </div>
+      </div>
+
       {showHeader && (
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              {/* Left side - Beautiful Logo and School Info */}
+              {/* Left side - Logo and School Info moved to top left */}
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-3">
-                  {/* Beautiful animated logo replacement */}
+                  {/* New Education-focused icon */}
                   <div className="relative">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-purple-600 to-green-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
-                      <Sparkles className="w-6 h-6 text-white animate-pulse" />
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 via-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
+                      <BookOpen className="w-6 h-6 text-white" />
                     </div>
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
                   </div>
                   <div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
-                      EduFam
+                    <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Elimisha
                     </span>
-                    <div className="text-xs text-gray-500">Education Excellence</div>
+                    <div className="text-xs text-gray-500">School Management</div>
                   </div>
                 </div>
                 
