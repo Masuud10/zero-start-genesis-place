@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Plus, Edit, Eye, Users, GraduationCap, UserCheck, UserX } from 'lucide-react';
+import { Search, Plus, Edit, Eye, Users, GraduationCap, UserCheck, UserX, RefreshCw, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useStudents } from '@/hooks/useStudents';
 import { useClasses } from '@/hooks/useClasses';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
@@ -16,9 +17,20 @@ const StudentsModule = () => {
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   
-  const { students, loading } = useStudents(classFilter !== 'all' ? classFilter : undefined);
-  const { classes } = useClasses();
-  const { isSystemAdmin } = useSchoolScopedData();
+  const { isReady } = useSchoolScopedData();
+  const { students, loading: studentsLoading, error: studentsError, refetchStudents } = useStudents(classFilter !== 'all' ? classFilter : undefined);
+  const { classes, loading: classesLoading, error: classesError, refetchClasses } = useClasses();
+
+  const loading = studentsLoading || classesLoading || !isReady;
+  const hasError = studentsError || classesError;
+
+  // Refetch data when ready state changes
+  useEffect(() => {
+    if (isReady) {
+      refetchStudents();
+      refetchClasses();
+    }
+  }, [isReady, refetchStudents, refetchClasses]);
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -41,6 +53,11 @@ const StudentsModule = () => {
     }).length
   };
 
+  const handleRetry = () => {
+    refetchStudents();
+    refetchClasses();
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -48,6 +65,32 @@ const StudentsModule = () => {
           <h1 className="text-3xl font-bold">Student Management</h1>
           <p className="text-muted-foreground">Loading students...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Student Management
+          </h1>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <div>
+              <strong>Error loading data:</strong> {studentsError || classesError}
+              <br />
+              <span className="text-sm">Please check your connection and try again.</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleRetry} className="ml-4">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -156,43 +199,56 @@ const StudentsModule = () => {
           <CardTitle>Student Records</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Admission No.</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Roll No.</TableHead>
-                <TableHead>Parent Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStudents.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.admission_number}</TableCell>
-                  <TableCell>{student.name}</TableCell>
-                  <TableCell>{student.roll_number || 'N/A'}</TableCell>
-                  <TableCell>{student.parent_contact || 'N/A'}</TableCell>
-                  <TableCell>
-                    <Badge variant={student.is_active ? 'default' : 'secondary'}>
-                      {student.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {filteredStudents.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-muted-foreground mb-2">No students found</h3>
+              <p className="text-sm text-muted-foreground">
+                {searchTerm || statusFilter !== 'all' || classFilter !== 'all' 
+                  ? 'Try adjusting your search criteria.'
+                  : 'Start by adding your first student.'
+                }
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Admission No.</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Roll No.</TableHead>
+                  <TableHead>Parent Contact</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredStudents.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell className="font-medium">{student.admission_number}</TableCell>
+                    <TableCell>{student.name}</TableCell>
+                    <TableCell>{student.roll_number || 'N/A'}</TableCell>
+                    <TableCell>{student.parent_contact || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Badge variant={student.is_active ? 'default' : 'secondary'}>
+                        {student.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

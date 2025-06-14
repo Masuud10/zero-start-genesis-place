@@ -23,12 +23,14 @@ interface Student {
 export const useStudents = (classId?: string) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       let query = supabase.from('students').select(`
         id,
@@ -55,11 +57,11 @@ export const useStudents = (classId?: string) => {
         query = query.eq('class_id', classId);
       }
 
-      // Don't filter by is_active here, let the component handle the filtering
-      const { data, error } = await query.order('name');
+      const { data, error: fetchError } = await query.order('name');
 
-      if (error) {
-        console.error('Error fetching students:', error);
+      if (fetchError) {
+        console.error('Error fetching students:', fetchError);
+        setError(fetchError.message);
         toast({
           title: "Error",
           description: "Failed to fetch students data",
@@ -72,6 +74,8 @@ export const useStudents = (classId?: string) => {
       setStudents(data || []);
     } catch (error) {
       console.error('Error fetching students:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(errorMessage);
       toast({
         title: "Error",
         description: "Failed to fetch students data",
@@ -84,12 +88,15 @@ export const useStudents = (classId?: string) => {
   };
 
   useEffect(() => {
-    fetchStudents();
+    if (schoolId !== null || isSystemAdmin) {
+      fetchStudents();
+    }
   }, [classId, isSystemAdmin, schoolId]);
 
   return {
     students,
     loading,
+    error,
     refetchStudents: fetchStudents
   };
 };

@@ -15,12 +15,14 @@ interface Class {
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchClasses = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       let query = supabase.from('classes').select(`
         id,
@@ -35,10 +37,11 @@ export const useClasses = () => {
         query = query.eq('school_id', schoolId);
       }
 
-      const { data, error } = await query.order('name');
+      const { data, error: fetchError } = await query.order('name');
 
-      if (error) {
-        console.error('Error fetching classes:', error);
+      if (fetchError) {
+        console.error('Error fetching classes:', fetchError);
+        setError(fetchError.message);
         toast({
           title: "Error",
           description: "Failed to fetch classes data",
@@ -51,6 +54,8 @@ export const useClasses = () => {
       setClasses(data || []);
     } catch (error) {
       console.error('Error fetching classes:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(errorMessage);
       toast({
         title: "Error",
         description: "Failed to fetch classes data",
@@ -63,12 +68,15 @@ export const useClasses = () => {
   };
 
   useEffect(() => {
-    fetchClasses();
+    if (schoolId !== null || isSystemAdmin) {
+      fetchClasses();
+    }
   }, [isSystemAdmin, schoolId]);
 
   return {
     classes,
     loading,
+    error,
     refetchClasses: fetchClasses
   };
 };

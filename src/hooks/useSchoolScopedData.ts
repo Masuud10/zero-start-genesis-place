@@ -4,17 +4,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
 export const useSchoolScopedData = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [schoolId, setSchoolId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    if (isLoading) {
+      setIsReady(false);
+      return;
+    }
+
     if (user) {
       const isAdmin = MultiTenantUtils.isSystemAdmin(user.role);
       setIsSystemAdmin(isAdmin);
       setSchoolId(user.school_id || null);
       setUserRole(user.role);
+      setIsReady(true);
       
       console.log('🏫 useSchoolScopedData: Updated scope:', {
         userId: user.id,
@@ -26,8 +33,9 @@ export const useSchoolScopedData = () => {
       setIsSystemAdmin(false);
       setSchoolId(null);
       setUserRole(null);
+      setIsReady(true);
     }
-  }, [user]);
+  }, [user, isLoading]);
 
   const getCurrentSchoolId = () => {
     return schoolId;
@@ -69,6 +77,7 @@ export const useSchoolScopedData = () => {
     isSystemAdmin,
     schoolId,
     userRole,
+    isReady,
     getCurrentSchoolId,
     validateSchoolAccess,
     canManageUsers,

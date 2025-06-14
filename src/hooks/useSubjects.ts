@@ -17,12 +17,14 @@ interface Subject {
 export const useSubjects = (classId?: string) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchSubjects = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       let query = supabase.from('subjects').select(`
         id,
@@ -43,10 +45,11 @@ export const useSubjects = (classId?: string) => {
         query = query.eq('class_id', classId);
       }
 
-      const { data, error } = await query.order('name');
+      const { data, error: fetchError } = await query.order('name');
 
-      if (error) {
-        console.error('Error fetching subjects:', error);
+      if (fetchError) {
+        console.error('Error fetching subjects:', fetchError);
+        setError(fetchError.message);
         toast({
           title: "Error",
           description: "Failed to fetch subjects data",
@@ -59,6 +62,8 @@ export const useSubjects = (classId?: string) => {
       setSubjects(data || []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(errorMessage);
       toast({
         title: "Error",
         description: "Failed to fetch subjects data",
@@ -71,12 +76,15 @@ export const useSubjects = (classId?: string) => {
   };
 
   useEffect(() => {
-    fetchSubjects();
+    if (schoolId !== null || isSystemAdmin) {
+      fetchSubjects();
+    }
   }, [classId, isSystemAdmin, schoolId]);
 
   return {
     subjects,
     loading,
+    error,
     refetchSubjects: fetchSubjects
   };
 };
