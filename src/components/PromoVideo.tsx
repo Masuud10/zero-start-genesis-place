@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
 
 interface PromoVideoProps {
   onClose?: () => void;
@@ -11,10 +11,10 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [duration] = useState(21); // Fixed duration for demo
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Demo script for voice-over
+  // Demo script for voice-over with better timing
   const demoScript = [
     { time: 0, text: "Welcome to EduFam - Kenya's most comprehensive school management system" },
     { time: 3, text: "Built specifically for CBC curriculum and M-Pesa integration" },
@@ -25,34 +25,44 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     { time: 18, text: "Start your free trial today and transform your school's future" }
   ];
 
+  const getCurrentScript = () => {
+    const current = demoScript.find((script, index) => {
+      const nextScript = demoScript[index + 1];
+      return currentTime >= script.time && (!nextScript || currentTime < nextScript.time);
+    });
+    return current?.text || demoScript[0].text;
+  };
+
   const handlePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
+    if (isPlaying) {
+      // Pause
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      setIsPlaying(false);
+    } else {
+      // Play
+      setIsPlaying(true);
+      intervalRef.current = setInterval(() => {
+        setCurrentTime(prev => {
+          const newTime = prev + 0.1;
+          if (newTime >= duration) {
+            // Video ended
+            clearInterval(intervalRef.current!);
+            intervalRef.current = null;
+            setIsPlaying(false);
+            setCurrentTime(0);
+            return 0;
+          }
+          return newTime;
+        });
+      }, 100);
     }
   };
 
   const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
+    setIsMuted(!isMuted);
   };
 
   const formatTime = (time: number) => {
@@ -60,6 +70,22 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const newTime = (clickX / rect.width) * duration;
+    setCurrentTime(Math.max(0, Math.min(duration, newTime)));
+  };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="relative w-full h-full bg-gradient-to-br from-blue-900 via-green-800 to-purple-900 rounded-2xl overflow-hidden">
@@ -80,21 +106,20 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
         ))}
       </div>
 
-      {/* Video Content Simulation */}
-      <video
-        ref={videoRef}
-        className="w-full h-full object-cover opacity-0"
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={() => setIsPlaying(false)}
-        muted={isMuted}
-      >
-        {/* Placeholder - in a real implementation, this would be your actual promotional video */}
-      </video>
+      {/* Close Button */}
+      {onClose && (
+        <Button
+          onClick={onClose}
+          variant="ghost"
+          className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 rounded-full p-2"
+        >
+          <X className="w-6 h-6" />
+        </Button>
+      )}
 
       {/* Overlay Content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-        <div className="text-center space-y-6 p-8">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-8">
+        <div className="text-center space-y-6 max-w-4xl">
           <div className="w-24 h-24 mx-auto bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-6 animate-pulse">
             <img 
               src="/lovable-uploads/0d049285-3d91-4a2b-ad37-6e375c4ce0e5.png" 
@@ -127,14 +152,14 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
           </div>
 
           {/* Current Demo Script Display */}
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 mb-6 max-w-3xl mx-auto">
-            <p className="text-lg italic">
-              {demoScript.find(script => currentTime >= script.time && currentTime < (demoScript[demoScript.indexOf(script) + 1]?.time || Infinity))?.text || demoScript[0].text}
+          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 mb-6 max-w-3xl mx-auto min-h-[80px] flex items-center justify-center">
+            <p className="text-lg italic text-center leading-relaxed">
+              {getCurrentScript()}
             </p>
           </div>
 
           {/* Video Controls */}
-          <div className="flex items-center justify-center space-x-4">
+          <div className="flex items-center justify-center space-x-4 mb-4">
             <Button
               onClick={handlePlayPause}
               className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border-white/30"
@@ -151,23 +176,28 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
               {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
             </Button>
 
-            <div className="text-sm">
-              {formatTime(currentTime)} / {formatTime(duration || 21)}
+            <div className="text-sm font-mono bg-black/20 px-3 py-2 rounded">
+              {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full max-w-md mx-auto">
-            <div className="bg-white/20 rounded-full h-2">
+          <div className="w-full max-w-md mx-auto mb-6">
+            <div 
+              className="bg-white/20 rounded-full h-3 cursor-pointer hover:bg-white/30 transition-colors"
+              onClick={handleSeek}
+            >
               <div 
-                className="bg-gradient-to-r from-blue-400 to-green-400 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(currentTime / (duration || 21)) * 100}%` }}
-              ></div>
+                className="bg-gradient-to-r from-blue-400 to-green-400 h-3 rounded-full transition-all duration-300 relative"
+                style={{ width: `${(currentTime / duration) * 100}%` }}
+              >
+                <div className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg"></div>
+              </div>
             </div>
           </div>
 
           <div className="text-center space-y-4">
-            <p className="text-blue-200">
+            <p className="text-blue-200 text-sm">
               This is a demo showcase. In production, this would be a real promotional video highlighting EduFam's features.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

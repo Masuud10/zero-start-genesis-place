@@ -59,7 +59,6 @@ interface LandingPageProps {
 }
 
 const LandingPage = ({ onLoginClick }: LandingPageProps) => {
-  const [showDemo, setShowDemo] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
   const [currentPage, setCurrentPage] = useState('home');
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -81,6 +80,19 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
     }, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showVideoModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showVideoModal]);
 
   const coreFeatures = [
     {
@@ -646,20 +658,10 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
                   variant="outline" 
                   size="lg"
                   onClick={handleWatchDemo}
-                  disabled={showDemo}
                   className="border-blue-300 text-blue-900 hover:bg-blue-50 transition-all duration-300 group hover:shadow-lg backdrop-blur-sm bg-white/80"
                 >
-                  {showDemo ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      Loading Demo...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5 mr-2 group-hover:scale-125 transition-transform duration-300" />
-                      Watch Demo
-                    </>
-                  )}
+                  <Play className="w-5 h-5 mr-2 group-hover:scale-125 transition-transform duration-300" />
+                  Watch Demo
                 </Button>
                 <Button 
                   variant="outline" 
