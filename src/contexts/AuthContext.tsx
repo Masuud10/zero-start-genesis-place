@@ -1,8 +1,8 @@
 
-import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { AuthContextType } from '@/types/auth';
-import { useAuthOperations } from '@/hooks/useAuthOperations';
-import { useAuthStateListener } from '@/hooks/useAuthStateListener';
+import { useAuthState } from '@/hooks/useAuthState';
+import { useAuthActions } from '@/hooks/useAuthActions';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -15,44 +15,17 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const mountedRef = useRef(true);
-  
-  const {
-    user,
-    isLoading,
-    setUser,
-    setIsLoading,
-    fetchUserProfile,
-    signIn,
-    signUp,
-    signOut,
-    cleanup
-  } = useAuthOperations();
+  const { user, isLoading, error } = useAuthState();
+  const { signIn, signUp, signOut } = useAuthActions();
 
-  // Use the auth state listener with stable dependencies
-  const { cleanup: listenerCleanup } = useAuthStateListener({
-    setUser,
-    setIsLoading,
-    fetchUserProfile
+  console.log('🔐 AuthProvider: Rendering with state', { 
+    hasUser: !!user, 
+    isLoading, 
+    error,
+    userEmail: user?.email,
+    userRole: user?.role,
+    userSchoolId: user?.school_id
   });
-
-  // Cleanup on unmount with proper timing
-  useEffect(() => {
-    mountedRef.current = true;
-    
-    return () => {
-      console.log('🔐 AuthProvider: Starting cleanup');
-      mountedRef.current = false;
-      
-      // Use a timeout to prevent immediate cleanup that could cause hooks errors
-      setTimeout(() => {
-        if (listenerCleanup) {
-          listenerCleanup();
-        }
-        cleanup();
-      }, 100);
-    };
-  }, [cleanup, listenerCleanup]);
 
   const value = {
     user,
@@ -61,15 +34,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUp,
     signOut
   };
-
-  console.log('🔐 AuthProvider: Rendering with state', { 
-    hasUser: !!user, 
-    isLoading, 
-    userEmail: user?.email,
-    userRole: user?.role,
-    userSchoolId: user?.school_id,
-    mounted: mountedRef.current
-  });
 
   return (
     <AuthContext.Provider value={value}>

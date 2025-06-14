@@ -10,54 +10,26 @@ import LoginForm from '@/components/LoginForm';
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [isStable, setIsStable] = useState(false);
+  const { user, isLoading, error } = useAuth();
+  const { isLoading: schoolLoading } = useSchool();
 
-  // Safe auth context access with error handling
-  let user: any = null;
-  let authLoading = true;
-  let schoolLoading = false;
-  let authError = false;
-
-  try {
-    const authContext = useAuth();
-    user = authContext.user;
-    authLoading = authContext.isLoading;
-  } catch (error) {
-    console.error('🎯 AppContent: Auth context error:', error);
-    authError = true;
-    authLoading = false;
-  }
-
-  try {
-    const schoolContext = useSchool();
-    schoolLoading = schoolContext.isLoading;
-  } catch (error) {
-    console.error('🎯 AppContent: School context error:', error);
-    schoolLoading = false;
-  }
-
-  // Enhanced stability check with error handling
+  // Stability check
   useEffect(() => {
-    if (authError) {
-      console.log('🎯 AppContent: Auth error detected, setting stable');
-      setIsStable(true);
-      return;
-    }
-
-    if (!authLoading) {
+    if (!isLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 300);
+      }, 100);
       
       return () => clearTimeout(timer);
     } else {
       setIsStable(false);
     }
-  }, [authLoading, authError]);
+  }, [isLoading]);
 
   console.log('🎯 AppContent: Rendering state:', { 
     hasUser: !!user, 
-    authLoading, 
-    authError,
+    isLoading, 
+    error,
     schoolLoading,
     isStable,
     userRole: user?.role,
@@ -66,14 +38,14 @@ const AppContent: React.FC = () => {
     userEmail: user?.email
   });
 
-  // Handle auth errors by showing login
-  if (authError) {
+  // Handle auth errors
+  if (error) {
     console.log('🎯 AppContent: Auth error, showing login form');
     return <LoginForm />;
   }
 
-  // Show loading screen while authentication is initializing or stabilizing
-  if (authLoading || !isStable) {
+  // Show loading screen while authentication is initializing
+  if (isLoading || !isStable) {
     console.log('🎯 AppContent: Auth loading or stabilizing, showing loading screen');
     return <LoadingScreen />;
   }
@@ -89,7 +61,7 @@ const AppContent: React.FC = () => {
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // Enhanced role validation and logging
+  // Role validation
   if (!user.role) {
     console.error('🎯 AppContent: Authenticated user has no role - critical error:', {
       userId: user.id,
@@ -122,21 +94,9 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Log successful authentication with role
-  console.log('🎯 AppContent: User authenticated successfully, proceeding to main layout:', {
-    role: user.role,
-    email: user.email,
-    schoolId: user.school_id,
-    userId: user.id?.slice(0, 8) + '...'
-  });
-
-  // For authenticated users with valid roles, determine if school loading should block
-  const shouldShowSchoolLoading = schoolLoading && 
-    user.role !== 'parent' && 
-    user.role !== 'elimisha_admin' && 
-    user.role !== 'edufam_admin';
-  
-  if (shouldShowSchoolLoading) {
+  // School loading check for roles that need school data
+  const needsSchoolData = !['parent', 'edufam_admin'].includes(user.role);
+  if (needsSchoolData && schoolLoading) {
     console.log('🎯 AppContent: School data loading for role:', user.role);
     return <LoadingScreen />;
   }
