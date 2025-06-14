@@ -48,7 +48,24 @@ export const PERMISSIONS = {
   SEND_PUSH_NOTIFICATIONS: 'send_push_notifications',
   
   // AI Learning permissions
-  USE_AI_LEARNING: 'use_ai_learning'
+  USE_AI_LEARNING: 'use_ai_learning',
+
+  // Attendance permissions
+  VIEW_ATTENDANCE: 'view_attendance',
+  EDIT_ATTENDANCE: 'edit_attendance',
+
+  // Report permissions
+  VIEW_REPORTS: 'view_reports',
+  GENERATE_REPORTS: 'generate_reports',
+
+  // Analytics permissions
+  VIEW_ANALYTICS: 'view_analytics',
+
+  // Support permissions
+  ACCESS_SUPPORT: 'access_support',
+
+  // Security permissions
+  MANAGE_SECURITY: 'manage_security'
 } as const;
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
@@ -76,31 +93,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
     [PERMISSIONS.MANAGE_USERS]: { allowed: true, scope: 'all' },
     [PERMISSIONS.SEND_MESSAGES]: { allowed: true, scope: 'all' },
     [PERMISSIONS.SEND_PUSH_NOTIFICATIONS]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false }
-  },
-  
-  elimisha_admin: {
-    [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false }, // Elimisha admins only view summaries
-    [PERMISSIONS.SUBMIT_GRADES]: { allowed: false },
-    [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
-    [PERMISSIONS.REJECT_GRADES]: { allowed: false },
-    [PERMISSIONS.RELEASE_RESULTS]: { allowed: false },
-    [PERMISSIONS.OVERRIDE_GRADES]: { allowed: false },
-    [PERMISSIONS.VIEW_POSITION]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.VIEW_FEE_BALANCE]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.VIEW_ANNOUNCEMENTS]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.POST_ANNOUNCEMENTS]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.VIEW_TIMETABLE]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.EDIT_TIMETABLE]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.VIEW_CLASS_INFO]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.EDIT_CLASS_INFO]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.VIEW_OTHER_SCHOOLS]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.MANAGE_USERS]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.SEND_MESSAGES]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.SEND_PUSH_NOTIFICATIONS]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false }
+    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false },
+    [PERMISSIONS.VIEW_ATTENDANCE]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.EDIT_ATTENDANCE]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.VIEW_REPORTS]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.GENERATE_REPORTS]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.VIEW_ANALYTICS]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.ACCESS_SUPPORT]: { allowed: true, scope: 'all' },
+    [PERMISSIONS.MANAGE_SECURITY]: { allowed: true, scope: 'all' }
   },
 
   school_owner: {
@@ -124,7 +124,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
     [PERMISSIONS.MANAGE_USERS]: { allowed: true, scope: 'school' },
     [PERMISSIONS.SEND_MESSAGES]: { allowed: true, scope: 'school' },
     [PERMISSIONS.SEND_PUSH_NOTIFICATIONS]: { allowed: true, scope: 'school' },
-    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false }
+    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false },
+    [PERMISSIONS.VIEW_ATTENDANCE]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.EDIT_ATTENDANCE]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.VIEW_REPORTS]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.GENERATE_REPORTS]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.VIEW_ANALYTICS]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.ACCESS_SUPPORT]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.MANAGE_SECURITY]: { allowed: true, scope: 'school' }
   },
 
   principal: {
@@ -148,7 +155,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
     [PERMISSIONS.MANAGE_USERS]: { allowed: true, scope: 'school' },
     [PERMISSIONS.SEND_MESSAGES]: { allowed: true, scope: 'school' },
     [PERMISSIONS.SEND_PUSH_NOTIFICATIONS]: { allowed: true, scope: 'school' },
-    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false }
+    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false },
+    [PERMISSIONS.VIEW_ATTENDANCE]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.EDIT_ATTENDANCE]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.VIEW_REPORTS]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.GENERATE_REPORTS]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.VIEW_ANALYTICS]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.ACCESS_SUPPORT]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.MANAGE_SECURITY]: { allowed: true, scope: 'school' }
   },
 
   teacher: {
@@ -172,7 +186,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
     [PERMISSIONS.MANAGE_USERS]: { allowed: false },
     [PERMISSIONS.SEND_MESSAGES]: { allowed: true, scope: 'class' },
     [PERMISSIONS.SEND_PUSH_NOTIFICATIONS]: { allowed: true, scope: 'class' },
-    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false }
+    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false },
+    [PERMISSIONS.VIEW_ATTENDANCE]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.EDIT_ATTENDANCE]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.VIEW_REPORTS]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.GENERATE_REPORTS]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.VIEW_ANALYTICS]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.ACCESS_SUPPORT]: { allowed: true, scope: 'class' },
+    [PERMISSIONS.MANAGE_SECURITY]: { allowed: true, scope: 'own' }
   },
 
   parent: {
@@ -196,7 +217,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
     [PERMISSIONS.MANAGE_USERS]: { allowed: false },
     [PERMISSIONS.SEND_MESSAGES]: { allowed: true, scope: 'teachers' },
     [PERMISSIONS.SEND_PUSH_NOTIFICATIONS]: { allowed: false },
-    [PERMISSIONS.USE_AI_LEARNING]: { allowed: true, scope: 'child' }
+    [PERMISSIONS.USE_AI_LEARNING]: { allowed: true, scope: 'child' },
+    [PERMISSIONS.VIEW_ATTENDANCE]: { allowed: true, scope: 'child' },
+    [PERMISSIONS.EDIT_ATTENDANCE]: { allowed: false },
+    [PERMISSIONS.VIEW_REPORTS]: { allowed: true, scope: 'child' },
+    [PERMISSIONS.GENERATE_REPORTS]: { allowed: true, scope: 'child' },
+    [PERMISSIONS.VIEW_ANALYTICS]: { allowed: true, scope: 'child' },
+    [PERMISSIONS.ACCESS_SUPPORT]: { allowed: true, scope: 'child' },
+    [PERMISSIONS.MANAGE_SECURITY]: { allowed: true, scope: 'own' }
   },
 
   finance_officer: {
@@ -212,15 +240,22 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
     [PERMISSIONS.EDIT_FEE_BALANCE]: { allowed: true, scope: 'school' },
     [PERMISSIONS.VIEW_ANNOUNCEMENTS]: { allowed: true, scope: 'school' },
     [PERMISSIONS.POST_ANNOUNCEMENTS]: { allowed: true, scope: 'finance' },
-    [PERMISSIONS.VIEW_TIMETABLE]: { allowed: false },
+    [PERMISSIONS.VIEW_TIMETABLE]: { allowed: true, scope: 'school' },
     [PERMISSIONS.EDIT_TIMETABLE]: { allowed: false },
-    [PERMISSIONS.VIEW_CLASS_INFO]: { allowed: false },
+    [PERMISSIONS.VIEW_CLASS_INFO]: { allowed: true, scope: 'school' },
     [PERMISSIONS.EDIT_CLASS_INFO]: { allowed: false },
     [PERMISSIONS.VIEW_OTHER_SCHOOLS]: { allowed: false },
     [PERMISSIONS.MANAGE_USERS]: { allowed: false },
     [PERMISSIONS.SEND_MESSAGES]: { allowed: true, scope: 'school' },
     [PERMISSIONS.SEND_PUSH_NOTIFICATIONS]: { allowed: true, scope: 'finance' },
-    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false }
+    [PERMISSIONS.USE_AI_LEARNING]: { allowed: false },
+    [PERMISSIONS.VIEW_ATTENDANCE]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.EDIT_ATTENDANCE]: { allowed: false },
+    [PERMISSIONS.VIEW_REPORTS]: { allowed: true, scope: 'finance' },
+    [PERMISSIONS.GENERATE_REPORTS]: { allowed: true, scope: 'finance' },
+    [PERMISSIONS.VIEW_ANALYTICS]: { allowed: true, scope: 'finance' },
+    [PERMISSIONS.ACCESS_SUPPORT]: { allowed: true, scope: 'school' },
+    [PERMISSIONS.MANAGE_SECURITY]: { allowed: true, scope: 'own' }
   }
 };
 
@@ -252,7 +287,7 @@ export class PermissionManager {
   }
 
   canAccessSchool(schoolId: string): boolean {
-    if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
+    if (this.userRole === 'edufam_admin') {
       return true;
     }
     
@@ -270,7 +305,7 @@ export class PermissionManager {
   }
 
   canAccessStudent(studentId: string, studentSchoolId?: string): boolean {
-    if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
+    if (this.userRole === 'edufam_admin') {
       return true;
     }
 
@@ -294,7 +329,7 @@ export class PermissionManager {
   }
 
   canModifySchoolData(targetSchoolId?: string): boolean {
-    if (this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin') {
+    if (this.userRole === 'edufam_admin') {
       return true;
     }
 
@@ -308,23 +343,24 @@ export class PermissionManager {
   getSchoolContext(): { schoolId?: string; isSystemAdmin: boolean } {
     return {
       schoolId: this.userSchoolId,
-      isSystemAdmin: this.userRole === 'elimisha_admin' || this.userRole === 'edufam_admin'
+      isSystemAdmin: this.userRole === 'edufam_admin'
     };
   }
 
   getFilteredMenuItems() {
     const allMenuItems = [
       { id: 'dashboard', permission: null },
-      { id: 'analytics', permission: null },
+      { id: 'analytics', permission: PERMISSIONS.VIEW_ANALYTICS },
       { id: 'grades', permission: PERMISSIONS.VIEW_GRADEBOOK },
-      { id: 'attendance', permission: null },
+      { id: 'attendance', permission: PERMISSIONS.VIEW_ATTENDANCE },
       { id: 'students', permission: PERMISSIONS.VIEW_CLASS_INFO },
       { id: 'finance', permission: PERMISSIONS.VIEW_FEE_BALANCE },
       { id: 'timetable', permission: PERMISSIONS.VIEW_TIMETABLE },
       { id: 'announcements', permission: PERMISSIONS.VIEW_ANNOUNCEMENTS },
       { id: 'messages', permission: PERMISSIONS.SEND_MESSAGES },
-      { id: 'reports', permission: null },
-      { id: 'support', permission: null },
+      { id: 'reports', permission: PERMISSIONS.VIEW_REPORTS },
+      { id: 'support', permission: PERMISSIONS.ACCESS_SUPPORT },
+      { id: 'security', permission: PERMISSIONS.MANAGE_SECURITY },
       { id: 'settings', permission: null },
       { id: 'schools', permission: PERMISSIONS.VIEW_OTHER_SCHOOLS },
       { id: 'users', permission: PERMISSIONS.MANAGE_USERS },

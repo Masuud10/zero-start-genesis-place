@@ -74,7 +74,7 @@ const ElimshaLayout = () => {
       case 'grades':
         return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
       case 'attendance':
-        return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
+        return hasPermission(PERMISSIONS.VIEW_ATTENDANCE);
       case 'students':
         return hasPermission(PERMISSIONS.VIEW_CLASS_INFO);
       case 'finance':
@@ -85,24 +85,25 @@ const ElimshaLayout = () => {
         return hasPermission(PERMISSIONS.VIEW_ANNOUNCEMENTS);
       case 'messages':
         return hasPermission(PERMISSIONS.SEND_MESSAGES);
+      case 'reports':
+        return hasPermission(PERMISSIONS.VIEW_REPORTS);
+      case 'analytics':
+        return hasPermission(PERMISSIONS.VIEW_ANALYTICS);
       case 'schools':
         return hasPermission(PERMISSIONS.VIEW_OTHER_SCHOOLS);
       case 'users':
         return hasPermission(PERMISSIONS.MANAGE_USERS);
       case 'billing':
         return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE) || 
-               user.role === 'edufam_admin' || 
-               user.role === 'elimisha_admin';
+               user.role === 'edufam_admin';
       case 'system-health':
-        return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
+        return user.role === 'edufam_admin';
       case 'settings':
-        return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
+        return user.role === 'edufam_admin';
       case 'security':
-        return true; // All authenticated users can access their security settings
-      case 'analytics':
-      case 'reports':
+        return hasPermission(PERMISSIONS.MANAGE_SECURITY);
       case 'support':
-        return ['edufam_admin', 'elimisha_admin', 'school_owner', 'principal', 'teacher', 'finance_officer'].includes(user.role);
+        return hasPermission(PERMISSIONS.ACCESS_SUPPORT);
       default:
         console.log('🏗️ ElimshaLayout: Unknown section, denying access:', section);
         return false;
