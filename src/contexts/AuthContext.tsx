@@ -15,6 +15,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  console.log('🔐 AuthProvider: Starting render');
+  
   const authState = useAuthState();
   const authActions = useAuthActions();
 

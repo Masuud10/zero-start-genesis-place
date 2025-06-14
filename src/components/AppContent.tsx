@@ -10,9 +10,29 @@ import { ErrorState } from '@/components/common/LoadingStates';
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   
-  const { user, isLoading: authLoading, error: authError } = useAuth();
+  console.log('🎯 AppContent: Starting render');
+  
+  // Get auth state - this should not throw if AuthProvider is properly set up
+  let authState;
+  try {
+    authState = useAuth();
+  } catch (error) {
+    console.error('🎯 AppContent: Failed to get auth context:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <ErrorState
+          title="Authentication Error"
+          description="Failed to initialize authentication system"
+          error="Authentication context not available"
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
-  console.log('🎯 AppContent: Rendering state:', { 
+  const { user, isLoading: authLoading, error: authError } = authState;
+
+  console.log('🎯 AppContent: Auth state:', { 
     hasUser: !!user, 
     authLoading, 
     authError,

