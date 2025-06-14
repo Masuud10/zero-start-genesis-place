@@ -40,7 +40,7 @@ export const useAuthState = () => {
 
       setError(null);
       
-      // Fetch profile with simplified approach
+      // Fetch profile with error handling
       let profile = null;
       try {
         const { data, error: profileError } = await supabase
@@ -49,17 +49,19 @@ export const useAuthState = () => {
           .eq('id', authUser.id)
           .maybeSingle();
         
-        if (!profileError && data) {
+        if (profileError) {
+          console.warn('🔐 AuthState: Profile fetch error:', profileError.message);
+        } else if (data) {
           profile = data;
         }
       } catch (err: any) {
-        console.warn('🔐 AuthState: Profile fetch failed, continuing with defaults:', err.message);
+        console.warn('🔐 AuthState: Profile fetch failed:', err.message);
       }
       
-      // Resolve role
+      // Resolve role with fallback
       const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
       
-      // Create user data
+      // Create user data with defaults
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email,
@@ -103,45 +105,40 @@ export const useAuthState = () => {
   };
 
   useEffect(() => {
+    if (initializedRef.current) return;
+    
     let subscription: any = null;
     let timeoutId: NodeJS.Timeout;
     
     const initializeAuth = async () => {
-      if (initializedRef.current) return;
-      
       try {
         console.log('🔐 AuthState: Initializing auth state');
         
-        // Shorter timeout to prevent long loading
+        // Set timeout to prevent infinite loading
         timeoutId = setTimeout(() => {
           if (isMountedRef.current && isLoading) {
-            console.warn('🔐 AuthState: Auth initialization timeout, stopping loading');
+            console.warn('🔐 AuthState: Auth initialization timeout');
             setIsLoading(false);
             setError(null);
           }
-        }, 3000); // Reduced to 3 seconds
+        }, 5000);
         
-        // Set up auth listener
+        // Set up auth listener first
         const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (!isMountedRef.current) return;
             
             console.log('🔐 AuthState: Auth state changed:', event);
             
+            // Clear timeout since we got a response
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            
             if (event === 'SIGNED_OUT' || !session) {
-              console.log('🔐 AuthState: User signed out');
-              if (isMountedRef.current) {
-                setUser(null);
-                setError(null);
-                setIsLoading(false);
-              }
+              await processUser(null);
             } else if (session?.user) {
-              // Process user in next tick to prevent blocking
-              setTimeout(async () => {
-                if (isMountedRef.current) {
-                  await processUser(session.user);
-                }
-              }, 0);
+              await processUser(session.user);
             }
           }
         );
@@ -152,9 +149,9 @@ export const useAuthState = () => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('🔐 AuthState: Session error:', sessionError);
+          console.warn('🔐 AuthState: Session error:', sessionError);
           if (isMountedRef.current) {
-            setError(`Session error: ${sessionError.message}`);
+            setError(null); // Don't treat session errors as fatal
             setIsLoading(false);
           }
           return;
@@ -165,16 +162,13 @@ export const useAuthState = () => {
         
         initializedRef.current = true;
         
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-        
       } catch (error: any) {
         console.error('🔐 AuthState: Init error:', error);
         if (isMountedRef.current) {
-          setError(`Auth init failed: ${error.message}`);
+          setError(null); // Don't show init errors to user
           setIsLoading(false);
         }
+      } finally {
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
@@ -192,12 +186,12 @@ export const useAuthState = () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      // Reset initialization flag
+      // Reset for potential remount
       setTimeout(() => {
         initializedRef.current = false;
       }, 100);
     };
-  }, []); // Run only once
+  }, []); // Only run once
 
   return {
     user,

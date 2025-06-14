@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Bell, AlertCircle } from 'lucide-react';
@@ -9,40 +9,73 @@ import { format } from 'date-fns';
 
 const DashboardAnnouncements = () => {
   const { user } = useAuth();
-  const { announcements, markAsRead } = useEnhancedAnnouncements({
-    is_archived: false
-  });
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
-  // Only show for non-admin users (admins manage announcements in the communication center)
+  // Get announcements with error handling
+  const { announcements, markAsRead, loading } = useEnhancedAnnouncements({
+    is_archived: false
+  });
+
+  // Only show for non-admin users
   if (!user || ['edufam_admin', 'elimisha_admin'].includes(user.role)) {
     return null;
   }
 
-  // Filter announcements that are:
-  // 1. Global announcements from EduFam admin
-  // 2. Target this user's role
-  // 3. Not dismissed
-  // 4. Not archived
-  const relevantAnnouncements = announcements.filter(announcement => {
-    if (!announcement.is_global) return false;
-    if (announcement.is_archived) return false;
-    if (dismissedIds.includes(announcement.id)) return false;
-    
-    // Check if user's role is in target audience
-    const userRole = user.role === 'school_owner' ? 'school_owners' : 
-                    user.role === 'principal' ? 'principals' : 
-                    user.role === 'teacher' ? 'teachers' : 
-                    user.role === 'parent' ? 'parents' : 
-                    user.role === 'finance_officer' ? 'finance_officers' : user.role;
-    
-    return announcement.target_audience.includes(userRole);
+  // Wait for announcements to load
+  if (loading) {
+    return null;
+  }
+
+  // Safely filter announcements
+  const relevantAnnouncements = (announcements || []).filter(announcement => {
+    try {
+      // Check basic requirements
+      if (!announcement || !announcement.is_global || announcement.is_archived) {
+        return false;
+      }
+      
+      // Check if dismissed
+      if (dismissedIds.includes(announcement.id)) {
+        return false;
+      }
+      
+      // Check target audience safely
+      const targetAudience = Array.isArray(announcement.target_audience) 
+        ? announcement.target_audience 
+        : [];
+      
+      if (targetAudience.length === 0) {
+        return false;
+      }
+      
+      // Map user role to target audience format
+      const userRole = user.role === 'school_owner' ? 'school_owners' : 
+                      user.role === 'principal' ? 'principals' : 
+                      user.role === 'teacher' ? 'teachers' : 
+                      user.role === 'parent' ? 'parents' : 
+                      user.role === 'finance_officer' ? 'finance_officers' : 
+                      user.role;
+      
+      return targetAudience.includes(userRole);
+    } catch (error) {
+      console.warn('Error filtering announcement:', error);
+      return false;
+    }
   });
 
   const handleDismiss = async (announcementId: string) => {
-    // Mark as read and dismiss locally
-    await markAsRead(announcementId);
-    setDismissedIds(prev => [...prev, announcementId]);
+    try {
+      // Mark as read in database
+      if (markAsRead) {
+        await markAsRead(announcementId);
+      }
+      // Dismiss locally
+      setDismissedIds(prev => [...prev, announcementId]);
+    } catch (error) {
+      console.warn('Error dismissing announcement:', error);
+      // Still dismiss locally even if database update fails
+      setDismissedIds(prev => [...prev, announcementId]);
+    }
   };
 
   if (relevantAnnouncements.length === 0) {
@@ -70,7 +103,7 @@ const DashboardAnnouncements = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-gray-900 truncate">
-                      {announcement.title}
+                      {announcement.title || 'Untitled'}
                     </h3>
                     <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
                       EduFam Admin
@@ -83,12 +116,15 @@ const DashboardAnnouncements = () => {
                   </div>
                   
                   <p className="text-sm text-gray-700 mb-2 leading-relaxed">
-                    {announcement.content}
+                    {announcement.content || 'No content'}
                   </p>
                   
                   <div className="flex items-center text-xs text-gray-500">
                     <span>
-                      {format(new Date(announcement.created_at), 'MMM dd, yyyy HH:mm')}
+                      {announcement.created_at 
+                        ? format(new Date(announcement.created_at), 'MMM dd, yyyy HH:mm')
+                        : 'Unknown date'
+                      }
                     </span>
                     {announcement.expiry_date && (
                       <span className="ml-4">

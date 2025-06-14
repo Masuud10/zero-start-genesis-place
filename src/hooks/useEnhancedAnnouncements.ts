@@ -48,6 +48,9 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
   useEffect(() => {
     if (user) {
       fetchAnnouncements();
+    } else {
+      setLoading(false);
+      setAnnouncements([]);
     }
   }, [user, filters]);
 
@@ -64,7 +67,7 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
         `)
         .order('created_at', { ascending: false });
 
-      // Apply filters
+      // Apply filters safely
       if (filters?.is_archived !== undefined) {
         query = query.eq('is_archived', filters.is_archived);
       }
@@ -97,35 +100,49 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Announcements fetch error:', error);
+        throw error;
+      }
 
-      const formattedData: EnhancedAnnouncement[] = data?.map(item => ({
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        target_audience: item.target_audience || [],
-        created_by: item.created_by,
-        school_id: item.school_id,
-        expiry_date: item.expiry_date,
-        attachments: item.attachments || [],
-        is_global: item.is_global,
-        created_at: item.created_at,
-        creator_name: item.profiles?.name,
-        region: item.region,
-        school_type: item.school_type,
-        priority: (item.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
-        delivery_channels: item.delivery_channels || ['web'],
-        auto_archive_date: item.auto_archive_date,
-        is_archived: item.is_archived || false,
-        tags: item.tags || [],
-        read_count: item.read_count || 0,
-        total_recipients: item.total_recipients || 0
-      })) || [];
+      // Process data safely
+      const formattedData: EnhancedAnnouncement[] = (data || []).map(item => {
+        try {
+          return {
+            id: item.id || '',
+            title: item.title || '',
+            content: item.content || '',
+            target_audience: Array.isArray(item.target_audience) ? item.target_audience : [],
+            created_by: item.created_by || '',
+            school_id: item.school_id,
+            expiry_date: item.expiry_date,
+            attachments: Array.isArray(item.attachments) ? item.attachments : [],
+            is_global: Boolean(item.is_global),
+            created_at: item.created_at || new Date().toISOString(),
+            creator_name: item.profiles?.name,
+            region: item.region,
+            school_type: item.school_type,
+            priority: (['low', 'medium', 'high', 'urgent'].includes(item.priority) 
+              ? item.priority 
+              : 'medium') as 'low' | 'medium' | 'high' | 'urgent',
+            delivery_channels: Array.isArray(item.delivery_channels) ? item.delivery_channels : ['web'],
+            auto_archive_date: item.auto_archive_date,
+            is_archived: Boolean(item.is_archived),
+            tags: Array.isArray(item.tags) ? item.tags : [],
+            read_count: Number(item.read_count) || 0,
+            total_recipients: Number(item.total_recipients) || 0
+          };
+        } catch (itemError) {
+          console.warn('Error processing announcement item:', itemError);
+          return null;
+        }
+      }).filter(Boolean) as EnhancedAnnouncement[];
 
       setAnnouncements(formattedData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching announcements:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch announcements');
+      setError(error?.message || 'Failed to fetch announcements');
+      setAnnouncements([]);
     } finally {
       setLoading(false);
     }
@@ -145,12 +162,12 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
 
       if (error) throw error;
 
-      // Create recipient records for tracking
+      // Create recipient records
       await createAnnouncementRecipients(data.id, announcement);
       
       await fetchAnnouncements();
       return { data, error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating announcement:', error);
       return { data: null, error };
     }
@@ -158,13 +175,13 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
 
   const createAnnouncementRecipients = async (announcementId: string, announcement: any) => {
     try {
-      // Get all users matching the target criteria
+      // Get users matching target criteria
       let query = supabase
         .from('profiles')
-        .select('id, role, school_id, schools(name)');
+        .select('id, role, school_id');
 
-      // Convert target audience roles to match database roles
-      const dbRoles = announcement.target_audience.map((role: string) => {
+      // Convert target audience roles to database roles
+      const dbRoles = (announcement.target_audience || []).map((role: string) => {
         switch (role) {
           case 'school_owners': return 'school_owner';
           case 'principals': return 'principal';
@@ -175,42 +192,41 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
         }
       });
 
-      query = query.in('role', dbRoles);
-
-      if (announcement.region) {
-        // Add region filter if applicable
-      }
-
-      if (announcement.school_type) {
-        // Add school type filter if applicable
+      if (dbRoles.length > 0) {
+        query = query.in('role', dbRoles);
       }
 
       const { data: users, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Error fetching users for recipients:', error);
+        return;
+      }
 
-      const recipients = users?.map(user => ({
+      const recipients = (users || []).map(user => ({
         announcement_id: announcementId,
         user_id: user.id,
         school_id: user.school_id,
         user_role: user.role,
         region: announcement.region,
         school_type: announcement.school_type,
-        delivery_channel: announcement.delivery_channels[0] || 'web'
-      })) || [];
+        delivery_channel: announcement.delivery_channels?.[0] || 'web'
+      }));
 
       if (recipients.length > 0) {
         await supabase
           .from('announcement_recipients')
           .insert(recipients);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating announcement recipients:', error);
     }
   };
 
   const markAsRead = async (announcementId: string) => {
     try {
+      if (!user?.id) return;
+      
       await supabase
         .from('announcement_recipients')
         .update({
@@ -218,8 +234,8 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
           delivery_status: 'read'
         })
         .eq('announcement_id', announcementId)
-        .eq('user_id', user?.id);
-    } catch (error) {
+        .eq('user_id', user.id);
+    } catch (error: any) {
       console.error('Error marking announcement as read:', error);
     }
   };
@@ -232,7 +248,7 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
         .eq('id', announcementId);
       
       await fetchAnnouncements();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error archiving announcement:', error);
     }
   };

@@ -20,8 +20,8 @@ const AppContent: React.FC = () => {
     userEmail: user?.email
   });
 
-  // Handle authentication errors
-  if (authError) {
+  // Handle authentication errors (but don't block the app for minor errors)
+  if (authError && authError.includes('processing failed')) {
     console.log('🎯 AppContent: Auth error detected:', authError);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
