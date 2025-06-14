@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,7 +34,23 @@ import {
   Lightbulb,
   Rocket,
   Heart,
-  CheckSquare
+  CheckSquare,
+  Download,
+  Video,
+  BookmarkPlus,
+  HelpCircle,
+  Building,
+  GraduationCapIcon,
+  Calculator,
+  School,
+  Users2,
+  Trophy,
+  Briefcase,
+  MonitorPlay,
+  Headphones,
+  FileQuestion,
+  ArrowLeft,
+  X
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -45,6 +60,8 @@ interface LandingPageProps {
 const LandingPage = ({ onLoginClick }: LandingPageProps) => {
   const [showDemo, setShowDemo] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
+  const [currentPage, setCurrentPage] = useState('home');
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const coreFeatures = [
     {
@@ -139,7 +156,95 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
     { number: "24/7", label: "Expert Support", icon: Clock, description: "Local support team" }
   ];
 
+  const pricingPlans = [
+    {
+      name: "Starter",
+      price: "KES 15,000",
+      period: "/month",
+      description: "Perfect for small schools getting started",
+      students: "Up to 200 students",
+      features: [
+        "Basic student management",
+        "CBC grade recording",
+        "M-Pesa fee collection",
+        "Parent communication",
+        "Basic reports",
+        "Email support"
+      ],
+      popular: false,
+      color: "from-blue-500 to-blue-600"
+    },
+    {
+      name: "Professional",
+      price: "KES 35,000",
+      period: "/month",
+      description: "Most popular for growing schools",
+      students: "Up to 800 students",
+      features: [
+        "Everything in Starter",
+        "Advanced analytics",
+        "Timetable management",
+        "Bulk SMS & notifications",
+        "Custom report builder",
+        "Staff management",
+        "Priority support"
+      ],
+      popular: true,
+      color: "from-green-500 to-green-600"
+    },
+    {
+      name: "Enterprise",
+      price: "Custom",
+      period: "pricing",
+      description: "For large institutions and school networks",
+      students: "Unlimited students",
+      features: [
+        "Everything in Professional",
+        "Multi-school management",
+        "API access",
+        "Custom integrations",
+        "Dedicated account manager",
+        "24/7 phone support",
+        "On-site training"
+      ],
+      popular: false,
+      color: "from-purple-500 to-purple-600"
+    }
+  ];
+
+  const resources = [
+    {
+      icon: FileText,
+      title: "Implementation Guide",
+      description: "Step-by-step guide to getting started with EduFam",
+      action: "Download PDF",
+      type: "guide"
+    },
+    {
+      icon: Video,
+      title: "Training Videos",
+      description: "Comprehensive video tutorials for all user roles",
+      action: "Watch Now",
+      type: "video"
+    },
+    {
+      icon: BookmarkPlus,
+      title: "Best Practices",
+      description: "Learn from successful schools using EduFam",
+      action: "Read More",
+      type: "article"
+    },
+    {
+      icon: HelpCircle,
+      title: "FAQ",
+      description: "Frequently asked questions and answers",
+      action: "Browse FAQ",
+      type: "faq"
+    }
+  ];
+
   const handleNavClick = (section: string) => {
+    setCurrentPage(section);
     const element = document.getElementById(section);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
@@ -147,11 +252,11 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
   };
 
   const handleWatchDemo = () => {
-    setShowDemo(true);
-    setTimeout(() => {
-      setShowDemo(false);
-      alert('Demo video would open here! Contact us to schedule a live demonstration tailored to your school needs.');
-    }, 2000);
+    setShowVideoModal(true);
+  };
+
+  const handleCloseVideoModal = () => {
+    setShowVideoModal(false);
   };
 
   const handleContactSales = () => {
@@ -171,14 +276,249 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
   };
 
   const handlePricing = () => {
-    alert('EduFam Pricing Plans:\n\nStarter: KES 15,000/month (up to 200 students)\nProfessional: KES 35,000/month (up to 800 students)\nEnterprise: Custom pricing for large institutions\n\nAll plans include M-Pesa integration, CBC support, and local support.\n\nContact sales for detailed pricing and school-specific features.');
+    setCurrentPage('pricing');
+    handleNavClick('pricing');
   };
 
   const handleLearnMore = (featureTitle: string) => {
     alert(`${featureTitle} - Detailed Information:\n\nThis feature is specifically designed for Kenyan schools with local curriculum support, M-Pesa integration, and compliance with MOE requirements.\n\nContact our team for a personalized demonstration showing how this feature works with your school's specific needs.`);
   };
 
-  return (
+  const handleDownloadResource = (resourceType: string) => {
+    switch (resourceType) {
+      case 'guide':
+        alert('Implementation Guide downloading... This comprehensive PDF guide will help you set up EduFam for your school in just a few steps.');
+        break;
+      case 'video':
+        setShowVideoModal(true);
+        break;
+      case 'article':
+        alert('Opening best practices article... Learn how schools across Kenya have successfully implemented EduFam.');
+        break;
+      case 'faq':
+        alert('Opening FAQ section... Find answers to common questions about EduFam features and implementation.');
+        break;
+      default:
+        alert('Resource loading...');
+    }
+  };
+
+  const handleSelectPlan = (planName: string) => {
+    if (planName === 'Enterprise') {
+      handleContactSales();
+    } else {
+      alert(`You've selected the ${planName} plan!\n\nNext steps:\n1. Start your 30-day free trial\n2. Our team will help you set up your school\n3. Import your existing data\n4. Train your staff\n\nClick "Start Free Trial" to begin!`);
+    }
+  };
+
+  const handleBackToHome = () => {
+    setCurrentPage('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Video Modal Component
+  const VideoModal = () => (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-scale-in">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-blue-900">EduFam Demo Video</h3>
+          <Button variant="ghost" onClick={handleCloseVideoModal} className="p-2">
+            <X className="w-6 h-6" />
+          </Button>
+        </div>
+        <div className="p-6">
+          <div className="aspect-video bg-gradient-to-br from-blue-100 to-green-100 rounded-lg flex items-center justify-center mb-4">
+            <div className="text-center space-y-4">
+              <Play className="w-16 h-16 text-blue-600 mx-auto animate-pulse" />
+              <p className="text-lg text-blue-900 font-medium">Demo Video Loading...</p>
+              <p className="text-gray-600">This would show a comprehensive demo of EduFam's features</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button onClick={handleScheduleDemo} className="bg-blue-600 hover:bg-blue-700">
+              <Calendar className="w-4 h-4 mr-2" />
+              Schedule Live Demo
+            </Button>
+            <Button variant="outline" onClick={handleContactSales}>
+              <Phone className="w-4 h-4 mr-2" />
+              Contact Sales
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Pricing Page Component
+  const PricingPage = () => (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <Button 
+            variant="ghost" 
+            onClick={handleBackToHome}
+            className="mb-8 text-blue-600 hover:text-blue-800 group"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </Button>
+          <h1 className="text-4xl md:text-6xl font-bold text-blue-900 mb-6">
+            Simple, Transparent Pricing
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Choose the perfect plan for your school. All plans include M-Pesa integration, 
+            CBC compliance, and 24/7 support from our Kenyan team.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          {pricingPlans.map((plan, index) => (
+            <Card 
+              key={index} 
+              className={`relative overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 ${
+                plan.popular ? 'ring-2 ring-green-500 scale-105' : ''
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-green-600 text-white text-center py-2 text-sm font-medium">
+                  Most Popular
+                </div>
+              )}
+              <CardContent className="p-8">
+                <div className={`w-16 h-16 bg-gradient-to-r ${plan.color} rounded-2xl flex items-center justify-center mb-6 mx-auto`}>
+                  <CreditCard className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-blue-900 text-center mb-2">{plan.name}</h3>
+                <div className="text-center mb-4">
+                  <span className="text-4xl font-bold text-blue-900">{plan.price}</span>
+                  <span className="text-gray-600 ml-2">{plan.period}</span>
+                </div>
+                <p className="text-gray-600 text-center mb-4">{plan.description}</p>
+                <p className="text-blue-600 font-medium text-center mb-6">{plan.students}</p>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-center text-gray-700">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button 
+                  onClick={() => handleSelectPlan(plan.name)}
+                  className={`w-full bg-gradient-to-r ${plan.color} hover:opacity-90 text-white transition-all duration-300 transform hover:scale-105`}
+                >
+                  {plan.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="text-center">
+          <div className="bg-white rounded-2xl p-8 shadow-lg mb-8">
+            <h3 className="text-2xl font-bold text-blue-900 mb-4">All Plans Include:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+              <div className="space-y-2">
+                <Shield className="w-8 h-8 text-green-500 mx-auto" />
+                <p className="font-medium">30-Day Free Trial</p>
+              </div>
+              <div className="space-y-2">
+                <Globe className="w-8 h-8 text-blue-500 mx-auto" />
+                <p className="font-medium">M-Pesa Integration</p>
+              </div>
+              <div className="space-y-2">
+                <BookOpen className="w-8 h-8 text-purple-500 mx-auto" />
+                <p className="font-medium">CBC Compliance</p>
+              </div>
+              <div className="space-y-2">
+                <Headphones className="w-8 h-8 text-orange-500 mx-auto" />
+                <p className="font-medium">Local Support</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Resources Page Component
+  const ResourcesPage = () => (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <Button 
+            variant="ghost" 
+            onClick={handleBackToHome}
+            className="mb-8 text-blue-600 hover:text-blue-800 group"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </Button>
+          <h1 className="text-4xl md:text-6xl font-bold text-blue-900 mb-6">
+            Resources & Support
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Everything you need to successfully implement and use EduFam in your school.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          {resources.map((resource, index) => (
+            <Card key={index} className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer">
+              <CardContent className="p-8">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <resource.icon className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-blue-900 mb-4">{resource.title}</h3>
+                <p className="text-gray-600 mb-6 leading-relaxed">{resource.description}</p>
+                <Button 
+                  onClick={() => handleDownloadResource(resource.type)}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white group-hover:scale-105 transition-transform"
+                >
+                  {resource.action}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-2xl p-8 shadow-lg">
+          <h3 className="text-3xl font-bold text-blue-900 text-center mb-8">Need More Help?</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Button 
+              onClick={handleContactUs}
+              variant="outline"
+              className="h-20 flex-col space-y-2 border-blue-300 hover:bg-blue-50"
+            >
+              <Mail className="w-6 h-6 text-blue-600" />
+              <span>Email Support</span>
+            </Button>
+            <Button 
+              onClick={() => window.open('tel:+254700000000', '_blank')}
+              variant="outline"
+              className="h-20 flex-col space-y-2 border-green-300 hover:bg-green-50"
+            >
+              <Phone className="w-6 h-6 text-green-600" />
+              <span>Call Us</span>
+            </Button>
+            <Button 
+              onClick={handleScheduleDemo}
+              variant="outline"
+              className="h-20 flex-col space-y-2 border-purple-300 hover:bg-purple-50"
+            >
+              <Calendar className="w-6 h-6 text-purple-600" />
+              <span>Book Demo</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Main Home Page Component
+  const HomePage = () => (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
       {/* Navigation Header */}
       <nav className="bg-white/95 backdrop-blur-lg border-b border-blue-100 sticky top-0 z-50 shadow-lg">
@@ -208,16 +548,16 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
               <Button 
                 variant="ghost" 
                 className="text-blue-900 hover:bg-blue-50 hidden md:inline-flex transition-all duration-200 hover:scale-105"
-                onClick={handlePricing}
+                onClick={() => setCurrentPage('pricing')}
               >
                 Pricing
               </Button>
               <Button 
                 variant="ghost" 
                 className="text-blue-900 hover:bg-blue-50 hidden md:inline-flex transition-all duration-200 hover:scale-105"
-                onClick={() => handleNavClick('about')}
+                onClick={() => setCurrentPage('resources')}
               >
-                About
+                Resources
               </Button>
               <Button 
                 variant="ghost" 
@@ -610,7 +950,7 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
               <h3 className="font-bold mb-4 text-lg">Platform</h3>
               <ul className="space-y-3 text-blue-200">
                 <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => handleNavClick('features')}>Features</Button></li>
-                <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={handlePricing}>Pricing</Button></li>
+                <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => setCurrentPage('pricing')}>Pricing</Button></li>
                 <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => alert('CBC Integration: Full support for Kenya\'s Competency-Based Curriculum')}>CBC Support</Button></li>
                 <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => alert('M-Pesa Integration: Seamless mobile money payments for school fees')}>M-Pesa Integration</Button></li>
               </ul>
@@ -619,8 +959,8 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
             <div>
               <h3 className="font-bold mb-4 text-lg">Support</h3>
               <ul className="space-y-3 text-blue-200">
-                <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => window.open('https://docs.edufam.co.ke', '_blank')}>Documentation</Button></li>
-                <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => window.open('https://help.edufam.co.ke', '_blank')}>Help Center</Button></li>
+                <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => setCurrentPage('resources')}>Documentation</Button></li>
+                <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => setCurrentPage('resources')}>Help Center</Button></li>
                 <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={handleContactUs}>Contact Support</Button></li>
                 <li><Button variant="link" className="text-blue-200 p-0 h-auto hover:text-white transition-colors" onClick={() => alert('Training: Free onboarding, video tutorials, and live training sessions in Swahili and English')}>Training</Button></li>
               </ul>
@@ -654,6 +994,25 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
         </div>
       </footer>
     </div>
+  );
+
+  // Render current page based on state
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'pricing':
+        return <PricingPage />;
+      case 'resources':
+        return <ResourcesPage />;
+      default:
+        return <HomePage />;
+    }
+  };
+
+  return (
+    <>
+      {renderCurrentPage()}
+      {showVideoModal && <VideoModal />}
+    </>
   );
 };
 
