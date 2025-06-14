@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
-import { supabase } from '@/integrations/supabase/client';
 
 export const useSchoolScopedData = () => {
   const { user } = useAuth();
@@ -66,25 +65,6 @@ export const useSchoolScopedData = () => {
     return data.filter(item => item.school_id === schoolId);
   };
 
-  // Simple query builder that avoids complex type inference
-  const buildSchoolScopedQuery = (tableName: string, selectClause: string = '*') => {
-    // Create base query
-    let query = supabase.from(tableName).select(selectClause);
-    
-    // System admins can access all data
-    if (isSystemAdmin) {
-      return query;
-    }
-
-    // Non-admin users are restricted to their school's data
-    if (!schoolId) {
-      throw new Error('User does not belong to any school');
-    }
-
-    // Add school_id filter for tables that have school_id directly
-    return query.eq('school_id', schoolId);
-  };
-
   return {
     isSystemAdmin,
     schoolId,
@@ -95,7 +75,6 @@ export const useSchoolScopedData = () => {
     canManageSchools,
     canViewAnalytics,
     canManageFinances,
-    filterDataBySchoolScope,
-    buildSchoolScopedQuery
+    filterDataBySchoolScope
   };
 };
