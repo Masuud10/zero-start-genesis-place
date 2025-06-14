@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,20 +53,20 @@ const SchoolOwnerDashboard = () => {
 
       console.log('📈 SchoolOwnerDashboard: Fetching metrics for school:', schoolId);
 
-      // Validate school access - fix the type error
+      // Validate school access - fix the type error by ensuring schoolId is string
       if (!validateSchoolAccess(schoolId)) {
         throw new Error('Access denied to school data');
       }
 
       // Fetch students count
-      const { data: students, error: studentsError, count: studentsCount } = await supabase
+      const { count: studentsCount, error: studentsError } = await supabase
         .from('students')
         .select('id', { count: 'exact' })
         .eq('school_id', schoolId)
         .eq('is_active', true);
 
       // Fetch teachers count
-      const { data: teachers, error: teachersError, count: teachersCount } = await supabase
+      const { count: teachersCount, error: teachersError } = await supabase
         .from('profiles')
         .select('id', { count: 'exact' })
         .eq('school_id', schoolId)
@@ -119,6 +118,7 @@ const SchoolOwnerDashboard = () => {
     }
   };
 
+  // ... keep existing code (metricsCards array definition)
   const metricsCards = [
     {
       title: "Total Students",

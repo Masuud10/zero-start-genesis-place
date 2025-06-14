@@ -60,8 +60,8 @@ const Dashboard = () => {
     );
   }
 
-  // Validate user role
-  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
+  // Validate user role - fix the validation logic
+  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'];
   const userRole = user.role as UserRole;
   
   if (!userRole || !validRoles.includes(userRole)) {
@@ -86,16 +86,33 @@ const Dashboard = () => {
 
   console.log('📊 Dashboard: Rendering role-based content for role:', userRole);
 
+  // Add error boundary for modal operations
+  const handleModalOpen = (modalType: string) => {
+    try {
+      setActiveModal(modalType);
+    } catch (error) {
+      console.error('📊 Dashboard: Error opening modal:', error);
+    }
+  };
+
+  const handleModalClose = () => {
+    try {
+      setActiveModal(null);
+    } catch (error) {
+      console.error('📊 Dashboard: Error closing modal:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <DashboardRoleBasedContent 
         user={user} 
-        onModalOpen={setActiveModal}
+        onModalOpen={handleModalOpen}
       />
       
       <DashboardModals 
         activeModal={activeModal}
-        onClose={() => setActiveModal(null)}
+        onClose={handleModalClose}
         user={user}
       />
     </div>
