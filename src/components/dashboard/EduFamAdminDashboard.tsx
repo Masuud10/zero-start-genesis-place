@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,28 +8,28 @@ import { useQuery } from '@tanstack/react-query';
 import { SchoolService } from '@/services/schoolService';
 import { AdminUserService } from '@/services/adminUserService';
 
-interface ElimshaAdminDashboardProps {
+interface EduFamAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
 }
 
-const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
+const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Fetch schools data with better error handling
   const { data: schoolsData = [], isLoading: schoolsLoading, error: schoolsError, refetch: refetchSchools } = useQuery({
     queryKey: ['admin-schools', refreshKey],
     queryFn: async () => {
-      console.log('🏫 ElimshaAdmin: Fetching schools data');
+      console.log('🏫 EduFamAdmin: Fetching schools data');
       try {
         const result = await SchoolService.getAllSchools();
         if (result.error) {
-          console.error('🏫 ElimshaAdmin: School fetch error:', result.error);
+          console.error('🏫 EduFamAdmin: School fetch error:', result.error);
           throw new Error(result.error.message || 'Failed to fetch schools');
         }
-        console.log('🏫 ElimshaAdmin: Schools fetched successfully:', result.data?.length || 0);
+        console.log('🏫 EduFamAdmin: Schools fetched successfully:', result.data?.length || 0);
         return result.data || [];
       } catch (error) {
-        console.error('🏫 ElimshaAdmin: Exception fetching schools:', error);
+        console.error('🏫 EduFamAdmin: Exception fetching schools:', error);
         throw error;
       }
     },
@@ -42,17 +41,17 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
   const { data: usersData = [], isLoading: usersLoading, error: usersError, refetch: refetchUsers } = useQuery({
     queryKey: ['admin-users', refreshKey],
     queryFn: async () => {
-      console.log('👥 ElimshaAdmin: Fetching users data');
+      console.log('👥 EduFamAdmin: Fetching users data');
       try {
         const { data, error } = await AdminUserService.getUsersForSchool();
         if (error) {
-          console.error('👥 ElimshaAdmin: User fetch error:', error);
+          console.error('👥 EduFamAdmin: User fetch error:', error);
           throw new Error(error.message || 'Failed to fetch users');
         }
-        console.log('👥 ElimshaAdmin: Users fetched successfully:', data?.length || 0);
+        console.log('👥 EduFamAdmin: Users fetched successfully:', data?.length || 0);
         return data || [];
       } catch (error) {
-        console.error('👥 ElimshaAdmin: Exception fetching users:', error);
+        console.error('👥 EduFamAdmin: Exception fetching users:', error);
         throw error;
       }
     },
@@ -61,19 +60,19 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
   });
 
   const handleSchoolCreated = () => {
-    console.log('🏫 ElimshaAdmin: School created, refreshing data');
+    console.log('🏫 EduFamAdmin: School created, refreshing data');
     setRefreshKey(prev => prev + 1);
     refetchSchools();
   };
 
   const handleUserCreated = () => {
-    console.log('👥 ElimshaAdmin: User created, refreshing data');
+    console.log('👥 EduFamAdmin: User created, refreshing data');
     setRefreshKey(prev => prev + 1);
     refetchUsers();
   };
 
   const handleRetry = () => {
-    console.log('🔄 ElimshaAdmin: Retrying data fetch');
+    console.log('🔄 EduFamAdmin: Retrying data fetch');
     setRefreshKey(prev => prev + 1);
     refetchSchools();
     refetchUsers();
@@ -82,7 +81,7 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
   // Calculate user statistics with validation
   const userStats = React.useMemo(() => {
     if (!Array.isArray(usersData)) {
-      console.warn('👥 ElimshaAdmin: Invalid users data format');
+      console.warn('👥 EduFamAdmin: Invalid users data format');
       return {
         totalUsers: 0,
         usersWithSchools: 0,
@@ -368,4 +367,4 @@ const ElimshaAdminDashboard = ({ onModalOpen }: ElimshaAdminDashboardProps) => {
   );
 };
 
-export default ElimshaAdminDashboard;
+export default EduFamAdminDashboard;

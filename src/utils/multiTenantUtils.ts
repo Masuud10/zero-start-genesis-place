@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface UserScope {
@@ -48,7 +47,7 @@ export class MultiTenantUtils {
       }
 
       const userRole = profile?.role;
-      const isSystemAdmin = userRole === 'elimisha_admin' || userRole === 'edufam_admin';
+      const isSystemAdmin = userRole === 'edufam_admin';
 
       return {
         userId: user.id,
@@ -93,7 +92,6 @@ export class MultiTenantUtils {
 
   static getRoleCapabilities(role: string): RoleCapabilities {
     switch (role) {
-      case 'elimisha_admin':
       case 'edufam_admin':
         return {
           canCreateUsers: true,
@@ -144,7 +142,7 @@ export class MultiTenantUtils {
   }
 
   static isSystemAdmin(role: string): boolean {
-    return role === 'elimisha_admin' || role === 'edufam_admin';
+    return role === 'edufam_admin';
   }
 
   static isSchoolAdmin(role: string): boolean {

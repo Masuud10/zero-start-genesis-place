@@ -49,8 +49,8 @@ export class RoleResolver {
     const emailLower = email.toLowerCase();
 
     // System admin patterns
-    if (emailLower.includes('@elimisha.com') || emailLower === 'masuud@gmail.com') {
-      return 'elimisha_admin';
+    if (emailLower.includes('@edufam.com') || emailLower === 'masuud@gmail.com') {
+      return 'edufam_admin';
     }
 
     if (emailLower.includes('admin@') || emailLower.includes('edufam')) {
@@ -83,8 +83,7 @@ export class RoleResolver {
    */
   static isValidRole(role: string): boolean {
     const validRoles = [
-      'elimisha_admin',
-      'edufam_admin', 
+      'edufam_admin',
       'school_owner',
       'principal',
       'teacher',
@@ -100,8 +99,7 @@ export class RoleResolver {
    */
   static getRoleLevel(role: string): number {
     const roleLevels: Record<string, number> = {
-      'elimisha_admin': 100,
-      'edufam_admin': 90,
+      'edufam_admin': 100,
       'school_owner': 80,
       'principal': 70,
       'finance_officer': 50,
@@ -120,7 +118,7 @@ export class RoleResolver {
     const targetLevel = this.getRoleLevel(targetRole);
 
     // System admins can manage everyone
-    if (managerRole === 'elimisha_admin' || managerRole === 'edufam_admin') {
+    if (managerRole === 'edufam_admin') {
       return true;
     }
 
