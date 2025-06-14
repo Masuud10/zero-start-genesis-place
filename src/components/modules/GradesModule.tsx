@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,6 +29,7 @@ import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
 import GradesModal from '@/components/modals/GradesModal';
 import BulkGradingTable from '@/components/grading/BulkGradingTable';
+import { GradingSession } from '@/types/grading';
 
 interface GradesModuleProps {
   
@@ -47,6 +49,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   };
 
   const canManageGrades = hasPermission(PERMISSIONS.EDIT_GRADEBOOK);
+  const isElimshaAdmin = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
 
   const gradeStats = {
     totalStudents: 1247,
@@ -55,14 +58,69 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
     studentsAbove90: 320
   };
 
+  // Mock grading session for display purposes
+  const mockGradingSession: GradingSession = {
+    id: 'mock-session',
+    classId: 'mock-class',
+    subjectId: 'mock-subject',
+    term: 'Term 1',
+    examType: 'MID_TERM',
+    maxScore: 100,
+    teacherId: 'mock-teacher',
+    createdAt: new Date(),
+    isActive: true,
+    students: [
+      {
+        studentId: '1',
+        name: 'John Doe',
+        admissionNumber: 'ADM001',
+        rollNumber: 'R001',
+        currentScore: 85,
+        percentage: 85,
+        position: 1,
+        isAbsent: false
+      },
+      {
+        studentId: '2',
+        name: 'Jane Smith',
+        admissionNumber: 'ADM002',
+        rollNumber: 'R002',
+        currentScore: 78,
+        percentage: 78,
+        position: 2,
+        isAbsent: false
+      },
+      {
+        studentId: '3',
+        name: 'Bob Wilson',
+        admissionNumber: 'ADM003',
+        rollNumber: 'R003',
+        isAbsent: true
+      }
+    ]
+  };
+
+  const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
+    // Mock handler - no actual saving for Elimisha admins
+    console.log('Mock save grades:', grades);
+  };
+
+  const handleSubmitGrades = () => {
+    // Mock handler - no actual submission for Elimisha admins
+    console.log('Mock submit grades');
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Grade Management
+          {isElimshaAdmin ? 'System-Wide Grade Overview' : 'Grade Management'}
         </h1>
         <p className="text-muted-foreground">
-          Manage and track student grades, performance analytics, and reporting.
+          {isElimshaAdmin 
+            ? 'System administrator view - grade summaries across all schools'
+            : 'Manage and track student grades, performance analytics, and reporting.'
+          }
         </p>
       </div>
 
@@ -75,7 +133,9 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{gradeStats.totalStudents}</div>
-            <p className="text-xs text-muted-foreground">Enrolled students</p>
+            <p className="text-xs text-muted-foreground">
+              {isElimshaAdmin ? 'Across all schools' : 'Enrolled students'}
+            </p>
           </CardContent>
         </Card>
         
@@ -118,10 +178,10 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
             <CardTitle>
-              {canManageGrades ? 'Manage Grades' : 'Grade Overview'}
+              {isElimshaAdmin ? 'Grade Overview (Read-Only)' : canManageGrades ? 'Manage Grades' : 'Grade Overview'}
             </CardTitle>
             <div className="flex items-center space-x-2">
-              {canManageGrades && (
+              {canManageGrades && !isElimshaAdmin && (
                 <>
                   <Button onClick={handleOpenModal}>
                     Open Grades Modal
@@ -132,22 +192,74 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {canManageGrades ? (
+          {isElimshaAdmin ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2 text-blue-800">
+                  <Clock className="h-4 w-4" />
+                  <span className="font-medium">Administrator Access Level</span>
+                </div>
+                <p className="text-blue-700 text-sm mt-1">
+                  As an Elimisha administrator, you can view grade summaries and analytics but cannot enter or modify grades. 
+                  Grade entry is restricted to teachers and school administrators.
+                </p>
+              </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <BarChart3 className="h-5 w-5" />
+                    Sample Grade Data (Read-Only)
+                  </CardTitle>
+                  <CardDescription>
+                    System-wide grade analytics - Elimisha admins have view-only access
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <BulkGradingTable 
+                    session={mockGradingSession}
+                    onSave={handleSaveGrades}
+                    onSubmit={handleSubmitGrades}
+                    isSubmitted={true}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          ) : canManageGrades ? (
             <Tabs defaultValue="bulk" className="w-full space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="bulk">Bulk Entry</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
               <TabsContent value="bulk">
-                <BulkGradingTable />
+                <BulkGradingTable 
+                  session={mockGradingSession}
+                  onSave={handleSaveGrades}
+                  onSubmit={handleSubmitGrades}
+                />
               </TabsContent>
               <TabsContent value="analytics">
                 <div>Analytics Content</div>
               </TabsContent>
             </Tabs>
           ) : (
-            <div>
-              <p>You do not have permission to manage grades.</p>
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-blue-800">
+                  <Clock className="h-4 w-4" />
+                  <span className="font-medium">View-Only Access</span>
+                </div>
+                <p className="text-blue-700 text-sm mt-1">
+                  You do not have permission to manage grades. Contact a teacher to enter grades.
+                </p>
+              </div>
+              
+              <BulkGradingTable 
+                session={mockGradingSession}
+                onSave={handleSaveGrades}
+                onSubmit={handleSubmitGrades}
+                isSubmitted={true}
+              />
             </div>
           )}
         </CardContent>
