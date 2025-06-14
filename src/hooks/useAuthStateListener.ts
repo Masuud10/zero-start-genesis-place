@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -39,7 +40,8 @@ export const useAuthStateListener = ({
       console.log('🔐 AuthStateListener: Auth state changed', { 
         event, 
         hasUser: !!session?.user, 
-        userEmail: session?.user?.email
+        userEmail: session?.user?.email,
+        userRole: session?.user?.user_metadata?.role || session?.user?.app_metadata?.role
       });
       
       if (!isMountedRef.current) {
@@ -56,31 +58,38 @@ export const useAuthStateListener = ({
         }
 
         if (session?.user) {
-          console.log('🔐 AuthStateListener: User authenticated, fetching profile');
+          console.log('🔐 AuthStateListener: User authenticated, fetching profile for user:', session.user.email);
           // Fetch profile with better error handling
           try {
             await fetchUserProfile(session.user);
           } catch (profileError) {
             console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
             
-            // Create a more intelligent fallback based on the auth user data
-            // Try to preserve role from metadata, default to elimisha_admin for system users
-            let fallbackRole = 'elimisha_admin'; // Default to admin role
+            // Create enhanced fallback user with proper role determination
+            let fallbackRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
             
-            // Check user metadata for role information
-            if (session.user.user_metadata?.role) {
-              fallbackRole = session.user.user_metadata.role;
-            } else if (session.user.app_metadata?.role) {
-              fallbackRole = session.user.app_metadata.role;
-            } else if (session.user.email?.includes('@elimisha') || session.user.email?.includes('@edufam')) {
-              // If email suggests admin role, keep as elimisha_admin
-              fallbackRole = 'elimisha_admin';
+            if (!fallbackRole) {
+              if (session.user.email?.includes('@elimisha') || session.user.email === 'masuud@gmail.com') {
+                fallbackRole = 'elimisha_admin';
+              } else if (session.user.email?.includes('admin')) {
+                fallbackRole = 'edufam_admin';
+              } else if (session.user.email?.includes('principal')) {
+                fallbackRole = 'principal';
+              } else if (session.user.email?.includes('teacher')) {
+                fallbackRole = 'teacher';
+              } else if (session.user.email?.includes('owner')) {
+                fallbackRole = 'school_owner';
+              } else if (session.user.email?.includes('finance')) {
+                fallbackRole = 'finance_officer';
+              } else {
+                fallbackRole = 'parent';
+              }
             }
             
             const fallbackUser = {
               id: session.user.id,
               email: session.user.email,
-              name: session.user.email?.split('@')[0] || 'User',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
               role: fallbackRole,
               school_id: session.user.user_metadata?.school_id || session.user.app_metadata?.school_id || null,
               // Include other auth properties that might be useful
@@ -95,7 +104,7 @@ export const useAuthStateListener = ({
               is_anonymous: session.user.is_anonymous || false
             };
             
-            console.log('🔐 AuthStateListener: Using enhanced fallback user data:', fallbackUser);
+            console.log('🔐 AuthStateListener: Using enhanced fallback user data with role:', fallbackRole, 'user:', fallbackUser);
             setUser(fallbackUser);
             setIsLoading(false);
           }
@@ -104,21 +113,30 @@ export const useAuthStateListener = ({
         console.error('🔐 AuthStateListener: Error in auth state handler:', error);
         // Set fallback user data to prevent app from breaking
         if (session?.user && isMountedRef.current) {
-          // Try to preserve role from metadata, default to elimisha_admin for system users
-          let fallbackRole = 'elimisha_admin';
+          let fallbackRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
           
-          if (session.user.user_metadata?.role) {
-            fallbackRole = session.user.user_metadata.role;
-          } else if (session.user.app_metadata?.role) {
-            fallbackRole = session.user.app_metadata.role;
-          } else if (session.user.email?.includes('@elimisha') || session.user.email?.includes('@edufam')) {
-            fallbackRole = 'elimisha_admin';
+          if (!fallbackRole) {
+            if (session.user.email?.includes('@elimisha') || session.user.email === 'masuud@gmail.com') {
+              fallbackRole = 'elimisha_admin';
+            } else if (session.user.email?.includes('admin')) {
+              fallbackRole = 'edufam_admin';
+            } else if (session.user.email?.includes('principal')) {
+              fallbackRole = 'principal';
+            } else if (session.user.email?.includes('teacher')) {
+              fallbackRole = 'teacher';
+            } else if (session.user.email?.includes('owner')) {
+              fallbackRole = 'school_owner';
+            } else if (session.user.email?.includes('finance')) {
+              fallbackRole = 'finance_officer';
+            } else {
+              fallbackRole = 'parent';
+            }
           }
           
           const fallbackUser = {
             id: session.user.id,
             email: session.user.email,
-            name: session.user.email?.split('@')[0] || 'User',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
             role: fallbackRole,
             school_id: session.user.user_metadata?.school_id || session.user.app_metadata?.school_id || null,
             aud: session.user.aud,
@@ -132,7 +150,7 @@ export const useAuthStateListener = ({
             is_anonymous: session.user.is_anonymous || false
           };
           
-          console.log('🔐 AuthStateListener: Using enhanced fallback after error:', fallbackUser);
+          console.log('🔐 AuthStateListener: Using enhanced fallback after error with role:', fallbackRole);
           setUser(fallbackUser);
           setIsLoading(false);
         }
@@ -174,7 +192,9 @@ export const useAuthStateListener = ({
 
         console.log('🔐 AuthStateListener: Initial session check', { 
           hasSession: !!session,
-          hasUser: !!session?.user 
+          hasUser: !!session?.user,
+          userEmail: session?.user?.email,
+          userRole: session?.user?.user_metadata?.role || session?.user?.app_metadata?.role
         });
         
         if (session?.user) {

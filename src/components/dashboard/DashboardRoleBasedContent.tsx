@@ -22,21 +22,43 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
   console.log(
     "📊 Dashboard: Getting role-based dashboard for role:",
     user?.role,
+    "user object:",
+    user,
     "school:",
     user?.school_id,
     "currentSchool:",
     currentSchool
   );
 
+  // Ensure we have a valid user and role
+  if (!user || !user.role) {
+    console.log("📊 Dashboard: No user or role found, showing default message");
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading Dashboard</CardTitle>
+          <CardDescription>
+            Setting up your dashboard...
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">
+            Please wait while we load your role-specific dashboard.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // For Elimisha/EduFam admins, ALWAYS show admin dashboard regardless of school assignment
-  if (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') {
+  if (user.role === 'elimisha_admin' || user.role === 'edufam_admin') {
     console.log("📊 Dashboard: Rendering ElimshaAdminDashboard for admin role:", user.role);
     return <ElimshaAdminDashboard onModalOpen={onModalOpen} />;
   }
 
-  // For all other roles, check if they have school assignment and if school has data
-  if (!user?.school_id) {
-    console.log("📊 Dashboard: User has no school assignment");
+  // For all other roles, check if they have school assignment when needed
+  if (!user.school_id && user.role !== 'elimisha_admin' && user.role !== 'edufam_admin') {
+    console.log("📊 Dashboard: User has no school assignment, role:", user.role);
     return (
       <Card>
         <CardHeader>
@@ -47,59 +69,53 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600">
-            Please contact your administrator to assign you to a school. Your role: {user?.role}
+            Please contact your administrator to assign you to a school. Your role: {user.role}
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  // Check if this appears to be a fresh school setup (no meaningful data yet)
-  // For now, we'll render the appropriate dashboard, but schools can start with empty state
-  const shouldShowEmptyDashboard = false; // We'll let individual dashboards handle empty states
-
-  if (shouldShowEmptyDashboard) {
-    console.log("📊 Dashboard: Showing empty school dashboard for new school");
-    return (
-      <EmptySchoolDashboard 
-        user={user} 
-        schoolName={currentSchool?.name}
-      />
-    );
-  }
-
-  // Render role-specific dashboard
-  switch (user?.role) {
+  // Render role-specific dashboard based on exact role match
+  console.log("📊 Dashboard: Rendering dashboard for role:", user.role);
+  
+  switch (user.role) {
     case "school_owner":
       console.log("📊 Dashboard: Rendering SchoolOwnerDashboard");
       return <SchoolOwnerDashboard />;
+      
     case "principal":
       console.log("📊 Dashboard: Rendering PrincipalDashboard");
       return <PrincipalDashboard />;
+      
     case "teacher":
       console.log("📊 Dashboard: Rendering TeacherDashboard");
       return <TeacherDashboard />;
-    case "parent":
-      console.log("📊 Dashboard: Rendering ParentDashboard");
-      return <ParentDashboard />;
+      
     case "finance_officer":
       console.log("📊 Dashboard: Rendering FinanceOfficerDashboard");
       return <FinanceOfficerDashboard onModalOpen={onModalOpen} />;
+      
+    case "parent":
+      console.log("📊 Dashboard: Rendering ParentDashboard");
+      return <ParentDashboard />;
+      
     default:
-      console.log(
-        "📊 Dashboard: Unknown role, showing access denied:",
-        user?.role
-      );
+      console.log("📊 Dashboard: Unknown or invalid role, showing error:", user.role);
       return (
         <Card>
           <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
+            <CardTitle>Invalid Role</CardTitle>
             <CardDescription>
-              You don't have the permission to view this dashboard. Your role:{" "}
-              {user?.role || "undefined"}
-              {user?.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
+              Your account role is not recognized: {user.role || "undefined"}
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600">
+              Please contact your administrator to verify your account permissions.
+              {user.school_id && ` | School: ${user.school_id.slice(0, 8)}...`}
+            </p>
+          </CardContent>
         </Card>
       );
   }
