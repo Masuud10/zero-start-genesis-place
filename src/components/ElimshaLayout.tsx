@@ -13,6 +13,7 @@ import MessagesModule from '@/components/modules/MessagesModule';
 import ReportsModule from '@/components/modules/ReportsModule';
 import SupportModule from '@/components/modules/SupportModule';
 import SettingsModule from '@/components/modules/SettingsModule';
+import SecurityModule from '@/components/modules/SecurityModule';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import SchoolsModule from '@/components/modules/SchoolsModule';
 import UsersModule from '@/components/modules/UsersModule';
@@ -96,6 +97,8 @@ const ElimshaLayout = () => {
         return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
       case 'settings':
         return user.role === 'edufam_admin' || user.role === 'elimisha_admin';
+      case 'security':
+        return true; // All authenticated users can access their security settings
       case 'analytics':
       case 'reports':
       case 'support':
@@ -160,6 +163,8 @@ const ElimshaLayout = () => {
         return <SupportModule />;
       case 'settings':
         return <SettingsModule />;
+      case 'security':
+        return <SecurityModule />;
       case 'schools':
         return <SchoolsModule />;
       case 'users':

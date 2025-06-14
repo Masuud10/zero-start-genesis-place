@@ -1070,6 +1070,39 @@ export type Database = {
           },
         ]
       }
+      mfa_secrets: {
+        Row: {
+          backup_codes: string[] | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          secret_key: string
+          updated_at: string | null
+          user_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          secret_key: string
+          updated_at?: string | null
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          secret_key?: string
+          updated_at?: string | null
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       parent_engagements: {
         Row: {
           competencies_addressed: string[] | null
@@ -1108,8 +1141,14 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           email: string
+          failed_login_attempts: number | null
           id: string
+          last_login_at: string | null
+          last_login_ip: unknown | null
+          locked_until: string | null
+          mfa_enabled: boolean | null
           name: string
+          password_changed_at: string | null
           role: string
           school_id: string | null
           updated_at: string | null
@@ -1118,8 +1157,14 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email: string
+          failed_login_attempts?: number | null
           id: string
+          last_login_at?: string | null
+          last_login_ip?: unknown | null
+          locked_until?: string | null
+          mfa_enabled?: boolean | null
           name: string
+          password_changed_at?: string | null
           role?: string
           school_id?: string | null
           updated_at?: string | null
@@ -1128,8 +1173,14 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email?: string
+          failed_login_attempts?: number | null
           id?: string
+          last_login_at?: string | null
+          last_login_ip?: unknown | null
+          locked_until?: string | null
+          mfa_enabled?: boolean | null
           name?: string
+          password_changed_at?: string | null
           role?: string
           school_id?: string | null
           updated_at?: string | null
@@ -1143,6 +1194,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limits: {
+        Row: {
+          action: string
+          attempts: number | null
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          identifier: string
+          updated_at: string | null
+          window_start: string | null
+        }
+        Insert: {
+          action: string
+          attempts?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier: string
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          action?: string
+          attempts?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
       }
       school_analytics_summary: {
         Row: {
@@ -1238,6 +1322,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          resource: string
+          resource_id: string | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resource: string
+          resource_id?: string | null
+          success: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resource?: string
+          resource_id?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       students: {
         Row: {
@@ -1734,11 +1860,56 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_identifier: string
+          p_action: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       create_admin_user: {
         Args: {
           user_email: string
@@ -1776,9 +1947,28 @@ export type Database = {
         Args: { user_email: string; success?: boolean }
         Returns: Json
       }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_resource: string
+          p_resource_id?: string
+          p_success?: boolean
+          p_error_message?: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      requires_mfa: {
+        Args: { user_role: string }
+        Returns: boolean
+      }
       update_user_role: {
         Args: { target_user_id: string; new_role: string }
         Returns: undefined
+      }
+      validate_password_strength: {
+        Args: { password: string }
+        Returns: Json
       }
     }
     Enums: {

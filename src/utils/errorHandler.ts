@@ -1,150 +1,75 @@
 
-import { toast } from '@/hooks/use-toast';
+import { AuthError } from '@supabase/supabase-js';
+import { SecurityUtils } from './security';
 
-export interface AppError {
-  code: string;
-  message: string;
-  details?: any;
-  timestamp: Date;
+export interface ErrorContext {
+  action: string;
   userId?: string;
-  context?: string;
+  metadata?: any;
 }
 
 export class ErrorHandler {
-  private static instance: ErrorHandler;
-  private errors: AppError[] = [];
-
-  private constructor() {}
-
-  static getInstance(): ErrorHandler {
-    if (!ErrorHandler.instance) {
-      ErrorHandler.instance = new ErrorHandler();
-    }
-    return ErrorHandler.instance;
-  }
-
-  logError(error: AppError): void {
-    this.errors.push(error);
+  static handleAuthError(error: AuthError | Error, context: ErrorContext): void {
+    console.error(`Authentication error in ${context.action}:`, error);
     
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Application Error:', error);
-    }
-
-    // Send to monitoring service in production
-    if (process.env.NODE_ENV === 'production') {
-      this.sendToMonitoring(error);
-    }
+    // Log security event for authentication failures
+    SecurityUtils.logSecurityEvent(
+      'auth_error',
+      'authentication',
+      context.userId,
+      false,
+      error.message,
+      {
+        action: context.action,
+        errorType: error.name,
+        ...context.metadata
+      }
+    );
   }
 
-  private sendToMonitoring(error: AppError): void {
-    // Integration with monitoring services like Sentry could go here
-    console.log('Sending error to monitoring service:', error);
-  }
-
-  handleAuthError(error: any, context: string = 'authentication'): void {
-    const appError: AppError = {
-      code: 'AUTH_ERROR',
-      message: this.getAuthErrorMessage(error),
-      details: error,
-      timestamp: new Date(),
-      context
-    };
-
-    this.logError(appError);
+  static handleDatabaseError(error: any, context: ErrorContext): void {
+    console.error(`Database error in ${context.action}:`, error);
     
-    toast({
-      title: "Authentication Error",
-      description: appError.message,
-      variant: "destructive",
-    });
+    SecurityUtils.logSecurityEvent(
+      'db_error',
+      'database',
+      context.userId,
+      false,
+      error.message,
+      {
+        action: context.action,
+        ...context.metadata
+      }
+    );
   }
 
-  handleDatabaseError(error: any, context: string = 'database'): void {
-    const appError: AppError = {
-      code: 'DB_ERROR',
-      message: this.getDatabaseErrorMessage(error),
-      details: error,
-      timestamp: new Date(),
-      context
-    };
-
-    this.logError(appError);
+  static handleSecurityViolation(
+    violation: string,
+    context: ErrorContext & { severity: 'low' | 'medium' | 'high' | 'critical' }
+  ): void {
+    console.error(`Security violation in ${context.action}:`, violation);
     
-    toast({
-      title: "Data Error",
-      description: "Unable to process your request. Please try again.",
-      variant: "destructive",
-    });
-  }
-
-  handleNetworkError(error: any, context: string = 'network'): void {
-    const appError: AppError = {
-      code: 'NETWORK_ERROR',
-      message: 'Network connection failed. Please check your internet connection.',
-      details: error,
-      timestamp: new Date(),
-      context
-    };
-
-    this.logError(appError);
-    
-    toast({
-      title: "Connection Error",
-      description: appError.message,
-      variant: "destructive",
-    });
-  }
-
-  private getAuthErrorMessage(error: any): string {
-    if (error?.message?.includes('Invalid login credentials')) {
-      return 'Invalid email or password. Please check your credentials.';
-    }
-    if (error?.message?.includes('Email not confirmed')) {
-      return 'Please verify your email address before signing in.';
-    }
-    if (error?.message?.includes('Too many requests')) {
-      return 'Too many login attempts. Please wait before trying again.';
-    }
-    return 'Authentication failed. Please try again.';
-  }
-
-  private getDatabaseErrorMessage(error: any): string {
-    if (error?.message?.includes('violates row-level security')) {
-      return 'Access denied. You do not have permission to access this data.';
-    }
-    if (error?.message?.includes('duplicate key')) {
-      return 'This record already exists.';
-    }
-    return 'Database operation failed. Please try again.';
-  }
-
-  getRecentErrors(): AppError[] {
-    return this.errors.slice(-50); // Return last 50 errors
-  }
-
-  clearErrors(): void {
-    this.errors = [];
+    SecurityUtils.logSecurityEvent(
+      'security_violation',
+      'security',
+      context.userId,
+      false,
+      violation,
+      {
+        action: context.action,
+        severity: context.severity,
+        ...context.metadata
+      }
+    );
   }
 }
 
-export const errorHandler = ErrorHandler.getInstance();
+export const errorHandler = new ErrorHandler();
 
-// Helper function for API error handling
-export const handleApiError = (error: any, context?: string): void => {
-  if (error?.code === 'auth-error') {
-    errorHandler.handleAuthError(error, context);
-  } else if (error?.code === 'db-error') {
-    errorHandler.handleDatabaseError(error, context);
-  } else if (error?.name === 'NetworkError') {
-    errorHandler.handleNetworkError(error, context);
+export const handleApiError = (error: any, context: string) => {
+  if (error.name === 'AuthError') {
+    ErrorHandler.handleAuthError(error, { action: context });
   } else {
-    errorHandler.logError({
-      code: 'UNKNOWN_ERROR',
-      message: error?.message || 'An unexpected error occurred',
-      details: error,
-      timestamp: new Date(),
-      context
-    });
+    ErrorHandler.handleDatabaseError(error, { action: context });
   }
 };

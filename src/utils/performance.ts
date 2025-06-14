@@ -1,51 +1,45 @@
 export class PerformanceMonitor {
-  private static metrics: Map<string, number[]> = new Map();
+  private static metrics = new Map<string, { start: number; samples: number[] }>();
 
-  static startTimer(label: string): () => void {
+  static startTimer(operation: string): () => void {
     const start = performance.now();
     
     return () => {
-      const end = performance.now();
-      const duration = end - start;
-      
-      if (!this.metrics.has(label)) {
-        this.metrics.set(label, []);
-      }
-      
-      const times = this.metrics.get(label)!;
-      times.push(duration);
-      
-      // Keep only last 100 measurements
-      if (times.length > 100) {
-        times.shift();
-      }
-      
-      console.log(`Performance: ${label} took ${duration.toFixed(2)}ms`);
+      const duration = performance.now() - start;
+      this.recordMetric(operation, duration);
     };
   }
 
-  static getAverageTime(label: string): number {
-    const times = this.metrics.get(label);
-    if (!times || times.length === 0) return 0;
+  private static recordMetric(operation: string, duration: number): void {
+    const metric = this.metrics.get(operation) || { start: Date.now(), samples: [] };
+    metric.samples.push(duration);
     
-    return times.reduce((sum, time) => sum + time, 0) / times.length;
+    // Keep only last 100 samples
+    if (metric.samples.length > 100) {
+      metric.samples.shift();
+    }
+    
+    this.metrics.set(operation, metric);
+    
+    // Log slow operations
+    if (duration > 1000) {
+      console.warn(`Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`);
+    }
   }
 
-  static getAllMetrics(): Record<string, { average: number; count: number }> {
-    const result: Record<string, { average: number; count: number }> = {};
+  static getMetrics(): Record<string, { avg: number; count: number; max: number }> {
+    const result: Record<string, { avg: number; count: number; max: number }> = {};
     
-    for (const [label, times] of this.metrics.entries()) {
-      result[label] = {
-        average: this.getAverageTime(label),
-        count: times.length
+    for (const [operation, metric] of this.metrics.entries()) {
+      const samples = metric.samples;
+      result[operation] = {
+        avg: samples.reduce((sum, sample) => sum + sample, 0) / samples.length,
+        count: samples.length,
+        max: Math.max(...samples)
       };
     }
     
     return result;
-  }
-
-  static clearMetrics(): void {
-    this.metrics.clear();
   }
 }
 
