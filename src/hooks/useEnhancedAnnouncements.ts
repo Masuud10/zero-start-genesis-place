@@ -161,8 +161,21 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
       // Get all users matching the target criteria
       let query = supabase
         .from('profiles')
-        .select('id, role, school_id, schools(name)')
-        .in('role', announcement.target_audience);
+        .select('id, role, school_id, schools(name)');
+
+      // Convert target audience roles to match database roles
+      const dbRoles = announcement.target_audience.map((role: string) => {
+        switch (role) {
+          case 'school_owners': return 'school_owner';
+          case 'principals': return 'principal';
+          case 'teachers': return 'teacher';
+          case 'parents': return 'parent';
+          case 'finance_officers': return 'finance_officer';
+          default: return role;
+        }
+      });
+
+      query = query.in('role', dbRoles);
 
       if (announcement.region) {
         // Add region filter if applicable

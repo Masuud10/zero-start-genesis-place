@@ -24,12 +24,20 @@ const DashboardAnnouncements = () => {
   // 2. Target this user's role
   // 3. Not dismissed
   // 4. Not archived
-  const relevantAnnouncements = announcements.filter(announcement => 
-    announcement.is_global &&
-    announcement.target_audience.includes(user.role) &&
-    !announcement.is_archived &&
-    !dismissedIds.includes(announcement.id)
-  );
+  const relevantAnnouncements = announcements.filter(announcement => {
+    if (!announcement.is_global) return false;
+    if (announcement.is_archived) return false;
+    if (dismissedIds.includes(announcement.id)) return false;
+    
+    // Check if user's role is in target audience
+    const userRole = user.role === 'school_owner' ? 'school_owners' : 
+                    user.role === 'principal' ? 'principals' : 
+                    user.role === 'teacher' ? 'teachers' : 
+                    user.role === 'parent' ? 'parents' : 
+                    user.role === 'finance_officer' ? 'finance_officers' : user.role;
+    
+    return announcement.target_audience.includes(userRole);
+  });
 
   const handleDismiss = async (announcementId: string) => {
     // Mark as read and dismiss locally

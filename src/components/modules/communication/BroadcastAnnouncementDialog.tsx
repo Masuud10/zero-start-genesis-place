@@ -6,140 +6,82 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { CalendarIcon, Users, Send, AlertTriangle, Bell, Target } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CalendarIcon, X, AlertCircle, Users, Globe, Target, Send } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface BroadcastAnnouncementDialogProps {
-  children: React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: any) => void;
+  children: React.ReactNode;
 }
 
 const BroadcastAnnouncementDialog: React.FC<BroadcastAnnouncementDialogProps> = ({
-  children,
   open,
   onOpenChange,
-  onSubmit
+  onSubmit,
+  children
 }) => {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
     target_audience: [] as string[],
-    priority: 'medium',
-    delivery_channels: ['web'],
-    region: '',
-    school_type: '',
+    delivery_channels: ['web'] as string[],
+    expiry_date: null as Date | null,
     tags: [] as string[],
-    expiry_date: '',
-    auto_archive_date: undefined as Date | undefined
+    region: '',
+    school_type: ''
   });
 
-  const [currentTag, setCurrentTag] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [tagInput, setTagInput] = useState('');
 
-  const targetAudienceOptions = [
-    { value: 'school_owners', label: 'School Owners', icon: Users, description: 'School management and owners' },
-    { value: 'principals', label: 'Principals', icon: Target, description: 'School principals and head teachers' },
-    { value: 'teachers', label: 'Teachers', icon: Users, description: 'Teaching staff' },
-    { value: 'parents', label: 'Parents', icon: Users, description: 'Student parents and guardians' },
-    { value: 'finance_officers', label: 'Finance Officers', icon: Target, description: 'Financial management staff' }
+  const audienceOptions = [
+    { value: 'school_owners', label: 'School Owners', icon: Users },
+    { value: 'principals', label: 'Principals', icon: Users },
+    { value: 'teachers', label: 'Teachers', icon: Users },
+    { value: 'parents', label: 'Parents', icon: Users },
+    { value: 'finance_officers', label: 'Finance Officers', icon: Users }
   ];
 
-  const deliveryChannelOptions = [
-    { value: 'web', label: 'Web Dashboard', description: 'Show in user dashboards' },
-    { value: 'push', label: 'Push Notifications', description: 'Mobile app notifications' },
-    { value: 'email', label: 'Email', description: 'Send via email' },
-    { value: 'sms', label: 'SMS', description: 'Text message alerts' }
+  const channelOptions = [
+    { value: 'web', label: 'Web Dashboard' },
+    { value: 'email', label: 'Email' },
+    { value: 'sms', label: 'SMS' },
+    { value: 'push', label: 'Push Notification' }
   ];
 
-  const regionOptions = [
-    { value: 'nairobi', label: 'Nairobi' },
-    { value: 'central', label: 'Central Kenya' },
-    { value: 'coast', label: 'Coast' },
-    { value: 'eastern', label: 'Eastern' },
-    { value: 'north_eastern', label: 'North Eastern' },
-    { value: 'nyanza', label: 'Nyanza' },
-    { value: 'rift_valley', label: 'Rift Valley' },
-    { value: 'western', label: 'Western' }
-  ];
-
-  const schoolTypeOptions = [
-    { value: 'primary', label: 'Primary Schools' },
-    { value: 'secondary', label: 'Secondary Schools' },
-    { value: 'mixed', label: 'Mixed Schools' },
-    { value: 'private', label: 'Private Schools' },
-    { value: 'public', label: 'Public Schools' }
-  ];
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    }
-
-    if (!formData.content.trim()) {
-      newErrors.content = 'Content is required';
-    }
-
-    if (formData.target_audience.length === 0) {
-      newErrors.target_audience = 'Please select at least one target audience';
-    }
-
-    if (formData.delivery_channels.length === 0) {
-      newErrors.delivery_channels = 'Please select at least one delivery channel';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleAudienceChange = (audience: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      target_audience: checked 
+        ? [...prev.target_audience, audience]
+        : prev.target_audience.filter(a => a !== audience)
+    }));
   };
 
-  const handleAudienceChange = (value: string, checked: boolean) => {
-    if (checked) {
-      setFormData(prev => ({
-        ...prev,
-        target_audience: [...prev.target_audience, value]
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        target_audience: prev.target_audience.filter(item => item !== value)
-      }));
-    }
-    
-    // Clear error if user selects an audience
-    if (checked && errors.target_audience) {
-      setErrors(prev => ({ ...prev, target_audience: '' }));
-    }
-  };
-
-  const handleDeliveryChannelChange = (value: string, checked: boolean) => {
-    if (checked) {
-      setFormData(prev => ({
-        ...prev,
-        delivery_channels: [...prev.delivery_channels, value]
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        delivery_channels: prev.delivery_channels.filter(item => item !== value)
-      }));
-    }
+  const handleChannelChange = (channel: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      delivery_channels: checked 
+        ? [...prev.delivery_channels, channel]
+        : prev.delivery_channels.filter(c => c !== channel)
+    }));
   };
 
   const addTag = () => {
-    if (currentTag.trim() && !formData.tags.includes(currentTag.trim())) {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
       setFormData(prev => ({
         ...prev,
-        tags: [...prev.tags, currentTag.trim()]
+        tags: [...prev.tags, tagInput.trim()]
       }));
-      setCurrentTag('');
+      setTagInput('');
     }
   };
 
@@ -150,37 +92,43 @@ const BroadcastAnnouncementDialog: React.FC<BroadcastAnnouncementDialogProps> = 
     }));
   };
 
-  const handleSubmit = () => {
-    if (!validateForm()) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.content || formData.target_audience.length === 0) {
       return;
     }
 
-    const submitData = {
+    onSubmit({
       ...formData,
-      auto_archive_date: formData.auto_archive_date 
-        ? format(formData.auto_archive_date, 'yyyy-MM-dd')
-        : null
-    };
+      is_global: true,
+      delivery_channels: formData.delivery_channels.length > 0 ? formData.delivery_channels : ['web']
+    });
 
-    onSubmit(submitData);
-    
     // Reset form
     setFormData({
       title: '',
       content: '',
-      target_audience: [],
       priority: 'medium',
+      target_audience: [],
       delivery_channels: ['web'],
-      region: '',
-      school_type: '',
+      expiry_date: null,
       tags: [],
-      expiry_date: '',
-      auto_archive_date: undefined
+      region: '',
+      school_type: ''
     });
-    setErrors({});
   };
 
-  const estimatedRecipients = formData.target_audience.length * 100; // Mock calculation
+  const getPriorityIcon = () => {
+    switch (formData.priority) {
+      case 'urgent':
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'high':
+        return <Bell className="w-4 h-4 text-orange-500" />;
+      default:
+        return <Bell className="w-4 h-4 text-blue-500" />;
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -190,222 +138,181 @@ const BroadcastAnnouncementDialog: React.FC<BroadcastAnnouncementDialogProps> = 
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Globe className="w-5 h-5" />
-            Create Broadcast Announcement
+            <Send className="w-5 h-5" />
+            Create Global Broadcast Announcement
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Announcement Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, title: e.target.value }));
-                  if (errors.title) setErrors(prev => ({ ...prev, title: '' }));
-                }}
-                placeholder="Enter a clear, descriptive title"
-                className={errors.title ? 'border-red-500' : ''}
-              />
-              {errors.title && <p className="text-sm text-red-500 mt-1">{errors.title}</p>}
-            </div>
 
-            <div>
-              <Label htmlFor="content">Message Content *</Label>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, content: e.target.value }));
-                  if (errors.content) setErrors(prev => ({ ...prev, content: '' }));
-                }}
-                placeholder="Write your announcement message here..."
-                rows={6}
-                className={errors.content ? 'border-red-500' : ''}
-              />
-              {errors.content && <p className="text-sm text-red-500 mt-1">{errors.content}</p>}
-              <p className="text-sm text-muted-foreground mt-1">
-                {formData.content.length}/500 characters
-              </p>
-            </div>
-
-            <div>
-              <Label>Priority Level</Label>
-              <Select 
-                value={formData.priority} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">🟢 Low - General information</SelectItem>
-                  <SelectItem value="medium">🟡 Medium - Important updates</SelectItem>
-                  <SelectItem value="high">🟠 High - Action required</SelectItem>
-                  <SelectItem value="urgent">🔴 Urgent - Immediate attention</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Tags (Optional)</Label>
-              <div className="flex gap-2 mb-2">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title *</Label>
                 <Input
-                  value={currentTag}
-                  onChange={(e) => setCurrentTag(e.target.value)}
-                  placeholder="Add descriptive tags"
-                  onKeyPress={(e) => e.key === 'Enter' && addTag()}
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter announcement title"
+                  required
                 />
-                <Button type="button" onClick={addTag} size="sm" variant="outline">Add</Button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="cursor-pointer hover:bg-secondary/80">
-                    {tag}
-                    <X className="w-3 h-3 ml-1" onClick={() => removeTag(tag)} />
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
 
-          {/* Right Column */}
-          <div className="space-y-4">
-            <div>
-              <Label>Target Audience *</Label>
-              {errors.target_audience && <p className="text-sm text-red-500 mb-2">{errors.target_audience}</p>}
-              <div className="space-y-3 mt-2 max-h-48 overflow-y-auto">
-                {targetAudienceOptions.map(option => (
-                  <div key={option.value} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+              <div>
+                <Label htmlFor="content">Content *</Label>
+                <Textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="Enter announcement content"
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select value={formData.priority} onValueChange={(value: any) => setFormData(prev => ({ ...prev, priority: value }))}>
+                    <SelectTrigger>
+                      <div className="flex items-center gap-2">
+                        {getPriorityIcon()}
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1">
+                  <Label>Expiry Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.expiry_date ? format(formData.expiry_date, 'PPP') : 'No expiry'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={formData.expiry_date || undefined}
+                        onSelect={(date) => setFormData(prev => ({ ...prev, expiry_date: date || null }))}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Target Audience */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Target Audience *
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {audienceOptions.map(option => (
+                  <div key={option.value} className="flex items-center space-x-2">
                     <Checkbox
                       id={option.value}
                       checked={formData.target_audience.includes(option.value)}
                       onCheckedChange={(checked) => handleAudienceChange(option.value, checked as boolean)}
                     />
-                    <div className="flex-1">
-                      <Label htmlFor={option.value} className="font-medium cursor-pointer">
-                        {option.label}
-                      </Label>
-                      <p className="text-sm text-muted-foreground">{option.description}</p>
-                    </div>
+                    <Label htmlFor={option.value} className="flex items-center gap-2 cursor-pointer">
+                      <option.icon className="w-4 h-4" />
+                      {option.label}
+                    </Label>
                   </div>
                 ))}
               </div>
-            </div>
+              {formData.target_audience.length === 0 && (
+                <p className="text-sm text-red-500 mt-2">Please select at least one target audience</p>
+              )}
+            </CardContent>
+          </Card>
 
-            <div>
-              <Label>Delivery Channels *</Label>
-              <div className="space-y-2 mt-2">
-                {deliveryChannelOptions.map(option => (
-                  <div key={option.value} className="flex items-start space-x-3 p-2 border rounded hover:bg-gray-50">
+          {/* Delivery Channels */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Delivery Channels</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {channelOptions.map(option => (
+                  <div key={option.value} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`channel-${option.value}`}
+                      id={option.value}
                       checked={formData.delivery_channels.includes(option.value)}
-                      onCheckedChange={(checked) => handleDeliveryChannelChange(option.value, checked as boolean)}
+                      onCheckedChange={(checked) => handleChannelChange(option.value, checked as boolean)}
                     />
-                    <div className="flex-1">
-                      <Label htmlFor={`channel-${option.value}`} className="font-medium cursor-pointer">
-                        {option.label}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">{option.description}</p>
-                    </div>
+                    <Label htmlFor={option.value} className="cursor-pointer">
+                      {option.label}
+                    </Label>
                   </div>
                 ))}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Region (Optional)</Label>
-                <Select 
-                  value={formData.region} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, region: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All regions" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Regions</SelectItem>
-                    {regionOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {/* Tags */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tags</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  placeholder="Add tag"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                />
+                <Button type="button" onClick={addTag} variant="outline">
+                  Add
+                </Button>
               </div>
-
-              <div>
-                <Label>School Type (Optional)</Label>
-                <Select 
-                  value={formData.school_type} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, school_type: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
-                    {schoolTypeOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map(tag => (
+                  <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
+                    {tag} ×
+                  </Badge>
+                ))}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div>
-              <Label>Auto Archive Date (Optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.auto_archive_date ? format(formData.auto_archive_date, "PPP") : "Select auto-archive date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.auto_archive_date}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, auto_archive_date: date }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+          <Separator />
 
-            {/* Estimated Recipients */}
-            <Alert>
-              <Users className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Estimated Recipients:</strong> ~{estimatedRecipients.toLocaleString()} users
-                <br />
-                <span className="text-sm text-muted-foreground">
-                  Based on selected audience and filters
-                </span>
-              </AlertDescription>
-            </Alert>
+          {/* Submit Buttons */}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={!formData.title || !formData.content || formData.target_audience.length === 0}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Send Broadcast
+            </Button>
           </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={!formData.title || !formData.content || formData.target_audience.length === 0}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-          >
-            <Send className="w-4 h-4 mr-2" />
-            Send Broadcast
-          </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
