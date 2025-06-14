@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,10 +23,12 @@ interface School {
 
 interface UserPermissions {
   canCreateUsers: boolean;
+  canManageSchools: boolean;
+  canViewAnalytics: boolean;
   userRole: string | null;
   schoolId: string | null;
-  isSystemAdmin?: boolean;
-  isSchoolAdmin?: boolean;
+  isSystemAdmin: boolean;
+  isSchoolAdmin: boolean;
 }
 
 const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) => {
@@ -37,8 +38,12 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
   const [showPassword, setShowPassword] = useState(false);
   const [permissions, setPermissions] = useState<UserPermissions>({
     canCreateUsers: false,
+    canManageSchools: false,
+    canViewAnalytics: false,
     userRole: null,
-    schoolId: null
+    schoolId: null,
+    isSystemAdmin: false,
+    isSchoolAdmin: false
   });
   const [newUser, setNewUser] = useState({
     name: '',
@@ -205,8 +210,8 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
         school_id: newUser.school_id || permissions.schoolId || undefined
       });
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create user');
+      if (result.error) {
+        throw new Error(result.error);
       }
 
       // If creating a principal, update the school's principal_id

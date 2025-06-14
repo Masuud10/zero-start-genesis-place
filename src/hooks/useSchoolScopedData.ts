@@ -66,7 +66,7 @@ export const useSchoolScopedData = () => {
     return data.filter(item => item.school_id === schoolId);
   };
 
-  // Simplified query builder that doesn't cause type recursion
+  // Simplified query builder that returns the base query object
   const buildSchoolScopedQuery = (tableName: string, selectClause = '*') => {
     const baseQuery = supabase.from(tableName).select(selectClause);
     

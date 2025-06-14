@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Class {
   id: string;
