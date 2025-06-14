@@ -103,17 +103,18 @@ export const useAuthStateListener = ({
         console.log('🔐 AuthStateListener: Getting initial session');
         setIsLoading(true);
         
-        // Use a reasonable timeout for initial session check
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        // Use Promise.race for timeout instead of abortSignal
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 6000)
+        );
         
-        const { data: { session }, error } = await supabase.auth
-          .getSession()
-          .abortSignal(controller.signal);
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
-        clearTimeout(timeoutId);
-        
-        if (error && error.name !== 'AbortError') {
+        if (error && error.message !== 'Session timeout') {
           console.warn('🔐 AuthStateListener: Error getting initial session:', error);
         }
         
@@ -150,7 +151,7 @@ export const useAuthStateListener = ({
         
         initializedRef.current = true;
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
+        if (error.message !== 'Session timeout') {
           console.warn('🔐 AuthStateListener: Exception getting initial session, proceeding without session:', error);
         }
         if (isMountedRef.current) {

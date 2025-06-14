@@ -31,20 +31,23 @@ export const useAuthState = () => {
 
       setError(null);
       
-      // Fetch profile with reasonable timeout
+      // Fetch profile with timeout using Promise.race
       let profile = null;
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
-        const { data, error: profileError } = await supabase
+        const profilePromise = supabase
           .from('profiles')
           .select('role, name, school_id, avatar_url')
           .eq('id', authUser.id)
-          .maybeSingle()
-          .abortSignal(controller.signal);
+          .maybeSingle();
         
-        clearTimeout(timeoutId);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+        );
+        
+        const { data, error: profileError } = await Promise.race([
+          profilePromise,
+          timeoutPromise
+        ]) as any;
         
         if (profileError && profileError.code !== 'PGRST116') {
           console.warn('🔐 AuthState: Profile fetch error (continuing):', profileError.message);
@@ -53,7 +56,7 @@ export const useAuthState = () => {
           console.log('🔐 AuthState: Profile loaded:', { role: data.role, school_id: data.school_id });
         }
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
+        if (err.message !== 'Profile fetch timeout') {
           console.warn('🔐 AuthState: Profile fetch failed (continuing):', err.message);
         }
       }
@@ -134,17 +137,18 @@ export const useAuthState = () => {
         
         subscription = authSubscription;
         
-        // Get initial session with timeout
-        const controller = new AbortController();
-        const sessionTimeoutId = setTimeout(() => controller.abort(), 5000);
+        // Get initial session with timeout using Promise.race
+        const sessionPromise = supabase.auth.getSession();
+        const sessionTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        );
         
-        const { data: { session }, error: sessionError } = await supabase.auth
-          .getSession()
-          .abortSignal(controller.signal);
+        const { data: { session }, error: sessionError } = await Promise.race([
+          sessionPromise,
+          sessionTimeoutPromise
+        ]) as any;
         
-        clearTimeout(sessionTimeoutId);
-        
-        if (sessionError && sessionError.name !== 'AbortError') {
+        if (sessionError && sessionError.message !== 'Session timeout') {
           console.error('🔐 AuthState: Session error:', sessionError);
           if (isMountedRef.current) {
             setError(`Session error: ${sessionError.message}`);
@@ -166,7 +170,7 @@ export const useAuthState = () => {
       } catch (error: any) {
         console.error('🔐 AuthState: Init error:', error);
         if (isMountedRef.current) {
-          if (error.name !== 'AbortError') {
+          if (error.message !== 'Session timeout') {
             setError(`Auth init failed: ${error.message}`);
           }
           setIsLoading(false);
