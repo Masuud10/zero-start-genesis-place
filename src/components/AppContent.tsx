@@ -1,65 +1,66 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
 import LandingPage from '@/components/LandingPage';
 import ElimshaLayout from '@/components/ElimshaLayout';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import LoginForm from '@/components/LoginForm';
 
+// Safe school context access
+const useSchoolSafely = () => {
+  try {
+    const { useSchool } = require('@/contexts/SchoolContext');
+    return useSchool();
+  } catch (error) {
+    console.log('🎯 AppContent: School context not available');
+    return { isLoading: false, error: null };
+  }
+};
+
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [isStable, setIsStable] = useState(false);
   
-  // Always call hooks first - no conditional hook calls
-  const { user, isLoading, error } = useAuth();
-  
-  // Safe school context access - may not be available
-  let schoolLoading = false;
-  try {
-    const schoolContext = useSchool();
-    schoolLoading = schoolContext.isLoading;
-  } catch (err) {
-    // School context not available, continue without it
-    console.log('🎯 AppContent: School context not available, continuing without it');
-  }
+  const { user, isLoading: authLoading, error: authError } = useAuth();
+  const { isLoading: schoolLoading, error: schoolError } = useSchoolSafely();
 
-  // Stability check with shorter delay
+  // Stability check with very short delay
   useEffect(() => {
-    if (!isLoading) {
+    if (!authLoading) {
       const timer = setTimeout(() => {
         setIsStable(true);
-      }, 50); // Very short delay
+      }, 200); // Minimal delay for stability
       
       return () => clearTimeout(timer);
     } else {
       setIsStable(false);
     }
-  }, [isLoading]);
+  }, [authLoading]);
 
   console.log('🎯 AppContent: Rendering state:', { 
     hasUser: !!user, 
-    isLoading, 
-    error,
+    authLoading, 
+    authError,
     schoolLoading,
+    schoolError,
     isStable,
     userRole: user?.role,
     userEmail: user?.email
   });
 
   // Handle authentication errors
-  if (error) {
-    console.log('🎯 AppContent: Auth error detected, showing login form:', error);
+  if (authError) {
+    console.log('🎯 AppContent: Auth error detected, showing login form:', authError);
     return <LoginForm />;
   }
 
   // Show loading screen while actively loading
-  if (isLoading) {
+  if (authLoading) {
     console.log('🎯 AppContent: Auth loading, showing loading screen');
     return <LoadingScreen />;
   }
 
-  // Wait for stability only briefly
+  // Wait for stability briefly
   if (!isStable) {
     console.log('🎯 AppContent: Waiting for auth state to stabilize');
     return <LoadingScreen />;
@@ -105,6 +106,27 @@ const AppContent: React.FC = () => {
   if (needsSchoolData && schoolLoading) {
     console.log('🎯 AppContent: School data loading for role:', user.role);
     return <LoadingScreen />;
+  }
+
+  // Handle school errors for roles that need school data
+  if (needsSchoolData && schoolError) {
+    console.log('🎯 AppContent: School error for role that needs school data:', user.role, schoolError);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">School Data Error</h2>
+          <p className="text-gray-600 mb-4">
+            {schoolError}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
   }
 
   console.log('🎯 AppContent: Rendering main layout for user with role:', user.role);

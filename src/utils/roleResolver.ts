@@ -26,28 +26,28 @@ export class RoleResolver {
       appMetadataRole: authUser.app_metadata?.role
     });
 
-    // Priority 1: Profile role from database
+    // Priority 1: Profile role from database (most trusted)
     if (profileRole && this.isValidRole(profileRole)) {
       const normalizedRole = this.normalizeRole(profileRole);
       console.log('🔍 RoleResolver: Using profile role:', normalizedRole);
       return normalizedRole;
     }
 
-    // Priority 2: App metadata
+    // Priority 2: App metadata (set by admin)
     if (authUser.app_metadata?.role && this.isValidRole(authUser.app_metadata.role)) {
       const normalizedRole = this.normalizeRole(authUser.app_metadata.role);
       console.log('🔍 RoleResolver: Using app_metadata role:', normalizedRole);
       return normalizedRole;
     }
 
-    // Priority 3: User metadata
+    // Priority 3: User metadata (from signup)
     if (authUser.user_metadata?.role && this.isValidRole(authUser.user_metadata.role)) {
       const normalizedRole = this.normalizeRole(authUser.user_metadata.role);
       console.log('🔍 RoleResolver: Using user_metadata role:', normalizedRole);
       return normalizedRole;
     }
 
-    // Priority 4: Email-based detection
+    // Priority 4: Email-based detection (fallback)
     const emailRole = this.detectRoleFromEmail(authUser.email || '');
     console.log('🔍 RoleResolver: Using email-based role:', emailRole);
     return emailRole;
@@ -69,18 +69,19 @@ export class RoleResolver {
       return 'edufam_admin';
     }
     
-    // Handle other variations
+    // Direct mapping for exact matches
+    if (this.VALID_ROLES.includes(normalized as UserRole)) {
+      return normalized as UserRole;
+    }
+    
+    // Handle variations
     const roleMap: Record<string, UserRole> = {
-      'school_owner': 'school_owner',
       'schoolowner': 'school_owner',
       'owner': 'school_owner',
-      'finance_officer': 'finance_officer',
       'financeofficer': 'finance_officer',
       'finance': 'finance_officer',
-      'principal': 'principal',
       'headteacher': 'principal',
-      'teacher': 'teacher',
-      'parent': 'parent'
+      'head': 'principal'
     };
     
     return roleMap[normalized] || 'parent';
@@ -91,12 +92,12 @@ export class RoleResolver {
     
     const emailLower = email.toLowerCase();
     
-    // Check admin emails
+    // Check admin emails first
     if (this.ADMIN_EMAILS.includes(emailLower)) {
       return 'edufam_admin';
     }
     
-    // Check patterns
+    // Check email patterns
     for (const [role, patterns] of Object.entries(this.EMAIL_PATTERNS)) {
       if (patterns.some(pattern => emailLower.includes(pattern))) {
         return role as UserRole;
@@ -104,27 +105,5 @@ export class RoleResolver {
     }
     
     return 'parent';
-  }
-
-  static getRoleInfo(authUser: User, profileRole?: string) {
-    const resolvedRole = this.resolveRole(authUser, profileRole);
-    return {
-      role: resolvedRole,
-      source: this.getRoleSource(authUser, profileRole),
-      isValid: this.VALID_ROLES.includes(resolvedRole),
-      debugInfo: {
-        profileRole,
-        userMetadataRole: authUser.user_metadata?.role,
-        appMetadataRole: authUser.app_metadata?.role,
-        emailBasedRole: this.detectRoleFromEmail(authUser.email || '')
-      }
-    };
-  }
-
-  private static getRoleSource(authUser: User, profileRole?: string): string {
-    if (profileRole && this.isValidRole(profileRole)) return 'profile';
-    if (authUser.app_metadata?.role && this.isValidRole(authUser.app_metadata.role)) return 'app_metadata';
-    if (authUser.user_metadata?.role && this.isValidRole(authUser.user_metadata.role)) return 'user_metadata';
-    return 'email_pattern';
   }
 }
