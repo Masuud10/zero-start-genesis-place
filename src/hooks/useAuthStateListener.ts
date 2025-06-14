@@ -94,14 +94,23 @@ export const useAuthStateListener = ({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
     subscriptionRef.current = subscription;
 
-    // Get initial session
+    // Get initial session with timeout
     const initializeAuth = async () => {
       if (!isMountedRef.current) return;
       
       try {
         console.log('🔐 AuthStateListener: Getting initial session');
         
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Add timeout to prevent infinite loading
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session timeout')), 10000)
+        );
+
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
         if (error) {
           console.error('🔐 AuthStateListener: Session error:', error);
@@ -136,12 +145,22 @@ export const useAuthStateListener = ({
       }
     };
 
+    // Add a fallback timeout to ensure loading state is always resolved
+    const fallbackTimeout = setTimeout(() => {
+      if (isMountedRef.current && initializingRef.current) {
+        console.warn('🔐 AuthStateListener: Fallback timeout - forcing loading to false');
+        setIsLoading(false);
+        initializingRef.current = false;
+      }
+    }, 15000); // 15 second fallback
+
     initializeAuth();
 
     return () => {
       console.log('🔐 AuthStateListener: Cleaning up auth state listener');
       isMountedRef.current = false;
       initializingRef.current = false;
+      clearTimeout(fallbackTimeout);
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
