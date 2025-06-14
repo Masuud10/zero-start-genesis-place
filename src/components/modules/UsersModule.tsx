@@ -34,13 +34,11 @@ const UsersModule = () => {
   const { user } = useAuth();
   const { isSystemAdmin } = useSchoolScopedData();
 
-  console.log('🔍 UsersModule: Full auth state on render:', {
+  console.log('🔍 UsersModule: Current user state:', {
     user: user,
     userRole: user?.role,
     userEmail: user?.email,
-    isSystemAdmin,
-    isUserDefined: !!user,
-    userKeys: user ? Object.keys(user) : 'no user'
+    isSystemAdmin
   });
 
   useEffect(() => {
@@ -129,20 +127,18 @@ const UsersModule = () => {
     return matchesSearch && matchesRole;
   });
 
-  // Check if user can add users with detailed logging
-  const canAddUsers = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin' || user?.role === 'school_owner' || user?.role === 'principal';
-  const shouldShowButton = user?.role === 'elimisha_admin' || canAddUsers;
+  // Check if user can add users - simplified logic
+  const canAddUsers = user && (
+    user.role === 'elimisha_admin' || 
+    user.role === 'edufam_admin' || 
+    user.role === 'school_owner' || 
+    user.role === 'principal'
+  );
   
-  console.log('👤 UsersModule: Detailed permission check:', {
+  console.log('👤 UsersModule: Permission check:', {
     userRole: user?.role,
     canAddUsers,
-    shouldShowButton,
-    isSystemAdmin,
-    userEmail: user?.email,
-    isElimshaAdmin: user?.role === 'elimisha_admin',
-    isEduFamAdmin: user?.role === 'edufam_admin',
-    isSchoolOwner: user?.role === 'school_owner',
-    isPrincipal: user?.role === 'principal'
+    userEmail: user?.email
   });
 
   return (
@@ -156,13 +152,6 @@ const UsersModule = () => {
               : 'Manage users in your school'
             }
           </p>
-          {/* Enhanced debug info */}
-          <div className="text-xs text-gray-500 mt-1 space-y-1">
-            <p>Debug: Role = {user?.role || 'undefined'}</p>
-            <p>Can Add = {canAddUsers ? 'Yes' : 'No'}</p>
-            <p>Should Show Button = {shouldShowButton ? 'Yes' : 'No'}</p>
-            <p>User Object = {user ? 'exists' : 'null/undefined'}</p>
-          </div>
         </div>
         <div className="flex gap-3">
           <Button
@@ -174,8 +163,7 @@ const UsersModule = () => {
             Refresh
           </Button>
           
-          {/* Show button if user exists and has proper role */}
-          {user && shouldShowButton && (
+          {canAddUsers && (
             <CreateUserDialog onUserCreated={fetchUsers}>
               <Button className="bg-blue-600 hover:bg-blue-700">
                 <UserPlus className="w-4 h-4 mr-2" />
@@ -183,15 +171,6 @@ const UsersModule = () => {
               </Button>
             </CreateUserDialog>
           )}
-          
-          {/* Debug: Always show a test button to see if the issue is with permissions or rendering */}
-          <Button 
-            variant="outline" 
-            className="border-red-500 text-red-500"
-            onClick={() => console.log('Test button clicked - user:', user)}
-          >
-            Debug Button (Always Visible)
-          </Button>
         </div>
       </div>
 

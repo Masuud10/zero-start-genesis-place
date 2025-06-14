@@ -63,14 +63,29 @@ export const useAuthStateListener = ({
             await fetchUserProfile(session.user);
           } catch (profileError) {
             console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
-            // Set basic user data if profile fetch fails
-            setUser({
+            
+            // Create a more intelligent fallback based on the auth user data
+            const fallbackUser = {
               id: session.user.id,
               email: session.user.email,
               name: session.user.email?.split('@')[0] || 'User',
-              role: 'parent', // Default role
-              school_id: null
-            });
+              // Try to preserve role from user metadata or default to a safe role
+              role: session.user.user_metadata?.role || session.user.app_metadata?.role || 'elimisha_admin',
+              school_id: session.user.user_metadata?.school_id || session.user.app_metadata?.school_id || null,
+              // Include other auth properties that might be useful
+              aud: session.user.aud,
+              confirmed_at: session.user.confirmed_at,
+              created_at: session.user.created_at,
+              updated_at: session.user.updated_at,
+              last_sign_in_at: session.user.last_sign_in_at,
+              app_metadata: session.user.app_metadata,
+              user_metadata: session.user.user_metadata,
+              identities: session.user.identities,
+              is_anonymous: session.user.is_anonymous || false
+            };
+            
+            console.log('🔐 AuthStateListener: Using enhanced fallback user data:', fallbackUser);
+            setUser(fallbackUser);
             setIsLoading(false);
           }
         }
@@ -78,13 +93,25 @@ export const useAuthStateListener = ({
         console.error('🔐 AuthStateListener: Error in auth state handler:', error);
         // Set fallback user data to prevent app from breaking
         if (session?.user && isMountedRef.current) {
-          setUser({
+          const fallbackUser = {
             id: session.user.id,
             email: session.user.email,
             name: session.user.email?.split('@')[0] || 'User',
-            role: 'parent',
-            school_id: null
-          });
+            role: session.user.user_metadata?.role || session.user.app_metadata?.role || 'elimisha_admin',
+            school_id: session.user.user_metadata?.school_id || session.user.app_metadata?.school_id || null,
+            aud: session.user.aud,
+            confirmed_at: session.user.confirmed_at,
+            created_at: session.user.created_at,
+            updated_at: session.user.updated_at,
+            last_sign_in_at: session.user.last_sign_in_at,
+            app_metadata: session.user.app_metadata,
+            user_metadata: session.user.user_metadata,
+            identities: session.user.identities,
+            is_anonymous: session.user.is_anonymous || false
+          };
+          
+          console.log('🔐 AuthStateListener: Using enhanced fallback after error:', fallbackUser);
+          setUser(fallbackUser);
           setIsLoading(false);
         }
       }
