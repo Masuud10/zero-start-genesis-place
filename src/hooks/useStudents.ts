@@ -55,7 +55,8 @@ export const useStudents = (classId?: string) => {
         query = query.eq('class_id', classId);
       }
 
-      const { data, error } = await query.eq('is_active', true).order('name');
+      // Don't filter by is_active here, let the component handle the filtering
+      const { data, error } = await query.order('name');
 
       if (error) {
         console.error('Error fetching students:', error);
