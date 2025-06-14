@@ -1,31 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Building2, 
-  GraduationCap, 
-  Users, 
-  TrendingUp, 
-  BookOpen,
-  UserCheck,
-  UserX,
-  BarChart3,
-  Filter,
-  Search,
-  RefreshCw,
-  Calendar,
-  Award
-} from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
 import SchoolPerformanceChart from './charts/SchoolPerformanceChart';
 import AttendanceTrendChart from './charts/AttendanceTrendChart';
+import FilterSection from './elimisha/FilterSection';
+import OverallStatsCards from './elimisha/OverallStatsCards';
+import SchoolSummariesTable from './elimisha/SchoolSummariesTable';
+import PrivacyNotice from './elimisha/PrivacyNotice';
 
 interface SchoolSummary {
   id: string;
@@ -252,165 +237,19 @@ const ElimshaAdminAnalytics = ({ filters }: ElimshaAdminAnalyticsProps) => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Analytics Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">School</label>
-              <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select school..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Schools</SelectItem>
-                  {schools.map((school) => (
-                    <SelectItem key={school.id} value={school.id}>
-                      {school.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search Schools</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by school name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Date Range</label>
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current_term">Current Term</SelectItem>
-                  <SelectItem value="last_30_days">Last 30 Days</SelectItem>
-                  <SelectItem value="last_quarter">Last Quarter</SelectItem>
-                  <SelectItem value="academic_year">Academic Year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Academic Term</label>
-              <Badge variant="outline" className="w-fit">
-                {filters.term || 'Current Term'}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterSection
+        schools={schools}
+        selectedSchool={selectedSchool}
+        onSchoolChange={setSelectedSchool}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        currentTerm={filters.term}
+      />
 
       {/* Overall Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Schools</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.totalSchools}</div>
-            <p className="text-xs text-muted-foreground">Active schools</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Students</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.totalStudents.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Total enrolled</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Classes</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.totalClasses}</div>
-            <p className="text-xs text-muted-foreground">Active classes</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subjects</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overallStats.totalSubjects}</div>
-            <p className="text-xs text-muted-foreground">Total subjects</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Grade</CardTitle>
-            <GraduationCap className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {overallStats.averageGrade.toFixed(1)}%
-            </div>
-            <p className="text-xs text-muted-foreground">Network average</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Attendance</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {overallStats.averageAttendance.toFixed(1)}%
-            </div>
-            <p className="text-xs text-muted-foreground">Network average</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Present</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {overallStats.totalPresent.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">Today</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Absent</CardTitle>
-            <UserX className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {overallStats.totalAbsent.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">Today</p>
-          </CardContent>
-        </Card>
-      </div>
+      <OverallStatsCards stats={overallStats} />
 
       {/* Performance Charts */}
       <SchoolPerformanceChart 
@@ -426,132 +265,14 @@ const ElimshaAdminAnalytics = ({ filters }: ElimshaAdminAnalyticsProps) => {
       <AttendanceTrendChart data={trendData} />
 
       {/* School Summaries */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Detailed School Performance Summary
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Comprehensive analytics per school - individual student data is protected
-          </p>
-        </CardHeader>
-        <CardContent>
-          {summariesLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="border rounded-lg p-4">
-                  <Skeleton className="h-6 w-48 mb-2" />
-                  <div className="grid grid-cols-2 md:grid-cols-8 gap-4">
-                    {[...Array(8)].map((_, j) => (
-                      <Skeleton key={j} className="h-16" />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : filteredSummaries.length === 0 ? (
-            <div className="text-center py-8">
-              <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Schools Found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? 'No schools match your search criteria.' : 'No schools available.'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredSummaries.map((school) => (
-                <div key={school.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">{school.name}</h3>
-                    <div className="flex gap-2">
-                      <Badge variant="secondary">{school.totalStudents} students</Badge>
-                      <Badge variant="outline">{school.totalClasses} classes</Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-8 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {school.averageGrade.toFixed(1)}%
-                      </div>
-                      <p className="text-xs text-muted-foreground">Avg Grade</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {school.attendanceRate.toFixed(1)}%
-                      </div>
-                      <p className="text-xs text-muted-foreground">Attendance</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {school.passRate.toFixed(1)}%
-                      </div>
-                      <p className="text-xs text-muted-foreground">Pass Rate</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-500">
-                        {school.presentStudents}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Present</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-500">
-                        {school.absentStudents}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Absent</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {school.totalSubjects}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Subjects</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">
-                        {school.totalClasses}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Classes</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-cyan-600">
-                        {school.totalStudents}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Students</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SchoolSummariesTable 
+        summaries={filteredSummaries}
+        isLoading={summariesLoading}
+        searchTerm={searchTerm}
+      />
 
       {/* Privacy Notice */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <BookOpen className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-blue-900 mb-1">Data Privacy & Multi-Tenancy Compliance</h4>
-              <p className="text-blue-800 text-sm">
-                As an Elimisha system administrator, you have access to aggregated analytics and summary data only. 
-                Individual student records, personal information, and detailed academic scores remain protected and 
-                isolated within each school's data boundaries. All analytics are computed from anonymized, summarized data.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PrivacyNotice />
     </div>
   );
 };
