@@ -1,3 +1,4 @@
+
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface User extends SupabaseUser {
@@ -19,6 +20,7 @@ export interface AuthUser extends User {}
 export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  error?: string | null;
   signIn: (email: string, password: string) => Promise<{ data?: any; error?: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ data?: any; error?: any }>;
   signOut: () => Promise<void>;

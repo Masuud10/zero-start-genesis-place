@@ -101,6 +101,7 @@ export const useAuthState = () => {
         if (event === 'SIGNED_OUT' || !session?.user) {
           setUser(null);
           setIsLoading(false);
+          setError(null);
           processedUserRef.current = null;
           return;
         }
