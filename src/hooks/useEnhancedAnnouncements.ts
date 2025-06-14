@@ -42,6 +42,7 @@ export interface AnnouncementFilters {
 export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
   const [announcements, setAnnouncements] = useState<EnhancedAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -52,6 +53,9 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
 
   const fetchAnnouncements = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       let query = supabase
         .from('announcements')
         .select(`
@@ -121,6 +125,7 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
       setAnnouncements(formattedData);
     } catch (error) {
       console.error('Error fetching announcements:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch announcements');
     } finally {
       setLoading(false);
     }
@@ -222,6 +227,7 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
   return {
     announcements,
     loading,
+    error,
     createBroadcastAnnouncement,
     markAsRead,
     archiveAnnouncement,
