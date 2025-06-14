@@ -1,25 +1,53 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { BookOpen } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, Lock, Eye } from 'lucide-react';
 
 const PrivacyNotice: React.FC = () => {
   return (
-    <Card className="bg-blue-50 border-blue-200">
+    <Card className="border-blue-200 bg-blue-50/50">
       <CardContent className="pt-6">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BookOpen className="h-5 w-5 text-blue-600" />
-          </div>
-          <div>
-            <h4 className="font-semibold text-blue-900 mb-1">Data Privacy & Multi-Tenancy Compliance</h4>
-            <p className="text-blue-800 text-sm">
-              As an Elimisha system administrator, you have access to aggregated analytics and summary data only. 
-              Individual student records, personal information, and detailed academic scores remain protected and 
-              isolated within each school's data boundaries. All analytics are computed from anonymized, summarized data.
-            </p>
-          </div>
-        </div>
+        <Alert className="border-blue-200 bg-transparent">
+          <Shield className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-sm">
+            <div className="space-y-3">
+              <div className="font-medium text-blue-900">Privacy & Data Protection Notice</div>
+              
+              <div className="grid md:grid-cols-3 gap-4 text-blue-800">
+                <div className="flex items-start gap-2">
+                  <Lock className="h-4 w-4 mt-0.5 text-blue-600" />
+                  <div>
+                    <div className="font-medium">Data Aggregation</div>
+                    <div className="text-xs">Individual student data is aggregated and anonymized for privacy protection</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <Eye className="h-4 w-4 mt-0.5 text-blue-600" />
+                  <div>
+                    <div className="font-medium">Access Control</div>
+                    <div className="text-xs">Only authorized administrators can view system-wide analytics</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <Shield className="h-4 w-4 mt-0.5 text-blue-600" />
+                  <div>
+                    <div className="font-medium">Compliance</div>
+                    <div className="text-xs">All data handling complies with educational privacy regulations</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-xs text-blue-700 pt-2 border-t border-blue-200">
+                <strong>Note:</strong> This analytics dashboard displays aggregated school performance metrics. 
+                Individual student information remains confidential and is never exposed in these reports. 
+                Data is refreshed periodically to ensure accuracy while maintaining privacy standards.
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
       </CardContent>
     </Card>
   );
