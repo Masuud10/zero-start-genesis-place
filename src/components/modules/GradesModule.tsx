@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { GraduationCap, TrendingUp, Users, FileText, Award, BookOpen, Home } from 'lucide-react';
+import { GraduationCap, TrendingUp, Users, FileText, Award, BookOpen, Home, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClasses } from '@/hooks/useClasses';
 import { useSubjects } from '@/hooks/useSubjects';
@@ -19,6 +18,9 @@ import CompetencyProgress from '@/components/cbc/CompetencyProgress';
 import LearnerPortfolio from '@/components/cbc/LearnerPortfolio';
 import ParentEngagement from '@/components/cbc/ParentEngagement';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/utils/permissions';
+import { UserRole } from '@/types/user';
+import { PERMISSIONS } from '@/utils/permissions';
 
 const GradesModule = () => {
   const { user } = useAuth();
@@ -35,6 +37,7 @@ const GradesModule = () => {
   const [loading, setLoading] = useState(false);
   const { createSchoolScopedQuery } = useSchoolScopedData();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
 
   const [gradeStats, setGradeStats] = useState({
     totalStudents: 0,
@@ -262,8 +265,139 @@ const GradesModule = () => {
     );
   }
 
+  const isElimshaAdmin = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
+  const canEditGrades = hasPermission(PERMISSIONS.EDIT_GRADEBOOK);
+  const canSubmitGrades = hasPermission(PERMISSIONS.SUBMIT_GRADES);
+
+  // For Elimisha admins, show only overview and analytics
+  if (isElimshaAdmin) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            System-Wide Grades Overview
+          </h1>
+          <p className="text-muted-foreground">
+            System administrator view - summaries and analytics across all schools
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{gradeStats.totalStudents}</div>
+              <p className="text-xs text-muted-foreground">Across all schools</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Assessed Students</CardTitle>
+              <Award className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{gradeStats.assessed}</div>
+              <p className="text-xs text-muted-foreground">With completed assessments</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Assessments</CardTitle>
+              <FileText className="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{gradeStats.pending}</div>
+              <p className="text-xs text-muted-foreground">Awaiting assessment</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">System Average</CardTitle>
+              <TrendingUp className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{gradeStats.averageProgress}%</div>
+              <p className="text-xs text-muted-foreground">Network-wide performance</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Admin-only analytics and summaries */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <BarChart3 className="h-5 w-5" />
+              Grades Analytics (Read-Only)
+            </CardTitle>
+            <CardDescription>
+              System-wide grade performance analytics - Elimisha admins have view-only access
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 text-blue-800">
+                <FileText className="h-4 w-4" />
+                <span className="font-medium">Administrator Access Level</span>
+              </div>
+              <p className="text-blue-700 text-sm mt-1">
+                As an Elimisha administrator, you can view grade summaries and analytics but cannot enter or modify grades. 
+                Grade entry is restricted to teachers and grade management to principals.
+              </p>
+            </div>
+            
+            {/* Grades summary table - read-only */}
+            {grades.length > 0 ? (
+              <div className="space-y-4">
+                <h4 className="font-medium">Recent Grade Entries (Last 10)</h4>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-sm font-medium">Student</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium">Subject</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium">Score</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium">Status</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium">Term</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grades.slice(0, 10).map((grade: any) => (
+                        <tr key={grade.id} className="border-t">
+                          <td className="px-4 py-2 text-sm">{grade.students?.name || 'N/A'}</td>
+                          <td className="px-4 py-2 text-sm">{grade.subjects?.name || 'N/A'}</td>
+                          <td className="px-4 py-2 text-sm">{grade.score}/{grade.max_score}</td>
+                          <td className="px-4 py-2 text-sm">
+                            <Badge variant={grade.status === 'submitted' ? 'default' : 'secondary'}>
+                              {grade.status}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-2 text-sm">{grade.term}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center py-8 text-gray-500">No grade data available</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Regular interface for other roles
   return (
     <div className="space-y-6">
+      
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           {gradingMode === 'cbc' ? 'CBC Assessment & Learning Management' : 'Traditional Grades Management'}
@@ -275,34 +409,36 @@ const GradesModule = () => {
         </p>
       </div>
 
-      {/* Mode Toggle */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="font-medium">Assessment Mode:</span>
-              <div className="flex gap-2">
-                <Button 
-                  variant={gradingMode === 'cbc' ? 'default' : 'outline'}
-                  onClick={() => setGradingMode('cbc')}
-                  className="flex items-center gap-2"
-                >
-                  <Award className="w-4 h-4" />
-                  CBC (Competency-Based)
-                </Button>
-                <Button 
-                  variant={gradingMode === 'traditional' ? 'default' : 'outline'}
-                  onClick={() => setGradingMode('traditional')}
-                  className="flex items-center gap-2"
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  Traditional Grading
-                </Button>
+      {/* Mode Toggle - only for users who can edit */}
+      {canEditGrades && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="font-medium">Assessment Mode:</span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant={gradingMode === 'cbc' ? 'default' : 'outline'}
+                    onClick={() => setGradingMode('cbc')}
+                    className="flex items-center gap-2"
+                  >
+                    <Award className="w-4 h-4" />
+                    CBC (Competency-Based)
+                  </Button>
+                  <Button 
+                    variant={gradingMode === 'traditional' ? 'default' : 'outline'}
+                    onClick={() => setGradingMode('traditional')}
+                    className="flex items-center gap-2"
+                  >
+                    <GraduationCap className="w-4 h-4" />
+                    Traditional Grading
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -422,96 +558,15 @@ const GradesModule = () => {
       {/* Main Content */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            {gradingMode === 'cbc' ? 'CBC Learning Management' : 'Grade Management'}
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle>
+              {canEditGrades ? 'Grade Management' : 'Grade Overview'}
+            </CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
-          {gradingMode === 'cbc' ? (
-            <Tabs defaultValue={isParent ? 'progress' : 'assess'} className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                {!isParent && <TabsTrigger value="assess">Assessment</TabsTrigger>}
-                <TabsTrigger value="progress">Progress Tracking</TabsTrigger>
-                <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-                <TabsTrigger value="parent">Parent Engagement</TabsTrigger>
-                {!isParent && <TabsTrigger value="override">Override Request</TabsTrigger>}
-              </TabsList>
-              
-              {!isParent && (
-                <TabsContent value="assess" className="mt-6">
-                  <CBCAssessmentForm
-                    classId={selectedClass}
-                    subjectId={selectedSubject}
-                    term={selectedTerm}
-                    students={students}
-                    onSave={handleCBCAssessmentSave}
-                  />
-                </TabsContent>
-              )}
-              
-              <TabsContent value="progress" className="mt-6">
-                {selectedStudent ? (
-                  <CompetencyProgress 
-                    studentId={selectedStudent} 
-                    editable={isTeacher || isPrincipal}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Select a student to view competency progress</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="portfolio" className="mt-6">
-                {selectedStudent ? (
-                  <LearnerPortfolio 
-                    studentId={selectedStudent}
-                    canEdit={isParent}
-                    canAddFeedback={isTeacher || isPrincipal}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Select a student to view their learning portfolio</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="parent" className="mt-6">
-                {selectedStudent ? (
-                  <ParentEngagement 
-                    studentId={selectedStudent}
-                    isParent={isParent}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Home className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Select a student to view parent engagement records</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              {!isParent && (
-                <TabsContent value="override" className="mt-6">
-                  <div className="space-y-4">
-                    <Button onClick={() => setShowOverrideRequest(true)}>
-                      Request Assessment Override
-                    </Button>
-                    
-                    {showOverrideRequest && grades.length > 0 && (
-                      <GradeOverrideRequest 
-                        grade={grades[0]}
-                        onClose={() => setShowOverrideRequest(false)}
-                        onSubmit={handleOverrideRequest}
-                      />
-                    )}
-                  </div>
-                </TabsContent>
-              )}
-            </Tabs>
-          ) : (
-            <Tabs defaultValue={user?.role === 'principal' ? 'approve' : 'enter'} className="w-full">
+          {canEditGrades ? (
+            <Tabs defaultValue="enter" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="enter">Enter Grades</TabsTrigger>
                 <TabsTrigger value="approve">Approve Grades</TabsTrigger>
@@ -552,6 +607,21 @@ const GradesModule = () => {
                 </div>
               </TabsContent>
             </Tabs>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-blue-800">
+                  <FileText className="h-4 w-4" />
+                  <span className="font-medium">View-Only Access</span>
+                </div>
+                <p className="text-blue-700 text-sm mt-1">
+                  You have read-only access to grade information. Contact a teacher or principal to modify grades.
+                </p>
+              </div>
+              
+              {/* Read-only grade summary */}
+              {/* ... display grades in read-only format ... */}
+            </div>
           )}
         </CardContent>
       </Card>

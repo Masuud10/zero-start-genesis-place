@@ -81,7 +81,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<PermissionKey, { allowed:
   
   elimisha_admin: {
     [PERMISSIONS.VIEW_GRADEBOOK]: { allowed: true, scope: 'all' },
-    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false }, // Admins view only, don't edit
+    [PERMISSIONS.EDIT_GRADEBOOK]: { allowed: false }, // Elimisha admins only view summaries
     [PERMISSIONS.SUBMIT_GRADES]: { allowed: false },
     [PERMISSIONS.APPROVE_GRADES]: { allowed: false },
     [PERMISSIONS.REJECT_GRADES]: { allowed: false },
