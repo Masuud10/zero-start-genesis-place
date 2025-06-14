@@ -75,16 +75,30 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
   };
 
   useEffect(() => {
+    setIsPlaying(true);
+    intervalRef.current = setInterval(() => {
+      setCurrentTime(prev => {
+        const newTime = prev + 0.1;
+        if (newTime >= duration) {
+          clearInterval(intervalRef.current!);
+          intervalRef.current = null;
+          setIsPlaying(false);
+          setCurrentTime(0);
+          return 0;
+        }
+        return newTime;
+      });
+    }, 100);
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, []);
+  }, [duration]);
 
   return (
     <div className="relative w-full h-full bg-gradient-to-br from-blue-900 via-green-800 to-purple-900 rounded-2xl overflow-hidden">
-      {/* Background Animation */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-green-600/20 animate-pulse"></div>
         {[...Array(10)].map((_, i) => (
@@ -101,7 +115,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
         ))}
       </div>
 
-      {/* Close Button */}
       {onClose && (
         <Button
           onClick={onClose}
@@ -112,7 +125,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
         </Button>
       )}
 
-      {/* Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 md:p-8">
         <div className="text-center space-y-4 md:space-y-6 max-w-4xl w-full">
           <div className="w-16 h-16 md:w-24 md:h-24 mx-auto bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 md:mb-6 animate-pulse">
@@ -131,7 +143,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
             Experience Kenya's most comprehensive school management system designed for CBC curriculum and M-Pesa integration
           </p>
 
-          {/* Demo Features Showcase */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-6 md:mb-8">
             {[
               { icon: "🎓", title: "Student Management" },
@@ -146,14 +157,12 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
             ))}
           </div>
 
-          {/* Current Demo Script Display */}
           <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 md:p-6 mb-4 md:mb-6 max-w-3xl mx-auto min-h-[60px] md:min-h-[80px] flex items-center justify-center">
             <p className="text-sm md:text-lg italic text-center leading-relaxed">
               {getCurrentScript()}
             </p>
           </div>
 
-          {/* Video Controls */}
           <div className="flex items-center justify-center space-x-2 md:space-x-4 mb-3 md:mb-4">
             <Button
               onClick={handlePlayPause}
@@ -176,7 +185,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Progress Bar */}
           <div className="w-full max-w-md mx-auto mb-4 md:mb-6">
             <div 
               className="bg-white/20 rounded-full h-2 md:h-3 cursor-pointer hover:bg-white/30 transition-colors"
@@ -192,9 +200,6 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
           </div>
 
           <div className="text-center space-y-3 md:space-y-4">
-            <p className="text-blue-200 text-xs md:text-sm">
-              This is a demo showcase. In production, this would be a real promotional video highlighting EduFam's features.
-            </p>
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
               <Button 
                 onClick={() => window.open('https://calendly.com/edufam-demo', '_blank')}
