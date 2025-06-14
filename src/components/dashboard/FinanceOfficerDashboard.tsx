@@ -1,159 +1,106 @@
 
 import React from 'react';
-import { AuthUser } from '@/types/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Receipt, TrendingUp, FileText, Plus } from 'lucide-react';
+import { AuthUser } from '@/types/auth';
+import { DollarSign, Users, CreditCard, BarChart3, FileText } from 'lucide-react';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
   onModalOpen: (modalType: string) => void;
 }
 
-const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
-  user,
-  onModalOpen
-}) => {
-  const quickActions = [
-    {
-      title: 'Record Payment',
-      description: 'Process fee payments',
-      icon: DollarSign,
-      action: () => onModalOpen('record-payment'),
-      color: 'bg-green-500'
-    },
-    {
-      title: 'Generate Invoice',
-      description: 'Create student invoices',
-      icon: Receipt,
-      action: () => onModalOpen('generate-invoice'),
-      color: 'bg-blue-500'
-    },
-    {
-      title: 'Financial Reports',
-      description: 'View financial analytics',
-      icon: TrendingUp,
-      action: () => onModalOpen('financial-reports'),
-      color: 'bg-purple-500'
-    },
-    {
-      title: 'Fee Structure',
-      description: 'Manage fee categories',
-      icon: FileText,
-      action: () => onModalOpen('fee-structure'),
-      color: 'bg-orange-500'
-    }
+const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user, onModalOpen }) => {
+  console.log('💰 FinanceOfficerDashboard: Rendering for finance officer:', user.email);
+
+  const financeActions = [
+    { id: 'finance', label: 'Fee Management', icon: DollarSign, description: 'Process payments & fees' },
+    { id: 'students', label: 'Student Accounts', icon: Users, description: 'View student balances' },
+    { id: 'reports', label: 'Financial Reports', icon: FileText, description: 'Generate reports' },
+    { id: 'analytics', label: 'Finance Analytics', icon: BarChart3, description: 'Payment insights' },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Finance Management</h1>
-          <p className="text-gray-600 mt-1">
-            Welcome back, {user.name}! Manage school finances and fee collections.
+          <h2 className="text-3xl font-bold tracking-tight">Finance Dashboard</h2>
+          <p className="text-muted-foreground">
+            Welcome {user.name}! Monitor and manage school finances.
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button 
-            onClick={() => onModalOpen('record-payment')}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Record Payment
-          </Button>
-        </div>
       </div>
 
-      {/* Financial Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Finance Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">This month</p>
+            <div className="text-2xl font-bold text-green-600">KES 250K</div>
+            <p className="text-xs text-muted-foreground">+12% from last month</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Outstanding Fees</CardTitle>
+            <CardTitle className="text-sm font-medium">Outstanding Fees</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Pending payments</p>
+            <div className="text-2xl font-bold text-orange-600">KES 45K</div>
+            <p className="text-xs text-muted-foreground">18% of total fees</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Payments Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Payment Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Processed today</p>
+            <div className="text-2xl font-bold text-blue-600">87.5%</div>
+            <p className="text-xs text-muted-foreground">Current term</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Collection Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">MPESA Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">This term</p>
+            <div className="text-2xl font-bold text-purple-600">156</div>
+            <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center mb-2`}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <CardTitle className="text-sm font-medium">{action.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-xs mb-3">
-                    {action.description}
-                  </CardDescription>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={action.action}
-                    className="w-full"
-                  >
-                    Open
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Recent Transactions */}
+      {/* Finance Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Financial Management
+          </CardTitle>
           <CardDescription>
-            Latest payment activities
+            Access financial management tools
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500 text-center py-8">
-              Transaction history will appear here once payments are processed
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {financeActions.map((action) => (
+              <Button
+                key={action.id}
+                variant="outline"
+                className="h-24 flex-col gap-2 p-4"
+                onClick={() => onModalOpen(action.id)}
+              >
+                <action.icon className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">{action.label}</div>
+                  <div className="text-xs text-muted-foreground">{action.description}</div>
+                </div>
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>

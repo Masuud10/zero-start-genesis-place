@@ -1,150 +1,107 @@
 
 import React from 'react';
-import { AuthUser } from '@/types/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Users, ClipboardCheck, Calendar } from 'lucide-react';
+import { AuthUser } from '@/types/auth';
+import { GraduationCap, Users, CalendarCheck, BookOpen, MessageSquare } from 'lucide-react';
 
 interface TeacherDashboardProps {
   user: AuthUser;
   onModalOpen: (modalType: string) => void;
 }
 
-const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
-  user,
-  onModalOpen
-}) => {
-  const quickActions = [
-    {
-      title: 'Mark Attendance',
-      description: 'Record student attendance',
-      icon: ClipboardCheck,
-      action: () => onModalOpen('mark-attendance'),
-      color: 'bg-green-500'
-    },
-    {
-      title: 'Enter Grades',
-      description: 'Input student grades',
-      icon: BookOpen,
-      action: () => onModalOpen('enter-grades'),
-      color: 'bg-blue-500'
-    },
-    {
-      title: 'View Classes',
-      description: 'See your assigned classes',
-      icon: Users,
-      action: () => onModalOpen('my-classes'),
-      color: 'bg-purple-500'
-    },
-    {
-      title: 'Class Schedule',
-      description: 'View your teaching schedule',
-      icon: Calendar,
-      action: () => onModalOpen('class-schedule'),
-      color: 'bg-orange-500'
-    }
+const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }) => {
+  console.log('👩‍🏫 TeacherDashboard: Rendering for teacher:', user.email);
+
+  const teacherActions = [
+    { id: 'grades', label: 'My Classes Grades', icon: GraduationCap, description: 'Grade student work' },
+    { id: 'attendance', label: 'Take Attendance', icon: CalendarCheck, description: 'Mark daily attendance' },
+    { id: 'students', label: 'My Students', icon: Users, description: 'View student profiles' },
+    { id: 'timetable', label: 'My Schedule', icon: BookOpen, description: 'View teaching schedule' },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Communicate with parents' },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Welcome back, {user.name}! Manage your classes and students.
+          <h2 className="text-3xl font-bold tracking-tight">Teacher Dashboard</h2>
+          <p className="text-muted-foreground">
+            Welcome back, {user.name}! Ready to inspire young minds today?
           </p>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Teacher Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">My Classes</CardTitle>
+            <CardTitle className="text-sm font-medium">My Classes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Assigned classes</p>
+            <div className="text-2xl font-bold text-blue-600">3</div>
+            <p className="text-xs text-muted-foreground">Active classes</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">My Students</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Total students</p>
+            <div className="text-2xl font-bold text-green-600">89</div>
+            <p className="text-xs text-muted-foreground">Across all classes</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Pending Grades</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Grades</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Grades to submit</p>
+            <div className="text-2xl font-bold text-orange-600">12</div>
+            <p className="text-xs text-muted-foreground">Need grading</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Today's Classes</CardTitle>
+            <CardTitle className="text-sm font-medium">Today's Classes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Scheduled classes</p>
+            <div className="text-2xl font-bold text-purple-600">5</div>
+            <p className="text-xs text-muted-foreground">Scheduled for today</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center mb-2`}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <CardTitle className="text-sm font-medium">{action.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-xs mb-3">
-                    {action.description}
-                  </CardDescription>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={action.action}
-                    className="w-full"
-                  >
-                    Open
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Today's Schedule */}
+      {/* Teacher Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Today's Schedule</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5" />
+            Teaching Tools
+          </CardTitle>
           <CardDescription>
-            Your classes for today
+            Access your classroom management features
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500 text-center py-8">
-              Schedule will be populated when classes are assigned to you
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {teacherActions.map((action) => (
+              <Button
+                key={action.id}
+                variant="outline"
+                className="h-24 flex-col gap-2 p-4"
+                onClick={() => onModalOpen(action.id)}
+              >
+                <action.icon className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">{action.label}</div>
+                  <div className="text-xs text-muted-foreground">{action.description}</div>
+                </div>
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>

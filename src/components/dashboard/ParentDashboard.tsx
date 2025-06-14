@@ -1,102 +1,106 @@
 
 import React from 'react';
-import { AuthUser } from '@/types/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, BookOpen, Calendar, DollarSign } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AuthUser } from '@/types/auth';
+import { User, GraduationCap, CalendarCheck, DollarSign, MessageSquare } from 'lucide-react';
 
 interface ParentDashboardProps {
   user: AuthUser;
   onModalOpen: (modalType: string) => void;
 }
 
-const ParentDashboard: React.FC<ParentDashboardProps> = ({
-  user,
-  onModalOpen
-}) => {
+const ParentDashboard: React.FC<ParentDashboardProps> = ({ user, onModalOpen }) => {
+  console.log('👨‍👩‍👧‍👦 ParentDashboard: Rendering for parent:', user.email);
+
+  const parentActions = [
+    { id: 'grades', label: 'Child Grades', icon: GraduationCap, description: 'View academic performance' },
+    { id: 'attendance', label: 'Attendance Record', icon: CalendarCheck, description: 'Check daily attendance' },
+    { id: 'finance', label: 'School Fees', icon: DollarSign, description: 'Payment history & balance' },
+    { id: 'messages', label: 'School Messages', icon: MessageSquare, description: 'Communications from school' },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Parent Portal</h1>
-          <p className="text-gray-600 mt-1">
-            Welcome back, {user.name}! Monitor your children's progress.
+          <h2 className="text-3xl font-bold tracking-tight">Parent Dashboard</h2>
+          <p className="text-muted-foreground">
+            Welcome {user.name}! Stay connected with your child's education.
           </p>
         </div>
       </div>
 
-      {/* Children Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>My Children</CardTitle>
-          <CardDescription>
-            Academic progress for your children
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500 text-center py-8">
-              Your children's information will appear here once they are enrolled in the system
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Parent Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Children Enrolled</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">2</div>
+            <p className="text-xs text-muted-foreground">Active students</p>
+          </CardContent>
+        </Card>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Children</CardTitle>
+            <CardTitle className="text-sm font-medium">This Month Attendance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Enrolled children</p>
+            <div className="text-2xl font-bold text-green-600">96%</div>
+            <p className="text-xs text-muted-foreground">Excellent attendance</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Average Grade</CardTitle>
+            <CardTitle className="text-sm font-medium">Fee Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Overall performance</p>
+            <div className="text-2xl font-bold text-orange-600">KES 5,200</div>
+            <p className="text-xs text-muted-foreground">Due next week</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Attendance</CardTitle>
+            <CardTitle className="text-sm font-medium">Recent Grade</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">This term</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Fees Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Loading...</div>
-            <p className="text-xs text-gray-500 mt-1">Current balance</p>
+            <div className="text-2xl font-bold text-purple-600">B+</div>
+            <p className="text-xs text-muted-foreground">Mathematics</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity */}
+      {/* Parent Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Updates</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Parent Portal
+          </CardTitle>
           <CardDescription>
-            Latest news about your children
+            Access your child's educational information
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500 text-center py-8">
-              Updates about your children's academic progress, attendance, and school activities will appear here
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {parentActions.map((action) => (
+              <Button
+                key={action.id}
+                variant="outline"
+                className="h-24 flex-col gap-2 p-4"
+                onClick={() => onModalOpen(action.id)}
+              >
+                <action.icon className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">{action.label}</div>
+                  <div className="text-xs text-muted-foreground">{action.description}</div>
+                </div>
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>

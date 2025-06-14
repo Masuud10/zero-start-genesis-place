@@ -1,8 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Users, BarChart3, Shield, School, UserPlus, TrendingUp, Activity, CheckCircle, AlertTriangle } from 'lucide-react';
-import CreateSchoolDialog from '@/components/modules/schools/CreateSchoolDialog';
 import CreateUserDialog from '@/components/modules/users/CreateUserDialog';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolService } from '@/services/schoolService';
@@ -58,12 +58,6 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     retry: 2,
     refetchOnWindowFocus: false
   });
-
-  const handleSchoolCreated = () => {
-    console.log('🏫 EduFamAdmin: School created, refreshing data');
-    setRefreshKey(prev => prev + 1);
-    refetchSchools();
-  };
 
   const handleUserCreated = () => {
     console.log('👥 EduFamAdmin: User created, refreshing data');
@@ -314,7 +308,9 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
               </div>
               <p className="text-gray-600 mb-3">No schools created yet</p>
               <p className="text-gray-500 text-xs mb-4">Start building your educational network</p>
-              <CreateSchoolDialog onSchoolCreated={handleSchoolCreated} />
+              <Button onClick={() => onModalOpen('schools')} variant="outline">
+                Create School
+              </Button>
             </div>
           )}
         </CardContent>
