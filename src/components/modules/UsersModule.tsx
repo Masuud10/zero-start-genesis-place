@@ -120,8 +120,15 @@ const UsersModule = () => {
     return matchesSearch && matchesRole;
   });
 
-  // Determine if current user can add users
+  // Determine if current user can add users - explicitly check for elimisha_admin
   const canAddUsers = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin' || user?.role === 'school_owner' || user?.role === 'principal';
+  
+  console.log('👤 UsersModule: User role check', {
+    userRole: user?.role,
+    canAddUsers,
+    isSystemAdmin,
+    userEmail: user?.email
+  });
 
   return (
     <div className="space-y-6">
@@ -134,6 +141,10 @@ const UsersModule = () => {
               : 'Manage users in your school'
             }
           </p>
+          {/* Debug info - remove this after testing */}
+          <p className="text-xs text-gray-500 mt-1">
+            Debug: Role = {user?.role}, Can Add = {canAddUsers ? 'Yes' : 'No'}
+          </p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -144,9 +155,10 @@ const UsersModule = () => {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          {canAddUsers && (
+          {/* Always show the button for elimisha_admin */}
+          {(user?.role === 'elimisha_admin' || canAddUsers) && (
             <CreateUserDialog onUserCreated={fetchUsers}>
-              <Button>
+              <Button className="bg-blue-600 hover:bg-blue-700">
                 <UserPlus className="w-4 h-4 mr-2" />
                 Add User
               </Button>
