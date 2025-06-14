@@ -6,61 +6,51 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, Plus, Edit, Eye, Users, GraduationCap, UserCheck, UserX } from 'lucide-react';
+import { Search, Plus, Edit, Eye, Users, GraduationCap, UserCheck, UserX } from 'lucide-react';
+import { useStudents } from '@/hooks/useStudents';
+import { useClasses } from '@/hooks/useClasses';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 const StudentsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  const { students, loading } = useStudents(classFilter !== 'all' ? classFilter : undefined);
+  const { classes } = useClasses();
+  const { isSystemAdmin } = useSchoolScopedData();
+
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         student.admission_number.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'active' && student.is_active) ||
+                         (statusFilter === 'inactive' && !student.is_active);
+    return matchesSearch && matchesStatus;
+  });
 
   const studentStats = {
-    total: 1247,
-    active: 1174,
-    inactive: 73,
-    newThisMonth: 25
+    total: students.length,
+    active: students.filter(s => s.is_active).length,
+    inactive: students.filter(s => !s.is_active).length,
+    newThisMonth: students.filter(s => {
+      const createdDate = new Date(s.created_at);
+      const now = new Date();
+      return createdDate.getMonth() === now.getMonth() && 
+             createdDate.getFullYear() === now.getFullYear();
+    }).length
   };
 
-  const classes = [
-    { id: 'all', name: 'All Classes' },
-    { id: '8a', name: 'Grade 8A' },
-    { id: '8b', name: 'Grade 8B' },
-    { id: '7a', name: 'Grade 7A' },
-    { id: '7b', name: 'Grade 7B' },
-  ];
-
-  const mockStudents = [
-    {
-      id: '1',
-      admissionNumber: 'ADM001',
-      name: 'John Doe',
-      class: 'Grade 8A',
-      rollNumber: '001',
-      parentContact: '+254 700 123 456',
-      status: 'active',
-      dateOfBirth: '2010-05-15',
-      address: 'Nairobi, Kenya'
-    },
-    {
-      id: '2', 
-      admissionNumber: 'ADM002',
-      name: 'Jane Smith',
-      class: 'Grade 8A',
-      rollNumber: '002',
-      parentContact: '+254 700 789 012',
-      status: 'active',
-      dateOfBirth: '2010-03-22',
-      address: 'Nairobi, Kenya'
-    },
-    // Add more mock data as needed
-  ];
-
-  const filteredStudents = mockStudents.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClass = classFilter === 'all' || student.class === classFilter;
-    const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
-    return matchesSearch && matchesClass && matchesStatus;
-  });
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <h1 className="text-3xl font-bold">Student Management</h1>
+          <p className="text-muted-foreground">Loading students...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -142,6 +132,7 @@ const StudentsModule = () => {
             <SelectValue placeholder="Filter by class" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">All Classes</SelectItem>
             {classes.map((cls) => (
               <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
             ))}
@@ -170,7 +161,6 @@ const StudentsModule = () => {
               <TableRow>
                 <TableHead>Admission No.</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Class</TableHead>
                 <TableHead>Roll No.</TableHead>
                 <TableHead>Parent Contact</TableHead>
                 <TableHead>Status</TableHead>
@@ -180,14 +170,13 @@ const StudentsModule = () => {
             <TableBody>
               {filteredStudents.map((student) => (
                 <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.admissionNumber}</TableCell>
+                  <TableCell className="font-medium">{student.admission_number}</TableCell>
                   <TableCell>{student.name}</TableCell>
-                  <TableCell>{student.class}</TableCell>
-                  <TableCell>{student.rollNumber}</TableCell>
-                  <TableCell>{student.parentContact}</TableCell>
+                  <TableCell>{student.roll_number || 'N/A'}</TableCell>
+                  <TableCell>{student.parent_contact || 'N/A'}</TableCell>
                   <TableCell>
-                    <Badge variant={student.status === 'active' ? 'default' : 'secondary'}>
-                      {student.status}
+                    <Badge variant={student.is_active ? 'default' : 'secondary'}>
+                      {student.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
                   <TableCell>
