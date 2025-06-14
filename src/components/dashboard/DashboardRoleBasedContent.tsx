@@ -30,7 +30,7 @@ const DashboardRoleBasedContent = ({ user, onModalOpen }: DashboardRoleBasedCont
 
   // For Elimisha/EduFam admins, ALWAYS show admin dashboard regardless of school assignment
   if (user?.role === 'elimisha_admin' || user?.role === 'edufam_admin') {
-    console.log("📊 Dashboard: Rendering ElimshaAdminDashboard for role:", user.role);
+    console.log("📊 Dashboard: Rendering ElimshaAdminDashboard for admin role:", user.role);
     return <ElimshaAdminDashboard onModalOpen={onModalOpen} />;
   }
 

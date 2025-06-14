@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -65,12 +64,24 @@ export const useAuthStateListener = ({
             console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
             
             // Create a more intelligent fallback based on the auth user data
+            // Try to preserve role from metadata, default to elimisha_admin for system users
+            let fallbackRole = 'elimisha_admin'; // Default to admin role
+            
+            // Check user metadata for role information
+            if (session.user.user_metadata?.role) {
+              fallbackRole = session.user.user_metadata.role;
+            } else if (session.user.app_metadata?.role) {
+              fallbackRole = session.user.app_metadata.role;
+            } else if (session.user.email?.includes('@elimisha') || session.user.email?.includes('@edufam')) {
+              // If email suggests admin role, keep as elimisha_admin
+              fallbackRole = 'elimisha_admin';
+            }
+            
             const fallbackUser = {
               id: session.user.id,
               email: session.user.email,
               name: session.user.email?.split('@')[0] || 'User',
-              // Try to preserve role from user metadata or default to a safe role
-              role: session.user.user_metadata?.role || session.user.app_metadata?.role || 'elimisha_admin',
+              role: fallbackRole,
               school_id: session.user.user_metadata?.school_id || session.user.app_metadata?.school_id || null,
               // Include other auth properties that might be useful
               aud: session.user.aud,
@@ -93,11 +104,22 @@ export const useAuthStateListener = ({
         console.error('🔐 AuthStateListener: Error in auth state handler:', error);
         // Set fallback user data to prevent app from breaking
         if (session?.user && isMountedRef.current) {
+          // Try to preserve role from metadata, default to elimisha_admin for system users
+          let fallbackRole = 'elimisha_admin';
+          
+          if (session.user.user_metadata?.role) {
+            fallbackRole = session.user.user_metadata.role;
+          } else if (session.user.app_metadata?.role) {
+            fallbackRole = session.user.app_metadata.role;
+          } else if (session.user.email?.includes('@elimisha') || session.user.email?.includes('@edufam')) {
+            fallbackRole = 'elimisha_admin';
+          }
+          
           const fallbackUser = {
             id: session.user.id,
             email: session.user.email,
             name: session.user.email?.split('@')[0] || 'User',
-            role: session.user.user_metadata?.role || session.user.app_metadata?.role || 'elimisha_admin',
+            role: fallbackRole,
             school_id: session.user.user_metadata?.school_id || session.user.app_metadata?.school_id || null,
             aud: session.user.aud,
             confirmed_at: session.user.confirmed_at,
