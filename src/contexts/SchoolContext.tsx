@@ -38,12 +38,27 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [schools, setSchools] = useState<School[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUserCheck, setLastUserCheck] = useState<string | null>(null);
-  const { user, isLoading: authLoading } = useAuth();
+  
+  // Safe auth context access with error handling
+  let user: any = null;
+  let authLoading = true;
+  let authError = false;
+
+  try {
+    const authContext = useAuth();
+    user = authContext.user;
+    authLoading = authContext.isLoading;
+  } catch (error) {
+    console.error('🏫 SchoolProvider: Auth context not available:', error);
+    authError = true;
+    authLoading = false;
+  }
+
   const { toast } = useToast();
 
   const fetchSchools = useCallback(async () => {
-    if (!user || authLoading) {
-      console.log('🏫 SchoolProvider: No user or auth loading, clearing schools');
+    if (!user || authLoading || authError) {
+      console.log('🏫 SchoolProvider: No user, auth loading, or auth error - clearing schools');
       setSchools([]);
       setCurrentSchool(null);
       setIsLoading(false);
@@ -82,7 +97,6 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error('🏫 SchoolProvider: Error fetching schools:', error);
-        // Don't throw here, just log and continue with empty data
         setSchools([]);
         setCurrentSchool(null);
         toast({
@@ -120,17 +134,27 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.role, user?.school_id, user?.email, authLoading, toast, lastUserCheck]);
+  }, [user?.id, user?.role, user?.school_id, user?.email, authLoading, authError, toast, lastUserCheck]);
 
   useEffect(() => {
     console.log('🏫 SchoolProvider: Auth state changed', { 
       authLoading, 
+      authError,
       hasUser: !!user, 
       userEmail: user?.email,
       userRole: user?.role,
       userSchoolId: user?.school_id,
       lastUserCheck
     });
+
+    // Handle auth errors
+    if (authError) {
+      setLastUserCheck(null);
+      setSchools([]);
+      setCurrentSchool(null);
+      setIsLoading(false);
+      return;
+    }
 
     // Reset last user check when user changes
     if (!user) {
@@ -150,11 +174,11 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [user?.id, authLoading, fetchSchools, lastUserCheck]);
+  }, [user?.id, authLoading, authError, fetchSchools, lastUserCheck]);
 
   const value = {
     currentSchool,
-    isLoading,
+    isLoading: isLoading || authLoading,
     schools,
     fetchSchools,
     setCurrentSchool

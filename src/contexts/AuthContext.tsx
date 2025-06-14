@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
 import { AuthContextType } from '@/types/auth';
 import { useAuthOperations } from '@/hooks/useAuthOperations';
 import { useAuthStateListener } from '@/hooks/useAuthStateListener';
@@ -15,6 +15,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const mountedRef = useRef(true);
+  
   const {
     user,
     isLoading,
@@ -28,18 +30,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   } = useAuthOperations();
 
   // Use the auth state listener with stable dependencies
-  useAuthStateListener({
+  const { cleanup: listenerCleanup } = useAuthStateListener({
     setUser,
     setIsLoading,
     fetchUserProfile
   });
 
-  // Cleanup on unmount
+  // Cleanup on unmount with proper timing
   useEffect(() => {
+    mountedRef.current = true;
+    
     return () => {
-      cleanup();
+      console.log('🔐 AuthProvider: Starting cleanup');
+      mountedRef.current = false;
+      
+      // Use a timeout to prevent immediate cleanup that could cause hooks errors
+      setTimeout(() => {
+        if (listenerCleanup) {
+          listenerCleanup();
+        }
+        cleanup();
+      }, 100);
     };
-  }, [cleanup]);
+  }, [cleanup, listenerCleanup]);
 
   const value = {
     user,
@@ -54,7 +67,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading, 
     userEmail: user?.email,
     userRole: user?.role,
-    userSchoolId: user?.school_id
+    userSchoolId: user?.school_id,
+    mounted: mountedRef.current
   });
 
   return (

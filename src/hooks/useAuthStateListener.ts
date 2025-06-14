@@ -19,20 +19,13 @@ export const useAuthStateListener = ({
   const processingRef = useRef(false);
   const currentUserRef = useRef<string | null>(null);
   const subscriptionRef = useRef<any>(null);
-  const stableTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
     
     console.log('🔐 AuthStateListener: Setting up auth state listener');
     
-    // Clear any existing stable timeout
-    if (stableTimeoutRef.current) {
-      clearTimeout(stableTimeoutRef.current);
-      stableTimeoutRef.current = null;
-    }
-    
-    // Set up auth state change listener with improved handling
+    // Set up auth state change listener
     const setupAuthListener = () => {
       if (subscriptionRef.current) {
         console.log('🔐 AuthStateListener: Cleaning up existing subscription');
@@ -48,11 +41,9 @@ export const useAuthStateListener = ({
         console.log('🔐 AuthStateListener: Auth state changed:', event, 'session:', !!session);
         
         try {
-          // Handle different auth events
           if (event === 'SIGNED_IN' && session?.user) {
             console.log('🔐 AuthStateListener: User signed in:', session.user.email);
             
-            // Only process if this is a different user or we haven't processed this user yet
             if (currentUserRef.current !== session.user.id && !processingRef.current) {
               processingRef.current = true;
               currentUserRef.current = session.user.id;
@@ -61,11 +52,10 @@ export const useAuthStateListener = ({
                 await fetchUserProfile(session.user);
               } catch (profileError) {
                 console.error('🔐 AuthStateListener: Profile fetch failed during sign in:', profileError);
-                // Set fallback user data
                 if (isMountedRef.current) {
                   setUser({
                     ...session.user,
-                    role: 'parent', // fallback role
+                    role: 'parent',
                     name: session.user.email?.split('@')[0] || 'User'
                   } as AuthUser);
                   setIsLoading(false);
@@ -83,7 +73,6 @@ export const useAuthStateListener = ({
             }
           } else if (event === 'TOKEN_REFRESHED' && session?.user) {
             console.log('🔐 AuthStateListener: Token refreshed for user:', session.user.email);
-            // Only update if we have the same user
             if (currentUserRef.current === session.user.id && !processingRef.current) {
               processingRef.current = true;
               try {
@@ -108,7 +97,7 @@ export const useAuthStateListener = ({
       return subscription;
     };
 
-    // Get initial session with better error handling
+    // Get initial session
     const getInitialSession = async () => {
       if (initializedRef.current || processingRef.current) {
         console.log('🔐 AuthStateListener: Already initialized/processing, skipping');
@@ -136,16 +125,14 @@ export const useAuthStateListener = ({
           console.log('🔐 AuthStateListener: Found initial session for user:', session.user.email);
           currentUserRef.current = session.user.id;
           
-          // Fetch profile with stable reference
           try {
             await fetchUserProfile(session.user);
           } catch (profileError) {
             console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
-            // Set user even if profile fetch fails
             if (isMountedRef.current) {
               setUser({
                 ...session.user,
-                role: 'parent', // fallback role
+                role: 'parent',
                 name: session.user.email?.split('@')[0] || 'User'
               } as AuthUser);
               setIsLoading(false);
@@ -176,28 +163,22 @@ export const useAuthStateListener = ({
     setupAuthListener();
     getInitialSession();
 
-    // Cleanup function with improved stability
+    // Cleanup function
     return () => {
       console.log('🔐 AuthStateListener: Starting cleanup');
       isMountedRef.current = false;
-      
-      // Clear stable timeout
-      if (stableTimeoutRef.current) {
-        clearTimeout(stableTimeoutRef.current);
-        stableTimeoutRef.current = null;
-      }
       
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
       
-      // Use stable timeout to prevent premature context loss
-      stableTimeoutRef.current = setTimeout(() => {
+      // Reset refs after a delay to prevent race conditions
+      setTimeout(() => {
         initializedRef.current = false;
         processingRef.current = false;
         currentUserRef.current = null;
-      }, 500); // Increased delay for stability
+      }, 200);
     };
   }, [setUser, setIsLoading, fetchUserProfile]);
 
@@ -205,11 +186,6 @@ export const useAuthStateListener = ({
     cleanup: () => {
       console.log('🔐 AuthStateListener: Manual cleanup requested');
       isMountedRef.current = false;
-      
-      if (stableTimeoutRef.current) {
-        clearTimeout(stableTimeoutRef.current);
-        stableTimeoutRef.current = null;
-      }
       
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
