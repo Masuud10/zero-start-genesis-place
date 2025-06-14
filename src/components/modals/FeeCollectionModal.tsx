@@ -102,7 +102,7 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
     };
 
     loadStudentFees();
-  }, [user?.school_id]);
+  }, [user?.school_id, toast]);
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
