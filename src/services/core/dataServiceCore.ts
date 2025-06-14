@@ -1,11 +1,15 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
+import type { Database } from '@/integrations/supabase/types';
+
+// Type for valid table names
+type TableName = keyof Database['public']['Tables'];
 
 // Core service for basic CRUD operations
 export class DataServiceCore {
   static async createRecord<T>(
-    table: string, 
+    table: TableName, 
     data: Partial<T>, 
     requiresSchoolScope: boolean = true
   ) {
@@ -15,8 +19,8 @@ export class DataServiceCore {
         : data;
 
       const { data: result, error } = await supabase
-        .from(table)
-        .insert(scopedData)
+        .from(table as any)
+        .insert(scopedData as any)
         .select()
         .single();
 
@@ -29,14 +33,14 @@ export class DataServiceCore {
   }
 
   static async updateRecord<T>(
-    table: string,
+    table: TableName,
     id: string,
     updates: Partial<T>
   ) {
     try {
       const { data, error } = await supabase
-        .from(table)
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .from(table as any)
+        .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq('id', id)
         .select()
         .single();
@@ -49,18 +53,18 @@ export class DataServiceCore {
     }
   }
 
-  static async deleteRecord(table: string, id: string, softDelete: boolean = true) {
+  static async deleteRecord(table: TableName, id: string, softDelete: boolean = true) {
     try {
       if (softDelete) {
         const { error } = await supabase
-          .from(table)
-          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .from(table as any)
+          .update({ is_active: false, updated_at: new Date().toISOString() } as any)
           .eq('id', id);
         
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from(table)
+          .from(table as any)
           .delete()
           .eq('id', id);
         
@@ -75,12 +79,12 @@ export class DataServiceCore {
   }
 
   static async fetchRecords<T>(
-    table: string,
+    table: TableName,
     filters?: Record<string, any>,
     selectFields?: string
   ) {
     try {
-      let query = supabase.from(table).select(selectFields || '*');
+      let query = supabase.from(table as any).select(selectFields || '*');
       
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
