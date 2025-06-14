@@ -65,10 +65,12 @@ export const useAuthStateListener = ({
           } catch (profileError) {
             console.error('🔐 AuthStateListener: Profile fetch failed:', profileError);
             
-            // Create enhanced fallback user with proper role determination
+            // Create enhanced fallback user with improved role determination
             let fallbackRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
             
             if (!fallbackRole) {
+              console.log('🔐 AuthStateListener: Determining fallback role for user:', session.user.email);
+              
               if (session.user.email?.includes('@elimisha') || session.user.email === 'masuud@gmail.com') {
                 fallbackRole = 'elimisha_admin';
               } else if (session.user.email?.includes('admin')) {
@@ -84,6 +86,8 @@ export const useAuthStateListener = ({
               } else {
                 fallbackRole = 'parent';
               }
+              
+              console.log('🔐 AuthStateListener: Assigned fallback role:', fallbackRole, 'for email:', session.user.email);
             }
             
             const fallbackUser = {
@@ -116,6 +120,8 @@ export const useAuthStateListener = ({
           let fallbackRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
           
           if (!fallbackRole) {
+            console.log('🔐 AuthStateListener: Error fallback - determining role for user:', session.user.email);
+            
             if (session.user.email?.includes('@elimisha') || session.user.email === 'masuud@gmail.com') {
               fallbackRole = 'elimisha_admin';
             } else if (session.user.email?.includes('admin')) {
@@ -131,6 +137,8 @@ export const useAuthStateListener = ({
             } else {
               fallbackRole = 'parent';
             }
+            
+            console.log('🔐 AuthStateListener: Error fallback assigned role:', fallbackRole, 'for email:', session.user.email);
           }
           
           const fallbackUser = {
