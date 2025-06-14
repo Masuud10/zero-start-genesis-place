@@ -12,9 +12,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Megaphone, Send, Archive, Eye, Users, Bell, Filter, Search } from 'lucide-react';
 import { useEnhancedAnnouncements, AnnouncementFilters } from '@/hooks/useEnhancedAnnouncements';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import BroadcastAnnouncementDialog from './communication/BroadcastAnnouncementDialog';
-import AnnouncementFilters from './communication/AnnouncementFilters';
+import AnnouncementFiltersComponent from './communication/AnnouncementFilters';
 import AnnouncementsList from './communication/AnnouncementsList';
 import AnnouncementMetrics from './communication/AnnouncementMetrics';
 
@@ -136,7 +136,7 @@ const CommunicationCenterModule = () => {
                 className="pl-10"
               />
             </div>
-            <AnnouncementFilters 
+            <AnnouncementFiltersComponent 
               filters={filters} 
               onFiltersChange={(newFilters) => setFilters({ ...newFilters, is_archived: false })}
             />
@@ -161,7 +161,7 @@ const CommunicationCenterModule = () => {
                 className="pl-10"
               />
             </div>
-            <AnnouncementFilters 
+            <AnnouncementFiltersComponent 
               filters={filters} 
               onFiltersChange={(newFilters) => setFilters({ ...newFilters, is_archived: true })}
             />

@@ -95,9 +95,27 @@ export const useEnhancedAnnouncements = (filters?: AnnouncementFilters) => {
 
       if (error) throw error;
 
-      const formattedData = data?.map(item => ({
-        ...item,
-        creator_name: item.profiles?.name
+      const formattedData: EnhancedAnnouncement[] = data?.map(item => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        target_audience: item.target_audience || [],
+        created_by: item.created_by,
+        school_id: item.school_id,
+        expiry_date: item.expiry_date,
+        attachments: item.attachments || [],
+        is_global: item.is_global,
+        created_at: item.created_at,
+        creator_name: item.profiles?.name,
+        region: item.region,
+        school_type: item.school_type,
+        priority: (item.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+        delivery_channels: item.delivery_channels || ['web'],
+        auto_archive_date: item.auto_archive_date,
+        is_archived: item.is_archived || false,
+        tags: item.tags || [],
+        read_count: item.read_count || 0,
+        total_recipients: item.total_recipients || 0
       })) || [];
 
       setAnnouncements(formattedData);
