@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface Student {
-  id: number;
+interface FeeStudent {
+  id: string;
   name: string;
   admissionNo: string;
   class: string;
@@ -18,7 +18,7 @@ interface Student {
 }
 
 interface PaymentFormProps {
-  student: Student;
+  student: FeeStudent;
   paymentAmount: string;
   setPaymentAmount: (value: string) => void;
   paymentMethod: string;

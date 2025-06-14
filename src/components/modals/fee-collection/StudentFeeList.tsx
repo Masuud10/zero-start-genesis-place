@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus } from 'lucide-react';
 
-interface Student {
-  id: number;
+interface FeeStudent {
+  id: string;
   name: string;
   admissionNo: string;
   class: string;
@@ -17,8 +17,8 @@ interface Student {
 }
 
 interface StudentFeeListProps {
-  students: Student[];
-  onRecordPayment: (student: Student) => void;
+  students: FeeStudent[];
+  onRecordPayment: (student: FeeStudent) => void;
 }
 
 const StudentFeeList: React.FC<StudentFeeListProps> = ({

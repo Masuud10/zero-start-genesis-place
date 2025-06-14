@@ -105,13 +105,17 @@ export const useMessages = () => {
     }
 
     try {
+      // Generate a conversation ID based on the participants
+      const conversationId = [user.id, receiverId].sort().join('-');
+
       const { data, error } = await supabase
         .from('messages')
         .insert({
           sender_id: user.id,
           receiver_id: receiverId,
           content: content.trim(),
-          school_id: user.school_id
+          school_id: user.school_id,
+          conversation_id: conversationId
         })
         .select()
         .single();

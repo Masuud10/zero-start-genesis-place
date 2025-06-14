@@ -10,7 +10,7 @@ import FeeFilters from './fee-collection/FeeFilters';
 import StudentFeeList from './fee-collection/StudentFeeList';
 import PaymentForm from './fee-collection/PaymentForm';
 
-interface Student {
+interface FeeStudent {
   id: string;
   name: string;
   admissionNo: string;
@@ -29,10 +29,10 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<FeeStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<FeeStudent | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [mpesaCode, setMpesaCode] = useState('');
@@ -69,7 +69,7 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
         }
 
         // Transform the data
-        const transformedStudents: Student[] = (studentsData || []).map(student => {
+        const transformedStudents: FeeStudent[] = (studentsData || []).map(student => {
           const totalFees = student.fees?.reduce((sum: number, fee: any) => sum + (fee.amount || 0), 0) || 0;
           const paidAmount = student.fees?.reduce((sum: number, fee: any) => sum + (fee.paid_amount || 0), 0) || 0;
           const lastPayment = student.fees
@@ -182,7 +182,7 @@ const FeeCollectionModal: React.FC<FeeCollectionModalProps> = ({ onClose }) => {
     }
   };
 
-  const openPaymentForm = (student: Student) => {
+  const openPaymentForm = (student: FeeStudent) => {
     setSelectedStudent(student);
     setShowPaymentForm(true);
   };
