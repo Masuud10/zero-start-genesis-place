@@ -67,6 +67,30 @@ export class MultiTenantUtils {
     }
   }
 
+  static async ensureSchoolScope<T extends { school_id?: string }>(data: T): Promise<T> {
+    try {
+      const scope = await this.getCurrentUserScope();
+      
+      // System admins can work with any school
+      if (scope.isSystemAdmin) {
+        return data;
+      }
+
+      // For school-level users, ensure they can only work with their school
+      if (scope.schoolId) {
+        return {
+          ...data,
+          school_id: scope.schoolId
+        };
+      }
+
+      throw new Error('User has no associated school');
+    } catch (error) {
+      console.error('MultiTenantUtils: Error ensuring school scope:', error);
+      throw error;
+    }
+  }
+
   static getRoleCapabilities(role: string): RoleCapabilities {
     switch (role) {
       case 'elimisha_admin':

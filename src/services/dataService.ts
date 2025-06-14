@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
@@ -446,6 +445,8 @@ export class DataService {
   // Reporting
   static async generateStudentReport(studentId: string, academicYear: string, term: string) {
     try {
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      
       const query = supabase
         .from('students')
         .select(`
@@ -474,8 +475,7 @@ export class DataService {
         `)
         .eq('id', studentId);
 
-      if (!await MultiTenantUtils.isSystemAdmin()) {
-        const scope = await MultiTenantUtils.getCurrentUserScope();
+      if (!scope.isSystemAdmin) {
         query.eq('school_id', scope.schoolId);
       }
 
@@ -491,6 +491,8 @@ export class DataService {
 
   static async generateClassReport(classId: string, academicYear: string, term: string) {
     try {
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      
       const query = supabase
         .from('classes')
         .select(`
@@ -505,8 +507,7 @@ export class DataService {
         `)
         .eq('id', classId);
 
-      if (!await MultiTenantUtils.isSystemAdmin()) {
-        const scope = await MultiTenantUtils.getCurrentUserScope();
+      if (!scope.isSystemAdmin) {
         query.eq('school_id', scope.schoolId);
       }
 
@@ -522,6 +523,8 @@ export class DataService {
 
   static async generateFinancialReport(schoolId?: string, academicYear?: string) {
     try {
+      const scope = await MultiTenantUtils.getCurrentUserScope();
+      
       let query = supabase
         .from('financial_transactions')
         .select(`
@@ -532,8 +535,7 @@ export class DataService {
 
       if (schoolId) {
         query = query.eq('school_id', schoolId);
-      } else if (!await MultiTenantUtils.isSystemAdmin()) {
-        const scope = await MultiTenantUtils.getCurrentUserScope();
+      } else if (!scope.isSystemAdmin) {
         query = query.eq('school_id', scope.schoolId);
       }
 

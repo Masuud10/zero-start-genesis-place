@@ -22,3 +22,41 @@ export interface GradingStudent {
   position?: number;
   isAbsent?: boolean;
 }
+
+export interface Grade {
+  id: string;
+  studentId: string;
+  subjectId: string;
+  classId: string;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  position?: number;
+  term: string;
+  examType: string;
+  submittedBy: string;
+  submittedAt: string;
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  comments?: string;
+  isReleased: boolean;
+  isImmutable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BulkGradeSubmission {
+  id: string;
+  classId: string;
+  subjectId: string;
+  term: string;
+  examType: string;
+  totalStudents: number;
+  gradesEntered: number;
+  submittedBy: string;
+  submittedAt: string;
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
+  principalNotes?: string;
+  releasedAt?: string;
+}
