@@ -60,7 +60,7 @@ const Dashboard = () => {
     );
   }
 
-  // Validate user role - fix the validation logic
+  // Validate user role
   const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
   const userRole = user.role as UserRole;
   

@@ -1,80 +1,39 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const LoadingScreen = () => {
-  const [loadingText, setLoadingText] = useState('Loading EduFam...');
-  const [progress, setProgress] = useState(0);
+  const [showSlowWarning, setShowSlowWarning] = useState(false);
 
   useEffect(() => {
-    const messages = [
-      'Loading EduFam...',
-      'Preparing your dashboard...',
-      'Setting up your workspace...',
-      'Almost ready...'
-    ];
-
-    let messageIndex = 0;
-    let progressValue = 0;
-
-    const interval = setInterval(() => {
-      // Update progress
-      progressValue += Math.random() * 15 + 5; // Random increment between 5-20
-      if (progressValue > 90) progressValue = 90; // Cap at 90% to avoid 100% before actually loaded
-      setProgress(progressValue);
-
-      // Update message every 2 seconds
-      if (progressValue > 25 && messageIndex < messages.length - 1) {
-        messageIndex++;
-        setLoadingText(messages[messageIndex]);
-      }
-
-      // Clear interval after reasonable time to prevent infinite loading
-      if (progressValue >= 90) {
-        clearInterval(interval);
-        // Set final message after a delay
-        setTimeout(() => {
-          setLoadingText('Finalizing...');
-          setProgress(95);
-        }, 1000);
-      }
-    }, 800);
-
-    // Cleanup timeout to prevent memory leaks
-    const timeoutId = setTimeout(() => {
-      clearInterval(interval);
+    const timer = setTimeout(() => {
+      setShowSlowWarning(true);
       console.warn('LoadingScreen: Taking longer than expected');
-      setLoadingText('This is taking longer than expected...');
-    }, 15000);
+    }, 10000); // Show warning after 10 seconds
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeoutId);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <div className="text-center space-y-6 max-w-md mx-auto px-4">
-        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse shadow-lg">
+      <div className="text-center space-y-4 max-w-md mx-auto p-6">
+        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
           <span className="text-2xl text-white">🎓</span>
         </div>
-        
-        <div className="space-y-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-lg font-medium text-blue-900">{loadingText}</p>
-          <p className="text-sm text-gray-600">Preparing your school management experience</p>
-        </div>
-        
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-        
-        <div className="text-xs text-gray-400">
-          {progress < 90 ? `${Math.round(progress)}%` : 'Almost there...'}
-        </div>
+        <h2 className="text-xl font-semibold text-gray-800">Loading EduFam</h2>
+        <p className="text-muted-foreground">
+          {showSlowWarning 
+            ? "This is taking longer than usual. Please check your connection."
+            : "Setting up your school management system..."
+          }
+        </p>
+        {showSlowWarning && (
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+          >
+            Refresh Page
+          </button>
+        )}
       </div>
     </div>
   );

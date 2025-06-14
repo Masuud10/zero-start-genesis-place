@@ -69,14 +69,14 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
 
       // For system admins, fetch all schools
       if (user.role === 'elimisha_admin' || user.role === 'edufam_admin') {
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from('schools')
           .select('*')
           .order('name');
 
-        if (error) {
-          console.error('🏫 SchoolProvider: Admin school fetch error:', error);
-          throw error;
+        if (fetchError) {
+          console.error('🏫 SchoolProvider: Admin school fetch error:', fetchError);
+          throw fetchError;
         }
         
         setSchools(data || []);
@@ -84,17 +84,17 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       } 
       // For school-specific users, fetch their school
       else if (user.school_id) {
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from('schools')
           .select('*')
           .eq('id', user.school_id)
           .maybeSingle();
 
-        if (error) {
-          console.warn('🏫 SchoolProvider: School fetch error:', error);
+        if (fetchError) {
+          console.warn('🏫 SchoolProvider: School fetch error:', fetchError);
           setSchools([]);
           setCurrentSchool(null);
-          setError(`Failed to fetch school: ${error.message}`);
+          setError(`Failed to fetch school: ${fetchError.message}`);
         } else if (data) {
           setSchools([data]);
           setCurrentSchool(data);
