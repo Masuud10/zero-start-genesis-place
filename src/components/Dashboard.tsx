@@ -138,7 +138,7 @@ const Dashboard = () => {
       <DashboardModals 
         activeModal={activeModal}
         onClose={() => setActiveModal(null)}
-        userRole={userRole}
+        user={user}
       />
     </div>
   );
