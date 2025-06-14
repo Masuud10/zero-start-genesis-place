@@ -13,7 +13,6 @@ import TeacherAnalytics from './TeacherAnalytics';
 import ParentAnalytics from './ParentAnalytics';
 import FinanceOfficerAnalytics from './FinanceOfficerAnalytics';
 import EduFamAdminAnalytics from './EduFamAdminAnalytics';
-import ElimshaAdminAnalytics from './ElimshaAdminAnalytics';
 
 const AnalyticsDashboard = () => {
   const { user } = useAuth();
@@ -80,8 +79,6 @@ const AnalyticsDashboard = () => {
         return 'Finance Analytics';
       case 'edufam_admin':
         return 'EduFam Admin Analytics';
-      case 'elimisha_admin':
-        return 'Elimisha Admin Analytics';
       default:
         return 'Analytics Dashboard';
     }
@@ -89,8 +86,6 @@ const AnalyticsDashboard = () => {
 
   const getRoleDescription = () => {
     switch (user?.role) {
-      case 'elimisha_admin':
-        return 'System-wide monitoring and management dashboard';
       case 'edufam_admin':
         return 'Network-wide performance and insights';
       case 'school_owner':
@@ -146,8 +141,6 @@ const AnalyticsDashboard = () => {
           return <FinanceOfficerAnalytics filters={filters} />;
         case 'edufam_admin':
           return <EduFamAdminAnalytics filters={filters} />;
-        case 'elimisha_admin':
-          return <ElimshaAdminAnalytics filters={filters} />;
         default:
           return (
             <Card>

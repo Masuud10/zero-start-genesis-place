@@ -61,7 +61,7 @@ const Dashboard = () => {
   }
 
   // Validate user role - fix the validation logic
-  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'];
+  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
   const userRole = user.role as UserRole;
   
   if (!userRole || !validRoles.includes(userRole)) {

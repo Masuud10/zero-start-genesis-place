@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +14,6 @@ import {
 } from 'lucide-react';
 import DataPipelineMonitor from './DataPipelineMonitor';
 import RealtimeAnalytics from './RealtimeAnalytics';
-import ElimshaAdminAnalytics from './ElimshaAdminAnalytics';
 import EduFamAdminAnalytics from './EduFamAdminAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -29,7 +27,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
-  const isSystemAdmin = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
+  const isSystemAdmin = user?.role === 'edufam_admin';
   
   return (
     <div className="space-y-6">
@@ -78,9 +76,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
         </TabsList>
 
         <TabsContent value="overview">
-          {user?.role === 'elimisha_admin' ? (
-            <ElimshaAdminAnalytics filters={filters} />
-          ) : user?.role === 'edufam_admin' ? (
+          {user?.role === 'edufam_admin' ? (
             <EduFamAdminAnalytics filters={filters} />
           ) : (
             <Card>
