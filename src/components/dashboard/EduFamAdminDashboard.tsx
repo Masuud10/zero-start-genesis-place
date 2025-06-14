@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, BarChart3, Shield, School, UserPlus, TrendingUp, Activity, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Building2, Users, BarChart3, Shield, School, UserPlus, TrendingUp, Activity, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import CreateUserDialog from '@/components/modules/users/CreateUserDialog';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolService } from '@/services/schoolService';
@@ -15,8 +15,14 @@ interface EduFamAdminDashboardProps {
 const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch schools data with better error handling
-  const { data: schoolsData = [], isLoading: schoolsLoading, error: schoolsError, refetch: refetchSchools } = useQuery({
+  // Fetch schools data with comprehensive error handling
+  const { 
+    data: schoolsData = [], 
+    isLoading: schoolsLoading, 
+    error: schoolsError, 
+    refetch: refetchSchools,
+    isRefetching: schoolsRefetching 
+  } = useQuery({
     queryKey: ['admin-schools', refreshKey],
     queryFn: async () => {
       console.log('🏫 EduFamAdmin: Fetching schools data');
@@ -26,19 +32,33 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
           console.error('🏫 EduFamAdmin: School fetch error:', result.error);
           throw new Error(result.error.message || 'Failed to fetch schools');
         }
-        console.log('🏫 EduFamAdmin: Schools fetched successfully:', result.data?.length || 0);
-        return result.data || [];
+        
+        const schools = result.data || [];
+        console.log('🏫 EduFamAdmin: Schools fetched successfully:', schools.length);
+        
+        // Validate and clean school data
+        return schools.filter(school => school && typeof school === 'object' && school.id);
       } catch (error) {
         console.error('🏫 EduFamAdmin: Exception fetching schools:', error);
         throw error;
       }
     },
-    retry: 2,
-    refetchOnWindowFocus: false
+    retry: (failureCount, error) => {
+      console.log('🏫 EduFamAdmin: Retry attempt', failureCount, 'for schools');
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // 30 seconds
   });
 
-  // Fetch users data with better error handling
-  const { data: usersData = [], isLoading: usersLoading, error: usersError, refetch: refetchUsers } = useQuery({
+  // Fetch users data with comprehensive error handling
+  const { 
+    data: usersData = [], 
+    isLoading: usersLoading, 
+    error: usersError, 
+    refetch: refetchUsers,
+    isRefetching: usersRefetching 
+  } = useQuery({
     queryKey: ['admin-users', refreshKey],
     queryFn: async () => {
       console.log('👥 EduFamAdmin: Fetching users data');
@@ -48,34 +68,67 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
           console.error('👥 EduFamAdmin: User fetch error:', error);
           throw new Error(error.message || 'Failed to fetch users');
         }
-        console.log('👥 EduFamAdmin: Users fetched successfully:', data?.length || 0);
-        return data || [];
+        
+        const users = data || [];
+        console.log('👥 EduFamAdmin: Users fetched successfully:', users.length);
+        
+        // Validate and clean user data
+        return users.filter(user => user && typeof user === 'object' && user.id);
       } catch (error) {
         console.error('👥 EduFamAdmin: Exception fetching users:', error);
         throw error;
       }
     },
-    retry: 2,
-    refetchOnWindowFocus: false
+    retry: (failureCount, error) => {
+      console.log('👥 EduFamAdmin: Retry attempt', failureCount, 'for users');
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // 30 seconds
   });
 
   const handleUserCreated = () => {
     console.log('👥 EduFamAdmin: User created, refreshing data');
     setRefreshKey(prev => prev + 1);
-    refetchUsers();
   };
 
-  const handleRetry = () => {
-    console.log('🔄 EduFamAdmin: Retrying data fetch');
+  const handleRetryAll = () => {
+    console.log('🔄 EduFamAdmin: Retrying all data fetch');
     setRefreshKey(prev => prev + 1);
     refetchSchools();
     refetchUsers();
   };
 
-  // Calculate user statistics with validation
+  // Calculate user statistics with enhanced validation
   const userStats = React.useMemo(() => {
-    if (!Array.isArray(usersData)) {
-      console.warn('👥 EduFamAdmin: Invalid users data format');
+    try {
+      if (!Array.isArray(usersData)) {
+        console.warn('👥 EduFamAdmin: Invalid users data format:', typeof usersData);
+        return {
+          totalUsers: 0,
+          usersWithSchools: 0,
+          usersWithoutSchools: 0,
+          roleBreakdown: {}
+        };
+      }
+
+      const validUsers = usersData.filter(user => user && typeof user === 'object' && user.id);
+      
+      const stats = {
+        totalUsers: validUsers.length,
+        usersWithSchools: validUsers.filter(u => u.school_id).length,
+        usersWithoutSchools: validUsers.filter(u => !u.school_id).length,
+        roleBreakdown: validUsers.reduce((acc: Record<string, number>, user) => {
+          const role = user.role || 'unknown';
+          acc[role] = (acc[role] || 0) + 1;
+          return acc;
+        }, {})
+      };
+      
+      console.log('📊 EduFamAdmin: User stats calculated:', stats);
+      return stats;
+    } catch (error) {
+      console.error('📊 EduFamAdmin: Error calculating user stats:', error);
       return {
         totalUsers: 0,
         usersWithSchools: 0,
@@ -83,19 +136,6 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         roleBreakdown: {}
       };
     }
-
-    const validUsers = usersData.filter(user => user && typeof user === 'object');
-    
-    return {
-      totalUsers: validUsers.length,
-      usersWithSchools: validUsers.filter(u => u.school_id).length,
-      usersWithoutSchools: validUsers.filter(u => !u.school_id).length,
-      roleBreakdown: validUsers.reduce((acc: Record<string, number>, user) => {
-        const role = user.role || 'unknown';
-        acc[role] = (acc[role] || 0) + 1;
-        return acc;
-      }, {})
-    };
   }, [usersData]);
 
   // System overview cards configuration
@@ -108,7 +148,8 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       gradient: "from-blue-500 to-blue-600",
       bgGradient: "from-blue-50 to-blue-100",
       change: "+12%",
-      trend: "up" as const
+      trend: "up" as const,
+      loading: schoolsLoading || schoolsRefetching
     },
     {
       title: "Total Users",
@@ -118,7 +159,8 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       gradient: "from-emerald-500 to-emerald-600",
       bgGradient: "from-emerald-50 to-emerald-100",
       change: "+8%",
-      trend: "up" as const
+      trend: "up" as const,
+      loading: usersLoading || usersRefetching
     },
     {
       title: "Users Assigned",
@@ -128,7 +170,8 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       gradient: "from-purple-500 to-purple-600",
       bgGradient: "from-purple-50 to-purple-100",
       change: "+15%",
-      trend: "up" as const
+      trend: "up" as const,
+      loading: usersLoading || usersRefetching
     },
     {
       title: "Unassigned Users",
@@ -138,23 +181,29 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       gradient: "from-orange-500 to-orange-600",
       bgGradient: "from-orange-50 to-orange-100",
       change: "-5%",
-      trend: "down" as const
+      trend: "down" as const,
+      loading: usersLoading || usersRefetching
     }
   ];
 
-  // Show error state if both queries failed
+  // Show comprehensive error state if both queries failed
   if (schoolsError && usersError) {
     return (
       <div className="space-y-6">
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Dashboard</h3>
+            <h3 className="text-lg font-semibold text-red-900 mb-2">Dashboard Loading Failed</h3>
             <p className="text-red-700 mb-4">
-              Failed to load dashboard data. Please check your connection and try again.
+              Unable to load dashboard data. Please check your connection and try again.
             </p>
-            <Button onClick={handleRetry} variant="outline" className="border-red-300 text-red-700">
-              Try Again
+            <div className="space-y-2 text-sm text-red-600 mb-4">
+              {schoolsError && <p>Schools Error: {schoolsError.message}</p>}
+              {usersError && <p>Users Error: {usersError.message}</p>}
+            </div>
+            <Button onClick={handleRetryAll} variant="outline" className="border-red-300 text-red-700">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry All
             </Button>
           </CardContent>
         </Card>
@@ -164,7 +213,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Compact System Overview Cards */}
+      {/* Enhanced System Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {systemOverviewCards.map((card, index) => (
           <Card key={index} className="group hover:shadow-md transition-all duration-200 border-0 shadow-sm overflow-hidden relative">
@@ -184,7 +233,11 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
               <div className="space-y-1">
                 <p className="text-xs font-medium text-gray-600">{card.title}</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {(schoolsLoading || usersLoading) ? '...' : card.value}
+                  {card.loading ? (
+                    <span className="animate-pulse">...</span>
+                  ) : (
+                    card.value
+                  )}
                 </p>
                 <p className="text-xs text-gray-500">{card.description}</p>
               </div>
@@ -193,7 +246,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Enhanced Quick Actions */}
       <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-3 text-lg">
@@ -218,6 +271,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
               </div>
               <span className="font-medium text-xs">Manage Schools</span>
             </Button>
+            
             <Button 
               variant="outline" 
               className="h-16 flex-col gap-2 hover:bg-gradient-to-br hover:from-emerald-50 hover:to-emerald-100 border-2 hover:border-emerald-200 transition-all duration-200 group"
@@ -228,6 +282,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
               </div>
               <span className="font-medium text-xs">Manage Users</span>
             </Button>
+            
             <Button 
               variant="outline" 
               className="h-16 flex-col gap-2 hover:bg-gradient-to-br hover:from-purple-50 hover:to-purple-100 border-2 hover:border-purple-200 transition-all duration-200 group"
@@ -238,6 +293,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
               </div>
               <span className="font-medium text-xs">System Analytics</span>
             </Button>
+            
             <CreateUserDialog onUserCreated={handleUserCreated}>
               <Button 
                 variant="outline" 
@@ -253,7 +309,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         </CardContent>
       </Card>
 
-      {/* Recent Schools */}
+      {/* Enhanced Recent Schools Section */}
       <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-lg">
@@ -261,6 +317,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
               <Building2 className="h-4 w-4 text-white" />
             </div>
             Recent Schools
+            {schoolsLoading && <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />}
           </CardTitle>
           <CardDescription>
             Latest educational institutions joining the platform
@@ -276,7 +333,9 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
             <div className="text-center py-8">
               <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
               <p className="text-red-600 mb-3">Failed to load schools</p>
-              <Button onClick={() => refetchSchools()} variant="outline" size="sm">
+              <p className="text-sm text-red-500 mb-3">{schoolsError.message}</p>
+              <Button onClick={refetchSchools} variant="outline" size="sm">
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Retry
               </Button>
             </div>
@@ -316,7 +375,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         </CardContent>
       </Card>
 
-      {/* User Role Breakdown */}
+      {/* Enhanced User Role Breakdown */}
       {userStats.totalUsers > 0 && (
         <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
           <CardHeader>
@@ -325,6 +384,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
                 <Users className="h-4 w-4 text-white" />
               </div>
               User Role Distribution
+              {usersLoading && <RefreshCw className="h-4 w-4 animate-spin text-purple-500" />}
             </CardTitle>
             <CardDescription>
               Active user breakdown across all educational institutions
@@ -356,6 +416,26 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Global Error Display */}
+      {(schoolsError || usersError) && !(schoolsError && usersError) && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-yellow-700">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm font-medium">Partial Data Loading Issue</span>
+            </div>
+            <div className="mt-2 text-sm text-yellow-600">
+              {schoolsError && <p>Schools: {schoolsError.message}</p>}
+              {usersError && <p>Users: {usersError.message}</p>}
+            </div>
+            <Button onClick={handleRetryAll} variant="outline" size="sm" className="mt-3">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry Failed Requests
+            </Button>
           </CardContent>
         </Card>
       )}
