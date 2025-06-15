@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -121,7 +122,7 @@ const PrincipalDashboard = () => {
           .in('action', ['create', 'update'])
           .order('created_at', { ascending: false })
           .limit(5)
-      ]);
+      ] as const);
 
       const studentsCount =
         studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
