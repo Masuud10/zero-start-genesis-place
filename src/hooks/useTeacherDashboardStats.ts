@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -69,12 +68,11 @@ export function useTeacherDashboardStats(user: AuthUser) {
       let todaysClasses = 0;
       if (classIds.length > 0) {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-        const q = supabase
+        const { data: timetableSlots, error: ttErr } = await supabase
           .from('timetable_slots')
           .select('id')
           .in('class_id', classIds)
           .eq('day', today);
-        const { data: timetableSlots, error: ttErr } = await q;
         if (ttErr) throw ttErr;
         todaysClasses = timetableSlots?.length ?? 0;
       } else {
