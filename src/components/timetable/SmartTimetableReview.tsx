@@ -13,10 +13,15 @@ interface TimetableRow {
   day_of_week: string;
   start_time: string;
   end_time: string;
-  // Optionally: subjectName, teacherName (we'll skip for now, can add later)
 }
 
-const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: () => void }) => {
+const SmartTimetableReview = ({
+  term,
+  onPublish,
+}: {
+  term: string;
+  onPublish: () => void;
+}) => {
   const { user } = useAuth();
   const [rows, setRows] = useState<TimetableRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +32,7 @@ const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: ()
     setLoading(true);
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("timetables")
           .select(
             "id,class_id,subject_id,teacher_id,day_of_week,start_time,end_time"
@@ -35,7 +40,27 @@ const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: ()
           .eq("school_id", user.school_id)
           .eq("term", term)
           .eq("is_published", false);
-        setRows((data ?? []) as TimetableRow[]);
+
+        // Must be an array AND match our expected keys
+        if (
+          error ||
+          !Array.isArray(data) ||
+          data.some(
+            (row) =>
+              !row ||
+              typeof row.id === "undefined" ||
+              typeof row.class_id === "undefined" ||
+              typeof row.subject_id === "undefined" ||
+              typeof row.teacher_id === "undefined" ||
+              typeof row.day_of_week === "undefined" ||
+              typeof row.start_time === "undefined" ||
+              typeof row.end_time === "undefined"
+          )
+        ) {
+          setRows([]);
+        } else {
+          setRows(data as TimetableRow[]);
+        }
       } catch (e) {
         setRows([]);
       } finally {

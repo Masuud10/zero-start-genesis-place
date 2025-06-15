@@ -51,8 +51,26 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
       Object.entries(filter).forEach(([k, v]) => {
         q = q.eq(k, v);
       });
-      const { data } = await q;
-      setRows((data ?? []) as TimetableRow[]);
+      const { data, error } = await q;
+      if (
+        error ||
+        !Array.isArray(data) ||
+        data.some(
+          (row) =>
+            !row ||
+            typeof row.id === "undefined" ||
+            typeof row.class_id === "undefined" ||
+            typeof row.subject_id === "undefined" ||
+            typeof row.teacher_id === "undefined" ||
+            typeof row.day_of_week === "undefined" ||
+            typeof row.start_time === "undefined" ||
+            typeof row.end_time === "undefined"
+        )
+      ) {
+        setRows([]);
+      } else {
+        setRows(data as TimetableRow[]);
+      }
       setLoading(false);
     };
     fetch();
