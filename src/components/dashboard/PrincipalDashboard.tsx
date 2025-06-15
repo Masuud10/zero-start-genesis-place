@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,8 @@ import ReportActionsPanel from './principal/ReportActionsPanel';
 import EntityPreviewPanels from './principal/EntityPreviewPanels';
 import QuickActionsCard from './principal/QuickActionsCard';
 import RecentActivitiesPanel from './principal/RecentActivitiesPanel';
+import SmartTimetableGenerator from "@/components/timetable/SmartTimetableGenerator";
+import SmartTimetableReview from "@/components/timetable/SmartTimetableReview";
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -245,6 +246,10 @@ const PrincipalDashboard = () => {
         />
 
         <RecentActivitiesPanel recentActivities={recentActivities} />
+
+        {/* ======= 🧠 SMART TIMETABLE INTEGRATION ======= */}
+        <SmartTimetableGenerator term={String(new Date().getFullYear())} onGenerationSuccess={() => {}} />
+        <SmartTimetableReview term={String(new Date().getFullYear())} onPublish={() => {}} />
 
         <EntityPreviewPanels
           classList={classList}

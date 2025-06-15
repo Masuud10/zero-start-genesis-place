@@ -1645,6 +1645,39 @@ export type Database = {
           },
         ]
       }
+      school_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_periods_per_day: number
+          min_break_minutes: number
+          no_lessons_days: string[] | null
+          preferred_break_times: Json | null
+          school_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_periods_per_day?: number
+          min_break_minutes?: number
+          no_lessons_days?: string[] | null
+          preferred_break_times?: Json | null
+          school_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_periods_per_day?: number
+          min_break_minutes?: number
+          no_lessons_days?: string[] | null
+          preferred_break_times?: Json | null
+          school_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       schools: {
         Row: {
           address: string | null
@@ -2097,6 +2130,36 @@ export type Database = {
           },
         ]
       }
+      subjects_priority: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_core: boolean
+          priority_weight: number
+          school_id: string
+          subject_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_core?: boolean
+          priority_weight?: number
+          school_id: string
+          subject_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_core?: boolean
+          priority_weight?: number
+          school_id?: string
+          subject_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount: number
@@ -2358,6 +2421,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      teachers_availability: {
+        Row: {
+          created_at: string | null
+          day_of_week: string
+          end_time: string
+          id: string
+          is_available: boolean
+          school_id: string
+          start_time: string
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: string
+          end_time: string
+          id?: string
+          is_available?: boolean
+          school_id: string
+          start_time: string
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          school_id?: string
+          start_time?: string
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       timetable_slots: {
         Row: {
