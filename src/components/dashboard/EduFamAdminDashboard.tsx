@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -41,11 +42,10 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     setRefreshKey((prev) => prev + 1);
   };
 
-  // Always pass local handleModalOpen to AdministrativeHub and modals!
   const handleModalOpen = (modalType: string) => {
     console.log('[EduFamAdminDashboard] handleModalOpen called with:', modalType);
     setActiveModal(modalType);
-    if (onModalOpen) onModalOpen(modalType); // notify parent if needed
+    if (onModalOpen) onModalOpen(modalType);
   };
 
   const handleModalClose = () => {
@@ -53,7 +53,6 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     setActiveModal(null);
   };
 
-  // Called from modals (SchoolsModule, UsersModule) after data has changed
   const handleDataChangedInModal = () => {
     console.log('[EduFamAdminDashboard] Data changed in modal, refreshing dashboard');
     setRefreshKey((prev) => prev + 1);
@@ -90,10 +89,21 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     </div>
   );
 
-  /* Comprehensive error state: both queries failed. */
+  // Only show 1 error display, not both before and nested in render
   if (schoolsError && usersError) {
-    return <ErrorDisplay schoolsError={schoolsError} usersError={usersError} onRetryAll={handleRetryAll} />;
+    return (
+      <div className="space-y-6">
+        <ErrorDisplay
+          schoolsError={schoolsError}
+          usersError={usersError}
+          onRetryAll={handleRetryAll}
+        />
+      </div>
+    );
   }
+
+  // New: Always wrap each button with a catch for errors and log them
+  // New: Stronger defensive for possibly missing values (count, arrays, etc.)
 
   return (
     <div className="space-y-6">
@@ -113,19 +123,20 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         usersRefetching={usersRefetching}
       />
 
-      {/* Pass correct handleModalOpen property! */}
       <AdministrativeHub
         onModalOpen={handleModalOpen}
         onUserCreated={handleUserCreated}
       />
 
-      {/* Admin modals */}
-      <DashboardModals
-        activeModal={activeModal}
-        onClose={handleModalClose}
-        user={null}
-        onDataChanged={handleDataChangedInModal}
-      />
+      {/* Only render modals when an activeModal is open except null */}
+      {activeModal && (
+        <DashboardModals
+          activeModal={activeModal}
+          onClose={handleModalClose}
+          user={null}
+          onDataChanged={handleDataChangedInModal}
+        />
+      )}
 
       <RecentSchoolsSection
         schoolsData={schoolsData}
@@ -141,7 +152,8 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         usersLoading={usersLoading}
       />
 
-      {(schoolsError || usersError) && (
+      {/* Only show a single fallback error display if one of the errors exist (not both) */}
+      {((schoolsError && !usersError) || (!schoolsError && usersError)) && (
         <ErrorDisplay
           schoolsError={schoolsError}
           usersError={usersError}
