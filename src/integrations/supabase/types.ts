@@ -638,6 +638,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_classes_school"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_classes_school_id"
             columns: ["school_id"]
             isOneToOne: false
@@ -1379,7 +1386,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_profiles_school_id"
+            foreignKeyName: "fk_profiles_school"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
@@ -1676,6 +1690,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_students_school"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_students_school_id"
             columns: ["school_id"]
             isOneToOne: false
@@ -1778,6 +1799,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_subjects_school"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
@@ -2212,6 +2240,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_school_to_user: {
+        Args: { target_user_id: string; target_school_id: string }
+        Returns: Json
+      }
       auto_archive_announcements: {
         Args: Record<PropertyKey, never>
         Returns: undefined
