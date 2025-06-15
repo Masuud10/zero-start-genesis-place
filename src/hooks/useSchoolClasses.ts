@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Class } from '@/types/academics';
+import { Class } from '@/types/academic';
 
 const fetchSchoolClasses = async (schoolId: string): Promise<Class[]> => {
     const { data, error } = await supabase

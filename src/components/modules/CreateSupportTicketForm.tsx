@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useSupportTickets } from '@/hooks/useSupportTickets';
+import { useSupportTickets, NewSupportTicket } from '@/hooks/useSupportTickets';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -19,8 +19,6 @@ const ticketSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
 });
 
-type TicketFormData = z.infer<typeof ticketSchema>;
-
 interface CreateSupportTicketFormProps {
   onSuccess?: () => void;
 }
@@ -28,7 +26,7 @@ interface CreateSupportTicketFormProps {
 const CreateSupportTicketForm: React.FC<CreateSupportTicketFormProps> = ({ onSuccess }) => {
   const { createTicket } = useSupportTickets();
   const { toast } = useToast();
-  const form = useForm<TicketFormData>({
+  const form = useForm<NewSupportTicket>({
     resolver: zodResolver(ticketSchema),
     defaultValues: {
       title: '',
@@ -40,7 +38,7 @@ const CreateSupportTicketForm: React.FC<CreateSupportTicketFormProps> = ({ onSuc
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (values: TicketFormData) => {
+  const onSubmit = async (values: NewSupportTicket) => {
     const { data, error } = await createTicket(values);
 
     if (error) {
@@ -122,7 +120,7 @@ const CreateSupportTicketForm: React.FC<CreateSupportTicketFormProps> = ({ onSuc
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select priority level" />
-                    </SelectTrigger>
+                    </Trigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="low">Low</SelectItem>
