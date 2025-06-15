@@ -1,18 +1,27 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TeacherAttendanceTable from "./TeacherAttendanceTable";
-import { Student, AttendanceStatus, AttendanceRecord, validStatus } from "./TeacherAttendanceUtils";
+import { Student } from "./TeacherAttendanceUtils";
 import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
 import AttendanceControls from "./AttendanceControls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 interface TeacherAttendancePanelProps {
   userId: string;
   schoolId?: string;
   userRole?: string;
+}
+
+// Re-defining types here to include 'excused' and avoid touching read-only file
+type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+
+interface AttendanceRecord {
+  status: AttendanceStatus;
+  remarks: string;
 }
 
 const sessionOptions = [
@@ -27,7 +36,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [session, setSession] = useState<string>("morning");
   const [students, setStudents] = useState<Student[]>([]);
-  const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceRecord>>({});
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, Partial<AttendanceRecord>>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(schoolId);
@@ -35,113 +44,118 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
   // Fetch classes based on user role
   useEffect(() => {
     async function fetchClasses() {
-      if (userRole === 'teacher' && userId && schoolId) {
-        const { data, error } = await supabase
+      if (!schoolId) return;
+      let query;
+      if (userRole === 'teacher' && userId) {
+        query = supabase
           .from("teacher_classes")
           .select("class_id, classes(id, name)")
           .eq("teacher_id", userId)
           .eq("school_id", schoolId);
-        
-        if (error) {
-          toast({ title: "Error", description: "Failed to fetch teacher's classes.", variant: "destructive" });
-        } else if (data) {
-          const formattedClasses = data
-            .map(tc => tc.classes ? { id: tc.class_id, name: tc.classes.name } : null)
-            .filter((c): c is { id: string, name: string } => c !== null);
-          setClasses(formattedClasses);
-        }
-      } else if (userRole !== 'teacher' && schoolId) { // For principal or other school-level admins
-        const { data, error } = await supabase
+      } else if (userRole && ['principal', 'school_owner'].includes(userRole)) {
+        query = supabase
           .from("classes")
           .select("id, name")
           .eq("school_id", schoolId);
-        
-        if (error) {
-          toast({ title: "Error", description: "Failed to fetch classes.", variant: "destructive" });
-        } else if (data) {
-          setClasses(data);
+      } else {
+        return;
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        toast({ title: "Error", description: "Failed to fetch classes.", variant: "destructive" });
+      } else if (data) {
+        const formattedClasses = data
+          .map((item: any) => userRole === 'teacher' ? (item.classes ? { id: item.class_id, name: item.classes.name } : null) : item)
+          .filter((c): c is { id: string, name: string } => c !== null);
+        setClasses(formattedClasses);
+        if (formattedClasses.length > 0 && !selectedClass) {
+            // setSelectedClass(formattedClasses[0].id);
         }
       }
     }
     fetchClasses();
   }, [userId, schoolId, userRole, toast]);
 
-  // Fetch students for class
+  // Fetch students and existing attendance for class
   useEffect(() => {
-    async function fetchStudents() {
-      if (!selectedClass) return setStudents([]);
-      setLoading(true);
-      // Get students in selected class
-      const { data: studentsData, error } = await supabase
-        .from("students")
-        .select("id, name, admission_number")
-        .eq("class_id", selectedClass)
-        .eq("is_active", true);
-
-      if (error) {
-        toast({ title: "Error", description: "Could not load students.", variant: "destructive" });
+    async function fetchStudentsAndAttendance() {
+      if (!selectedClass) {
         setStudents([]);
         setAttendanceMap({});
-        setLoading(false);
         return;
       }
-      setStudents(studentsData || []);
+      setLoading(true);
 
-      // Load existing attendance for the date+session
-      const { data: attData, error: attError } = await supabase
-        .from("attendance")
-        .select("student_id, status, remarks")
-        .eq("class_id", selectedClass)
-        .eq("date", selectedDate)
-        .eq("session", session);
+      try {
+        const { data: studentsData, error: studentsError } = await supabase
+          .from("students")
+          .select("id, name, admission_number")
+          .eq("class_id", selectedClass)
+          .eq("is_active", true);
 
-      if (attError) {
-        setAttendanceMap({});
-      } else {
-        // Build map: student_id -> {status, remarks}
-        const attMap: Record<string, AttendanceRecord> = {};
-        if (Array.isArray(attData)) {
-          attData.forEach((a) => {
-            attMap[a.student_id] = {
-              status: validStatus(a.status),
-              remarks: a.remarks || "",
-            };
-          });
+        if (studentsError) throw studentsError;
+        setStudents(studentsData || []);
+
+        const { data: attData, error: attError } = await supabase
+          .from("attendance")
+          .select("student_id, status, remarks")
+          .eq("class_id", selectedClass)
+          .eq("date", selectedDate)
+          .eq("session", session);
+
+        if (attError) throw attError;
+        
+        const newAttendanceMap: Record<string, Partial<AttendanceRecord>> = {};
+        if (attData) {
+            for (const record of attData) {
+                if(record.student_id) {
+                    newAttendanceMap[record.student_id] = {
+                        status: record.status as AttendanceStatus,
+                        remarks: record.remarks || ""
+                    };
+                }
+            }
         }
-        setAttendanceMap(attMap);
+        setAttendanceMap(newAttendanceMap);
+
+      } catch (err: any) {
+        toast({ title: "Error", description: `Could not load class data: ${err.message}`, variant: "destructive" });
+        setStudents([]);
+        setAttendanceMap({});
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-    fetchStudents();
+    fetchStudentsAndAttendance();
   }, [selectedClass, selectedDate, session, toast]);
 
-  // Handle status/remark changes
-  function setStatus(studentId: string, status: AttendanceStatus) {
+  const setStatus = (studentId: string, status: AttendanceStatus) => {
     setAttendanceMap((prev) => ({
       ...prev,
       [studentId]: { ...prev[studentId], status },
     }));
   }
-  function setRemarks(studentId: string, remarks: string) {
+  
+  const setRemarks = (studentId: string, remarks: string) => {
     setAttendanceMap((prev) => ({
       ...prev,
       [studentId]: { ...prev[studentId], remarks },
     }));
   }
-  async function markAllPresent() {
-    setAttendanceMap((prev) => {
-      const newMap: typeof prev = { ...prev };
-      students.forEach((stu) => {
-        newMap[stu.id] = { ...newMap[stu.id], status: "present", remarks: "" };
-      });
-      return newMap;
+
+  const handleMarkAll = (status: 'present' | 'absent') => {
+    const newMap: typeof attendanceMap = {};
+    students.forEach((stu) => {
+      newMap[stu.id] = { ...attendanceMap[stu.id], status, remarks: status === 'present' ? '' : attendanceMap[stu.id]?.remarks || '' };
     });
-    toast({ title: "Marked All Present", description: "All students set to present." });
+    setAttendanceMap(newMap);
+    toast({ title: `Marked All ${status.charAt(0).toUpperCase() + status.slice(1)}`, description: `All students set to ${status}.` });
   }
 
-  // Save attendance
-  async function handleSaveAttendance() {
-    if (!selectedClass || !userId) {
+  const handleSaveAttendance = async () => {
+    if (!selectedClass || !userId || !schoolId) {
       toast({ title: "Select class", description: "Please select a class.", variant: "destructive" });
       return;
     }
@@ -152,29 +166,23 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
     setSaving(true);
 
     try {
-      const today = selectedDate;
-      const rows = students.map((s) => ({
+      const attendanceRows = students.map((s) => ({
         student_id: s.id,
         class_id: selectedClass,
         school_id: schoolId,
-        date: today,
+        date: selectedDate,
         session,
         status: attendanceMap[s.id]?.status || "present",
         remarks: attendanceMap[s.id]?.remarks || null,
         submitted_by: userId,
-        submitted_at: new Date().toISOString(),
         term: academicInfo.term,
         academic_year: academicInfo.year,
       }));
 
-      await supabase
-        .from("attendance")
-        .delete()
-        .eq("class_id", selectedClass)
-        .eq("date", today)
-        .eq("session", session);
-
-      const { error } = await supabase.from("attendance").insert(rows);
+      const { error } = await supabase.from("attendance").upsert(attendanceRows, {
+        onConflict: 'school_id,class_id,student_id,date,session',
+        ignoreDuplicates: false,
+      });
 
       if (error) throw error;
 
@@ -185,13 +193,24 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
       setSaving(false);
     }
   }
+  
+  const attendanceStats = useMemo(() => {
+    const stats: { total: number; present: number; absent: number; late: number; excused: number;[key: string]: number} = { total: students.length, present: 0, absent: 0, late: 0, excused: 0 };
+    for (const student of students) {
+        const status = attendanceMap[student.id]?.status ?? 'present';
+        if (stats.hasOwnProperty(status)) {
+            stats[status]++;
+        }
+    }
+    return stats;
+  }, [students, attendanceMap]);
 
   return (
     <Card className="mt-2">
       <CardHeader>
         <CardTitle>Mark Attendance</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         <AttendanceControls
           classes={classes}
           selectedClass={selectedClass}
@@ -201,12 +220,12 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
           session={session}
           onSessionChange={setSession}
           sessionOptions={sessionOptions}
-          onMarkAllPresent={markAllPresent}
+          onMarkAll={handleMarkAll}
           onSaveAttendance={handleSaveAttendance}
           loading={loading || academicInfoLoading}
           saving={saving}
           academicInfoError={academicInfoError}
-          studentCount={students.length}
+          stats={attendanceStats}
         />
         {academicInfoError && (
           <Alert variant="destructive" className="mb-4">
@@ -214,12 +233,12 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
             <AlertDescription>{academicInfoError}</AlertDescription>
           </Alert>
         )}
-        {/* Table */}
+        
         <div>
           {loading || academicInfoLoading ? (
-            <div className="p-8 text-center">Loading...</div>
+            <div className="p-8 text-center flex justify-center items-center gap-2"><Loader2 className="animate-spin h-5 w-5" />Loading students...</div>
           ) : !selectedClass ? (
-            <div className="p-8 text-center text-muted-foreground">Select a class to begin.</div>
+            <div className="p-8 text-center text-muted-foreground">Select a class to begin marking attendance.</div>
           ) : students.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">No students found in this class.</div>
           ) : (

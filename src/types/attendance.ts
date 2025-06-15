@@ -4,7 +4,7 @@ export interface Attendance {
   studentId: string;
   classId: string;
   date: Date;
-  status: 'present' | 'absent' | 'late';
+  status: 'present' | 'absent' | 'late' | 'excused';
   session: 'morning' | 'afternoon' | 'full-day';
   remarks?: string;
   submittedBy: string;
@@ -28,8 +28,8 @@ export interface BulkAttendanceEntry {
   studentId: string;
   name: string;
   admissionNumber: string;
-  morningStatus: 'present' | 'absent' | 'late';
-  afternoonStatus: 'present' | 'absent' | 'late';
+  morningStatus: 'present' | 'absent' | 'late' | 'excused';
+  afternoonStatus: 'present' | 'absent' | 'late' | 'excused';
   remarks?: string;
 }
 

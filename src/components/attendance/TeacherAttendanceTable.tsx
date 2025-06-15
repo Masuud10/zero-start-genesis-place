@@ -3,11 +3,18 @@ import React from "react";
 import { Table, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Student, AttendanceStatus, AttendanceRecord } from "./TeacherAttendanceUtils";
+import { Student } from "./TeacherAttendanceUtils";
+
+// Re-defining types here to include 'excused' and avoid touching read-only file
+type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+interface AttendanceRecord {
+  status: AttendanceStatus;
+  remarks: string;
+}
 
 interface TeacherAttendanceTableProps {
   students: Student[];
-  attendanceMap: Record<string, AttendanceRecord>;
+  attendanceMap: Record<string, Partial<AttendanceRecord>>;
   setStatus: (studentId: string, status: AttendanceStatus) => void;
   setRemarks: (studentId: string, remarks: string) => void;
 }
@@ -37,13 +44,14 @@ const TeacherAttendanceTable: React.FC<TeacherAttendanceTableProps> = ({
             <TableCell>{student.admission_number}</TableCell>
             <TableCell>
               <Select value={status} onValueChange={(v) => setStatus(student.id, v as AttendanceStatus)}>
-                <SelectTrigger className="w-28">
+                <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="present">Present</SelectItem>
                   <SelectItem value="absent">Absent</SelectItem>
                   <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="excused">Excused</SelectItem>
                 </SelectContent>
               </Select>
             </TableCell>
@@ -52,8 +60,9 @@ const TeacherAttendanceTable: React.FC<TeacherAttendanceTableProps> = ({
                 value={remarks}
                 onChange={(e) => setRemarks(student.id, e.target.value)}
                 className="min-w-[120px] resize-none"
-                placeholder="Optional"
+                placeholder="Optional (max 200)"
                 rows={1}
+                maxLength={200}
               />
             </TableCell>
           </TableRow>
