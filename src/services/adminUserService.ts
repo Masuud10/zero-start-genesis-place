@@ -19,8 +19,8 @@ interface CreateUserRpcResponse {
 export const AdminUserService = {
   createUser: async (params: CreateUserParams) => {
     try {
-      // Call the 'create_admin_user' RPC function with a generic type for the expected response
-      const { data, error } = await supabase.rpc<CreateUserRpcResponse>('create_admin_user', {
+      // Call the 'create_admin_user' RPC function. The return data is not strongly typed by default.
+      const { data, error } = await supabase.rpc('create_admin_user', {
         user_email: params.email,
         user_password: params.password,
         user_name: params.name,
@@ -33,18 +33,20 @@ export const AdminUserService = {
         return { error: error.message };
       }
 
-      // The RPC returns a JSONB object, which we parse here, now strongly-typed.
-      if (data && data.error) {
-        console.error('Error from create_admin_user RPC:', data.error);
-        return { error: data.error };
+      // The RPC returns a JSONB object, which we cast to our interface for type safety.
+      const rpcData = data as CreateUserRpcResponse;
+
+      if (rpcData && rpcData.error) {
+        console.error('Error from create_admin_user RPC:', rpcData.error);
+        return { error: rpcData.error };
       }
       
-      if (data && data.success && data.user_id) {
+      if (rpcData && rpcData.success && rpcData.user_id) {
         return {
           success: true,
           // The RPC returns the user ID. We can form a partial user object for the client.
-          data: { id: data.user_id, email: params.email }, 
-          user_id: data.user_id,
+          data: { id: rpcData.user_id, email: params.email }, 
+          user_id: rpcData.user_id,
           error: null,
         };
       }
