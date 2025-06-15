@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,7 @@ const SmartTimetableReview = ({
   onPublish: () => void;
 }) => {
   const { user } = useAuth();
-  // Use state as any[]
+  // Use explicit any[] state type
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -22,31 +23,31 @@ const SmartTimetableReview = ({
     if (!user?.school_id) return;
     setLoading(true);
     setErrorMsg(null);
-    (async () => {
-      try {
-        // Don't use any generics on .select, just use as any[]
-        const { data, error } = await supabase
-          .from("timetables")
-          .select("id,class_id,school_id,is_active,created_at,created_by,version")
-          .eq("school_id", user.school_id)
-          .eq("term", term)
-          .eq("is_published", false);
 
-        if (error) {
-          setErrorMsg("Error fetching timetable draft: " + error.message);
-          setRows([]);
-        } else if (!Array.isArray(data) || data.some((row) => !row?.id || !row?.class_id)) {
-          setErrorMsg("No valid draft timetable found.");
-          setRows([]);
-        } else {
-          setRows(data as any[]); // Always cast to any[]
-        }
-      } catch (e: any) {
-        setErrorMsg("Error fetching timetable draft: " + (e?.message ?? String(e)));
+    (async () => {
+      // NEVER infer deep TS, use as any[]
+      const { data, error } = await supabase
+        .from("timetables")
+        .select(
+          "id,class_id,school_id,is_active,created_at,created_by,version"
+        )
+        .eq("school_id", user.school_id)
+        .eq("term", term)
+        .eq("is_published", false);
+
+      if (error) {
+        setErrorMsg("Error fetching timetable draft: " + error.message);
         setRows([]);
-      } finally {
-        setLoading(false);
+      } else if (
+        !Array.isArray(data) ||
+        data.some((row) => !row?.id || !row?.class_id)
+      ) {
+        setErrorMsg("No valid draft timetable found.");
+        setRows([]);
+      } else {
+        setRows(data as any[]); // Always force as any[]
       }
+      setLoading(false);
     })();
   }, [user?.school_id, term]);
 
@@ -77,7 +78,7 @@ const SmartTimetableReview = ({
     }
   };
 
-  // Always use `safeRows` cast as any[]
+  // Always force rows to any[]
   const safeRows: any[] = Array.isArray(rows) ? rows : [];
 
   return (
@@ -110,7 +111,11 @@ const SmartTimetableReview = ({
                   <td>{r.class_id}</td>
                   <td>{r.school_id ?? "-"}</td>
                   <td>{r.is_active ? "Yes" : "No"}</td>
-                  <td>{r.created_at ? new Date(r.created_at).toLocaleString() : "-"}</td>
+                  <td>
+                    {r.created_at
+                      ? new Date(r.created_at).toLocaleString()
+                      : "-"}
+                  </td>
                   <td>{r.created_by ?? "-"}</td>
                   <td>{r.version ?? "-"}</td>
                 </tr>

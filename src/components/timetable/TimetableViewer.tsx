@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,11 +47,14 @@ const TimetableViewer: React.FC<any> = ({
       if (error) {
         setErrorMsg("Error loading timetable: " + error.message);
         setRows([]);
-      } else if (!Array.isArray(data) || data.some((row) => !row?.id || !row?.class_id)) {
+      } else if (
+        !Array.isArray(data) ||
+        data.some((row) => !row?.id || !row?.class_id)
+      ) {
         setErrorMsg("No timetable found.");
         setRows([]);
       } else {
-        setRows(data as any[]); // Always cast as any[]
+        setRows(data as any[]);
       }
       setLoading(false);
     };
@@ -87,7 +91,11 @@ const TimetableViewer: React.FC<any> = ({
                 <td>{r.class_id}</td>
                 <td>{r.school_id ?? "-"}</td>
                 <td>{r.is_active ? "Yes" : "No"}</td>
-                <td>{r.created_at ? new Date(r.created_at).toLocaleString() : "-"}</td>
+                <td>
+                  {r.created_at
+                    ? new Date(r.created_at).toLocaleString()
+                    : "-"}
+                </td>
                 <td>{r.created_by ?? "-"}</td>
                 <td>{r.version ?? "-"}</td>
               </tr>
