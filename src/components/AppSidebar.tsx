@@ -6,13 +6,10 @@ import {
 } from '@/components/ui/sidebar';
 import { BookOpen } from 'lucide-react';
 import SidebarNavigation from './sidebar/SidebarNavigation';
+import { useNavigation } from '@/contexts/NavigationContext';
 
-interface AppSidebarProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-}
-
-const AppSidebar: React.FC<AppSidebarProps> = ({ activeSection, onSectionChange }) => {
+const AppSidebar: React.FC = () => {
+  const { activeSection, onSectionChange } = useNavigation();
   return (
     <Sidebar>
       <SidebarHeader>

@@ -11,12 +11,15 @@ import {
   Activity,
   Globe
 } from 'lucide-react';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 interface SystemActionsPanelProps {
   onModalOpen: (modalType: string) => void;
 }
 
-const SystemActionsPanel: React.FC<SystemActionsPanelProps> = ({ onModalOpen }) => {
+const SystemActionsPanel: React.FC<SystemActionsPanelProps> = () => {
+  const { onSectionChange } = useNavigation();
+
   const systemActions = [
     { id: 'schools', label: 'Manage Schools', icon: Building2, description: 'Add and configure schools' },
     { id: 'users', label: 'User Management', icon: Users, description: 'Manage system users' },
@@ -25,6 +28,10 @@ const SystemActionsPanel: React.FC<SystemActionsPanelProps> = ({ onModalOpen }) 
     { id: 'settings', label: 'System Settings', icon: Settings, description: 'Configure system' },
     { id: 'health', label: 'System Health', icon: Activity, description: 'Monitor system status' },
   ];
+
+  const handleActionClick = (sectionId: string) => {
+    onSectionChange(sectionId);
+  };
 
   return (
     <Card>
@@ -43,14 +50,11 @@ const SystemActionsPanel: React.FC<SystemActionsPanelProps> = ({ onModalOpen }) 
             <Button
               key={action.id}
               variant="outline"
-              className="h-24 flex-col gap-2 p-4"
-              onClick={() => onModalOpen(action.id)}
+              className="h-24 flex-col gap-2 p-4 text-center"
+              onClick={() => handleActionClick(action.id)}
             >
-              <action.icon className="h-6 w-6" />
-              <div className="text-center">
-                <div className="font-medium text-sm">{action.label}</div>
-                <div className="text-xs text-muted-foreground">{action.description}</div>
-              </div>
+              <action.icon className="h-6 w-6 mb-1" />
+              <span className="font-medium text-sm leading-tight">{action.label}</span>
             </Button>
           ))}
         </div>

@@ -6,6 +6,7 @@ import ElimshaLayout from '@/components/ElimshaLayout';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import LoginForm from '@/components/LoginForm';
 import { ErrorState } from '@/components/common/LoadingStates';
+import { NavigationProvider } from '@/contexts/NavigationContext';
 
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
@@ -99,7 +100,11 @@ const AppContent: React.FC = () => {
 
   // Step 6: Authenticated user with role => show main app
   console.log('🎯 AppContent: Authenticated. Render ElimshaLayout.', { role: user.role });
-  return <ElimshaLayout />;
+  return (
+    <NavigationProvider>
+      <ElimshaLayout />
+    </NavigationProvider>
+  );
 };
 
 export default AppContent;
