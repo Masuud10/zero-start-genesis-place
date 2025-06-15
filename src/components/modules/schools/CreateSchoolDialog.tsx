@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,8 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
     phone: '',
     address: '',
     ownerEmail: '',
-    ownerName: ''
+    ownerName: '',
+    curriculumType: 'cbc'
   });
 
   const handleInputChange = (field: keyof CreateSchoolRequest, value: string) => {
@@ -95,7 +95,8 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
           phone: '',
           address: '',
           ownerEmail: '',
-          ownerName: ''
+          ownerName: '',
+          curriculumType: 'cbc'
         });
 
         setOpen(false);
@@ -187,6 +188,19 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                   placeholder="Full address of the school"
                   rows={3}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="curriculumType">Curriculum Type *</Label>
+                <select
+                  id="curriculumType"
+                  value={formData.curriculumType}
+                  onChange={e => handleInputChange('curriculumType', e.target.value)}
+                  className="block w-full rounded border-gray-300 px-4 py-2"
+                  required
+                >
+                  <option value="cbc">Kenyan CBC</option>
+                  <option value="igcse">IGCSE (British International)</option>
+                </select>
               </div>
             </CardContent>
           </Card>

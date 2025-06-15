@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CreateSchoolRequest {
@@ -8,6 +7,7 @@ export interface CreateSchoolRequest {
   address: string;
   ownerEmail?: string;
   ownerName?: string;
+  curriculumType?: 'cbc' | 'igcse';
 }
 
 export interface CreateSchoolResponse {
@@ -30,7 +30,8 @@ export class SchoolService {
         school_phone: schoolData.phone,
         school_address: schoolData.address,
         owner_email: schoolData.ownerEmail || null,
-        owner_name: schoolData.ownerName || null
+        owner_name: schoolData.ownerName || null,
+        curriculum_type: schoolData.curriculumType || 'cbc'
       });
 
       if (error) {
