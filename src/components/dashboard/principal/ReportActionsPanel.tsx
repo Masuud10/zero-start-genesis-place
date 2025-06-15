@@ -1,10 +1,9 @@
-
 import React from "react";
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import AcademicReportPanel from './AcademicReportPanel';
 import { ReportDownloadPanelProps } from '@/types/props';
 
-interface Props extends ReportDownloadPanelProps {
+interface ReportActionsPanelProps {
   downloadingReport: boolean;
   setDownloadingReport: (val: boolean) => void;
   user: any;
@@ -12,7 +11,7 @@ interface Props extends ReportDownloadPanelProps {
   toast: any;
 }
 
-const ReportActionsPanel: React.FC<Props> = ({
+const ReportActionsPanel: React.FC<ReportActionsPanelProps> = ({
   downloadingReport,
   setDownloadingReport,
   user,
