@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AuthUser } from '@/types/auth';
 import SchoolsModule from '@/components/modules/SchoolsModule';
@@ -12,12 +11,22 @@ interface DashboardModalsProps {
   onDataChanged?: () => void;
 }
 
+/**
+ * This modal manager opens the requested modal ("schools", "users", "analytics", etc)
+ * and handles data refreshing and closing.
+ */
 const DashboardModals: React.FC<DashboardModalsProps> = ({
   activeModal,
   onClose,
   user,
   onDataChanged,
 }) => {
+  React.useEffect(() => {
+    if (activeModal) {
+      console.log('[DashboardModals] Opening modal:', activeModal);
+    }
+  }, [activeModal]);
+
   if (!activeModal) {
     return null;
   }
@@ -25,8 +34,9 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
   let modalContent = null;
   let title = '';
 
-  // Wrap onDataChanged to also close modal
+  // If content changes data, wrap callback to parent dashboard
   const handleDataChanged = () => {
+    console.log('[DashboardModals] Data in modal changed, calling parent');
     if (onDataChanged) {
       onDataChanged();
     } else {

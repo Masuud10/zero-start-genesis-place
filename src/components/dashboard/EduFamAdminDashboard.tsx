@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -41,16 +42,20 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     setRefreshKey(prev => prev + 1);
   };
 
+  // Ensure local modal logic is correct
   const handleModalOpen = (modalType: string) => {
+    console.log('[EduFamAdminDashboard] handleModalOpen called with:', modalType);
     setActiveModal(modalType);
   };
 
   const handleModalClose = () => {
+    console.log('[EduFamAdminDashboard] handleModalClose');
     setActiveModal(null);
   };
 
   // Called from modals (SchoolsModule, UsersModule) after data has changed
   const handleDataChangedInModal = () => {
+    console.log('[EduFamAdminDashboard] Data changed in modal, refreshing dashboard');
     setRefreshKey(prev => prev + 1);
     setActiveModal(null);
   };
@@ -94,6 +99,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         onUserCreated={handleUserCreated}
       />
 
+      {/* Show modals for admin sections */}
       <DashboardModals
         activeModal={activeModal}
         onClose={handleModalClose}
@@ -105,7 +111,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         schoolsData={schoolsData}
         schoolsLoading={schoolsLoading}
         schoolsError={schoolsError}
-        onModalOpen={onModalOpen}
+        onModalOpen={handleModalOpen}
         onRetrySchools={handleRetrySchools}
       />
 
