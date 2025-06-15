@@ -109,8 +109,8 @@ const AdministrativeHub = ({ onModalOpen, onUserCreated }: { onModalOpen: (type:
                 <div className="mt-5 flex gap-4">
                   <Button
                     onClick={() => handleAction(s.key)}
-                    loading={loading}
                     className={`flex items-center ${loading ? "opacity-75" : ""}`}
+                    disabled={loading}
                   >
                     <RefreshCw className={`w-4 h-4 mr-2 animate-spin ${loading ? "" : "hidden"}`} />
                     {loading ? "Processing..." : `Open ${s.label}`}
