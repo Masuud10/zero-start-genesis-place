@@ -9,7 +9,6 @@ import AddParentModal from '../modals/AddParentModal';
 import AddClassModal from '../modals/AddClassModal';
 import AddSubjectModal from '../modals/AddSubjectModal';
 import PrincipalStatsCards from "./principal/PrincipalStatsCards";
-import PrincipalWelcomeHeader from "./principal/PrincipalWelcomeHeader";
 import { Button } from '@/components/ui/button';
 import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
@@ -116,6 +115,15 @@ const PrincipalDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(5);
       
+      const promises = [
+        fetchCount(studentsQuery),
+        fetchCount(teachersQuery),
+        fetchCount(subjectsQuery),
+        fetchCount(classesQuery),
+        fetchCount(parentsQuery),
+        auditLogsQuery,
+      ] as const;
+      
       // Fetch counts and logs in parallel using Promise.allSettled for robustness
       const [
         studentsCountRes,
@@ -124,14 +132,7 @@ const PrincipalDashboard = () => {
         classesCountRes,
         parentsCountRes,
         auditLogsResultRes,
-      ] = await Promise.allSettled([
-        fetchCount(studentsQuery),
-        fetchCount(teachersQuery),
-        fetchCount(subjectsQuery),
-        fetchCount(classesQuery),
-        fetchCount(parentsQuery),
-        auditLogsQuery,
-      ]);
+      ] = await Promise.allSettled(promises);
 
       const studentsCount = studentsCountRes.status === 'fulfilled' ? studentsCountRes.value : 0;
       const teachersCount = teachersCountRes.status === 'fulfilled' ? teachersCountRes.value : 0;
@@ -274,29 +275,7 @@ const PrincipalDashboard = () => {
   return (
     <RoleGuard allowedRoles={['principal']} requireSchoolAssignment={true}>
       <div className="space-y-6">
-        {/* Welcome and user header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
-          <PrincipalWelcomeHeader user={user} />
-          <div className="flex flex-col items-end">
-            <div className="text-xs text-gray-500 font-medium">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric"
-              })}
-            </div>
-            <div className="flex items-center space-x-2 bg-white/60 rounded-lg px-2 py-1 border border-white/40 mt-1">
-              <div className="w-6 h-6 bg-gradient-to-br from-orange-600 to-yellow-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xs">{user?.name?.[0] || "U"}</span>
-              </div>
-              <div className="text-xs">
-                <div className="font-semibold text-gray-900 text-xs">{user?.email?.split('@')[0]}</div>
-                <div className="text-gray-500 text-[10px]">{user?.email}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Welcome and user header removed as per request */}
 
         {/* Statistics cards */}
         <PrincipalStatsCards stats={stats} />
