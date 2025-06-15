@@ -7,6 +7,7 @@ import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import AddTeacherModal from '../modals/AddTeacherModal';
 import AddParentModal from '../modals/AddParentModal';
 import AddClassModal from '../modals/AddClassModal';
+import AddSubjectModal from '../modals/AddSubjectModal';
 import PrincipalStatsCards from "./principal/PrincipalStatsCards";
 import PrincipalWelcomeHeader from "./principal/PrincipalWelcomeHeader";
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ const PrincipalDashboard = () => {
   const [addTeacherOpen, setAddTeacherOpen] = useState(false);
   const [addParentOpen, setAddParentOpen] = useState(false);
   const [addClassOpen, setAddClassOpen] = useState(false);
+  const [addSubjectOpen, setAddSubjectOpen] = useState(false);
 
   // Used to reload data on entity change
   const [reloadKey, setReloadKey] = useState(0);
@@ -114,22 +116,28 @@ const PrincipalDashboard = () => {
         .order('created_at', { ascending: false })
         .limit(5);
       
-      // Fetch counts and logs in parallel
+      // Fetch counts and logs in parallel using Promise.allSettled for robustness
       const [
-        counts,
-        auditLogsResult
-      ] = await Promise.all([
-        Promise.all([
-          fetchCount(studentsQuery),
-          fetchCount(teachersQuery),
-          fetchCount(subjectsQuery),
-          fetchCount(classesQuery),
-          fetchCount(parentsQuery)
-        ]),
-        auditLogsQuery
+        studentsCountRes,
+        teachersCountRes,
+        subjectsCountRes,
+        classesCountRes,
+        parentsCountRes,
+        auditLogsResultRes,
+      ] = await Promise.allSettled([
+        fetchCount(studentsQuery),
+        fetchCount(teachersQuery),
+        fetchCount(subjectsQuery),
+        fetchCount(classesQuery),
+        fetchCount(parentsQuery),
+        auditLogsQuery,
       ]);
-      
-      const [studentsCount, teachersCount, subjectsCount, classesCount, parentsCount] = counts;
+
+      const studentsCount = studentsCountRes.status === 'fulfilled' ? studentsCountRes.value : 0;
+      const teachersCount = teachersCountRes.status === 'fulfilled' ? teachersCountRes.value : 0;
+      const subjectsCount = subjectsCountRes.status === 'fulfilled' ? subjectsCountRes.value : 0;
+      const classesCount = classesCountRes.status === 'fulfilled' ? classesCountRes.value : 0;
+      const parentsCount = parentsCountRes.status === 'fulfilled' ? parentsCountRes.value : 0;
 
       setStats({
         totalStudents: studentsCount,
@@ -141,36 +149,41 @@ const PrincipalDashboard = () => {
 
       // Parse recent activities from audit logs
       let activities: any[] = [];
-      if (auditLogsResult.error) {
-        console.error("Failed to fetch audit logs:", auditLogsResult.error.message);
-      } else if (auditLogsResult.data) {
-        const logs = auditLogsResult.data as any[];
-        activities = logs.map((log: any) => {
-          const userName = log.profiles?.name || 'A user';
-          const actionVerb = log.action === 'create' ? 'created' : 'updated';
-          
-          let entityName = '';
-          if (log.metadata && typeof log.metadata === 'object') {
-            if ('name' in log.metadata && log.metadata.name) {
-                entityName = `"${log.metadata.name}"`;
-            } else if ('title' in log.metadata && log.metadata.title) {
-                entityName = `"${log.metadata.title}"`;
+      if (auditLogsResultRes.status === 'fulfilled') {
+        const auditLogsResult = auditLogsResultRes.value;
+        if (auditLogsResult.error) {
+          console.error("Failed to fetch audit logs:", auditLogsResult.error.message);
+        } else if (auditLogsResult.data) {
+          const logs = auditLogsResult.data as any[];
+          activities = logs.map((log: any) => {
+            const userName = log.profiles?.name || 'A user';
+            const actionVerb = log.action === 'create' ? 'created' : 'updated';
+            
+            let entityName = '';
+            if (log.metadata && typeof log.metadata === 'object') {
+              if ('name' in log.metadata && log.metadata.name) {
+                  entityName = `"${log.metadata.name}"`;
+              } else if ('title' in log.metadata && log.metadata.title) {
+                  entityName = `"${log.metadata.title}"`;
+              }
             }
-          }
 
-          const resourceName = log.resource.replace(/_/g, ' ');
-          let description = `${userName} ${actionVerb} a ${resourceName}.`;
-          if (entityName) {
-            description = `${userName} ${actionVerb} the ${resourceName} ${entityName}.`;
-          }
+            const resourceName = log.resource.replace(/_/g, ' ');
+            let description = `${userName} ${actionVerb} a ${resourceName}.`;
+            if (entityName) {
+              description = `${userName} ${actionVerb} the ${resourceName} ${entityName}.`;
+            }
 
-          return {
-            id: log.id,
-            type: log.resource,
-            description: description,
-            timestamp: log.created_at,
-          };
-        });
+            return {
+              id: log.id,
+              type: log.resource,
+              description: description,
+              timestamp: log.created_at,
+            };
+          });
+        }
+      } else {
+        console.error("Failed to fetch audit logs:", auditLogsResultRes.reason);
       }
       setRecentActivities(activities);
     } catch (err: any) {
@@ -309,6 +322,7 @@ const PrincipalDashboard = () => {
           stats={stats}
           loading={loadingEntities}
           error={errorEntities}
+          onAddSubject={() => setAddSubjectOpen(true)}
         />
 
         {/* Reports */}
@@ -335,6 +349,11 @@ const PrincipalDashboard = () => {
           open={addClassOpen}
           onClose={() => setAddClassOpen(false)}
           onClassCreated={handleEntityCreated}
+        />
+        <AddSubjectModal
+          open={addSubjectOpen}
+          onClose={() => setAddSubjectOpen(false)}
+          onSubjectCreated={handleEntityCreated}
         />
       </div>
     </RoleGuard>

@@ -1,5 +1,8 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface PreviewPanelProps {
   title: string;
@@ -8,6 +11,7 @@ interface PreviewPanelProps {
   renderItem: (item: any) => React.ReactNode;
   loading: boolean;
   error: string | null;
+  action?: React.ReactNode;
 }
 
 const PreviewPanel: React.FC<PreviewPanelProps> = ({ 
@@ -16,11 +20,15 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
   total, 
   renderItem, 
   loading, 
-  error 
+  error,
+  action,
 }) => (
   <Card>
     <CardHeader>
-      <CardTitle className="text-sm">{title}</CardTitle>
+      <div className="flex justify-between items-center">
+        <CardTitle className="text-sm">{title}</CardTitle>
+        {action}
+      </div>
       <CardDescription>
         Total: {loading ? <span className="animate-pulse">…</span> : total}
       </CardDescription>
@@ -76,6 +84,7 @@ interface EntityPreviewPanelsProps {
   };
   loading: boolean;
   error: string | null;
+  onAddSubject: () => void;
 }
 
 const EntityPreviewPanels: React.FC<EntityPreviewPanelsProps> = ({
@@ -86,6 +95,7 @@ const EntityPreviewPanels: React.FC<EntityPreviewPanelsProps> = ({
   stats,
   loading,
   error,
+  onAddSubject,
 }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <PreviewPanel
@@ -103,6 +113,12 @@ const EntityPreviewPanels: React.FC<EntityPreviewPanelsProps> = ({
       renderItem={renderSubject}
       loading={loading}
       error={error}
+      action={
+        <Button variant="ghost" size="sm" onClick={onAddSubject}>
+          <Plus className="h-4 w-4" />
+          <span className="sr-only">Add Subject</span>
+        </Button>
+      }
     />
     <PreviewPanel
       title="Teachers"
