@@ -6,6 +6,7 @@ import { GraduationCap } from 'lucide-react';
 import { useTeacherDashboardStats } from '@/hooks/useTeacherDashboardStats';
 import { teacherActions } from './teacher/teacherActions';
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
+import TeacherAnalyticsSummaryCard from "@/components/analytics/TeacherAnalyticsSummaryCard";
 
 interface TeacherDashboardProps {
   user: AuthUser;
@@ -86,6 +87,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
           </CardContent>
         </Card>
       </div>
+
+      {/* Teacher Analytics Overview */}
+      {user.role === "teacher" && (
+        <TeacherAnalyticsSummaryCard />
+      )}
 
       {/* Teacher Actions */}
       <Card>
