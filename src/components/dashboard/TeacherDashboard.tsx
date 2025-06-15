@@ -7,6 +7,8 @@ import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { useTeacherDashboardStats } from "@/hooks/useTeacherDashboardStats";
 import TeacherStatsCards from './teacher/TeacherStatsCards';
 import TeacherActions from './teacher/TeacherActions';
+import MyClasses from './teacher/MyClasses';
+import TeacherTimetable from './teacher/TeacherTimetable';
 
 interface TeacherDashboardProps {
   user: AuthUser;
@@ -39,6 +41,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
         {user.role === "teacher" && (
           <TeacherAnalyticsSummaryCard />
         )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <MyClasses />
+            <TeacherTimetable />
+        </div>
 
         <TeacherActions user={user} onModalOpen={onModalOpen} />
       </div>
