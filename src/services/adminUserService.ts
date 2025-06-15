@@ -61,6 +61,7 @@ export const AdminUserService = {
 
   getUsersForSchool: async () => {
     try {
+      // Use correct join for school (avoid ambiguous embed error)
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -71,7 +72,9 @@ export const AdminUserService = {
           school_id,
           created_at,
           updated_at,
-          school:school_id(name)
+          school:schools!fk_profiles_school(
+            id, name
+          )
         `)
         .order('created_at', { ascending: false });
 
