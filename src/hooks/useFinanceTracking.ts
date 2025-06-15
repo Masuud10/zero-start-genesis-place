@@ -26,6 +26,7 @@ export const useFinanceTracking = () => {
       const completePaymentData = {
         ...paymentData,
         school_id: studentData.school_id,
+        processed_at: new Date().toISOString(),
       };
 
       // Process payment in database

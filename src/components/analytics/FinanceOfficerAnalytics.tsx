@@ -5,6 +5,12 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface FinanceOfficerAnalyticsProps {
   filters: {
@@ -13,37 +19,116 @@ interface FinanceOfficerAnalyticsProps {
   };
 }
 
+const fetchAnalyticsData = async (schoolId: string, filters: FinanceOfficerAnalyticsProps['filters']) => {
+  // For now, we ignore filters until they are implemented properly.
+  // We'll fetch data for the whole school.
+  
+  // 1. Fetch fees, students and classes
+  const { data: fees, error: feesError } = await supabase
+    .from('fees')
+    .select('amount, paid_amount, due_date, mpesa_code, students(id, name, classes(name)))')
+    .eq('school_id', schoolId);
+  if (feesError) throw new Error(`Fetching fees: ${feesError.message}`);
+
+  // 2. Fetch financial transactions
+  const { data: transactions, error: txError } = await supabase
+    .from('financial_transactions')
+    .select('amount, payment_method, created_at, student_id')
+    .eq('school_id', schoolId)
+    .eq('transaction_type', 'payment');
+  if (txError) throw new Error(`Fetching transactions: ${txError.message}`);
+
+  // 3. Fetch expenses
+  const { data: expenses, error: expensesError } = await supabase
+    .from('expenses')
+    .select('amount, category')
+    .eq('school_id', schoolId);
+  if (expensesError) throw new Error(`Fetching expenses: ${expensesError.message}`);
+
+  // --- Process Data ---
+
+  // Key Metrics
+  const totalCollected = fees.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
+  const totalExpected = fees.reduce((sum, f) => sum + (f.amount || 0), 0);
+  const outstanding = totalExpected - totalCollected;
+  const collectionRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0;
+  const mpesaTransactions = fees.filter(f => f.mpesa_code).length;
+
+  // Fee Collection by Class
+  const feeCollectionByClassMap = fees.reduce((acc, fee) => {
+    const className = fee.students?.classes?.name || 'Unassigned';
+    if (!acc[className]) {
+      acc[className] = { class: className, collected: 0, expected: 0, defaulters: new Set() };
+    }
+    acc[className].expected += fee.amount || 0;
+    acc[className].collected += fee.paid_amount || 0;
+    if ((fee.amount || 0) - (fee.paid_amount || 0) > 0 && fee.students?.id) {
+        acc[className].defaulters.add(fee.students.id);
+    }
+    return acc;
+  }, {} as Record<string, { class: string; collected: number; expected: number; defaulters: Set<string> }>);
+  const feeCollectionByClass = Object.values(feeCollectionByClassMap).map(item => ({...item, defaulters: item.defaulters.size}));
+
+  // Daily Transactions
+  const dailyTransactionsMap = transactions.reduce((acc, tx) => {
+    const date = new Date(tx.created_at).toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = { date, amount: 0, transactions: 0 };
+    }
+    acc[date].amount += tx.amount || 0;
+    acc[date].transactions += 1;
+    return acc;
+  }, {} as Record<string, { date: string; amount: number; transactions: number }>);
+  const dailyTransactions = Object.values(dailyTransactionsMap).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Expense Breakdown
+  const expenseBreakdownMap = expenses.reduce((acc, expense) => {
+    const category = expense.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = { category, amount: 0 };
+    }
+    acc[category].amount += expense.amount || 0;
+    return acc;
+  }, {} as Record<string, { category: string; amount: number }>);
+  const totalExpenses = Object.values(expenseBreakdownMap).reduce((sum, item) => sum + item.amount, 0);
+  const expenseBreakdown = Object.values(expenseBreakdownMap).map(item => ({...item, name: item.category, value: item.amount, percentage: totalExpenses > 0 ? parseFloat(((item.amount / totalExpenses) * 100).toFixed(1)) : 0}));
+
+  // Defaulters List
+  const defaultersMap = fees.reduce((acc, fee) => {
+    const balance = (fee.amount || 0) - (fee.paid_amount || 0);
+    if (balance > 0 && fee.students) {
+      if (!acc[fee.students.id]) {
+        acc[fee.students.id] = { 
+          student: fee.students.name, 
+          class: fee.students.classes?.name || 'Unassigned', 
+          amount: 0, 
+          days: 0 // days overdue logic is complex without term dates, setting to 0
+        };
+      }
+      acc[fee.students.id].amount += balance;
+    }
+    return acc;
+  }, {} as Record<string, {student: string, class: string, amount: number, days: number}>);
+  const defaultersList = Object.values(defaultersMap).sort((a,b) => b.amount - a.amount).slice(0, 5);
+
+  return {
+    keyMetrics: { totalCollected, collectionRate, outstanding, mpesaTransactions, defaulterCount: Object.keys(defaultersMap).length },
+    feeCollectionData: feeCollectionByClass,
+    dailyTransactions,
+    expenseBreakdown,
+    defaultersList
+  };
+};
+
+
 const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
-  // Mock financial data
-  const feeCollectionData = [
-    { class: 'Grade 1A', collected: 450000, expected: 500000, defaulters: 3 },
-    { class: 'Grade 1B', collected: 420000, expected: 480000, defaulters: 4 },
-    { class: 'Grade 2A', collected: 380000, expected: 400000, defaulters: 2 },
-    { class: 'Grade 2B', collected: 395000, expected: 460000, defaulters: 5 },
-  ];
+  const { user } = useAuth();
 
-  const dailyTransactions = [
-    { date: '2024-01-01', amount: 45000, transactions: 12 },
-    { date: '2024-01-02', amount: 38000, transactions: 8 },
-    { date: '2024-01-03', amount: 52000, transactions: 15 },
-    { date: '2024-01-04', amount: 41000, transactions: 9 },
-    { date: '2024-01-05', amount: 48000, transactions: 13 },
-  ];
-
-  const expenseBreakdown = [
-    { category: 'Salaries', amount: 1200000, percentage: 60 },
-    { category: 'Utilities', amount: 200000, percentage: 10 },
-    { category: 'Supplies', amount: 300000, percentage: 15 },
-    { category: 'Maintenance', amount: 150000, percentage: 7.5 },
-    { category: 'Other', amount: 150000, percentage: 7.5 },
-  ];
-
-  const defaultersList = [
-    { student: 'John Doe', class: 'Grade 2A', amount: 25000, days: 15 },
-    { student: 'Jane Smith', class: 'Grade 1B', amount: 18000, days: 8 },
-    { student: 'Bob Johnson', class: 'Grade 2B', amount: 32000, days: 22 },
-    { student: 'Alice Brown', class: 'Grade 1A', amount: 15000, days: 5 },
-  ];
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['financeOfficerAnalytics', user?.school_id, filters],
+    queryFn: () => fetchAnalyticsData(user!.school_id!, filters),
+    enabled: !!user?.school_id,
+  });
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -52,6 +137,34 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
     expected: { label: 'Expected', color: '#3b82f6' },
     amount: { label: 'Amount', color: '#8b5cf6' },
   };
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="ml-2">Loading financial analytics...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Failed to load financial analytics. Please try again later. <br />
+          <small>{error.message}</small>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  if (!data) {
+    return <p>No data available.</p>;
+  }
+
+  const { keyMetrics, feeCollectionData, dailyTransactions, expenseBreakdown, defaultersList } = data;
 
   return (
     <div className="space-y-6">
@@ -62,7 +175,7 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">KES 1.65M</div>
+            <div className="text-2xl font-bold text-green-600">KES {keyMetrics.totalCollected.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">This term</p>
           </CardContent>
         </Card>
@@ -72,8 +185,8 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
             <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">89.2%</div>
-            <p className="text-xs text-muted-foreground">Above target (85%)</p>
+            <div className="text-2xl font-bold text-blue-600">{keyMetrics.collectionRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">Overall</p>
           </CardContent>
         </Card>
 
@@ -82,8 +195,8 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
             <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">KES 200K</div>
-            <p className="text-xs text-muted-foreground">14 defaulters</p>
+            <div className="text-2xl font-bold text-red-600">KES {keyMetrics.outstanding.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">{keyMetrics.defaulterCount} defaulters</p>
           </CardContent>
         </Card>
 
@@ -92,8 +205,8 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
             <CardTitle className="text-sm font-medium">MPESA Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">127</div>
-            <p className="text-xs text-muted-foreground">This week</p>
+            <div className="text-2xl font-bold text-purple-600">{keyMetrics.mpesaTransactions}</div>
+            <p className="text-xs text-muted-foreground">Overall</p>
           </CardContent>
         </Card>
       </div>
@@ -107,10 +220,10 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
           <ChartContainer config={chartConfig} className="h-80">
             <BarChart data={feeCollectionData}>
               <XAxis dataKey="class" />
-              <YAxis />
+              <YAxis tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="collected" fill="var(--color-collected)" name="Collected (KES)" />
-              <Bar dataKey="expected" fill="var(--color-expected)" name="Expected (KES)" />
+              <Bar dataKey="collected" fill="var(--color-collected)" name="Collected (KES)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expected" fill="var(--color-expected)" name="Expected (KES)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ChartContainer>
         </CardContent>
@@ -126,7 +239,7 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
             <ChartContainer config={chartConfig} className="h-64">
               <LineChart data={dailyTransactions}>
                 <XAxis dataKey="date" />
-                <YAxis />
+                <YAxis tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Line 
                   type="monotone" 
@@ -156,13 +269,13 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
                   label={({ name, percentage }) => `${name} ${percentage}%`}
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="amount"
+                  dataKey="value"
                 >
                   {expenseBreakdown.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
               </PieChart>
             </ChartContainer>
           </CardContent>
@@ -172,11 +285,11 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
       {/* Fee Defaulters */}
       <Card>
         <CardHeader>
-          <CardTitle>Fee Defaulters Alert</CardTitle>
+          <CardTitle>Top Fee Defaulters</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {defaultersList.map((defaulter) => (
+            {defaultersList.length > 0 ? defaultersList.map((defaulter) => (
               <div key={defaulter.student} className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                   <p className="font-medium">{defaulter.student}</p>
@@ -184,13 +297,13 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-red-600">KES {defaulter.amount.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">{defaulter.days} days overdue</p>
+                  {/*<p className="text-xs text-muted-foreground">{defaulter.days} days overdue</p>*/}
                 </div>
                 <Badge variant="destructive">
                   Action Required
                 </Badge>
               </div>
-            ))}
+            )) : <p className="text-center text-muted-foreground p-4">No significant defaulters found.</p>}
           </div>
         </CardContent>
       </Card>
@@ -203,7 +316,7 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
         <CardContent>
           <div className="space-y-4">
             {feeCollectionData.map((classData) => {
-              const percentage = (classData.collected / classData.expected) * 100;
+              const percentage = classData.expected > 0 ? (classData.collected / classData.expected) * 100 : 0;
               return (
                 <div key={classData.class} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
@@ -231,3 +344,4 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
 };
 
 export default FinanceOfficerAnalytics;
+
