@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -6,24 +7,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import IGCSESubjectPicker from './IGCSESubjectPicker';
-import IGCSEGradeSelector from './IGCSEGradeSelector';
+import IGCSEGradesForm from './IGCSEGradesForm';
+import IGCSEGradeActionButtons from './IGCSEGradeActionButtons';
 
 interface IGCSEGradesModalProps {
   onClose: () => void;
@@ -51,7 +40,6 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
   const { toast } = useToast();
   const { currentSchool } = useSchool();
 
-  // Load classes for school
   useEffect(() => {
     if (!user?.school_id) return;
     supabase
@@ -61,7 +49,6 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
       .then(({ data }) => setClasses(data || []));
   }, [user?.school_id]);
 
-  // Load IGCSE subjects for class & school
   useEffect(() => {
     if (!selectedClass || !user?.school_id) return;
     supabase
@@ -72,7 +59,6 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
       .then(({ data }) => setSubjects(data || []));
   }, [selectedClass, user?.school_id]);
 
-  // Load students for class & school
   useEffect(() => {
     if (!selectedClass || !user?.school_id) return;
     supabase
@@ -139,74 +125,32 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         <DialogHeader>
           <DialogTitle>Enter IGCSE Grade</DialogTitle>
         </DialogHeader>
-        <div className="py-3">
-          <Alert variant="default" className="mb-3">
-            <AlertTriangle className="h-4 w-4 mr-1 text-amber-500 inline" />
-            <AlertDescription>
-              <b>IGCSE Grading</b>: Enter letter grade or custom grade for selected subject.
-            </AlertDescription>
-          </Alert>
-          <div className="grid gap-4 py-2">
-            {/* Class select */}
-            <div className="grid grid-cols-4 items-center gap-2">
-              <Label htmlFor="igcse-class" className="text-right">Class</Label>
-              <Select onValueChange={setSelectedClass}>
-                <SelectTrigger id="igcse-class" className="col-span-3">
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map(cls => (
-                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Subject select or free form, now composed in its own component */}
-            <div className="grid grid-cols-4 items-center gap-2">
-              <Label htmlFor="subject" className="text-right">Subject</Label>
-              <IGCSESubjectPicker
-                useCustomSubject={useCustomSubject}
-                setUseCustomSubject={setUseCustomSubject}
-                selectedSubject={selectedSubject}
-                setSelectedSubject={setSelectedSubject}
-                freeformSubject={freeformSubject}
-                setFreeformSubject={setFreeformSubject}
-                subjects={subjects}
-                selectedClass={selectedClass}
-              />
-            </div>
-
-            {/* Student select */}
-            <div className="grid grid-cols-4 items-center gap-2">
-              <Label htmlFor="student" className="text-right">Student</Label>
-              <Select onValueChange={setSelectedStudent} disabled={!selectedClass}>
-                <SelectTrigger id="student" className="col-span-3">
-                  <SelectValue placeholder="Select Student" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map(stu => (
-                    <SelectItem key={stu.id} value={stu.id}>{stu.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Grade selector, now composed in its own component */}
-            <IGCSEGradeSelector
-              gradeChoice={gradeChoice}
-              setGradeChoice={setGradeChoice}
-              customGrade={customGrade}
-              setCustomGrade={setCustomGrade}
-              IGCSE_LETTER_GRADES={IGCSE_LETTER_GRADES}
-            />
-          </div>
-        </div>
+        <IGCSEGradesForm
+          classes={classes}
+          selectedClass={selectedClass}
+          setSelectedClass={setSelectedClass}
+          subjects={subjects}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
+          useCustomSubject={useCustomSubject}
+          setUseCustomSubject={setUseCustomSubject}
+          freeformSubject={freeformSubject}
+          setFreeformSubject={setFreeformSubject}
+          students={students}
+          selectedStudent={selectedStudent}
+          setSelectedStudent={setSelectedStudent}
+          gradeChoice={gradeChoice}
+          setGradeChoice={setGradeChoice}
+          customGrade={customGrade}
+          setCustomGrade={setCustomGrade}
+          IGCSE_LETTER_GRADES={IGCSE_LETTER_GRADES}
+        />
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Submitting...' : 'Submit'}
-          </Button>
+          <IGCSEGradeActionButtons
+            loading={loading}
+            onCancel={onClose}
+            onSubmit={handleSubmit}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -214,3 +158,4 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
 };
 
 export default IGCSEGradesModal;
+
