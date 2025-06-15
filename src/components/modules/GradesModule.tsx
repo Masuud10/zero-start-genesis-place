@@ -12,6 +12,8 @@ import GradeStatsCards from '@/components/grades/GradeStatsCards';
 import NoGradebookPermission from '@/components/grades/NoGradebookPermission';
 import GradeOverviewPanel from '@/components/grades/GradeOverviewPanel';
 import DownloadReportButton from "@/components/reports/DownloadReportButton";
+import GradesAdminSummary from './GradesAdminSummary';
+import GradesMainPanel from './GradesMainPanel';
 
 interface GradesModuleProps {}
 
