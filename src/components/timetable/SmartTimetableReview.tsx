@@ -13,7 +13,6 @@ interface TimetableRow {
   created_at: string;
   created_by: string;
   version: number;
-  is_published?: boolean;
 }
 
 const SmartTimetableReview = ({
@@ -36,11 +35,13 @@ const SmartTimetableReview = ({
 
     (async () => {
       try {
-        const { data, error } = await supabase
+        const query: any = supabase
           .from("timetables")
           .select("id,class_id,school_id,is_active,created_at,created_by,version")
           .eq("school_id", user.school_id)
           .eq("term", term);
+        
+        const { data, error } = await query;
 
         if (error) {
           console.error("Supabase error:", error);

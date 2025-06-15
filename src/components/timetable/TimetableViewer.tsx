@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +43,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
       setErrorMsg(null);
 
       try {
-        let q = supabase
+        let q: any = supabase
           .from("timetables")
           .select("id,class_id,school_id,is_active,created_at,created_by,version")
           .eq("school_id", user.school_id)
