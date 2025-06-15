@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -120,7 +119,7 @@ const CreateSupportTicketForm: React.FC<CreateSupportTicketFormProps> = ({ onSuc
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select priority level" />
-                    </Trigger>
+                    </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="low">Low</SelectItem>
