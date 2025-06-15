@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -101,10 +100,8 @@ const EduFamAdminAnalytics = () => {
     );
   }
 
-  // Show empty state if summary is null or has all zeros
-  if (!summary ||
-    (summary.grades.totalGrades === 0 && summary.attendance.records === 0 && (summary.finance?.transactionCount === 0 || !summary.finance))
-  ) {
+  // Show empty state ONLY if summary is null/undefined (don't check for all zeros)
+  if (!summary) {
     return (
       <div className="w-full flex flex-col items-center gap-6">
         <Card className="max-w-xl w-full">
