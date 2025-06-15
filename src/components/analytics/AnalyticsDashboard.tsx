@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
@@ -140,7 +139,7 @@ const AnalyticsDashboard = () => {
         case 'finance_officer':
           return <FinanceOfficerAnalytics filters={filters} />;
         case 'edufam_admin':
-          return <EduFamAdminAnalytics filters={filters} />;
+          return <EduFamAdminAnalytics />;
         default:
           return (
             <Card>

@@ -77,7 +77,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 
         <TabsContent value="overview">
           {user?.role === 'edufam_admin' ? (
-            <EduFamAdminAnalytics filters={filters} />
+            <EduFamAdminAnalytics />
           ) : (
             <Card>
               <CardContent className="p-6 text-center">

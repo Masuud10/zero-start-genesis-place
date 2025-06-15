@@ -1,8 +1,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { School } from "@/types/school";
-import { Class } from "@/hooks/useClasses";
 
 // Helper types
 export interface AnalyticsSummary {
@@ -46,22 +44,23 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       if (filters.classId) gradesQuery = gradesQuery.eq("class_id", filters.classId);
       if (filters.startDate) gradesQuery = gradesQuery.gte("created_at", filters.startDate);
       if (filters.endDate) gradesQuery = gradesQuery.lte("created_at", filters.endDate);
-      const { data: grades, count: gradesCount, error: gradesErr } = await gradesQuery;
+      const { data: grades_raw, count: gradesCount, error: gradesErr } = await gradesQuery;
       if (gradesErr) throw gradesErr;
+      const grades: any[] = grades_raw as any[];
       const totalGrades = gradesCount ?? 0;
       const avgScore =
         totalGrades > 0
-          ? (grades as any[])
-              .map((g: any) =>
+          ? grades
+              .map((g) =>
                 g.max_score && g.max_score > 0 ? (g.score * 100) / g.max_score : null
               )
-              .filter((v: number | null) => v !== null)
-              .reduce((sum: number, v: number) => sum + v, 0) /
-            (grades as any[])
-              .map((g: any) =>
+              .filter((v) => v !== null)
+              .reduce((sum, v) => sum + v, 0) /
+            grades
+              .map((g) =>
                 g.max_score && g.max_score > 0 ? (g.score * 100) / g.max_score : null
               )
-              .filter((v: number | null) => v !== null).length
+              .filter((v) => v !== null).length
           : null;
 
       // Attendance aggregation
@@ -72,11 +71,11 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       if (filters.classId) attendanceQuery = attendanceQuery.eq("class_id", filters.classId);
       if (filters.startDate) attendanceQuery = attendanceQuery.gte("date", filters.startDate);
       if (filters.endDate) attendanceQuery = attendanceQuery.lte("date", filters.endDate);
-      const { data: attendance, count: attendanceCount, error: attErr } = await attendanceQuery;
+      const { data: attendance_raw, count: attendanceCount, error: attErr } = await attendanceQuery;
       if (attErr) throw attErr;
+      const attendance: any[] = attendance_raw as any[];
       const records = attendanceCount ?? 0;
-      const presentCount =
-        (attendance as any[]).filter((a: any) => a.status === "present").length;
+      const presentCount = attendance.filter((a) => a.status === "present").length;
       const avgAttendance = records > 0 ? (presentCount * 100) / records : null;
 
       // Finance aggregation
@@ -84,16 +83,15 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
         .from("financial_transactions")
         .select("amount", { count: "exact" });
       if (filters.schoolId) financeQuery = financeQuery.eq("school_id", filters.schoolId);
-      if (filters.classId) {
-        // Join not possible; filter by student transactions in class can be done if needed
-      }
+      // No classId join for finance
       if (filters.startDate)
         financeQuery = financeQuery.gte("created_at", filters.startDate);
       if (filters.endDate) financeQuery = financeQuery.lte("created_at", filters.endDate);
-      const { data: finance, count: transactionCount, error: finErr } = await financeQuery;
+      const { data: finance_raw, count: transactionCount, error: finErr } = await financeQuery;
       if (finErr) throw finErr;
+      const finance: any[] = finance_raw as any[];
       const totalAmount =
-        (finance as any[]).reduce((sum: number, f: any) => sum + (f.amount || 0), 0) || null;
+        finance.reduce((sum, f) => sum + (f.amount || 0), 0) || null;
 
       setSummary({
         grades: {
