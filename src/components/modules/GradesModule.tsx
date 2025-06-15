@@ -48,7 +48,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
     classId: selectedClassId || 'mock-class',
     subjectId: 'mock-subject',
     term: 'Term 1',
-    examType: 'MID_TERM',
+    examType: 'MID_TERM', // Correct string literal
     maxScore: 100,
     teacherId: 'mock-teacher',
     createdAt: new Date(),
@@ -59,7 +59,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   const mockClassId = selectedClassId || "mock-class";
   const mockSubjectId = "mock-subject";
   const mockTerm = "Term 1";
-  const mockExamType = "MID_TERM";
+  const mockExamType: "MID_TERM" | "OPENER" | "END_TERM" = "MID_TERM"; // Added explicit typing
   const mockMaxScore = 100;
   const mockStudents = useMemo(
     () =>

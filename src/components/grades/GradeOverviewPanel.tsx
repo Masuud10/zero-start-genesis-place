@@ -8,16 +8,16 @@ import BulkGradingTable from "@/components/grading/BulkGradingTable";
 import BulkGradeUploadModal from "@/components/grading/BulkGradeUploadModal";
 import GradesModal from "@/components/modals/GradesModal";
 import { GradingSession } from "@/types/grading";
-import { PERMISSIONS } from "@/utils/permissions";
+import { PermissionKey } from "@/utils/permissions"; // Added import
 
 interface GradeOverviewPanelProps {
   user: any;
-  hasPermission: (p: PERMISSIONS) => boolean;
+  hasPermission: (p: PermissionKey) => boolean; // Correct usage
   mockGradingSession: GradingSession;
   mockClassId: string;
   mockSubjectId: string;
   mockTerm: string;
-  mockExamType: string;
+  mockExamType: "MID_TERM" | "OPENER" | "END_TERM";
   mockMaxScore: number;
   mockStudents: { id: string; name: string }[];
 
