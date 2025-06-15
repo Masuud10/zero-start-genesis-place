@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,7 +10,7 @@ import PrincipalStatsCards from "./principal/PrincipalStatsCards";
 import PrincipalWelcomeHeader from "./principal/PrincipalWelcomeHeader";
 import { Button } from '@/components/ui/button';
 import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
-import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard';
+import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 import AddClassModal from '../modals/AddClassModal';
 import RoleGuard from '@/components/common/RoleGuard';
 import ReportActionsPanel from './principal/ReportActionsPanel';
