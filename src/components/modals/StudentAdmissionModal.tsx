@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,11 +10,12 @@ import { supabase } from '@/integrations/supabase/client';
 import AddParentModal from './AddParentModal';
 
 interface StudentAdmissionModalProps {
+  open: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, onSuccess }) => {
+const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     admission_number: '',
@@ -45,6 +47,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
 
   // Fetch parents on open
   useEffect(() => {
+    if (!open) return;
     let mounted = true;
     setLoadingParents(true);
     supabase.from('profiles')
@@ -57,7 +60,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
         }
       });
     return () => { mounted = false };
-  }, []);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,7 +132,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
 
   return (
     <>
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={open ? onClose : undefined}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Student Admission</DialogTitle>
