@@ -25,7 +25,6 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
   studentId,
 }) => {
   const { user } = useAuth();
-  // FIX: Use any[] for state
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -62,12 +61,16 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
         setErrorMsg("No timetable found.");
         setRows([]);
       } else {
-        setRows(data || []);
+        setRows(data as any[]); // *** TYPECAST HERE ***
       }
       setLoading(false);
     };
     fetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.school_id, term, classId, studentId]);
+
+  // Safety: always use `any[]` for mapping
+  const safeRows: any[] = Array.isArray(rows) ? rows : [];
 
   return (
     <div>
@@ -75,7 +78,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
         <div>Loading timetable...</div>
       ) : errorMsg ? (
         <div className="text-red-500">{errorMsg}</div>
-      ) : rows.length === 0 ? (
+      ) : safeRows.length === 0 ? (
         <div>No published timetable found.</div>
       ) : (
         <table className="border w-full">
@@ -90,7 +93,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {safeRows.map((r) => (
               <tr key={r.id}>
                 <td>{r.class_id}</td>
                 <td>{r.school_id ?? "-"}</td>

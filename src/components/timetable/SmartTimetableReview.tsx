@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +25,7 @@ const SmartTimetableReview = ({
   onPublish: () => void;
 }) => {
   const { user } = useAuth();
-  // FIX: Use any[] instead of TimetableRow[] to avoid deep type instantiation
+  // Use state as any[]
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -50,7 +51,7 @@ const SmartTimetableReview = ({
           setErrorMsg("No valid draft timetable found.");
           setRows([]);
         } else {
-          setRows(data || []);
+          setRows(data as any[]); // **** TYPECAST HERE ****
         }
       } catch (e: any) {
         setErrorMsg("Error fetching timetable draft: " + (e?.message ?? String(e)));
@@ -88,6 +89,9 @@ const SmartTimetableReview = ({
     }
   };
 
+  // Ensure mapping over array with type any[]
+  const safeRows: any[] = Array.isArray(rows) ? rows : [];
+
   return (
     <div className="my-6">
       <div className="font-bold text-lg mb-2">
@@ -97,7 +101,7 @@ const SmartTimetableReview = ({
         <div className="text-gray-500">Loading...</div>
       ) : errorMsg ? (
         <div className="text-red-500">{errorMsg}</div>
-      ) : rows.length === 0 ? (
+      ) : safeRows.length === 0 ? (
         <div className="text-gray-500">No timetable drafts found.</div>
       ) : (
         <div>
@@ -113,7 +117,7 @@ const SmartTimetableReview = ({
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {safeRows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.class_id}</td>
                   <td>{r.school_id ?? "-"}</td>
@@ -127,7 +131,7 @@ const SmartTimetableReview = ({
           </table>
           <Button
             onClick={handlePublish}
-            disabled={loading || !rows.length}
+            disabled={loading || !safeRows.length}
             className="bg-green-600 text-white"
           >
             {loading ? "Publishing..." : "Publish Timetable"}
