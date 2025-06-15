@@ -1,12 +1,13 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TeacherAttendanceTable from "./TeacherAttendanceTable";
 import { Student, AttendanceStatus, AttendanceRecord, validStatus } from "./TeacherAttendanceUtils";
+import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
+import AttendanceControls from "./AttendanceControls";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface TeacherAttendancePanelProps {
   userId: string;
@@ -29,6 +30,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceRecord>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(schoolId);
 
   // Fetch classes based on user role
   useEffect(() => {
@@ -144,6 +146,10 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
       toast({ title: "Select class", description: "Please select a class.", variant: "destructive" });
       return;
     }
+    if (!academicInfo.year || !academicInfo.term) {
+      toast({ title: "Academic Info Missing", description: "Current academic year or term not set. Cannot save attendance.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
 
     try {
@@ -158,8 +164,8 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
         remarks: attendanceMap[s.id]?.remarks || null,
         submitted_by: userId,
         submitted_at: new Date().toISOString(),
-        term: "term1",
-        academic_year: new Date().getFullYear().toString(),
+        term: academicInfo.term,
+        academic_year: academicInfo.year,
       }));
 
       await supabase
@@ -175,7 +181,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
 
       toast({ title: "Attendance saved", description: "Attendance marked successfully." });
     } catch (err: any) {
-      toast({ title: "Error", description: "Failed to save attendance.", variant: "destructive" });
+      toast({ title: "Error", description: `Failed to save attendance: ${err.message}`, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -187,58 +193,31 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
         <CardTitle>Mark Attendance</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col md:flex-row md:items-end gap-6 mb-6">
-          <div className="w-full md:w-1/4">
-            <label className="block mb-1">Class</label>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full md:w-1/4">
-            <label className="block mb-1">Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="h-10 px-2 rounded-md border border-input w-full"
-            />
-          </div>
-          <div className="w-full md:w-1/4">
-            <label className="block mb-1">Session</label>
-            <Select value={session} onValueChange={setSession}>
-              <SelectTrigger>
-                <SelectValue placeholder="Session" />
-              </SelectTrigger>
-              <SelectContent>
-                {sessionOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-full md:w-1/4 flex gap-2">
-            <Button variant="outline" type="button" onClick={markAllPresent} disabled={loading || !selectedClass}>
-              Mark All Present
-            </Button>
-            <Button onClick={handleSaveAttendance} disabled={saving || !selectedClass || !students.length}>
-              {saving ? "Saving..." : "Save Attendance"}
-            </Button>
-          </div>
-        </div>
+        <AttendanceControls
+          classes={classes}
+          selectedClass={selectedClass}
+          onClassChange={setSelectedClass}
+          selectedDate={selectedDate}
+          onDateChange={(e) => setSelectedDate(e.target.value)}
+          session={session}
+          onSessionChange={setSession}
+          sessionOptions={sessionOptions}
+          onMarkAllPresent={markAllPresent}
+          onSaveAttendance={handleSaveAttendance}
+          loading={loading || academicInfoLoading}
+          saving={saving}
+          academicInfoError={academicInfoError}
+          studentCount={students.length}
+        />
+        {academicInfoError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Configuration Error</AlertTitle>
+            <AlertDescription>{academicInfoError}</AlertDescription>
+          </Alert>
+        )}
         {/* Table */}
         <div>
-          {loading ? (
+          {loading || academicInfoLoading ? (
             <div className="p-8 text-center">Loading...</div>
           ) : !selectedClass ? (
             <div className="p-8 text-center text-muted-foreground">Select a class to begin.</div>

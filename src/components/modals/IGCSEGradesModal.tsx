@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import IGCSEGradesForm from './IGCSEGradesForm';
 import IGCSEGradeActionButtons from './IGCSEGradeActionButtons';
+import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface IGCSEGradesModalProps {
   onClose: () => void;
@@ -39,6 +41,7 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
 
   const { toast } = useToast();
   const { currentSchool } = useSchool();
+  const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(user?.school_id);
 
   useEffect(() => {
     if (!user?.school_id) return;
@@ -83,6 +86,15 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
       });
       return;
     }
+    if (!academicInfo.term) {
+      toast({
+        title: "Error",
+        description: "Current academic term is not set. Cannot submit grade.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     const gradeToInsert = customGrade || gradeChoice;
     const subjectToInsert = useCustomSubject ? null : selectedSubject;
@@ -98,8 +110,6 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
     }
 
     try {
-      // ⚠️ 'term' is a required field for grades
-      // For now, default to "Term 1"
       const { error } = await supabase.from('grades').insert({
         school_id: user.school_id,
         student_id: selectedStudent,
@@ -109,7 +119,7 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         comments: `IGCSE Grade: ${gradeToInsert}${useCustomSubject ? ` (${freeformSubject})` : ""}`,
         submitted_by: user?.id,
         status: 'submitted',
-        term: 'Term 1', // This should probably be more dynamic in a real app
+        term: academicInfo.term,
         max_score: 0, // Assuming 0 as there is no numeric score
       });
       if (error) {
@@ -137,6 +147,11 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         <DialogHeader>
           <DialogTitle>Enter IGCSE Grade</DialogTitle>
         </DialogHeader>
+        {academicInfoError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{academicInfoError}</AlertDescription>
+            </Alert>
+        )}
         <IGCSEGradesForm
           classes={classes}
           selectedClass={selectedClass}
@@ -159,7 +174,7 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         />
         <DialogFooter>
           <IGCSEGradeActionButtons
-            loading={loading}
+            loading={loading || academicInfoLoading}
             onCancel={onClose}
             onSubmit={handleSubmit}
           />
