@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 import { Badge } from '@/components/ui/badge';
+import AddClassModal from '../modals/AddClassModal';
 
 interface SchoolStats {
   totalStudents: number;
@@ -55,6 +56,7 @@ const PrincipalDashboard = () => {
   const [parentList, setParentList] = useState([]);
   const [loadingEntities, setLoadingEntities] = useState(true);
   const [errorEntities, setErrorEntities] = useState<string | null>(null);
+  const [addClassOpen, setAddClassOpen] = useState(false);
 
   const schoolId = getCurrentSchoolId();
 
@@ -192,10 +194,41 @@ const PrincipalDashboard = () => {
     }
   };
 
+  /* Add fetchEntities for listing classes/subjects/teachers/parents */
+  useEffect(() => {
+    const effectiveSchoolId = schoolId || user?.school_id;
+    if (!effectiveSchoolId) return;
+    setLoadingEntities(true);
+    setErrorEntities(null);
+
+    Promise.allSettled([
+      supabase.from('classes').select('id, name, created_at').eq('school_id', effectiveSchoolId).order('name'),
+      supabase.from('subjects').select('id, name, code, created_at').eq('school_id', effectiveSchoolId).order('name'),
+      supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'teacher').order('name'),
+      supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'parent').order('name')
+    ]).then(([classesRes, subjectsRes, teachersRes, parentsRes]) => {
+      setClassList(classesRes.status === "fulfilled" ? classesRes.value.data || [] : []);
+      setSubjectList(subjectsRes.status === "fulfilled" ? subjectsRes.value.data || [] : []);
+      setTeacherList(teachersRes.status === "fulfilled" ? teachersRes.value.data || [] : []);
+      setParentList(parentsRes.status === "fulfilled" ? parentsRes.value.data || [] : []);
+      setErrorEntities(
+        [classesRes, subjectsRes, teachersRes, parentsRes].find(r => r.status === "rejected")
+          ? "Failed to load some entities." : null
+      );
+    }).catch((err) => {
+      setErrorEntities("Failed to load entities.");
+    }).finally(() => setLoadingEntities(false));
+  }, [schoolId, user?.school_id, reloadKey]);
+
   // Handler to refetch dashboard data after modal success
   const handleUserCreated = () => {
     setReloadKey(k => k + 1);
     console.log('[DEBUG] handleUserCreated: reloadKey incremented');
+  };
+
+  // Modified handleUserCreated to always reloadKey++ for any entity creation
+  const handleEntityCreated = () => {
+    setReloadKey(k => k + 1);
   };
 
   if (error && !loading) {
@@ -255,6 +288,7 @@ const PrincipalDashboard = () => {
     </li>
   );
 
+  /* ----------- RENDER ------------- */
   return (
     <div className="space-y-6">
       <ReportDownloadPanel />
@@ -271,6 +305,13 @@ const PrincipalDashboard = () => {
         <Button variant="outline" onClick={() => { setAddParentOpen(true); console.log('[DEBUG] AddParentModal open'); }}>
           <Plus className="w-4 h-4 mr-1" />
           Add Parent
+        </Button>
+      </div>
+      {/* Add Class Button */}
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => setAddClassOpen(true)}>
+          <Plus className="w-4 h-4 mr-1" />
+          Add Class
         </Button>
       </div>
       <Card>
@@ -294,12 +335,17 @@ const PrincipalDashboard = () => {
       <AddTeacherModal
         open={addTeacherOpen}
         onClose={() => { setAddTeacherOpen(false); console.log('[DEBUG] AddTeacherModal close'); }}
-        onTeacherCreated={handleUserCreated}
+        onTeacherCreated={handleEntityCreated}
       />
       <AddParentModal
         open={addParentOpen}
         onClose={() => { setAddParentOpen(false); console.log('[DEBUG] AddParentModal close'); }}
-        onParentCreated={handleUserCreated}
+        onParentCreated={handleEntityCreated}
+      />
+      <AddClassModal
+        open={addClassOpen}
+        onClose={() => setAddClassOpen(false)}
+        onClassCreated={handleEntityCreated}
       />
       {/* NEW: Entities Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
