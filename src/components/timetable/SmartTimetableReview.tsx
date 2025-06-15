@@ -13,8 +13,7 @@ const SmartTimetableReview = ({
   onPublish: () => void;
 }) => {
   const { user } = useAuth();
-  // EXPLICIT any[] STATE
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { toast } = useToast();
@@ -25,7 +24,6 @@ const SmartTimetableReview = ({
     setErrorMsg(null);
 
     (async () => {
-      // DO NOT use deep TS inference
       const { data, error } = await supabase
         .from("timetables")
         .select(
@@ -38,14 +36,11 @@ const SmartTimetableReview = ({
       if (error) {
         setErrorMsg("Error fetching timetable draft: " + error.message);
         setRows([]);
-      } else if (
-        !Array.isArray(data) ||
-        data.some((row: any) => !row?.id || !row?.class_id)
-      ) {
+      } else if (!data || !Array.isArray(data) || data.length === 0) {
         setErrorMsg("No valid draft timetable found.");
         setRows([]);
       } else {
-        setRows(data as any[]);
+        setRows(data);
       }
       setLoading(false);
     })();
@@ -56,7 +51,7 @@ const SmartTimetableReview = ({
     try {
       const { error } = await supabase
         .from("timetables")
-        .update({ is_published: true } as any)
+        .update({ is_published: true })
         .eq("school_id", user.school_id)
         .eq("term", term)
         .eq("is_published", false);
@@ -78,9 +73,6 @@ const SmartTimetableReview = ({
     }
   };
 
-  // Always cast rows as any[]
-  const safeRows: any[] = Array.isArray(rows) ? rows : [];
-
   return (
     <div className="my-6">
       <div className="font-bold text-lg mb-2">
@@ -90,7 +82,7 @@ const SmartTimetableReview = ({
         <div className="text-gray-500">Loading...</div>
       ) : errorMsg ? (
         <div className="text-red-500">{errorMsg}</div>
-      ) : safeRows.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className="text-gray-500">No timetable drafts found.</div>
       ) : (
         <div>
@@ -106,7 +98,7 @@ const SmartTimetableReview = ({
               </tr>
             </thead>
             <tbody>
-              {safeRows.map((r: any) => (
+              {rows.map((r: any) => (
                 <tr key={r.id}>
                   <td>{r.class_id}</td>
                   <td>{r.school_id ?? "-"}</td>
@@ -124,7 +116,7 @@ const SmartTimetableReview = ({
           </table>
           <Button
             onClick={handlePublish}
-            disabled={loading || !safeRows.length}
+            disabled={loading || !rows.length}
             className="bg-green-600 text-white"
           >
             {loading ? "Publishing..." : "Publish Timetable"}
@@ -139,4 +131,3 @@ const SmartTimetableReview = ({
 };
 
 export default SmartTimetableReview;
-

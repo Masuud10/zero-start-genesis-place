@@ -9,14 +9,13 @@ interface TimetableViewerProps {
   studentId?: string;
 }
 
-const TimetableViewer: React.FC<any> = ({
+const TimetableViewer: React.FC<TimetableViewerProps> = ({
   term,
   classId,
   studentId,
 }) => {
   const { user } = useAuth();
-  // EXPLICIT any[] STATE
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -48,14 +47,11 @@ const TimetableViewer: React.FC<any> = ({
       if (error) {
         setErrorMsg("Error loading timetable: " + error.message);
         setRows([]);
-      } else if (
-        !Array.isArray(data) ||
-        data.some((row: any) => !row?.id || !row?.class_id)
-      ) {
+      } else if (!data || !Array.isArray(data) || data.length === 0) {
         setErrorMsg("No timetable found.");
         setRows([]);
       } else {
-        setRows(data as any[]);
+        setRows(data);
       }
       setLoading(false);
     };
@@ -63,16 +59,13 @@ const TimetableViewer: React.FC<any> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.school_id, term, classId, studentId]);
 
-  // Always cast as any[]
-  const safeRows: any[] = Array.isArray(rows) ? rows : [];
-
   return (
     <div>
       {loading ? (
         <div>Loading timetable...</div>
       ) : errorMsg ? (
         <div className="text-red-500">{errorMsg}</div>
-      ) : safeRows.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div>No published timetable found.</div>
       ) : (
         <table className="border w-full">
@@ -87,7 +80,7 @@ const TimetableViewer: React.FC<any> = ({
             </tr>
           </thead>
           <tbody>
-            {safeRows.map((r: any) => (
+            {rows.map((r: any) => (
               <tr key={r.id}>
                 <td>{r.class_id}</td>
                 <td>{r.school_id ?? "-"}</td>
@@ -109,4 +102,3 @@ const TimetableViewer: React.FC<any> = ({
 };
 
 export default TimetableViewer;
-
