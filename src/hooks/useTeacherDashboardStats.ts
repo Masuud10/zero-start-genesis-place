@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -41,15 +42,22 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
 
         const classIds = teacherClassesData?.map(c => c.id) || [];
 
-        // Fetch students in teacher's classes
+        // Fetch unique students in teacher's classes
         let studentCount = 0;
         if (classIds.length > 0) {
-          const { count } = await supabase
-            .from('students')
-            .select('id', { count: 'exact' })
-            .in('class_id', classIds)
-            .eq('is_active', true);
-          studentCount = count || 0;
+            const { data: studentClassesData, error: studentsError } = await supabase
+                .from('student_classes')
+                .select('student_id')
+                .in('class_id', classIds)
+                .eq('is_active', true)
+                .eq('school_id', schoolId);
+
+            if (studentsError) {
+                console.error("Error fetching student count for teacher dashboard", studentsError);
+            } else if (studentClassesData) {
+                const uniqueStudentIds = new Set(studentClassesData.map(sc => sc.student_id));
+                studentCount = uniqueStudentIds.size;
+            }
         }
 
         // Fetch pending grades (draft status) for the current school

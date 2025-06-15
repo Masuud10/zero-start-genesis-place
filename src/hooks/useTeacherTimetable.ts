@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from './useSchoolScopedData';
 
 export interface TimetableEntry {
     id: string;
@@ -12,7 +13,7 @@ export interface TimetableEntry {
     subject: { id: string; name: string };
 }
 
-const fetchTeacherTimetable = async (teacherId: string): Promise<TimetableEntry[]> => {
+const fetchTeacherTimetable = async (teacherId: string, schoolId: string): Promise<TimetableEntry[]> => {
     const { data, error } = await supabase
         .from('timetables')
         .select(`
@@ -24,6 +25,7 @@ const fetchTeacherTimetable = async (teacherId: string): Promise<TimetableEntry[
             subject:subjects(id, name)
         `)
         .eq('teacher_id', teacherId)
+        .eq('school_id', schoolId)
         .order('day_of_week')
         .order('start_time');
 
@@ -36,11 +38,12 @@ const fetchTeacherTimetable = async (teacherId: string): Promise<TimetableEntry[
 
 export const useTeacherTimetable = () => {
     const { user } = useAuth();
+    const { schoolId } = useSchoolScopedData();
     const teacherId = user?.id;
 
     return useQuery<TimetableEntry[], Error>({
-        queryKey: ['teacherTimetable', teacherId],
-        queryFn: () => fetchTeacherTimetable(teacherId!),
-        enabled: !!teacherId,
+        queryKey: ['teacherTimetable', teacherId, schoolId],
+        queryFn: () => fetchTeacherTimetable(teacherId!, schoolId!),
+        enabled: !!teacherId && !!schoolId,
     });
 };

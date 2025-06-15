@@ -3,20 +3,22 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Class, Subject } from '@/types/academic';
+import { useSchoolScopedData } from './useSchoolScopedData';
 
 export interface TeacherClassInfo {
   class: Class;
   subject?: Subject;
 }
 
-const fetchTeacherClasses = async (teacherId: string): Promise<TeacherClassInfo[]> => {
+const fetchTeacherClasses = async (teacherId: string, schoolId: string): Promise<TeacherClassInfo[]> => {
   const { data, error } = await supabase
     .from('teacher_classes')
     .select(`
       classes (*),
       subjects (*)
     `)
-    .eq('teacher_id', teacherId);
+    .eq('teacher_id', teacherId)
+    .eq('school_id', schoolId);
 
   if (error) {
     throw new Error(error.message);
@@ -59,11 +61,12 @@ const fetchTeacherClasses = async (teacherId: string): Promise<TeacherClassInfo[
 
 export const useTeacherClasses = () => {
   const { user } = useAuth();
+  const { schoolId } = useSchoolScopedData();
   const teacherId = user?.id;
 
   return useQuery<TeacherClassInfo[], Error>({
-    queryKey: ['teacherClasses', teacherId],
-    queryFn: () => fetchTeacherClasses(teacherId!),
-    enabled: !!teacherId,
+    queryKey: ['teacherClasses', teacherId, schoolId],
+    queryFn: () => fetchTeacherClasses(teacherId!, schoolId!),
+    enabled: !!teacherId && !!schoolId,
   });
 };
