@@ -7,11 +7,9 @@ import { useClasses } from "@/hooks/useClasses";
 import { useToast } from "@/hooks/use-toast";
 
 const EduFamAdminAnalytics = () => {
-  // Filter UI state
   const [schoolId, setSchoolId] = useState<string | undefined>(undefined);
   const [classId, setClassId] = useState<string | undefined>(undefined);
   const [dateFilter, setDateFilter] = useState("this_month");
-  // Date filter logic
   const now = new Date();
   let startDate: string | undefined;
   let endDate: string | undefined;
@@ -26,7 +24,6 @@ const EduFamAdminAnalytics = () => {
     endDate = undefined;
   }
 
-  // Example: fetch classes for school filter. (Can be replaced if multi-school selection is expanded)
   const { classes } = useClasses();
 
   const { summary, loading, error, retry } = useEduFamAnalytics({
@@ -38,7 +35,6 @@ const EduFamAdminAnalytics = () => {
 
   const { toast } = useToast();
 
-  // Simulated school options for demonstration (replace with real schools)
   const schoolOptions = [
     { id: "", name: "All Schools" },
     { id: "school1", name: "Greenwood Primary" },
@@ -47,7 +43,14 @@ const EduFamAdminAnalytics = () => {
     { id: "school4", name: "Oak Tree Primary" },
   ];
 
-  // Filter UI and summary cards
+  // Helper to safely format numbers that could be undefined or null
+  const safeFormat = (value: number | null | undefined, digits = 1) => {
+    if (typeof value === "number" && !isNaN(value)) {
+      return value.toFixed(digits);
+    }
+    return "N/A";
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -106,9 +109,7 @@ const EduFamAdminAnalytics = () => {
                 <div className="text-muted-foreground">Total Grades Recorded</div>
                 <div className="font-semibold mt-2">
                   Avg. Score:{" "}
-                  {summary.grades.avgScore !== null
-                    ? `${summary.grades.avgScore.toFixed(1)}%`
-                    : "N/A"}
+                  {safeFormat(summary.grades.avgScore)}%
                 </div>
               </div>
             ) : (
@@ -131,9 +132,7 @@ const EduFamAdminAnalytics = () => {
                 <div className="text-muted-foreground">Attendance Records</div>
                 <div className="font-semibold mt-2">
                   Avg. Attendance:{" "}
-                  {summary.attendance.avgAttendance !== null
-                    ? `${summary.attendance.avgAttendance.toFixed(1)}%`
-                    : "N/A"}
+                  {safeFormat(summary.attendance.avgAttendance)}%
                 </div>
               </div>
             ) : (
@@ -154,7 +153,7 @@ const EduFamAdminAnalytics = () => {
               <div>
                 <div className="font-bold text-2xl">
                   KES{" "}
-                  {summary.finance.totalAmount !== null
+                  {typeof summary.finance.totalAmount === "number" && !isNaN(summary.finance.totalAmount)
                     ? summary.finance.totalAmount.toLocaleString()
                     : "0"}
                 </div>
