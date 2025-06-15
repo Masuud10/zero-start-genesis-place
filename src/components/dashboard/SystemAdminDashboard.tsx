@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AuthUser } from '@/types/auth';
 import EduFamAdminDashboard from './EduFamAdminDashboard';
@@ -44,3 +45,4 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user, onMod
 };
 
 export default SystemAdminDashboard;
+

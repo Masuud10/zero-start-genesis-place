@@ -20,26 +20,57 @@ import { Badge } from '@/components/ui/badge';
 import AddClassModal from '../modals/AddClassModal';
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import RoleGuard from '@/components/common/RoleGuard';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
-interface SchoolStats {
-  totalStudents: number;
-  totalTeachers: number;
-  totalSubjects: number;
-  totalClasses: number;
-}
+// --- Helper preview functions and panel ---
+const PreviewPanel = ({ title, items, total, renderItem, loading, error }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-sm">{title}</CardTitle>
+      <CardDescription>
+        Total: {loading ? <span className="animate-pulse">…</span> : total}
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      {loading ? (
+        <div className="text-xs text-gray-400">Loading...</div>
+      ) : error ? (
+        <div className="text-xs text-red-600">{error}</div>
+      ) : (
+        <ul className="text-xs space-y-1">
+          {items && items.length > 0
+            ? items.slice(0, 5).map(renderItem)
+            : <li>No items.</li>}
+        </ul>
+      )}
+    </CardContent>
+  </Card>
+);
 
-interface RecentActivity {
-  id: string;
-  type: string;
-  description: string;
-  timestamp: string;
-}
+const renderClass = (cls) => (
+  <li key={cls.id}>
+    <span className="font-semibold">{cls.name}</span>{" "}
+    <span className="text-gray-400 text-[10px]">{cls.id.slice(0, 6)}</span>
+  </li>
+);
+
+const renderSubject = (subj) => (
+  <li key={subj.id}>
+    <span>{subj.name}</span>{" "}
+    <span className="text-gray-400 text-[10px]">{subj.code}</span>
+  </li>
+);
+
+const renderPerson = (person) => (
+  <li key={person.id}>
+    <span>{person.name}</span>{" "}
+    <span className="text-gray-400 text-[10px]">{person.email}</span>
+  </li>
+);
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
+  const { getCurrentSchoolId, validateSchoolAccess, isReady } = useSchoolScopedData();
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -245,7 +276,6 @@ const PrincipalDashboard = () => {
     );
   }
 
-  // Enforce principal role+school guard on dashboard (use fallback error for other case)
   return (
     <RoleGuard allowedRoles={['principal']} requireSchoolAssignment={true}>
       <div className="space-y-6">
@@ -342,7 +372,7 @@ const PrincipalDashboard = () => {
           onClose={() => setAddClassOpen(false)}
           onClassCreated={handleEntityCreated}
         />
-        {/* NEW: Entities Section */}
+        {/* Entities Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <PreviewPanel
             title="Classes"
@@ -377,7 +407,6 @@ const PrincipalDashboard = () => {
             error={errorEntities}
           />
         </div>
-        {/* All dash queries are already scoped by school ID from hooks, as above. */}
       </div>
     </RoleGuard>
   );
