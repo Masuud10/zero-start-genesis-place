@@ -9,7 +9,7 @@ import ParentAttendanceView from '@/components/attendance/ParentAttendanceView';
 import ParentFinanceView from '@/components/finance/ParentFinanceView';
 import MessagesModule from '@/components/modules/MessagesModule';
 import ParentTimetableView from '@/components/timetable/ParentTimetableView';
-import ParentSupportModule from '@/components/modules/ParentSupportModule';
+import ParentReportsModule from '@/components/modules/ParentReportsModule';
 
 interface DashboardModalsProps {
   activeModal: string | null;
@@ -84,9 +84,9 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
       modalContent = <ParentTimetableView />;
       title = "Class Timetable";
       break;
-    case 'support':
-      modalContent = <ParentSupportModule />;
-      title = "Help & Support";
+    case 'reports':
+      modalContent = <ParentReportsModule />;
+      title = "Generate Reports";
       break;
     default:
       modalContent = (

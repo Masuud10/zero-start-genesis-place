@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, GraduationCap, CalendarCheck, DollarSign, MessageSquare, CalendarClock, LifeBuoy } from 'lucide-react';
+import { User, GraduationCap, CalendarCheck, DollarSign, MessageSquare, CalendarClock, FileText } from 'lucide-react';
 
 interface ParentActionButtonsProps {
   onModalOpen: (modalType: string) => void;
@@ -14,7 +14,7 @@ const parentActions = [
   { id: 'finance', label: 'School Fees', icon: DollarSign, description: 'Payment history & balance' },
   { id: 'messages', label: 'School Messages', icon: MessageSquare, description: 'Communications from school' },
   { id: 'timetable', label: 'Class Timetable', icon: CalendarClock, description: 'View weekly schedule' },
-  { id: 'support', label: 'Support Ticket', icon: LifeBuoy, description: 'Get help and support' },
+  { id: 'reports', label: 'Generate Report', icon: FileText, description: 'Download performance reports' },
 ];
 
 const ParentActionButtons: React.FC<ParentActionButtonsProps> = ({ onModalOpen }) => {
