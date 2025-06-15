@@ -1,110 +1,96 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import FinanceStatsCards from "./finance-officer/FinanceStatsCards";
+import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
+import { Loader2, AlertCircle, PlusCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics';
+import FeeCollectionChart from '@/components/analytics/finance/FeeCollectionChart';
+import DailyTransactionsChart from '@/components/analytics/finance/DailyTransactionsChart';
+import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
+import TopDefaultersList from '@/components/analytics/finance/TopDefaultersList';
+import ClassCollectionProgress from '@/components/analytics/finance/ClassCollectionProgress';
+import { Button } from '@/components/ui/button';
+import ExpenseModal from '@/components/modals/ExpenseModal';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
-  onModalOpen: (modalType: string) => void;
 }
 
-const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user, onModalOpen }) => {
+const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user }) => {
   console.log('💰 FinanceOfficerDashboard: Rendering for finance officer:', user.email);
+  
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const { user: authUser } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [stats, setStats] = useState({
-    monthlyRevenue: 0,
-    outstandingFees: 0,
-    paymentRate: 0,
-    mpesaTransactions: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const filters = { term: 'current', class: 'all' };
+  const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      if (!user?.school_id) {
-        setLoading(false);
-        return;
-      }
-      
-      const schoolId = user.school_id;
+  const handleExpenseAdded = () => {
+      setIsExpenseModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['financeOfficerAnalytics', authUser?.school_id, filters] });
+  };
 
-      const currentTermPromise = supabase
-        .from('academic_terms')
-        .select('start_date, end_date')
-        .eq('school_id', schoolId)
-        .eq('is_current', true)
-        .maybeSingle();
+  if (isLoading) {
+      return (
+          <div className="flex items-center justify-center h-96">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="ml-2">Loading financial overview...</p>
+          </div>
+      );
+  }
 
-      const outstandingFeesPromise = supabase.rpc('get_outstanding_fees', { p_school_id: schoolId });
-      
-      const feesPromise = supabase
-        .from('fees')
-        .select('amount, paid_amount, paid_date, mpesa_code, due_date')
-        .eq('school_id', schoolId);
+  if (error) {
+      return (
+          <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error Loading Data</AlertTitle>
+              <AlertDescription>
+                  There was a problem loading the financial analytics. Please try again later.
+                  <br />
+                  <small className="text-xs">{error.message}</small>
+              </AlertDescription>
+          </Alert>
+      );
+  }
 
-      const [
-        { data: currentTerm },
-        { data: outstandingFeesData, error: outstandingError },
-        { data: fees, error: feesError }
-      ] = await Promise.all([currentTermPromise, outstandingFeesPromise, feesPromise]);
+  if (!data) {
+      return <p className="text-center text-muted-foreground mt-8">No financial data available to display.</p>;
+  }
 
-
-      if (outstandingError || feesError) {
-        console.error("Error fetching finance stats", outstandingError, feesError);
-        setLoading(false);
-        return;
-      }
-
-      let monthlyRevenue = 0;
-      let paymentRate = 0;
-      let mpesaTransactions = 0;
-
-      if (fees) {
-        const currMonth = new Date().getMonth();
-        const currYear = new Date().getFullYear();
-        
-        const thisMonthPayments = fees.filter(f => {
-            if (!f.paid_date) return false;
-            const paidDate = new Date(f.paid_date);
-            return paidDate.getMonth() === currMonth && paidDate.getFullYear() === currYear;
-        });
-
-        monthlyRevenue = thisMonthPayments.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
-        
-        // FIX: Calculate payment rate based on fees due in the current term for relevance
-        const termFees = currentTerm && currentTerm.start_date && currentTerm.end_date
-          ? fees.filter(f => {
-              if (!f.due_date) return false;
-              const dueDate = new Date(f.due_date);
-              return dueDate >= new Date(currentTerm.start_date) && dueDate <= new Date(currentTerm.end_date);
-            })
-          : [];
-        
-        if (termFees.length > 0) {
-          const totalPaid = termFees.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
-          const totalAmount = termFees.reduce((sum, f) => sum + (f.amount || 0), 0);
-          paymentRate = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
-        }
-
-        mpesaTransactions = fees.filter(f => f.mpesa_code).length;
-      }
-
-      setStats({
-        monthlyRevenue,
-        outstandingFees: outstandingFeesData || 0,
-        paymentRate,
-        mpesaTransactions
-      });
-      setLoading(false);
-    };
-    fetchStats();
-  }, [user.school_id]);
+  const { keyMetrics, feeCollectionData, dailyTransactions, expenseBreakdown, defaultersList } = data;
 
   return (
     <div className="space-y-6">
-      <FinanceStatsCards loading={loading} stats={stats} />
+      <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Financial Overview</h2>
+          <Button onClick={() => setIsExpenseModalOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Record Expense
+          </Button>
+      </div>
+
+      {isExpenseModalOpen && (
+          <ExpenseModal
+              onClose={() => setIsExpenseModalOpen(false)}
+              onExpenseAdded={handleExpenseAdded}
+          />
+      )}
+      
+      <FinanceKeyMetrics keyMetrics={keyMetrics} />
+      
+      <FeeCollectionChart data={feeCollectionData} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DailyTransactionsChart data={dailyTransactions} />
+          <ExpenseBreakdownChart data={expenseBreakdown} />
+      </div>
+
+      <TopDefaultersList data={defaultersList} />
+
+      <ClassCollectionProgress data={feeCollectionData} />
     </div>
   );
 };

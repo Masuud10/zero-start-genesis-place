@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -24,7 +23,7 @@ const FeeCollectionChart: React.FC<FeeCollectionChartProps> = ({ data }) => {
                 <CardTitle>Fee Collection by Class</CardTitle>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={chartConfig} className="h-80">
+                <ChartContainer config={chartConfig} className="h-72">
                     <BarChart data={data}>
                         <XAxis dataKey="class" />
                         <YAxis tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)} />

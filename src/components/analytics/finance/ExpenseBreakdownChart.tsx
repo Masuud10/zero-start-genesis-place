@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -22,7 +21,7 @@ const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({ data }) =
           </CardHeader>
           <CardContent>
             {data.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-64">
+              <ChartContainer config={chartConfig} className="h-60">
                 <PieChart>
                   <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                       {data.map((entry, index) => (

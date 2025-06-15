@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -22,7 +21,7 @@ const DailyTransactionsChart: React.FC<DailyTransactionsChartProps> = ({ data })
             <CardTitle>Daily Transaction Trends</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
+            <ChartContainer config={chartConfig} className="h-60">
               <LineChart data={data}>
                 <XAxis dataKey="date" />
                 <YAxis tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)} />
