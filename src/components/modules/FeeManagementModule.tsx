@@ -1,96 +1,91 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Progress } from '@/components/ui/progress';
-
-const feeCollectionData = [
-    { name: 'Grade 1', collected: 4000, expected: 5000 },
-    { name: 'Grade 2', collected: 3000, expected: 4000 },
-    { name: 'Grade 3', collected: 5000, expected: 5000 },
-    { name: 'Grade 4', collected: 4500, expected: 6000 },
-    { name: 'Grade 5', collected: 7000, expected: 8000 },
-];
-
-const paymentMethodsData = [
-    { name: 'MPESA', value: 400 },
-    { name: 'Bank Transfer', value: 300 },
-    { name: 'Cash', value: 300 },
-];
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+import React, { useState } from 'react';
+import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
+import { Loader2, AlertCircle, PlusCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics';
+import FeeCollectionChart from '@/components/analytics/finance/FeeCollectionChart';
+import DailyTransactionsChart from '@/components/analytics/finance/DailyTransactionsChart';
+import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
+import TopDefaultersList from '@/components/analytics/finance/TopDefaultersList';
+import ClassCollectionProgress from '@/components/analytics/finance/ClassCollectionProgress';
+import { Button } from '@/components/ui/button';
+import ExpenseModal from '@/components/modals/ExpenseModal';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FeeManagementModule = () => {
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+
+    // Set default filters. In the future, we can add UI for these.
+    const filters = { term: 'current', class: 'all' };
+    const { data, isLoading, error, refetch } = useFinanceOfficerAnalytics(filters);
+
+    const handleExpenseAdded = () => {
+        setIsExpenseModalOpen(false);
+        // Invalidate queries to refetch data after a new expense is added.
+        queryClient.invalidateQueries({ queryKey: ['financeOfficerAnalytics', user?.school_id, filters] });
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="ml-2">Loading financial analytics...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error Loading Data</AlertTitle>
+                <AlertDescription>
+                    There was a problem loading the financial analytics. Please try again later.
+                    <br />
+                    <small className="text-xs">{error.message}</small>
+                </AlertDescription>
+            </Alert>
+        );
+    }
+  
+    if (!data) {
+        return <p className="text-center text-muted-foreground mt-8">No financial data available to display.</p>;
+    }
+
+    const { keyMetrics, feeCollectionData, dailyTransactions, expenseBreakdown, defaultersList } = data;
+
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Fee Management & Analytics</h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Collected (This Term)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl font-bold text-green-600">KES 23,500</p>
-                        <p className="text-sm text-muted-foreground">out of KES 28,000</p>
-                        <Progress value={(23500/28000)*100} className="mt-2" />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Outstanding Fees</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl font-bold text-orange-600">KES 4,500</p>
-                        <p className="text-sm text-muted-foreground">from 12 students</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Collection Rate</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl font-bold text-blue-600">83.9%</p>
-                        <p className="text-sm text-muted-foreground">Target: 90%</p>
-                    </CardContent>
-                </Card>
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Fee Management & Analytics</h2>
+                <Button onClick={() => setIsExpenseModalOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Record Expense
+                </Button>
             </div>
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Fee Collection by Grade</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={feeCollectionData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="collected" fill="#10b981" name="Collected (KES)" />
-                                <Bar dataKey="expected" fill="#3b82f6" name="Expected (KES)" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Payment Methods</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={250}>
-                            <PieChart>
-                                <Pie data={paymentMethodsData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label>
-                                    {paymentMethodsData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+
+            {isExpenseModalOpen && (
+                <ExpenseModal
+                    onClose={() => setIsExpenseModalOpen(false)}
+                    onExpenseAdded={handleExpenseAdded}
+                />
+            )}
+            
+            <FinanceKeyMetrics keyMetrics={keyMetrics} />
+            
+            <FeeCollectionChart data={feeCollectionData} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DailyTransactionsChart data={dailyTransactions} />
+                <ExpenseBreakdownChart data={expenseBreakdown} />
             </div>
+
+            <TopDefaultersList data={defaultersList} />
+
+            <ClassCollectionProgress data={feeCollectionData} />
         </div>
     )
 }

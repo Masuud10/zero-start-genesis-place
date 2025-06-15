@@ -7,16 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Receipt } from 'lucide-react';
+import { Save, Receipt, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ExpenseModalProps {
   onClose: () => void;
+  onExpenseAdded: () => void;
 }
 
-const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
+const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose, onExpenseAdded }) => {
   const { user } = useAuth();
   const [expenseData, setExpenseData] = useState({
     title: '',
@@ -49,20 +50,20 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
   };
 
   const handleSaveExpense = async () => {
-    if (!expenseData.title || !expenseData.category || !expenseData.amount || !user) {
+    if (!expenseData.category || !expenseData.amount || !user?.school_id) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in category and amount.",
         variant: "destructive"
       });
       return;
     }
 
     const amount = parseFloat(expenseData.amount);
-    if (amount <= 0) {
+    if (isNaN(amount) || amount <= 0) {
       toast({
         title: "Invalid Amount",
-        description: "Please enter a valid expense amount.",
+        description: "Please enter a valid positive expense amount.",
         variant: "destructive"
       });
       return;
@@ -71,19 +72,18 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
     try {
       setLoading(true);
 
-      // Record the expense in financial_transactions
+      const description = `${expenseData.title || 'Untitled Expense'}${expenseData.vendor ? ` (Vendor: ${expenseData.vendor})` : ''}${expenseData.description ? ` - ${expenseData.description}` : ''}`;
+
       const { error } = await supabase
-        .from('financial_transactions')
+        .from('expenses')
         .insert({
-          transaction_type: 'expense',
-          amount: amount,
-          description: `${expenseData.title} - ${expenseData.description}`,
-          payment_method: 'cash', // Default payment method
-          reference_number: expenseData.receiptNumber || null,
-          processed_by: user.id,
           school_id: user.school_id,
-          term: 'term1', // You might want to make this dynamic
-          academic_year: new Date().getFullYear().toString()
+          category: expenseData.category,
+          amount: amount,
+          date: expenseData.date,
+          description: description,
+          approved_by: user.id,
+          receipt_url: expenseData.receiptNumber || null,
         });
 
       if (error) {
@@ -95,12 +95,12 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
         description: `Expense of KES ${amount.toLocaleString()} has been recorded successfully.`,
       });
 
-      onClose();
-    } catch (error) {
+      onExpenseAdded();
+    } catch (error: any) {
       console.error('Error recording expense:', error);
       toast({
         title: "Error",
-        description: "Failed to record expense. Please try again.",
+        description: error.message || "Failed to record expense. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -126,11 +126,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="title">Expense Title *</Label>
+                  <Label htmlFor="title">Expense Title</Label>
                   <Input
                     value={expenseData.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
-                    placeholder="Enter expense title"
+                    placeholder="e.g., Office Stationery"
                   />
                 </div>
                 <div>
@@ -177,11 +177,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="receiptNumber">Receipt Number</Label>
+                  <Label htmlFor="receiptNumber">Receipt Number/URL</Label>
                   <Input
                     value={expenseData.receiptNumber}
                     onChange={(e) => handleInputChange('receiptNumber', e.target.value)}
-                    placeholder="Enter receipt number"
+                    placeholder="Enter receipt number or URL"
                   />
                 </div>
               </div>
@@ -191,7 +191,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
                 <Textarea
                   value={expenseData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Enter expense description"
+                  placeholder="Enter any additional details"
                   rows={3}
                 />
               </div>
@@ -203,7 +203,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
               <CardTitle>Expense Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Title:</span>
@@ -229,11 +229,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
           </Card>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <Button onClick={handleSaveExpense} disabled={loading}>
-              <Save className="w-4 h-4 mr-2" />
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               {loading ? 'Recording...' : 'Record Expense'}
             </Button>
           </div>
@@ -244,3 +244,4 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ onClose }) => {
 };
 
 export default ExpenseModal;
+
