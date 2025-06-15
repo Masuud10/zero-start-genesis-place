@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,7 +25,7 @@ const RoleAnalyticsRenderer: React.FC<RoleAnalyticsRendererProps> = ({ role, fil
       case "school_owner":
         return <SchoolOwnerAnalytics filters={filters} />;
       case "principal":
-        return <PrincipalAnalytics filters={filters} />;
+        return <PrincipalAnalytics />;
       case "teacher":
         return <TeacherAnalytics filters={filters} />;
       case "parent":
