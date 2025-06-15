@@ -9,7 +9,7 @@ import UserRoleBreakdown from './edufam-admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
-import DashboardModals from './edufam-admin/DashboardModals';
+import DashboardModals from './DashboardModals';
 
 interface EduFamAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
