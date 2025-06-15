@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MessageSquare, AlertTriangle } from 'lucide-react';
@@ -17,6 +16,7 @@ import RecentActivities from "./principal/RecentActivities";
 import { Button } from '@/components/ui/button';
 import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
+import { Badge } from '@/components/ui/badge';
 
 interface SchoolStats {
   totalStudents: number;
@@ -49,6 +49,12 @@ const PrincipalDashboard = () => {
   const [addTeacherOpen, setAddTeacherOpen] = useState(false);
   const [addParentOpen, setAddParentOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [classList, setClassList] = useState([]);
+  const [subjectList, setSubjectList] = useState([]);
+  const [teacherList, setTeacherList] = useState([]);
+  const [parentList, setParentList] = useState([]);
+  const [loadingEntities, setLoadingEntities] = useState(true);
+  const [errorEntities, setErrorEntities] = useState<string | null>(null);
 
   const schoolId = getCurrentSchoolId();
 
@@ -206,6 +212,49 @@ const PrincipalDashboard = () => {
 
   console.log('[DEBUG] Rendering overview with stats:', stats);
 
+  // Helper: Mini preview list
+  const PreviewPanel = ({ title, items, renderItem, total, loading, error }) => (
+    <Card className="mb-2">
+      <CardHeader className="flex flex-row items-center justify-between pb-1">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Badge variant="secondary">{total}</Badge>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-muted-foreground py-2">Loading...</div>
+        ) : error ? (
+          <div className="text-destructive py-2">Error: {error}</div>
+        ) : items.length === 0 ? (
+          <div className="text-muted-foreground py-2">No {title.toLowerCase()} found.</div>
+        ) : (
+          <ul className="divide-y border rounded bg-background">
+            {items.map(renderItem)}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  // Preview item renderers
+  const renderClass = (cls) => (
+    <li key={cls.id} className="py-2 px-2 flex justify-between items-center">
+      <span>{cls.name}</span>
+      <span className="text-xs text-muted-foreground">{new Date(cls.created_at).toLocaleDateString()}</span>
+    </li>
+  );
+  const renderSubject = (subj) => (
+    <li key={subj.id} className="py-2 px-2 flex justify-between items-center">
+      <span>{subj.name}</span>
+      <span className="text-xs text-muted-foreground">{subj.code}</span>
+    </li>
+  );
+  const renderPerson = (person) => (
+    <li key={person.id} className="py-2 px-2 flex justify-between items-center">
+      <span>{person.name}</span>
+      <span className="text-xs text-muted-foreground">{person.email}</span>
+    </li>
+  );
+
   return (
     <div className="space-y-6">
       <ReportDownloadPanel />
@@ -252,6 +301,41 @@ const PrincipalDashboard = () => {
         onClose={() => { setAddParentOpen(false); console.log('[DEBUG] AddParentModal close'); }}
         onParentCreated={handleUserCreated}
       />
+      {/* NEW: Entities Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <PreviewPanel
+          title="Classes"
+          items={classList}
+          total={stats.totalClasses}
+          renderItem={renderClass}
+          loading={loadingEntities}
+          error={errorEntities}
+        />
+        <PreviewPanel
+          title="Subjects"
+          items={subjectList}
+          total={stats.totalSubjects}
+          renderItem={renderSubject}
+          loading={loadingEntities}
+          error={errorEntities}
+        />
+        <PreviewPanel
+          title="Teachers"
+          items={teacherList}
+          total={stats.totalTeachers}
+          renderItem={renderPerson}
+          loading={loadingEntities}
+          error={errorEntities}
+        />
+        <PreviewPanel
+          title="Parents"
+          items={parentList}
+          total={parentList.length}
+          renderItem={renderPerson}
+          loading={loadingEntities}
+          error={errorEntities}
+        />
+      </div>
     </div>
   );
 };
