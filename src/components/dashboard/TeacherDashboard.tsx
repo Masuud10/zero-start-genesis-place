@@ -46,7 +46,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
       let studentsCount = 0;
       if (classIds.length > 0) {
-        // Only run .in() with a non-empty array
         const { count } = await supabase
           .from('students')
           .select('id', { count: 'exact', head: true })
@@ -67,6 +66,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
       let todaysClasses = 0;
       if (classIds.length > 0) {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        // Instead of running the query regardless, only run with >0 IDs
         const { data: timetableSlots } = await supabase
           .from('timetable_slots')
           .select('id')
