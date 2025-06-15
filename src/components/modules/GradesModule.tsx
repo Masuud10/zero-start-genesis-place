@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
 import { supabase } from '@/integrations/supabase/client';
@@ -96,27 +95,14 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
     studentsAbove90: 320
   };
 
-  // Early access check
-  if (!hasPermission('view_gradebook')) {
-    return (
-      <NoGradebookPermission
-        role={user?.role}
-        hasPermission={hasPermission('view_gradebook')}
-      />
-    );
-  }
-
-  // Remove duplicate "const { user } = useAuth();" here (was line 108)
-
+  // Summary state for Admin
   const isEdufamAdmin = user?.role === 'edufam_admin';
-
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [gradesSummary, setGradesSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch schools (for dropdown)
   useEffect(() => {
     if (!isEdufamAdmin) return;
     supabase.from("schools")
@@ -127,7 +113,6 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
       });
   }, [isEdufamAdmin]);
 
-  // Fetch grades summary for admin
   useEffect(() => {
     if (!isEdufamAdmin) return;
     setLoading(true);
@@ -143,115 +128,40 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
 
   if (isEdufamAdmin) {
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              System Grades Overview
-            </h1>
-            <p className="text-muted-foreground">
-              View grade performance summaries across all schools.
-            </p>
-          </div>
-          <SchoolSummaryFilter
-            schools={schools}
-            value={schoolFilter}
-            onChange={setSchoolFilter}
-          />
-        </div>
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {loading ? (
-            <Card><CardContent>Loading summary...</CardContent></Card>
-          ) : error ? (
-            <Card><CardContent className="text-red-500">{error}</CardContent></Card>
-          ) : gradesSummary ? (
-            <>
-              <Card>
-                <CardHeader><CardTitle>Average Grade</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="font-bold text-xl">
-                    {gradesSummary.avg_grade ? `${gradesSummary.avg_grade}%` : 'N/A'}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Most Improved School</CardTitle></CardHeader>
-                <CardContent>
-                  <div>{gradesSummary.most_improved_school || 'N/A'}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Declining Performance Alerts</CardTitle></CardHeader>
-                <CardContent>
-                  <div>{gradesSummary.declining_alerts || 0}</div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card><CardContent>No summary data found.</CardContent></Card>
-          )}
-        </div>
-      </div>
+      <GradesAdminSummary
+        loading={loading}
+        error={error}
+        gradesSummary={gradesSummary}
+        schools={schools}
+        schoolFilter={schoolFilter}
+        setSchoolFilter={setSchoolFilter}
+      />
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {user?.role === 'edufam_admin' ? 'System-Wide Grade Overview' : 'Grade Management'}
-          </h1>
-          <p className="text-muted-foreground">
-            {user?.role === 'edufam_admin' 
-              ? 'System administrator view - grade summaries across all schools'
-              : 'Manage and track student grades, performance analytics, and reporting.'
-            }
-          </p>
-        </div>
-        {/* Download report - restrict to users with gradebook view permission */}
-        {hasPermission('view_gradebook') && (
-          <DownloadReportButton
-            type="grades"
-            label="Download Grades Report"
-            queryFilters={user?.role === 'edufam_admin' ? {} : { school_id: user?.school_id }}
-          />
-        )}
-      </div>
-
-      {/* Class Filter */}
-      <ClassFilterBar
-        availableClasses={availableClasses}
-        selectedClassId={selectedClassId}
-        onSelectClass={setSelectedClassId}
-      />
-
-      {/* Stats Cards */}
-      <GradeStatsCards stats={gradeStats} role={user?.role} />
-
-      {/* Grade Overview Panel (main content) */}
-      <GradeOverviewPanel
-        user={user}
-        hasPermission={hasPermission}
-        mockGradingSession={mockGradingSession}
-        mockClassId={mockClassId}
-        mockSubjectId={mockSubjectId}
-        mockTerm={mockTerm}
-        mockExamType={mockExamType}
-        mockMaxScore={mockMaxScore}
-        mockStudents={mockStudents}
-        isModalOpen={isModalOpen}
-        onOpenModal={handleOpenModal}
-        onCloseModal={handleCloseModal}
-        showBulkModal={showBulkModal}
-        setShowBulkModal={setShowBulkModal}
-        handleSaveGrades={handleSaveGrades}
-        handleSubmitGrades={handleSubmitGrades}
-      />
-    </div>
+    <GradesMainPanel
+      hasPermission={hasPermission}
+      user={user}
+      availableClasses={availableClasses}
+      selectedClassId={selectedClassId}
+      setSelectedClassId={setSelectedClassId}
+      isModalOpen={isModalOpen}
+      handleOpenModal={handleOpenModal}
+      handleCloseModal={handleCloseModal}
+      showBulkModal={showBulkModal}
+      setShowBulkModal={setShowBulkModal}
+      handleSaveGrades={handleSaveGrades}
+      handleSubmitGrades={handleSubmitGrades}
+      mockGradingSession={mockGradingSession}
+      mockClassId={mockClassId}
+      mockSubjectId={mockSubjectId}
+      mockTerm={mockTerm}
+      mockExamType={mockExamType}
+      mockMaxScore={mockMaxScore}
+      mockStudents={mockStudents}
+    />
   );
 };
 
 export default GradesModule;
-
