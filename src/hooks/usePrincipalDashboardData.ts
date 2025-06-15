@@ -50,39 +50,26 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         return count || 0;
       };
 
-      const studentsQuery = supabase.from('students').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true);
-      const teachersQuery = supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'teacher');
-      const subjectsQuery = supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId);
-      const classesQuery = supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId);
-      const parentsQuery = supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent');
-
-      const auditLogsQuery = supabase
-        .from('security_audit_logs')
-        .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
-        .eq('school_id', targetSchoolId)
-        .eq('success', true)
-        .in('action', ['create', 'update'])
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      // Removed `as const` here to avoid tuple deep type instantiation
-      const promises = [
-        fetchCount(studentsQuery),
-        fetchCount(teachersQuery),
-        fetchCount(subjectsQuery),
-        fetchCount(classesQuery),
-        fetchCount(parentsQuery),
-        auditLogsQuery,
-      ];
-
-      // Cast result to array of PromiseSettledResult<any>
-      const settledResults: PromiseSettledResult<any>[] = await Promise.allSettled(promises);
-
-      const studentsCount = settledResults[0].status === 'fulfilled' ? settledResults[0].value : 0;
-      const teachersCount = settledResults[1].status === 'fulfilled' ? settledResults[1].value : 0;
-      const subjectsCount = settledResults[2].status === 'fulfilled' ? settledResults[2].value : 0;
-      const classesCount = settledResults[3].status === 'fulfilled' ? settledResults[3].value : 0;
-      const parentsCount = settledResults[4].status === 'fulfilled' ? settledResults[4].value : 0;
+      // Fetch counts separately to avoid complex Promise.allSettled typing issues
+      const studentsCount = await fetchCount(
+        supabase.from('students').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true)
+      );
+      
+      const teachersCount = await fetchCount(
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'teacher')
+      );
+      
+      const subjectsCount = await fetchCount(
+        supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId)
+      );
+      
+      const classesCount = await fetchCount(
+        supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId)
+      );
+      
+      const parentsCount = await fetchCount(
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent')
+      );
 
       setStats({
         totalStudents: studentsCount,
@@ -92,44 +79,48 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         totalParents: parentsCount
       });
 
+      // Fetch audit logs separately
+      const { data: auditLogsData, error: auditLogsError } = await supabase
+        .from('security_audit_logs')
+        .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
+        .eq('school_id', targetSchoolId)
+        .eq('success', true)
+        .in('action', ['create', 'update'])
+        .order('created_at', { ascending: false })
+        .limit(5);
+
       let activities: any[] = [];
-      const auditLogsResultRes = settledResults[5];
-      if (auditLogsResultRes.status === 'fulfilled') {
-        const auditLogsResult = auditLogsResultRes.value;
-        if (auditLogsResult.error) {
-          console.error("Failed to fetch audit logs:", auditLogsResult.error.message);
-        } else if (auditLogsResult.data) {
-          const logs = auditLogsResult.data as any[];
-          activities = logs.map((log: any) => {
-            const userName = log.profiles?.name || 'A user';
-            const actionVerb = log.action === 'create' ? 'created' : 'updated';
+      if (auditLogsError) {
+        console.error("Failed to fetch audit logs:", auditLogsError.message);
+      } else if (auditLogsData) {
+        activities = auditLogsData.map((log: any) => {
+          const userName = log.profiles?.name || 'A user';
+          const actionVerb = log.action === 'create' ? 'created' : 'updated';
 
-            let entityName = '';
-            if (log.metadata && typeof log.metadata === 'object') {
-              if ('name' in log.metadata && log.metadata.name) {
-                entityName = `"${log.metadata.name}"`;
-              } else if ('title' in log.metadata && log.metadata.title) {
-                entityName = `"${log.metadata.title}"`;
-              }
+          let entityName = '';
+          if (log.metadata && typeof log.metadata === 'object') {
+            if ('name' in log.metadata && log.metadata.name) {
+              entityName = `"${log.metadata.name}"`;
+            } else if ('title' in log.metadata && log.metadata.title) {
+              entityName = `"${log.metadata.title}"`;
             }
+          }
 
-            const resourceName = log.resource.replace(/_/g, ' ');
-            let description = `${userName} ${actionVerb} a ${resourceName}.`;
-            if (entityName) {
-              description = `${userName} ${actionVerb} the ${resourceName} ${entityName}.`;
-            }
+          const resourceName = log.resource.replace(/_/g, ' ');
+          let description = `${userName} ${actionVerb} a ${resourceName}.`;
+          if (entityName) {
+            description = `${userName} ${actionVerb} the ${resourceName} ${entityName}.`;
+          }
 
-            return {
-              id: log.id,
-              type: log.resource,
-              description: description,
-              timestamp: log.created_at,
-            };
-          });
-        }
-      } else {
-        console.error("Failed to fetch audit logs:", auditLogsResultRes.reason);
+          return {
+            id: log.id,
+            type: log.resource,
+            description: description,
+            timestamp: log.created_at,
+          };
+        });
       }
+      
       setRecentActivities(activities);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch school data');
