@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +13,7 @@ interface School {
   principal_id?: string;
   created_at?: string;
   updated_at?: string;
+  curriculum_type?: string; // fix: allow curriculum_type from DB
 }
 
 interface SchoolContextType {
