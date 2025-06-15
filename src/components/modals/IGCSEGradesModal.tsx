@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -100,16 +99,15 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
     const gradeToInsert = customGrade || gradeChoice;
     const subjectToInsert = useCustomSubject ? freeformSubject : selectedSubject;
 
-    // Insert logic below: The main logic will depend on how you want to store the grade (letter/custom);
-    // For now, insert as string in `score`, store subject as custom if needed, and add markers for IGCSE
+    // Only use columns that exist in the grades schema, and put the actual grade as a comment.
     try {
       const { error } = await supabase.from('grades').insert({
         student_id: selectedStudent,
         class_id: selectedClass,
         subject_id: useCustomSubject ? null : subjectToInsert,
-        custom_subject: useCustomSubject ? freeformSubject : null,
-        score: gradeToInsert,
-        grade_type: 'igcse',
+        score: null, // for IGCSE, we do not use the numeric score, so set null
+        comments: `IGCSE Grade: ${gradeToInsert}`,
+        grade_type: 'igcse', // ignored if not in schema, but left here in case it is
         submitted_by: user?.id,
         status: 'submitted'
       });
