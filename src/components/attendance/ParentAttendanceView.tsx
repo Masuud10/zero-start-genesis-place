@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,7 +47,7 @@ const ParentAttendanceView: React.FC = () => {
       try {
         const { data: parentStudents, error: parentStudentsError } = await supabase
           .from('parent_students')
-          .select('students:student_id(id, name, classes:class_id(name))')
+          .select('students:student_id(id, name, student_classes(is_active, classes(name)))')
           .eq('parent_id', user.id);
         
         if (parentStudentsError) throw parentStudentsError;
@@ -58,9 +59,11 @@ const ParentAttendanceView: React.FC = () => {
         }
         
         const studentMap = parentStudents.reduce((acc, ps) => {
-            const student = ps.students as { id: string; name: string; classes: { name: string } | null } | null;
+            const student = ps.students as { id: string; name: string; student_classes: { is_active: boolean; classes: { name: string; } | null; }[] } | null;
             if (student && student.id) {
-                acc.set(student.id, { name: student.name, className: student.classes?.name || 'N/A' });
+                const activeEnrollment = student.student_classes.find(sc => sc.is_active);
+                const className = activeEnrollment?.classes?.name || 'N/A';
+                acc.set(student.id, { name: student.name, className: className });
             }
             return acc;
         }, new Map<string, { name: string; className: string }>());
