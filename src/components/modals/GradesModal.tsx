@@ -40,6 +40,10 @@ const GRADING_ROLES: UserRole[] = [
   'edufam_admin'
 ];
 
+const getValidUserRole = (role: string | undefined): UserRole => {
+  return (GRADING_ROLES.includes(role as UserRole) ? (role as UserRole) : 'teacher');
+};
+
 const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const { user } = useAuth();
   const [selectedClass, setSelectedClass] = useState('');
@@ -59,13 +63,9 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const { toast } = useToast();
   const { currentSchool } = useSchool();
 
-  // === Fix: Safe UserRole Handling ===
-  function getValidUserRole(role: string | undefined): UserRole {
-    return (GRADING_ROLES.includes(role as UserRole) ? role : 'teacher') as UserRole;
-  }
-
   const curriculumType = currentSchool?.curriculum_type || 'cbc';
-  const permissions = getGradingPermissions(getValidUserRole(user?.role));
+  const resolvedUserRole = getValidUserRole(user?.role);
+  const permissions = getGradingPermissions(resolvedUserRole);
 
   useEffect(() => {
     const loadClasses = async () => {
@@ -141,7 +141,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     setLoading(true);
 
     try {
-      // Only allow teachers and principal to input marks for their school
+      // Only allow create/edit if permissions are granted
       if (!(permissions.canCreateGrades || permissions.canEditGrades)) {
         toast({
           title: "No Permission",
@@ -162,7 +162,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         term: selectedTerm,
         exam_type: selectedExamType,
         submitted_by: user?.id,
-        status: userRole === "teacher" ? 'submitted' : status, // teachers submit, principals may set status
+        status: resolvedUserRole === "teacher" ? 'submitted' : status, // teachers submit, principals may set
       };
 
       const { error } = await supabase
@@ -189,26 +189,43 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     }
   };
 
-  const isTeacher = userRole === "teacher";
-  const isPrincipal = userRole === "principal";
+  const isTeacher = resolvedUserRole === "teacher";
+  const isPrincipal = resolvedUserRole === "principal";
 
-  // Principal override and release logic is only available if permitted by role
   const canOverride = permissions.canOverrideGrades && isPrincipal;
   const canRelease = permissions.canReleaseResults && isPrincipal;
   const canApprove = permissions.canApproveGrades && isPrincipal;
+  const canSubmit = isTeacher && permissions.canSubmitGrades;
+  const canInput = isTeacher ? permissions.canCreateGrades : permissions.canEditGrades || permissions.canCreateGrades;
 
   // Modal switching: IGCSE custom flow
   if (curriculumType === 'igcse') {
-    return <IGCSEGradesModal onClose={onClose} userRole={userRole} />;
+    return <IGCSEGradesModal onClose={onClose} userRole={resolvedUserRole} />;
   }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Enter Grades</DialogTitle>
+          <DialogTitle>
+            Enter Grades
+            <span className="ml-2 inline-block align-middle">
+              {isTeacher && permissions.canSubmitGrades && (
+                <span className="text-xs text-blue-700 font-semibold">(Teacher: submit for approval)</span>
+              )}
+              {isPrincipal && (
+                <span className="text-xs text-green-700 font-semibold ml-1">(Principal: {[
+                  canApprove ? "approve, " : "",
+                  canOverride ? "override, " : "",
+                  canRelease ? "release, " : "",
+                  "input marks"
+                ].join('').replace(/, $/, '')})</span>
+              )}
+            </span>
+          </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {/* Class Select */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="class" className="text-right">Class</Label>
             <Select onValueChange={setSelectedClass}>
@@ -224,6 +241,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
               </SelectContent>
             </Select>
           </div>
+          {/* Subject Select */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="subject" className="text-right">Subject</Label>
             <Select onValueChange={setSelectedSubject} disabled={!selectedClass}>
@@ -239,6 +257,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
               </SelectContent>
             </Select>
           </div>
+          {/* Student Select */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="student" className="text-right">Student</Label>
             <Select onValueChange={setSelectedStudent} disabled={!selectedClass}>
@@ -254,6 +273,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
               </SelectContent>
             </Select>
           </div>
+          {/* Term Select */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="term" className="text-right">Term</Label>
             <Select onValueChange={setSelectedTerm}>
@@ -267,6 +287,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
               </SelectContent>
             </Select>
           </div>
+          {/* Exam Type */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="examType" className="text-right">Exam Type</Label>
             <Select onValueChange={setSelectedExamType}>
@@ -280,6 +301,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
               </SelectContent>
             </Select>
           </div>
+          {/* Score */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="score" className="text-right">Score</Label>
             <Input
@@ -289,8 +311,10 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
               value={score}
               onChange={(e) => setScore(e.target.value)}
               max={maxScore}
+              disabled={!canInput}
             />
           </div>
+          {/* Max Score */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="maxScore" className="text-right">Max Score</Label>
             <Input
@@ -299,34 +323,45 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
               className="col-span-3"
               value={maxScore}
               onChange={(e) => setMaxScore(e.target.value)}
+              disabled={!canInput}
             />
           </div>
+          {/* Principal Override Notice */}
           {isPrincipal && canOverride && (
             <div className="mt-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
               <b>Override Mode:</b> You can update or override any grade here for quality assurance.
             </div>
           )}
         </div>
+        {/* Modal Action Buttons */}
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          {((isTeacher && permissions.canSubmitGrades) || (isPrincipal && (permissions.canCreateGrades || canApprove))) && (
-            <Button type="submit" onClick={handleSubmit} disabled={loading}>
+          {(canInput || canSubmit || canApprove) && (
+            <Button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={loading || (!canInput && !canApprove && !canSubmit)}
+            >
               {loading
                 ? 'Submitting...'
-                : (isTeacher ? 'Submit for Approval'
-                  : isPrincipal && canOverride
-                    ? 'Add/Update Grade'
-                    : isPrincipal && canApprove
-                      ? 'Approve'
-                      : 'Submit')}
+                : (isTeacher && canSubmit ? 'Submit for Approval'
+                  : isPrincipal && canOverride ? 'Add/Update Grade'
+                  : isPrincipal && canApprove ? 'Approve'
+                  : isPrincipal && canInput ? 'Submit'
+                  : 'Submit')}
             </Button>
           )}
           {isPrincipal && canRelease && (
-            <Button type="button" variant="default" className="ml-2" onClick={() => toast({
-              title: "Release Results",
-              description: "Release logic would go here.",
-              // Implement release logic as needed
-            })}>
+            <Button
+              type="button"
+              variant="default"
+              className="ml-2"
+              onClick={() => toast({
+                title: "Release Results",
+                description: "Release logic would go here.",
+                // Implement release logic or hook as needed
+              })}
+            >
               Release Results
             </Button>
           )}
