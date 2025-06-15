@@ -7,7 +7,7 @@ import { useTeacherDashboardStats } from '@/hooks/useTeacherDashboardStats';
 import { teacherActions } from './teacher/teacherActions';
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 import TeacherAnalyticsSummaryCard from "@/components/analytics/TeacherAnalyticsSummaryCard";
-import BulkAttendanceModal from "@/components/modals/BulkAttendanceModal";
+import BulkAttendanceAction from "./teacher/BulkAttendanceAction";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface TeacherDashboardProps {
@@ -19,10 +19,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   console.log('👩‍🏫 TeacherDashboard: Rendering for teacher:', user.email);
 
   const { stats, loading } = useTeacherDashboardStats(user);
-
-  // NEW: Modal state
-  const [bulkAttendanceOpen, setBulkAttendanceOpen] = React.useState(false);
-  const { user: authUser } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -112,21 +108,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {/* Add bulk attendance as a prominent action */}
-            <Button
-              key="bulk-attendance"
-              variant="outline"
-              className="h-24 flex-col gap-2 p-4"
-              onClick={() => setBulkAttendanceOpen(true)}
-            >
-              <div className="h-6 w-6 flex items-center justify-center">
-                <span role="img" aria-label="attendance">📝</span>
-              </div>
-              <div className="text-center">
-                <div className="font-medium text-sm">Mark Attendance</div>
-                <div className="text-xs text-muted-foreground">Bulk mark students (morning/afternoon)</div>
-              </div>
-            </Button>
+            <BulkAttendanceAction user={user} />
             {teacherActions.map((action) => (
               <Button
                 key={action.id}
@@ -144,13 +126,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
           </div>
         </CardContent>
       </Card>
-      {/* Bulk attendance modal */}
-      <BulkAttendanceModal
-        open={bulkAttendanceOpen}
-        onClose={() => setBulkAttendanceOpen(false)}
-        teacherId={user.id}
-        schoolId={user.school_id}
-      />
     </div>
   );
 };
