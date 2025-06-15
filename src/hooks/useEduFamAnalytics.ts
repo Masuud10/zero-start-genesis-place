@@ -37,18 +37,19 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
     try {
       // Grades aggregation
+      let gradesQuery = supabase
+        .from("grades")
+        .select("score, max_score", { count: "exact" }) as any;
+      if (filters.schoolId) gradesQuery = gradesQuery.eq("school_id", filters.schoolId);
+      if (filters.classId) gradesQuery = gradesQuery.eq("class_id", filters.classId);
+      if (filters.startDate) gradesQuery = gradesQuery.gte("created_at", filters.startDate);
+      if (filters.endDate) gradesQuery = gradesQuery.lte("created_at", filters.endDate);
+
       const {
         data: grades_raw,
         count: gradesCount,
         error: gradesErr
-      } = (await supabase
-        .from("grades")
-        .select("score, max_score", { count: "exact" })
-        .eq(filters.schoolId ? "school_id" : "", filters.schoolId ?? "")
-        .eq(filters.classId ? "class_id" : "", filters.classId ?? "")
-        .gte(filters.startDate ? "created_at" : "", filters.startDate ?? "")
-        .lte(filters.endDate ? "created_at" : "", filters.endDate ?? "")
-      ) as { data: any[]; count: number | null; error: any; };
+      } = await gradesQuery;
 
       if (gradesErr) throw gradesErr;
       const grades: any[] = Array.isArray(grades_raw) ? grades_raw : [];
@@ -65,18 +66,19 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
           : null;
 
       // Attendance aggregation
+      let attendanceQuery = supabase
+        .from("attendance")
+        .select("status", { count: "exact" }) as any;
+      if (filters.schoolId) attendanceQuery = attendanceQuery.eq("school_id", filters.schoolId);
+      if (filters.classId) attendanceQuery = attendanceQuery.eq("class_id", filters.classId);
+      if (filters.startDate) attendanceQuery = attendanceQuery.gte("date", filters.startDate);
+      if (filters.endDate) attendanceQuery = attendanceQuery.lte("date", filters.endDate);
+
       const {
         data: attendance_raw,
         count: attendanceCount,
         error: attErr
-      } = (await supabase
-        .from("attendance")
-        .select("status", { count: "exact" })
-        .eq(filters.schoolId ? "school_id" : "", filters.schoolId ?? "")
-        .eq(filters.classId ? "class_id" : "", filters.classId ?? "")
-        .gte(filters.startDate ? "date" : "", filters.startDate ?? "")
-        .lte(filters.endDate ? "date" : "", filters.endDate ?? "")
-      ) as { data: any[]; count: number | null; error: any; };
+      } = await attendanceQuery;
 
       if (attErr) throw attErr;
       const attendance: any[] = Array.isArray(attendance_raw) ? attendance_raw : [];
@@ -85,18 +87,18 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       const avgAttendance = records > 0 ? (presentCount * 100) / records : null;
 
       // Finance aggregation
+      let financeQuery = supabase
+        .from("financial_transactions")
+        .select("amount", { count: "exact" }) as any;
+      if (filters.schoolId) financeQuery = financeQuery.eq("school_id", filters.schoolId);
+      if (filters.startDate) financeQuery = financeQuery.gte("created_at", filters.startDate);
+      if (filters.endDate) financeQuery = financeQuery.lte("created_at", filters.endDate);
+
       const {
         data: finance_raw,
         count: transactionCount,
         error: finErr
-      } = (await supabase
-        .from("financial_transactions")
-        .select("amount", { count: "exact" })
-        .eq(filters.schoolId ? "school_id" : "", filters.schoolId ?? "")
-        // No classId join for finance
-        .gte(filters.startDate ? "created_at" : "", filters.startDate ?? "")
-        .lte(filters.endDate ? "created_at" : "", filters.endDate ?? "")
-      ) as { data: any[]; count: number | null; error: any; };
+      } = await financeQuery;
 
       if (finErr) throw finErr;
       const finance: any[] = Array.isArray(finance_raw) ? finance_raw : [];

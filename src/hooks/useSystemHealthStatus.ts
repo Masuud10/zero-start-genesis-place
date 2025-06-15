@@ -9,6 +9,7 @@ export interface SystemHealthStatus {
   updated_at: string;
 }
 
+// NOTE: Workaround until types.ts is regenerated
 export function useSystemHealthStatus() {
   const [health, setHealth] = useState<SystemHealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +23,8 @@ export function useSystemHealthStatus() {
       setError(null);
 
       try {
-        const { data, error } = await supabase
+        // @ts-expect-error: system_status may not be in types yet
+        const { data, error } = await (supabase as any)
           .from("system_status")
           .select("current_status, supabase_connected, uptime_percent, updated_at")
           .order("updated_at", { ascending: false })
@@ -40,10 +42,7 @@ export function useSystemHealthStatus() {
     }
 
     fetchStatus();
-
-    // Optional: refresh every 60 seconds
     const interval = setInterval(fetchStatus, 60000);
-
     return () => {
       active = false;
       clearInterval(interval);
