@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
 import { FeeStructure } from '@/types/finance';
+import { Database } from '@/integrations/supabase/types';
 
 interface CreateFeeStructureDialogProps {
   onClose: () => void;
@@ -40,8 +41,9 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
+type FeeStructureInsert = Database['public']['Tables']['fee_structures']['Insert'];
 
-const createFeeStructure = async (values: FormData & { school_id: string }): Promise<FeeStructure> => {
+const createFeeStructure = async (values: FeeStructureInsert): Promise<FeeStructure> => {
   const { data, error } = await supabase
     .from('fee_structures')
     .insert(values)
