@@ -4,6 +4,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useCurrentAcademicInfo } from './useCurrentAcademicInfo';
 
+// Types for Supabase queries to avoid TS instantiation errors
+interface SubjectGrade {
+    score: number | null;
+    subjects: { name: string } | null;
+}
+
+interface StudentRankingData {
+    average_score: number | null;
+    class_position: number | null;
+    students: {
+        name: string;
+        classes: { name: string } | null;
+    } | null;
+}
+
+interface TeacherActivityData {
+    submitted_by: string | null;
+    teacher: { name: string } | null;
+}
+
 // A simplified query, can be expanded later
 const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: string) => {
     
@@ -37,7 +57,8 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         .select('score, subjects!subject_id!inner(name)')
         .eq('school_id', schoolId)
         .eq('term', term)
-        .eq('academic_year', year);
+        .eq('academic_year', year)
+        .returns<SubjectGrade[]>();
     
     if (subjectGradesError) throw new Error(`Fetching subject performance: ${subjectGradesError.message}`);
 
@@ -67,16 +88,19 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         .eq('academic_year', year)
         .not('average_score', 'is', null)
         .order('average_score', { ascending: false })
-        .limit(5);
+        .limit(5)
+        .returns<StudentRankingData[]>();
 
     if (studentRankingsError) throw new Error(`Fetching student rankings: ${studentRankingsError.message}`);
 
-    const studentRankings = (studentRankingsData || []).map(s => ({
-        name: s.students.name,
-        class: s.students.classes.name,
-        average: s.average_score ?? 0,
-        position: s.class_position ?? 0,
-    }));
+    const studentRankings = (studentRankingsData || [])
+        .filter(s => s.students && s.students.classes)
+        .map(s => ({
+            name: s.students!.name,
+            class: s.students!.classes!.name,
+            average: s.average_score ?? 0,
+            position: s.class_position ?? 0,
+        }));
     
     // Fetch teacher activity
     const { data: teacherActivityData, error: teacherActivityError } = await supabase
@@ -85,7 +109,8 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year)
-        .not('submitted_by', 'is', null);
+        .not('submitted_by', 'is', null)
+        .returns<TeacherActivityData[]>();
 
     if (teacherActivityError) throw new Error(`Fetching teacher activity: ${teacherActivityError.message}`);
 
