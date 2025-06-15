@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,13 +46,19 @@ const ParentAttendanceView: React.FC = () => {
       try {
         const { data: parentStudents, error: parentStudentsError } = await supabase
           .from('parent_students')
-          .select('students!student_id(id, name, classes!class_id(name))')
+          .select('students:student_id(id, name, classes:class_id(name))')
           .eq('parent_id', user.id);
         
         if (parentStudentsError) throw parentStudentsError;
+
+        if (!parentStudents) {
+          setRecords([]);
+          setLoading(false);
+          return;
+        }
         
-        const studentMap = parentStudents.reduce((acc, ps: any) => {
-            const student = ps.students;
+        const studentMap = parentStudents.reduce((acc, ps) => {
+            const student = ps.students as { id: string; name: string; classes: { name: string } | null } | null;
             if (student && student.id) {
                 acc.set(student.id, { name: student.name, className: student.classes?.name || 'N/A' });
             }
@@ -78,18 +83,24 @@ const ParentAttendanceView: React.FC = () => {
 
         if (attendanceError) throw attendanceError;
 
-        const formattedRecords = attendanceData.map((rec: any) => {
+        if (!attendanceData) {
+          setRecords([]);
+          setLoading(false);
+          return;
+        }
+
+        const formattedRecords: AttendanceRecord[] = attendanceData.map((rec) => {
           const studentInfo = studentMap.get(rec.student_id);
           return {
             id: rec.id,
             date: new Date(rec.date).toLocaleDateString(),
-            status: rec.status,
+            status: rec.status as AttendanceStatus,
             studentName: studentInfo?.name || 'Unknown Student',
             className: studentInfo?.className || 'N/A',
           };
         });
         
-        setRecords(formattedRecords as AttendanceRecord[]);
+        setRecords(formattedRecords);
       } catch (err: any) {
         setError(`Failed to fetch attendance data: ${err.message}`);
       } finally {
