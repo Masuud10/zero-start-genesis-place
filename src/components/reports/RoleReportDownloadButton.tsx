@@ -1,12 +1,13 @@
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/contexts/SchoolContext";
+import type { VariantProps } from "class-variance-authority";
 
-interface RoleReportDownloadButtonProps {
+interface RoleReportDownloadButtonProps extends VariantProps<typeof buttonVariants> {
   type: "grades" | "attendance";
   classId?: string;
   term: string;
@@ -17,7 +18,9 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
   type, 
   classId, 
   term, 
-  label 
+  label,
+  variant,
+  size
 }) => {
   const [downloading, setDownloading] = useState(false);
   const { user } = useAuth();
@@ -75,7 +78,8 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
     <Button
       onClick={handleDownload}
       disabled={downloading}
-      variant="outline"
+      variant={variant || "outline"}
+      size={size}
       className="flex items-center gap-2"
     >
       <Download className="w-4 h-4" />
