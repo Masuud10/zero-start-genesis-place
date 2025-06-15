@@ -11,14 +11,6 @@ import AnalyticsSecurityGuard from '../analytics/AnalyticsSecurityGuard';
 import SchoolOwnerStatsCards, { SchoolMetrics } from "./school-owner/SchoolOwnerStatsCards";
 import SchoolManagementActions from "./school-owner/SchoolManagementActions";
 
-interface SchoolMetrics {
-  totalStudents: number;
-  totalTeachers: number;
-  totalRevenue: number;
-  outstandingFees: number;
-  monthlyGrowth: number;
-}
-
 const SchoolOwnerDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
