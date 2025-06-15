@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -93,19 +92,38 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('subjects')
         .select('*')
         .eq('class_id', selectedClass)
         .eq('school_id', user.school_id);
+      
+      if (user.role === 'teacher') {
+        query = query.eq('teacher_id', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (!error && data) {
         setSubjects(data);
+        if (data.length === 0 && user.role === 'teacher') {
+            toast({
+                title: "No Subjects Assigned",
+                description: "You are not assigned to any subjects for this class.",
+                variant: "default"
+            });
+        }
+      } else if (error) {
+        toast({
+            title: "Error loading subjects",
+            description: error.message,
+            variant: "destructive"
+        });
       }
     };
 
     loadSubjects();
-  }, [selectedClass, user?.school_id]);
+  }, [selectedClass, user?.school_id, user?.id, user?.role, toast]);
 
   useEffect(() => {
     const loadStudents = async () => {
@@ -302,6 +320,27 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
             isPrincipal={isPrincipal}
             canOverride={canOverride}
           />
+        )}
+        {isPrincipal && (
+          <div className="grid grid-cols-4 items-center gap-4 py-4">
+            <Label htmlFor="status" className="text-right">
+              Status
+            </Label>
+            <Select
+              onValueChange={(value) => setStatus(value as 'draft' | 'submitted' | 'approved' | 'rejected' | 'released')}
+              value={status}
+            >
+              <SelectTrigger id="status" className="col-span-3">
+                <SelectValue placeholder="Set Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                {canRelease && <SelectItem value="released">Released</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
         )}
         <DialogFooter>
           {(isTeacher || isPrincipal) && (
