@@ -19,6 +19,8 @@ import PrincipalManagementPanel from "./principal/PrincipalManagementPanel";
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { usePrincipalDashboardModals } from '@/hooks/usePrincipalDashboardModals';
+import BulkGradingQuickAction from './principal/BulkGradingQuickAction';
+import BulkGradingModal from '../modals/BulkGradingModal';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -57,6 +59,8 @@ const PrincipalDashboard = () => {
     setAddSubjectOpen,
   } = usePrincipalDashboardModals();
 
+  const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
+
   const handleEntityCreated = () => {
     setReloadKey(k => k + 1);
   };
@@ -85,12 +89,17 @@ const PrincipalDashboard = () => {
         {/* Statistics cards */}
         <PrincipalStatsCards stats={stats} />
         
-        {/* Quick action panel for adding parent/teacher/class */}
-        <QuickActionsCard
-          onAddParent={() => setAddParentOpen(true)}
-          onAddTeacher={() => setAddTeacherOpen(true)}
-          onAddClass={() => setAddClassOpen(true)}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Quick action panel for adding parent/teacher/class */}
+          <QuickActionsCard
+            onAddParent={() => setAddParentOpen(true)}
+            onAddTeacher={() => setAddTeacherOpen(true)}
+            onAddClass={() => setAddClassOpen(true)}
+          />
+          {/* Bulk Grading Action */}
+          <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
+        </div>
+
 
         <RecentActivitiesPanel recentActivities={recentActivities} />
 
@@ -139,6 +148,7 @@ const PrincipalDashboard = () => {
           onClose={() => setAddSubjectOpen(false)}
           onSubjectCreated={handleEntityCreated}
         />
+        {bulkGradingOpen && <BulkGradingModal onClose={() => setBulkGradingOpen(false)} />}
       </div>
     </RoleGuard>
   );
