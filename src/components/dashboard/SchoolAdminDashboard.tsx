@@ -144,7 +144,7 @@ const SchoolAdminDashboard: React.FC<SchoolAdminDashboardProps> = ({ user, onMod
               {loading ? <span className="animate-pulse">...</span> : stats.students}
             </div>
             <p className="text-xs text-muted-foreground">
-              {loading ? "" : stats.students === 0 ? "No students" : "+ students"}
+              {loading ? "" : stats.students === 0 ? "No students" : "Active students"}
             </p>
           </CardContent>
         </Card>

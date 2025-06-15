@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -121,7 +120,7 @@ const SchoolOwnerDashboard = () => {
       if (lastMonthCount > 0) {
         monthlyGrowth = ((thisMonthCount - lastMonthCount) / lastMonthCount) * 100;
       } else if (thisMonthCount > 0) {
-        monthlyGrowth = 100;
+        monthlyGrowth = thisMonthCount * 100;
       }
 
       setMetrics({
