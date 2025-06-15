@@ -9,20 +9,22 @@ interface TimetableViewerProps {
   studentId?: string;
 }
 
-// Updated to fully match the new 'timetables' table schema
-interface TimetableRow {
+// This is the raw row from DB
+interface TimetableDbRow {
   id: string;
   class_id: string;
-  school_id: string;
   subject_id: string;
   teacher_id: string;
   day_of_week: string;
   start_time: string;
   end_time: string;
-  is_published: boolean;
-  created_at: string;
-  created_by_principal_id: string;
-  term: string | null; // Added missing term field
+}
+
+// This is the enriched row for display
+interface TimetableDisplayRow extends TimetableDbRow {
+    className: string;
+    subjectName: string;
+    teacherName: string;
 }
 
 const TimetableViewer: React.FC<TimetableViewerProps> = ({
@@ -31,7 +33,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
   studentId,
 }) => {
   const { user } = useAuth();
-  const [rows, setRows] = useState<TimetableRow[]>([]);
+  const [rows, setRows] = useState<TimetableDisplayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -48,15 +50,15 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
   }
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchTimetable = async () => {
       setLoading(true);
       setErrorMsg(null);
 
       try {
         let q = supabase
           .from("timetables")
-          .select("*")
-          .eq("school_id", user.school_id)
+          .select("id, class_id, subject_id, teacher_id, day_of_week, start_time, end_time")
+          .eq("school_id", user!.school_id!)
           .eq("term", term)
           .eq("is_published", true)
           .order('day_of_week')
@@ -65,66 +67,102 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
         // Apply dynamic filters in a type-safe way
         (Object.keys(filter) as FilterKey[]).forEach((key) => {
           if (filter[key]) {
-            q = q.eq(key, filter[key]);
+            q = q.eq(key, filter[key]!);
           }
         });
         
-        const { data, error } = await q;
+        const { data: timetableData, error: timetableError } = await q;
         
-        if (error) {
-          console.error("Supabase error:", error);
-          setErrorMsg("Error loading timetable: " + error.message);
+        if (timetableError) throw timetableError;
+
+        if (!timetableData || timetableData.length === 0) {
+          setErrorMsg("No published timetable found for this class and term.");
           setRows([]);
-        } else if (!data || data.length === 0) {
-          setErrorMsg("No timetable found.");
-          setRows([]);
-        } else {
-          setRows(data as TimetableRow[]);
+          return;
         }
+
+        const classIds = [...new Set(timetableData.map(r => r.class_id))];
+        const subjectIds = [...new Set(timetableData.map(r => r.subject_id))];
+        const teacherIds = [...new Set(timetableData.map(r => r.teacher_id))];
+
+        const [
+            { data: classesData, error: classesError },
+            { data: subjectsData, error: subjectsError },
+            { data: teachersData, error: teachersError }
+        ] = await Promise.all([
+            supabase.from('classes').select('id, name').in('id', classIds),
+            supabase.from('subjects').select('id, name').in('id', subjectIds),
+            supabase.from('profiles').select('id, name').in('id', teacherIds)
+        ]);
+
+        if (classesError || subjectsError || teachersError) {
+            throw classesError || subjectsError || teachersError;
+        }
+
+        const classMap = new Map(classesData?.map(c => [c.id, c.name]));
+        const subjectMap = new Map(subjectsData?.map(s => [s.id, s.name]));
+        const teacherMap = new Map(teachersData?.map(t => [t.id, t.name]));
+
+        const formattedRows: TimetableDisplayRow[] = timetableData.map(row => ({
+            ...row,
+            className: classMap.get(row.class_id) || row.class_id,
+            subjectName: subjectMap.get(row.subject_id) || row.subject_id,
+            teacherName: teacherMap.get(row.teacher_id) || row.teacher_id,
+        }));
+        
+        setRows(formattedRows);
+
       } catch (err: any) {
-        console.error("Fetch error:", err);
-        setErrorMsg("Error loading timetable: " + err.message);
+        console.error("Error loading timetable data:", err);
+        setErrorMsg("Failed to load timetable: " + err.message);
         setRows([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     
-    if (user?.school_id) {
-      fetch();
+    if (user?.school_id && (classId || user?.role === 'teacher')) {
+      fetchTimetable();
+    } else if (!classId && user?.role === 'parent') {
+        // Don't fetch if parent role but no classId, parent view handles this state
+        setLoading(false);
+        setRows([]);
     }
-  }, [user?.school_id, term, classId, studentId, JSON.stringify(filter)]);
+  }, [user?.school_id, user?.id, user?.role, term, classId, studentId, JSON.stringify(filter)]);
 
   return (
     <div>
       {loading ? (
-        <div>Loading timetable...</div>
+        <p>Loading timetable...</p>
       ) : errorMsg ? (
-        <div className="text-red-500">{errorMsg}</div>
+        <p className="text-red-500">{errorMsg}</p>
       ) : rows.length === 0 ? (
-        <div>No published timetable found.</div>
+        <p>No published timetable found.</p>
       ) : (
-        <table className="border w-full">
-          <thead>
-            <tr>
-              <th className="border px-2 py-1">Day</th>
-              <th className="border px-2 py-1">Time</th>
-              <th className="border px-2 py-1">Class</th>
-              <th className="border px-2 py-1">Subject</th>
-              <th className="border px-2 py-1">Teacher</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="border px-2 py-1">{r.day_of_week}</td>
-                <td className="border px-2 py-1">{r.start_time} - {r.end_time}</td>
-                <td className="border px-2 py-1">{r.class_id}</td>
-                <td className="border px-2 py-1">{r.subject_id}</td>
-                <td className="border px-2 py-1">{r.teacher_id}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-4 py-3">Day</th>
+                <th scope="col" className="px-4 py-3">Time</th>
+                <th scope="col" className="px-4 py-3">Class</th>
+                <th scope="col" className="px-4 py-3">Subject</th>
+                <th scope="col" className="px-4 py-3">Teacher</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-b dark:border-gray-700">
+                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{r.day_of_week}</td>
+                  <td className="px-4 py-3">{r.start_time} - {r.end_time}</td>
+                  <td className="px-4 py-3">{r.className}</td>
+                  <td className="px-4 py-3">{r.subjectName}</td>
+                  <td className="px-4 py-3">{r.teacherName}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
