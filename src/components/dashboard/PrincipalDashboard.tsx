@@ -93,7 +93,7 @@ const PrincipalDashboard = () => {
         teachersResult,
         subjectsResult,
         classesResult,
-        announcementsResult
+        auditLogsResult
       ] = await Promise.allSettled([
         supabase
           .from('students')
@@ -114,9 +114,11 @@ const PrincipalDashboard = () => {
           .select('id', { count: 'exact' })
           .eq('school_id', targetSchoolId),
         supabase
-          .from('announcements')
-          .select('id, title, created_at')
+          .from('security_audit_logs')
+          .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
           .eq('school_id', targetSchoolId)
+          .eq('success', true)
+          .in('action', ['create', 'update'])
           .order('created_at', { ascending: false })
           .limit(5)
       ]);
@@ -137,16 +139,36 @@ const PrincipalDashboard = () => {
         totalClasses: classesCount
       });
 
-      // Parse recent activities (announcements)
+      // Parse recent activities from audit logs
       let activities: any[] = [];
-      if (announcementsResult.status === 'fulfilled') {
-        const data = announcementsResult.value.data || [];
-        activities = data.map((announcement: any) => ({
-          id: announcement.id,
-          type: 'announcement',
-          description: `New announcement: ${announcement.title || 'Untitled'}`,
-          timestamp: announcement.created_at
-        }));
+      if (auditLogsResult.status === 'fulfilled' && auditLogsResult.value.data) {
+        const logs = auditLogsResult.value.data as any[];
+        activities = logs.map((log: any) => {
+          const userName = log.profiles?.name || 'A user';
+          const actionVerb = log.action === 'create' ? 'created' : 'updated';
+          
+          let entityName = '';
+          if (log.metadata && typeof log.metadata === 'object') {
+            if ('name' in log.metadata && log.metadata.name) {
+                entityName = `"${log.metadata.name}"`;
+            } else if ('title' in log.metadata && log.metadata.title) {
+                entityName = `"${log.metadata.title}"`;
+            }
+          }
+
+          const resourceName = log.resource.replace(/_/g, ' ');
+          let description = `${userName} ${actionVerb} a ${resourceName}.`;
+          if (entityName) {
+            description = `${userName} ${actionVerb} the ${resourceName} ${entityName}.`;
+          }
+
+          return {
+            id: log.id,
+            type: log.resource,
+            description: description,
+            timestamp: log.created_at,
+          };
+        });
       }
       setRecentActivities(activities);
     } catch (err: any) {
