@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -146,10 +147,11 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
       
       setRecentActivities(activities);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch school data');
+      const detailedError = err.message || 'An unknown error occurred.';
+      setError(`Failed to fetch school data. Reason: ${detailedError}`);
       toast({
-        title: "Error",
-        description: `Failed to fetch school data: ${err.message || 'Unknown error'}`,
+        title: "Error Loading Dashboard",
+        description: `Could not load dashboard data. ${detailedError}`,
         variant: "destructive",
       });
     } finally {

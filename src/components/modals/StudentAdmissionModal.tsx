@@ -1,21 +1,31 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useParents } from "@/hooks/useParents";
 import StudentAdmissionForm from "./StudentAdmissionForm";
+
+interface Class {
+  id: string;
+  name: string;
+}
+
+interface Parent {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface StudentAdmissionModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  classes: Class[];
+  parents: Parent[];
+  loadingParents: boolean; // To show loading state for parents list
 }
 
-const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onClose, onSuccess }) => {
+const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onClose, onSuccess, classes, parents, loadingParents }) => {
   const [formData, setFormData] = useState({
     name: "",
     admission_number: "",
@@ -26,22 +36,11 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
     parent_contact: "",
     class_id: "",
     parent_id: "",
-    parent_name: "",
-    parent_email: ""
+    parent_name: "", // This field seems to be separate from the linked parent
+    parent_email: "" // This field also seems separate
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-
-  const classes = [
-    { id: "1", name: "Grade 1A" },
-    { id: "2", name: "Grade 1B" },
-    { id: "3", name: "Grade 2A" },
-    { id: "4", name: "Grade 2B" },
-    { id: "5", name: "Grade 3A" }
-  ];
-
-  // Move parent fetch logic to hook
-  const { parents, loadingParents } = useParents(open);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,15 +57,14 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
           gender: formData.gender,
           address: formData.address,
           parent_contact: formData.parent_contact,
-          class_id: formData.class_id,
-          parent_id: formData.parent_id
+          class_id: formData.class_id, // Main class assignment
         })
         .select()
         .single();
 
       if (studentError) throw studentError;
 
-      // Link student to class
+      // Link student to class in junction table
       if (formData.class_id) {
         await supabase.from("student_classes").insert({
           student_id: student.id,
@@ -76,7 +74,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
         });
       }
 
-      // Link student to parent in parent_students
+      // Link student to parent in junction table
       if (formData.parent_id) {
         await supabase.from("parent_students").insert({
           parent_id: formData.parent_id,
