@@ -67,6 +67,7 @@ const SubjectManagementTab = () => {
         .update({
           name: form.name,
           code: form.code,
+          curriculum: form.curriculum,
         })
         .eq("id", editingId);
       result = { error };
@@ -77,6 +78,7 @@ const SubjectManagementTab = () => {
           name: form.name,
           code: form.code,
           school_id: schoolId,
+          curriculum: form.curriculum,
         });
       result = { error };
     }
@@ -99,7 +101,7 @@ const SubjectManagementTab = () => {
     setForm({
       name: row.name || "",
       code: row.code || "",
-      curriculum: ""
+      curriculum: row.curriculum || ""
     });
   };
 
@@ -154,6 +156,7 @@ const SubjectManagementTab = () => {
             <tr className="bg-gray-50">
               <th className="border px-2 py-1">Name</th>
               <th className="border px-2 py-1">Code</th>
+              <th className="border px-2 py-1">Curriculum</th>
               <th className="border px-2 py-1">Actions</th>
             </tr>
           </thead>
@@ -162,6 +165,7 @@ const SubjectManagementTab = () => {
               <tr key={row.id}>
                 <td className="border px-2 py-1">{row.name}</td>
                 <td className="border px-2 py-1">{row.code}</td>
+                <td className="border px-2 py-1">{row.curriculum ?? "-"}</td>
                 <td className="border px-2 py-1 flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
                     <Edit className="w-4 h-4 mr-1" /> Edit

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -69,7 +68,9 @@ const ClassManagementTab = () => {
         .from("classes")
         .update({
           name: form.name,
-          // Store more metadata in future as needed
+          level: form.level,
+          stream: form.stream,
+          year: form.year,
         })
         .eq("id", editingId);
       result = { error };
@@ -79,7 +80,9 @@ const ClassManagementTab = () => {
         .insert({
           name: form.name,
           school_id: schoolId,
-          // Save more metadata as needed
+          level: form.level,
+          stream: form.stream,
+          year: form.year,
         });
       result = { error };
     }
@@ -191,4 +194,3 @@ const ClassManagementTab = () => {
 };
 
 export default ClassManagementTab;
-

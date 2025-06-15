@@ -689,23 +689,32 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          level: string | null
           name: string
           school_id: string | null
+          stream: string | null
           teacher_id: string | null
+          year: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          level?: string | null
           name: string
           school_id?: string | null
+          stream?: string | null
           teacher_id?: string | null
+          year?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          level?: string | null
           name?: string
           school_id?: string | null
+          stream?: string | null
           teacher_id?: string | null
+          year?: string | null
         }
         Relationships: [
           {
@@ -2055,6 +2064,7 @@ export type Database = {
           class_id: string | null
           code: string
           created_at: string | null
+          curriculum: string | null
           id: string
           name: string
           school_id: string | null
@@ -2064,6 +2074,7 @@ export type Database = {
           class_id?: string | null
           code: string
           created_at?: string | null
+          curriculum?: string | null
           id?: string
           name: string
           school_id?: string | null
@@ -2073,6 +2084,7 @@ export type Database = {
           class_id?: string | null
           code?: string
           created_at?: string | null
+          curriculum?: string | null
           id?: string
           name?: string
           school_id?: string | null
