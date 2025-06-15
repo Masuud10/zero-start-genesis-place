@@ -19,6 +19,7 @@ import QuickActionsCard from './principal/QuickActionsCard';
 import RecentActivitiesPanel from './principal/RecentActivitiesPanel';
 import SmartTimetableGenerator from "@/components/timetable/SmartTimetableGenerator";
 import SmartTimetableReview from "@/components/timetable/SmartTimetableReview";
+import PrincipalManagementPanel from "./principal/PrincipalManagementPanel";
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -250,6 +251,9 @@ const PrincipalDashboard = () => {
         {/* ======= 🧠 SMART TIMETABLE INTEGRATION ======= */}
         <SmartTimetableGenerator term={String(new Date().getFullYear())} onGenerationSuccess={() => {}} />
         <SmartTimetableReview term={String(new Date().getFullYear())} onPublish={() => {}} />
+
+        {/* ======= 🧠 PRINCIPAL MANAGEMENT PANELS ======= */}
+        <PrincipalManagementPanel />
 
         <EntityPreviewPanels
           classList={classList}
