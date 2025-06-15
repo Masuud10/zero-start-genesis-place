@@ -37,14 +37,14 @@ export const useMultiTenantQuery = () => {
       case 'announcements':
       case 'support_tickets':
       case 'messages':
+      case 'grades':
+      case 'attendance':
+      case 'fees':
         return query.eq('school_id', schoolId);
       
       case 'profiles':
         return query.or(`id.eq.${user?.id},school_id.eq.${schoolId}`);
       
-      case 'grades':
-      case 'attendance':
-      case 'fees':
       case 'cbc_assessments':
       case 'competency_progress':
       case 'learner_portfolios':
@@ -93,3 +93,4 @@ export const useMultiTenantQuery = () => {
     ensureSchoolAccess
   };
 };
+
