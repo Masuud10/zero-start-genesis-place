@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -79,22 +80,26 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
 
       // Link student to class in junction table
       if (formData.class_id) {
-        await supabase.from("student_classes").insert({
+        const { error: scError } = await supabase.from("student_classes").insert({
           student_id: student.id,
           class_id: formData.class_id,
           academic_year: new Date().getFullYear().toString(),
-          is_active: true
+          is_active: true,
+          school_id: schoolId,
         });
+        if (scError) throw scError;
       }
 
       // Link student to parent in junction table
       if (formData.parent_id) {
-        await supabase.from("parent_students").insert({
+        const { error: psError } = await supabase.from("parent_students").insert({
           parent_id: formData.parent_id,
           student_id: student.id,
           relationship_type: "parent",
-          is_primary_contact: true
+          is_primary_contact: true,
+          school_id: schoolId,
         });
+        if (psError) throw psError;
       }
 
       toast({

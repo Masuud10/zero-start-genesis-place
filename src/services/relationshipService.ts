@@ -23,12 +23,24 @@ export interface LinkParentParams {
 export const RelationshipService = {
   // Teacher-Class relationships
   async assignTeacherToClass(params: AssignTeacherParams) {
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select('school_id')
+      .eq('id', params.classId)
+      .single();
+
+    if (classError) throw classError;
+    if (!classData || !classData.school_id) {
+      throw new Error(`Could not determine school for class ${params.classId}.`);
+    }
+
     const { data, error } = await supabase
       .from('teacher_classes')
       .insert({
         teacher_id: params.teacherId,
         class_id: params.classId,
-        subject_id: params.subjectId || null
+        subject_id: params.subjectId || null,
+        school_id: classData.school_id,
       })
       .select()
       .single();
@@ -66,6 +78,17 @@ export const RelationshipService = {
 
   // Student-Class relationships
   async enrollStudent(params: EnrollStudentParams) {
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select('school_id')
+      .eq('id', params.classId)
+      .single();
+
+    if (classError) throw classError;
+    if (!classData || !classData.school_id) {
+      throw new Error(`Could not determine school for class ${params.classId}.`);
+    }
+
     const { data, error } = await supabase
       .from('student_classes')
       .insert({
@@ -73,7 +96,8 @@ export const RelationshipService = {
         class_id: params.classId,
         academic_year: params.academicYear || new Date().getFullYear().toString(),
         enrollment_date: new Date().toISOString().split('T')[0],
-        is_active: true
+        is_active: true,
+        school_id: classData.school_id,
       })
       .select()
       .single();
@@ -106,13 +130,25 @@ export const RelationshipService = {
 
   // Parent-Student relationships
   async linkParentToStudent(params: LinkParentParams) {
+    const { data: studentData, error: studentError } = await supabase
+      .from('students')
+      .select('school_id')
+      .eq('id', params.studentId)
+      .single();
+
+    if (studentError) throw studentError;
+    if (!studentData || !studentData.school_id) {
+      throw new Error(`Could not determine school for student ${params.studentId}.`);
+    }
+    
     const { data, error } = await supabase
       .from('parent_students')
       .insert({
         parent_id: params.parentId,
         student_id: params.studentId,
         relationship_type: params.relationshipType || 'parent',
-        is_primary_contact: params.isPrimaryContact || false
+        is_primary_contact: params.isPrimaryContact || false,
+        school_id: studentData.school_id,
       })
       .select()
       .single();

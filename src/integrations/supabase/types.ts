@@ -1411,6 +1411,7 @@ export type Database = {
           is_primary_contact: boolean | null
           parent_id: string
           relationship_type: string | null
+          school_id: string | null
           student_id: string
         }
         Insert: {
@@ -1419,6 +1420,7 @@ export type Database = {
           is_primary_contact?: boolean | null
           parent_id: string
           relationship_type?: string | null
+          school_id?: string | null
           student_id: string
         }
         Update: {
@@ -1427,9 +1429,17 @@ export type Database = {
           is_primary_contact?: boolean | null
           parent_id?: string
           relationship_type?: string | null
+          school_id?: string | null
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_parent_students_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "parent_students_parent_id_fkey"
             columns: ["parent_id"]
@@ -1884,6 +1894,7 @@ export type Database = {
           enrollment_date: string | null
           id: string
           is_active: boolean | null
+          school_id: string | null
           student_id: string
         }
         Insert: {
@@ -1893,6 +1904,7 @@ export type Database = {
           enrollment_date?: string | null
           id?: string
           is_active?: boolean | null
+          school_id?: string | null
           student_id: string
         }
         Update: {
@@ -1902,9 +1914,17 @@ export type Database = {
           enrollment_date?: string | null
           id?: string
           is_active?: boolean | null
+          school_id?: string | null
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_student_classes_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_classes_class_id_fkey"
             columns: ["class_id"]
@@ -2404,6 +2424,7 @@ export type Database = {
           class_id: string
           created_at: string | null
           id: string
+          school_id: string | null
           subject_id: string | null
           teacher_id: string
         }
@@ -2411,6 +2432,7 @@ export type Database = {
           class_id: string
           created_at?: string | null
           id?: string
+          school_id?: string | null
           subject_id?: string | null
           teacher_id: string
         }
@@ -2418,10 +2440,18 @@ export type Database = {
           class_id?: string
           created_at?: string | null
           id?: string
+          school_id?: string | null
           subject_id?: string | null
           teacher_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_teacher_classes_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "teacher_classes_class_id_fkey"
             columns: ["class_id"]
