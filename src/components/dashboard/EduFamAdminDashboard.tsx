@@ -152,8 +152,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Removed ReportDownloadPanel from dashboard overview for cleanliness */}
-      {/* System Health Indicator */}
+      {/* Always show system health card, even if data fails */}
       <SystemHealthStatusCard />
 
       {/* System Overview Cards */}

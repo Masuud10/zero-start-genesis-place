@@ -42,7 +42,9 @@ const SystemHealthStatusCard: React.FC = () => {
           <div className="text-sm text-muted-foreground">Checking system health...</div>
         ) : error ? (
           <div className="text-xs text-red-700">{error}</div>
-        ) : health ? (
+        ) : !health ? (
+          <div className="text-xs text-muted-foreground">No health data available.</div>
+        ) : (
           <div className="flex flex-col gap-1 text-sm">
             <div>
               <span className="font-medium">Status:</span>{" "}
@@ -65,8 +67,6 @@ const SystemHealthStatusCard: React.FC = () => {
               </span>
             </div>
           </div>
-        ) : (
-          <div className="text-xs text-muted-foreground">No health data available.</div>
         )}
       </CardContent>
     </Card>
@@ -74,3 +74,4 @@ const SystemHealthStatusCard: React.FC = () => {
 };
 
 export default SystemHealthStatusCard;
+

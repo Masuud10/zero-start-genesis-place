@@ -2289,6 +2289,30 @@ export type Database = {
         }
         Relationships: []
       }
+      system_status: {
+        Row: {
+          current_status: string
+          id: string
+          supabase_connected: boolean
+          updated_at: string
+          uptime_percent: number
+        }
+        Insert: {
+          current_status?: string
+          id?: string
+          supabase_connected?: boolean
+          updated_at?: string
+          uptime_percent?: number
+        }
+        Update: {
+          current_status?: string
+          id?: string
+          supabase_connected?: boolean
+          updated_at?: string
+          uptime_percent?: number
+        }
+        Relationships: []
+      }
       teacher_classes: {
         Row: {
           class_id: string
