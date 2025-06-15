@@ -13,10 +13,14 @@ interface TimetableRow {
   id: string;
   class_id: string;
   school_id: string;
-  is_active: boolean;
+  subject_id: string;
+  teacher_id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  is_published: boolean;
   created_at: string;
-  created_by: string;
-  version: number;
+  created_by_principal_id: string;
 }
 
 const TimetableViewer: React.FC<TimetableViewerProps> = ({
@@ -44,11 +48,14 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
       setErrorMsg(null);
 
       try {
-        let q: any = supabase
+        let q = supabase
           .from("timetables")
-          .select("id,class_id,school_id,is_active,created_at,created_by,version")
+          .select("*")
           .eq("school_id", user.school_id)
-          .eq("term", term);
+          .eq("term", term)
+          .eq("is_published", true)
+          .order('day_of_week')
+          .order('start_time');
 
         Object.entries(filter).forEach(([k, v]) => {
           q = q.eq(k, v);
@@ -91,27 +98,21 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
         <table className="border w-full">
           <thead>
             <tr>
+              <th className="border px-2 py-1">Day</th>
+              <th className="border px-2 py-1">Time</th>
               <th className="border px-2 py-1">Class</th>
-              <th className="border px-2 py-1">School</th>
-              <th className="border px-2 py-1">Active</th>
-              <th className="border px-2 py-1">Created At</th>
-              <th className="border px-2 py-1">Created By</th>
-              <th className="border px-2 py-1">Version</th>
+              <th className="border px-2 py-1">Subject</th>
+              <th className="border px-2 py-1">Teacher</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
+                <td className="border px-2 py-1">{r.day_of_week}</td>
+                <td className="border px-2 py-1">{r.start_time} - {r.end_time}</td>
                 <td className="border px-2 py-1">{r.class_id}</td>
-                <td className="border px-2 py-1">{r.school_id ?? "-"}</td>
-                <td className="border px-2 py-1">{r.is_active ? "Yes" : "No"}</td>
-                <td className="border px-2 py-1">
-                  {r.created_at
-                    ? new Date(r.created_at).toLocaleString()
-                    : "-"}
-                </td>
-                <td className="border px-2 py-1">{r.created_by ?? "-"}</td>
-                <td className="border px-2 py-1">{r.version ?? "-"}</td>
+                <td className="border px-2 py-1">{r.subject_id}</td>
+                <td className="border px-2 py-1">{r.teacher_id}</td>
               </tr>
             ))}
           </tbody>

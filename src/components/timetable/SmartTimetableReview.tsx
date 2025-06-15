@@ -9,10 +9,10 @@ interface TimetableRow {
   id: string;
   class_id: string;
   school_id: string;
-  is_active: boolean;
+  is_published: boolean;
   created_at: string;
-  created_by: string;
-  version: number;
+  created_by_principal_id: string;
+  term: string;
 }
 
 const SmartTimetableReview = ({
@@ -35,13 +35,12 @@ const SmartTimetableReview = ({
 
     (async () => {
       try {
-        const query: any = supabase
+        const { data, error } = await supabase
           .from("timetables")
-          .select("id,class_id,school_id,is_active,created_at,created_by,version")
+          .select("id,class_id,school_id,is_published,created_at,created_by_principal_id,term")
           .eq("school_id", user.school_id)
-          .eq("term", term);
-        
-        const { data, error } = await query;
+          .eq("term", term)
+          .eq("is_published", false);
 
         if (error) {
           console.error("Supabase error:", error);
@@ -73,13 +72,12 @@ const SmartTimetableReview = ({
     }
     setLoading(true);
     try {
-      const queryBuilder = supabase
+      const { error } = await supabase
         .from("timetables")
-        .update({ is_active: true })
+        .update({ is_published: true })
         .eq("school_id", user.school_id)
-        .eq("term", term);
-
-      const { error } = await (queryBuilder as any);
+        .eq("term", term)
+        .eq("is_published", false);
       
       if (error) throw new Error(error.message);
       
@@ -118,10 +116,10 @@ const SmartTimetableReview = ({
               <tr>
                 <th className="border px-2 py-1">Class</th>
                 <th className="border px-2 py-1">School</th>
-                <th className="border px-2 py-1">Active</th>
+                <th className="border px-2 py-1">Published</th>
                 <th className="border px-2 py-1">Created At</th>
                 <th className="border px-2 py-1">Created By</th>
-                <th className="border px-2 py-1">Version</th>
+                <th className="border px-2 py-1">Term</th>
               </tr>
             </thead>
             <tbody>
@@ -129,14 +127,14 @@ const SmartTimetableReview = ({
                 <tr key={r.id}>
                   <td className="border px-2 py-1">{r.class_id}</td>
                   <td className="border px-2 py-1">{r.school_id ?? "-"}</td>
-                  <td className="border px-2 py-1">{r.is_active ? "Yes" : "No"}</td>
+                  <td className="border px-2 py-1">{r.is_published ? "Yes" : "No"}</td>
                   <td className="border px-2 py-1">
                     {r.created_at
                       ? new Date(r.created_at).toLocaleString()
                       : "-"}
                   </td>
-                  <td className="border px-2 py-1">{r.created_by ?? "-"}</td>
-                  <td className="border px-2 py-1">{r.version ?? "-"}</td>
+                  <td className="border px-2 py-1">{r.created_by_principal_id ?? "-"}</td>
+                  <td className="border px-2 py-1">{r.term ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
