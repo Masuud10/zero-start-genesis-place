@@ -2294,6 +2294,10 @@ export type Database = {
         Args: { user_email: string; success?: boolean }
         Returns: Json
       }
+      is_grade_in_user_school: {
+        Args: { grade_student_id: string }
+        Returns: boolean
+      }
       log_security_event: {
         Args: {
           p_action: string

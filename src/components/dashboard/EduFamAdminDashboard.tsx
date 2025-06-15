@@ -7,6 +7,7 @@ import AdministrativeHub from './admin/AdministrativeHub';
 import RecentSchoolsSection from './admin/RecentSchoolsSection';
 import UserRoleBreakdown from './admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
+import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 
 interface EduFamAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -150,6 +151,9 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
+      {/* System Health Indicator */}
+      <SystemHealthStatusCard />
+
       {/* System Overview Cards */}
       <SystemOverviewCards
         schoolsCount={Array.isArray(schoolsData) ? schoolsData.length : 0}
