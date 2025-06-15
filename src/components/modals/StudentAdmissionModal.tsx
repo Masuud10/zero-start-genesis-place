@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import AddParentModal from './AddParentModal';
 
 interface StudentAdmissionModalProps {
   open: boolean;
@@ -39,12 +38,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
     { id: '5', name: 'Grade 3A' }
   ];
 
-  // Parent modal
-  const [parentModalOpen, setParentModalOpen] = useState(false);
-  const [parents, setParents] = useState<{id: string, name: string, email: string}[]>([]);
-  const [loadingParents, setLoadingParents] = useState(true);
-
-  // Fetch parents on open
+  // Fetch parents on open - keep loading existing parents for selection only
   useEffect(() => {
     if (!open) return;
     let mounted = true;
@@ -66,7 +60,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
     setIsSubmitting(true);
 
     try {
-      // Create student record (include date_of_birth and parent_id)
+      // Create student record (remove school_id here)
       const { data: student, error: studentError } = await supabase
         .from('students')
         .insert({
@@ -79,14 +73,14 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
           parent_contact: formData.parent_contact,
           class_id: formData.class_id,
           parent_id: formData.parent_id,
-          school_id: '1' // Mock school ID
+          // Remove: school_id: '1'
         })
         .select()
         .single();
 
       if (studentError) throw studentError;
 
-      // Link student to class in student_classes junction table
+      // Link student to class
       if (formData.class_id) {
         await supabase.from('student_classes').insert({
           student_id: student.id,
@@ -208,38 +202,36 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
 
             <div>
               <Label htmlFor="parent_id">Parent *</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={formData.parent_id}
-                  onValueChange={value => handleInputChange('parent_id', value)}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={
-                      loadingParents
-                        ? "Loading parents..."
-                        : parents.length === 0
-                          ? "No parents found"
-                          : "Select parent"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {parents.map(parent => (
-                      <SelectItem value={parent.id} key={parent.id}>
-                        {parent.name} ({parent.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" size="sm" variant="outline" onClick={() => setParentModalOpen(true)}>
-                  + Add Parent
-                </Button>
-              </div>
+              <Select
+                value={formData.parent_id}
+                onValueChange={value => handleInputChange('parent_id', value)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    loadingParents
+                      ? "Loading parents..."
+                      : parents.length === 0
+                        ? "No parents found"
+                        : "Select parent"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {parents.map(parent => (
+                    <SelectItem value={parent.id} key={parent.id}>
+                      {parent.name} ({parent.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Add loading and empty states below the select */}
               {loadingParents && (
                 <div className="text-xs text-muted-foreground mt-1">Loading parents...</div>
               )}
               {!loadingParents && parents.length === 0 && (
-                <div className="text-xs text-muted-foreground mt-1">No parents found. Click "+ Add Parent" to add.</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  No parents found. Please add a parent first.
+                </div>
               )}
             </div>
 
@@ -284,15 +276,6 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
         </form>
       </DialogContent>
     </Dialog>
-    <AddParentModal
-      open={parentModalOpen}
-      onClose={() => setParentModalOpen(false)}
-      onParentCreated={(newParent) => {
-        setParents(parents => [...parents, newParent]);
-        setFormData(prev => ({ ...prev, parent_id: newParent.id }));
-        setParentModalOpen(false);
-      }}
-    />
     </>
   );
 };

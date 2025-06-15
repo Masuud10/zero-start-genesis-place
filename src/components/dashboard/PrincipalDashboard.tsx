@@ -13,6 +13,7 @@ import PrincipalQuickActions from "./principal/PrincipalQuickActions";
 import AcademicReportPanel from "./principal/AcademicReportPanel";
 import PrincipalWelcomeHeader from "./principal/PrincipalWelcomeHeader";
 import RecentActivities from "./principal/RecentActivities";
+import Button from '@/components/ui/button';
 
 interface SchoolStats {
   totalStudents: number;
@@ -205,6 +206,14 @@ const PrincipalDashboard = () => {
       />
       <PrincipalWelcomeHeader user={user} />
       <PrincipalStatsCards stats={stats} />
+      
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => setAddParentOpen(true)}>
+          <Plus className="w-4 h-4 mr-1" />
+          Add Parent
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
