@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -216,26 +215,32 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select parent" />
+                    <SelectValue placeholder={
+                      loadingParents
+                        ? "Loading parents..."
+                        : parents.length === 0
+                          ? "No parents found"
+                          : "Select parent"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {loadingParents ? (
-                      <SelectItem value="">Loading...</SelectItem>
-                    ) : parents.length === 0 ? (
-                      <SelectItem value="">No parents found</SelectItem>
-                    ) : (
-                      parents.map(parent => (
-                        <SelectItem value={parent.id} key={parent.id}>
-                          {parent.name} ({parent.email})
-                        </SelectItem>
-                      ))
-                    )}
+                    {parents.map(parent => (
+                      <SelectItem value={parent.id} key={parent.id}>
+                        {parent.name} ({parent.email})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button type="button" size="sm" variant="outline" onClick={() => setParentModalOpen(true)}>
                   + Add Parent
                 </Button>
               </div>
+              {loadingParents && (
+                <div className="text-xs text-muted-foreground mt-1">Loading parents...</div>
+              )}
+              {!loadingParents && parents.length === 0 && (
+                <div className="text-xs text-muted-foreground mt-1">No parents found. Click "+ Add Parent" to add.</div>
+              )}
             </div>
 
             <div className="md:col-span-2">
