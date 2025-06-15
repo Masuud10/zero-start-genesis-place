@@ -45,13 +45,13 @@ export const ClassManagementService = {
 
       if (error) {
         console.error('Error assigning teacher to class:', error);
-        return { error: error.message };
+        throw new Error(error.message);
       }
 
-      return { data, error: null };
+      return data;
     } catch (error: any) {
       console.error('Unexpected error in assignTeacherToClass:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      throw new Error(error.message || 'Unknown error occurred');
     }
   },
 
@@ -72,13 +72,13 @@ export const ClassManagementService = {
 
       if (error) {
         console.error('Error removing teacher from class:', error);
-        return { error: error.message };
+        throw new Error(error.message);
       }
 
       return { error: null };
     } catch (error: any) {
       console.error('Unexpected error in removeTeacherFromClass:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      throw new Error(error.message || 'Unknown error occurred');
     }
   },
 
@@ -92,13 +92,13 @@ export const ClassManagementService = {
 
       if (error) {
         console.error('Error unassigning teacher:', error);
-        return { error: error.message };
+        throw new Error(error.message);
       }
 
-      return { error: null };
+      return { success: true };
     } catch (error: any) {
       console.error('Unexpected error in unassignTeacher:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      throw new Error(error.message || 'Unknown error occurred');
     }
   },
 
@@ -129,13 +129,13 @@ export const ClassManagementService = {
 
       if (error) {
         console.error('Error enrolling student in class:', error);
-        return { error: error.message };
+        throw new Error(error.message);
       }
 
-      return { data, error: null };
+      return data;
     } catch (error: any) {
       console.error('Unexpected error in enrollStudent:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      throw new Error(error.message || 'Unknown error occurred');
     }
   },
 
@@ -150,13 +150,13 @@ export const ClassManagementService = {
 
       if (error) {
         console.error('Error removing student from class:', error);
-        return { error: error.message };
+        throw new Error(error.message);
       }
 
       return { error: null };
     } catch (error: any) {
       console.error('Unexpected error in removeStudentFromClass:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      throw new Error(error.message || 'Unknown error occurred');
     }
   },
 
@@ -186,13 +186,13 @@ export const ClassManagementService = {
 
       if (error) {
         console.error('Error linking parent to student:', error);
-        return { error: error.message };
+        throw new Error(error.message);
       }
 
-      return { data, error: null };
+      return data;
     } catch (error: any) {
       console.error('Unexpected error in linkParentToStudent:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      throw new Error(error.message || 'Unknown error occurred');
     }
   },
 
@@ -207,13 +207,13 @@ export const ClassManagementService = {
 
       if (error) {
         console.error('Error unlinking parent from student:', error);
-        return { error: error.message };
+        throw new Error(error.message);
       }
 
       return { error: null };
     } catch (error: any) {
       console.error('Unexpected error in unlinkParentFromStudent:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      throw new Error(error.message || 'Unknown error occurred');
     }
   },
 

@@ -8,14 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Trash2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 
 const TeacherAssignmentTab = () => {
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
     const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
     
-    const queryClient = useQueryClient();
     const { classList, teacherList, subjectList, loadingEntities } = usePrincipalEntityLists();
     const { data: assignments, isLoading: loadingAssignments } = useTeacherAssignments(selectedClassId);
     const { assignTeacher, unassignTeacher, loading: isAssigning } = useRelationships();
@@ -24,20 +22,20 @@ const TeacherAssignmentTab = () => {
         if (!selectedClassId || !selectedTeacherId || !selectedSubjectId) {
             return;
         }
-        const success = await assignTeacher(selectedTeacherId, selectedClassId, selectedSubjectId);
-        if (success) {
+        try {
+            await assignTeacher({ teacherId: selectedTeacherId, classId: selectedClassId, subjectId: selectedSubjectId });
             setSelectedTeacherId(null);
             setSelectedSubjectId(null);
-            queryClient.invalidateQueries({ queryKey: ['teacherAssignments', selectedClassId] });
-            queryClient.invalidateQueries({ queryKey: ['teacherClasses'] });
+        } catch (error) {
+            console.error("Failed to assign teacher:", error);
         }
     };
 
     const handleUnassign = async (assignmentId: string) => {
-        const success = await unassignTeacher(assignmentId);
-        if (success) {
-            queryClient.invalidateQueries({ queryKey: ['teacherAssignments', selectedClassId] });
-            queryClient.invalidateQueries({ queryKey: ['teacherClasses'] });
+        try {
+            await unassignTeacher({ assignmentId, classId: selectedClassId });
+        } catch (error) {
+            console.error("Failed to unassign teacher:", error);
         }
     };
     

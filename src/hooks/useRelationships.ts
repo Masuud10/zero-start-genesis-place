@@ -1,157 +1,68 @@
-import { useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { ClassManagementService } from '@/services/classManagementService';
 
+interface AssignTeacherParams { teacherId: string; classId: string; subjectId: string; }
+interface UnassignTeacherParams { assignmentId: string; classId: string | null; }
+interface EnrollStudentParams { studentId: string; classId: string; academicYear?: string }
+interface LinkParentParams { parentId: string, studentId: string, relationshipType?: string, isPrimaryContact?: boolean }
+
 export const useRelationships = () => {
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const assignTeacher = async (teacherId: string, classId: string, subjectId?: string) => {
-    try {
-      setLoading(true);
-      const { error } = await ClassManagementService.assignTeacherToClass({
-        teacherId,
-        classId,
-        subjectId
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to assign teacher to class",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      toast({
-        title: "Success",
-        description: "Teacher assigned to class successfully",
-      });
-      return true;
-    } catch (error) {
-      console.error('Error assigning teacher:', error);
-      toast({
-        title: "Error",
-        description: "Failed to assign teacher to class",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
+  const assignTeacherMutation = useMutation({
+    mutationFn: (params: AssignTeacherParams) => ClassManagementService.assignTeacherToClass(params),
+    onSuccess: (_, variables) => {
+      toast({ title: "Success", description: "Teacher assigned to class successfully" });
+      queryClient.invalidateQueries({ queryKey: ['teacherAssignments', variables.classId] });
+      queryClient.invalidateQueries({ queryKey: ['teacherClasses'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to assign teacher to class", variant: "destructive" });
     }
-  };
+  });
 
-  const unassignTeacher = async (assignmentId: string) => {
-    try {
-      setLoading(true);
-      const { error } = await ClassManagementService.unassignTeacher(assignmentId);
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to unassign teacher.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      toast({
-        title: "Success",
-        description: "Teacher unassigned successfully.",
-      });
-      return true;
-    } catch (error) {
-      console.error('Error unassigning teacher:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while unassigning teacher.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
+  const unassignTeacherMutation = useMutation({
+    mutationFn: (params: UnassignTeacherParams) => ClassManagementService.unassignTeacher(params.assignmentId),
+    onSuccess: (_, variables) => {
+      toast({ title: "Success", description: "Teacher unassigned successfully." });
+      queryClient.invalidateQueries({ queryKey: ['teacherAssignments', variables.classId] });
+      queryClient.invalidateQueries({ queryKey: ['teacherClasses'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to unassign teacher.", variant: "destructive" });
     }
-  };
+  });
 
-  const enrollStudent = async (studentId: string, classId: string, academicYear?: string) => {
-    try {
-      setLoading(true);
-      const { error } = await ClassManagementService.enrollStudent({
-        studentId,
-        classId,
-        academicYear
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to enroll student in class",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      toast({
-        title: "Success",
-        description: "Student enrolled in class successfully",
-      });
-      return true;
-    } catch (error) {
-      console.error('Error enrolling student:', error);
-      toast({
-        title: "Error",
-        description: "Failed to enroll student in class",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
+  const enrollStudentMutation = useMutation({
+    mutationFn: (params: EnrollStudentParams) => ClassManagementService.enrollStudent(params),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Student enrolled in class successfully" });
+      // Invalidate relevant queries here, e.g., student lists
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to enroll student in class", variant: "destructive" });
     }
-  };
+  });
 
-  const linkParent = async (parentId: string, studentId: string, relationshipType?: string, isPrimaryContact?: boolean) => {
-    try {
-      setLoading(true);
-      const { error } = await ClassManagementService.linkParentToStudent({
-        parentId,
-        studentId,
-        relationshipType,
-        isPrimaryContact
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to link parent to student",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      toast({
-        title: "Success",
-        description: "Parent linked to student successfully",
-      });
-      return true;
-    } catch (error) {
-      console.error('Error linking parent:', error);
-      toast({
-        title: "Error",
-        description: "Failed to link parent to student",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setLoading(false);
+  const linkParentMutation = useMutation({
+    mutationFn: (params: LinkParentParams) => ClassManagementService.linkParentToStudent(params),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Parent linked to student successfully" });
+      // Invalidate relevant queries here, e.g., parent lists
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to link parent to student", variant: "destructive" });
     }
-  };
+  });
 
   return {
-    loading,
-    assignTeacher,
-    unassignTeacher,
-    enrollStudent,
-    linkParent
+    assignTeacher: assignTeacherMutation.mutateAsync,
+    unassignTeacher: unassignTeacherMutation.mutateAsync,
+    enrollStudent: enrollStudentMutation.mutateAsync,
+    linkParent: linkParentMutation.mutateAsync,
+    loading: assignTeacherMutation.isPending || unassignTeacherMutation.isPending || enrollStudentMutation.isPending || linkParentMutation.isPending,
   };
 };
