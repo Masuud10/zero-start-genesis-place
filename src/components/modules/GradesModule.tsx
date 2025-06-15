@@ -130,6 +130,10 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
     studentsAbove90: 320
   };
 
+  // Add the missing modal handlers
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => setIsModalOpen(false);
+
   return (
     <div className="space-y-6">
       <div>
