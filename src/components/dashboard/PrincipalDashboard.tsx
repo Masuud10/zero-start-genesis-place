@@ -9,6 +9,7 @@ import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 import AddTeacherModal from '../modals/AddTeacherModal';
 import AddParentModal from '../modals/AddParentModal';
+import PrincipalQuickActions from "./principal/PrincipalQuickActions";
 
 interface SchoolStats {
   totalStudents: number;
@@ -379,24 +380,10 @@ const PrincipalDashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-blue-50" onClick={() => setAddParentOpen(true)}>
-              <Users className="h-6 w-6" />
-              <span>Add Parent</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-green-50" onClick={() => setAddTeacherOpen(true)}>
-              <GraduationCap className="h-6 w-6" />
-              <span>Add Teacher</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-purple-50">
-              <Calendar className="h-6 w-6" />
-              <span>View Timetable</span>
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-orange-50">
-              <MessageSquare className="h-6 w-6" />
-              <span>Announcements</span>
-            </Button>
-          </div>
+          <PrincipalQuickActions
+            onAddParent={() => setAddParentOpen(true)}
+            onAddTeacher={() => setAddTeacherOpen(true)}
+          />
         </CardContent>
       </Card>
 
@@ -432,7 +419,11 @@ const PrincipalDashboard = () => {
         </CardContent>
       </Card>
       <AddTeacherModal open={addTeacherOpen} onClose={() => setAddTeacherOpen(false)} />
-      <AddParentModal open={addParentOpen} onClose={() => setAddParentOpen(false)} onParentCreated={() => {}} />
+      <AddParentModal
+        open={addParentOpen}
+        onClose={() => setAddParentOpen(false)}
+        onParentCreated={() => {}}
+      />
     </div>
   );
 };
