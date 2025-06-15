@@ -51,8 +51,9 @@ const TeacherAttendanceTable: React.FC<TeacherAttendanceTableProps> = ({
               <Textarea
                 value={remarks}
                 onChange={(e) => setRemarks(student.id, e.target.value)}
-                className="w-32 h-8 resize-none"
+                className="min-w-[120px] resize-none"
                 placeholder="Optional"
+                rows={1}
               />
             </TableCell>
           </TableRow>
