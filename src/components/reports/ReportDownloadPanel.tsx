@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -138,10 +137,29 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters =
           body: JSON.stringify(payload),
         }
       );
-      if (!response.ok) throw new Error("Failed to generate report");
+
+      // NEW LOGIC: Check if we actually got a PDF, otherwise show error.
+      const contentType = response.headers.get("Content-Type");
+      if (!response.ok || !contentType || !contentType.includes("application/pdf")) {
+        // Try to get error from JSON (either custom throw, or generic network error)
+        let errorMsg = "Failed to generate PDF report.";
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) errorMsg = errorData.error;
+        } catch {
+          // Not JSON, leave as default
+        }
+        toast({
+          title: "Report Generation Error",
+          description: errorMsg,
+          variant: "destructive"
+        });
+        setDownloading(false);
+        return;
+      }
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      // Filename
       const name = `${user?.role || "user"}_${reportType}_report_${year}_${term}.pdf`;
       const a = document.createElement("a");
       a.href = url;
