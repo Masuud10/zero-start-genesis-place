@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Bell } from 'lucide-react';
@@ -10,7 +11,7 @@ import UserProfileDropdown from './UserProfileDropdown';
 interface DashboardContainerProps {
   user: AuthUser;
   currentSchool: School | null;
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
   showHeader?: boolean;
   showGreetings?: boolean;
   children: React.ReactNode;
