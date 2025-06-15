@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,10 +78,10 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         totalParents: parentsCount
       });
 
-      // Fetch audit logs separately
-      const { data: auditLogsData, error: auditLogsError } = await supabase
+      // Fetch audit logs without profile join to prevent TS error
+      const { data: rawAuditLogs, error: auditLogsError } = await supabase
         .from('security_audit_logs')
-        .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
+        .select('id, created_at, action, resource, metadata, user_id')
         .eq('school_id', targetSchoolId)
         .eq('success', true)
         .in('action', ['create', 'update'])
@@ -92,9 +91,28 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
       let activities: any[] = [];
       if (auditLogsError) {
         console.error("Failed to fetch audit logs:", auditLogsError.message);
-      } else if (auditLogsData) {
-        activities = auditLogsData.map((log: any) => {
-          const userName = log.profiles?.name || 'A user';
+      } else if (rawAuditLogs) {
+        // Get user IDs to fetch names
+        const userIds = [...new Set(rawAuditLogs.map(log => log.user_id).filter(Boolean) as string[])];
+        
+        let userNames: Record<string, string> = {};
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, name')
+            .in('id', userIds);
+
+          if (profilesError) {
+            console.error("Failed to fetch user profiles for audit logs:", profilesError.message);
+          } else if (profilesData){
+            profilesData.forEach(p => {
+              userNames[p.id] = p.name;
+            });
+          }
+        }
+
+        activities = rawAuditLogs.map((log: any) => {
+          const userName = log.user_id ? userNames[log.user_id] || 'A user' : 'A user';
           const actionVerb = log.action === 'create' ? 'created' : 'updated';
 
           let entityName = '';
