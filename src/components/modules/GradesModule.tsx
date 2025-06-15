@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
 import { supabase } from '@/integrations/supabase/client';
@@ -105,7 +106,8 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
     );
   }
 
-  const { user } = useAuth();
+  // Remove duplicate "const { user } = useAuth();" here (was line 108)
+
   const isEdufamAdmin = user?.role === 'edufam_admin';
 
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
@@ -130,9 +132,9 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
     if (!isEdufamAdmin) return;
     setLoading(true);
     setError(null);
-    let query = supabase.rpc('get_grades_summary', { school_id: schoolFilter }); // Use a function or compose query
-    if (!schoolFilter) query = supabase.rpc('get_grades_summary'); // or fetch all if not filtering
-    query.then(({ data, error }) => {
+    let query: any = (supabase.rpc as any)('get_grades_summary', { school_id: schoolFilter });
+    if (!schoolFilter) query = (supabase.rpc as any)('get_grades_summary');
+    query.then(({ data, error }: any) => {
       if (error) setError("Failed to fetch grades summary");
       setGradesSummary(data || null);
       setLoading(false);
@@ -252,3 +254,4 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
 };
 
 export default GradesModule;
+
