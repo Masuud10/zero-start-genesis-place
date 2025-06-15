@@ -9,13 +9,23 @@ interface TimetableViewerProps {
   studentId?: string;
 }
 
+interface TimetableRow {
+  id: string;
+  class_id: string;
+  school_id: string;
+  is_active: boolean;
+  created_at: string;
+  created_by: string;
+  version: number;
+}
+
 const TimetableViewer: React.FC<TimetableViewerProps> = ({
   term,
   classId,
   studentId,
 }) => {
   const { user } = useAuth();
-  const [rows, setRows] = useState([]);
+  const [rows, setRows] = useState<TimetableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -33,30 +43,40 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
       setLoading(true);
       setErrorMsg(null);
 
-      let q = supabase
-        .from("timetables")
-        .select("id,class_id,school_id,is_active,created_at,created_by,version")
-        .eq("school_id", user.school_id)
-        .eq("term", term)
-        .eq("is_published", true);
+      try {
+        let q = supabase
+          .from("timetables")
+          .select("id,class_id,school_id,is_active,created_at,created_by,version")
+          .eq("school_id", user.school_id)
+          .eq("term", term);
 
-      Object.entries(filter).forEach(([k, v]) => {
-        q = q.eq(k, v);
-      });
-      const { data, error } = await q;
-      if (error) {
-        setErrorMsg("Error loading timetable: " + error.message);
+        Object.entries(filter).forEach(([k, v]) => {
+          q = q.eq(k, v);
+        });
+        
+        const { data, error } = await q;
+        
+        if (error) {
+          console.error("Supabase error:", error);
+          setErrorMsg("Error loading timetable: " + error.message);
+          setRows([]);
+        } else if (!data || data.length === 0) {
+          setErrorMsg("No timetable found.");
+          setRows([]);
+        } else {
+          setRows(data as TimetableRow[]);
+        }
+      } catch (err: any) {
+        console.error("Fetch error:", err);
+        setErrorMsg("Error loading timetable: " + err.message);
         setRows([]);
-      } else if (!data || !Array.isArray(data) || data.length === 0) {
-        setErrorMsg("No timetable found.");
-        setRows([]);
-      } else {
-        setRows(data);
       }
       setLoading(false);
     };
-    fetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    if (user?.school_id) {
+      fetch();
+    }
   }, [user?.school_id, term, classId, studentId]);
 
   return (
@@ -71,27 +91,27 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
         <table className="border w-full">
           <thead>
             <tr>
-              <th>Class</th>
-              <th>School</th>
-              <th>Active</th>
-              <th>Created At</th>
-              <th>Created By</th>
-              <th>Version</th>
+              <th className="border px-2 py-1">Class</th>
+              <th className="border px-2 py-1">School</th>
+              <th className="border px-2 py-1">Active</th>
+              <th className="border px-2 py-1">Created At</th>
+              <th className="border px-2 py-1">Created By</th>
+              <th className="border px-2 py-1">Version</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r: any) => (
+            {rows.map((r) => (
               <tr key={r.id}>
-                <td>{r.class_id}</td>
-                <td>{r.school_id ?? "-"}</td>
-                <td>{r.is_active ? "Yes" : "No"}</td>
-                <td>
+                <td className="border px-2 py-1">{r.class_id}</td>
+                <td className="border px-2 py-1">{r.school_id ?? "-"}</td>
+                <td className="border px-2 py-1">{r.is_active ? "Yes" : "No"}</td>
+                <td className="border px-2 py-1">
                   {r.created_at
                     ? new Date(r.created_at).toLocaleString()
                     : "-"}
                 </td>
-                <td>{r.created_by ?? "-"}</td>
-                <td>{r.version ?? "-"}</td>
+                <td className="border px-2 py-1">{r.created_by ?? "-"}</td>
+                <td className="border px-2 py-1">{r.version ?? "-"}</td>
               </tr>
             ))}
           </tbody>
