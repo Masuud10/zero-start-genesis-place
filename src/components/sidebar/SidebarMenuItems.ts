@@ -1,3 +1,4 @@
+
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -114,7 +115,8 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       ...baseItems,
       { id: 'analytics', label: 'Financial Analytics', icon: BarChart3, roles: ['finance_officer'] },
       { id: 'finance', label: 'Fee Management', icon: DollarSign, roles: ['finance_officer'] },
-      { id: 'students', label: 'Student Fees', icon: Users, roles: ['finance_officer'] },
+      { id: 'payments', label: 'Process Payments', icon: CreditCard, roles: ['finance_officer'] },
+      { id: 'student-accounts', label: 'Student Accounts', icon: Users, roles: ['finance_officer'] },
       { id: 'reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
       { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
       { id: 'messages', label: 'Finance Messages', icon: MessageSquare, roles: ['finance_officer'] },

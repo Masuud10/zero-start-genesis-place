@@ -78,13 +78,8 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
       title = "Child Attendance Records";
       break;
     case 'finance':
-      if (user?.role === 'finance_officer') {
-        modalContent = <FeeManagementModule />;
-        title = "Fee Management";
-      } else {
-        modalContent = <ParentFinanceView />;
-        title = "Financial Overview";
-      }
+      modalContent = <ParentFinanceView />;
+      title = "Financial Overview";
       break;
     case 'messages':
       modalContent = <MessagesModule />;
@@ -95,41 +90,17 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
       title = "Class Timetable";
       break;
     case 'reports':
-      if (user?.role === 'finance_officer') {
-        modalContent = <FinanceReportsModule />;
-        title = 'Financial Reports';
-      } else if (user?.role === 'parent') {
+      if (user?.role === 'parent') {
         modalContent = <ParentReportsModule />;
         title = "Generate Reports";
       }
       break;
     case 'students':
-        if (user?.role === 'finance_officer') {
-            modalContent = <StudentAccountsModule />;
-            title = "Student Accounts";
-        } else {
-            modalContent = (
-                <div><p className="p-4">Student Management module for your role.</p></div>
-            );
-            title = 'Manage Students';
-        }
-        break;
-    case 'fees':
-        modalContent = <FeeManagementModule />;
-        title = "Manage Fees";
-        break;
-    case 'payments':
-        modalContent = <ProcessPaymentsModule />;
-        title = "Process Payments";
-        break;
-    case 'student-accounts':
-        modalContent = <StudentAccountsModule />;
-        title = "Student Accounts";
-        break;
-    case 'finance-settings':
-        modalContent = <FinanceSettingsModule />;
-        title = "Finance Settings";
-        break;
+      modalContent = (
+          <div><p className="p-4">Student Management module for your role.</p></div>
+      );
+      title = 'Manage Students';
+      break;
     case 'support':
         modalContent = <FinanceSupportModule />;
         title = "Support Center";

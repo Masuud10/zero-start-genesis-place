@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { AuthUser } from '@/types/auth';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import FinanceStatsCards from "./finance-officer/FinanceStatsCards";
-import FinanceActionsPanel from "./finance-officer/FinanceActionsPanel";
+import FeeManagementModule from '@/components/modules/FeeManagementModule';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity } from 'lucide-react';
 
@@ -109,17 +108,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
   return (
     <div className="space-y-6">
       <FinanceStatsCards loading={loading} stats={stats} />
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Finance Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FinanceActionsPanel onModalOpen={onModalOpen} />
-        </CardContent>
-      </Card>
+      <FeeManagementModule />
     </div>
   );
 };
