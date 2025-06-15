@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,46 +12,38 @@ interface CreateUserParams {
 export const AdminUserService = {
   createUser: async (params: CreateUserParams) => {
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: params.email,
-        password: params.password,
-        email_confirm: true,
+      // Call the 'create_admin_user' RPC function for secure, server-side user creation
+      const { data, error } = await supabase.rpc('create_admin_user', {
+        user_email: params.email,
+        user_password: params.password,
+        user_name: params.name,
+        user_role: params.role,
+        user_school_id: params.school_id || null,
       });
 
-      if (authError) {
-        console.error('Error creating auth user:', authError);
-        return { error: authError.message };
+      if (error) {
+        console.error('Error calling create_admin_user RPC:', error);
+        return { error: error.message };
       }
 
-      if (!authData.user) {
-        return { error: 'Failed to create user' };
+      // The RPC returns a JSONB object, which we parse here
+      if (data && data.error) {
+        console.error('Error from create_admin_user RPC:', data.error);
+        return { error: data.error };
+      }
+      
+      if (data && data.success) {
+        return {
+          success: true,
+          // The RPC returns the user ID. We can form a partial user object for the client.
+          data: { id: data.user_id, email: params.email }, 
+          user_id: data.user_id,
+          error: null,
+        };
       }
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          name: params.name,
-          email: params.email,
-          role: params.role,
-          school_id: params.school_id || null,
-        });
+      return { error: 'Unknown response from user creation function.' };
 
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        // Try to clean up the auth user if profile creation fails
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        return { error: profileError.message };
-      }
-
-      return { 
-        success: true, 
-        data: authData.user, 
-        user_id: authData.user.id,
-        error: null 
-      };
     } catch (error: any) {
       console.error('Unexpected error in createUser:', error);
       return { error: error.message || 'Unknown error occurred' };
