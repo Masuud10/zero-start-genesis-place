@@ -23,7 +23,6 @@ export function useSystemHealthStatus() {
       setError(null);
 
       try {
-        // @ts-expect-error: system_status may not be in types yet
         const { data, error } = await (supabase as any)
           .from("system_status")
           .select("current_status, supabase_connected, uptime_percent, updated_at")
