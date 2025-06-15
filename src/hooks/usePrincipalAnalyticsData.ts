@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from './useSchoolScopedData';
@@ -24,8 +23,40 @@ interface TeacherActivityData {
     teacher: { name: string } | null;
 }
 
+// Define the return type for the main analytics data
+interface PrincipalAnalyticsData {
+    keyMetrics: {
+        totalStudents: number;
+        schoolAverage: number;
+        attendanceRate: number;
+        resultsReleased: number; // Placeholder
+    };
+    classPerformance: {
+        class: string | undefined;
+        average: any;
+        attendance: any;
+    }[];
+    subjectPerformance: {
+        subject: string;
+        average: number;
+        improvement: number;
+    }[];
+    studentRankings: {
+        name: string;
+        class: string;
+        average: number;
+        position: number;
+    }[];
+    teacherActivity: {
+        teacher: string;
+        grades: number;
+        submissions: number;
+        onTime: number; // Placeholder
+    }[];
+}
+
 // A simplified query, can be expanded later
-const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: string) => {
+const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: string): Promise<PrincipalAnalyticsData> => {
     
     // In a real scenario, this would call a dedicated DB function for performance.
     // For now, we fetch from the school_analytics summary table.
