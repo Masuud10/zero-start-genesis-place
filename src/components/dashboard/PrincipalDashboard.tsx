@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,12 +7,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import AddTeacherModal from '../modals/AddTeacherModal';
 import AddParentModal from '../modals/AddParentModal';
+import AddClassModal from '../modals/AddClassModal';
 import PrincipalStatsCards from "./principal/PrincipalStatsCards";
 import PrincipalWelcomeHeader from "./principal/PrincipalWelcomeHeader";
 import { Button } from '@/components/ui/button';
 import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
-import AddClassModal from '../modals/AddClassModal';
 import RoleGuard from '@/components/common/RoleGuard';
 import ReportActionsPanel from './principal/ReportActionsPanel';
 import EntityPreviewPanels from './principal/EntityPreviewPanels';
@@ -22,26 +23,29 @@ const PrincipalDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { getCurrentSchoolId, validateSchoolAccess, isReady } = useSchoolScopedData();
+  
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
     totalSubjects: 0,
     totalClasses: 0
   });
+  
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [addTeacherOpen, setAddTeacherOpen] = useState(false);
   const [addParentOpen, setAddParentOpen] = useState(false);
+  const [addClassOpen, setAddClassOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  
   const [classList, setClassList] = useState([]);
   const [subjectList, setSubjectList] = useState([]);
   const [teacherList, setTeacherList] = useState([]);
   const [parentList, setParentList] = useState([]);
   const [loadingEntities, setLoadingEntities] = useState(true);
   const [errorEntities, setErrorEntities] = useState<string | null>(null);
-  const [addClassOpen, setAddClassOpen] = useState(false);
 
   const schoolId = getCurrentSchoolId();
 
@@ -53,7 +57,6 @@ const PrincipalDashboard = () => {
       setLoading(false);
       setError('No school assignment found. Please contact your administrator.');
     }
-    // eslint-disable-next-line
   }, [schoolId, user?.school_id, reloadKey]);
 
   const fetchSchoolData = async () => {
@@ -65,9 +68,11 @@ const PrincipalDashboard = () => {
       if (!effectiveSchoolId) {
         throw new Error('No school ID available for data fetch');
       }
+      
       if (validateSchoolAccess && !validateSchoolAccess(effectiveSchoolId)) {
         throw new Error('Access denied to school data');
       }
+
       // Fetch all data in parallel
       const [
         studentsResult,
@@ -102,18 +107,10 @@ const PrincipalDashboard = () => {
           .limit(5)
       ]);
 
-      const studentsCount = studentsResult.status === 'fulfilled'
-        ? (studentsResult.value?.count || 0)
-        : 0;
-      const teachersCount = teachersResult.status === 'fulfilled'
-        ? (teachersResult.value?.count || 0)
-        : 0;
-      const subjectsCount = subjectsResult.status === 'fulfilled'
-        ? (subjectsResult.value?.count || 0)
-        : 0;
-      const classesCount = classesResult.status === 'fulfilled'
-        ? (classesResult.value?.count || 0)
-        : 0;
+      const studentsCount = studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
+      const teachersCount = teachersResult.status === 'fulfilled' ? (teachersResult.value?.count || 0) : 0;
+      const subjectsCount = subjectsResult.status === 'fulfilled' ? (subjectsResult.value?.count || 0) : 0;
+      const classesCount = classesResult.status === 'fulfilled' ? (classesResult.value?.count || 0) : 0;
 
       setStats({
         totalStudents: studentsCount,
@@ -150,6 +147,7 @@ const PrincipalDashboard = () => {
   useEffect(() => {
     const effectiveSchoolId = schoolId || user?.school_id;
     if (!effectiveSchoolId) return;
+    
     setLoadingEntities(true);
     setErrorEntities(null);
 
@@ -172,7 +170,6 @@ const PrincipalDashboard = () => {
     }).finally(() => setLoadingEntities(false));
   }, [schoolId, user?.school_id, reloadKey]);
 
-  // Handler to refetch dashboard data after modal success
   const handleEntityCreated = () => {
     setReloadKey(k => k + 1);
   };
@@ -180,9 +177,19 @@ const PrincipalDashboard = () => {
   if (!isReady) {
     return (
       <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
-        <div className="animate-pulse"><div className="h-6 bg-gray-300 rounded mb-2"></div></div>
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-300 rounded mb-2"></div>
+        </div>
       </div>
     );
+  }
+
+  if (loading) {
+    return <PrincipalDashboardLoading />;
+  }
+
+  if (error) {
+    return <PrincipalDashboardErrorCard error={error} onRetry={fetchSchoolData} />;
   }
 
   return (
@@ -210,6 +217,7 @@ const PrincipalDashboard = () => {
             </div>
           </div>
         </div>
+
         <ReportActionsPanel
           downloadingReport={downloadingReport}
           setDownloadingReport={setDownloadingReport}
@@ -217,39 +225,27 @@ const PrincipalDashboard = () => {
           schoolId={schoolId}
           toast={toast}
         />
+
         <PrincipalStatsCards stats={stats} />
-        <div className="flex justify-end">
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setAddClassOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" />
+            Add Class
+          </Button>
           <Button variant="outline" onClick={() => setAddParentOpen(true)}>
             <Plus className="w-4 h-4 mr-1" />
             Add Parent
           </Button>
         </div>
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={() => setAddClassOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add Class
-          </Button>
-        </div>
+
         <QuickActionsCard
           onAddParent={() => setAddParentOpen(true)}
           onAddTeacher={() => setAddTeacherOpen(true)}
         />
+
         <RecentActivitiesPanel recentActivities={recentActivities} />
-        <AddTeacherModal
-          open={addTeacherOpen}
-          onClose={() => setAddTeacherOpen(false)}
-          onTeacherCreated={handleEntityCreated}
-        />
-        <AddParentModal
-          open={addParentOpen}
-          onClose={() => setAddParentOpen(false)}
-          onParentCreated={handleEntityCreated}
-        />
-        <AddClassModal
-          open={addClassOpen}
-          onClose={() => setAddClassOpen(false)}
-          onClassCreated={handleEntityCreated}
-        />
+
         <EntityPreviewPanels
           classList={classList}
           subjectList={subjectList}
@@ -258,6 +254,24 @@ const PrincipalDashboard = () => {
           stats={stats}
           loading={loadingEntities}
           error={errorEntities}
+        />
+
+        <AddTeacherModal
+          open={addTeacherOpen}
+          onClose={() => setAddTeacherOpen(false)}
+          onTeacherCreated={handleEntityCreated}
+        />
+        
+        <AddParentModal
+          open={addParentOpen}
+          onClose={() => setAddParentOpen(false)}
+          onParentCreated={handleEntityCreated}
+        />
+        
+        <AddClassModal
+          open={addClassOpen}
+          onClose={() => setAddClassOpen(false)}
+          onClassCreated={handleEntityCreated}
         />
       </div>
     </RoleGuard>

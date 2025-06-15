@@ -6,14 +6,19 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/contexts/SchoolContext";
 
-type Props = {
+interface RoleReportDownloadButtonProps {
   type: "grades" | "attendance";
   classId?: string;
   term: string;
   label?: string;
-};
+}
 
-const RoleReportDownloadButton: React.FC<Props> = ({ type, classId, term, label }) => {
+const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({ 
+  type, 
+  classId, 
+  term, 
+  label 
+}) => {
   const [downloading, setDownloading] = useState(false);
   const { user } = useAuth();
   const { currentSchool } = useSchool();
@@ -30,6 +35,7 @@ const RoleReportDownloadButton: React.FC<Props> = ({ type, classId, term, label 
         term,
         user_id: user?.id
       };
+      
       const res = await fetch(
         "https://lmqyizrnuahkmwauonqr.functions.supabase.co/generate_role_report",
         {
@@ -38,7 +44,9 @@ const RoleReportDownloadButton: React.FC<Props> = ({ type, classId, term, label 
           body: JSON.stringify(payload)
         }
       );
+      
       if (!res.ok) throw new Error("Could not generate report");
+      
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -48,9 +56,17 @@ const RoleReportDownloadButton: React.FC<Props> = ({ type, classId, term, label 
       a.click();
       setTimeout(() => window.URL.revokeObjectURL(url), 500);
       a.remove();
-      toast({ title: "Report Downloaded!", description: label || "Report downloaded successfully." });
+      
+      toast({ 
+        title: "Report Downloaded!", 
+        description: label || "Report downloaded successfully." 
+      });
     } catch (e: any) {
-      toast({ title: "Download Failed", description: e.message, variant: "destructive" });
+      toast({ 
+        title: "Download Failed", 
+        description: e.message, 
+        variant: "destructive" 
+      });
     }
     setDownloading(false);
   };

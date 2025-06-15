@@ -2,16 +2,23 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-type PreviewPanelProps = {
-  title: string,
-  items: any[],
-  total: number,
-  renderItem: (item: any) => React.ReactNode,
-  loading: boolean,
-  error: string | null,
-};
+interface PreviewPanelProps {
+  title: string;
+  items: any[];
+  total: number;
+  renderItem: (item: any) => React.ReactNode;
+  loading: boolean;
+  error: string | null;
+}
 
-const PreviewPanel: React.FC<PreviewPanelProps> = ({ title, items, total, renderItem, loading, error }) => (
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ 
+  title, 
+  items, 
+  total, 
+  renderItem, 
+  loading, 
+  error 
+}) => (
   <Card>
     <CardHeader>
       <CardTitle className="text-sm">{title}</CardTitle>
@@ -35,19 +42,21 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({ title, items, total, render
   </Card>
 );
 
-// Helper item rendering
+// Helper item rendering functions
 export const renderClass = (cls: any) => (
   <li key={cls.id}>
     <span className="font-semibold">{cls.name}</span>{" "}
     <span className="text-gray-400 text-[10px]">{cls.id.slice(0, 6)}</span>
   </li>
 );
+
 export const renderSubject = (subj: any) => (
   <li key={subj.id}>
     <span>{subj.name}</span>{" "}
     <span className="text-gray-400 text-[10px]">{subj.code}</span>
   </li>
 );
+
 export const renderPerson = (person: any) => (
   <li key={person.id}>
     <span>{person.name}</span>{" "}

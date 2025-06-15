@@ -2,11 +2,13 @@
 import React from "react";
 import RecentActivities from "./RecentActivities";
 
-type Props = {
+interface RecentActivitiesPanelProps {
   recentActivities: any[];
-};
+}
 
-const RecentActivitiesPanel: React.FC<Props> = ({ recentActivities }) => (
+const RecentActivitiesPanel: React.FC<RecentActivitiesPanelProps> = ({ 
+  recentActivities 
+}) => (
   <div>
     <RecentActivities recentActivities={recentActivities} />
   </div>

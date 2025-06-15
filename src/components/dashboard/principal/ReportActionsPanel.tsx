@@ -1,7 +1,7 @@
+
 import React from "react";
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import AcademicReportPanel from './AcademicReportPanel';
-// Removed: import { ReportDownloadPanelProps } from '@/types/props';
 
 interface ReportActionsPanelProps {
   downloadingReport: boolean;

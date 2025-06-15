@@ -4,12 +4,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Plus } from 'lucide-react';
 import PrincipalQuickActions from "./PrincipalQuickActions";
 
-type Props = {
+interface QuickActionsCardProps {
   onAddParent: () => void;
   onAddTeacher: () => void;
-};
+}
 
-const QuickActionsCard: React.FC<Props> = ({ onAddParent, onAddTeacher }) => (
+const QuickActionsCard: React.FC<QuickActionsCardProps> = ({ 
+  onAddParent, 
+  onAddTeacher 
+}) => (
   <Card>
     <CardHeader>
       <CardTitle className="flex items-center gap-2">
