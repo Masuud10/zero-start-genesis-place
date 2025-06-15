@@ -23,10 +23,10 @@ export const fetchAnalyticsData = async (schoolId: string, filters: FinanceOffic
   
   let studentsMap: Record<string, { id: string; name: string; classes: { name: string } | null }> = {};
   if (studentIds.length > 0) {
-    // Using !inner join hint to resolve ambiguity between students.class_id and student_classes join table.
+    // Using !class_id hint to resolve ambiguity between students.class_id FK and the student_classes join table.
     const { data: students, error: studentsError } = await supabase
       .from('students')
-      .select('id, name, classes!inner(name)')
+      .select('id, name, classes!class_id(name)')
       .in('id', studentIds);
     if (studentsError) throw new Error(`Fetching students: ${studentsError.message}`);
     
