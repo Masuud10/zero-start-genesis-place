@@ -27,11 +27,11 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to our error handler using the static method
+    // Enhanced: include error stack/extra info if available in DEV
     ErrorHandler.logError(error, {
       action: 'react_error_boundary',
-      metadata: { errorInfo }
+      metadata: { errorInfo, stack: error.stack || undefined }
     });
-
     console.error('Error Boundary caught an error:', error, errorInfo);
   }
 
@@ -62,13 +62,15 @@ class ErrorBoundary extends Component<Props, State> {
               <p className="text-center text-muted-foreground">
                 We're sorry, but something unexpected happened. Our team has been notified.
               </p>
-              
+              {/* Improved: Show error.message and stack in dev mode */}
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <div className="bg-muted p-3 rounded text-sm font-mono text-xs overflow-auto max-h-32">
-                  {this.state.error.message}
+                  <strong>{this.state.error.message}</strong>
+                  <br />
+                  <pre>{this.state.error.stack}</pre>
                 </div>
               )}
-              
+
               <div className="flex flex-col gap-2">
                 <Button onClick={this.handleReset} variant="default" className="w-full">
                   <RefreshCw className="w-4 h-4 mr-2" />

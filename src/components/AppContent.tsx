@@ -17,6 +17,7 @@ const AppContent: React.FC = () => {
   try {
     authState = useAuth();
   } catch (err) {
+    // Defensive: avoid falling through to ErrorBoundary, give details
     console.error('🎯 AppContent: Auth context error', err);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -24,6 +25,20 @@ const AppContent: React.FC = () => {
           title="Authentication Error"
           description="Failed to initialize authentication system"
           error={String(err)}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
+
+  // Defensive: in case useAuth returns null or malformatted value
+  if (!authState || typeof authState !== "object") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <ErrorState
+          title="System Error"
+          description="Failed to retrieve authentication information."
+          error="No auth context"
           onRetry={() => window.location.reload()}
         />
       </div>
@@ -62,6 +77,7 @@ const AppContent: React.FC = () => {
   }
 
   // Step 5: User is authenticated but missing role
+  // Defensive: Instead of error, show error state so it can't bubble to ErrorBoundary
   if (!user.role) {
     console.error('🎯 AppContent: User missing role', user.email);
     return (
@@ -69,6 +85,7 @@ const AppContent: React.FC = () => {
         <ErrorState
           title="Account Setup Required"
           description="Your account role has not been configured. Please contact your administrator."
+          error={`User: ${user.email}. Missing role information.`}
           onRetry={() => window.location.reload()}
         />
       </div>
@@ -81,4 +98,3 @@ const AppContent: React.FC = () => {
 };
 
 export default AppContent;
-
