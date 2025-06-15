@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolService } from '@/services/schoolService';
@@ -145,14 +146,14 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     }
   }, [usersData]);
 
-  // Early return for comprehensive error state
+  /* Comprehensive error state: both queries failed. */
   if (schoolsError && usersError) {
     return <ErrorDisplay schoolsError={schoolsError} usersError={usersError} onRetryAll={handleRetryAll} />;
   }
 
   return (
     <div className="space-y-6">
-      {/* Always show system health card, even if data fails */}
+      {/* System health: Always display */}
       <SystemHealthStatusCard />
 
       {/* System Overview Cards */}
@@ -190,11 +191,13 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       />
 
       {/* Error Display for partial errors */}
-      <ErrorDisplay 
-        schoolsError={schoolsError} 
-        usersError={usersError} 
-        onRetryAll={handleRetryAll} 
-      />
+      {(schoolsError || usersError) && (
+        <ErrorDisplay 
+          schoolsError={schoolsError} 
+          usersError={usersError} 
+          onRetryAll={handleRetryAll} 
+        />
+      )}
     </div>
   );
 };
