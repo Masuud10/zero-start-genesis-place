@@ -26,7 +26,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
   studentId,
 }) => {
   const { user } = useAuth();
-  const [rows, setRows] = useState<TimetableRow[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -62,7 +62,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
         setErrorMsg("No timetable found.");
         setRows([]);
       } else {
-        setRows(data as TimetableRow[]);
+        setRows(data || []);
       }
       setLoading(false);
     };

@@ -46,7 +46,9 @@ const SubjectManagementTab = () => {
         <Input name="name" required placeholder="Subject Name (e.g., Mathematics)" value={form.name} onChange={handleChange} />
         <Input name="code" required placeholder="Subject Code (e.g., MATH101)" value={form.code} onChange={handleChange} />
         <Input name="curriculum" required placeholder="Curriculum (CBC or IGCSE)" value={form.curriculum} onChange={handleChange} />
-        <Button type="submit" loading={loading}>Create Subject</Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Creating..." : "Create Subject"}
+        </Button>
       </form>
       {/* TODO: Show subjects table/list with assign-to-class logic */}
     </div>

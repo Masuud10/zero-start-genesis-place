@@ -25,7 +25,7 @@ const SmartTimetableReview = ({
   onPublish: () => void;
 }) => {
   const { user } = useAuth();
-  const [rows, setRows] = useState<TimetableRow[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { toast } = useToast();
@@ -50,7 +50,7 @@ const SmartTimetableReview = ({
           setErrorMsg("No valid draft timetable found.");
           setRows([]);
         } else {
-          setRows(data as TimetableRow[]);
+          setRows(data || []);
         }
       } catch (e: any) {
         setErrorMsg("Error fetching timetable draft: " + (e?.message ?? String(e)));
@@ -100,7 +100,7 @@ const SmartTimetableReview = ({
       ) : rows.length === 0 ? (
         <div className="text-gray-500">No timetable drafts found.</div>
       ) : (
-        <>
+        <div>
           <table className="border w-full mb-4">
             <thead>
               <tr>
@@ -132,7 +132,7 @@ const SmartTimetableReview = ({
           >
             {loading ? "Publishing..." : "Publish Timetable"}
           </Button>
-        </>
+        </div>
       )}
       <div className="text-xs text-gray-500 mt-2">
         After publishing, timetable will be visible to all teachers, students & parents.

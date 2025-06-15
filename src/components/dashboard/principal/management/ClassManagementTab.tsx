@@ -49,7 +49,9 @@ const ClassManagementTab = () => {
         <Input name="level" required placeholder="Class Level (e.g., Grade 1)" value={form.level} onChange={handleChange} />
         <Input name="stream" placeholder="Stream (if applicable)" value={form.stream} onChange={handleChange} />
         <Input name="year" required placeholder="Year (e.g., 2025)" value={form.year} onChange={handleChange} />
-        <Button type="submit" loading={loading}>Create Class</Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Creating..." : "Create Class"}
+        </Button>
       </form>
       {/* TODO: Show existing classes in a table/list, and allow edit/delete */}
     </div>
