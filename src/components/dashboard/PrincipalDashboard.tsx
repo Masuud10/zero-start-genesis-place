@@ -19,6 +19,8 @@ import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 import { Badge } from '@/components/ui/badge';
 import AddClassModal from '../modals/AddClassModal';
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
+import RoleGuard from '@/components/common/RoleGuard';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 interface SchoolStats {
   totalStudents: number;
@@ -70,6 +72,8 @@ const PrincipalDashboard = () => {
     currentSchoolId: schoolId,
     reloadKey,
   });
+
+  const { getCurrentSchoolId, validateSchoolAccess, isReady } = useSchoolScopedData();
 
   useEffect(() => {
     console.log('[DEBUG] useEffect: start', { schoolId, user, reloadKey });
@@ -232,176 +236,150 @@ const PrincipalDashboard = () => {
     setReloadKey(k => k + 1);
   };
 
-  if (error && !loading) {
-    console.warn('[DEBUG] Rendering error state:', error);
+  // Wait for scoped data to be ready
+  if (!isReady) {
     return (
-      <PrincipalDashboardErrorCard error={error} onRetry={fetchSchoolData} />
+      <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="animate-pulse"><div className="h-6 bg-gray-300 rounded mb-2"></div></div>
+      </div>
     );
   }
 
-  if (loading) {
-    console.info('[DEBUG] Rendering loading state');
-    return <PrincipalDashboardLoading />;
-  }
-
-  console.log('[DEBUG] Rendering overview with stats:', stats);
-
-  // Helper: Mini preview list
-  const PreviewPanel = ({ title, items, renderItem, total, loading, error }) => (
-    <Card className="mb-2">
-      <CardHeader className="flex flex-row items-center justify-between pb-1">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <Badge variant="secondary">{total}</Badge>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="text-muted-foreground py-2">Loading...</div>
-        ) : error ? (
-          <div className="text-destructive py-2">Error: {error}</div>
-        ) : items.length === 0 ? (
-          <div className="text-muted-foreground py-2">No {title.toLowerCase()} found.</div>
-        ) : (
-          <ul className="divide-y border rounded bg-background">
-            {items.map(renderItem)}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  // Preview item renderers
-  const renderClass = (cls) => (
-    <li key={cls.id} className="py-2 px-2 flex justify-between items-center">
-      <span>{cls.name}</span>
-      <span className="text-xs text-muted-foreground">{new Date(cls.created_at).toLocaleDateString()}</span>
-    </li>
-  );
-  const renderSubject = (subj) => (
-    <li key={subj.id} className="py-2 px-2 flex justify-between items-center">
-      <span>{subj.name}</span>
-      <span className="text-xs text-muted-foreground">{subj.code}</span>
-    </li>
-  );
-  const renderPerson = (person) => (
-    <li key={person.id} className="py-2 px-2 flex justify-between items-center">
-      <span>{person.name}</span>
-      <span className="text-xs text-muted-foreground">{person.email}</span>
-    </li>
-  );
-
-  // Helper: render academic and attendance report download panel
-  const renderReportDownloads = () => (
-    <div className="mb-2 flex flex-col md:flex-row items-start md:items-center gap-2">
-      <RoleReportDownloadButton
-        type="grades"
-        term={"" + (new Date().getFullYear())}
-        label="Download Grades (Excel)"
-      />
-      <RoleReportDownloadButton
-        type="attendance"
-        term={"" + (new Date().getFullYear())}
-        label="Download Attendance (Excel)"
-      />
-    </div>
-  );
-
-  /* ----------- RENDER ------------- */
+  // Enforce principal role+school guard on dashboard (use fallback error for other case)
   return (
-    <div className="space-y-6">
-      <ReportDownloadPanel />
-      {/* Academic/Attendance Excel report download shortcuts for Principal */}
-      {renderReportDownloads()}
-      <AcademicReportPanel
-        downloadingReport={downloadingReport}
-        setDownloadingReport={setDownloadingReport}
-        user={user}
-        schoolId={schoolId}
-        toast={toast}
-      />
-      <PrincipalWelcomeHeader user={user} />
-      <PrincipalStatsCards stats={stats} />
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={() => { setAddParentOpen(true); console.log('[DEBUG] AddParentModal open'); }}>
-          <Plus className="w-4 h-4 mr-1" />
-          Add Parent
-        </Button>
-      </div>
-      {/* Add Class Button */}
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={() => setAddClassOpen(true)}>
-          <Plus className="w-4 h-4 mr-1" />
-          Add Class
-        </Button>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Quick Actions
-          </CardTitle>
-          <CardDescription>
-            Common administrative tasks
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PrincipalQuickActions
-            onAddParent={() => { setAddParentOpen(true); console.log('[DEBUG] QuickActions: AddParentModal open'); }}
-            onAddTeacher={() => { setAddTeacherOpen(true); console.log('[DEBUG] QuickActions: AddTeacherModal open'); }}
+    <RoleGuard allowedRoles={['principal']} requireSchoolAssignment={true}>
+      <div className="space-y-6">
+        {/* Greeting/Profile/Date top-right layout */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+          <PrincipalWelcomeHeader user={user} />
+          <div className="flex flex-col items-end">
+            <div className="text-xs text-gray-500 font-medium">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric"
+              })}
+            </div>
+            <div className="flex items-center space-x-2 bg-white/60 rounded-lg px-2 py-1 border border-white/40 mt-1">
+              <div className="w-6 h-6 bg-gradient-to-br from-orange-600 to-yellow-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-xs">{user?.name?.[0] || "U"}</span>
+              </div>
+              <div className="text-xs">
+                <div className="font-semibold text-gray-900 text-xs">{user.email?.split('@')[0]}</div>
+                <div className="text-gray-500 text-[10px]">{user.email}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Main dashboard content */}
+        <ReportDownloadPanel />
+        {/* Academic/Attendance Excel report download shortcuts for Principal */}
+        <div className="mb-2 flex flex-col md:flex-row items-start md:items-center gap-2">
+          <RoleReportDownloadButton
+            type="grades"
+            term={"" + (new Date().getFullYear())}
+            label="Download Grades (Excel)"
           />
-        </CardContent>
-      </Card>
-      <RecentActivities recentActivities={recentActivities} />
-      <AddTeacherModal
-        open={addTeacherOpen}
-        onClose={() => { setAddTeacherOpen(false); console.log('[DEBUG] AddTeacherModal close'); }}
-        onTeacherCreated={handleEntityCreated}
-      />
-      <AddParentModal
-        open={addParentOpen}
-        onClose={() => { setAddParentOpen(false); console.log('[DEBUG] AddParentModal close'); }}
-        onParentCreated={handleEntityCreated}
-      />
-      <AddClassModal
-        open={addClassOpen}
-        onClose={() => setAddClassOpen(false)}
-        onClassCreated={handleEntityCreated}
-      />
-      {/* NEW: Entities Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <PreviewPanel
-          title="Classes"
-          items={classList}
-          total={stats.totalClasses}
-          renderItem={renderClass}
-          loading={loadingEntities}
-          error={errorEntities}
+          <RoleReportDownloadButton
+            type="attendance"
+            term={"" + (new Date().getFullYear())}
+            label="Download Attendance (Excel)"
+          />
+        </div>
+        <AcademicReportPanel
+          downloadingReport={downloadingReport}
+          setDownloadingReport={setDownloadingReport}
+          user={user}
+          schoolId={schoolId}
+          toast={toast}
         />
-        <PreviewPanel
-          title="Subjects"
-          items={subjectList}
-          total={stats.totalSubjects}
-          renderItem={renderSubject}
-          loading={loadingEntities}
-          error={errorEntities}
+        <PrincipalWelcomeHeader user={user} />
+        <PrincipalStatsCards stats={stats} />
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => { setAddParentOpen(true); console.log('[DEBUG] AddParentModal open'); }}>
+            <Plus className="w-4 h-4 mr-1" />
+            Add Parent
+          </Button>
+        </div>
+        {/* Add Class Button */}
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => setAddClassOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" />
+            Add Class
+          </Button>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+            <CardDescription>
+              Common administrative tasks
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PrincipalQuickActions
+              onAddParent={() => { setAddParentOpen(true); console.log('[DEBUG] QuickActions: AddParentModal open'); }}
+              onAddTeacher={() => { setAddTeacherOpen(true); console.log('[DEBUG] QuickActions: AddTeacherModal open'); }}
+            />
+          </CardContent>
+        </Card>
+        <RecentActivities recentActivities={recentActivities} />
+        <AddTeacherModal
+          open={addTeacherOpen}
+          onClose={() => { setAddTeacherOpen(false); console.log('[DEBUG] AddTeacherModal close'); }}
+          onTeacherCreated={handleEntityCreated}
         />
-        <PreviewPanel
-          title="Teachers"
-          items={teacherList}
-          total={stats.totalTeachers}
-          renderItem={renderPerson}
-          loading={loadingEntities}
-          error={errorEntities}
+        <AddParentModal
+          open={addParentOpen}
+          onClose={() => { setAddParentOpen(false); console.log('[DEBUG] AddParentModal close'); }}
+          onParentCreated={handleEntityCreated}
         />
-        <PreviewPanel
-          title="Parents"
-          items={parentList}
-          total={parentList.length}
-          renderItem={renderPerson}
-          loading={loadingEntities}
-          error={errorEntities}
+        <AddClassModal
+          open={addClassOpen}
+          onClose={() => setAddClassOpen(false)}
+          onClassCreated={handleEntityCreated}
         />
+        {/* NEW: Entities Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <PreviewPanel
+            title="Classes"
+            items={classList}
+            total={stats.totalClasses}
+            renderItem={renderClass}
+            loading={loadingEntities}
+            error={errorEntities}
+          />
+          <PreviewPanel
+            title="Subjects"
+            items={subjectList}
+            total={stats.totalSubjects}
+            renderItem={renderSubject}
+            loading={loadingEntities}
+            error={errorEntities}
+          />
+          <PreviewPanel
+            title="Teachers"
+            items={teacherList}
+            total={stats.totalTeachers}
+            renderItem={renderPerson}
+            loading={loadingEntities}
+            error={errorEntities}
+          />
+          <PreviewPanel
+            title="Parents"
+            items={parentList}
+            total={parentList.length}
+            renderItem={renderPerson}
+            loading={loadingEntities}
+            error={errorEntities}
+          />
+        </div>
+        {/* All dash queries are already scoped by school ID from hooks, as above. */}
       </div>
-    </div>
+    </RoleGuard>
   );
 };
 
