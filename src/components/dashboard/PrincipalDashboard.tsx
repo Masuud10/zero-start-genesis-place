@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MessageSquare, AlertTriangle } from 'lucide-react';
@@ -45,6 +44,7 @@ const PrincipalDashboard = () => {
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [addTeacherOpen, setAddTeacherOpen] = useState(false);
   const [addParentOpen, setAddParentOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const schoolId = getCurrentSchoolId();
 
@@ -57,7 +57,7 @@ const PrincipalDashboard = () => {
       setError('No school assignment found. Please contact your administrator.');
     }
     // eslint-disable-next-line
-  }, [schoolId, user?.school_id]);
+  }, [schoolId, user?.school_id, reloadKey]);
 
   const fetchSchoolData = async () => {
     try {
@@ -141,6 +141,11 @@ const PrincipalDashboard = () => {
     }
   };
 
+  // Handler to refetch dashboard data after modal success
+  const handleUserCreated = () => {
+    setReloadKey(k => k + 1);
+  };
+
   // Error state
   if (error && !loading) {
     return (
@@ -218,11 +223,15 @@ const PrincipalDashboard = () => {
         </CardContent>
       </Card>
       <RecentActivities recentActivities={recentActivities} />
-      <AddTeacherModal open={addTeacherOpen} onClose={() => setAddTeacherOpen(false)} />
+      <AddTeacherModal
+        open={addTeacherOpen}
+        onClose={() => setAddTeacherOpen(false)}
+        onTeacherCreated={handleUserCreated}
+      />
       <AddParentModal
         open={addParentOpen}
         onClose={() => setAddParentOpen(false)}
-        onParentCreated={() => {}}
+        onParentCreated={handleUserCreated}
       />
     </div>
   );

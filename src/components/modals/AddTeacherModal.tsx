@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AddTeacherModalProps {
   open: boolean;
@@ -17,6 +18,7 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
   const [form, setForm] = useState({ name: '', email: '' });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleChange = (field: string, value: string) => {
     setForm(f => ({ ...f, [field]: value }));
@@ -26,7 +28,6 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
     e.preventDefault();
     setLoading(true);
     try {
-      // FIX: Generate a new UUID for the teacher profile.
       const newId = uuidv4();
       const { data, error } = await supabase
         .from('profiles')
@@ -35,6 +36,7 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
           name: form.name,
           email: form.email,
           role: 'teacher',
+          school_id: user?.school_id || null,
         })
         .select()
         .single();

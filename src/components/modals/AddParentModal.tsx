@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AddParentModalProps {
   open: boolean;
@@ -17,6 +18,7 @@ const AddParentModal: React.FC<AddParentModalProps> = ({ open, onClose, onParent
   const [form, setForm] = useState({ name: '', email: '', phone: '' });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleChange = (field: string, value: string) => {
     setForm(f => ({ ...f, [field]: value }));
@@ -26,9 +28,7 @@ const AddParentModal: React.FC<AddParentModalProps> = ({ open, onClose, onParent
     e.preventDefault();
     setLoading(true);
     try {
-      // FIX: Generate a new UUID for the parent profile.
       const newId = uuidv4();
-      // Insert must include id, name, email, role, and other required fields for profiles table.
       const { data, error } = await supabase
         .from('profiles')
         .insert({
@@ -36,6 +36,7 @@ const AddParentModal: React.FC<AddParentModalProps> = ({ open, onClose, onParent
           name: form.name,
           email: form.email,
           role: 'parent',
+          school_id: user?.school_id || null,
         })
         .select()
         .single();
