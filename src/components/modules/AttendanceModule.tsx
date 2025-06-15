@@ -24,9 +24,6 @@ const AttendanceModule: React.FC = () => {
         return;
     };
 
-    setLoading(true);
-    setError(null);
-
     if (user.role === 'edufam_admin') {
       supabase.from("schools")
         .select("id, name")
@@ -38,31 +35,40 @@ const AttendanceModule: React.FC = () => {
 
     const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
 
-    if (!effectiveSchoolId && user.role === 'edufam_admin') {
-      setAttendanceSummary(null);
-      setLoading(false);
-      return;
-    }
-    
     if (!effectiveSchoolId) {
-        setError("Your account is not associated with a school.");
+        setAttendanceSummary(null);
+        if (user.role !== 'edufam_admin') {
+            setError("Your account is not associated with a school.");
+        }
         setLoading(false);
         return;
     }
 
-    let query = supabase.from("school_attendance_summary").select("*").eq("school_id", effectiveSchoolId);
-    
-    query.then(({ data, error }: any) => {
-      if (error) {
-        setError("Could not load attendance summary data. Please try again shortly.");
-        setAttendanceSummary(null);
-      } else if (!data || data.length === 0) {
-        setAttendanceSummary(null);
-      } else {
-        setAttendanceSummary(data[0]);
-      }
-      setLoading(false);
-    });
+    const fetchAttendanceData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { data, error: analyticsError } = await supabase
+                .from("school_analytics")
+                .select("attendance_rate, performance_trend")
+                .eq("school_id", effectiveSchoolId)
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (analyticsError) throw analyticsError;
+            
+            setAttendanceSummary(data);
+
+        } catch (err: any) {
+            setError("Could not load attendance summary data. Please try again shortly.");
+            setAttendanceSummary(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchAttendanceData();
   }, [isSummaryRole, user?.role, user?.school_id, schoolFilter]);
 
   const renderForSummaryRole = () => {
@@ -105,7 +111,7 @@ const AttendanceModule: React.FC = () => {
         error={null}
         attendanceSummary={{
           overall_attendance_percentage: attendanceSummary.attendance_rate ?? null,
-          trend: '—'
+          trend: attendanceSummary.performance_trend ?? '—'
         }}
         schools={schools}
         schoolFilter={schoolFilter}

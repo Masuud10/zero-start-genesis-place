@@ -13,6 +13,7 @@ const FinanceModule: React.FC = () => {
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [financeSummary, setFinanceSummary] = useState<any>(null);
+  const [outstandingFees, setOutstandingFees] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -24,9 +25,6 @@ const FinanceModule: React.FC = () => {
         return;
     }
     
-    setLoading(true);
-    setError(null);
-
     if (user.role === 'edufam_admin') {
       supabase.from("schools")
         .select("id, name")
@@ -38,31 +36,50 @@ const FinanceModule: React.FC = () => {
 
     const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
 
-    if (!effectiveSchoolId && user.role === 'edufam_admin') {
-      setFinanceSummary(null);
-      setLoading(false);
-      return;
-    }
-    
     if (!effectiveSchoolId) {
-        setError("Your account is not associated with a school.");
+        setFinanceSummary(null);
+        setOutstandingFees(null);
+        if (user.role !== 'edufam_admin') {
+            setError("Your account is not associated with a school.");
+        }
         setLoading(false);
         return;
     }
 
-    let query = supabase.from("school_finance_summary").select("*").eq("school_id", effectiveSchoolId);
-    
-    query.then(({ data, error }: any) => {
-      if (error) {
-        setError("Could not load financial summary data.");
-        setFinanceSummary(null);
-      } else if (!data || data.length === 0) {
-        setFinanceSummary(null);
-      } else {
-        setFinanceSummary(data[0]);
-      }
-      setLoading(false);
-    });
+    const fetchFinanceData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { data: summaryData, error: summaryError } = await supabase
+                .from("school_finance_summary")
+                .select("*")
+                .eq("school_id", effectiveSchoolId)
+                .maybeSingle();
+
+            if (summaryError) throw summaryError;
+            setFinanceSummary(summaryData);
+
+            const { data: feesData, error: feesError } = await supabase
+                .from('fees')
+                .select('amount, paid_amount')
+                .eq('school_id', effectiveSchoolId)
+                .in('status', ['pending', 'partial']);
+
+            if (feesError) throw feesError;
+            
+            const outstanding = feesData.reduce((sum, fee) => sum + (fee.amount || 0) - (fee.paid_amount || 0), 0);
+            setOutstandingFees(outstanding);
+
+        } catch (err: any) {
+            setError("Could not load financial summary data.");
+            setFinanceSummary(null);
+            setOutstandingFees(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchFinanceData();
   }, [isSummaryRole, user?.role, user?.school_id, schoolFilter]);
 
   const renderForSummaryRole = () => {
@@ -85,7 +102,7 @@ const FinanceModule: React.FC = () => {
     if (user?.role === 'edufam_admin' && !schoolFilter && schools.length > 0) {
       return <FinanceAdminSummary schools={schools} schoolFilter={schoolFilter} setSchoolFilter={setSchoolFilter} financeSummary={null} loading={false} error={null} />;
     }
-    if (!financeSummary) {
+    if (!financeSummary && outstandingFees === null) {
       const message = user?.role === 'edufam_admin' && schools.length === 0
         ? "No schools found."
         : "There is no financial summary available for this school.";
@@ -101,8 +118,8 @@ const FinanceModule: React.FC = () => {
         loading={loading}
         error={null}
         financeSummary={{
-          total_collected: financeSummary.total_collected ?? 0,
-          outstanding: '—', 
+          total_collected: financeSummary?.total_collected ?? 0,
+          outstanding: outstandingFees, 
           major_expenses: '—'
         }}
         schools={schools}
