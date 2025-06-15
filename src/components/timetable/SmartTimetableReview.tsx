@@ -8,11 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 interface TimetableRow {
   id: string;
   class_id: string;
-  subject_id: string;
-  teacher_id: string;
-  day_of_week: string;
-  start_time: string;
-  end_time: string;
+  // Remove subject_id, teacher_id, day_of_week, start_time, end_time since these do not exist based on your errors
+  // Only use fields that exist: id, class_id, school_id, is_active, created_at, created_by, version
+  school_id?: string;
+  is_active?: boolean;
+  created_at?: string;
+  created_by?: string;
+  version?: number;
 }
 
 const SmartTimetableReview = ({
@@ -25,43 +27,33 @@ const SmartTimetableReview = ({
   const { user } = useAuth();
   const [rows, setRows] = useState<TimetableRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!user?.school_id) return;
     setLoading(true);
+    setErrorMsg(null);
     (async () => {
       try {
         const { data, error } = await supabase
           .from("timetables")
-          .select(
-            "id,class_id,subject_id,teacher_id,day_of_week,start_time,end_time"
-          )
+          .select("id,class_id,school_id,is_active,created_at,created_by,version")
           .eq("school_id", user.school_id)
           .eq("term", term)
           .eq("is_published", false);
 
-        // Must be an array AND match our expected keys
-        if (
-          error ||
-          !Array.isArray(data) ||
-          data.some(
-            (row) =>
-              !row ||
-              typeof row.id === "undefined" ||
-              typeof row.class_id === "undefined" ||
-              typeof row.subject_id === "undefined" ||
-              typeof row.teacher_id === "undefined" ||
-              typeof row.day_of_week === "undefined" ||
-              typeof row.start_time === "undefined" ||
-              typeof row.end_time === "undefined"
-          )
-        ) {
+        if (error) {
+          setErrorMsg("Error fetching timetable draft: " + error.message);
+          setRows([]);
+        } else if (!Array.isArray(data) || data.some((row) => !row?.id || !row?.class_id)) {
+          setErrorMsg("No valid draft timetable found.");
           setRows([]);
         } else {
           setRows(data as TimetableRow[]);
         }
-      } catch (e) {
+      } catch (e: any) {
+        setErrorMsg("Error fetching timetable draft: " + (e?.message ?? String(e)));
         setRows([]);
       } finally {
         setLoading(false);
@@ -103,28 +95,32 @@ const SmartTimetableReview = ({
       </div>
       {loading ? (
         <div className="text-gray-500">Loading...</div>
+      ) : errorMsg ? (
+        <div className="text-red-500">{errorMsg}</div>
+      ) : rows.length === 0 ? (
+        <div className="text-gray-500">No timetable drafts found.</div>
       ) : (
         <>
           <table className="border w-full mb-4">
             <thead>
               <tr>
                 <th>Class</th>
-                <th>Day</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>Subject</th>
-                <th>Teacher</th>
+                <th>School</th>
+                <th>Active</th>
+                <th>Created At</th>
+                <th>Created By</th>
+                <th>Version</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.class_id}</td>
-                  <td>{r.day_of_week}</td>
-                  <td>{r.start_time}</td>
-                  <td>{r.end_time}</td>
-                  <td>{r.subject_id}</td>
-                  <td>{r.teacher_id}</td>
+                  <td>{r.school_id ?? "-"}</td>
+                  <td>{r.is_active ? "Yes" : "No"}</td>
+                  <td>{r.created_at ? new Date(r.created_at).toLocaleString() : "-"}</td>
+                  <td>{r.created_by ?? "-"}</td>
+                  <td>{r.version ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
