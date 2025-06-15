@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { SidebarFooter as ShadcnSidebarFooter } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { cleanupAuthState } from '@/utils/authCleanup';
 
 const SidebarFooter = () => {
   const { user, signOut } = useAuth();
@@ -13,26 +13,25 @@ const SidebarFooter = () => {
   const handleLogout = async () => {
     try {
       console.log('🔓 Sidebar: Initiating logout');
-      
-      // Show immediate feedback
+
+      // Immediate feedback
       toast({
         title: "Signing out...",
         description: "Please wait while we sign you out.",
       });
-      
+
+      // Clean up ALL auth state before calling signOut
+      cleanupAuthState();
+
       await signOut();
-      
       console.log('✅ Sidebar: Logout completed');
     } catch (error) {
       console.error('❌ Sidebar: Logout error:', error);
-      
-      // Even if there's an error, show success since we'll redirect anyway
       toast({
         title: "Signed out",
         description: "You have been signed out successfully.",
         variant: "default",
       });
-      
       // Force redirect as fallback
       setTimeout(() => {
         window.location.href = '/';
