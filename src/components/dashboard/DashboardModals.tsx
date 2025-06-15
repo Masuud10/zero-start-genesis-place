@@ -1,8 +1,13 @@
+
 import React from 'react';
 import { AuthUser } from '@/types/auth';
 import SchoolsModule from '@/components/modules/SchoolsModule';
 import UsersModule from '@/components/modules/UsersModule';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import ParentGradesView from '@/components/grades/ParentGradesView';
+import ParentAttendanceView from '@/components/attendance/ParentAttendanceView';
+import ParentFinanceView from '@/components/finance/ParentFinanceView';
+import MessagesModule from '@/components/modules/MessagesModule';
 
 interface DashboardModalsProps {
   activeModal: string | null;
@@ -56,6 +61,22 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
     case 'analytics':
       modalContent = <AnalyticsDashboard />;
       title = "System Analytics";
+      break;
+    case 'grades':
+      modalContent = <ParentGradesView />;
+      title = "Child Grade Records";
+      break;
+    case 'attendance':
+      modalContent = <ParentAttendanceView />;
+      title = "Child Attendance Records";
+      break;
+    case 'finance':
+      modalContent = <ParentFinanceView />;
+      title = "Financial Overview";
+      break;
+    case 'messages':
+      modalContent = <MessagesModule />;
+      title = "School Messages";
       break;
     default:
       modalContent = (
