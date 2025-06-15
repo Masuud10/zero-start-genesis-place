@@ -10,7 +10,6 @@ import UserRoleBreakdown from './edufam-admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
-import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 import DashboardModals from './DashboardModals';
 
 interface EduFamAdminDashboardProps {
@@ -89,7 +88,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     </div>
   );
 
-  // Only show 1 error display, not both before and nested in render
+  // Critical error state: both queries failed
   if (schoolsError && usersError) {
     return (
       <div className="space-y-6">
@@ -102,16 +101,15 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     );
   }
 
-  // New: Always wrap each button with a catch for errors and log them
-  // New: Stronger defensive for possibly missing values (count, arrays, etc.)
-
   return (
     <div className="space-y-6">
       {/* Excel report download shortcuts for EduFam Admin */}
       {renderReportDownloads()}
 
+      {/* System Health Status */}
       <SystemHealthStatusCard />
 
+      {/* System Overview Cards */}
       <SystemOverviewCards
         schoolsCount={Array.isArray(schoolsData) ? schoolsData.length : 0}
         totalUsers={userStats.totalUsers}
@@ -123,12 +121,13 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         usersRefetching={usersRefetching}
       />
 
+      {/* Administrative Hub */}
       <AdministrativeHub
         onModalOpen={handleModalOpen}
         onUserCreated={handleUserCreated}
       />
 
-      {/* Only render modals when an activeModal is open except null */}
+      {/* Modal Management - Only render when activeModal is set */}
       {activeModal && (
         <DashboardModals
           activeModal={activeModal}
@@ -138,6 +137,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         />
       )}
 
+      {/* Recent Schools Section */}
       <RecentSchoolsSection
         schoolsData={schoolsData}
         schoolsLoading={schoolsLoading}
@@ -146,13 +146,14 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         onRetrySchools={handleRetrySchools}
       />
 
+      {/* User Role Breakdown */}
       <UserRoleBreakdown
         roleBreakdown={userStats.roleBreakdown}
         totalUsers={userStats.totalUsers}
         usersLoading={usersLoading}
       />
 
-      {/* Only show a single fallback error display if one of the errors exist (not both) */}
+      {/* Fallback error display for single errors */}
       {((schoolsError && !usersError) || (!schoolsError && usersError)) && (
         <ErrorDisplay
           schoolsError={schoolsError}

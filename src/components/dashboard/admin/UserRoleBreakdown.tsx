@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, RefreshCw } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, UserCheck, Crown, GraduationCap, Book, Calculator, Heart, RefreshCw } from 'lucide-react';
 
 interface UserRoleBreakdownProps {
   roleBreakdown: Record<string, number>;
@@ -14,50 +14,126 @@ const UserRoleBreakdown: React.FC<UserRoleBreakdownProps> = ({
   totalUsers,
   usersLoading
 }) => {
-  if (totalUsers === 0) {
-    return null;
+  const roleConfig = {
+    'edufam_admin': { icon: Crown, label: 'EduFam Admin', color: 'text-purple-600' },
+    'elimisha_admin': { icon: Crown, label: 'Elimisha Admin', color: 'text-indigo-600' },
+    'school_owner': { icon: UserCheck, label: 'School Owner', color: 'text-blue-600' },
+    'principal': { icon: GraduationCap, label: 'Principal', color: 'text-green-600' },
+    'teacher': { icon: Book, label: 'Teacher', color: 'text-orange-600' },
+    'finance_officer': { icon: Calculator, label: 'Finance Officer', color: 'text-emerald-600' },
+    'parent': { icon: Heart, label: 'Parent', color: 'text-pink-600' },
+  };
+
+  const roleEntries = Object.entries(roleBreakdown || {})
+    .filter(([_, count]) => count > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  const calculatePercentage = (count: number) => {
+    if (totalUsers === 0) return 0;
+    return Math.round((count / totalUsers) * 100);
+  };
+
+  if (usersLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            User Role Breakdown
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="animate-pulse flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                </div>
+                <div className="h-4 bg-gray-200 rounded w-12"></div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const gradients = [
-    'from-blue-500 to-blue-600',
-    'from-emerald-500 to-emerald-600',
-    'from-purple-500 to-purple-600',
-    'from-orange-500 to-orange-600'
-  ];
-  
-  const bgGradients = [
-    'from-blue-50 to-blue-100',
-    'from-emerald-50 to-emerald-100', 
-    'from-purple-50 to-purple-100',
-    'from-orange-50 to-orange-100'
-  ];
-
   return (
-    <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600">
-            <Users className="h-4 w-4 text-white" />
-          </div>
-          User Role Distribution
-          {usersLoading && <RefreshCw className="h-4 w-4 animate-spin text-purple-500" />}
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          User Role Breakdown
         </CardTitle>
-        <CardDescription>
-          Active user breakdown across all educational institutions
-        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {Object.entries(roleBreakdown).map(([role, count], index) => (
-            <div key={role} className={`text-center p-4 bg-gradient-to-br ${bgGradients[index % 4]} rounded-lg hover:shadow-md transition-all duration-200 group border`}>
-              <div className={`p-2 rounded-lg bg-gradient-to-r ${gradients[index % 4]} w-fit mx-auto mb-2 group-hover:scale-105 transition-transform duration-200`}>
-                <Users className="h-4 w-4 text-white" />
-              </div>
-              <p className="text-xl font-bold text-gray-900 mb-1">{count as number}</p>
-              <p className="text-xs text-gray-600 capitalize font-medium">{role.replace('_', ' ')}</p>
+        {roleEntries.length === 0 ? (
+          <div className="text-center py-8">
+            <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Users Found</h3>
+            <p className="text-gray-600">
+              No user data available to display role breakdown.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+              <div>Total Users: <span className="font-medium text-gray-900">{totalUsers}</span></div>
+              <div>Active Roles: <span className="font-medium text-gray-900">{roleEntries.length}</span></div>
             </div>
-          ))}
-        </div>
+            
+            <div className="space-y-3">
+              {roleEntries.map(([role, count]) => {
+                const config = roleConfig[role] || { 
+                  icon: Users, 
+                  label: role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' '), 
+                  color: 'text-gray-600' 
+                };
+                const IconComponent = config.icon;
+                const percentage = calculatePercentage(count);
+
+                return (
+                  <div key={role} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <IconComponent className={`h-5 w-5 ${config.color}`} />
+                      <span className="font-medium text-gray-900">{config.label}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-gray-900">{count}</div>
+                      <div className="text-sm text-gray-500">{percentage}%</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Progress bars for visual representation */}
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Distribution</h4>
+              <div className="space-y-2">
+                {roleEntries.slice(0, 5).map(([role, count]) => {
+                  const config = roleConfig[role] || { label: role, color: 'text-gray-600' };
+                  const percentage = calculatePercentage(count);
+                  
+                  return (
+                    <div key={role} className="flex items-center gap-3 text-sm">
+                      <div className="w-20 text-right text-gray-600">{config.label}:</div>
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <div className="w-12 text-gray-500">{percentage}%</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

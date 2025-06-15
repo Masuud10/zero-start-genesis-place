@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Building2, Users, CheckCircle, Activity, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { School, Users, UserCheck, UserX, RefreshCw } from 'lucide-react';
 
 interface SystemOverviewCardsProps {
   schoolsCount: number;
@@ -24,84 +24,82 @@ const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
   schoolsRefetching,
   usersRefetching
 }) => {
-  const systemOverviewCards = [
+  const isLoading = schoolsLoading || usersLoading;
+  const isRefetching = schoolsRefetching || usersRefetching;
+
+  const cards = [
     {
-      title: "Total Schools",
+      title: 'Total Schools',
       value: schoolsCount,
-      description: "Active school tenants",
-      icon: Building2,
-      gradient: "from-blue-500 to-blue-600",
-      bgGradient: "from-blue-50 to-blue-100",
-      change: "+12%",
-      trend: "up" as const,
-      loading: schoolsLoading || schoolsRefetching
+      icon: School,
+      description: 'Active schools in system',
+      loading: schoolsLoading || schoolsRefetching,
+      color: 'text-blue-600'
     },
     {
-      title: "Total Users",
+      title: 'Total Users',
       value: totalUsers,
-      description: "Across all schools",
       icon: Users,
-      gradient: "from-emerald-500 to-emerald-600",
-      bgGradient: "from-emerald-50 to-emerald-100",
-      change: "+8%",
-      trend: "up" as const,
-      loading: usersLoading || usersRefetching
+      description: 'All registered users',
+      loading: usersLoading || usersRefetching,
+      color: 'text-green-600'
     },
     {
-      title: "Users Assigned",
+      title: 'Users with Schools',
       value: usersWithSchools,
-      description: "Users linked to schools",
-      icon: CheckCircle,
-      gradient: "from-purple-500 to-purple-600",
-      bgGradient: "from-purple-50 to-purple-100",
-      change: "+15%",
-      trend: "up" as const,
-      loading: usersLoading || usersRefetching
+      icon: UserCheck,
+      description: 'Users assigned to schools',
+      loading: usersLoading || usersRefetching,
+      color: 'text-emerald-600'
     },
     {
-      title: "Unassigned Users",
+      title: 'Unassigned Users',
       value: usersWithoutSchools,
-      description: "Need school assignment",
-      icon: Activity,
-      gradient: "from-orange-500 to-orange-600",
-      bgGradient: "from-orange-50 to-orange-100",
-      change: "-5%",
-      trend: "down" as const,
-      loading: usersLoading || usersRefetching
+      icon: UserX,
+      description: 'Users without school assignment',
+      loading: usersLoading || usersRefetching,
+      color: 'text-orange-600'
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-      {systemOverviewCards.map((card, index) => (
-        <Card key={index} className="group hover:shadow-md transition-all duration-200 border-0 shadow-sm overflow-hidden relative">
-          <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-40`}></div>
-          <CardContent className="p-3 relative">
-            <div className="flex items-center justify-between mb-2">
-              <div className={`p-1.5 rounded-md bg-gradient-to-r ${card.gradient} shadow-sm group-hover:scale-105 transition-transform duration-200`}>
-                <card.icon className="h-3.5 w-3.5 text-white" />
-              </div>
-              <div className="flex items-center space-x-1 text-xs">
-                <TrendingUp className={`h-3 w-3 ${card.trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`} />
-                <span className={`font-medium ${card.trend === 'up' ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {card.change}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-600">{card.title}</p>
-              <p className="text-lg font-bold text-gray-900">
-                {card.loading ? (
-                  <span className="animate-pulse">...</span>
-                ) : (
-                  card.value
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {cards.map((card, index) => {
+        const IconComponent = card.icon;
+        return (
+          <Card key={index} className="relative">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {card.title}
+              </CardTitle>
+              <div className="relative">
+                <IconComponent className={`h-4 w-4 ${card.color}`} />
+                {card.loading && (
+                  <RefreshCw className="h-3 w-3 absolute -top-1 -right-1 animate-spin text-gray-400" />
                 )}
-              </p>
-              <p className="text-xs text-gray-500">{card.description}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  {card.loading ? (
+                    <div className="text-2xl font-bold text-gray-400">
+                      <RefreshCw className="h-6 w-6 animate-spin inline" />
+                    </div>
+                  ) : (
+                    <div className="text-2xl font-bold">
+                      {typeof card.value === 'number' ? card.value.toLocaleString() : '0'}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {card.description}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

@@ -1,11 +1,21 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { School, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+
+interface School {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  created_at: string;
+  owner_id?: string;
+}
 
 interface RecentSchoolsSectionProps {
-  schoolsData: any[];
+  schoolsData: School[];
   schoolsLoading: boolean;
   schoolsError: Error | null;
   onModalOpen: (modalType: string) => void;
@@ -19,67 +29,136 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
   onModalOpen,
   onRetrySchools
 }) => {
-  return (
-    <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600">
-            <Building2 className="h-4 w-4 text-white" />
+  const recentSchools = React.useMemo(() => {
+    if (!Array.isArray(schoolsData)) return [];
+    return schoolsData
+      .filter(school => school && school.id && school.name)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5);
+  }, [schoolsData]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Unknown date';
+    }
+  };
+
+  if (schoolsError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <School className="h-5 w-5" />
+            Recent Schools
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Schools</h3>
+              <p className="text-gray-600 mb-4">
+                {schoolsError.message || 'Unable to fetch schools data'}
+              </p>
+              <Button onClick={onRetrySchools} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
           </div>
-          Recent Schools
-          {schoolsLoading && <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <School className="h-5 w-5" />
+            Recent Schools
+            {schoolsLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+          </div>
+          <Button 
+            onClick={() => onModalOpen('manage-schools')} 
+            size="sm"
+            variant="outline"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add School
+          </Button>
         </CardTitle>
-        <CardDescription>
-          Latest educational institutions joining the platform
-        </CardDescription>
       </CardHeader>
       <CardContent>
         {schoolsLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Loading schools...</span>
-          </div>
-        ) : schoolsError ? (
-          <div className="text-center py-8">
-            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
-            <p className="text-red-600 mb-3">Failed to load schools</p>
-            <p className="text-sm text-red-500 mb-3">{schoolsError.message}</p>
-            <Button onClick={onRetrySchools} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        ) : Array.isArray(schoolsData) && schoolsData.length > 0 ? (
           <div className="space-y-3">
-            {schoolsData.slice(0, 5).map((school: any) => (
-              <div key={school.id} className="group flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-white rounded-lg hover:from-blue-50 hover:to-white border hover:border-blue-200 transition-all duration-200 hover:shadow-sm">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 group-hover:scale-105 transition-transform duration-200">
-                    <Building2 className="h-3 w-3 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 text-sm">{school.name || 'Unnamed School'}</h4>
-                    <p className="text-xs text-gray-600">{school.email || 'No email'}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                    {school.created_at ? new Date(school.created_at).toLocaleDateString() : 'No date'}
-                  </div>
-                </div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
               </div>
             ))}
           </div>
-        ) : (
+        ) : recentSchools.length === 0 ? (
           <div className="text-center py-8">
-            <div className="p-3 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-gray-400" />
-            </div>
-            <p className="text-gray-600 mb-3">No schools created yet</p>
-            <p className="text-gray-500 text-xs mb-4">Start building your educational network</p>
-            <Button onClick={() => onModalOpen('schools')} variant="outline">
-              Create School
+            <School className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Schools Yet</h3>
+            <p className="text-gray-600 mb-4">
+              Start by adding your first school to the system.
+            </p>
+            <Button onClick={() => onModalOpen('manage-schools')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add First School
             </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {recentSchools.map((school) => (
+              <div key={school.id} className="flex items-start justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-gray-900 truncate">
+                    {school.name}
+                  </h4>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    {school.email && (
+                      <p className="truncate">📧 {school.email}</p>
+                    )}
+                    {school.phone && (
+                      <p>📞 {school.phone}</p>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      Added {formatDate(school.created_at)}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => onModalOpen('manage-schools')}
+                >
+                  View
+                </Button>
+              </div>
+            ))}
+            {recentSchools.length > 0 && (
+              <div className="pt-2 border-t">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => onModalOpen('manage-schools')}
+                >
+                  View All Schools ({schoolsData.length})
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

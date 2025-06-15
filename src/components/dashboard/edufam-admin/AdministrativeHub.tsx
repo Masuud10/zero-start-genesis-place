@@ -44,28 +44,55 @@ const ErrorBanner = ({ error }: { error: string }) =>
     {error}
   </div>;
 
-const AdministrativeHub = ({ onModalOpen, onUserCreated }: { onModalOpen: (type: string) => void, onUserCreated?: () => void }) => {
+interface AdministrativeHubProps {
+  onModalOpen: (type: string) => void;
+  onUserCreated?: () => void;
+}
+
+const AdministrativeHub: React.FC<AdministrativeHubProps> = ({ onModalOpen, onUserCreated }) => {
   const [activeTab, setActiveTab] = useState("manage-schools");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Helper: trigger modals with loading, success & error toasts
-  const handleAction = (key: string) => {
-    setLoading(true);
-    setError(null);
-    setTimeout(() => {
-      setLoading(false);
+  const handleAction = async (key: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log(`[AdministrativeHub] Action triggered: ${key}`);
+      
+      // Simulate brief loading for UX
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       if (["manage-schools", "manage-users", "manage-billing"].includes(key)) {
-        onModalOpen(key); // Show the modal (handled in parent)
-        toast({ title: "Loaded", description: `Opened ${ADMIN_SECTIONS.find(s => s.key === key)?.label} management.` });
+        onModalOpen(key);
+        toast({ 
+          title: "Success", 
+          description: `Opened ${ADMIN_SECTIONS.find(s => s.key === key)?.label} management.`,
+          variant: "default"
+        });
       } else if (key === "system-settings") {
-        toast({ title: "Settings", description: "Feature coming soon!" });
+        toast({ 
+          title: "Coming Soon", 
+          description: "System settings feature is under development.",
+          variant: "default"
+        });
       } else {
-        setError("Unknown action. Please try again.");
-        toast({ title: "Error", description: "An unknown action was requested.", variant: "destructive" });
+        throw new Error("Unknown action requested");
       }
-    }, 400); // Simulate async
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      setError(errorMessage);
+      toast({ 
+        title: "Error", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,37 +110,47 @@ const AdministrativeHub = ({ onModalOpen, onUserCreated }: { onModalOpen: (type:
 
         {/* Tab nav */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-4">
             {ADMIN_SECTIONS.map(s =>
               <TabsTrigger
                 key={s.key}
                 value={s.key}
-                className="flex items-center px-2"
+                className="flex items-center px-2 text-xs sm:text-sm"
                 data-testid={`hub-tab-${s.key}`}
               >
                 {s.icon}
-                <span>{s.label}</span>
+                <span className="hidden sm:inline ml-1">{s.label}</span>
               </TabsTrigger>
             )}
           </TabsList>
           {ADMIN_SECTIONS.map(s =>
-            <TabsContent value={s.key} key={s.key}>
-              <div className="p-4">
-                <div className="flex items-center gap-3">
+            <TabsContent value={s.key} key={s.key} className="mt-4">
+              <div className="p-4 border rounded-lg bg-gray-50/50">
+                <div className="flex items-center gap-3 mb-4">
                   <div className={`rounded-lg p-3 text-white ${s.color}`}>{s.icon}</div>
                   <div>
                     <div className="font-semibold text-lg">{s.label}</div>
-                    <div className="text-xs text-gray-500">{s.description}</div>
+                    <div className="text-sm text-gray-600">{s.description}</div>
                   </div>
                 </div>
-                <div className="mt-5 flex gap-4">
+                <div className="flex gap-4">
                   <Button
                     onClick={() => handleAction(s.key)}
-                    className={`flex items-center ${loading ? "opacity-75" : ""}`}
+                    className="flex items-center"
                     disabled={loading}
+                    variant="default"
                   >
-                    <RefreshCw className={`w-4 h-4 mr-2 animate-spin ${loading ? "" : "hidden"}`} />
-                    {loading ? "Processing..." : `Open ${s.label}`}
+                    {loading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        {s.icon}
+                        Open {s.label}
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
