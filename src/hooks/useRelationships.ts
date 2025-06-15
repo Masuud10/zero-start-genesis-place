@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { RelationshipService } from '@/services/relationshipService';
+import { ClassManagementService } from '@/services/classManagementService';
 
 export const useRelationships = () => {
   const [loading, setLoading] = useState(false);
@@ -10,7 +10,7 @@ export const useRelationships = () => {
   const assignTeacher = async (teacherId: string, classId: string, subjectId?: string) => {
     try {
       setLoading(true);
-      const { error } = await RelationshipService.assignTeacherToClass({
+      const { error } = await ClassManagementService.assignTeacherToClass({
         teacherId,
         classId,
         subjectId
@@ -46,7 +46,7 @@ export const useRelationships = () => {
   const enrollStudent = async (studentId: string, classId: string, academicYear?: string) => {
     try {
       setLoading(true);
-      const { error } = await RelationshipService.enrollStudent({
+      const { error } = await ClassManagementService.enrollStudent({
         studentId,
         classId,
         academicYear
@@ -82,7 +82,7 @@ export const useRelationships = () => {
   const linkParent = async (parentId: string, studentId: string, relationshipType?: string, isPrimaryContact?: boolean) => {
     try {
       setLoading(true);
-      const { error } = await RelationshipService.linkParentToStudent({
+      const { error } = await ClassManagementService.linkParentToStudent({
         parentId,
         studentId,
         relationshipType,
