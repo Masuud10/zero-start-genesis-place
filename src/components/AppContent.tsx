@@ -10,14 +10,14 @@ import { ErrorState } from '@/components/common/LoadingStates';
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
 
-  // Debug: Start of render
-  console.log('🎯 AppContent: Starting render');
+  console.log('🎯 AppContent: Render start');
 
+  // Step 1: Always try to get auth state safely
   let authState;
   try {
     authState = useAuth();
   } catch (err) {
-    console.error('🎯 AppContent: Failed to get auth context', err);
+    console.error('🎯 AppContent: Auth context error', err);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -31,19 +31,17 @@ const AppContent: React.FC = () => {
   }
 
   const { user, isLoading: authLoading, error: authError } = authState;
+  console.log('🎯 AppContent: State:', { authLoading, authError, user, role: user?.role, email: user?.email });
 
-  // Debug current app auth state
-  console.log('🎯 AppContent STATE:', { authLoading, authError, hasUser: !!user, userRole: user?.role, userEmail: user?.email });
-
-  // 1. If authentication is loading, show loading screen
+  // Step 2: Loading
   if (authLoading) {
-    console.log('🎯 AppContent: Still loading auth state -> Show loading screen');
+    console.log('🎯 AppContent: Loading auth...');
     return <LoadingScreen />;
   }
 
-  // 2. If auth error encountered, render error state (always show error, never fall through)
+  // Step 3: Error in auth
   if (authError) {
-    console.log('🎯 AppContent: Auth error -> Show error state', authError);
+    console.log('🎯 AppContent: Auth error:', authError);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -56,18 +54,16 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // 3. If no user, always show landing page (this handles first load for new visitors and logged out users)
+  // Step 4: No user authenticated
   if (!user) {
-    console.log('🎯 AppContent: No user authenticated -> Showing landing screen or login');
-    if (showLogin) {
-      return <LoginForm />;
-    }
+    console.log('🎯 AppContent: No user - LandingPage or LoginForm');
+    if (showLogin) return <LoginForm />;
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // 4. Handle authenticated but missing role
+  // Step 5: User is authenticated but missing role
   if (!user.role) {
-    console.error('🎯 AppContent: User missing role:', user.email);
+    console.error('🎯 AppContent: User missing role', user.email);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -79,9 +75,8 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // 5. Main application starts here for authenticated users with a role
-  console.log('🎯 AppContent: Authenticated, rendering ElimshaLayout for user with role:', user.role);
-
+  // Step 6: Authenticated user with role => show main app
+  console.log('🎯 AppContent: Authenticated. Render ElimshaLayout.', { role: user.role });
   return <ElimshaLayout />;
 };
 
