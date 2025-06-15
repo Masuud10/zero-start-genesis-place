@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +25,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
   studentId,
 }) => {
   const { user } = useAuth();
+  // FIX: Use any[] for state
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

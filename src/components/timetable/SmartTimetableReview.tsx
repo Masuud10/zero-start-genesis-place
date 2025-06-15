@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +24,7 @@ const SmartTimetableReview = ({
   onPublish: () => void;
 }) => {
   const { user } = useAuth();
+  // FIX: Use any[] instead of TimetableRow[] to avoid deep type instantiation
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
