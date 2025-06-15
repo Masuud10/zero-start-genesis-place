@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import StudentAdmissionForm from "./StudentAdmissionForm";
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 interface Class {
   id: string;
@@ -41,10 +41,21 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { schoolId } = useSchoolScopedData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    if (!schoolId) {
+      toast({
+        title: "Error",
+        description: "Your school is not identified. Cannot admit student.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const { data: student, error: studentError } = await supabase
@@ -57,7 +68,9 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
           gender: formData.gender,
           address: formData.address,
           parent_contact: formData.parent_contact,
-          class_id: formData.class_id, // Main class assignment
+          class_id: formData.class_id,
+          parent_id: formData.parent_id || null,
+          school_id: schoolId,
         })
         .select()
         .single();
