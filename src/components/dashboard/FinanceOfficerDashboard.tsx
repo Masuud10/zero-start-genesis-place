@@ -35,17 +35,25 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
       
       const schoolId = user.school_id;
 
+      const currentTermPromise = supabase
+        .from('academic_terms')
+        .select('start_date, end_date')
+        .eq('school_id', schoolId)
+        .eq('is_current', true)
+        .maybeSingle();
+
       const outstandingFeesPromise = supabase.rpc('get_outstanding_fees', { p_school_id: schoolId });
       
       const feesPromise = supabase
         .from('fees')
-        .select('amount, paid_amount, paid_date, mpesa_code')
+        .select('amount, paid_amount, paid_date, mpesa_code, due_date')
         .eq('school_id', schoolId);
 
       const [
+        { data: currentTerm },
         { data: outstandingFeesData, error: outstandingError },
         { data: fees, error: feesError }
-      ] = await Promise.all([outstandingFeesPromise, feesPromise]);
+      ] = await Promise.all([currentTermPromise, outstandingFeesPromise, feesPromise]);
 
 
       if (outstandingError || feesError) {
@@ -62,17 +70,28 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
         const currMonth = new Date().getMonth();
         const currYear = new Date().getFullYear();
         
-        const thisMonthFees = fees.filter(f => {
+        const thisMonthPayments = fees.filter(f => {
             if (!f.paid_date) return false;
             const paidDate = new Date(f.paid_date);
             return paidDate.getMonth() === currMonth && paidDate.getFullYear() === currYear;
         });
 
-        monthlyRevenue = thisMonthFees.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
-
-        const totalPaid = fees.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
-        const totalAmount = fees.reduce((sum, f) => sum + (f.amount || 0), 0);
-        paymentRate = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
+        monthlyRevenue = thisMonthPayments.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
+        
+        // FIX: Calculate payment rate based on fees due in the current term for relevance
+        const termFees = currentTerm && currentTerm.start_date && currentTerm.end_date
+          ? fees.filter(f => {
+              if (!f.due_date) return false;
+              const dueDate = new Date(f.due_date);
+              return dueDate >= new Date(currentTerm.start_date) && dueDate <= new Date(currentTerm.end_date);
+            })
+          : [];
+        
+        if (termFees.length > 0) {
+          const totalPaid = termFees.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
+          const totalAmount = termFees.reduce((sum, f) => sum + (f.amount || 0), 0);
+          paymentRate = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
+        }
 
         mpesaTransactions = fees.filter(f => f.mpesa_code).length;
       }

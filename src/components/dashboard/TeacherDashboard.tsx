@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AuthUser } from '@/types/auth';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Megaphone, BookOpen, ClipboardCheck, CalendarCheck, MessageSquare } from 'lucide-react';
 import TeacherAnalyticsSummaryCard from "@/components/analytics/TeacherAnalyticsSummaryCard";
 import BulkAttendanceAction from "./teacher/BulkAttendanceAction";
 import { useAuth } from "@/contexts/AuthContext";
@@ -150,31 +151,31 @@ const teacherActions = [
     id: "create-announcement",
     label: "New Announcement",
     description: "Post important updates",
-    icon: GraduationCap,
+    icon: Megaphone,
   },
   {
     id: "view-classes",
     label: "View Classes",
     description: "Manage your classes",
-    icon: GraduationCap,
+    icon: BookOpen,
   },
   {
     id: "manage-grades",
     label: "Manage Grades",
     description: "Enter student grades",
-    icon: GraduationCap,
+    icon: ClipboardCheck,
   },
   {
     id: "view-attendance",
     label: "View Attendance",
     description: "Check student attendance",
-    icon: GraduationCap,
+    icon: CalendarCheck,
   },
   {
     id: "send-message",
     label: "Send Message",
     description: "Communicate with students",
-    icon: GraduationCap,
+    icon: MessageSquare,
   },
 ];
 
