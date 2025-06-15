@@ -55,8 +55,8 @@ const ParentGradesView = () => {
         .from('grades')
         .select(`
           student_id, term, exam_type, score, letter_grade, cbc_performance_level, comments,
-          students:students!student_id (name),
-          subjects:subjects!subject_id (name)
+          student:students (name),
+          subject:subjects (name)
         `)
         .in('student_id', studentIds)
         .eq('status', 'released');
@@ -71,11 +71,11 @@ const ParentGradesView = () => {
 
       for (const grade of gradesData) {
         const studentId = grade.student_id;
-        if (!studentId || !grade.students || !grade.subjects) continue;
+        if (!studentId || !grade.student || !grade.subject) continue;
 
         if (!processedGrades[studentId]) {
           processedGrades[studentId] = {
-            student_name: grade.students.name,
+            student_name: grade.student.name,
             reports: {}
           };
         }
@@ -86,7 +86,7 @@ const ParentGradesView = () => {
         }
         
         processedGrades[studentId].reports[reportKey].push({
-            name: grade.subjects.name,
+            name: grade.subject.name,
             score: grade.score,
             letter_grade: grade.letter_grade,
             cbc_performance_level: grade.cbc_performance_level,
