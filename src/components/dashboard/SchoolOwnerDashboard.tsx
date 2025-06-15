@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import SchoolFilteredAnalytics from '../analytics/SchoolFilteredAnalytics';
 import AnalyticsSecurityGuard from '../analytics/AnalyticsSecurityGuard';
+import SchoolOwnerStatsCards, { SchoolMetrics } from "./school-owner/SchoolOwnerStatsCards";
+import SchoolManagementActions from "./school-owner/SchoolManagementActions";
 
 interface SchoolMetrics {
   totalStudents: number;
@@ -118,41 +120,11 @@ const SchoolOwnerDashboard = () => {
     }
   };
 
-  // Metrics Cards
-  const metricsCards = [
-    {
-      title: "Total Students",
-      value: metrics.totalStudents,
-      description: "Active enrollments",
-      icon: Users,
-      color: "text-blue-600",
-      change: "+12% from last month"
-    },
-    {
-      title: "Teaching Staff",
-      value: metrics.totalTeachers,
-      description: "Active teachers",
-      icon: GraduationCap,
-      color: "text-green-600",
-      change: "+2 new hires"
-    },
-    {
-      title: "Revenue (YTD)",
-      value: `$${metrics.totalRevenue.toLocaleString()}`,
-      description: "Year to date",
-      icon: DollarSign,
-      color: "text-emerald-600",
-      change: `+${metrics.monthlyGrowth}% growth`
-    },
-    {
-      title: "Outstanding Fees",
-      value: `$${metrics.outstandingFees.toLocaleString()}`,
-      description: "Pending payments",
-      icon: TrendingUp,
-      color: "text-orange-600",
-      change: "Follow up required"
-    }
-  ];
+  // Action button handler for Management section
+  const handleManagementAction = (action: string) => {
+    console.log("Clicked School Management Action:", action);
+    // TODO: Implement further modal or page navigation as needed
+  };
 
   // Error state
   if (error && !loading) {
@@ -196,56 +168,20 @@ const SchoolOwnerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricsCards.map((card, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-xs text-gray-500">{card.description}</p>
-                </div>
-                <card.icon className={`h-8 w-8 ${card.color}`} />
-              </div>
-              <div className="text-xs text-green-600 mt-2">{card.change}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Metrics Cards (refactored) */}
+      <SchoolOwnerStatsCards metrics={metrics} loading={loading} />
 
-      {/* Management Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      {/* Management Actions (refactored) */}
+      <div className="rounded-lg bg-white/75 border shadow-sm">
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-2 font-semibold text-lg">
             <Settings className="h-5 w-5" />
             School Management
-          </CardTitle>
-          <CardDescription>
-            Key administrative functions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-24 flex-col gap-2 hover:bg-blue-50">
-              <Users className="h-8 w-8" />
-              <span className="font-medium">Manage Users</span>
-              <span className="text-xs text-gray-500">Teachers & Staff</span>
-            </Button>
-            <Button variant="outline" className="h-24 flex-col gap-2 hover:bg-green-50">
-              <DollarSign className="h-8 w-8" />
-              <span className="font-medium">Financial Reports</span>
-              <span className="text-xs text-gray-500">Revenue & Expenses</span>
-            </Button>
-            <Button variant="outline" className="h-24 flex-col gap-2 hover:bg-purple-50">
-              <BarChart3 className="h-8 w-8" />
-              <span className="font-medium">Analytics</span>
-              <span className="text-xs text-gray-500">Performance Insights</span>
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+          <div className="mb-2 text-muted-foreground text-sm">Key administrative functions</div>
+          <SchoolManagementActions onAction={handleManagementAction} />
+        </div>
+      </div>
 
       {/* School Analytics */}
       <AnalyticsSecurityGuard 
