@@ -1,4 +1,3 @@
-
 import { DataServiceCore } from './core/dataServiceCore';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -82,7 +81,7 @@ export class GradeService {
       is_immutable: gradeData.is_immutable ?? false
     };
 
-    return DataServiceCore.createRecord('grades', dbData, false);
+    return DataServiceCore.createRecord('grades', dbData);
   }
 
   static async updateGrade(id: string, updates: Partial<GradeData>) {

@@ -1,12 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { MultiTenantUtils } from '@/utils/multiTenantUtils';
+
+interface UserScope {
+  isSystemAdmin: boolean;
+  schoolId: string | null;
+}
 
 export class ReportService {
-  static async generateStudentReport(studentId: string, academicYear: string, term: string) {
+  static async generateStudentReport(scope: UserScope, studentId: string, academicYear: string, term: string) {
     try {
-      const scope = await MultiTenantUtils.getCurrentUserScope();
-      
       const query = supabase
         .from('students')
         .select(`
@@ -36,6 +38,9 @@ export class ReportService {
         .eq('id', studentId);
 
       if (!scope.isSystemAdmin) {
+        if (!scope.schoolId) {
+          return { data: null, error: new Error("User's school context is required for this report.") };
+        }
         query.eq('school_id', scope.schoolId);
       }
 
@@ -49,10 +54,8 @@ export class ReportService {
     }
   }
 
-  static async generateClassReport(classId: string, academicYear: string, term: string) {
+  static async generateClassReport(scope: UserScope, classId: string, academicYear: string, term: string) {
     try {
-      const scope = await MultiTenantUtils.getCurrentUserScope();
-      
       const query = supabase
         .from('classes')
         .select(`
@@ -68,6 +71,9 @@ export class ReportService {
         .eq('id', classId);
 
       if (!scope.isSystemAdmin) {
+        if (!scope.schoolId) {
+          return { data: null, error: new Error("User's school context is required for this report.") };
+        }
         query.eq('school_id', scope.schoolId);
       }
 
@@ -81,10 +87,8 @@ export class ReportService {
     }
   }
 
-  static async generateFinancialReport(schoolId?: string, academicYear?: string) {
+  static async generateFinancialReport(scope: UserScope, schoolId?: string, academicYear?: string) {
     try {
-      const scope = await MultiTenantUtils.getCurrentUserScope();
-      
       let query = supabase
         .from('financial_transactions')
         .select(`
@@ -93,9 +97,16 @@ export class ReportService {
           fees:fees(amount, category, term)
         `);
 
-      if (schoolId) {
-        query = query.eq('school_id', schoolId);
-      } else if (!scope.isSystemAdmin) {
+      if (scope.isSystemAdmin) {
+        // System admin can filter by a specific school or get all.
+        if (schoolId) {
+          query = query.eq('school_id', schoolId);
+        }
+      } else {
+        // Non-system admin is always scoped to their own school.
+        if (!scope.schoolId) {
+          return { data: null, error: new Error("User's school context is required for this report.") };
+        }
         query = query.eq('school_id', scope.schoolId);
       }
 
