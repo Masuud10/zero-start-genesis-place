@@ -21,6 +21,7 @@ import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { usePrincipalDashboardModals } from '@/hooks/usePrincipalDashboardModals';
 import BulkGradingQuickAction from './principal/BulkGradingQuickAction';
 import BulkGradingModal from '../modals/BulkGradingModal';
+import AcademicSettings from './principal/AcademicSettings';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -84,11 +85,12 @@ const PrincipalDashboard = () => {
   return (
     <RoleGuard allowedRoles={['principal']} requireSchoolAssignment={true}>
       <div className="space-y-6">
-        {/* Welcome and user header removed as per request */}
-
         {/* Statistics cards */}
         <PrincipalStatsCards stats={stats} />
         
+        {/* Academic Period Settings */}
+        <AcademicSettings />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Quick action panel for adding parent/teacher/class */}
           <QuickActionsCard

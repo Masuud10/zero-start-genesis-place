@@ -1,49 +1,18 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { usePrincipalAnalyticsData } from '@/hooks/usePrincipalAnalyticsData';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
-interface PrincipalAnalyticsProps {
-  filters: {
-    term: string;
-    class: string;
-    subject: string;
-  };
-}
-
-const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
-  // Mock data
-  const classPerformanceData = [
-    { class: 'Grade 1A', average: 87, students: 32, attendance: 95 },
-    { class: 'Grade 1B', average: 83, students: 30, attendance: 92 },
-    { class: 'Grade 2A', average: 85, students: 28, attendance: 94 },
-    { class: 'Grade 2B', average: 79, students: 31, attendance: 90 },
-  ];
-
-  const subjectPerformanceData = [
-    { subject: 'Mathematics', average: 78, improvement: 5 },
-    { subject: 'English', average: 85, improvement: 2 },
-    { subject: 'Science', average: 82, improvement: -1 },
-    { subject: 'Social Studies', average: 88, improvement: 3 },
-  ];
-
-  const studentRankings = [
-    { name: 'Alice Johnson', class: 'Grade 2A', average: 95, position: 1 },
-    { name: 'Bob Smith', class: 'Grade 2B', average: 93, position: 2 },
-    { name: 'Carol Davis', class: 'Grade 1A', average: 92, position: 3 },
-    { name: 'David Wilson', class: 'Grade 1B', average: 90, position: 4 },
-    { name: 'Eve Brown', class: 'Grade 2A', average: 89, position: 5 },
-  ];
-
-  const teacherActivity = [
-    { teacher: 'Ms. Johnson', grades: 125, submissions: 98, onTime: 95 },
-    { teacher: 'Mr. Smith', grades: 110, submissions: 102, onTime: 88 },
-    { teacher: 'Ms. Davis', grades: 95, submissions: 89, onTime: 92 },
-    { teacher: 'Mr. Wilson', grades: 87, submissions: 78, onTime: 85 },
-  ];
+const PrincipalAnalytics = () => {
+  const { schoolId } = useSchoolScopedData();
+  const { data, isLoading, error } = usePrincipalAnalyticsData();
+  const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(schoolId);
 
   const chartConfig = {
     average: { label: 'Average Score', color: '#3b82f6' },
@@ -51,8 +20,35 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
     improvement: { label: 'Improvement', color: '#8b5cf6' },
   };
 
+  if (isLoading || academicInfoLoading) {
+    return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /> <span className="ml-2">Loading Analytics...</span></div>;
+  }
+  
+  if (error || academicInfoError) {
+    return (
+      <Card className="flex flex-col items-center justify-center p-8 text-center">
+        <AlertCircle className="h-12 w-12 text-red-500" />
+        <CardTitle className="mt-4">Could not load analytics</CardTitle>
+        <p className="text-muted-foreground mt-2">{error?.message || academicInfoError}</p>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return <div className="p-8 text-center">No analytics data available for the current academic period.</div>
+  }
+  
+  const { keyMetrics, classPerformance, subjectPerformance, studentRankings, teacherActivity } = data;
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+            <CardTitle>School Analytics Overview</CardTitle>
+            <p className="text-sm text-muted-foreground">Displaying data for term: <span className="font-semibold text-primary">{academicInfo.term}</span>, year: <span className="font-semibold text-primary">{academicInfo.year}</span></p>
+        </CardHeader>
+      </Card>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -60,7 +56,7 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">342</div>
+            <div className="text-2xl font-bold text-blue-600">{keyMetrics.totalStudents}</div>
             <p className="text-xs text-muted-foreground">Across all classes</p>
           </CardContent>
         </Card>
@@ -70,7 +66,7 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
             <CardTitle className="text-sm font-medium">School Average</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">83.5%</div>
+            <div className="text-2xl font-bold text-green-600">{keyMetrics.schoolAverage.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">+2.1% from last term</p>
           </CardContent>
         </Card>
@@ -80,7 +76,7 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
             <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">92.8%</div>
+            <div className="text-2xl font-bold text-purple-600">{keyMetrics.attendanceRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">Above target (90%)</p>
           </CardContent>
         </Card>
@@ -102,15 +98,15 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
           <CardTitle>Class Performance Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-80">
-            <BarChart data={classPerformanceData}>
-              <XAxis dataKey="class" />
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={classPerformance}>
+              <XAxis dataKey="class" tick={{ fontSize: 12 }} />
               <YAxis />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="average" fill="var(--color-average)" name="Academic Average" />
-              <Bar dataKey="attendance" fill="var(--color-attendance)" name="Attendance Rate" />
+              <Bar dataKey="average" fill="var(--color-average)" name="Academic Average (%)" />
+              <Bar dataKey="attendance" fill="var(--color-attendance)" name="Attendance Rate (%)" />
             </BarChart>
-          </ChartContainer>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
@@ -118,11 +114,11 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
         {/* Subject Performance */}
         <Card>
           <CardHeader>
-            <CardTitle>Subject Performance</CardTitle>
+            <CardTitle>Subject Performance (Sample)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {subjectPerformanceData.map((subject) => (
+              {subjectPerformance.map((subject) => (
                 <div key={subject.subject} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <p className="font-medium">{subject.subject}</p>
@@ -131,6 +127,7 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
                   <div className="text-right">
                     <Badge 
                       variant={subject.improvement > 0 ? 'default' : subject.improvement < 0 ? 'destructive' : 'secondary'}
+                      className={subject.improvement > 0 ? 'bg-green-100 text-green-800' : subject.improvement < 0 ? 'bg-red-100 text-red-800' : ''}
                     >
                       {subject.improvement > 0 ? '+' : ''}{subject.improvement}%
                     </Badge>
@@ -144,7 +141,7 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
         {/* Top Students */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Student Rankings</CardTitle>
+            <CardTitle>Top Student Rankings (Sample)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -172,7 +169,7 @@ const PrincipalAnalytics = ({ filters }: PrincipalAnalyticsProps) => {
       {/* Teacher Activity Logs */}
       <Card>
         <CardHeader>
-          <CardTitle>Teacher Grading Activity</CardTitle>
+          <CardTitle>Teacher Grading Activity (Sample)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
