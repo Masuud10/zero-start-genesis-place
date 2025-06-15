@@ -38,14 +38,16 @@ export const useSupportTickets = () => {
     setLoading(true);
     setError(null);
     try {
+      const promise = supabase
+        .from('support_tickets')
+        .select(`
+          *,
+          profiles!support_tickets_created_by_fkey(name)
+        `)
+        .order('created_at', { ascending: false });
+
       const { data, error: fetchError } = await useTimeoutPromise(
-        supabase
-          .from('support_tickets')
-          .select(`
-            *,
-            profiles!support_tickets_created_by_fkey(name)
-          `)
-          .order('created_at', { ascending: false }),
+        promise,
         7000
       );
 

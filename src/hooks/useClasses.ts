@@ -45,8 +45,11 @@ export const useClasses = () => {
         query = query.eq('school_id', schoolId);
       }
 
+      // Always call order before making the request!
+      query = query.order('name');
+
       const { data, error: fetchError } = await useTimeoutPromise(
-        query.order('name'),
+        query,
         7000
       );
       if (fetchError) throw fetchError;

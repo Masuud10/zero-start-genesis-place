@@ -36,16 +36,19 @@ export const useAnnouncements = () => {
     setLoading(true);
     setError(null);
     try {
+      const promise = supabase
+        .from('announcements')
+        .select(`
+          *,
+          profiles!announcements_created_by_fkey(name)
+        `)
+        .order('created_at', { ascending: false });
+
       const { data, error: fetchError } = await useTimeoutPromise(
-        supabase
-          .from('announcements')
-          .select(`
-            *,
-            profiles!announcements_created_by_fkey(name)
-          `)
-          .order('created_at', { ascending: false }),
+        promise,
         7000
       );
+
       if (fetchError) throw fetchError;
 
       const formattedData = data?.map(item => ({
