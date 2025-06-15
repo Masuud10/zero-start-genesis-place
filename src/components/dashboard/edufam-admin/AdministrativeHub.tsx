@@ -9,21 +9,21 @@ import { useToast } from "@/hooks/use-toast";
 // Utility: List of admin features/tabs
 const ADMIN_SECTIONS = [
   {
-    key: "manage-schools",
+    key: "schools",
     icon: <School className="w-5 h-5 mr-1" />,
     label: "Schools",
     description: "Manage all schools registered in EduFam.",
     color: "bg-gradient-to-r from-emerald-500 to-blue-600"
   },
   {
-    key: "manage-users",
+    key: "users",
     icon: <Users className="w-5 h-5 mr-1" />,
     label: "Users",
     description: "Oversee all platform users and roles.",
     color: "bg-gradient-to-r from-blue-600 to-purple-600"
   },
   {
-    key: "manage-billing",
+    key: "billing",
     icon: <CreditCard className="w-5 h-5 mr-1" />,
     label: "Billing",
     description: "Review and manage billing/subscription data.",
@@ -50,7 +50,7 @@ interface AdministrativeHubProps {
 }
 
 const AdministrativeHub: React.FC<AdministrativeHubProps> = ({ onModalOpen, onUserCreated }) => {
-  const [activeTab, setActiveTab] = useState("manage-schools");
+  const [activeTab, setActiveTab] = useState("schools");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -66,17 +66,17 @@ const AdministrativeHub: React.FC<AdministrativeHubProps> = ({ onModalOpen, onUs
       // Simulate brief loading for UX
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      if (["manage-schools", "manage-users", "manage-billing"].includes(key)) {
+      if (["schools", "users"].includes(key)) {
         onModalOpen(key);
         toast({ 
           title: "Success", 
           description: `Opened ${ADMIN_SECTIONS.find(s => s.key === key)?.label} management.`,
           variant: "default"
         });
-      } else if (key === "system-settings") {
+      } else if (["billing", "system-settings"].includes(key)) {
         toast({ 
           title: "Coming Soon", 
-          description: "System settings feature is under development.",
+          description: `${ADMIN_SECTIONS.find(s => s.key === key)?.label} feature is under development.`,
           variant: "default"
         });
       } else {
