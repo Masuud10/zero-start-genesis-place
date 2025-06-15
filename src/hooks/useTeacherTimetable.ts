@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +25,7 @@ const fetchTeacherTimetable = async (teacherId: string, schoolId: string): Promi
         `)
         .eq('teacher_id', teacherId)
         .eq('school_id', schoolId)
+        .eq('is_published', true)
         .order('day_of_week')
         .order('start_time');
 

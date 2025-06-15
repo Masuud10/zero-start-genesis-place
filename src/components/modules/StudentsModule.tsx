@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { useClasses } from '@/hooks/useClasses';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import StudentAdmissionModal from '@/components/modals/StudentAdmissionModal';
 import { useParents } from '@/hooks/useParents';
+import { useAuth } from '@/contexts/AuthContext';
 
 const StudentsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,6 +20,7 @@ const StudentsModule = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [admitStudentOpen, setAdmitStudentOpen] = useState(false);
 
+  const { user } = useAuth();
   const { isReady } = useSchoolScopedData();
   const { students, loading: studentsLoading, error: studentsError, retry: retryStudents } = useStudents(classFilter !== 'all' ? classFilter : undefined);
   const { classes, loading: classesLoading, error: classesError, retry: retryClasses } = useClasses();
@@ -27,6 +28,8 @@ const StudentsModule = () => {
 
   const loading = studentsLoading || classesLoading || !isReady;
   const hasError = studentsError || classesError;
+
+  const canAddStudents = user?.role && ['principal', 'school_owner', 'edufam_admin'].includes(user.role);
 
   // Refetch data when ready state changes
   useEffect(() => {
@@ -114,10 +117,12 @@ const StudentsModule = () => {
           </h1>
           <p className="text-muted-foreground">Manage student records and information</p>
         </div>
-        <Button onClick={() => setAdmitStudentOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Student
-        </Button>
+        {canAddStudents && (
+            <Button onClick={() => setAdmitStudentOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Student
+            </Button>
+        )}
       </div>
 
       {/* Stats Cards */}

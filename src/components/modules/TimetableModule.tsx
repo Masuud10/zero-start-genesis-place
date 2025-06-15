@@ -1,72 +1,67 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import SmartTimetableReview from '@/components/timetable/SmartTimetableReview';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, BookOpen, Plus, Edit, Download } from 'lucide-react';
 
 const TimetableModule = () => {
-  const [selectedClass, setSelectedClass] = useState('8a');
-  const [selectedWeek, setSelectedWeek] = useState('current');
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [term, setTerm] = useState('Term 1 2025');
+  const [generationKey, setGenerationKey] = useState(0);
 
-  const classes = [
-    { id: '8a', name: 'Grade 8A' },
-    { id: '8b', name: 'Grade 8B' },
-    { id: '7a', name: 'Grade 7A' },
-    { id: '7b', name: 'Grade 7B' },
-  ];
+  const handleGenerateTimetable = async () => {
+    if (!user?.school_id) {
+        toast({ title: "Error", description: "School information not found.", variant: "destructive" });
+        return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: functionError } = await supabase.functions.invoke('generate-timetable', {
+        body: {
+          school_id: user.school_id,
+          term: term,
+        },
+      });
 
-  const timeSlots = [
-    '8:00 - 8:45',
-    '8:45 - 9:30',
-    '9:30 - 10:15',
-    '10:15 - 10:30', // Break
-    '10:30 - 11:15',
-    '11:15 - 12:00',
-    '12:00 - 12:45',
-    '12:45 - 13:30', // Lunch
-    '13:30 - 14:15',
-    '14:15 - 15:00'
-  ];
+      if (functionError) throw functionError;
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      if (data.error) throw new Error(data.error);
 
-  const timetableData = {
-    'Monday': {
-      '8:00 - 8:45': { subject: 'Mathematics', teacher: 'Ms. Johnson', room: 'Room 101' },
-      '8:45 - 9:30': { subject: 'English', teacher: 'Mr. Smith', room: 'Room 203' },
-      '9:30 - 10:15': { subject: 'Science', teacher: 'Dr. Wilson', room: 'Lab 1' },
-      '10:15 - 10:30': { subject: 'Break', teacher: '', room: '' },
-      '10:30 - 11:15': { subject: 'Social Studies', teacher: 'Mrs. Davis', room: 'Room 105' },
-      '11:15 - 12:00': { subject: 'PE', teacher: 'Coach Brown', room: 'Gym' },
-      '12:00 - 12:45': { subject: 'Art', teacher: 'Ms. Taylor', room: 'Art Room' },
-      '12:45 - 13:30': { subject: 'Lunch', teacher: '', room: '' },
-      '13:30 - 14:15': { subject: 'Music', teacher: 'Mr. Lee', room: 'Music Room' },
-      '14:15 - 15:00': { subject: 'Study Hall', teacher: 'Ms. Johnson', room: 'Room 101' }
-    },
-    // Add more days as needed
+      toast({
+        title: 'Timetable Generation Started',
+        description: `A new draft timetable for ${term} has been created with ${data.rowsCount} entries. You can now review it below.`,
+      });
+      setGenerationKey(k => k + 1);
+    } catch (err: any) {
+      console.error(err);
+      const errorMessage = err.message || "An unknown error occurred during timetable generation.";
+      setError(errorMessage);
+      toast({
+        title: 'Generation Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getCellContent = (day: string, time: string) => {
-    const content = timetableData[day]?.[time];
-    if (!content) return null;
-
-    if (content.subject === 'Break' || content.subject === 'Lunch') {
-      return (
-        <div className="text-center p-2 bg-gray-100 rounded">
-          <span className="text-sm font-medium text-gray-600">{content.subject}</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="p-2 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 cursor-pointer">
-        <div className="font-medium text-sm text-blue-900">{content.subject}</div>
-        <div className="text-xs text-blue-700">{content.teacher}</div>
-        <div className="text-xs text-blue-600">{content.room}</div>
-      </div>
-    );
+  const handlePublishSuccess = () => {
+    toast({
+        title: "Timetable Published!",
+        description: `The timetable for ${term} is now live for all users.`,
+    });
+    setGenerationKey(k => k + 1);
   };
 
   return (
@@ -78,84 +73,51 @@ const TimetableModule = () => {
           </h1>
           <p className="text-muted-foreground">Manage class schedules and assignments</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Period
-          </Button>
-        </div>
       </div>
-
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={selectedClass} onValueChange={setSelectedClass}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select class" />
-          </SelectTrigger>
-          <SelectContent>
-            {classes.map((cls) => (
-              <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={selectedWeek} onValueChange={setSelectedWeek}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select week" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="current">Current Week</SelectItem>
-            <SelectItem value="next">Next Week</SelectItem>
-            <SelectItem value="custom">Custom Range</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Timetable Grid */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Weekly Timetable - {classes.find(c => c.id === selectedClass)?.name}
-          </CardTitle>
+          <CardTitle>Timetable Generation</CardTitle>
+          <CardDescription>
+            Generate, review, and publish school timetables using the AI-powered generator.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border p-3 bg-gray-50 text-left font-medium">Time</th>
-                  {days.map(day => (
-                    <th key={day} className="border p-3 bg-gray-50 text-center font-medium min-w-[180px]">
-                      {day}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {timeSlots.map(time => (
-                  <tr key={time}>
-                    <td className="border p-3 bg-gray-50 font-medium text-sm">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        {time}
-                      </div>
-                    </td>
-                    {days.map(day => (
-                      <td key={`${day}-${time}`} className="border p-1">
-                        {getCellContent(day, time)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Select value={term} onValueChange={setTerm}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select Term" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Term 1 2025">Term 1 2025</SelectItem>
+                <SelectItem value="Term 2 2025">Term 2 2025</SelectItem>
+                <SelectItem value="Term 3 2025">Term 3 2025</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={handleGenerateTimetable} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'Generate New Draft'
+              )}
+            </Button>
           </div>
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
+      
+      <SmartTimetableReview 
+        key={generationKey} 
+        term={term} 
+        onPublish={handlePublishSuccess} 
+      />
     </div>
   );
 };
