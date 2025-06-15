@@ -48,8 +48,9 @@ export const useClasses = () => {
       // Always call order before making the request!
       query = query.order('name');
 
+      // The key fix is here:
       const { data, error: fetchError } = await useTimeoutPromise(
-        query,
+        query.then(x => x),
         7000
       );
       if (fetchError) throw fetchError;

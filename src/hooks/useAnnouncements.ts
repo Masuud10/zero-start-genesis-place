@@ -36,7 +36,7 @@ export const useAnnouncements = () => {
     setLoading(true);
     setError(null);
     try {
-      const promise = supabase
+      const query = supabase
         .from('announcements')
         .select(`
           *,
@@ -44,8 +44,9 @@ export const useAnnouncements = () => {
         `)
         .order('created_at', { ascending: false });
 
+      // The key fix is here: 
       const { data, error: fetchError } = await useTimeoutPromise(
-        promise,
+        query.then(x => x), // <-- .then(x=>x) makes it a promise for TS
         7000
       );
 

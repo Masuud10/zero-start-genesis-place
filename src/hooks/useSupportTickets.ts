@@ -38,7 +38,7 @@ export const useSupportTickets = () => {
     setLoading(true);
     setError(null);
     try {
-      const promise = supabase
+      const query = supabase
         .from('support_tickets')
         .select(`
           *,
@@ -47,7 +47,7 @@ export const useSupportTickets = () => {
         .order('created_at', { ascending: false });
 
       const { data, error: fetchError } = await useTimeoutPromise(
-        promise,
+        query.then(x => x),
         7000
       );
 
