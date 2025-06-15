@@ -36,11 +36,9 @@ const LoginForm: React.FC = () => {
       if (data?.user) {
         toast({
           title: "Login Successful",
-          description: "Welcome back! Redirecting to dashboard..."
+          description: "Welcome back! Loading your dashboard…"
         });
-        
-        // Force page reload to ensure clean state
-        window.location.href = '/';
+        // DO NOT reload or redirect here. Let the global auth observer and root AppContent handle dashboard routing.
       }
     } catch (error: any) {
       setSecurityWarning(error.message || 'Login failed. Please try again.');

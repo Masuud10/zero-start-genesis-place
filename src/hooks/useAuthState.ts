@@ -14,9 +14,7 @@ export const useAuthState = () => {
   const subscriptionRef = useRef<any>(null);
   const initializedRef = useRef(false);
 
-  // LOG: Mount/Unmount
   useEffect(() => {
-    console.log('[useAuthState] effect mounted');
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
@@ -27,35 +25,33 @@ export const useAuthState = () => {
       setTimeout(() => {
         initializedRef.current = false;
       }, 100);
-      console.log('[useAuthState] effect unmounted/cleaned up');
     };
   }, []);
 
-  useEffect(() => {
-    if (initializedRef.current) {
-      console.log('[useAuthState] already initialized, skipping');
-      return;
-    }
+  // Helper: returns true when essential user metadata is loaded
+  const isProfileReady = (profile: any) => {
+    return (
+      profile &&
+      typeof profile.role === 'string' &&
+      (profile.school_id !== undefined)
+    );
+  };
 
-    console.log('[useAuthState] INITIALIZING HOOK');
+  useEffect(() => {
+    if (initializedRef.current) return;
+
     initializedRef.current = true;
     isMountedRef.current = true;
 
     const processUser = async (authUser: SupabaseUser | null) => {
-      if (!isMountedRef.current) { 
-        console.warn('[useAuthState] abort processUser: not mounted');
-        return; 
-      }
+      if (!isMountedRef.current) return;
       try {
         if (!authUser) {
-          console.log('[useAuthState] processUser: no user');
           setUser(null);
           setError(null);
           setIsLoading(false);
           return;
         }
-
-        console.log('[useAuthState] processUser: loading user', authUser.email);
 
         if (!authUser.email) {
           setError('User account is missing email address');
@@ -63,7 +59,7 @@ export const useAuthState = () => {
           return;
         }
 
-        // --- Profile fetch with timeout
+        // Fetch profile
         let profile = null;
         try {
           const { data, error: profileError } = await Promise.race([
@@ -76,18 +72,20 @@ export const useAuthState = () => {
               setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
             ),
           ]) as any;
-          
-          if (profileError && !profileError.message.includes('timeout')) {
-            console.warn('[useAuthState] profile fetch error:', profileError.message);
-          } else {
+          if (!profileError && data) {
             profile = data;
           }
-        } catch (err: any) {
-          console.warn('[useAuthState] profile fetch failed:', err.message);
+        } catch (err: any) {}
+
+        // Only mark loading false once profile data (role, school_id) is obtained
+        if (!isProfileReady(profile)) {
+          setUser(null);
+          setError('User profile incomplete or loading');
+          setIsLoading(true);
+          return;
         }
 
-        // --- Role resolving and user construction
-        const resolvedRole = RoleResolver.resolveRole(authUser, profile?.role);
+        const resolvedRole = RoleResolver.resolveRole(authUser, profile.role);
 
         const userData: AuthUser = {
           id: authUser.id,
@@ -111,19 +109,12 @@ export const useAuthState = () => {
           last_login_ip: undefined,
         };
 
-        console.log('[useAuthState] processed user:', {
-          email: userData.email,
-          role: userData.role,
-          school_id: userData.school_id,
-        });
-
         if (isMountedRef.current) {
           setUser(userData);
           setError(null);
           setIsLoading(false);
         }
       } catch (err: any) {
-        console.error('[useAuthState] exception processing user:', err);
         if (isMountedRef.current) {
           setError('User processing failed: ' + (err.message || 'Unknown error'));
           setIsLoading(false);
@@ -131,51 +122,37 @@ export const useAuthState = () => {
       }
     };
 
-    // -- AUTH STATE CHANGE SUBSCRIPTION --
+    // Subscribe to auth changes
     const initializeAuth = async () => {
-      try {
-        if (subscriptionRef.current) {
-          subscriptionRef.current.unsubscribe();
-          subscriptionRef.current = null;
-        }
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
 
-        // SUBSCRIBE TO AUTH STATE CHANGES
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            if (!isMountedRef.current) return;
-            console.log('[useAuthState] auth state changed:', event, 'hasSession:', !!session);
-
-            if (event === 'SIGNED_OUT' || !session) {
-              processUser(null);
-            } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-              processUser(session.user);
-            }
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (!isMountedRef.current) return;
+          if (event === 'SIGNED_OUT' || !session) {
+            processUser(null);
+          } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+            processUser(session.user);
           }
-        );
-        subscriptionRef.current = subscription;
+        }
+      );
+      subscriptionRef.current = subscription;
 
-        // -- INITIAL SESSION FETCH
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.warn('[useAuthState] session error', sessionError);
-        }
-        if (session?.user && isMountedRef.current) {
-          await processUser(session.user);
-        } else if (isMountedRef.current) {
-          setUser(null);
-          setIsLoading(false);
-        }
-      } catch (err: any) {
-        console.error('[useAuthState] initialization exception:', err);
-        if (isMountedRef.current) {
-          setError('Auth initialization failed');
-          setIsLoading(false);
-        }
+      // First fetch (after mount or login)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {}
+      if (session?.user && isMountedRef.current) {
+        await processUser(session.user);
+      } else if (isMountedRef.current) {
+        setUser(null);
+        setIsLoading(false);
       }
     };
 
     initializeAuth();
-    // Unmount cleanup is already handled in the mounting effect!
   }, []);
 
   return {
