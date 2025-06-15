@@ -41,17 +41,14 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
         data: grades_raw,
         count: gradesCount,
         error: gradesErr
-      }: {
-        data: any[];
-        count: number | null;
-        error: any;
-      } = await supabase
+      } = (await supabase
         .from("grades")
         .select("score, max_score", { count: "exact" })
         .eq(filters.schoolId ? "school_id" : "", filters.schoolId ?? "")
         .eq(filters.classId ? "class_id" : "", filters.classId ?? "")
         .gte(filters.startDate ? "created_at" : "", filters.startDate ?? "")
-        .lte(filters.endDate ? "created_at" : "", filters.endDate ?? "");
+        .lte(filters.endDate ? "created_at" : "", filters.endDate ?? "")
+      ) as { data: any[]; count: number | null; error: any; };
 
       if (gradesErr) throw gradesErr;
       const grades: any[] = Array.isArray(grades_raw) ? grades_raw : [];
@@ -72,17 +69,14 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
         data: attendance_raw,
         count: attendanceCount,
         error: attErr
-      }: {
-        data: any[];
-        count: number | null;
-        error: any;
-      } = await supabase
+      } = (await supabase
         .from("attendance")
         .select("status", { count: "exact" })
         .eq(filters.schoolId ? "school_id" : "", filters.schoolId ?? "")
         .eq(filters.classId ? "class_id" : "", filters.classId ?? "")
         .gte(filters.startDate ? "date" : "", filters.startDate ?? "")
-        .lte(filters.endDate ? "date" : "", filters.endDate ?? "");
+        .lte(filters.endDate ? "date" : "", filters.endDate ?? "")
+      ) as { data: any[]; count: number | null; error: any; };
 
       if (attErr) throw attErr;
       const attendance: any[] = Array.isArray(attendance_raw) ? attendance_raw : [];
@@ -95,17 +89,14 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
         data: finance_raw,
         count: transactionCount,
         error: finErr
-      }: {
-        data: any[];
-        count: number | null;
-        error: any;
-      } = await supabase
+      } = (await supabase
         .from("financial_transactions")
         .select("amount", { count: "exact" })
         .eq(filters.schoolId ? "school_id" : "", filters.schoolId ?? "")
         // No classId join for finance
         .gte(filters.startDate ? "created_at" : "", filters.startDate ?? "")
-        .lte(filters.endDate ? "created_at" : "", filters.endDate ?? "");
+        .lte(filters.endDate ? "created_at" : "", filters.endDate ?? "")
+      ) as { data: any[]; count: number | null; error: any; };
 
       if (finErr) throw finErr;
       const finance: any[] = Array.isArray(finance_raw) ? finance_raw : [];
@@ -145,3 +136,5 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
   return { summary, loading, error, retry: fetchSummary };
 }
+
+// ... end of file
