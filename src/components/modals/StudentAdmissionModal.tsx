@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import AddParentModal from './AddParentModal';
 
 interface StudentAdmissionModalProps {
   onClose: () => void;
@@ -23,6 +23,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
     address: '',
     parent_contact: '',
     class_id: '',
+    parent_id: '',
     parent_name: '',
     parent_email: ''
   });
@@ -37,12 +38,33 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
     { id: '5', name: 'Grade 3A' }
   ];
 
+  // Parent modal
+  const [parentModalOpen, setParentModalOpen] = useState(false);
+  const [parents, setParents] = useState<{id: string, name: string, email: string}[]>([]);
+  const [loadingParents, setLoadingParents] = useState(true);
+
+  // Fetch parents on open
+  useEffect(() => {
+    let mounted = true;
+    setLoadingParents(true);
+    supabase.from('profiles')
+      .select('id, name, email')
+      .eq('role', 'parent')
+      .then(({ data, error }) => {
+        if (mounted) {
+          setParents(data || []);
+          setLoadingParents(false);
+        }
+      });
+    return () => { mounted = false };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Create student record
+      // Create student record (include date_of_birth and parent_id)
       const { data: student, error: studentError } = await supabase
         .from('students')
         .insert({
@@ -54,12 +76,33 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
           address: formData.address,
           parent_contact: formData.parent_contact,
           class_id: formData.class_id,
+          parent_id: formData.parent_id,
           school_id: '1' // Mock school ID
         })
         .select()
         .single();
 
       if (studentError) throw studentError;
+
+      // Link student to class in student_classes junction table
+      if (formData.class_id) {
+        await supabase.from('student_classes').insert({
+          student_id: student.id,
+          class_id: formData.class_id,
+          academic_year: new Date().getFullYear().toString(),
+          is_active: true
+        });
+      }
+
+      // Link student to parent in parent_students
+      if (formData.parent_id) {
+        await supabase.from('parent_students').insert({
+          parent_id: formData.parent_id,
+          student_id: student.id,
+          relationship_type: "parent",
+          is_primary_contact: true
+        });
+      }
 
       toast({
         title: "Student Admitted Successfully",
@@ -85,6 +128,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
   };
 
   return (
+    <>
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -148,7 +192,7 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
 
             <div>
               <Label htmlFor="class_id">Class *</Label>
-              <Select value={formData.class_id} onValueChange={(value) => handleInputChange('class_id', value)}>
+              <Select value={formData.class_id} onValueChange={value => handleInputChange('class_id', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
@@ -158,6 +202,37 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="parent_id">Parent *</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.parent_id}
+                  onValueChange={value => handleInputChange('parent_id', value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select parent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingParents ? (
+                      <SelectItem value="">Loading...</SelectItem>
+                    ) : parents.length === 0 ? (
+                      <SelectItem value="">No parents found</SelectItem>
+                    ) : (
+                      parents.map(parent => (
+                        <SelectItem value={parent.id} key={parent.id}>
+                          {parent.name} ({parent.email})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button type="button" size="sm" variant="outline" onClick={() => setParentModalOpen(true)}>
+                  + Add Parent
+                </Button>
+              </div>
             </div>
 
             <div className="md:col-span-2">
@@ -201,6 +276,16 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ onClose, 
         </form>
       </DialogContent>
     </Dialog>
+    <AddParentModal
+      open={parentModalOpen}
+      onClose={() => setParentModalOpen(false)}
+      onParentCreated={(newParent) => {
+        setParents(parents => [...parents, newParent]);
+        setFormData(prev => ({ ...prev, parent_id: newParent.id }));
+        setParentModalOpen(false);
+      }}
+    />
+    </>
   );
 };
 

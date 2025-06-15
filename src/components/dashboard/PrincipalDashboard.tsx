@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
+import AddTeacherModal from './principal/AddTeacherModal';
+import AddParentModal from '../modals/AddParentModal';
 
 interface SchoolStats {
   totalStudents: number;
@@ -36,6 +38,8 @@ const PrincipalDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [addTeacherOpen, setAddTeacherOpen] = useState(false);
+  const [addParentOpen, setAddParentOpen] = useState(false);
 
   const schoolId = getCurrentSchoolId();
 
@@ -376,13 +380,13 @@ const PrincipalDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-blue-50">
+            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-blue-50" onClick={() => setAddParentOpen(true)}>
               <Users className="h-6 w-6" />
-              <span>Manage Students</span>
+              <span>Add Parent</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-green-50">
+            <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-green-50" onClick={() => setAddTeacherOpen(true)}>
               <GraduationCap className="h-6 w-6" />
-              <span>Manage Teachers</span>
+              <span>Add Teacher</span>
             </Button>
             <Button variant="outline" className="h-20 flex-col gap-2 hover:bg-purple-50">
               <Calendar className="h-6 w-6" />
@@ -427,6 +431,8 @@ const PrincipalDashboard = () => {
           )}
         </CardContent>
       </Card>
+      <AddTeacherModal open={addTeacherOpen} onClose={() => setAddTeacherOpen(false)} />
+      <AddParentModal open={addParentOpen} onClose={() => setAddParentOpen(false)} onParentCreated={() => {}} />
     </div>
   );
 };
