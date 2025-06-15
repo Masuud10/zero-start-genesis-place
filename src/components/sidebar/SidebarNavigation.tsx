@@ -35,15 +35,20 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
   const menuItems = getMenuItems(user?.role);
   
-  // Filter menu items based on permissions
-  const filteredItems = menuItems.filter(item => {
-    // Always show dashboard
-    if (item.id === 'dashboard') return true;
-    
-    // Check specific permissions for certain menu items
-    switch (item.id) {
+  const checkAccess = (section: string): boolean => {
+    if (!user?.role) {
+      return false;
+    }
+
+    if (section === 'dashboard') return true;
+
+    switch (section) {
       case 'grades':
         return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
+      case 'attendance':
+        return hasPermission(PERMISSIONS.VIEW_ATTENDANCE);
+      case 'students':
+        return hasPermission(PERMISSIONS.VIEW_CLASS_INFO);
       case 'finance':
         return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE);
       case 'timetable':
@@ -52,17 +57,32 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         return hasPermission(PERMISSIONS.VIEW_ANNOUNCEMENTS);
       case 'messages':
         return hasPermission(PERMISSIONS.SEND_MESSAGES);
-      case 'students':
-        return hasPermission(PERMISSIONS.VIEW_CLASS_INFO);
+      case 'reports':
+        return hasPermission(PERMISSIONS.VIEW_REPORTS);
+      case 'analytics':
+        return hasPermission(PERMISSIONS.VIEW_ANALYTICS);
       case 'schools':
         return hasPermission(PERMISSIONS.VIEW_OTHER_SCHOOLS);
       case 'users':
         return hasPermission(PERMISSIONS.MANAGE_USERS);
+      case 'billing':
+        return hasPermission(PERMISSIONS.VIEW_FEE_BALANCE) || 
+               user.role === 'edufam_admin';
+      case 'system-health':
+        return user.role === 'edufam_admin';
+      case 'settings':
+        return user.role === 'edufam_admin';
+      case 'security':
+        return hasPermission(PERMISSIONS.MANAGE_SECURITY);
+      case 'support':
+        return hasPermission(PERMISSIONS.ACCESS_SUPPORT);
       default:
-        // For other items, check if the role is included
-        return item.roles.includes(user?.role || '');
+        return false;
     }
-  });
+  };
+  
+  // Filter menu items based on unified access logic
+  const filteredItems = menuItems.filter(item => checkAccess(item.id));
 
   console.log('🧭 SidebarNavigation: Filtered items for role', user?.role, ':', filteredItems.map(item => item.id));
 
