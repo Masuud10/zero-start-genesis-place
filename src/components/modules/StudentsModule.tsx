@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,8 +17,8 @@ const StudentsModule = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   
   const { isReady } = useSchoolScopedData();
-  const { students, loading: studentsLoading, error: studentsError, refetchStudents } = useStudents(classFilter !== 'all' ? classFilter : undefined);
-  const { classes, loading: classesLoading, error: classesError, refetchClasses } = useClasses();
+  const { students, loading: studentsLoading, error: studentsError, retry: retryStudents } = useStudents(classFilter !== 'all' ? classFilter : undefined);
+  const { classes, loading: classesLoading, error: classesError, retry: retryClasses } = useClasses();
 
   const loading = studentsLoading || classesLoading || !isReady;
   const hasError = studentsError || classesError;
@@ -27,10 +26,10 @@ const StudentsModule = () => {
   // Refetch data when ready state changes
   useEffect(() => {
     if (isReady) {
-      refetchStudents();
-      refetchClasses();
+      retryStudents();
+      retryClasses();
     }
-  }, [isReady, refetchStudents, refetchClasses]);
+  }, [isReady, retryStudents, retryClasses]);
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,8 +53,8 @@ const StudentsModule = () => {
   };
 
   const handleRetry = () => {
-    refetchStudents();
-    refetchClasses();
+    retryStudents();
+    retryClasses();
   };
 
   if (loading) {
