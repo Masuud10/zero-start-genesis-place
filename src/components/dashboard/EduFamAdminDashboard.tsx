@@ -8,6 +8,7 @@ import RecentSchoolsSection from './admin/RecentSchoolsSection';
 import UserRoleBreakdown from './admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
+import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 
 interface EduFamAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -151,6 +152,8 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Add Report Download Panel for edufam_admin */}
+      <ReportDownloadPanel showAll />
       {/* System Health Indicator */}
       <SystemHealthStatusCard />
 

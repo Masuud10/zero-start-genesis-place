@@ -16,6 +16,7 @@ import DataPipelineMonitor from './DataPipelineMonitor';
 import RealtimeAnalytics from './RealtimeAnalytics';
 import EduFamAdminAnalytics from './EduFamAdminAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
+import ReportDownloadPanel from "@/components/reports/ReportDownloadPanel";
 
 interface AdvancedAnalyticsDashboardProps {
   filters: {
@@ -53,6 +54,11 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Add Report download for edufam admin users */}
+      {isSystemAdmin && (
+        <ReportDownloadPanel hideCard={false} showAll />
+      )}
 
       {/* Main Dashboard Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

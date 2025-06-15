@@ -10,6 +10,15 @@ import { useSchool } from "@/contexts/SchoolContext";
 
 // Role-specific report options mapping
 const ROLE_REPORT_OPTIONS: Record<string, { value: string, label: string, desc: string }[]> = {
+  edufam_admin: [
+    { value: "grades", label: "Grades Report", desc: "All schools: class, subject grades & analytics" },
+    { value: "attendance", label: "Attendance Report", desc: "Attendance trends across schools" },
+    { value: "finance", label: "Finance Overview", desc: "Billing, fee collection, outstanding balances" },
+    { value: "school_summary", label: "School Summary", desc: "All schools; aggregate academic summaries" },
+    { value: "system_performance", label: "System Performance", desc: "Platform performance metrics, errors, usage" },
+    { value: "billing_overview", label: "Billing Overview", desc: "System/School billing and payment analytics" },
+    { value: "audit_log", label: "Security & Audit Log", desc: "System-wide audit and security logs" },
+  ],
   principal: [
     { value: "grades", label: "Grades Report", desc: "Full class, subject grades & stats" },
     { value: "attendance", label: "Attendance Report", desc: "Attendance summary & trends" },
@@ -43,11 +52,13 @@ const DEFAULT_REPORTS = [
 type ReportPanelProps = {
   extraFilters?: Record<string, any>;
   hideCard?: boolean;
+  // For system admins: allow passing showAll for advanced context if needed
+  showAll?: boolean;
 };
 const termOptions = ["T1", "T2", "T3"];
-const yearOptions = Array.from({length: 5}, (_,i)=>""+(2022 + i));
+const yearOptions = Array.from({ length: 5 }, (_, i) => "" + (2022 + i));
 
-export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = {}, hideCard}) => {
+export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters = {}, hideCard, showAll }) => {
   const { user } = useAuth();
   const { currentSchool } = useSchool();
   const { toast } = useToast();
@@ -56,8 +67,11 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
   const [term, setTerm] = useState(termOptions[0]);
   const [downloading, setDownloading] = useState(false);
 
-  // Determine allowed reports for the given role or fallback
-  const available = ROLE_REPORT_OPTIONS[user?.role as string] || DEFAULT_REPORTS;
+  // Provide all options for system admins
+  const available =
+    showAll || user?.role === "edufam_admin"
+      ? ROLE_REPORT_OPTIONS.edufam_admin
+      : ROLE_REPORT_OPTIONS[user?.role as string] || DEFAULT_REPORTS;
 
   const handleDownload = async () => {
     if (!reportType) {
@@ -69,11 +83,37 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
       // Map UI report type to API reportType
       let apiType = "";
       switch (reportType) {
-        case "grades": apiType = ["principal", "school_owner"].includes(user?.role || "") ? "principal-academic" : "teacher-parent-grades"; break;
-        case "attendance": apiType = ["principal", "school_owner"].includes(user?.role || "") ? "principal-attendance" : "teacher-parent-attendance"; break;
-        case "finance": apiType = "principal-finance"; break;
-        case "school_summary": apiType = "school-summary"; break;
-        default: apiType = "custom";
+        case "grades":
+          apiType =
+            ["principal", "school_owner", "edufam_admin"].includes(user?.role || "")
+              ? "principal-academic"
+              : "teacher-parent-grades";
+          break;
+        case "attendance":
+          apiType =
+            ["principal", "school_owner", "edufam_admin"].includes(user?.role || "")
+              ? "principal-attendance"
+              : "teacher-parent-attendance";
+          break;
+        case "finance":
+        case "finance_overview":
+          apiType =
+            user?.role === "edufam_admin" ? "system-finance" : "principal-finance";
+          break;
+        case "school_summary":
+          apiType = user?.role === "edufam_admin" ? "system-school-summary" : "school-summary";
+          break;
+        case "system_performance":
+          apiType = "system-performance";
+          break;
+        case "billing_overview":
+          apiType = "system-billing";
+          break;
+        case "audit_log":
+          apiType = "system-audit";
+          break;
+        default:
+          apiType = "custom";
       }
       // Compose request payload
       const payload = {
@@ -110,7 +150,7 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 500);
       a.remove();
-      toast({ title: "Report Downloaded!", description: `${available.find(r=>r.value===reportType)?.label} for ${year} ${term}.` });
+      toast({ title: "Report Downloaded!", description: `${available.find(r => r.value === reportType)?.label} for ${year} ${term}.` });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -171,7 +211,9 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
           Download Reports
         </CardTitle>
         <CardDescription>
-          Download term/year academic, attendance, or finance reports (access based on your role).
+          {user?.role === "edufam_admin"
+            ? "Generate/download analytics, billing, performance, school summaries and more for any school."
+            : "Download term/year academic, attendance, or finance reports (access based on your role)."}
         </CardDescription>
       </CardHeader>
       <CardContent>{Content}</CardContent>
