@@ -88,36 +88,23 @@ const PrincipalDashboard = () => {
       if (validateSchoolAccess && !validateSchoolAccess(targetSchoolId)) {
         throw new Error('Access denied to school data');
       }
-
-      // Define queries separately to help TypeScript with type inference
-      const studentsQuery = supabase
-        .from('students')
-        .select('id', { count: 'exact' })
-        .eq('school_id', targetSchoolId)
-        .eq('is_active', true);
-
-      const teachersQuery = supabase
-        .from('profiles')
-        .select('id', { count: 'exact' })
-        .eq('school_id', targetSchoolId)
-        .eq('role', 'teacher');
       
-      const subjectsQuery = supabase
-        .from('subjects')
-        .select('id', { count: 'exact' })
-        .eq('school_id', targetSchoolId);
+      const fetchCount = async (query: any) => {
+        const { count, error } = await query;
+        if (error) {
+          console.error(`A count query failed: ${error.message}`);
+          return 0; // Gracefully fail
+        }
+        return count || 0;
+      };
 
-      const classesQuery = supabase
-        .from('classes')
-        .select('id', { count: 'exact' })
-        .eq('school_id', targetSchoolId);
-
-      const parentsQuery = supabase
-        .from('profiles')
-        .select('id', { count: 'exact' })
-        .eq('school_id', targetSchoolId)
-        .eq('role', 'parent');
-
+      // Define queries separately
+      const studentsQuery = supabase.from('students').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true);
+      const teachersQuery = supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'teacher');
+      const subjectsQuery = supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId);
+      const classesQuery = supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId);
+      const parentsQuery = supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent');
+      
       const auditLogsQuery = supabase
         .from('security_audit_logs')
         .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
@@ -126,34 +113,23 @@ const PrincipalDashboard = () => {
         .in('action', ['create', 'update'])
         .order('created_at', { ascending: false })
         .limit(5);
-
-      // Fetch data in parallel for speed
-      const results = await Promise.allSettled([
-        studentsQuery,
-        teachersQuery,
-        subjectsQuery,
-        classesQuery,
-        parentsQuery,
-        auditLogsQuery,
-      ] as const);
-
-      const studentsResult = results[0];
-      const teachersResult = results[1];
-      const subjectsResult = results[2];
-      const classesResult = results[3];
-      const parentsResult = results[4];
-      const auditLogsResult = results[5];
-
-      const studentsCount =
-        studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
-      const teachersCount =
-        teachersResult.status === 'fulfilled' ? (teachersResult.value?.count || 0) : 0;
-      const subjectsCount =
-        subjectsResult.status === 'fulfilled' ? (subjectsResult.value?.count || 0) : 0;
-      const classesCount =
-        classesResult.status === 'fulfilled' ? (classesResult.value?.count || 0) : 0;
-      const parentsCount =
-        parentsResult.status === 'fulfilled' ? (parentsResult.value?.count || 0) : 0;
+      
+      // Fetch counts and logs in parallel
+      const [
+        counts,
+        auditLogsResult
+      ] = await Promise.all([
+        Promise.all([
+          fetchCount(studentsQuery),
+          fetchCount(teachersQuery),
+          fetchCount(subjectsQuery),
+          fetchCount(classesQuery),
+          fetchCount(parentsQuery)
+        ]),
+        auditLogsQuery
+      ]);
+      
+      const [studentsCount, teachersCount, subjectsCount, classesCount, parentsCount] = counts;
 
       setStats({
         totalStudents: studentsCount,
@@ -165,8 +141,10 @@ const PrincipalDashboard = () => {
 
       // Parse recent activities from audit logs
       let activities: any[] = [];
-      if (auditLogsResult.status === 'fulfilled' && auditLogsResult.value.data) {
-        const logs = auditLogsResult.value.data as any[];
+      if (auditLogsResult.error) {
+        console.error("Failed to fetch audit logs:", auditLogsResult.error.message);
+      } else if (auditLogsResult.data) {
+        const logs = auditLogsResult.data as any[];
         activities = logs.map((log: any) => {
           const userName = log.profiles?.name || 'A user';
           const actionVerb = log.action === 'create' ? 'created' : 'updated';
@@ -212,36 +190,47 @@ const PrincipalDashboard = () => {
     const effectiveSchoolId = schoolId || user?.school_id;
     if (!effectiveSchoolId) return;
 
-    setLoadingEntities(true);
-    setErrorEntities(null);
+    const fetchEntities = async () => {
+        setLoadingEntities(true);
+        setErrorEntities(null);
 
-    const classesQuery = supabase.from('classes').select('id, name, created_at').eq('school_id', effectiveSchoolId).order('name');
-    const subjectsQuery = supabase.from('subjects').select('id, name, code, created_at').eq('school_id', effectiveSchoolId).order('name');
-    const teachersQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'teacher').order('name');
-    const parentsQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'parent').order('name');
+        try {
+            const classesQuery = supabase.from('classes').select('id, name, created_at').eq('school_id', effectiveSchoolId).order('name');
+            const subjectsQuery = supabase.from('subjects').select('id, name, code, created_at').eq('school_id', effectiveSchoolId).order('name');
+            const teachersQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'teacher').order('name');
+            const parentsQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'parent').order('name');
 
-    Promise.allSettled([
-      classesQuery,
-      subjectsQuery,
-      teachersQuery,
-      parentsQuery,
-    ] as const).then((results) => {
-      const classesRes = results[0];
-      const subjectsRes = results[1];
-      const teachersRes = results[2];
-      const parentsRes = results[3];
+            const [
+              classesRes,
+              subjectsRes,
+              teachersRes,
+              parentsRes,
+            ] = await Promise.all([classesQuery, subjectsQuery, teachersQuery, parentsQuery]);
+            
+            if (classesRes.error || subjectsRes.error || teachersRes.error || parentsRes.error) {
+              console.error("Error fetching entities", {
+                classes: classesRes.error,
+                subjects: subjectsRes.error,
+                teachers: teachersRes.error,
+                parents: parentsRes.error,
+              });
+              setErrorEntities("Failed to load some entities.");
+            }
 
-      setClassList(classesRes.status === "fulfilled" ? classesRes.value.data || [] : []);
-      setSubjectList(subjectsRes.status === "fulfilled" ? subjectsRes.value.data || [] : []);
-      setTeacherList(teachersRes.status === "fulfilled" ? teachersRes.value.data || [] : []);
-      setParentList(parentsRes.status === "fulfilled" ? parentsRes.value.data || [] : []);
-      setErrorEntities(
-        results.find(r => r.status === "rejected")
-          ? "Failed to load some entities." : null
-      );
-    }).catch(() => {
-      setErrorEntities("Failed to load entities.");
-    }).finally(() => setLoadingEntities(false));
+            setClassList(classesRes.data || []);
+            setSubjectList(subjectsRes.data || []);
+            setTeacherList(teachersRes.data || []);
+            setParentList(parentsRes.data || []);
+
+        } catch (err: any) {
+            console.error("Exception when fetching entities", err);
+            setErrorEntities("Failed to load entities.");
+        } finally {
+            setLoadingEntities(false);
+        }
+    };
+    
+    fetchEntities();
     // eslint-disable-next-line
   }, [schoolId, user?.school_id, reloadKey]);
 

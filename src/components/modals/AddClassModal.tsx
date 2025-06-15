@@ -17,6 +17,8 @@ interface AddClassModalProps {
 
 const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCreated }) => {
   const [className, setClassName] = useState('');
+  const [level, setLevel] = useState('');
+  const [year, setYear] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -25,10 +27,10 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!className.trim()) {
+    if (!className.trim() || !level.trim() || !year.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a class name",
+        title: "Validation Error",
+        description: "Please fill all required fields: Class Name, Level, and Year.",
         variant: "destructive",
       });
       return;
@@ -51,6 +53,8 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
         .insert([{
           name: className.trim(),
           school_id: schoolId,
+          level: level.trim(),
+          year: year.trim(),
         }]);
 
       if (error) throw error;
@@ -60,9 +64,8 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
         description: "Class created successfully",
       });
 
-      setClassName('');
+      handleClose();
       onClassCreated();
-      onClose();
 
     } catch (error: any) {
       console.error('Error creating class:', error);
@@ -78,6 +81,8 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
 
   const handleClose = () => {
     setClassName('');
+    setLevel('');
+    setYear('');
     onClose();
   };
 
@@ -87,7 +92,7 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
         <DialogHeader>
           <DialogTitle>Add New Class</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="className">Class Name</Label>
             <Input
@@ -99,8 +104,32 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
               required
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="level">Level</Label>
+            <Input
+              id="level"
+              type="text"
+              placeholder="e.g., Grade 5, Form 1"
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="year">Year</Label>
+            <Input
+              id="year"
+              type="text"
+              placeholder="e.g., 2025"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              required
+            />
+          </div>
           
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
