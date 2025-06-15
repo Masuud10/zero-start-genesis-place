@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -87,7 +88,10 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
 
   useEffect(() => {
     const loadSubjects = async () => {
-      if (!selectedClass || !user?.school_id) return;
+      if (!selectedClass || !user?.school_id) {
+        setSubjects([]);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('subjects')

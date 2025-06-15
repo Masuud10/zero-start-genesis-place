@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -52,7 +53,10 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
   }, [user?.school_id]);
 
   useEffect(() => {
-    if (!selectedClass || !user?.school_id) return;
+    if (!selectedClass || !user?.school_id) {
+      setSubjects([]);
+      return;
+    }
     supabase
       .from('subjects')
       .select('*')
