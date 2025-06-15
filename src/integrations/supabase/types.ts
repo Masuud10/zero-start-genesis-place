@@ -2698,6 +2698,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_outstanding_fees: {
+        Args: { p_school_id: string }
+        Returns: number
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: string

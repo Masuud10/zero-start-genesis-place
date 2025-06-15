@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,40 +32,54 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
         setLoading(false);
         return;
       }
+      
+      const schoolId = user.school_id;
 
-      // 1. Monthly revenue (sum of paid_amount from fees this month)
-      const currMonth = (new Date().getMonth() + 1).toString().padStart(2,'0');
-      const currYear = new Date().getFullYear();
-      const monthStart = `${currYear}-${currMonth}-01`;
-      const { data: fees } = await supabase
+      const outstandingFeesPromise = supabase.rpc('get_outstanding_fees', { p_school_id: schoolId });
+      
+      const feesPromise = supabase
         .from('fees')
         .select('amount, paid_amount, paid_date, mpesa_code')
-        .eq('school_id', user.school_id);
+        .eq('school_id', schoolId);
+
+      const [
+        { data: outstandingFeesData, error: outstandingError },
+        { data: fees, error: feesError }
+      ] = await Promise.all([outstandingFeesPromise, feesPromise]);
+
+
+      if (outstandingError || feesError) {
+        console.error("Error fetching finance stats", outstandingError, feesError);
+        setLoading(false);
+        return;
+      }
 
       let monthlyRevenue = 0;
-      let outstandingFees = 0;
       let paymentRate = 0;
       let mpesaTransactions = 0;
 
       if (fees) {
-        const thisMonthFees = fees.filter(f => f.paid_date && (new Date(f.paid_date)).getMonth() + 1 === Number(currMonth));
+        const currMonth = new Date().getMonth();
+        const currYear = new Date().getFullYear();
+        
+        const thisMonthFees = fees.filter(f => {
+            if (!f.paid_date) return false;
+            const paidDate = new Date(f.paid_date);
+            return paidDate.getMonth() === currMonth && paidDate.getFullYear() === currYear;
+        });
+
         monthlyRevenue = thisMonthFees.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
 
-        // Outstanding = sum of (amount - paid_amount) for all due, status!=paid
-        outstandingFees = fees.reduce((sum, f) => sum + ((f.amount || 0) - (f.paid_amount || 0)), 0);
-
-        // Payment rate = total paid / total amount
         const totalPaid = fees.reduce((sum, f) => sum + (f.paid_amount || 0), 0);
         const totalAmount = fees.reduce((sum, f) => sum + (f.amount || 0), 0);
         paymentRate = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
 
-        // MPESA transactions = count where mpesa_code is set
         mpesaTransactions = fees.filter(f => f.mpesa_code).length;
       }
 
       setStats({
         monthlyRevenue,
-        outstandingFees,
+        outstandingFees: outstandingFeesData || 0,
         paymentRate,
         mpesaTransactions
       });

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,52 +48,55 @@ const SchoolOwnerDashboard = () => {
 
       console.log('📈 SchoolOwnerDashboard: Fetching metrics for school:', schoolId);
 
-      // Validate school access - fix the type error by ensuring schoolId is string
       if (!validateSchoolAccess(schoolId)) {
         throw new Error('Access denied to school data');
       }
 
-      // Fetch students count
-      const { count: studentsCount, error: studentsError } = await supabase
+      const studentsCountPromise = supabase
         .from('students')
         .select('id', { count: 'exact' })
         .eq('school_id', schoolId)
         .eq('is_active', true);
 
-      // Fetch teachers count
-      const { count: teachersCount, error: teachersError } = await supabase
+      const teachersCountPromise = supabase
         .from('profiles')
         .select('id', { count: 'exact' })
         .eq('school_id', schoolId)
         .eq('role', 'teacher');
-
-      // Fetch financial data
-      const { data: fees, error: feesError } = await supabase
+      
+      const revenuePromise = supabase
         .from('fees')
-        .select('amount, paid_amount, status')
-        .eq('school_id', schoolId);
+        .select('paid_amount')
+        .eq('school_id', schoolId)
+        .eq('status', 'paid');
+        
+      const outstandingFeesPromise = supabase.rpc('get_outstanding_fees', { p_school_id: schoolId });
 
-      // Check for errors
-      if (studentsError || teachersError || feesError) {
-        const errors = [studentsError, teachersError, feesError].filter(Boolean);
+      const [
+          { count: studentsCount, error: studentsError },
+          { count: teachersCount, error: teachersError },
+          { data: revenueData, error: revenueError },
+          { data: outstandingFees, error: outstandingError }
+      ] = await Promise.all([
+          studentsCountPromise,
+          teachersCountPromise,
+          revenuePromise,
+          outstandingFeesPromise
+      ]);
+      
+      if (studentsError || teachersError || revenueError || outstandingError) {
+        const errors = [studentsError, teachersError, revenueError, outstandingError].filter(Boolean);
         console.error('📈 SchoolOwnerDashboard: Query errors:', errors);
         throw new Error('Failed to fetch some data');
       }
 
-      // Calculate financial metrics
-      const totalRevenue = (fees || [])
-        .filter(fee => fee.status === 'paid')
-        .reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
-
-      const outstandingFees = (fees || [])
-        .filter(fee => fee.status === 'pending')
-        .reduce((sum, fee) => sum + (fee.amount - (fee.paid_amount || 0)), 0);
+      const totalRevenue = (revenueData || []).reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
 
       setMetrics({
         totalStudents: studentsCount || 0,
         totalTeachers: teachersCount || 0,
         totalRevenue,
-        outstandingFees,
+        outstandingFees: outstandingFees || 0,
         monthlyGrowth: 5.2 // Mock data for now
       });
 

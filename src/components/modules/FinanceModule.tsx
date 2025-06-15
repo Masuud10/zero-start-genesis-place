@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,15 +58,11 @@ const FinanceModule: React.FC = () => {
             if (summaryError) throw summaryError;
             setFinanceSummary(summaryData);
 
-            const { data: feesData, error: feesError } = await supabase
-                .from('fees')
-                .select('amount, paid_amount')
-                .eq('school_id', effectiveSchoolId)
-                .in('status', ['pending', 'partial']);
+            const { data: outstanding, error: feesError } = await supabase.rpc('get_outstanding_fees', {
+                p_school_id: effectiveSchoolId,
+            });
 
             if (feesError) throw feesError;
-            
-            const outstanding = feesData.reduce((sum, fee) => sum + (fee.amount || 0) - (fee.paid_amount || 0), 0);
             setOutstandingFees(outstanding);
 
         } catch (err: any) {
