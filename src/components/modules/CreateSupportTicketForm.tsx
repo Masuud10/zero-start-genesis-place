@@ -35,7 +35,9 @@ const CreateSupportTicketForm = () => {
     const onSubmit = async (values: z.infer<typeof ticketSchema>) => {
         setIsSubmitting(true);
         const ticketData = {
-            ...values,
+            title: values.title,
+            description: values.description,
+            type: values.type,
             status: 'open' as const,
             priority: 'medium' as const,
         };
