@@ -5,6 +5,8 @@ import { AuthUser } from '@/types/auth';
 import { DollarSign, Users, CreditCard, BarChart3, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import FinanceStatsCards from "./finance-officer/FinanceStatsCards";
+import FinanceActionsPanel from "./finance-officer/FinanceActionsPanel";
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -71,13 +73,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
     fetchStats();
   }, [user.school_id]);
 
-  const financeActions = [
-    { id: 'finance', label: 'Fee Management', icon: DollarSign, description: 'Process payments & fees' },
-    { id: 'students', label: 'Student Accounts', icon: Users, description: 'View student balances' },
-    { id: 'reports', label: 'Financial Reports', icon: FileText, description: 'Generate reports' },
-    { id: 'analytics', label: 'Finance Analytics', icon: BarChart3, description: 'Payment insights' },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -88,95 +83,15 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
           </p>
         </div>
       </div>
-      {/* Finance Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {loading ? <span className="animate-pulse">...</span> : `KES ${stats.monthlyRevenue.toLocaleString()}`}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "" : stats.monthlyRevenue === 0 ? "No revenue" : "+ this month"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Outstanding Fees</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {loading ? <span className="animate-pulse">...</span> : `KES ${stats.outstandingFees.toLocaleString()}`}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "" : stats.outstandingFees === 0 ? "All paid" : "Outstanding fees"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Payment Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {loading ? <span className="animate-pulse">...</span> : `${stats.paymentRate.toFixed(1)}%`}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "" : stats.paymentRate === 0 ? "No payments yet" : "Current term"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">MPESA Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {loading ? <span className="animate-pulse">...</span> : stats.mpesaTransactions}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "" : stats.mpesaTransactions === 0 ? "No transactions" : "This month"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
+      <FinanceStatsCards loading={loading} stats={stats} />
       {/* Finance Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Financial Management
-          </CardTitle>
-          <CardDescription>
-            Access financial management tools
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {financeActions.map((action) => (
-              <Button
-                key={action.id}
-                variant="outline"
-                className="h-24 flex-col gap-2 p-4"
-                onClick={() => onModalOpen(action.id)}
-              >
-                <action.icon className="h-6 w-6" />
-                <div className="text-center">
-                  <div className="font-medium text-sm">{action.label}</div>
-                  <div className="text-xs text-muted-foreground">{action.description}</div>
-                </div>
-              </Button>
-            ))}
+      <div className="w-full">
+        <div className="mt-4">
+          <div className="mb-2">
+            <span className="font-semibold text-lg flex items-center gap-2"><FinanceActionsPanel onModalOpen={onModalOpen} /></span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
