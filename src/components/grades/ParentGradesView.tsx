@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,8 +56,8 @@ const ParentGradesView = () => {
         .from('grades')
         .select(`
           student_id, term, exam_type, score, letter_grade, cbc_performance_level, comments,
-          student:students (name),
-          subject:subjects (name)
+          student:students!student_id(name),
+          subject:subjects!subject_id(name)
         `)
         .in('student_id', studentIds)
         .eq('status', 'released');
