@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
-import AddTeacherModal from './principal/AddTeacherModal';
+import AddTeacherModal from '../modals/AddTeacherModal';
 import AddParentModal from '../modals/AddParentModal';
 
 interface SchoolStats {

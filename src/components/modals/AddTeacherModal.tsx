@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -6,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddTeacherModalProps {
   open: boolean;
@@ -26,10 +26,12 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
     e.preventDefault();
     setLoading(true);
     try {
-      // Create teacher in profiles, role: teacher
+      // FIX: Generate a new UUID for the teacher profile.
+      const newId = uuidv4();
       const { data, error } = await supabase
         .from('profiles')
         .insert({
+          id: newId,
           name: form.name,
           email: form.email,
           role: 'teacher',

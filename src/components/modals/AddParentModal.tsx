@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -6,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddParentModalProps {
   open: boolean;
@@ -26,10 +26,13 @@ const AddParentModal: React.FC<AddParentModalProps> = ({ open, onClose, onParent
     e.preventDefault();
     setLoading(true);
     try {
-      // Create parent in profiles, role: parent
+      // FIX: Generate a new UUID for the parent profile.
+      const newId = uuidv4();
+      // Insert must include id, name, email, role, and other required fields for profiles table.
       const { data, error } = await supabase
         .from('profiles')
         .insert({
+          id: newId,
           name: form.name,
           email: form.email,
           role: 'parent',
