@@ -6,12 +6,12 @@ import { AuthUser } from '@/types/auth';
 
 interface BulkAttendanceActionProps {
   user: AuthUser;
+  onModalOpen: (modalType: string) => void;
 }
 
-const BulkAttendanceAction: React.FC<BulkAttendanceActionProps> = ({ user }) => {
+const BulkAttendanceAction: React.FC<BulkAttendanceActionProps> = ({ user, onModalOpen }) => {
   const handleBulkAttendance = () => {
-    console.log('Opening bulk attendance for teacher:', user.id);
-    // TODO: Implement bulk attendance functionality
+    onModalOpen('bulk-attendance');
   };
 
   return (

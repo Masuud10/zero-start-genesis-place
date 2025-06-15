@@ -57,7 +57,7 @@ const TeacherActions: React.FC<TeacherActionsProps> = ({ user, onModalOpen }) =>
         </CardHeader>
         <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <BulkAttendanceAction user={user} />
+                <BulkAttendanceAction user={user} onModalOpen={onModalOpen} />
                 {teacherActionsList.map((action) => (
                     <Button
                         key={action.id}

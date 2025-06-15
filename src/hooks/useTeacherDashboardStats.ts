@@ -57,14 +57,20 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
           .eq('submitted_by', user.id)
           .eq('status', 'draft');
 
-        // Mock today's classes (would need timetable integration)
-        const todaysClasses = Math.min(classIds.length, 3);
+        // Fetch today's classes from timetable
+        const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        const { count: todaysClassesCount } = await supabase
+          .from('timetables')
+          .select('id', { count: 'exact', head: true })
+          .eq('teacher_id', user.id)
+          .eq('school_id', schoolId)
+          .eq('day_of_week', dayOfWeek);
 
         setStats({
           classes: classIds.length,
           students: studentCount,
           pendingGrades: pendingGradesCount || 0,
-          todaysClasses
+          todaysClasses: todaysClassesCount || 0
         });
 
       } catch (error) {

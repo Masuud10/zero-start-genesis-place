@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,14 +92,13 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
       if (auditLogsError) {
         console.error("Failed to fetch audit logs:", auditLogsError.message);
       } else if (rawAuditLogs) {
-        // Get unique user IDs to fetch their names, avoiding complex map/filter chains
-        const userIdsSet = new Set<string>();
-        rawAuditLogs.forEach(log => {
-          if (log.user_id) {
-            userIdsSet.add(log.user_id);
+        // To avoid TS type instantiation error, we process userIds in a less complex way
+        const userIds: string[] = [];
+        for (const log of rawAuditLogs) {
+          if (log.user_id && !userIds.includes(log.user_id)) {
+            userIds.push(log.user_id);
           }
-        });
-        const userIds = Array.from(userIdsSet);
+        }
         
         let userNames: Record<string, string> = {};
         if (userIds.length > 0) {
@@ -170,4 +168,3 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
   return { stats, recentActivities, loading, error, schoolId, fetchSchoolData };
 };
-
