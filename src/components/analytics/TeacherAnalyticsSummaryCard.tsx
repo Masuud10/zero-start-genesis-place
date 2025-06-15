@@ -28,6 +28,9 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
     attendanceRate: null,
   });
 
+  // NEW: teacher's main classId for targeted downloads
+  const [mainClassId, setMainClassId] = useState<string | null>(null);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -50,14 +53,15 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
           gradesExpected: null,
           attendanceRate: null,
         });
+        setMainClassId(null);
         setLoading(false);
         return;
       }
 
       const classIds = teacherClasses.map(row => row.class_id);
+      setMainClassId(classIds[0] ?? null);
 
       // 1. Average Grade for classes (use grade_summary or grades)
-      // For each class, fetch grade_summary average
       let avgGrade: number | null = null;
       try {
         const { data: classGrades } = await supabase
@@ -75,12 +79,9 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
       }
 
       // 2. Grades Submitted/Expected
-      // - "grades" with submitted_by = teacher AND status = 'finalized'
-      // - "grades" with class_id in classIds
       let gradesSubmitted = null;
       let gradesExpected = null;
       try {
-        // Grades submitted (finalized)
         const { count: submittedCount } = await supabase
           .from("grades")
           .select("id", { count: "exact", head: true })
@@ -88,7 +89,6 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
           .eq("status", "finalized")
           .in("class_id", classIds);
 
-        // Grades expected = all grades for their classes this term
         const { count: expectedCount } = await supabase
           .from("grades")
           .select("id", { count: "exact", head: true })
@@ -166,7 +166,7 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
     );
   }
 
-  // Format values for the card
+  // Format metrics ...
   const metrics = [
     {
       label: "Average Grade",
@@ -174,7 +174,7 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
         summary.avgGrade !== null
           ? `${summary.avgGrade.toFixed(1)}%`
           : "—",
-      trend: "", // Could add trend calc if needed
+      trend: "",
       highlight: "text-green-600",
     },
     {
@@ -214,8 +214,18 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
           Track student grades and attendance for your classes.
         </p>
         <div className="mt-2">
-          <RoleReportDownloadButton type="grades" term={"" + (new Date().getFullYear())} label="Download Grades (Excel)" />
-          <RoleReportDownloadButton type="attendance" term={"" + (new Date().getFullYear())} label="Download Attendance (Excel)" />
+          <RoleReportDownloadButton
+            type="grades"
+            term={"" + (new Date().getFullYear())}
+            label="Download Grades (Excel)"
+            classId={mainClassId || undefined}
+          />
+          <RoleReportDownloadButton
+            type="attendance"
+            term={"" + (new Date().getFullYear())}
+            label="Download Attendance (Excel)"
+            classId={mainClassId || undefined}
+          />
         </div>
       </CardHeader>
       <CardContent>
