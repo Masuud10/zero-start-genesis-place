@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -19,7 +20,6 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
-  // Use separated hooks for fetching
   const {
     data: schoolsData = [],
     isLoading: schoolsLoading,
@@ -38,13 +38,14 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   const handleUserCreated = () => {
     console.log('👥 EduFamAdmin: User created, refreshing data');
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   };
 
   // Always pass local handleModalOpen to AdministrativeHub and modals!
   const handleModalOpen = (modalType: string) => {
     console.log('[EduFamAdminDashboard] handleModalOpen called with:', modalType);
     setActiveModal(modalType);
+    if (onModalOpen) onModalOpen(modalType); // notify parent if needed
   };
 
   const handleModalClose = () => {
@@ -55,13 +56,13 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   // Called from modals (SchoolsModule, UsersModule) after data has changed
   const handleDataChangedInModal = () => {
     console.log('[EduFamAdminDashboard] Data changed in modal, refreshing dashboard');
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
     setActiveModal(null);
   };
 
   const handleRetryAll = () => {
     console.log('🔄 EduFamAdmin: Retrying all data fetch');
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
     refetchSchools();
     refetchUsers();
   };

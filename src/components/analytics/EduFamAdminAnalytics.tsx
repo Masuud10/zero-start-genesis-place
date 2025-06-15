@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -74,7 +75,11 @@ const EduFamAdminAnalytics = () => {
     }
   }, [error, toast]);
 
-  // If loading or error, show a single card that spans all columns
+  // Defensive checks for summary
+  const gradesSummary = summary?.grades || { totalGrades: 0, avgScore: null };
+  const attendanceSummary = summary?.attendance || { records: 0, avgAttendance: null };
+  const financeSummary = summary?.finance || { totalAmount: null, transactionCount: 0 };
+
   if (loading) {
     return (
       <div className="w-full flex flex-col items-center gap-6">
@@ -110,7 +115,6 @@ const EduFamAdminAnalytics = () => {
     );
   }
 
-  // Handle summary being null (no results)
   if (!summary) {
     console.warn("[EduFamAdminAnalytics] No summary data returned.");
     return (
@@ -184,10 +188,10 @@ const EduFamAdminAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div>
-              <div className="font-bold text-2xl">{summary?.grades.totalGrades ?? 0}</div>
+              <div className="font-bold text-2xl">{gradesSummary.totalGrades}</div>
               <div className="text-muted-foreground">Total Grades Recorded</div>
               <div className="font-semibold mt-2">
-                Avg. Score: {safeFormat(summary?.grades.avgScore)}%
+                Avg. Score: {safeFormat(gradesSummary.avgScore)}%
               </div>
             </div>
           </CardContent>
@@ -198,10 +202,10 @@ const EduFamAdminAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div>
-              <div className="font-bold text-2xl">{summary?.attendance.records ?? 0}</div>
+              <div className="font-bold text-2xl">{attendanceSummary.records}</div>
               <div className="text-muted-foreground">Attendance Records</div>
               <div className="font-semibold mt-2">
-                Avg. Attendance: {safeFormat(summary?.attendance.avgAttendance)}%
+                Avg. Attendance: {safeFormat(attendanceSummary.avgAttendance)}%
               </div>
             </div>
           </CardContent>
@@ -214,11 +218,11 @@ const EduFamAdminAnalytics = () => {
             <div>
               <div className="font-bold text-2xl">
                 KES{" "}
-                {typeof summary?.finance.totalAmount === "number" && !isNaN(summary.finance.totalAmount)
-                  ? summary.finance.totalAmount.toLocaleString()
+                {typeof financeSummary.totalAmount === "number" && !isNaN(financeSummary.totalAmount)
+                  ? financeSummary.totalAmount.toLocaleString()
                   : "0"}
               </div>
-              <div className="text-muted-foreground">Transactions: {summary?.finance.transactionCount ?? 0}</div>
+              <div className="text-muted-foreground">Transactions: {financeSummary.transactionCount}</div>
             </div>
           </CardContent>
         </Card>
