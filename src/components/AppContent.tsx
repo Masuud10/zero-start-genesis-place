@@ -17,7 +17,6 @@ const AppContent: React.FC = () => {
   try {
     authState = useAuth();
   } catch (err) {
-    // Defensive: avoid falling through to ErrorBoundary, give details
     console.error('🎯 AppContent: Auth context error', err);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -77,7 +76,6 @@ const AppContent: React.FC = () => {
   }
 
   // Step 5: User is authenticated but missing role
-  // Defensive: Instead of error, show error state so it can't bubble to ErrorBoundary
   if (!user.role) {
     console.error('🎯 AppContent: User missing role', user.email);
     return (

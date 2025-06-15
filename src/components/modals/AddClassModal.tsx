@@ -1,50 +1,74 @@
 
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 interface AddClassModalProps {
   open: boolean;
   onClose: () => void;
-  onClassCreated?: (cls: { id: string; name: string }) => void;
+  onClassCreated: () => void;
 }
-const AddClassModal: React.FC<AddClassModalProps> = ({
-  open,
-  onClose,
-  onClassCreated,
-}) => {
-  const [className, setClassName] = useState("");
+
+const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCreated }) => {
+  const [className, setClassName] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { schoolId } = useSchoolScopedData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!className.trim()) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("classes")
-        .insert({
-          name: className,
-          school_id: user?.school_id || null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      toast({ title: "Class Added", description: `${className} was created.` });
-      onClassCreated && onClassCreated({ id: data.id, name: data.name });
-      setClassName("");
-      onClose();
-    } catch (err: any) {
+    
+    if (!className.trim()) {
       toast({
         title: "Error",
-        description: err.message || "Could not create class",
+        description: "Please enter a class name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!schoolId) {
+      toast({
+        title: "Error",
+        description: "No school assignment found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { error } = await supabase
+        .from('classes')
+        .insert([{
+          name: className.trim(),
+          school_id: schoolId,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Class created successfully",
+      });
+
+      setClassName('');
+      onClassCreated();
+      onClose();
+
+    } catch (error: any) {
+      console.error('Error creating class:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create class",
         variant: "destructive",
       });
     } finally {
@@ -52,28 +76,36 @@ const AddClassModal: React.FC<AddClassModalProps> = ({
     }
   };
 
+  const handleClose = () => {
+    setClassName('');
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Class</DialogTitle>
+          <DialogTitle>Add New Class</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="className">Class Name</Label>
             <Input
               id="className"
+              type="text"
+              placeholder="e.g., Grade 5A, Form 1 Blue"
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               required
             />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+          
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Adding..." : "Add Class"}
+              {loading ? "Creating..." : "Create Class"}
             </Button>
           </div>
         </form>
@@ -81,4 +113,5 @@ const AddClassModal: React.FC<AddClassModalProps> = ({
     </Dialog>
   );
 };
+
 export default AddClassModal;
