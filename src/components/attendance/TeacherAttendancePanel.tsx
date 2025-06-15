@@ -1,24 +1,17 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Table, TableHead, TableBody, TableRow, TableCell } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import TeacherAttendanceTable from "./TeacherAttendanceTable";
+import { Student, AttendanceStatus, AttendanceRecord, validStatus } from "./TeacherAttendanceUtils";
 
 interface TeacherAttendancePanelProps {
   teacherId: string;
   schoolId?: string;
 }
-
-type Student = {
-  id: string;
-  name: string;
-  admission_number: string;
-};
-
-type AttendanceStatus = "present" | "absent" | "late";
 
 const sessionOptions = [
   { label: "Morning", value: "morning" },
@@ -32,7 +25,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [session, setSession] = useState<string>("morning");
   const [students, setStudents] = useState<Student[]>([]);
-  const [attendanceMap, setAttendanceMap] = useState<Record<string, { status: AttendanceStatus; remarks: string }>>({});
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceRecord>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -92,9 +85,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
         setAttendanceMap({});
       } else {
         // Build map: student_id -> {status, remarks}
-        const validStatus = (v: any): AttendanceStatus =>
-          v === "present" || v === "absent" || v === "late" ? v : "present";
-        const attMap: Record<string, { status: AttendanceStatus; remarks: string }> = {};
+        const attMap: Record<string, AttendanceRecord> = {};
         if (Array.isArray(attData)) {
           attData.forEach((a) => {
             attMap[a.student_id] = {
@@ -143,7 +134,6 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
     setSaving(true);
 
     try {
-      // Prepare rows for upsert
       const today = selectedDate;
       const rows = students.map((s) => ({
         student_id: s.id,
@@ -158,7 +148,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
         term: "term1",
         academic_year: new Date().getFullYear().toString(),
       }));
-      // Delete existing for this class/date/session
+
       await supabase
         .from("attendance")
         .delete()
@@ -166,7 +156,6 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
         .eq("date", today)
         .eq("session", session);
 
-      // Insert new
       const { error } = await supabase.from("attendance").insert(rows);
 
       if (error) throw error;
@@ -243,48 +232,12 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
           ) : students.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">No students found in this class.</div>
           ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Admission #</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Remarks</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {students.map((student) => {
-                  const status = (attendanceMap[student.id]?.status || "present") as AttendanceStatus;
-                  const remarks = attendanceMap[student.id]?.remarks || "";
-                  return (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>{student.admission_number}</TableCell>
-                      <TableCell>
-                        <Select value={status} onValueChange={(v) => setStatus(student.id, v as AttendanceStatus)}>
-                          <SelectTrigger className="w-28">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="present">Present</SelectItem>
-                            <SelectItem value="absent">Absent</SelectItem>
-                            <SelectItem value="late">Late</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Textarea
-                          value={remarks}
-                          onChange={(e) => setRemarks(student.id, e.target.value)}
-                          className="w-32 h-8 resize-none"
-                          placeholder="Optional"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <TeacherAttendanceTable
+              students={students}
+              attendanceMap={attendanceMap}
+              setStatus={setStatus}
+              setRemarks={setRemarks}
+            />
           )}
         </div>
       </CardContent>
