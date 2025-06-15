@@ -20,6 +20,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { useSchool } from '@/contexts/SchoolContext';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -35,23 +38,27 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const [score, setScore] = useState('');
   const [maxScore, setMaxScore] = useState('100');
   const [selectedStudent, setSelectedStudent] = useState('');
-  
+
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   const { toast } = useToast();
+  const { currentSchool } = useSchool();
+
+  // Determine the curriculum type for the current school.
+  const curriculumType = currentSchool?.curriculum_type || 'cbc';
 
   useEffect(() => {
     const loadClasses = async () => {
       if (!user?.school_id) return;
-      
+
       const { data, error } = await supabase
         .from('classes')
         .select('*')
         .eq('school_id', user.school_id);
-      
+
       if (!error && data) {
         setClasses(data);
       }
@@ -63,13 +70,13 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   useEffect(() => {
     const loadSubjects = async () => {
       if (!selectedClass || !user?.school_id) return;
-      
+
       const { data, error } = await supabase
         .from('subjects')
         .select('*')
         .eq('class_id', selectedClass)
         .eq('school_id', user.school_id);
-      
+
       if (!error && data) {
         setSubjects(data);
       }
@@ -81,13 +88,13 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   useEffect(() => {
     const loadStudents = async () => {
       if (!selectedClass || !user?.school_id) return;
-      
+
       const { data, error } = await supabase
         .from('students')
         .select('*')
         .eq('class_id', selectedClass)
         .eq('school_id', user.school_id);
-      
+
       if (!error && data) {
         setStudents(data);
       }
@@ -98,6 +105,15 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
 
   const handleSubmit = async () => {
     try {
+      if (curriculumType === 'igcse') {
+        toast({
+          title: "Error",
+          description: "IGCSE grading is not yet supported. Please contact your admin.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!selectedClass || !selectedSubject || !selectedTerm || !selectedExamType || !selectedStudent || !score) {
         toast({
           title: "Error",
@@ -153,112 +169,127 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         <DialogHeader>
           <DialogTitle>Enter Grades</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="class" className="text-right">Class</Label>
-            <Select onValueChange={setSelectedClass}>
-              <SelectTrigger id="class" className="col-span-3">
-                <SelectValue placeholder="Select Class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {curriculumType === 'igcse' ? (
+          <div className="py-8">
+            <Alert variant="destructive" className="mb-3">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <AlertDescription>
+                <b>IGCSE Grading Coming Soon!</b> The grading form for IGCSE schools is currently not available.<br />
+                Please contact your administrator for more information.
+              </AlertDescription>
+            </Alert>
+            <Button variant="secondary" onClick={onClose} className="w-full">Close</Button>
           </div>
+        ) : (
+          <>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="class" className="text-right">Class</Label>
+                <Select onValueChange={setSelectedClass}>
+                  <SelectTrigger id="class" className="col-span-3">
+                    <SelectValue placeholder="Select Class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="subject" className="text-right">Subject</Label>
-            <Select onValueChange={setSelectedSubject} disabled={!selectedClass}>
-              <SelectTrigger id="subject" className="col-span-3">
-                <SelectValue placeholder="Select Subject" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="subject" className="text-right">Subject</Label>
+                <Select onValueChange={setSelectedSubject} disabled={!selectedClass}>
+                  <SelectTrigger id="subject" className="col-span-3">
+                    <SelectValue placeholder="Select Subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="student" className="text-right">Student</Label>
-            <Select onValueChange={setSelectedStudent} disabled={!selectedClass}>
-              <SelectTrigger id="student" className="col-span-3">
-                <SelectValue placeholder="Select Student" />
-              </SelectTrigger>
-              <SelectContent>
-                {students.map((student) => (
-                  <SelectItem key={student.id} value={student.id}>
-                    {student.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="student" className="text-right">Student</Label>
+                <Select onValueChange={setSelectedStudent} disabled={!selectedClass}>
+                  <SelectTrigger id="student" className="col-span-3">
+                    <SelectValue placeholder="Select Student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="term" className="text-right">Term</Label>
-            <Select onValueChange={setSelectedTerm}>
-              <SelectTrigger id="term" className="col-span-3">
-                <SelectValue placeholder="Select Term" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="term1">Term 1</SelectItem>
-                <SelectItem value="term2">Term 2</SelectItem>
-                <SelectItem value="term3">Term 3</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="term" className="text-right">Term</Label>
+                <Select onValueChange={setSelectedTerm}>
+                  <SelectTrigger id="term" className="col-span-3">
+                    <SelectValue placeholder="Select Term" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="term1">Term 1</SelectItem>
+                    <SelectItem value="term2">Term 2</SelectItem>
+                    <SelectItem value="term3">Term 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="examType" className="text-right">Exam Type</Label>
-            <Select onValueChange={setSelectedExamType}>
-              <SelectTrigger id="examType" className="col-span-3">
-                <SelectValue placeholder="Select Exam Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="opener">Opener</SelectItem>
-                <SelectItem value="mid_term">Mid Term</SelectItem>
-                <SelectItem value="end_term">End Term</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="examType" className="text-right">Exam Type</Label>
+                <Select onValueChange={setSelectedExamType}>
+                  <SelectTrigger id="examType" className="col-span-3">
+                    <SelectValue placeholder="Select Exam Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="opener">Opener</SelectItem>
+                    <SelectItem value="mid_term">Mid Term</SelectItem>
+                    <SelectItem value="end_term">End Term</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="score" className="text-right">Score</Label>
-            <Input 
-              type="number" 
-              id="score" 
-              className="col-span-3" 
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-              max={maxScore}
-            />
-          </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="score" className="text-right">Score</Label>
+                <Input 
+                  type="number" 
+                  id="score" 
+                  className="col-span-3" 
+                  value={score}
+                  onChange={(e) => setScore(e.target.value)}
+                  max={maxScore}
+                />
+              </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="maxScore" className="text-right">Max Score</Label>
-            <Input 
-              type="number" 
-              id="maxScore" 
-              className="col-span-3"
-              value={maxScore}
-              onChange={(e) => setMaxScore(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Submitting...' : 'Submit'}
-          </Button>
-        </DialogFooter>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="maxScore" className="text-right">Max Score</Label>
+                <Input 
+                  type="number" 
+                  id="maxScore" 
+                  className="col-span-3"
+                  value={maxScore}
+                  onChange={(e) => setMaxScore(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={onClose}>Cancel</Button>
+              <Button type="submit" onClick={handleSubmit} disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit'}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
