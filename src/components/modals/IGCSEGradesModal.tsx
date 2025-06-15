@@ -97,17 +97,17 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
     }
     setLoading(true);
     const gradeToInsert = customGrade || gradeChoice;
-    const subjectToInsert = useCustomSubject ? freeformSubject : selectedSubject;
+    const subjectToInsert = useCustomSubject ? null : selectedSubject;
 
-    // Only use columns that exist in the grades schema, and put the actual grade as a comment.
     try {
+      // Build the payload using only the columns that exist in grades table
+      // (Do not include grade_type or custom_subject!)
       const { error } = await supabase.from('grades').insert({
         student_id: selectedStudent,
         class_id: selectedClass,
-        subject_id: useCustomSubject ? null : subjectToInsert,
-        score: null, // for IGCSE, we do not use the numeric score, so set null
-        comments: `IGCSE Grade: ${gradeToInsert}`,
-        grade_type: 'igcse', // ignored if not in schema, but left here in case it is
+        subject_id: subjectToInsert,
+        score: null, // No numeric score for IGCSE
+        comments: `IGCSE Grade: ${gradeToInsert}${useCustomSubject ? ` (${freeformSubject})` : ""}`,
         submitted_by: user?.id,
         status: 'submitted'
       });
