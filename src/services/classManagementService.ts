@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface AssignTeacherToClassParams {
@@ -79,6 +78,26 @@ export const ClassManagementService = {
       return { error: null };
     } catch (error: any) {
       console.error('Unexpected error in removeTeacherFromClass:', error);
+      return { error: error.message || 'Unknown error occurred' };
+    }
+  },
+
+  // Unassign teacher from class/subject by assignment ID
+  unassignTeacher: async (assignmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('teacher_classes')
+        .delete()
+        .eq('id', assignmentId);
+
+      if (error) {
+        console.error('Error unassigning teacher:', error);
+        return { error: error.message };
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Unexpected error in unassignTeacher:', error);
       return { error: error.message || 'Unknown error occurred' };
     }
   },

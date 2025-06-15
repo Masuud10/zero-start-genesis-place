@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ClassManagementService } from '@/services/classManagementService';
@@ -35,6 +34,38 @@ export const useRelationships = () => {
       toast({
         title: "Error",
         description: "Failed to assign teacher to class",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const unassignTeacher = async (assignmentId: string) => {
+    try {
+      setLoading(true);
+      const { error } = await ClassManagementService.unassignTeacher(assignmentId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to unassign teacher.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Success",
+        description: "Teacher unassigned successfully.",
+      });
+      return true;
+    } catch (error) {
+      console.error('Error unassigning teacher:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while unassigning teacher.",
         variant: "destructive",
       });
       return false;
@@ -119,6 +150,7 @@ export const useRelationships = () => {
   return {
     loading,
     assignTeacher,
+    unassignTeacher,
     enrollStudent,
     linkParent
   };
