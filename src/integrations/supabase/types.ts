@@ -1204,6 +1204,7 @@ export type Database = {
       }
       grades: {
         Row: {
+          cbc_performance_level: string | null
           class_id: string | null
           comments: string | null
           created_at: string | null
@@ -1211,13 +1212,14 @@ export type Database = {
           id: string
           is_immutable: boolean | null
           is_released: boolean | null
-          max_score: number
+          letter_grade: string | null
+          max_score: number | null
           percentage: number | null
           position: number | null
           reviewed_at: string | null
           reviewed_by: string | null
           school_id: string
-          score: number
+          score: number | null
           status: string | null
           student_id: string | null
           subject_id: string | null
@@ -1227,6 +1229,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
           created_at?: string | null
@@ -1234,13 +1237,14 @@ export type Database = {
           id?: string
           is_immutable?: boolean | null
           is_released?: boolean | null
-          max_score?: number
+          letter_grade?: string | null
+          max_score?: number | null
           percentage?: number | null
           position?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           school_id: string
-          score: number
+          score?: number | null
           status?: string | null
           student_id?: string | null
           subject_id?: string | null
@@ -1250,6 +1254,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
           created_at?: string | null
@@ -1257,13 +1262,14 @@ export type Database = {
           id?: string
           is_immutable?: boolean | null
           is_released?: boolean | null
-          max_score?: number
+          letter_grade?: string | null
+          max_score?: number | null
           percentage?: number | null
           position?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           school_id?: string
-          score?: number
+          score?: number | null
           status?: string | null
           student_id?: string | null
           subject_id?: string | null

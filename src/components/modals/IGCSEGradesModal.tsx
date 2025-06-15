@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -115,12 +114,13 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         student_id: selectedStudent,
         class_id: selectedClass,
         subject_id: subjectToInsert,
-        score: null, // No numeric score for IGCSE
-        comments: `IGCSE Grade: ${gradeToInsert}${useCustomSubject ? ` (${freeformSubject})` : ""}`,
+        score: null,
+        max_score: null,
+        letter_grade: gradeToInsert,
+        comments: useCustomSubject ? `Custom Subject: ${freeformSubject}` : undefined,
         submitted_by: user?.id,
         status: 'submitted',
         term: academicInfo.term,
-        max_score: 0, // Assuming 0 as there is no numeric score
       });
       if (error) {
         throw error;

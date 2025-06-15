@@ -27,6 +27,7 @@ import { getGradingPermissions } from '@/utils/grading-permissions';
 import { UserRole } from '@/types/user';
 import GradesForm from './GradesForm';
 import GradeActionButtons from './GradeActionButtons';
+import CBCGradesForm from './CBCGradesForm';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -56,6 +57,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const [maxScore, setMaxScore] = useState('100');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [status, setStatus] = useState<'draft'|'submitted'|'approved'|'rejected'|'released'>('draft');
+  const [cbcLevel, setCbcLevel] = useState('');
 
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -128,13 +130,22 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     setMaxScore('100');
     setSelectedStudent('');
     setStatus('draft');
+    setCbcLevel('');
   };
 
   const handleSubmit = async () => {
-    if (!selectedClass || !selectedSubject || !selectedTerm || !selectedExamType || !selectedStudent || !score) {
+    const isCBC = curriculumType === 'cbc';
+    if (
+      !selectedClass ||
+      !selectedSubject ||
+      !selectedTerm ||
+      !selectedExamType ||
+      !selectedStudent ||
+      (isCBC ? !cbcLevel : !score)
+    ) {
       toast({
         title: "Error",
-        description: "Please fill in all fields.",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       });
       return;
@@ -168,13 +179,14 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         student_id: selectedStudent,
         subject_id: selectedSubject,
         class_id: selectedClass,
-        score: parseFloat(score),
-        max_score: parseFloat(maxScore),
-        percentage: (parseFloat(score) / parseFloat(maxScore)) * 100,
         term: selectedTerm,
         exam_type: selectedExamType,
         submitted_by: user?.id,
         status: resolvedUserRole === "teacher" ? 'submitted' : status, // teachers submit, principals may set
+        ...(isCBC
+          ? { cbc_performance_level: cbcLevel, score: null, max_score: null, percentage: null }
+          : { score: parseFloat(score), max_score: parseFloat(maxScore), percentage: (parseFloat(score) / parseFloat(maxScore)) * 100 }
+        )
       };
 
       const { error } = await supabase
@@ -244,28 +256,49 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
             </span>
           </DialogTitle>
         </DialogHeader>
-        <GradesForm
-          classes={classes}
-          selectedClass={selectedClass}
-          setSelectedClass={setSelectedClass}
-          subjects={subjects}
-          selectedSubject={selectedSubject}
-          setSelectedSubject={setSelectedSubject}
-          students={students}
-          selectedStudent={selectedStudent}
-          setSelectedStudent={setSelectedStudent}
-          selectedTerm={selectedTerm}
-          setSelectedTerm={setSelectedTerm}
-          selectedExamType={selectedExamType}
-          setSelectedExamType={setSelectedExamType}
-          score={score}
-          setScore={setScore}
-          maxScore={maxScore}
-          setMaxScore={setMaxScore}
-          canInput={canInput}
-          isPrincipal={isPrincipal}
-          canOverride={canOverride}
-        />
+        {curriculumType === 'cbc' ? (
+          <CBCGradesForm
+            classes={classes}
+            selectedClass={selectedClass}
+            setSelectedClass={setSelectedClass}
+            subjects={subjects}
+            selectedSubject={selectedSubject}
+            setSelectedSubject={setSelectedSubject}
+            students={students}
+            selectedStudent={selectedStudent}
+            setSelectedStudent={setSelectedStudent}
+            selectedTerm={selectedTerm}
+            setSelectedTerm={setSelectedTerm}
+            selectedExamType={selectedExamType}
+            setSelectedExamType={setSelectedExamType}
+            cbcLevel={cbcLevel}
+            setCbcLevel={setCbcLevel}
+            canInput={canInput}
+          />
+        ) : (
+          <GradesForm
+            classes={classes}
+            selectedClass={selectedClass}
+            setSelectedClass={setSelectedClass}
+            subjects={subjects}
+            selectedSubject={selectedSubject}
+            setSelectedSubject={setSelectedSubject}
+            students={students}
+            selectedStudent={selectedStudent}
+            setSelectedStudent={setSelectedStudent}
+            selectedTerm={selectedTerm}
+            setSelectedTerm={setSelectedTerm}
+            selectedExamType={selectedExamType}
+            setSelectedExamType={setSelectedExamType}
+            score={score}
+            setScore={setScore}
+            maxScore={maxScore}
+            setMaxScore={setMaxScore}
+            canInput={canInput}
+            isPrincipal={isPrincipal}
+            canOverride={canOverride}
+          />
+        )}
         <DialogFooter>
           {(isTeacher || isPrincipal) && (
             <GradeActionButtons

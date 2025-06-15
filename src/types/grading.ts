@@ -28,9 +28,11 @@ export interface Grade {
   studentId: string;
   subjectId: string;
   classId: string;
-  score: number;
-  maxScore: number;
-  percentage: number;
+  score?: number | null;
+  maxScore?: number | null;
+  letter_grade?: string | null;
+  cbc_performance_level?: string | null;
+  percentage?: number | null;
   position?: number;
   term: string;
   examType: string;
