@@ -249,8 +249,8 @@ const PrincipalDashboard = () => {
         <RecentActivitiesPanel recentActivities={recentActivities} />
 
         {/* ======= 🧠 SMART TIMETABLE INTEGRATION ======= */}
-        <SmartTimetableGenerator term={String(new Date().getFullYear())} onGenerationSuccess={() => {}} />
-        <SmartTimetableReview term={String(new Date().getFullYear())} onPublish={() => {}} />
+        <SmartTimetableGenerator term={String(new Date().getFullYear())} onGenerationSuccess={handleEntityCreated} />
+        <SmartTimetableReview term={String(new Date().getFullYear())} onPublish={handleEntityCreated} />
 
         {/* ======= 🧠 PRINCIPAL MANAGEMENT PANELS ======= */}
         <PrincipalManagementPanel />

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,11 +30,11 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   let filter: Record<string, any> = {};
-  if (user.role === "teacher") {
+  if (user?.role === "teacher") {
     filter = { teacher_id: user.id };
-  } else if (user.role === "student" && classId) {
+  } else if (user?.role === "student" && classId) {
     filter = { class_id: classId };
-  } else if (user.role === "parent" && studentId && classId) {
+  } else if (user?.role === "parent" && studentId && classId) {
     filter = { class_id: classId };
   }
 
@@ -76,7 +77,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
     if (user?.school_id) {
       fetch();
     }
-  }, [user?.school_id, term, classId, studentId]);
+  }, [user?.school_id, term, classId, studentId, JSON.stringify(filter)]);
 
   return (
     <div>

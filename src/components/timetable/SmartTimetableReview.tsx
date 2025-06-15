@@ -63,13 +63,23 @@ const SmartTimetableReview = ({
   }, [user?.school_id, term]);
 
   const handlePublish = async () => {
+    if (!user?.school_id) {
+      toast({
+        title: "Publish Failed",
+        description: "User is not associated with a school.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await supabase
+      const queryBuilder = supabase
         .from("timetables")
         .update({ is_active: true })
         .eq("school_id", user.school_id)
         .eq("term", term);
+
+      const { error } = await (queryBuilder as any);
       
       if (error) throw new Error(error.message);
       

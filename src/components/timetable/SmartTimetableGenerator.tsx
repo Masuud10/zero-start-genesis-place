@@ -17,6 +17,14 @@ const SmartTimetableGenerator = ({
   const { toast } = useToast();
 
   const handleGenerate = async () => {
+    if (!user?.school_id) {
+      toast({
+        title: "Generation Failed",
+        description: "User not associated with a school.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-timetable", {
