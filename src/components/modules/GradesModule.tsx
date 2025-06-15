@@ -2,10 +2,9 @@
 import React, { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissions, PERMISSIONS } from '@/utils/permissions';
+import { usePermissions } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
 import { useClasses } from '@/hooks/useClasses';
-
 // Split out UI components
 import ClassFilterBar from '@/components/grades/ClassFilterBar';
 import GradeStatsCards from '@/components/grades/GradeStatsCards';
@@ -43,12 +42,15 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   // Filter mock students by class (simulate: every student in every class in demo)
   const filteredStudents = ALL_MOCK_STUDENTS; // Replace with actual filter for real implementation
 
+  // Ensure type safety for examType for GradingSession
+  const mockExamType: "MID_TERM" | "OPENER" | "END_TERM" = "MID_TERM";
+
   const mockGradingSession = {
     id: 'mock-session',
     classId: selectedClassId || 'mock-class',
     subjectId: 'mock-subject',
     term: 'Term 1',
-    examType: 'MID_TERM', // Correct string literal
+    examType: mockExamType,
     maxScore: 100,
     teacherId: 'mock-teacher',
     createdAt: new Date(),
@@ -59,7 +61,7 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   const mockClassId = selectedClassId || "mock-class";
   const mockSubjectId = "mock-subject";
   const mockTerm = "Term 1";
-  const mockExamType: "MID_TERM" | "OPENER" | "END_TERM" = "MID_TERM"; // Added explicit typing
+  // Use exact union as above for extra props
   const mockMaxScore = 100;
   const mockStudents = useMemo(
     () =>
@@ -92,11 +94,11 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   };
 
   // Early access check
-  if (!hasPermission(PERMISSIONS.VIEW_GRADEBOOK)) {
+  if (!hasPermission('view_gradebook')) {
     return (
       <NoGradebookPermission
         role={user?.role}
-        hasPermission={hasPermission(PERMISSIONS.VIEW_GRADEBOOK)}
+        hasPermission={hasPermission('view_gradebook')}
       />
     );
   }

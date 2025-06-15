@@ -8,11 +8,11 @@ import BulkGradingTable from "@/components/grading/BulkGradingTable";
 import BulkGradeUploadModal from "@/components/grading/BulkGradeUploadModal";
 import GradesModal from "@/components/modals/GradesModal";
 import { GradingSession } from "@/types/grading";
-import { PermissionKey } from "@/utils/permissions"; // Added import
+import { PermissionKey } from "@/utils/permissions";
 
 interface GradeOverviewPanelProps {
   user: any;
-  hasPermission: (p: PermissionKey) => boolean; // Correct usage
+  hasPermission: (p: PermissionKey) => boolean;
   mockGradingSession: GradingSession;
   mockClassId: string;
   mockSubjectId: string;
@@ -51,7 +51,8 @@ const GradeOverviewPanel: React.FC<GradeOverviewPanelProps> = ({
 }) => {
   // Roles
   const isAdmin = user?.role === "edufam_admin";
-  const canEdit = hasPermission(PERMISSIONS.EDIT_GRADEBOOK);
+  const canEdit = hasPermission('edit_gradebook'); // Use permission key string
+  // No need for PERMISSIONS.VIEW_GRADEBOOK, handled via parent and permission key string
 
   return (
     <Card>
@@ -167,3 +168,4 @@ const GradeOverviewPanel: React.FC<GradeOverviewPanelProps> = ({
   );
 };
 export default GradeOverviewPanel;
+
