@@ -1,4 +1,3 @@
-
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -82,7 +81,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'grades', label: 'Grades Management', icon: GraduationCap, roles: ['principal'] },
       { id: 'attendance', label: 'Attendance Management', icon: CalendarCheck, roles: ['principal'] },
       { id: 'students', label: 'Student Management', icon: Users, roles: ['principal'] },
-      { id: 'finance', label: 'Finance Overview', icon: DollarSign, roles: ['principal'] },
+      { id: 'finance', label: 'Financial Management', icon: DollarSign, roles: ['principal'] },
       { id: 'timetable', label: 'Timetable Management', icon: Calendar, roles: ['principal'] },
       { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['principal'] },
       { id: 'messages', label: 'School Messages', icon: MessageSquare, roles: ['principal'] },

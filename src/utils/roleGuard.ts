@@ -1,14 +1,15 @@
+
 import { UserRole } from '@/types/user';
 
 // Define role hierarchy and permissions
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   edufam_admin: ['*'], // Full access
   elimisha_admin: ['*'], // Mirror edufam_admin
-  principal: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
-  teacher: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports'],
-  school_owner: ['dashboard', 'analytics', 'finance', 'announcements', 'messages', 'reports'],
-  finance_officer: ['dashboard', 'analytics', 'finance', 'announcements', 'messages', 'reports'],
-  parent: ['dashboard', 'grades', 'attendance', 'finance', 'announcements', 'messages']
+  principal: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support', 'security'],
+  teacher: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports', 'security', 'support'],
+  school_owner: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'security', 'support'],
+  finance_officer: ['dashboard', 'analytics', 'finance', 'students', 'reports', 'announcements', 'messages', 'attendance', 'timetable', 'security', 'support'],
+  parent: ['dashboard', 'grades', 'attendance', 'finance', 'timetable', 'announcements', 'messages', 'security', 'support']
 };
 
 export const hasAccess = (userRole: UserRole | undefined, section: string): boolean => {

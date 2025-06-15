@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,8 +17,6 @@ import ReportActionsPanel from './principal/ReportActionsPanel';
 import EntityPreviewPanels from './principal/EntityPreviewPanels';
 import QuickActionsCard from './principal/QuickActionsCard';
 import RecentActivitiesPanel from './principal/RecentActivitiesPanel';
-import SmartTimetableGenerator from "@/components/timetable/SmartTimetableGenerator";
-import SmartTimetableReview from "@/components/timetable/SmartTimetableReview";
 import PrincipalManagementPanel from "./principal/PrincipalManagementPanel";
 
 // Add missing types for clarity
@@ -243,18 +240,9 @@ const PrincipalDashboard = () => {
           </div>
         </div>
 
-        {/* Reports */}
-        <ReportActionsPanel
-          downloadingReport={downloadingReport}
-          setDownloadingReport={setDownloadingReport}
-          user={user}
-          schoolId={schoolId}
-          toast={toast}
-        />
-
         {/* Statistics cards */}
         <PrincipalStatsCards stats={stats} />
-
+        
         {/* Manual quick actions */}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setAddClassOpen(true)}>
@@ -275,10 +263,6 @@ const PrincipalDashboard = () => {
 
         <RecentActivitiesPanel recentActivities={recentActivities} />
 
-        {/* Timetable actions */}
-        <SmartTimetableGenerator term={String(new Date().getFullYear())} onGenerationSuccess={handleEntityCreated} />
-        <SmartTimetableReview term={String(new Date().getFullYear())} onPublish={handleEntityCreated} />
-
         {/* Management panels for classes, subjects, teachers, students */}
         <PrincipalManagementPanel />
 
@@ -291,6 +275,15 @@ const PrincipalDashboard = () => {
           stats={stats}
           loading={loadingEntities}
           error={errorEntities}
+        />
+
+        {/* Reports */}
+        <ReportActionsPanel
+          downloadingReport={downloadingReport}
+          setDownloadingReport={setDownloadingReport}
+          user={user}
+          schoolId={schoolId}
+          toast={toast}
         />
 
         {/* MODALS */}
