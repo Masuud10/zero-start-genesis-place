@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -22,12 +23,30 @@ const fetchAnalyticsData = async (schoolId: string, filters: FinanceOfficerAnaly
   // For now, we ignore filters until they are implemented properly.
   // We'll fetch data for the whole school.
   
-  // 1. Fetch fees, students and classes
-  const { data: fees, error: feesError } = await supabase
+  // 1. Fetch fees and related student data in separate queries to avoid join issues
+  const { data: feesData, error: feesError } = await supabase
     .from('fees')
-    .select('amount, paid_amount, due_date, mpesa_code, students(id, name, classes(name))')
+    .select('amount, paid_amount, due_date, mpesa_code, student_id')
     .eq('school_id', schoolId);
   if (feesError) throw new Error(`Fetching fees: ${feesError.message}`);
+
+  const studentIds = feesData.map(f => f.student_id).filter((id): id is string => id !== null && id !== undefined);
+  
+  let studentsMap: Record<string, { id: string; name: string; classes: { name: string } | null }> = {};
+  if (studentIds.length > 0) {
+    const { data: students, error: studentsError } = await supabase
+      .from('students')
+      .select('id, name, classes ( name )')
+      .in('id', studentIds);
+    if (studentsError) throw new Error(`Fetching students: ${studentsError.message}`);
+    
+    studentsMap = students.reduce((acc, s) => {
+      acc[s.id] = { id: s.id, name: s.name, classes: s.classes as { name: string } | null };
+      return acc;
+    }, {});
+  }
+
+  const fees = feesData.map(f => ({ ...f, students: f.student_id ? studentsMap[f.student_id] : null }));
 
   // 2. Fetch financial transactions
   const { data: transactions, error: txError } = await supabase
@@ -36,6 +55,13 @@ const fetchAnalyticsData = async (schoolId: string, filters: FinanceOfficerAnaly
     .eq('school_id', schoolId)
     .eq('transaction_type', 'payment');
   if (txError) throw new Error(`Fetching transactions: ${txError.message}`);
+
+  // 3. Fetch expenses
+  const { data: expenses, error: expensesError } = await supabase
+    .from('expenses')
+    .select('amount, category')
+    .eq('school_id', schoolId);
+  if (expensesError) throw new Error(`Fetching expenses: ${expensesError.message}`);
 
   // --- Process Data ---
 
@@ -74,6 +100,18 @@ const fetchAnalyticsData = async (schoolId: string, filters: FinanceOfficerAnaly
   }, {} as Record<string, { date: string; amount: number; transactions: number }>);
   const dailyTransactions = Object.values(dailyTransactionsMap).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+  // Expense Breakdown
+  const expenseBreakdownMap = expenses.reduce((acc, expense) => {
+    const category = expense.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = { category, amount: 0 };
+    }
+    acc[category].amount += Number(expense.amount) || 0;
+    return acc;
+  }, {} as Record<string, { category: string; amount: number }>);
+  const totalExpenses = Object.values(expenseBreakdownMap).reduce((sum, item) => sum + item.amount, 0);
+  const expenseBreakdown = Object.values(expenseBreakdownMap).map(item => ({...item, name: item.category, value: item.amount, percentage: totalExpenses > 0 ? parseFloat(((item.amount / totalExpenses) * 100).toFixed(1)) : 0}));
+
   // Defaulters List
   const defaultersMap = fees.reduce((acc, fee) => {
     const balance = (fee.amount || 0) - (fee.paid_amount || 0);
@@ -93,10 +131,13 @@ const fetchAnalyticsData = async (schoolId: string, filters: FinanceOfficerAnaly
   }, {} as Record<string, {student: string, class: string, amount: number, days: number}>);
   const defaultersList = Object.values(defaultersMap).sort((a,b) => b.amount - a.amount).slice(0, 5);
 
+  const netProfit = totalCollected - totalExpenses;
+
   return {
-    keyMetrics: { totalCollected, collectionRate, outstanding, mpesaTransactions, defaulterCount: Object.keys(defaultersMap).length },
+    keyMetrics: { totalCollected, collectionRate, outstanding, mpesaTransactions, defaulterCount: Object.keys(defaultersMap).length, totalExpenses, netProfit },
     feeCollectionData: feeCollectionByClass,
     dailyTransactions,
+    expenseBreakdown,
     defaultersList
   };
 };
@@ -145,12 +186,12 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
     return <p>No data available.</p>;
   }
 
-  const { keyMetrics, feeCollectionData, dailyTransactions, defaultersList } = data;
+  const { keyMetrics, feeCollectionData, dailyTransactions, expenseBreakdown, defaultersList } = data;
 
   return (
     <div className="space-y-6">
       {/* Key Financial Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
@@ -158,6 +199,28 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
           <CardContent>
             <div className="text-2xl font-bold text-green-600">KES {keyMetrics.totalCollected.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">This term</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">KES {keyMetrics.totalExpenses.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">This term</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${keyMetrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              KES {keyMetrics.netProfit.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">Collected - Expenses</p>
           </CardContent>
         </Card>
 
@@ -210,7 +273,7 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily Transaction Trends */}
         <Card>
           <CardHeader>
@@ -231,6 +294,29 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
                 />
               </LineChart>
             </ChartContainer>
+          </CardContent>
+        </Card>
+        
+        {/* Expense Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Expense Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expenseBreakdown.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-64">
+                <PieChart>
+                  <Pie data={expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      {expenseBreakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <p className="text-center text-muted-foreground p-4">No expense data available.</p>
+            )}
           </CardContent>
         </Card>
       </div>

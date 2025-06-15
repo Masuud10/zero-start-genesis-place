@@ -822,6 +822,53 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          receipt_url: string | null
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          category: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          receipt_url?: string | null
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          receipt_url?: string | null
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fees: {
         Row: {
           academic_year: string | null
