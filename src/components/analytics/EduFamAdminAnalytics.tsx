@@ -1,276 +1,182 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEduFamAnalytics } from "@/hooks/useEduFamAnalytics";
+import { useClasses } from "@/hooks/useClasses";
+import { useToast } from "@/hooks/use-toast";
 
-interface EduFamAdminAnalyticsProps {
-  filters: {
-    term: string;
-  };
-}
+const EduFamAdminAnalytics = () => {
+  // Filter UI state
+  const [schoolId, setSchoolId] = useState<string | undefined>(undefined);
+  const [classId, setClassId] = useState<string | undefined>(undefined);
+  const [dateFilter, setDateFilter] = useState("this_month");
+  // Date filter logic
+  const now = new Date();
+  let startDate: string | undefined;
+  let endDate: string | undefined;
+  if (dateFilter === "this_month") {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+  } else if (dateFilter === "last_month") {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    endDate = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+  } else {
+    startDate = undefined;
+    endDate = undefined;
+  }
 
-const EduFamAdminAnalytics = ({ filters }: EduFamAdminAnalyticsProps) => {
-  // Mock data for system-wide analytics
-  const networkStats = [
-    { school: 'Greenwood Primary', students: 450, teachers: 18, performance: 85, uptime: 99.8 },
-    { school: 'Riverside Academy', students: 320, teachers: 14, performance: 78, uptime: 99.5 },
-    { school: 'Sunshine School', students: 380, teachers: 16, performance: 82, uptime: 99.9 },
-    { school: 'Oak Tree Primary', students: 290, teachers: 12, performance: 79, uptime: 99.2 },
+  // Example: fetch classes for school filter. (Can be replaced if multi-school selection is expanded)
+  const { classes } = useClasses();
+
+  const { summary, loading, error, retry } = useEduFamAnalytics({
+    schoolId,
+    classId,
+    startDate,
+    endDate,
+  });
+
+  const { toast } = useToast();
+
+  // Simulated school options for demonstration (replace with real schools)
+  const schoolOptions = [
+    { id: "", name: "All Schools" },
+    { id: "school1", name: "Greenwood Primary" },
+    { id: "school2", name: "Riverside Academy" },
+    { id: "school3", name: "Sunshine School" },
+    { id: "school4", name: "Oak Tree Primary" },
   ];
 
-  const transactionVolume = [
-    { month: 'Jan', volume: 2500000, schools: 4, transactions: 1250 },
-    { month: 'Feb', volume: 2800000, schools: 4, transactions: 1380 },
-    { month: 'Mar', volume: 3200000, schools: 4, transactions: 1450 },
-    { month: 'Apr', volume: 2900000, schools: 4, transactions: 1320 },
-    { month: 'May', volume: 3100000, schools: 4, transactions: 1420 },
-  ];
-
-  const supportTickets = [
-    { category: 'Technical', open: 12, resolved: 45, avgTime: 4.2 },
-    { category: 'Feature Request', open: 8, resolved: 23, avgTime: 12.5 },
-    { category: 'Billing', open: 3, resolved: 18, avgTime: 2.1 },
-    { category: 'Training', open: 5, resolved: 31, avgTime: 6.8 },
-  ];
-
-  const featureUsage = [
-    { feature: 'Grading Module', usage: 95, schools: 4 },
-    { feature: 'Attendance Tracking', usage: 88, schools: 4 },
-    { feature: 'Fee Collection', usage: 92, schools: 4 },
-    { feature: 'Analytics', usage: 76, schools: 3 },
-    { feature: 'Messaging', usage: 83, schools: 4 },
-  ];
-
-  const systemHealth = [
-    { metric: 'API Response Time', value: '245ms', status: 'good', target: '<300ms' },
-    { metric: 'Database Performance', value: '98.2%', status: 'excellent', target: '>95%' },
-    { metric: 'Error Rate', value: '0.12%', status: 'good', target: '<0.5%' },
-    { metric: 'User Satisfaction', value: '4.7/5', status: 'excellent', target: '>4.0' },
-  ];
-
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-  const chartConfig = {
-    performance: { label: 'Performance %', color: '#3b82f6' },
-    volume: { label: 'Transaction Volume', color: '#10b981' },
-    usage: { label: 'Usage %', color: '#8b5cf6' },
-    uptime: { label: 'Uptime %', color: '#f59e0b' },
-  };
-
+  // Filter UI and summary cards
   return (
     <div className="space-y-6">
-      {/* System Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <Select value={schoolId ?? ""} onValueChange={val => setSchoolId(val || undefined)}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by school" />
+          </SelectTrigger>
+          <SelectContent>
+            {schoolOptions.map(opt => (
+              <SelectItem key={opt.id} value={opt.id}>
+                {opt.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={classId ?? ""} onValueChange={val => setClassId(val || undefined)}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by class" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Classes</SelectItem>
+            {classes.map(cls => (
+              <SelectItem key={cls.id} value={cls.id}>
+                {cls.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={dateFilter} onValueChange={setDateFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="this_month">This Month</SelectItem>
+            <SelectItem value="last_month">Last Month</SelectItem>
+            <SelectItem value="all_time">All Time</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Schools</CardTitle>
+          <CardHeader>
+            <CardTitle>Grades</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">4</div>
-            <p className="text-xs text-muted-foreground">100% operational</p>
+            {loading ? (
+              <div>Loading grades...</div>
+            ) : error ? (
+              <div className="text-red-600">{error}</div>
+            ) : summary ? (
+              <div>
+                <div className="font-bold text-2xl">{summary.grades.totalGrades ?? 0}</div>
+                <div className="text-muted-foreground">Total Grades Recorded</div>
+                <div className="font-semibold mt-2">
+                  Avg. Score:{" "}
+                  {summary.grades.avgScore !== null
+                    ? `${summary.grades.avgScore.toFixed(1)}%`
+                    : "N/A"}
+                </div>
+              </div>
+            ) : (
+              <div>No data</div>
+            )}
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+          <CardHeader>
+            <CardTitle>Attendance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">1,623</div>
-            <p className="text-xs text-muted-foreground">+8% this month</p>
+            {loading ? (
+              <div>Loading attendance...</div>
+            ) : error ? (
+              <div className="text-red-600">{error}</div>
+            ) : summary ? (
+              <div>
+                <div className="font-bold text-2xl">{summary.attendance.records ?? 0}</div>
+                <div className="text-muted-foreground">Attendance Records</div>
+                <div className="font-semibold mt-2">
+                  Avg. Attendance:{" "}
+                  {summary.attendance.avgAttendance !== null
+                    ? `${summary.attendance.avgAttendance.toFixed(1)}%`
+                    : "N/A"}
+                </div>
+              </div>
+            ) : (
+              <div>No data</div>
+            )}
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
+          <CardHeader>
+            <CardTitle>Finance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">99.7%</div>
-            <p className="text-xs text-muted-foreground">Above SLA (99.5%)</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">KES 2.8M</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            {loading ? (
+              <div>Loading finances...</div>
+            ) : error ? (
+              <div className="text-red-600">{error}</div>
+            ) : summary ? (
+              <div>
+                <div className="font-bold text-2xl">
+                  KES{" "}
+                  {summary.finance.totalAmount !== null
+                    ? summary.finance.totalAmount.toLocaleString()
+                    : "0"}
+                </div>
+                <div className="text-muted-foreground">Transactions: {summary.finance.transactionCount}</div>
+              </div>
+            ) : (
+              <div>No data</div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Network Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>School Network Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-80">
-            <BarChart data={networkStats}>
-              <XAxis dataKey="school" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="performance" fill="var(--color-performance)" name="Performance %" />
-              <Bar dataKey="uptime" fill="var(--color-uptime)" name="Uptime %" />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Transaction Volume */}
-        <Card>
-          <CardHeader>
-            <CardTitle>MPESA Transaction Volume</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <LineChart data={transactionVolume}>
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="volume" 
-                  stroke="var(--color-volume)" 
-                  strokeWidth={2}
-                  name="Volume (KES)"
-                />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* Feature Usage */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Feature Adoption Rates</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {featureUsage.map((feature) => (
-                <div key={feature.feature} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{feature.feature}</p>
-                    <p className="text-sm text-muted-foreground">{feature.schools} schools using</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-32">
-                      <Progress value={feature.usage} className="h-2" />
-                    </div>
-                    <Badge variant={feature.usage >= 90 ? 'default' : feature.usage >= 75 ? 'secondary' : 'destructive'}>
-                      {feature.usage}%
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Support Analytics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Support Ticket Analytics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {supportTickets.map((ticket) => (
-              <div key={ticket.category} className="p-4 border rounded-lg">
-                <h4 className="font-medium mb-2">{ticket.category}</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Open:</span>
-                    <span className="font-medium text-red-600">{ticket.open}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Resolved:</span>
-                    <span className="font-medium text-green-600">{ticket.resolved}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Avg Time:</span>
-                    <span className="font-medium">{ticket.avgTime}h</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* System Health Monitoring */}
-      <Card>
-        <CardHeader>
-          <CardTitle>System Health Monitoring</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {systemHealth.map((health) => (
-              <div key={health.metric} className="p-4 border rounded-lg">
-                <h4 className="font-medium mb-2">{health.metric}</h4>
-                <div className="text-2xl font-bold mb-1">
-                  <span className={
-                    health.status === 'excellent' ? 'text-green-600' : 
-                    health.status === 'good' ? 'text-blue-600' : 'text-red-600'
-                  }>
-                    {health.value}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">Target: {health.target}</p>
-                <Badge 
-                  variant={
-                    health.status === 'excellent' ? 'default' : 
-                    health.status === 'good' ? 'secondary' : 'destructive'
-                  }
-                >
-                  {health.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* School Details Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>School Network Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {networkStats.map((school) => (
-              <div key={school.school} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">{school.school}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {school.students} students • {school.teachers} teachers
-                  </p>
-                </div>
-                <div className="flex gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="font-medium">{school.performance}%</div>
-                    <div className="text-muted-foreground">Performance</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium text-green-600">{school.uptime}%</div>
-                    <div className="text-muted-foreground">Uptime</div>
-                  </div>
-                  <Badge variant={school.performance >= 80 ? 'default' : 'secondary'}>
-                    {school.performance >= 80 ? 'Healthy' : 'Needs Attention'}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Retry on error */}
+      {error && (
+        <div className="py-4">
+          <button
+            className="bg-red-100 text-red-800 px-4 py-2 rounded"
+            onClick={() => retry()}
+          >
+            Retry
+          </button>
+        </div>
+      )}
     </div>
   );
 };
