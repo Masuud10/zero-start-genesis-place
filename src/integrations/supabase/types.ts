@@ -869,6 +869,88 @@ export type Database = {
           },
         ]
       }
+      fee_structure_items: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          fee_structure_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          fee_structure_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          fee_structure_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_structure_items_fee_structure_id_fkey"
+            columns: ["fee_structure_id"]
+            isOneToOne: false
+            referencedRelation: "fee_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_structures: {
+        Row: {
+          academic_year: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          school_id: string
+          term: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          school_id: string
+          term: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          school_id?: string
+          term?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_structures_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fees: {
         Row: {
           academic_year: string | null

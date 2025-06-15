@@ -73,3 +73,25 @@ export interface AcademicTerm {
   isCurrent: boolean;
   createdAt: Date;
 }
+
+export interface FeeStructure {
+  id: string;
+  school_id: string;
+  name: string;
+  academic_year: string;
+  term: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeeStructureItem {
+  id: string;
+  fee_structure_id: string;
+  name: string;
+  description?: string | null;
+  amount: number;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
