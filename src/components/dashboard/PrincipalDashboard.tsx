@@ -243,22 +243,11 @@ const PrincipalDashboard = () => {
         {/* Statistics cards */}
         <PrincipalStatsCards stats={stats} />
         
-        {/* Manual quick actions */}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setAddClassOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add Class
-          </Button>
-          <Button variant="outline" onClick={() => setAddParentOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add Parent
-          </Button>
-        </div>
-
-        {/* Quick action panel for adding parent/teacher */}
+        {/* Quick action panel for adding parent/teacher/class */}
         <QuickActionsCard
           onAddParent={() => setAddParentOpen(true)}
           onAddTeacher={() => setAddTeacherOpen(true)}
+          onAddClass={() => setAddClassOpen(true)}
         />
 
         <RecentActivitiesPanel recentActivities={recentActivities} />

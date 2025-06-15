@@ -7,11 +7,13 @@ import PrincipalQuickActions from "./PrincipalQuickActions";
 interface QuickActionsCardProps {
   onAddParent: () => void;
   onAddTeacher: () => void;
+  onAddClass: () => void;
 }
 
 const QuickActionsCard: React.FC<QuickActionsCardProps> = ({ 
   onAddParent, 
-  onAddTeacher 
+  onAddTeacher,
+  onAddClass
 }) => (
   <Card>
     <CardHeader>
@@ -27,6 +29,7 @@ const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
       <PrincipalQuickActions
         onAddParent={onAddParent}
         onAddTeacher={onAddTeacher}
+        onAddClass={onAddClass}
       />
     </CardContent>
   </Card>
