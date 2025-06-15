@@ -1,4 +1,6 @@
 
+// Edufam Analytics Hook: Returns summary objects for grades, attendance, and finance for edufam_admin using summary views
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,21 +9,20 @@ import { useAnalyticsPermissions } from "./useAnalyticsPermissions";
 export interface AnalyticsSummary {
   grades: {
     totalGrades: number;
-    avgScore: number | null;
+    averageGrade: number | null;
   };
   attendance: {
-    records: number;
-    avgAttendance: number | null;
+    totalRecords: number;
+    attendanceRate: number | null;
   };
   finance: {
-    totalAmount: number | null;
-    transactionCount: number;
+    totalCollected: number | null;
+    transactionsCount: number;
   };
 }
 
 export interface AnalyticsFilter {
   schoolId?: string;
-  classId?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -31,13 +32,9 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Permissions: Ensures the role has access to multi-school analytics
   const { canViewSystemAnalytics } = useAnalyticsPermissions();
   const { user } = useAuth();
-
-  // API guard: Edufam admins only
   const isEdufamAdmin = user?.role === "edufam_admin";
-  // Only fetch analytics if system admin
   const shouldFetch = isEdufamAdmin && canViewSystemAnalytics;
 
   const fetchSummary = useCallback(async () => {
@@ -46,90 +43,88 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
     try {
       if (!shouldFetch) throw new Error("Insufficient permissions for analytics summary.");
-      // Grades aggregation (real data)
+      // --- Grades Summary ---
       let gradesQuery = supabase
-        .from("grades")
-        .select("score, max_score", { count: "exact" }) as any;
-      if (filters.schoolId) gradesQuery = gradesQuery.eq("school_id", filters.schoolId);
-      if (filters.classId) gradesQuery = gradesQuery.eq("class_id", filters.classId);
-      if (filters.startDate) gradesQuery = gradesQuery.gte("created_at", filters.startDate);
-      if (filters.endDate) gradesQuery = gradesQuery.lte("created_at", filters.endDate);
+        .from("school_grades_summary")
+        .select("*")
+        .maybeSingle();
 
-      const { data: grades_raw, count: gradesCount, error: gradesErr } = await gradesQuery;
+      if (filters.schoolId) {
+        gradesQuery = supabase
+          .from("school_grades_summary")
+          .select("*")
+          .eq("school_id", filters.schoolId)
+          .maybeSingle();
+      }
 
+      const { data: gradesSummary, error: gradesErr } = await gradesQuery;
       if (gradesErr) throw gradesErr;
-      const grades: any[] = Array.isArray(grades_raw) ? grades_raw : [];
-      const totalGrades = gradesCount ?? 0;
-      const validScores = grades
-        .map((g) =>
-          g.max_score && g.max_score > 0 ? (g.score * 100) / g.max_score : null
-        )
-        .filter((v) => v !== null);
-      const avgScore =
-        validScores.length > 0
-          ? validScores.reduce((sum, v) => sum + (v as number), 0) /
-            validScores.length
-          : null;
 
-      // Attendance aggregation (real data)
+      // --- Attendance Summary ---
       let attendanceQuery = supabase
-        .from("attendance")
-        .select("status", { count: "exact" }) as any;
-      if (filters.schoolId) attendanceQuery = attendanceQuery.eq("school_id", filters.schoolId);
-      if (filters.classId) attendanceQuery = attendanceQuery.eq("class_id", filters.classId);
-      if (filters.startDate) attendanceQuery = attendanceQuery.gte("date", filters.startDate);
-      if (filters.endDate) attendanceQuery = attendanceQuery.lte("date", filters.endDate);
+        .from("school_attendance_summary")
+        .select("*")
+        .maybeSingle();
 
-      const { data: attendance_raw, count: attendanceCount, error: attErr } = await attendanceQuery;
+      if (filters.schoolId) {
+        attendanceQuery = supabase
+          .from("school_attendance_summary")
+          .select("*")
+          .eq("school_id", filters.schoolId)
+          .maybeSingle();
+      }
 
-      if (attErr) throw attErr;
-      const attendance: any[] = Array.isArray(attendance_raw) ? attendance_raw : [];
-      const records = attendanceCount ?? 0;
-      const presentCount = attendance.filter((a) => a.status === "present").length;
-      const avgAttendance = records > 0 ? (presentCount * 100) / records : null;
+      const { data: attendanceSummary, error: attendanceErr } = await attendanceQuery;
+      if (attendanceErr) throw attendanceErr;
 
-      // Finance aggregation (real data)
+      // --- Finance Summary ---
       let financeQuery = supabase
-        .from("financial_transactions")
-        .select("amount", { count: "exact" }) as any;
-      if (filters.schoolId) financeQuery = financeQuery.eq("school_id", filters.schoolId);
-      if (filters.startDate) financeQuery = financeQuery.gte("created_at", filters.startDate);
-      if (filters.endDate) financeQuery = financeQuery.lte("created_at", filters.endDate);
+        .from("school_finance_summary")
+        .select("*")
+        .maybeSingle();
 
-      const { data: finance_raw, count: transactionCount, error: finErr } = await financeQuery;
+      if (filters.schoolId) {
+        financeQuery = supabase
+          .from("school_finance_summary")
+          .select("*")
+          .eq("school_id", filters.schoolId)
+          .maybeSingle();
+      }
 
-      if (finErr) throw finErr;
-      const finance: any[] = Array.isArray(finance_raw) ? finance_raw : [];
-      const totalAmount = finance.reduce((sum, f) => sum + (f.amount || 0), 0) || null;
+      const { data: financeSummary, error: financeErr } = await financeQuery;
+      if (financeErr) throw financeErr;
 
       setSummary({
         grades: {
-          totalGrades,
-          avgScore,
+          totalGrades: gradesSummary?.grades_count ?? 0,
+          averageGrade:
+            gradesSummary?.average_grade !== null && gradesSummary?.average_grade !== undefined
+              ? Math.round(gradesSummary?.average_grade * 10) / 10
+              : null,
         },
         attendance: {
-          records,
-          avgAttendance,
+          totalRecords: attendanceSummary?.attendance_count ?? 0,
+          attendanceRate:
+            attendanceSummary?.attendance_rate !== null && attendanceSummary?.attendance_rate !== undefined
+              ? Math.round(attendanceSummary?.attendance_rate * 10) / 10
+              : null,
         },
         finance: {
-          totalAmount,
-          transactionCount: transactionCount ?? 0,
+          totalCollected:
+            financeSummary?.total_collected !== null && financeSummary?.total_collected !== undefined
+              ? Number(financeSummary?.total_collected)
+              : null,
+          transactionsCount: financeSummary?.transactions_count ?? 0,
         },
       });
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Failed to load analytics summary");
       setSummary(null);
+      setError(err?.message ?? "Failed to load analytics summary");
     } finally {
       setLoading(false);
     }
-  }, [
-    shouldFetch,
-    filters.schoolId,
-    filters.classId,
-    filters.startDate,
-    filters.endDate,
-  ]);
+  }, [shouldFetch, filters.schoolId, filters.startDate, filters.endDate]);
 
   useEffect(() => {
     fetchSummary();
@@ -138,3 +133,4 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
   return { summary, loading, error, retry: fetchSummary };
 }
 // ... end of file
+

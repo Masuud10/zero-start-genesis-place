@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,9 +47,10 @@ const EduFamAdminAnalytics = () => {
   }
 
   const { classes } = useClasses();
+
+  // Updated: Only pass schoolId (summary is for entire school; no classId granularity)
   const { summary, loading, error, retry } = useEduFamAnalytics({
     schoolId,
-    classId,
     startDate,
     endDate,
   });
@@ -71,7 +71,7 @@ const EduFamAdminAnalytics = () => {
     }
   }, [summary, loading, error, schoolId, classId, startDate, endDate]);
 
-  // Helper: format numbers (handles null/undefined as N/A)
+  // Helper for formatting numbers
   const safeFormat = (value: number | null | undefined, digits = 1) => {
     if (typeof value === "number" && !isNaN(value)) return value.toFixed(digits);
     return "N/A";
@@ -88,10 +88,10 @@ const EduFamAdminAnalytics = () => {
     }
   }, [error, toast]);
 
-  // Defensive checks for summary structure
-  const gradesSummary = summary?.grades || { totalGrades: 0, avgScore: null };
-  const attendanceSummary = summary?.attendance || { records: 0, avgAttendance: null };
-  const financeSummary = summary?.finance || { totalAmount: null, transactionCount: 0 };
+  // Default summary state
+  const gradesSummary = summary?.grades ?? { totalGrades: 0, averageGrade: null };
+  const attendanceSummary = summary?.attendance ?? { totalRecords: 0, attendanceRate: null };
+  const financeSummary = summary?.finance ?? { totalCollected: null, transactionsCount: 0 };
 
   // SCHOOL FILTER
   const schoolOptions = [{ id: "", name: "All Schools" }, ...schools];
@@ -121,11 +121,11 @@ const EduFamAdminAnalytics = () => {
               Failed to load analytics summary.
             </div>
             <div className="mb-4 break-words">
-              {typeof error === "string" ? error : "Unknown error."}
+              {typeof error === "string" ? error : "An error occurred while loading analytics summaries. Please try again."}
             </div>
             <button
               className="bg-red-100 text-red-800 px-4 py-2 rounded"
-              onClick={() => retry()}
+              onClick={retry}
             >
               Retry
             </button>
@@ -135,8 +135,13 @@ const EduFamAdminAnalytics = () => {
     );
   }
 
-  // EMPTY state (no data)
-  if (!summary || (!gradesSummary.totalGrades && !attendanceSummary.records && !financeSummary.transactionCount)) {
+  // EMPTY state (no summary data found for any category)
+  if (
+    !summary ||
+    (gradesSummary.totalGrades === 0 &&
+      attendanceSummary.totalRecords === 0 &&
+      (!financeSummary.transactionsCount || financeSummary.transactionsCount === 0))
+  ) {
     return (
       <div className="w-full flex flex-col items-center gap-6">
         <Card className="max-w-xl w-full">
@@ -145,11 +150,11 @@ const EduFamAdminAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="mb-4 text-gray-500">
-              There is no analytics data available for the selected criteria. Try adjusting the filters, or check that schools are submitting grades, attendance, and finances.
+              No summary data available for the selected school(s). Try adjusting the filters, or check that schools have recent transaction/activity records.
             </div>
             <button
               className="bg-blue-100 text-blue-800 px-4 py-2 rounded"
-              onClick={() => retry()}
+              onClick={retry}
             >
               Retry
             </button>
@@ -161,9 +166,9 @@ const EduFamAdminAnalytics = () => {
 
   // INCOMPLETE state (partial data; show what we have, clarify incomplete)
   const hasPartial =
-    (gradesSummary.totalGrades && !attendanceSummary.records && !financeSummary.transactionCount) ||
-    (!gradesSummary.totalGrades && attendanceSummary.records && !financeSummary.transactionCount) ||
-    (!gradesSummary.totalGrades && !attendanceSummary.records && financeSummary.transactionCount);
+    (gradesSummary.totalGrades && !attendanceSummary.totalRecords && !financeSummary.transactionsCount) ||
+    (!gradesSummary.totalGrades && attendanceSummary.totalRecords && !financeSummary.transactionsCount) ||
+    (!gradesSummary.totalGrades && !attendanceSummary.totalRecords && financeSummary.transactionsCount);
 
   // UI
   return (
@@ -178,19 +183,6 @@ const EduFamAdminAnalytics = () => {
             {schoolOptions.map(opt => (
               <SelectItem key={opt.id} value={opt.id}>
                 {opt.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={classId ?? ""} onValueChange={val => setClassId(val || undefined)}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by class" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Classes</SelectItem>
-            {classes.map(cls => (
-              <SelectItem key={cls.id} value={cls.id}>
-                {cls.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -223,7 +215,7 @@ const EduFamAdminAnalytics = () => {
               <div className="font-bold text-2xl">{gradesSummary.totalGrades}</div>
               <div className="text-muted-foreground">Total Grades Recorded</div>
               <div className="font-semibold mt-2">
-                Avg. Score: {safeFormat(gradesSummary.avgScore)}%
+                Avg. Grade: {safeFormat(gradesSummary.averageGrade)}%
               </div>
             </div>
           </CardContent>
@@ -234,10 +226,10 @@ const EduFamAdminAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div>
-              <div className="font-bold text-2xl">{attendanceSummary.records}</div>
+              <div className="font-bold text-2xl">{attendanceSummary.totalRecords}</div>
               <div className="text-muted-foreground">Attendance Records</div>
               <div className="font-semibold mt-2">
-                Avg. Attendance: {safeFormat(attendanceSummary.avgAttendance)}%
+                Attendance Rate: {safeFormat(attendanceSummary.attendanceRate)}%
               </div>
             </div>
           </CardContent>
@@ -250,11 +242,11 @@ const EduFamAdminAnalytics = () => {
             <div>
               <div className="font-bold text-2xl">
                 KES{" "}
-                {typeof financeSummary.totalAmount === "number" && !isNaN(financeSummary.totalAmount)
-                  ? financeSummary.totalAmount.toLocaleString()
+                {typeof financeSummary.totalCollected === "number" && !isNaN(financeSummary.totalCollected)
+                  ? financeSummary.totalCollected.toLocaleString()
                   : "0"}
               </div>
-              <div className="text-muted-foreground">Transactions: {financeSummary.transactionCount}</div>
+              <div className="text-muted-foreground">Transactions: {financeSummary.transactionsCount}</div>
             </div>
           </CardContent>
         </Card>
