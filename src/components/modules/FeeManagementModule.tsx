@@ -2,16 +2,31 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, PlusCircle, MoreHorizontal } from 'lucide-react';
 import { useFeeStructures } from '@/hooks/useFeeStructures';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import CreateFeeStructureDialog from './fee-management/CreateFeeStructureDialog';
+import AssignFeeStructureDialog from './fee-management/AssignFeeStructureDialog';
+import { FeeStructure } from '@/types/finance';
 
 const FeeManagementModule = () => {
     const { data: feeStructures, isLoading, error } = useFeeStructures();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+    const [selectedFeeStructure, setSelectedFeeStructure] = useState<FeeStructure | null>(null);
+
+    const handleOpenAssignDialog = (structure: FeeStructure) => {
+        setSelectedFeeStructure(structure);
+        setIsAssignDialogOpen(true);
+    };
 
     const renderContent = () => {
         if (isLoading) {
@@ -56,6 +71,7 @@ const FeeManagementModule = () => {
                         <TableHead>Term</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Created At</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -70,6 +86,21 @@ const FeeManagementModule = () => {
                                 </Badge>
                             </TableCell>
                             <TableCell>{new Date(structure.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                            <span className="sr-only">Open menu</span>
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleOpenAssignDialog(structure)}>
+                                            Assign to Class
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -101,6 +132,14 @@ const FeeManagementModule = () => {
                 isOpen={isCreateDialogOpen}
                 onClose={() => setIsCreateDialogOpen(false)}
             />
+
+            {selectedFeeStructure && (
+                <AssignFeeStructureDialog
+                    isOpen={isAssignDialogOpen}
+                    onClose={() => setIsAssignDialogOpen(false)}
+                    feeStructure={selectedFeeStructure}
+                />
+            )}
         </div>
     );
 };

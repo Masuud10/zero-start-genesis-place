@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Users } from 'lucide-react';
+import { DollarSign, Users, Info } from 'lucide-react';
 
 interface FeeDetails {
   totalBalance: number;
@@ -87,6 +86,25 @@ const ParentFinanceView: React.FC = () => {
         <AlertTitle>Error Loading Finances</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
       </Alert>
+    );
+  }
+
+  if (!feeDetails || feeDetails.totalBalance === 0 && Object.keys(feeDetails.balanceByStudent).length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+            <CardTitle>Financial Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center p-4 bg-blue-50 dark:bg-gray-800/20 border border-blue-200 dark:border-gray-700 rounded-lg">
+                <Info className="h-5 w-5 mr-3 text-blue-600" />
+                <div>
+                    <p className="font-semibold text-blue-800 dark:text-blue-300">All Clear!</p>
+                    <p className="text-sm text-muted-foreground">There are no outstanding fee balances for your children at the moment.</p>
+                </div>
+            </div>
+        </CardContent>
+      </Card>
     );
   }
 
