@@ -10,6 +10,7 @@ import AttendanceAnalytics from '@/components/attendance/AttendanceAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
+import DownloadReportButton from "@/components/reports/DownloadReportButton";
 
 const AttendanceModule = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -84,11 +85,18 @@ const AttendanceModule = () => {
   if (isElimshaAdmin) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            System-Wide Attendance Overview
-          </h1>
-          <p className="text-muted-foreground">System administrator view - attendance summaries across all schools</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              System-Wide Attendance Overview
+            </h1>
+            <p className="text-muted-foreground">System administrator view - attendance summaries across all schools</p>
+          </div>
+          <DownloadReportButton
+            type="attendance"
+            label="Download Attendance Report"
+            queryFilters={isElimshaAdmin ? {} : { school_id: user?.school_id }}
+          />
         </div>
 
         {/* Stats Cards */}
@@ -171,11 +179,24 @@ const AttendanceModule = () => {
   // Regular interface for other roles
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Attendance Management
-        </h1>
-        <p className="text-muted-foreground">Track and manage student attendance</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {isElimshaAdmin
+              ? "System-Wide Attendance Overview"
+              : "Attendance Management"}
+          </h1>
+          <p className="text-muted-foreground">
+            {isElimshaAdmin
+              ? "System administrator view - attendance summaries across all schools"
+              : "Track and manage student attendance"}
+          </p>
+        </div>
+        <DownloadReportButton
+          type="attendance"
+          label="Download Attendance Report"
+          queryFilters={isElimshaAdmin ? {} : { school_id: user?.school_id }}
+        />
       </div>
 
       {/* Stats Cards */}

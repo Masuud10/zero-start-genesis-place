@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +10,7 @@ import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import DownloadReportButton from "@/components/reports/DownloadReportButton";
 
 interface FeeRecord {
   id: string;
@@ -212,6 +212,11 @@ const FinanceModule = () => {
           <p className="text-muted-foreground">Manage school finances and fee collection</p>
         </div>
         <div className="flex gap-2">
+          <DownloadReportButton
+            type="finance"
+            label="Download Fees Report"
+            queryFilters={isSystemAdmin ? {} : { school_id }}
+          />
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Export Report

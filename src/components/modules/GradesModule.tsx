@@ -1,15 +1,14 @@
-
 import React, { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
 import { useClasses } from '@/hooks/useClasses';
-// Split out UI components
 import ClassFilterBar from '@/components/grades/ClassFilterBar';
 import GradeStatsCards from '@/components/grades/GradeStatsCards';
 import NoGradebookPermission from '@/components/grades/NoGradebookPermission';
 import GradeOverviewPanel from '@/components/grades/GradeOverviewPanel';
+import DownloadReportButton from "@/components/reports/DownloadReportButton";
 
 interface GradesModuleProps {}
 
@@ -105,16 +104,26 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          {user?.role === 'edufam_admin' ? 'System-Wide Grade Overview' : 'Grade Management'}
-        </h1>
-        <p className="text-muted-foreground">
-          {user?.role === 'edufam_admin' 
-            ? 'System administrator view - grade summaries across all schools'
-            : 'Manage and track student grades, performance analytics, and reporting.'
-          }
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {user?.role === 'edufam_admin' ? 'System-Wide Grade Overview' : 'Grade Management'}
+          </h1>
+          <p className="text-muted-foreground">
+            {user?.role === 'edufam_admin' 
+              ? 'System administrator view - grade summaries across all schools'
+              : 'Manage and track student grades, performance analytics, and reporting.'
+            }
+          </p>
+        </div>
+        {/* Download report - restrict to users with gradebook view permission */}
+        {hasPermission('view_gradebook') && (
+          <DownloadReportButton
+            type="grades"
+            label="Download Grades Report"
+            queryFilters={user?.role === 'edufam_admin' ? {} : { school_id: user?.school_id }}
+          />
+        )}
       </div>
 
       {/* Class Filter */}
