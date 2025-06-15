@@ -18,6 +18,7 @@ import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 import { Badge } from '@/components/ui/badge';
 import AddClassModal from '../modals/AddClassModal';
+import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 
 interface SchoolStats {
   totalStudents: number;
@@ -288,10 +289,28 @@ const PrincipalDashboard = () => {
     </li>
   );
 
+  // Helper: render academic and attendance report download panel
+  const renderReportDownloads = () => (
+    <div className="mb-2 flex flex-col md:flex-row items-start md:items-center gap-2">
+      <RoleReportDownloadButton
+        type="grades"
+        term={"" + (new Date().getFullYear())}
+        label="Download Grades (Excel)"
+      />
+      <RoleReportDownloadButton
+        type="attendance"
+        term={"" + (new Date().getFullYear())}
+        label="Download Attendance (Excel)"
+      />
+    </div>
+  );
+
   /* ----------- RENDER ------------- */
   return (
     <div className="space-y-6">
       <ReportDownloadPanel />
+      {/* Academic/Attendance Excel report download shortcuts for Principal */}
+      {renderReportDownloads()}
       <AcademicReportPanel
         downloadingReport={downloadingReport}
         setDownloadingReport={setDownloadingReport}

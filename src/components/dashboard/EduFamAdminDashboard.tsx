@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -9,6 +8,7 @@ import RecentSchoolsSection from './edufam-admin/RecentSchoolsSection';
 import UserRoleBreakdown from './edufam-admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
+import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 import DashboardModals from './DashboardModals';
 
@@ -74,6 +74,22 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   const userStats = React.useMemo(() => calculateUserStats(usersData), [usersData]);
 
+  // Place report download buttons at the top for Admins
+  const renderReportDownloads = () => (
+    <div className="mb-4 flex flex-col md:flex-row items-start md:items-center gap-2">
+      <RoleReportDownloadButton
+        type="grades"
+        term={"" + (new Date().getFullYear())}
+        label="Download All School Grades (Excel)"
+      />
+      <RoleReportDownloadButton
+        type="attendance"
+        term={"" + (new Date().getFullYear())}
+        label="Download All School Attendance (Excel)"
+      />
+    </div>
+  );
+
   /* Comprehensive error state: both queries failed. */
   if (schoolsError && usersError) {
     return <ErrorDisplay schoolsError={schoolsError} usersError={usersError} onRetryAll={handleRetryAll} />;
@@ -81,6 +97,9 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Excel report download shortcuts for EduFam Admin */}
+      {renderReportDownloads()}
+
       <SystemHealthStatusCard />
 
       <SystemOverviewCards
