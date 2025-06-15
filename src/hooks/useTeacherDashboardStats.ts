@@ -44,15 +44,14 @@ export function useTeacherDashboardStats(user: AuthUser) {
       // 1. Count of classes assigned (from teacher_classes)
       const { count: classCount, error: classErr } = await supabase
         .from('teacher_classes')
-        .select('id', { count: 'exact', head: true })
-        .eq('teacher_id', user.id);
+        .select('id', { count: 'exact', head: true }) as unknown as { count: number | null; error: any; };
       if (classErr) throw classErr;
 
       // 2. Number of students taught (across all classes)
       const { data: teacherClassRows, error: tcErr } = await supabase
         .from('teacher_classes')
         .select('class_id')
-        .eq('teacher_id', user.id) as { data: TeacherClassesRow[] | null; error: Error | null; };
+        .eq('teacher_id', user.id) as unknown as { data: TeacherClassesRow[] | null; error: any; };
       if (tcErr) throw tcErr;
 
       const classIds: string[] = (teacherClassRows ?? []).map(row => row.class_id);
@@ -62,7 +61,7 @@ export function useTeacherDashboardStats(user: AuthUser) {
         const { count, error: scErr } = await supabase
           .from('students')
           .select('id', { count: 'exact', head: true })
-          .in('class_id', classIds as string[]);
+          .in('class_id', classIds as string[]) as unknown as { count: number | null; error: any; };
         if (scErr) throw scErr;
         studentsCount = count ?? 0;
       } else {
@@ -74,7 +73,7 @@ export function useTeacherDashboardStats(user: AuthUser) {
         .from('grades')
         .select('id', { count: 'exact', head: true })
         .eq('submitted_by', user.id)
-        .eq('status', 'draft');
+        .eq('status', 'draft') as unknown as { count: number | null; error: any; };
       if (pgErr) throw pgErr;
 
       // 4. Today's classes (from teacher_classes and timetables)
@@ -83,7 +82,7 @@ export function useTeacherDashboardStats(user: AuthUser) {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
         const { data: timetableSlots, error: ttErr } = await supabase
           .from('timetable_slots')
-          .select('id') as { data: TimetableSlot[] | null; error: Error | null };
+          .select('id') as unknown as { data: TimetableSlot[] | null; error: any; };
         // Filter by class_id only if classIds is not empty
         let filteredSlots: TimetableSlot[] = [];
         if (timetableSlots && timetableSlots.length > 0) {
@@ -127,3 +126,4 @@ export function useTeacherDashboardStats(user: AuthUser) {
 }
 
 // ... end of file
+
