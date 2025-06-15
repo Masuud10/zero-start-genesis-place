@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import AttendanceAdminSummary from './AttendanceAdminSummary';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const AttendanceModule: React.FC = () => {
   const { user } = useAuth();
@@ -26,31 +27,68 @@ const AttendanceModule: React.FC = () => {
       });
   }, [isEdufamAdmin]);
 
-  // Fetch attendance summary for admin
+  // Fetch summary from view only (no details)
   useEffect(() => {
     if (!isEdufamAdmin) return;
     setLoading(true);
     setError(null);
-    let query;
+    let query = (supabase as any)
+      .from("school_attendance_summary")
+      .select("*");
     if (schoolFilter) {
-      query = (supabase.rpc as any)('get_attendance_summary', { school_id: schoolFilter });
-    } else {
-      query = (supabase.rpc as any)('get_attendance_summary');
+      query = query.eq("school_id", schoolFilter);
     }
     query.then(({ data, error }: any) => {
-      if (error) setError("Failed to fetch attendance summary");
-      setAttendanceSummary(data || null);
+      if (error) {
+        setError("Could not load attendance summary data. Please try again shortly.");
+        setAttendanceSummary(null);
+      } else if (!data || data.length === 0) {
+        setAttendanceSummary(null);
+      } else {
+        setAttendanceSummary(data[0]);
+      }
       setLoading(false);
     });
   }, [isEdufamAdmin, schoolFilter]);
 
   // Edufam admin: summary only
   if (isEdufamAdmin) {
+    if (loading) {
+      return (
+        <div className="p-6 flex items-center">
+          <span className="animate-spin h-6 w-6 mr-2 rounded-full border-2 border-blue-400 border-t-transparent"></span>
+          Loading summary...
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <Alert variant="destructive" className="my-8">
+          <AlertTitle>Could not load summary</AlertTitle>
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    if (!attendanceSummary) {
+      return (
+        <Alert className="my-8">
+          <AlertTitle>No Summary Data</AlertTitle>
+          <AlertDescription>
+            There is no attendance summary available for this school or filter. Try selecting a different school or check back later.
+          </AlertDescription>
+        </Alert>
+      );
+    }
     return (
       <AttendanceAdminSummary
         loading={loading}
-        error={error}
-        attendanceSummary={attendanceSummary}
+        error={null}
+        attendanceSummary={{
+          overall_attendance_percentage: attendanceSummary.attendance_rate ?? null,
+          trend: '—'
+        }}
         schools={schools}
         schoolFilter={schoolFilter}
         setSchoolFilter={setSchoolFilter}

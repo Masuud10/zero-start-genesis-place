@@ -14,6 +14,7 @@ import GradeOverviewPanel from '@/components/grades/GradeOverviewPanel';
 import DownloadReportButton from "@/components/reports/DownloadReportButton";
 import GradesAdminSummary from './GradesAdminSummary';
 import GradesMainPanel from './GradesMainPanel';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface GradesModuleProps {}
 
@@ -105,35 +106,81 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch schools for school filter
   useEffect(() => {
     if (!isEdufamAdmin) return;
+    setLoading(true);
     supabase.from("schools")
       .select("id, name")
       .then(({ data, error }) => {
-        if (error) setError("Could not fetch schools");
+        if (error) setError("Failed to fetch schools list. Please try again later.");
         else setSchools(data || []);
+        setLoading(false);
       });
   }, [isEdufamAdmin]);
 
+  // Fetch summary from view only (no details)
   useEffect(() => {
     if (!isEdufamAdmin) return;
     setLoading(true);
     setError(null);
-    let query: any = (supabase.rpc as any)('get_grades_summary', { school_id: schoolFilter });
-    if (!schoolFilter) query = (supabase.rpc as any)('get_grades_summary');
+    let query = (supabase as any)
+      .from("school_grades_summary")
+      .select("*");
+    if (schoolFilter) {
+      query = query.eq("school_id", schoolFilter);
+    }
     query.then(({ data, error }: any) => {
-      if (error) setError("Failed to fetch grades summary");
-      setGradesSummary(data || null);
+      if (error) {
+        setError("Could not load grades summary data. Please try again shortly.");
+        setGradesSummary(null);
+      } else if (!data || data.length === 0) {
+        setGradesSummary(null);
+      } else {
+        setGradesSummary(data[0]);
+      }
       setLoading(false);
     });
   }, [isEdufamAdmin, schoolFilter]);
 
   if (isEdufamAdmin) {
+    if (loading) {
+      return (
+        <div className="p-6 flex items-center">
+          <span className="animate-spin h-6 w-6 mr-2 rounded-full border-2 border-blue-400 border-t-transparent"></span>
+          Loading summary...
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <Alert variant="destructive" className="my-8">
+          <AlertTitle>Could not load summary</AlertTitle>
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    if (!gradesSummary) {
+      return (
+        <Alert className="my-8">
+          <AlertTitle>No Summary Data</AlertTitle>
+          <AlertDescription>
+            There is no grades summary available for this school or filter. Try selecting a different school or check back later.
+          </AlertDescription>
+        </Alert>
+      );
+    }
     return (
       <GradesAdminSummary
         loading={loading}
-        error={error}
-        gradesSummary={gradesSummary}
+        error={null}
+        gradesSummary={{
+          avg_grade: gradesSummary.average_grade ?? null,
+          most_improved_school: '—',
+          declining_alerts: 0
+        }}
         schools={schools}
         schoolFilter={schoolFilter}
         setSchoolFilter={setSchoolFilter}

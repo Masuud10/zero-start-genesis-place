@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import DownloadReportButton from "@/components/reports/DownloadReportButton";
 import FinanceAdminSummary from './FinanceAdminSummary';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface FeeRecord {
   id: string;
@@ -43,37 +44,78 @@ const FinanceModule: React.FC = () => {
 
   useEffect(() => {
     if (!isEdufamAdmin) return;
+    setLoading(true);
     supabase.from("schools")
       .select("id, name")
       .then(({ data, error }) => {
-        if (error) setError("Could not fetch schools");
+        if (error) setError("Failed to fetch schools list. Please try again later.");
         else setSchools(data || []);
+        setLoading(false);
       });
   }, [isEdufamAdmin]);
 
+  // Fetch summary from view only (no details)
   useEffect(() => {
     if (!isEdufamAdmin) return;
     setLoading(true);
     setError(null);
-    let query;
+    let query = (supabase as any)
+      .from("school_finance_summary")
+      .select("*");
     if (schoolFilter) {
-      query = (supabase.rpc as any)('get_finance_summary', { school_id: schoolFilter });
-    } else {
-      query = (supabase.rpc as any)('get_finance_summary');
+      query = query.eq("school_id", schoolFilter);
     }
     query.then(({ data, error }: any) => {
-      if (error) setError("Failed to fetch financial summary");
-      setFinanceSummary(data || null);
+      if (error) {
+        setError("Could not load financial summary data. Please try again shortly.");
+        setFinanceSummary(null);
+      } else if (!data || data.length === 0) {
+        setFinanceSummary(null);
+      } else {
+        setFinanceSummary(data[0]);
+      }
       setLoading(false);
     });
   }, [isEdufamAdmin, schoolFilter]);
 
   if (isEdufamAdmin) {
+    if (loading) {
+      return (
+        <div className="p-6 flex items-center">
+          <span className="animate-spin h-6 w-6 mr-2 rounded-full border-2 border-blue-400 border-t-transparent"></span>
+          Loading summary...
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <Alert variant="destructive" className="my-8">
+          <AlertTitle>Could not load summary</AlertTitle>
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    if (!financeSummary) {
+      return (
+        <Alert className="my-8">
+          <AlertTitle>No Summary Data</AlertTitle>
+          <AlertDescription>
+            There is no financial summary available for this school or filter. Try selecting a different school or check back later.
+          </AlertDescription>
+        </Alert>
+      );
+    }
     return (
       <FinanceAdminSummary
         loading={loading}
-        error={error}
-        financeSummary={financeSummary}
+        error={null}
+        financeSummary={{
+          total_collected: financeSummary.total_collected ?? 0,
+          outstanding: '—',
+          major_expenses: '—'
+        }}
         schools={schools}
         schoolFilter={schoolFilter}
         setSchoolFilter={setSchoolFilter}
