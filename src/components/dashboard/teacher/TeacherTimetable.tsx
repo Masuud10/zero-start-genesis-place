@@ -9,14 +9,14 @@ import { Badge } from '@/components/ui/badge';
 const TeacherTimetable = () => {
     const { data: timetable, isLoading, error } = useTeacherTimetable();
 
-    const daysOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     const groupedTimetable = React.useMemo(() => {
         if (!timetable) return [];
         
         const groups: Record<string, typeof timetable> = {};
         for (const slot of timetable) {
-            const day = slot.day_of_week.toLowerCase();
+            const day = slot.day_of_week; // Use the exact day name from DB
             if (!groups[day]) {
                 groups[day] = [];
             }
@@ -58,6 +58,7 @@ const TeacherTimetable = () => {
                                     <TableHead>Time</TableHead>
                                     <TableHead>Class</TableHead>
                                     <TableHead>Subject</TableHead>
+                                    <TableHead>Room</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -66,6 +67,7 @@ const TeacherTimetable = () => {
                                         <TableCell className="font-mono text-sm">{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</TableCell>
                                         <TableCell>{slot.class.name}</TableCell>
                                         <TableCell><Badge variant="outline">{slot.subject.name}</Badge></TableCell>
+                                        <TableCell>{slot.room ?? '-'}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

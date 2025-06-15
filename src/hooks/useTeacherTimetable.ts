@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +11,7 @@ export interface TimetableEntry {
     end_time: string;
     class: { id: string; name: string };
     subject: { id: string; name: string };
+    room?: string;
 }
 
 const fetchTeacherTimetable = async (teacherId: string, schoolId: string): Promise<TimetableEntry[]> => {
@@ -20,6 +22,7 @@ const fetchTeacherTimetable = async (teacherId: string, schoolId: string): Promi
             day_of_week,
             start_time,
             end_time,
+            room,
             class:classes(id, name),
             subject:subjects(id, name)
         `)

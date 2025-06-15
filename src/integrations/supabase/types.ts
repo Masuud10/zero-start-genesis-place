@@ -2655,6 +2655,7 @@ export type Database = {
           end_time: string
           id: string
           is_published: boolean
+          room: string | null
           school_id: string
           start_time: string
           subject_id: string
@@ -2670,6 +2671,7 @@ export type Database = {
           end_time: string
           id?: string
           is_published?: boolean
+          room?: string | null
           school_id: string
           start_time: string
           subject_id: string
@@ -2685,6 +2687,7 @@ export type Database = {
           end_time?: string
           id?: string
           is_published?: boolean
+          room?: string | null
           school_id?: string
           start_time?: string
           subject_id?: string
