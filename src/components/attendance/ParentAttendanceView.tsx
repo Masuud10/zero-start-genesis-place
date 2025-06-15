@@ -45,38 +45,42 @@ const ParentAttendanceView: React.FC = () => {
       setError(null);
 
       try {
-        const { data: parentStudents, error: parentStudentsError } = await supabase
+        // Step 1: Get student IDs for the parent
+        const { data: parentStudentLinks, error: parentStudentsError } = await supabase
           .from('parent_students')
-          .select('students:student_id(id, name, student_classes(is_active, classes(name)))')
+          .select('student_id')
           .eq('parent_id', user.id);
         
         if (parentStudentsError) throw parentStudentsError;
 
-        if (!parentStudents) {
-          setRecords([]);
-          setLoading(false);
-          return;
-        }
-        
-        const studentMap = parentStudents.reduce((acc, ps) => {
-            const student = ps.students as { id: string; name: string; student_classes: { is_active: boolean; classes: { name: string; } | null; }[] } | null;
-            if (student && student.id) {
-                const activeEnrollment = student.student_classes.find(sc => sc.is_active);
-                const className = activeEnrollment?.classes?.name || 'N/A';
-                acc.set(student.id, { name: student.name, className: className });
-            }
-            return acc;
-        }, new Map<string, { name: string; className: string }>());
-
-        const studentIds = Array.from(studentMap.keys());
-
-        if (studentIds.length === 0) {
+        if (!parentStudentLinks || parentStudentLinks.length === 0) {
           setError("No children found for your account.");
           setRecords([]);
           setLoading(false);
           return;
         }
+        
+        const studentIds = parentStudentLinks.map(ps => ps.student_id);
 
+        // Step 2: Get student info and their active class
+        const { data: studentDetails, error: studentDetailsError } = await supabase
+          .from('students')
+          .select('id, name, student_classes(is_active, classes(name))')
+          .in('id', studentIds);
+        
+        if (studentDetailsError) throw studentDetailsError;
+
+        const studentMap = (studentDetails || []).reduce((acc, student) => {
+            const s = student as { id: string; name: string; student_classes: { is_active: boolean; classes: { name: string } | null }[] };
+            if (s && s.id) {
+                const activeEnrollment = s.student_classes.find(sc => sc.is_active);
+                const className = activeEnrollment?.classes?.name || 'N/A';
+                acc.set(s.id, { name: s.name, className: className });
+            }
+            return acc;
+        }, new Map<string, { name: string; className: string }>());
+
+        // Step 3: Fetch attendance for these students
         const { data: attendanceData, error: attendanceError } = await supabase
           .from('attendance')
           .select('id, date, status, student_id')
