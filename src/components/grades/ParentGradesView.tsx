@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface GradeRecord {
   id: string;
@@ -73,6 +74,15 @@ const ParentGradesView: React.FC = () => {
 
         fetchGrades();
     }, [user]);
+    
+    const gradesByStudent = grades.reduce((acc, grade) => {
+        const { studentName } = grade;
+        if (!acc[studentName]) {
+            acc[studentName] = [];
+        }
+        acc[studentName].push(grade);
+        return acc;
+    }, {} as Record<string, GradeRecord[]>);
 
     if (loading) return <div>Loading grades...</div>;
 
@@ -86,31 +96,42 @@ const ParentGradesView: React.FC = () => {
     }
 
     return (
-        <div>
-            <h3 className="text-xl font-bold mb-4">Child Grade Records</h3>
+        <div className="space-y-6">
+            <h3 className="text-2xl font-bold mb-2">Child Grade Records</h3>
             {grades.length === 0 ? (
-                <p>No released grade records found for your child(ren).</p>
+                <Card>
+                    <CardContent className="pt-6">
+                        <p>No released grade records found for your child(ren).</p>
+                    </CardContent>
+                </Card>
             ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Student</TableHead>
-                            <TableHead>Subject</TableHead>
-                            <TableHead>Term</TableHead>
-                            <TableHead>Percentage</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {grades.map(grade => (
-                            <TableRow key={grade.id}>
-                                <TableCell>{grade.studentName}</TableCell>
-                                <TableCell>{grade.subjectName}</TableCell>
-                                <TableCell>{grade.term}</TableCell>
-                                <TableCell>{grade.percentage}%</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                Object.entries(gradesByStudent).map(([studentName, studentGrades]) => (
+                    <Card key={studentName}>
+                        <CardHeader>
+                            <CardTitle>{studentName}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Subject</TableHead>
+                                        <TableHead>Term</TableHead>
+                                        <TableHead className="text-right">Percentage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {studentGrades.map(grade => (
+                                        <TableRow key={grade.id}>
+                                            <TableCell className="font-medium">{grade.subjectName}</TableCell>
+                                            <TableCell>{grade.term}</TableCell>
+                                            <TableCell className="text-right font-semibold">{grade.percentage}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                ))
             )}
         </div>
     );

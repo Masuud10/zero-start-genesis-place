@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
@@ -51,11 +52,13 @@ const ParentAttendanceView: React.FC = () => {
         
         if (parentStudentsError) throw parentStudentsError;
         
-        const studentMap = new Map(parentStudents.map((ps: any) => {
+        const studentMap = parentStudents.reduce((acc, ps: any) => {
             const student = ps.students;
-            if (!student) return [null, {}];
-            return [student.id, { name: student.name, className: student.classes?.name || 'N/A' }];
-        }).filter(item => item[0]));
+            if (student && student.id) {
+                acc.set(student.id, { name: student.name, className: student.classes?.name || 'N/A' });
+            }
+            return acc;
+        }, new Map<string, { name: string; className: string }>());
 
         const studentIds = Array.from(studentMap.keys());
 
@@ -96,6 +99,15 @@ const ParentAttendanceView: React.FC = () => {
     fetchAttendance();
   }, [user]);
 
+  const recordsByStudent = records.reduce((acc, record) => {
+    const { studentName } = record;
+    if (!acc[studentName]) {
+      acc[studentName] = [];
+    }
+    acc[studentName].push(record);
+    return acc;
+  }, {} as Record<string, AttendanceRecord[]>);
+
   if (loading) return <div>Loading attendance records...</div>;
 
   if (error) {
@@ -108,35 +120,47 @@ const ParentAttendanceView: React.FC = () => {
   }
 
   return (
-    <div>
-      <h3 className="text-xl font-bold mb-4">Child Attendance Records</h3>
+    <div className="space-y-6">
+      <h3 className="text-2xl font-bold mb-2">Child Attendance Records</h3>
       {records.length === 0 ? (
-        <p>No attendance records found for your child(ren).</p>
+        <Card>
+          <CardContent className="pt-6">
+            <p>No attendance records found for your child(ren).</p>
+          </CardContent>
+        </Card>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Student</TableHead>
-              <TableHead>Class</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.map(record => (
-              <TableRow key={record.id}>
-                <TableCell>{record.studentName}</TableCell>
-                <TableCell>{record.className}</TableCell>
-                <TableCell>{record.date}</TableCell>
-                <TableCell>
-                  <Badge className={getStatusBadgeVariant(record.status)}>
-                    {record.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        Object.entries(recordsByStudent).map(([studentName, studentRecords]) => (
+          <Card key={studentName}>
+            <CardHeader>
+              <CardTitle>{studentName}</CardTitle>
+              {studentRecords[0]?.className && studentRecords[0].className !== 'N/A' && (
+                  <CardDescription>Class: {studentRecords[0].className}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {studentRecords.map(record => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.date}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge className={`${getStatusBadgeVariant(record.status)} transition-colors`}>
+                          {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ))
       )}
     </div>
   );
