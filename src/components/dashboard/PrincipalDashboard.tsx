@@ -70,6 +70,7 @@ const renderPerson = (person) => (
 const PrincipalDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  // Only useSchoolScopedData ONCE
   const { getCurrentSchoolId, validateSchoolAccess, isReady } = useSchoolScopedData();
   const [stats, setStats] = useState({
     totalStudents: 0,
@@ -104,8 +105,7 @@ const PrincipalDashboard = () => {
     reloadKey,
   });
 
-  const { getCurrentSchoolId, validateSchoolAccess, isReady } = useSchoolScopedData();
-
+  // (Remove duplicate useSchoolScopedData and duplicate vars)
   useEffect(() => {
     console.log('[DEBUG] useEffect: start', { schoolId, user, reloadKey });
     const effectiveSchoolId = schoolId || user?.school_id;
