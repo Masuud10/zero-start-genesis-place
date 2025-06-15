@@ -68,6 +68,7 @@ export function useTeacherDashboardStats(user: AuthUser) {
       let todaysClasses = 0;
       if (classIds.length > 0) {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        // Only apply .in() if array is NOT empty (already checked above)
         const { data: timetableSlots, error: ttErr } = await supabase
           .from('timetable_slots')
           .select('id')
@@ -76,6 +77,7 @@ export function useTeacherDashboardStats(user: AuthUser) {
         if (ttErr) throw ttErr;
         todaysClasses = timetableSlots?.length ?? 0;
       } else {
+        // If there are no classes, skip the query and set to 0
         todaysClasses = 0;
       }
 
