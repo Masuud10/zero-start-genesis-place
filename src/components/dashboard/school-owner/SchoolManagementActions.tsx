@@ -1,49 +1,40 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Users, DollarSign, BarChart3, Settings } from "lucide-react";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Users, GraduationCap, DollarSign, BarChart3, Settings, FileText } from 'lucide-react';
 
-interface Props {
+interface SchoolManagementActionsProps {
   onAction: (action: string) => void;
 }
 
-const actions = [
-  {
-    id: "manage-users",
-    icon: <Users className="h-8 w-8" />,
-    label: "Manage Users",
-    sub: "Teachers & Staff"
-  },
-  {
-    id: "financial-reports",
-    icon: <DollarSign className="h-8 w-8" />,
-    label: "Financial Reports",
-    sub: "Revenue & Expenses"
-  },
-  {
-    id: "analytics",
-    icon: <BarChart3 className="h-8 w-8" />,
-    label: "Analytics",
-    sub: "Performance Insights"
-  }
-];
+const SchoolManagementActions: React.FC<SchoolManagementActionsProps> = ({ onAction }) => {
+  const managementActions = [
+    { id: 'students', label: 'Student Management', icon: Users, description: 'Manage enrollments' },
+    { id: 'teachers', label: 'Staff Management', icon: GraduationCap, description: 'Manage teachers' },
+    { id: 'finance', label: 'Financial Overview', icon: DollarSign, description: 'Revenue & expenses' },
+    { id: 'analytics', label: 'School Analytics', icon: BarChart3, description: 'Performance metrics' },
+    { id: 'reports', label: 'Reports', icon: FileText, description: 'Generate reports' },
+    { id: 'settings', label: 'School Settings', icon: Settings, description: 'Configure school' },
+  ];
 
-const SchoolManagementActions: React.FC<Props> = ({ onAction }) => (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    {actions.map(a => (
-      <Button
-        key={a.id}
-        variant="outline"
-        className="h-24 flex-col gap-2 hover:bg-muted-50"
-        onClick={() => onAction(a.id)}
-        data-testid={`schooladmin-action-btn-${a.id}`}
-      >
-        {a.icon}
-        <span className="font-medium">{a.label}</span>
-        <span className="text-xs text-gray-500">{a.sub}</span>
-      </Button>
-    ))}
-  </div>
-);
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {managementActions.map((action) => (
+        <Button
+          key={action.id}
+          variant="outline"
+          className="h-24 flex-col gap-2 p-4"
+          onClick={() => onAction(action.id)}
+        >
+          <action.icon className="h-6 w-6" />
+          <div className="text-center">
+            <div className="font-medium text-sm">{action.label}</div>
+            <div className="text-xs text-muted-foreground">{action.description}</div>
+          </div>
+        </Button>
+      ))}
+    </div>
+  );
+};
 
 export default SchoolManagementActions;

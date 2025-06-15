@@ -1,9 +1,7 @@
 
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import React from 'react';
 
-interface RecentActivity {
+interface Activity {
   id: string;
   type: string;
   description: string;
@@ -11,40 +9,34 @@ interface RecentActivity {
 }
 
 interface RecentActivitiesProps {
-  recentActivities: RecentActivity[];
+  recentActivities: Activity[];
 }
 
-const RecentActivities: React.FC<RecentActivitiesProps> = ({ recentActivities }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Recent Activities</CardTitle>
-      <CardDescription>
-        Latest activities in your school
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      {recentActivities.length > 0 ? (
-        <div className="space-y-3">
-          {recentActivities.map((activity) => (
-            <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">{activity.description}</p>
-                <p className="text-sm text-gray-600">{activity.type}</p>
-              </div>
-              <div className="text-xs text-gray-500">
-                {new Date(activity.timestamp).toLocaleDateString()}
-              </div>
-            </div>
-          ))}
+const RecentActivities: React.FC<RecentActivitiesProps> = ({ recentActivities }) => {
+  if (!recentActivities || recentActivities.length === 0) {
+    return (
+      <div className="text-sm text-gray-500">
+        No recent activities to display.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {recentActivities.slice(0, 5).map((activity) => (
+        <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900">
+              {activity.description}
+            </p>
+            <p className="text-xs text-gray-500">
+              {new Date(activity.timestamp).toLocaleDateString()}
+            </p>
+          </div>
         </div>
-      ) : (
-        <div className="text-center py-8">
-          <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600">No recent activities</p>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
+      ))}
+    </div>
+  );
+};
 
 export default RecentActivities;

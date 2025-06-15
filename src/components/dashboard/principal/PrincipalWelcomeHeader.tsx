@@ -1,15 +1,22 @@
 
-import React from "react";
+import React from 'react';
+import { AuthUser } from '@/types/auth';
 
 interface PrincipalWelcomeHeaderProps {
-  user: { name?: string };
+  user: AuthUser | null;
 }
 
-const PrincipalWelcomeHeader: React.FC<PrincipalWelcomeHeaderProps> = ({ user }) => (
-  <div className="text-center">
-    <h1 className="text-3xl font-bold text-gray-900 mb-2">Principal Dashboard</h1>
-    <p className="text-gray-600">Welcome back, {user?.name || 'Principal'}!</p>
-  </div>
-);
+const PrincipalWelcomeHeader: React.FC<PrincipalWelcomeHeaderProps> = ({ user }) => {
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">
+        Principal Dashboard
+      </h1>
+      <p className="text-gray-600 text-sm">
+        Welcome back, {user?.name || 'Principal'}! Manage your school effectively.
+      </p>
+    </div>
+  );
+};
 
 export default PrincipalWelcomeHeader;
