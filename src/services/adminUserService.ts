@@ -1,5 +1,5 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { v4 as uuidv4 } from 'uuid';
 
 interface CreateUserParams {
   email: string;
@@ -9,11 +9,18 @@ interface CreateUserParams {
   school_id?: string;
 }
 
+// Define the expected response shape from the 'create_admin_user' RPC
+interface CreateUserRpcResponse {
+  error?: string;
+  success?: boolean;
+  user_id?: string;
+}
+
 export const AdminUserService = {
   createUser: async (params: CreateUserParams) => {
     try {
-      // Call the 'create_admin_user' RPC function for secure, server-side user creation
-      const { data, error } = await supabase.rpc('create_admin_user', {
+      // Call the 'create_admin_user' RPC function with a generic type for the expected response
+      const { data, error } = await supabase.rpc<CreateUserRpcResponse>('create_admin_user', {
         user_email: params.email,
         user_password: params.password,
         user_name: params.name,
@@ -26,13 +33,13 @@ export const AdminUserService = {
         return { error: error.message };
       }
 
-      // The RPC returns a JSONB object, which we parse here
+      // The RPC returns a JSONB object, which we parse here, now strongly-typed.
       if (data && data.error) {
         console.error('Error from create_admin_user RPC:', data.error);
         return { error: data.error };
       }
       
-      if (data && data.success) {
+      if (data && data.success && data.user_id) {
         return {
           success: true,
           // The RPC returns the user ID. We can form a partial user object for the client.
