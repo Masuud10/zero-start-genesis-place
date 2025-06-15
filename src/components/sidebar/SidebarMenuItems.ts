@@ -118,6 +118,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'payments', label: 'Process Payments', icon: CreditCard, roles: ['finance_officer'] },
       { id: 'student-accounts', label: 'Student Accounts', icon: Users, roles: ['finance_officer'] },
       { id: 'reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
+      { id: 'finance-settings', label: 'Finance Settings', icon: Settings, roles: ['finance_officer'] },
       { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
       { id: 'messages', label: 'Finance Messages', icon: MessageSquare, roles: ['finance_officer'] },
       { id: 'attendance', label: 'Student Attendance', icon: CalendarCheck, roles: ['finance_officer'] },

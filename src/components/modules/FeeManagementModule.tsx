@@ -59,7 +59,7 @@ const FeeManagementModule = () => {
                         <CardTitle>Fee Collection by Grade</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={feeCollectionData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
@@ -77,7 +77,7 @@ const FeeManagementModule = () => {
                         <CardTitle>Payment Methods</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
                                 <Pie data={paymentMethodsData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label>
                                     {paymentMethodsData.map((entry, index) => (

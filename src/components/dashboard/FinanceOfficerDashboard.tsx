@@ -3,9 +3,6 @@ import { AuthUser } from '@/types/auth';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import FinanceStatsCards from "./finance-officer/FinanceStatsCards";
-import FeeManagementModule from '@/components/modules/FeeManagementModule';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity } from 'lucide-react';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -108,7 +105,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
   return (
     <div className="space-y-6">
       <FinanceStatsCards loading={loading} stats={stats} />
-      <FeeManagementModule />
     </div>
   );
 };

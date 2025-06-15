@@ -22,6 +22,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProcessPaymentsModule from '@/components/modules/ProcessPaymentsModule';
 import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
 import FinanceReportsModule from '@/components/modules/FinanceReportsModule';
+import FeeManagementModule from '@/components/modules/FeeManagementModule';
+import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
 
 const ContentRenderer: React.FC = () => {
   const { activeSection } = useNavigation();
@@ -33,7 +35,11 @@ const ContentRenderer: React.FC = () => {
     case 'grades': return <GradesModule />;
     case 'attendance': return <AttendanceModule />;
     case 'students': return <StudentsModule />;
-    case 'finance': return <FinanceModule />;
+    case 'finance':
+      if (user?.role === 'finance_officer') {
+        return <FeeManagementModule />;
+      }
+      return <FinanceModule />;
     case 'payments': return <ProcessPaymentsModule />;
     case 'student-accounts': return <StudentAccountsModule />;
     case 'timetable': return <TimetableModule />;
@@ -46,6 +52,7 @@ const ContentRenderer: React.FC = () => {
       return <ReportsModule />;
     case 'support': return <SupportModule />;
     case 'settings': return <SettingsModule />;
+    case 'finance-settings': return <FinanceSettingsModule />;
     case 'security': return <SecurityModule />;
     case 'schools': return <SchoolsModule />;
     case 'users': return <UsersModule />;
