@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AuthUser } from '@/types/auth';
 import SchoolsModule from '@/components/modules/SchoolsModule';
@@ -10,6 +9,12 @@ import ParentFinanceView from '@/components/finance/ParentFinanceView';
 import MessagesModule from '@/components/modules/MessagesModule';
 import ParentTimetableView from '@/components/timetable/ParentTimetableView';
 import ParentReportsModule from '@/components/modules/ParentReportsModule';
+import FeeManagementModule from '@/components/modules/FeeManagementModule';
+import ProcessPaymentsModule from '@/components/modules/ProcessPaymentsModule';
+import FinanceReportsModule from '@/components/modules/FinanceReportsModule';
+import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
+import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
+import FinanceSupportModule from '@/components/modules/FinanceSupportModule';
 
 interface DashboardModalsProps {
   activeModal: string | null;
@@ -73,8 +78,13 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
       title = "Child Attendance Records";
       break;
     case 'finance':
-      modalContent = <ParentFinanceView />;
-      title = "Financial Overview";
+      if (user?.role === 'finance_officer') {
+        modalContent = <FeeManagementModule />;
+        title = "Fee Management";
+      } else {
+        modalContent = <ParentFinanceView />;
+        title = "Financial Overview";
+      }
       break;
     case 'messages':
       modalContent = <MessagesModule />;
@@ -85,9 +95,45 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
       title = "Class Timetable";
       break;
     case 'reports':
-      modalContent = <ParentReportsModule />;
-      title = "Generate Reports";
+      if (user?.role === 'finance_officer') {
+        modalContent = <FinanceReportsModule />;
+        title = 'Financial Reports';
+      } else if (user?.role === 'parent') {
+        modalContent = <ParentReportsModule />;
+        title = "Generate Reports";
+      }
       break;
+    case 'students':
+        if (user?.role === 'finance_officer') {
+            modalContent = <StudentAccountsModule />;
+            title = "Student Accounts";
+        } else {
+            modalContent = (
+                <div><p className="p-4">Student Management module for your role.</p></div>
+            );
+            title = 'Manage Students';
+        }
+        break;
+    case 'fees':
+        modalContent = <FeeManagementModule />;
+        title = "Manage Fees";
+        break;
+    case 'payments':
+        modalContent = <ProcessPaymentsModule />;
+        title = "Process Payments";
+        break;
+    case 'student-accounts':
+        modalContent = <StudentAccountsModule />;
+        title = "Student Accounts";
+        break;
+    case 'finance-settings':
+        modalContent = <FinanceSettingsModule />;
+        title = "Finance Settings";
+        break;
+    case 'support':
+        modalContent = <FinanceSupportModule />;
+        title = "Support Center";
+        break;
     default:
       modalContent = (
         <div>

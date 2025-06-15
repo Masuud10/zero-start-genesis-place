@@ -1,12 +1,12 @@
+
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { AuthUser } from '@/types/auth';
-import { DollarSign, Users, CreditCard, BarChart3, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import FinanceStatsCards from "./finance-officer/FinanceStatsCards";
 import FinanceActionsPanel from "./finance-officer/FinanceActionsPanel";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Activity } from 'lucide-react';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -109,14 +109,17 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
   return (
     <div className="space-y-6">
       <FinanceStatsCards loading={loading} stats={stats} />
-      {/* Finance Actions */}
-      <div className="w-full">
-        <div className="mt-4">
-          <div className="mb-2">
-            <span className="font-semibold text-lg flex items-center gap-2"><FinanceActionsPanel onModalOpen={onModalOpen} /></span>
-          </div>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Finance Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FinanceActionsPanel onModalOpen={onModalOpen} />
+        </CardContent>
+      </Card>
     </div>
   );
 };

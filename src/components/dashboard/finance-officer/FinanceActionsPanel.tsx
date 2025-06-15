@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DollarSign, FileText, CreditCard, BarChart3, Users, Settings } from 'lucide-react';
@@ -13,8 +12,8 @@ const FinanceActionsPanel: React.FC<FinanceActionsPanelProps> = ({ onModalOpen }
     { id: 'payments', label: 'Process Payments', icon: CreditCard, description: 'Handle transactions' },
     { id: 'reports', label: 'Financial Reports', icon: FileText, description: 'Generate reports' },
     { id: 'analytics', label: 'Finance Analytics', icon: BarChart3, description: 'View insights' },
-    { id: 'students', label: 'Student Accounts', icon: Users, description: 'Manage accounts' },
-    { id: 'settings', label: 'Finance Settings', icon: Settings, description: 'Configure system' },
+    { id: 'student-accounts', label: 'Student Accounts', icon: Users, description: 'Manage accounts' },
+    { id: 'finance-settings', label: 'Finance Settings', icon: Settings, description: 'Configure system' },
   ];
 
   return (
