@@ -3,7 +3,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { GraduationCap, Megaphone, BookOpen, ClipboardCheck, CalendarCheck, MessageSquare } from 'lucide-react';
-import BulkAttendanceAction from "./BulkAttendanceAction";
 import { AuthUser } from '@/types/auth';
 
 interface TeacherActionsProps {
@@ -32,8 +31,8 @@ const teacherActionsList = [
   },
   {
     id: "view-attendance",
-    label: "View Attendance",
-    description: "Check student attendance",
+    label: "Mark Attendance",
+    description: "Mark and view attendance",
     icon: CalendarCheck,
   },
   {
@@ -57,7 +56,6 @@ const TeacherActions: React.FC<TeacherActionsProps> = ({ user, onModalOpen }) =>
         </CardHeader>
         <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <BulkAttendanceAction user={user} onModalOpen={onModalOpen} />
                 {teacherActionsList.map((action) => (
                     <Button
                         key={action.id}

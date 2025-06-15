@@ -126,11 +126,17 @@ const AttendanceModule: React.FC = () => {
 
   switch (user.role) {
     case 'edufam_admin':
-    case 'principal':
     case 'school_owner':
       return renderForSummaryRole();
+    case 'principal':
+      return (
+        <div>
+          {renderForSummaryRole()}
+          <TeacherAttendancePanel userId={user.id} schoolId={user.school_id} userRole={user.role} />
+        </div>
+      );
     case 'teacher':
-      return <TeacherAttendancePanel teacherId={user.id} schoolId={user.school_id} />;
+      return <TeacherAttendancePanel userId={user.id} schoolId={user.school_id} userRole={user.role} />;
     case 'parent':
       return <ParentAttendanceView />;
     default:

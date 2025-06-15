@@ -9,8 +9,9 @@ import TeacherAttendanceTable from "./TeacherAttendanceTable";
 import { Student, AttendanceStatus, AttendanceRecord, validStatus } from "./TeacherAttendanceUtils";
 
 interface TeacherAttendancePanelProps {
-  teacherId: string;
+  userId: string;
   schoolId?: string;
+  userRole?: string;
 }
 
 const sessionOptions = [
@@ -18,7 +19,7 @@ const sessionOptions = [
   { label: "Afternoon", value: "afternoon" },
 ];
 
-const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacherId, schoolId }) => {
+const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId, schoolId, userRole }) => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -29,28 +30,40 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Fetch teacher's classes
+  // Fetch classes based on user role
   useEffect(() => {
     async function fetchClasses() {
-      if (!teacherId) return;
-      const { data, error } = await supabase
-        .from("teacher_classes")
-        .select("class_id, classes(name)")
-        .eq("teacher_id", teacherId);
-      if (!error && Array.isArray(data)) {
-        setClasses(
-          data
-            .map((row: any) =>
-              row.classes
-                ? { id: row.class_id, name: row.classes.name }
-                : null
-            )
-            .filter(Boolean)
-        );
+      if (userRole === 'teacher' && userId) {
+        const { data, error } = await supabase
+          .from("teacher_classes")
+          .select("class_id, classes(name)")
+          .eq("teacher_id", userId);
+        if (!error && Array.isArray(data)) {
+          setClasses(
+            data
+              .map((row: any) =>
+                row.classes
+                  ? { id: row.class_id, name: row.classes.name }
+                  : null
+              )
+              .filter(Boolean)
+          );
+        }
+      } else if (schoolId) { // For principal
+        const { data, error } = await supabase
+          .from("classes")
+          .select("id, name")
+          .eq("school_id", schoolId);
+        
+        if (error) {
+          toast({ title: "Error", description: "Failed to fetch classes.", variant: "destructive" });
+        } else if (data) {
+          setClasses(data);
+        }
       }
     }
     fetchClasses();
-  }, [teacherId]);
+  }, [userId, schoolId, userRole, toast]);
 
   // Fetch students for class
   useEffect(() => {
@@ -127,7 +140,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
 
   // Save attendance
   async function handleSaveAttendance() {
-    if (!selectedClass || !teacherId) {
+    if (!selectedClass || !userId) {
       toast({ title: "Select class", description: "Please select a class.", variant: "destructive" });
       return;
     }
@@ -143,7 +156,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
         session,
         status: attendanceMap[s.id]?.status || "present",
         remarks: attendanceMap[s.id]?.remarks || null,
-        submitted_by: teacherId,
+        submitted_by: userId,
         submitted_at: new Date().toISOString(),
         term: "term1",
         academic_year: new Date().getFullYear().toString(),
