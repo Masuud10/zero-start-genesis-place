@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,166 +15,85 @@ import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
 import DownloadReportButton from "@/components/reports/DownloadReportButton";
 
-const AttendanceModule = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedClass, setSelectedClass] = useState('all');
+const AttendanceModule: React.FC = () => {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
+  const isEdufamAdmin = user?.role === 'edufam_admin';
 
-  const attendanceStats = {
-    totalStudents: 1247,
-    present: 1174,
-    absent: 73,
-    attendanceRate: 94.2
-  };
+  const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [attendanceSummary, setAttendanceSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const classes = [
-    { id: 'all', name: 'All Classes' },
-    { id: '8a', name: 'Grade 8A' },
-    { id: '8b', name: 'Grade 8B' },
-    { id: '7a', name: 'Grade 7A' },
-    { id: '7b', name: 'Grade 7B' },
-  ];
+  // Fetch schools for dropdown
+  useEffect(() => {
+    if (!isEdufamAdmin) return;
+    supabase.from("schools")
+      .select("id, name")
+      .then(({ data, error }) => {
+        if (error) setError("Could not fetch schools");
+        else setSchools(data || []);
+      });
+  }, [isEdufamAdmin]);
 
-  const isElimshaAdmin = user?.role === 'elimisha_admin' || user?.role === 'edufam_admin';
-  const canEditAttendance = hasPermission(PERMISSIONS.EDIT_GRADEBOOK); // Using gradebook permission as proxy for attendance editing
+  // Fetch attendance summary for admin
+  useEffect(() => {
+    if (!isEdufamAdmin) return;
+    setLoading(true);
+    setError(null);
+    let query = supabase.rpc('get_attendance_summary', { school_id: schoolFilter });
+    if (!schoolFilter) query = supabase.rpc('get_attendance_summary');
+    query.then(({ data, error }) => {
+      if (error) setError("Failed to fetch attendance summary");
+      setAttendanceSummary(data || null);
+      setLoading(false);
+    });
+  }, [isEdufamAdmin, schoolFilter]);
 
-  // Mock students data for the selected class
-  const mockStudents = [
-    { id: '1', name: 'John Doe', admissionNumber: 'ADM001', rollNumber: 'R001' },
-    { id: '2', name: 'Jane Smith', admissionNumber: 'ADM002', rollNumber: 'R002' },
-    { id: '3', name: 'Mike Johnson', admissionNumber: 'ADM003', rollNumber: 'R003' },
-  ];
-
-  // Mock attendance stats for analytics
-  const mockAttendanceStats = [
-    {
-      studentId: '1',
-      totalDays: 100,
-      presentDays: 95,
-      absentDays: 3,
-      lateDays: 2,
-      attendanceRate: 95.0,
-      morningAttendanceRate: 96.0,
-      afternoonAttendanceRate: 94.0
-    },
-    {
-      studentId: '2',
-      totalDays: 100,
-      presentDays: 88,
-      absentDays: 10,
-      lateDays: 2,
-      attendanceRate: 88.0,
-      morningAttendanceRate: 90.0,
-      afternoonAttendanceRate: 86.0
-    },
-    {
-      studentId: '3',
-      totalDays: 100,
-      presentDays: 92,
-      absentDays: 6,
-      lateDays: 2,
-      attendanceRate: 92.0,
-      morningAttendanceRate: 94.0,
-      afternoonAttendanceRate: 90.0
-    }
-  ];
-
-  const handleAttendanceSubmit = (entries: any[]) => {
-    console.log('Attendance entries submitted:', entries);
-  };
-
-  // For Elimisha admins, show only overview and analytics
-  if (isElimshaAdmin) {
+  if (isEdufamAdmin) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              System-Wide Attendance Overview
+              System Attendance Overview
             </h1>
-            <p className="text-muted-foreground">System administrator view - attendance summaries across all schools</p>
+            <p className="text-muted-foreground">
+              View attendance summaries across all schools.
+            </p>
           </div>
-          <DownloadReportButton
-            type="attendance"
-            label="Download Attendance Report"
-            queryFilters={isElimshaAdmin ? {} : { school_id: user?.school_id }}
+          <SchoolSummaryFilter
+            schools={schools}
+            value={schoolFilter}
+            onChange={setSchoolFilter}
           />
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{attendanceStats.totalStudents}</div>
-              <p className="text-xs text-muted-foreground">Across all schools</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Present Today</CardTitle>
-              <UserCheck className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{attendanceStats.present}</div>
-              <p className="text-xs text-muted-foreground">Students present</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Absent Today</CardTitle>
-              <UserX className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{attendanceStats.absent}</div>
-              <p className="text-xs text-muted-foreground">Students absent</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Attendance Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{attendanceStats.attendanceRate}%</div>
-              <p className="text-xs text-muted-foreground">Network-wide rate</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {loading ? (
+            <Card><CardContent>Loading summary...</CardContent></Card>
+          ) : error ? (
+            <Card><CardContent className="text-red-500">{error}</CardContent></Card>
+          ) : attendanceSummary ? (
+            <>
+              <Card>
+                <CardHeader><CardTitle>Overall Attendance %</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="font-bold text-xl">
+                    {attendanceSummary.overall_attendance_percentage ? `${attendanceSummary.overall_attendance_percentage}%` : 'N/A'}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Trend</CardTitle></CardHeader>
+                <CardContent>
+                  <div>{attendanceSummary.trend || 'N/A'}</div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card><CardContent>No summary data found.</CardContent></Card>
+          )}
         </div>
-
-        {/* Admin-only analytics and summaries */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <BarChart3 className="h-5 w-5" />
-              Attendance Analytics (Read-Only)
-            </CardTitle>
-            <CardDescription>
-              System-wide attendance analytics - Elimisha admins have view-only access
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-2 text-blue-800">
-                <Clock className="h-4 w-4" />
-                <span className="font-medium">Administrator Access Level</span>
-              </div>
-              <p className="text-blue-700 text-sm mt-1">
-                As an Elimisha administrator, you can view attendance summaries and analytics but cannot mark attendance. 
-                Attendance marking is restricted to teachers and school administrators.
-              </p>
-            </div>
-            
-            <AttendanceAnalytics stats={mockAttendanceStats} />
-          </CardContent>
-        </Card>
       </div>
     );
   }

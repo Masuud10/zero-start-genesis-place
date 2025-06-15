@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,7 +12,6 @@ import { DollarSign, TrendingUp, Users, FileText, Plus, Download, CreditCard } f
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
 import DownloadReportButton from "@/components/reports/DownloadReportButton";
 
 interface FeeRecord {
@@ -28,175 +30,94 @@ interface FeeRecord {
   className?: string;
 }
 
-const FinanceModule = () => {
-  const [selectedTerm, setSelectedTerm] = useState('term1');
-  const [selectedClass, setSelectedClass] = useState('all');
-  const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([]);
-  const [financialStats, setFinancialStats] = useState({
-    totalRevenue: 0,
-    collected: 0,
-    pending: 0,
-    expenses: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const { isSystemAdmin, schoolId } = useSchoolScopedData();
-  const { toast } = useToast();
+const FinanceModule: React.FC = () => {
+  const { user } = useAuth();
+  const isEdufamAdmin = user?.role === 'edufam_admin';
 
-  const terms = [
-    { id: 'term1', name: 'Term 1' },
-    { id: 'term2', name: 'Term 2' },
-    { id: 'term3', name: 'Term 3' },
-  ];
+  const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [financeSummary, setFinanceSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const classes = [
-    { id: 'all', name: 'All Classes' },
-    { id: '8a', name: 'Grade 8A' },
-    { id: '8b', name: 'Grade 8B' },
-    { id: '7a', name: 'Grade 7A' },
-    { id: '7b', name: 'Grade 7B' },
-  ];
-
+  // Fetch schools for dropdown
   useEffect(() => {
-    fetchFinancialData();
-  }, [selectedTerm, selectedClass, isSystemAdmin, schoolId]);
-
-  const fetchFinancialData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch fee records with school filtering
-      let feesQuery = supabase.from('fees').select('*');
-      
-      // Apply school filter for non-admin users
-      if (!isSystemAdmin && schoolId) {
-        feesQuery = feesQuery.eq('school_id', schoolId);
-      }
-      
-      const { data: fees, error } = await feesQuery
-        .eq('term', selectedTerm)
-        .order('due_date', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching fees:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch financial data",
-          variant: "destructive",
-        });
-        setFeeRecords([]);
-        return;
-      }
-
-      // Fetch student and class data separately to avoid relationship conflicts
-      const { data: studentsData } = await supabase
-        .from('students')
-        .select('id, name, admission_number, class_id');
-
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('id, name');
-
-      // Create lookup maps
-      const studentMap = new Map(studentsData?.map(s => [s.id, s]) || []);
-      const classMap = new Map(classesData?.map(c => [c.id, c.name]) || []);
-
-      // Enhance fee records with student and class info
-      const enhancedFees: FeeRecord[] = (fees || []).map(fee => {
-        const student = studentMap.get(fee.student_id);
-        return {
-          id: fee.id || '',
-          student_id: fee.student_id || '',
-          amount: fee.amount || 0,
-          paid_amount: fee.paid_amount || 0,
-          category: fee.category || '',
-          status: fee.status || '',
-          due_date: fee.due_date || '',
-          student,
-          className: student ? classMap.get(student.class_id) : undefined
-        };
+    if (!isEdufamAdmin) return;
+    supabase.from("schools")
+      .select("id, name")
+      .then(({ data, error }) => {
+        if (error) setError("Could not fetch schools");
+        else setSchools(data || []);
       });
+  }, [isEdufamAdmin]);
 
-      setFeeRecords(enhancedFees);
-
-      // Calculate statistics
-      const total = (fees || []).reduce((sum, fee) => sum + (fee.amount || 0), 0);
-      const collected = (fees || []).reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
-      const pending = total - collected;
-
-      setFinancialStats({
-        totalRevenue: total,
-        collected,
-        pending,
-        expenses: 0 // This would come from expenses table when implemented
-      });
-
-    } catch (error) {
-      console.error('Error fetching financial data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch financial data",
-        variant: "destructive",
-      });
-      setFeeRecords([]);
-    } finally {
+  // Fetch finance summary for admin
+  useEffect(() => {
+    if (!isEdufamAdmin) return;
+    setLoading(true);
+    setError(null);
+    let query = supabase.rpc('get_finance_summary', { school_id: schoolFilter });
+    if (!schoolFilter) query = supabase.rpc('get_finance_summary');
+    query.then(({ data, error }) => {
+      if (error) setError("Failed to fetch financial summary");
+      setFinanceSummary(data || null);
       setLoading(false);
-    }
-  };
+    });
+  }, [isEdufamAdmin, schoolFilter]);
 
-  const handleRecordPayment = async (feeId: string, amount: number, paymentMethod: string) => {
-    try {
-      // This would be implemented with proper payment recording logic
-      toast({
-        title: "Payment Recorded",
-        description: `Payment of ${formatCurrency(amount)} has been recorded successfully.`,
-      });
-
-      fetchFinancialData(); // Refresh data
-    } catch (error) {
-      console.error('Error recording payment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to record payment",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES'
-    }).format(amount);
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
-      case 'partial':
-        return <Badge className="bg-yellow-100 text-yellow-800">Partial</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-100 text-red-800">Overdue</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  if (loading) {
+  if (isEdufamAdmin) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-4">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              System Finance Overview
+            </h1>
+            <p className="text-muted-foreground">
+              View financial summaries across all schools.
+            </p>
+          </div>
+          <SchoolSummaryFilter
+            schools={schools}
+            value={schoolFilter}
+            onChange={setSchoolFilter}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {loading ? (
+            <Card><CardContent>Loading summary...</CardContent></Card>
+          ) : error ? (
+            <Card><CardContent className="text-red-500">{error}</CardContent></Card>
+          ) : financeSummary ? (
+            <>
+              <Card>
+                <CardHeader><CardTitle>Total Fee Collections</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="font-bold text-xl">
+                    {financeSummary.total_collected !== undefined ? `KES ${Number(financeSummary.total_collected).toLocaleString()}` : 'N/A'}
+                  </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              <Card>
+                <CardHeader><CardTitle>Outstanding Fees</CardTitle></CardHeader>
+                <CardContent>
+                  <div>
+                    {financeSummary.outstanding !== undefined ? `KES ${Number(financeSummary.outstanding).toLocaleString()}` : 'N/A'}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Major Expense Categories</CardTitle></CardHeader>
+                <CardContent>
+                  <div>
+                    {financeSummary.major_expenses || 'N/A'}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card><CardContent>No summary data found.</CardContent></Card>
+          )}
         </div>
       </div>
     );
