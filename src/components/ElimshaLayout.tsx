@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
@@ -25,28 +26,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
-import { useRoleBasedRouting } from '@/hooks/useRoleBasedRouting';
 
 const ElimshaLayout = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const { user, signOut } = useAuth();
   const { currentSchool } = useSchool();
   const { toast } = useToast();
-  const { canAccessRoute, getRedirectPath } = useRoleBasedRouting();
 
   console.log('🏗️ ElimshaLayout: Rendering for user role:', user?.role, 'active section:', activeSection);
-  console.log('🏗️ ElimshaLayout: User details:', {
-    email: user?.email,
-    role: user?.role,
-    schoolId: user?.school_id,
-    userId: user?.id?.slice(0, 8) + '...',
-    hasUserMetadata: !!user?.user_metadata,
-    hasAppMetadata: !!user?.app_metadata
-  });
 
   // Early return if no user
   if (!user) {
-    console.log('🏗️ ElimshaLayout: No user found, this should not happen');
+    console.error('🏗️ ElimshaLayout: No user found, this should not happen');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card>
@@ -63,14 +54,7 @@ const ElimshaLayout = () => {
 
   // Validate user role
   if (!user.role) {
-    console.error('🏗️ ElimshaLayout: User has no role assigned:', {
-      userId: user.id,
-      email: user.email,
-      hasUserMetadata: !!user.user_metadata,
-      hasAppMetadata: !!user.app_metadata,
-      userMetadataRole: user.user_metadata?.role || 'None',
-      appMetadataRole: user.app_metadata?.role || 'None'
-    });
+    console.error('🏗️ ElimshaLayout: User has no role assigned:', user.email);
     
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -88,9 +72,7 @@ const ElimshaLayout = () => {
               Email: {user.email}<br />
               Role: {user.role || 'None'}<br />
               User ID: {user.id?.slice(0, 8)}...<br />
-              School ID: {user.school_id || 'None'}<br />
-              User Metadata Role: {user.user_metadata?.role || 'None'}<br />
-              App Metadata Role: {user.app_metadata?.role || 'None'}
+              School ID: {user.school_id || 'None'}
             </div>
             <button 
               onClick={() => window.location.reload()} 
@@ -105,7 +87,7 @@ const ElimshaLayout = () => {
   }
 
   // Use the permissions system
-  const { hasPermission, getPermissionScope } = usePermissions(
+  const { hasPermission } = usePermissions(
     user?.role as UserRole, 
     user?.school_id
   );
@@ -169,9 +151,6 @@ const ElimshaLayout = () => {
     if (!checkAccess(activeSection)) {
       console.log('🏗️ ElimshaLayout: Access denied, showing access denied message');
       
-      const permissionScope = getPermissionScope(PERMISSIONS.VIEW_GRADEBOOK);
-      const scopeDescription = permissionScope ? ` (Scope: ${permissionScope})` : '';
-      
       return (
         <Card>
           <CardHeader>
@@ -179,7 +158,7 @@ const ElimshaLayout = () => {
             <CardDescription>
               You don't have permission to access this section. 
               <br />
-              Your role: {user?.role}{scopeDescription}
+              Your role: {user?.role}
             </CardDescription>
           </CardHeader>
           <CardContent>

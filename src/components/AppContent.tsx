@@ -32,6 +32,7 @@ const AppContent: React.FC = () => {
 
   // Defensive: in case useAuth returns null or malformatted value
   if (!authState || typeof authState !== "object") {
+    console.error('🎯 AppContent: Invalid auth state');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -45,7 +46,13 @@ const AppContent: React.FC = () => {
   }
 
   const { user, isLoading: authLoading, error: authError } = authState;
-  console.log('🎯 AppContent: State:', { authLoading, authError, user, role: user?.role, email: user?.email });
+  console.log('🎯 AppContent: State:', { 
+    authLoading, 
+    authError, 
+    hasUser: !!user, 
+    role: user?.role, 
+    email: user?.email 
+  });
 
   // Step 2: Loading
   if (authLoading) {

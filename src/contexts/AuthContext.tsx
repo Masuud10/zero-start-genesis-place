@@ -10,9 +10,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Safe hook for context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  // Instead of throwing, return a default context object, to avoid conditional hooks in consuming components
   if (context === undefined) {
-    // Instead of throw, you may fallback to an error value, but if you *must* throw, do so outside any other hook
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -36,6 +34,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signUp,
     signOut
   }), [user, isLoading, error, signIn, signUp, signOut]);
+
+  console.log('🔐 AuthProvider: State update', {
+    hasUser: !!user,
+    isLoading,
+    hasError: !!error,
+    userRole: user?.role,
+    userEmail: user?.email
+  });
 
   // 4. NEVER put hooks after any conditional or return
   return (

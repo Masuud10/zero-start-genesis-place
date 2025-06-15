@@ -45,8 +45,12 @@ export const useAuthState = () => {
 
     const processUser = async (authUser: SupabaseUser | null) => {
       if (!isMountedRef.current) return;
+      
+      console.log('🔐 AuthState: Processing user', authUser?.email);
+      
       try {
         if (!authUser) {
+          console.log('🔐 AuthState: No auth user, clearing state');
           setUser(null);
           setError(null);
           setIsLoading(false);
@@ -54,14 +58,16 @@ export const useAuthState = () => {
         }
 
         if (!authUser.email) {
+          console.error('🔐 AuthState: User missing email');
           setError('User account is missing email address');
           setIsLoading(false);
           return;
         }
 
-        // Fetch profile
+        // Fetch profile with timeout
         let profile = null;
         try {
+          console.log('🔐 AuthState: Fetching profile for', authUser.id);
           const { data, error: profileError } = await Promise.race([
             supabase
               .from('profiles')
@@ -69,23 +75,27 @@ export const useAuthState = () => {
               .eq('id', authUser.id)
               .maybeSingle(),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+              setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
             ),
           ]) as any;
-          if (!profileError && data) {
+          
+          if (profileError) {
+            console.error('🔐 AuthState: Profile fetch error:', profileError);
+          } else if (data) {
             profile = data;
+            console.log('🔐 AuthState: Profile loaded:', { role: profile.role, school_id: profile.school_id });
+          } else {
+            console.warn('🔐 AuthState: No profile found for user');
           }
-        } catch (err: any) {}
-
-        // Only mark loading false once profile data (role, school_id) is obtained
-        if (!isProfileReady(profile)) {
-          setUser(null);
-          setError('User profile incomplete or loading');
-          setIsLoading(true);
-          return;
+        } catch (err: any) {
+          console.error('🔐 AuthState: Profile fetch exception:', err);
         }
 
-        const resolvedRole = RoleResolver.resolveRole(authUser, profile.role);
+        // Create user data with fallback values
+        const resolvedRole = profile?.role || 
+                           authUser.user_metadata?.role || 
+                           authUser.app_metadata?.role || 
+                           'parent';
 
         const userData: AuthUser = {
           id: authUser.id,
@@ -109,12 +119,20 @@ export const useAuthState = () => {
           last_login_ip: undefined,
         };
 
+        console.log('🔐 AuthState: User data processed:', {
+          email: userData.email,
+          role: userData.role,
+          school_id: userData.school_id,
+          hasProfile: !!profile
+        });
+
         if (isMountedRef.current) {
           setUser(userData);
           setError(null);
           setIsLoading(false);
         }
       } catch (err: any) {
+        console.error('🔐 AuthState: User processing failed:', err);
         if (isMountedRef.current) {
           setError('User processing failed: ' + (err.message || 'Unknown error'));
           setIsLoading(false);
@@ -129,8 +147,10 @@ export const useAuthState = () => {
         subscriptionRef.current = null;
       }
 
+      console.log('🔐 AuthState: Setting up auth listener');
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (event, session) => {
+          console.log('🔐 AuthState: Auth event:', event, !!session);
           if (!isMountedRef.current) return;
           if (event === 'SIGNED_OUT' || !session) {
             processUser(null);
@@ -142,8 +162,11 @@ export const useAuthState = () => {
       subscriptionRef.current = subscription;
 
       // First fetch (after mount or login)
+      console.log('🔐 AuthState: Getting initial session');
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {}
+      if (sessionError) {
+        console.error('🔐 AuthState: Session error:', sessionError);
+      }
       if (session?.user && isMountedRef.current) {
         await processUser(session.user);
       } else if (isMountedRef.current) {

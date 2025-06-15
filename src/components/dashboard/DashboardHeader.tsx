@@ -1,9 +1,10 @@
+
 import React from 'react';
-import { User } from '@/types/auth';
+import { AuthUser } from '@/types/auth';
 import { School } from '@/types/school';
 
 interface DashboardHeaderProps {
-  user: User;
+  user: AuthUser;
   currentSchool?: School | null;
   onLogout: () => Promise<void>;
 }
