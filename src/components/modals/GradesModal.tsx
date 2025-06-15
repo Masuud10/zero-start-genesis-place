@@ -257,17 +257,19 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
           canOverride={canOverride}
         />
         <DialogFooter>
-          <GradeActionButtons
-            onClose={onClose}
-            onSubmit={handleSubmit}
-            loading={loading}
-            permissions={{ canInput, canSubmit, canApprove, canRelease, canOverride }}
-            role={isTeacher ? 'teacher' : isPrincipal ? 'principal' : 'other'}
-            isPrincipal={isPrincipal}
-            isTeacher={isTeacher}
-            canRelease={canRelease}
-            handleRelease={handleRelease}
-          />
+          {(isTeacher || isPrincipal) && (
+            <GradeActionButtons
+              onClose={onClose}
+              onSubmit={handleSubmit}
+              loading={loading}
+              permissions={{ canInput, canSubmit, canApprove, canRelease, canOverride }}
+              role={isTeacher ? 'teacher' : 'principal'}
+              isPrincipal={isPrincipal}
+              isTeacher={isTeacher}
+              canRelease={canRelease}
+              handleRelease={handleRelease}
+            />
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
