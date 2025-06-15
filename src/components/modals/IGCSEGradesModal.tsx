@@ -22,6 +22,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import IGCSESubjectPicker from './IGCSESubjectPicker';
+import IGCSEGradeSelector from './IGCSEGradeSelector';
 
 interface IGCSEGradesModalProps {
   onClose: () => void;
@@ -160,51 +162,19 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
               </Select>
             </div>
 
-            {/* Subject select or free form */}
+            {/* Subject select or free form, now composed in its own component */}
             <div className="grid grid-cols-4 items-center gap-2">
               <Label htmlFor="subject" className="text-right">Subject</Label>
-              {!useCustomSubject ? (
-                <div className="flex col-span-3 gap-2">
-                  <Select onValueChange={setSelectedSubject} disabled={!selectedClass}>
-                    <SelectTrigger id="subject">
-                      <SelectValue placeholder="Select Subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map(subj => (
-                        <SelectItem key={subj.id} value={subj.id}>{subj.name}</SelectItem>
-                      ))}
-                      <SelectItem value="custom" onClick={() => setUseCustomSubject(true)}>
-                        Other (free form)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setUseCustomSubject(true)}
-                  >
-                    Custom
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex col-span-3 gap-2">
-                  <Input
-                    placeholder="Enter subject name"
-                    value={freeformSubject}
-                    onChange={e => setFreeformSubject(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setUseCustomSubject(false);
-                      setFreeformSubject('');
-                    }}
-                  >Cancel</Button>
-                </div>
-              )}
+              <IGCSESubjectPicker
+                useCustomSubject={useCustomSubject}
+                setUseCustomSubject={setUseCustomSubject}
+                selectedSubject={selectedSubject}
+                setSelectedSubject={setSelectedSubject}
+                freeformSubject={freeformSubject}
+                setFreeformSubject={setFreeformSubject}
+                subjects={subjects}
+                selectedClass={selectedClass}
+              />
             </div>
 
             {/* Student select */}
@@ -222,38 +192,14 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
               </Select>
             </div>
 
-            {/* Letter grade picker */}
-            <div className="grid grid-cols-4 items-center gap-2">
-              <Label htmlFor="grade" className="text-right">Grade</Label>
-              <Select onValueChange={val => {
-                setGradeChoice(val !== 'custom' ? val : '');
-                if (val === 'custom') setCustomGrade('');
-              }}>
-                <SelectTrigger id="grade" className="col-span-3">
-                  <SelectValue placeholder="Select Grade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {IGCSE_LETTER_GRADES.map(g => (
-                    <SelectItem key={g} value={g}>{g}</SelectItem>
-                  ))}
-                  <SelectItem value="custom">Custom...</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Custom grade input */}
-            {gradeChoice === '' && (
-              <div className="grid grid-cols-4 items-center gap-2">
-                <Label htmlFor="custom-grade" className="text-right">Custom Grade</Label>
-                <Input
-                  id="custom-grade"
-                  className="col-span-3"
-                  placeholder="e.g. P (Pass), or a number"
-                  value={customGrade}
-                  onChange={e => setCustomGrade(e.target.value)}
-                  maxLength={10}
-                />
-              </div>
-            )}
+            {/* Grade selector, now composed in its own component */}
+            <IGCSEGradeSelector
+              gradeChoice={gradeChoice}
+              setGradeChoice={setGradeChoice}
+              customGrade={customGrade}
+              setCustomGrade={setCustomGrade}
+              IGCSE_LETTER_GRADES={IGCSE_LETTER_GRADES}
+            />
           </div>
         </div>
         <DialogFooter>
