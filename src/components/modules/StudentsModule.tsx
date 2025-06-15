@@ -10,12 +10,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useStudents } from '@/hooks/useStudents';
 import { useClasses } from '@/hooks/useClasses';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import StudentAdmissionModal from '@/components/modals/StudentAdmissionModal';
 
 const StudentsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  
+  const [admitStudentOpen, setAdmitStudentOpen] = useState(false);
+
   const { isReady } = useSchoolScopedData();
   const { students, loading: studentsLoading, error: studentsError, retry: retryStudents } = useStudents(classFilter !== 'all' ? classFilter : undefined);
   const { classes, loading: classesLoading, error: classesError, retry: retryClasses } = useClasses();
@@ -55,6 +57,12 @@ const StudentsModule = () => {
   const handleRetry = () => {
     retryStudents();
     retryClasses();
+  };
+
+  // Handler for successful student admission
+  const handleAdmissionSuccess = () => {
+    setAdmitStudentOpen(false);
+    retryStudents();
   };
 
   if (loading) {
@@ -103,7 +111,7 @@ const StudentsModule = () => {
           </h1>
           <p className="text-muted-foreground">Manage student records and information</p>
         </div>
-        <Button>
+        <Button onClick={() => setAdmitStudentOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Student
         </Button>
@@ -250,6 +258,12 @@ const StudentsModule = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Student Admission Modal */}
+      <StudentAdmissionModal
+        onClose={() => setAdmitStudentOpen(false)}
+        onSuccess={handleAdmissionSuccess}
+      />
     </div>
   );
 };
