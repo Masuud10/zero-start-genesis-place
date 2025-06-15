@@ -261,6 +261,7 @@ const StudentsModule = () => {
 
       {/* Student Admission Modal */}
       <StudentAdmissionModal
+        open={admitStudentOpen}
         onClose={() => setAdmitStudentOpen(false)}
         onSuccess={handleAdmissionSuccess}
       />
