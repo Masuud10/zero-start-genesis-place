@@ -14,6 +14,8 @@ import AcademicReportPanel from "./principal/AcademicReportPanel";
 import PrincipalWelcomeHeader from "./principal/PrincipalWelcomeHeader";
 import RecentActivities from "./principal/RecentActivities";
 import { Button } from '@/components/ui/button';
+import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
+import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 
 interface SchoolStats {
   totalStudents: number;
@@ -150,48 +152,13 @@ const PrincipalDashboard = () => {
   // Error state
   if (error && !loading) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
-            <AlertTriangle className="h-5 w-5" />
-            Principal Dashboard Error
-          </CardTitle>
-          <CardDescription>
-            There was a problem loading your dashboard data.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            className="px-4 py-2 border border-gray-300 rounded hover:bg-red-100"
-            onClick={fetchSchoolData}
-          >
-            Try Again
-          </button>
-        </CardContent>
-      </Card>
+      <PrincipalDashboardErrorCard error={error} onRetry={fetchSchoolData} />
     );
   }
 
   // Loading state
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Principal Dashboard</h2>
-          <p className="text-gray-600">Loading your school data...</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-16 bg-gray-200 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+    return <PrincipalDashboardLoading />;
   }
 
   return (
