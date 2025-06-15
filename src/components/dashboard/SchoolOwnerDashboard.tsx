@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import SchoolFilteredAnalytics from '../analytics/SchoolFilteredAnalytics';
 import AnalyticsSecurityGuard from '../analytics/AnalyticsSecurityGuard';
+import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 
 interface SchoolMetrics {
   totalStudents: number;
@@ -196,6 +197,7 @@ const SchoolOwnerDashboard = () => {
 
   return (
     <div className="space-y-6">
+      <ReportDownloadPanel />
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metricsCards.map((card, index) => (

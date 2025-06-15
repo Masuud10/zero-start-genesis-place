@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { AuthUser } from '@/types/auth';
 import { GraduationCap } from 'lucide-react';
 import { useTeacherDashboardStats } from '@/hooks/useTeacherDashboardStats';
 import { teacherActions } from './teacher/teacherActions';
+import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 
 interface TeacherDashboardProps {
   user: AuthUser;
@@ -19,6 +19,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
   return (
     <div className="space-y-6">
+      <ReportDownloadPanel />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Teacher Dashboard</h2>

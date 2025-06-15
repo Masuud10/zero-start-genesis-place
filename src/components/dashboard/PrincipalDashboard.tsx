@@ -303,6 +303,10 @@ const PrincipalDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Role-based Report Download Panel */}
+      <div>
+        <ReportDownloadPanel />
+      </div>
       {/* NEW: Academic Performance Report Download UI */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-blue-50 rounded-lg p-4 mb-2 border border-blue-100">
         <div>

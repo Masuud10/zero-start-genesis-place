@@ -5,6 +5,7 @@ import { AuthUser } from '@/types/auth';
 import { User, GraduationCap, CalendarCheck, DollarSign, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 
 interface ParentDashboardProps {
   user: AuthUser;
@@ -120,6 +121,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user, onModalOpen }) 
 
   return (
     <div className="space-y-6">
+      <ReportDownloadPanel />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Parent Dashboard</h2>
