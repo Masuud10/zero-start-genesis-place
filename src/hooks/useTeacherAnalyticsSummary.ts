@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +19,6 @@ export const useTeacherAnalyticsSummary = () => {
     gradesExpected: null,
     attendanceRate: null,
   });
-  const [mainClassId, setMainClassId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) {
@@ -42,13 +40,11 @@ export const useTeacherAnalyticsSummary = () => {
         if (tcErr) throw new Error("Failed to load class assignments.");
         if (!teacherClasses || teacherClasses.length === 0) {
             setSummary({ avgGrade: null, gradesSubmitted: null, gradesExpected: null, attendanceRate: null });
-            setMainClassId(null);
             setLoading(false);
             return;
         }
 
         const classIds = teacherClasses.map(row => row.class_id);
-        setMainClassId(classIds[0] ?? null);
 
         const [
             gradeSummaryRes,
@@ -100,5 +96,5 @@ export const useTeacherAnalyticsSummary = () => {
     fetchSummary();
   }, [user?.id]);
 
-  return { summary, mainClassId, loading, error };
+  return { summary, loading, error };
 };

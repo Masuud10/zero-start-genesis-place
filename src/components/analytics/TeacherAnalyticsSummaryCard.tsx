@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +12,7 @@ import { useTeacherAnalyticsSummary } from "@/hooks/useTeacherAnalyticsSummary";
  * - Attendance Rate (average across all assigned classes)
  */
 const TeacherAnalyticsSummaryCard: React.FC = () => {
-  const { summary, mainClassId, loading, error } = useTeacherAnalyticsSummary();
+  const { summary, loading, error } = useTeacherAnalyticsSummary();
 
   // LOADING
   if (loading) {
@@ -128,7 +127,6 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
             type="grades"
             term={"" + (new Date().getFullYear())}
             label="Grades (Excel)"
-            classId={mainClassId || undefined}
             variant="outline"
             size="sm"
           />
@@ -136,7 +134,6 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
             type="attendance"
             term={"" + (new Date().getFullYear())}
             label="Attendance (Excel)"
-            classId={mainClassId || undefined}
             variant="outline"
             size="sm"
           />
