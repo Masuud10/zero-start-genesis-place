@@ -47,7 +47,7 @@ export const useSupportTickets = () => {
         .order('created_at', { ascending: false });
 
       const { data, error: fetchError } = await useTimeoutPromise(
-        query.then(x => x),
+        Promise.resolve(query.then(x => x)),
         7000
       );
 

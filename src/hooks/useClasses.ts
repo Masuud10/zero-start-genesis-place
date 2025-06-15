@@ -50,7 +50,7 @@ export const useClasses = () => {
 
       // The key fix is here:
       const { data, error: fetchError } = await useTimeoutPromise(
-        query.then(x => x),
+        Promise.resolve(query.then(x => x)),
         7000
       );
       if (fetchError) throw fetchError;

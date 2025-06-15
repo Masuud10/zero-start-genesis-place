@@ -44,9 +44,9 @@ export const useAnnouncements = () => {
         `)
         .order('created_at', { ascending: false });
 
-      // The key fix is here: 
+      // The key fix is here:
       const { data, error: fetchError } = await useTimeoutPromise(
-        query.then(x => x), // <-- .then(x=>x) makes it a promise for TS
+        Promise.resolve(query.then(x => x)),
         7000
       );
 

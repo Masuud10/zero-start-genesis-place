@@ -66,7 +66,7 @@ export const useStudents = (classId?: string) => {
       query = query.order('name');
 
       const { data, error: fetchError } = await useTimeoutPromise(
-        query.then(x => x),
+        Promise.resolve(query.then(x => x)),
         7000
       );
 
