@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -73,6 +72,7 @@ interface EntityPreviewPanelsProps {
     totalClasses: number;
     totalSubjects: number;
     totalTeachers: number;
+    totalParents: number;
   };
   loading: boolean;
   error: string | null;
@@ -115,7 +115,7 @@ const EntityPreviewPanels: React.FC<EntityPreviewPanelsProps> = ({
     <PreviewPanel
       title="Parents"
       items={parentList}
-      total={parentList.length}
+      total={stats.totalParents}
       renderItem={renderPerson}
       loading={loading}
       error={error}

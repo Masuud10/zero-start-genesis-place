@@ -25,6 +25,7 @@ type StatsType = {
   totalTeachers: number;
   totalSubjects: number;
   totalClasses: number;
+  totalParents: number;
 };
 
 const PrincipalDashboard = () => {
@@ -37,7 +38,8 @@ const PrincipalDashboard = () => {
     totalStudents: 0,
     totalTeachers: 0,
     totalSubjects: 0,
-    totalClasses: 0
+    totalClasses: 0,
+    totalParents: 0
   });
 
   // Recent activities, entity previews, and error/loading state
@@ -110,6 +112,12 @@ const PrincipalDashboard = () => {
         .select('id', { count: 'exact' })
         .eq('school_id', targetSchoolId);
 
+      const parentsQuery = supabase
+        .from('profiles')
+        .select('id', { count: 'exact' })
+        .eq('school_id', targetSchoolId)
+        .eq('role', 'parent');
+
       const auditLogsQuery = supabase
         .from('security_audit_logs')
         .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
@@ -125,14 +133,16 @@ const PrincipalDashboard = () => {
         teachersResult,
         subjectsResult,
         classesResult,
+        parentsResult,
         auditLogsResult
       ] = await Promise.allSettled([
         studentsQuery,
         teachersQuery,
         subjectsQuery,
         classesQuery,
+        parentsQuery,
         auditLogsQuery,
-      ]);
+      ] as const);
 
       const studentsCount =
         studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
@@ -142,12 +152,15 @@ const PrincipalDashboard = () => {
         subjectsResult.status === 'fulfilled' ? (subjectsResult.value?.count || 0) : 0;
       const classesCount =
         classesResult.status === 'fulfilled' ? (classesResult.value?.count || 0) : 0;
+      const parentsCount =
+        parentsResult.status === 'fulfilled' ? (parentsResult.value?.count || 0) : 0;
 
       setStats({
         totalStudents: studentsCount,
         totalTeachers: teachersCount,
         totalSubjects: subjectsCount,
-        totalClasses: classesCount
+        totalClasses: classesCount,
+        totalParents: parentsCount
       });
 
       // Parse recent activities from audit logs
@@ -202,12 +215,17 @@ const PrincipalDashboard = () => {
     setLoadingEntities(true);
     setErrorEntities(null);
 
+    const classesQuery = supabase.from('classes').select('id, name, created_at').eq('school_id', effectiveSchoolId).order('name');
+    const subjectsQuery = supabase.from('subjects').select('id, name, code, created_at').eq('school_id', effectiveSchoolId).order('name');
+    const teachersQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'teacher').order('name');
+    const parentsQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'parent').order('name');
+
     Promise.allSettled([
-      supabase.from('classes').select('id, name, created_at').eq('school_id', effectiveSchoolId).order('name'),
-      supabase.from('subjects').select('id, name, code, created_at').eq('school_id', effectiveSchoolId).order('name'),
-      supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'teacher').order('name'),
-      supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'parent').order('name')
-    ]).then(([classesRes, subjectsRes, teachersRes, parentsRes]) => {
+      classesQuery,
+      subjectsQuery,
+      teachersQuery,
+      parentsQuery,
+    ] as const).then(([classesRes, subjectsRes, teachersRes, parentsRes]) => {
       setClassList(classesRes.status === "fulfilled" ? classesRes.value.data || [] : []);
       setSubjectList(subjectsRes.status === "fulfilled" ? subjectsRes.value.data || [] : []);
       setTeacherList(teachersRes.status === "fulfilled" ? teachersRes.value.data || [] : []);
