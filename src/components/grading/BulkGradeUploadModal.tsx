@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 
 interface StudentRow {
   student_id: string;
@@ -37,6 +37,7 @@ const BulkGradeUploadModal: React.FC<BulkGradeUploadModalProps> = ({
   const [parsedRows, setParsedRows] = useState<StudentRow[]>([]);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { schoolId } = useSchoolScopedData();
 
   // Parse Excel file to rows: expects headers: student_id, name, score
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,7 +101,17 @@ const BulkGradeUploadModal: React.FC<BulkGradeUploadModalProps> = ({
   // Save grades as immutable
   const handleUpload = async () => {
     setUploading(true);
+    if (!schoolId) {
+      toast({
+        title: "Upload failed",
+        description: "School not identified.",
+        variant: "destructive",
+      });
+      setUploading(false);
+      return;
+    }
     const grades = getPositions().map((r) => ({
+      school_id: schoolId,
       student_id: r.student_id,
       subject_id: subjectId,
       class_id: classId,

@@ -24,12 +24,22 @@ export const ClassManagementService = {
   // Assign teacher to class
   assignTeacherToClass: async (params: AssignTeacherToClassParams) => {
     try {
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('school_id')
+        .eq('id', params.classId)
+        .single();
+      
+      if (classError) throw classError;
+      if (!classData?.school_id) throw new Error("Could not find school for the class");
+
       const { data, error } = await supabase
         .from('teacher_classes')
         .insert({
           teacher_id: params.teacherId,
           class_id: params.classId,
-          subject_id: params.subjectId || null
+          subject_id: params.subjectId || null,
+          school_id: classData.school_id
         })
         .select()
         .single();
@@ -76,6 +86,15 @@ export const ClassManagementService = {
   // Enroll student in class
   enrollStudent: async (params: EnrollStudentParams) => {
     try {
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('school_id')
+        .eq('id', params.classId)
+        .single();
+
+      if (classError) throw classError;
+      if (!classData?.school_id) throw new Error("Could not find school for the class");
+
       const { data, error } = await supabase
         .from('student_classes')
         .insert({
@@ -83,7 +102,8 @@ export const ClassManagementService = {
           class_id: params.classId,
           academic_year: params.academicYear || new Date().getFullYear().toString(),
           enrollment_date: new Date().toISOString().split('T')[0],
-          is_active: true
+          is_active: true,
+          school_id: classData.school_id
         })
         .select()
         .single();
@@ -124,13 +144,23 @@ export const ClassManagementService = {
   // Link parent to student
   linkParentToStudent: async (params: LinkParentToStudentParams) => {
     try {
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('school_id')
+        .eq('id', params.studentId)
+        .single();
+
+      if (studentError) throw studentError;
+      if (!studentData?.school_id) throw new Error("Could not find school for student");
+
       const { data, error } = await supabase
         .from('parent_students')
         .insert({
           parent_id: params.parentId,
           student_id: params.studentId,
           relationship_type: params.relationshipType || 'parent',
-          is_primary_contact: params.isPrimaryContact || false
+          is_primary_contact: params.isPrimaryContact || false,
+          school_id: studentData.school_id
         })
         .select()
         .single();

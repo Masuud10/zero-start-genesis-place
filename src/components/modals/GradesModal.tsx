@@ -143,6 +143,15 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     setLoading(true);
 
     try {
+      if (!currentSchool?.id) {
+        toast({
+          title: "Error",
+          description: "School is not identified. Cannot submit grade.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       // Only allow create/edit if permissions are granted
       if (!(permissions.canCreateGrades || permissions.canEditGrades)) {
         toast({
@@ -155,6 +164,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
       }
 
       const gradeData = {
+        school_id: currentSchool.id,
         student_id: selectedStudent,
         subject_id: selectedSubject,
         class_id: selectedClass,

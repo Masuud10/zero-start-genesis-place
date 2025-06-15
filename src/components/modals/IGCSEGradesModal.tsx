@@ -87,10 +87,21 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
     const gradeToInsert = customGrade || gradeChoice;
     const subjectToInsert = useCustomSubject ? null : selectedSubject;
 
+    if (!user?.school_id) {
+        toast({
+            title: "Error",
+            description: "Your school is not identified. Cannot submit grade.",
+            variant: "destructive",
+        });
+        setLoading(false);
+        return;
+    }
+
     try {
       // ⚠️ 'term' is a required field for grades
       // For now, default to "Term 1"
       const { error } = await supabase.from('grades').insert({
+        school_id: user.school_id,
         student_id: selectedStudent,
         class_id: selectedClass,
         subject_id: subjectToInsert,
@@ -98,7 +109,8 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         comments: `IGCSE Grade: ${gradeToInsert}${useCustomSubject ? ` (${freeformSubject})` : ""}`,
         submitted_by: user?.id,
         status: 'submitted',
-        term: 'Term 1',
+        term: 'Term 1', // This should probably be more dynamic in a real app
+        max_score: 0, // Assuming 0 as there is no numeric score
       });
       if (error) {
         throw error;
@@ -158,4 +170,3 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
 };
 
 export default IGCSEGradesModal;
-
