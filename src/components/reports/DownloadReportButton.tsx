@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -26,25 +25,22 @@ function exportToExcel(data: any[], filename: string) {
 const TABLE_MAP = {
   grades: {
     table: "grades" as const,
-    select: `
-      student_id, subject_id, class_id, score, max_score, percentage, position, term, exam_type, status, submitted_by, submitted_at
-    `,
-    filename: "grades-report.xlsx"
+    select:
+      "student_id,subject_id,class_id,score,max_score,percentage,position,term,exam_type,status,submitted_by,submitted_at",
+    filename: "grades-report.xlsx",
   },
   attendance: {
     table: "attendance" as const,
-    select: `
-      student_id, class_id, date, status, remarks, session, submitted_by, submitted_at, term
-    `,
-    filename: "attendance-report.xlsx"
+    select:
+      "student_id,class_id,date,status,remarks,session,submitted_by,submitted_at,term",
+    filename: "attendance-report.xlsx",
   },
   finance: {
     table: "fees" as const,
-    select: `
-      student_id, amount, paid_amount, due_date, category, status, term, payment_method, mpesa_code, academic_year
-    `,
-    filename: "fees-report.xlsx"
-  }
+    select:
+      "student_id,amount,paid_amount,due_date,category,status,term,payment_method,mpesa_code,academic_year",
+    filename: "fees-report.xlsx",
+  },
 };
 
 const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
@@ -66,7 +62,11 @@ const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
       // Filters (school_id etc) - can be extended!
       if (queryFilters) {
         Object.entries(queryFilters).forEach(([key, value]) => {
-          if (typeof value !== "undefined" && value !== null && value !== "all") {
+          if (
+            typeof value !== "undefined" &&
+            value !== null &&
+            value !== "all"
+          ) {
             query = query.eq(key, value);
           }
         });
@@ -77,22 +77,38 @@ const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
 
       if (error) throw error;
       if (!data || data.length === 0) {
-        toast({ title: "No Data", description: "No records found for this report.", variant: "default" });
+        toast({
+          title: "No Data",
+          description: "No records found for this report.",
+          variant: "default",
+        });
         setLoading(false);
         return;
       }
       exportToExcel(data, filename || meta.filename);
-      toast({ title: "Success", description: "Report downloaded successfully." });
+      toast({
+        title: "Success",
+        description: "Report downloaded successfully.",
+      });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
 
   return (
-    <Button onClick={handleDownload} disabled={loading} variant="outline" className="flex items-center gap-2">
+    <Button
+      onClick={handleDownload}
+      disabled={loading}
+      variant="outline"
+      className="flex items-center gap-2"
+    >
       <Download className="w-4 h-4" />
-      {loading ? "Downloading..." : (label || "Download Report")}
+      {loading ? "Downloading..." : label || "Download Report"}
       {children}
     </Button>
   );
