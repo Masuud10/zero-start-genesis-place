@@ -128,14 +128,7 @@ const PrincipalDashboard = () => {
         .limit(5);
 
       // Fetch data in parallel for speed
-      const [
-        studentsResult,
-        teachersResult,
-        subjectsResult,
-        classesResult,
-        parentsResult,
-        auditLogsResult
-      ] = await Promise.allSettled([
+      const results = await Promise.allSettled([
         studentsQuery,
         teachersQuery,
         subjectsQuery,
@@ -143,6 +136,13 @@ const PrincipalDashboard = () => {
         parentsQuery,
         auditLogsQuery,
       ] as const);
+
+      const studentsResult = results[0];
+      const teachersResult = results[1];
+      const subjectsResult = results[2];
+      const classesResult = results[3];
+      const parentsResult = results[4];
+      const auditLogsResult = results[5];
 
       const studentsCount =
         studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
@@ -225,13 +225,18 @@ const PrincipalDashboard = () => {
       subjectsQuery,
       teachersQuery,
       parentsQuery,
-    ] as const).then(([classesRes, subjectsRes, teachersRes, parentsRes]) => {
+    ] as const).then((results) => {
+      const classesRes = results[0];
+      const subjectsRes = results[1];
+      const teachersRes = results[2];
+      const parentsRes = results[3];
+
       setClassList(classesRes.status === "fulfilled" ? classesRes.value.data || [] : []);
       setSubjectList(subjectsRes.status === "fulfilled" ? subjectsRes.value.data || [] : []);
       setTeacherList(teachersRes.status === "fulfilled" ? teachersRes.value.data || [] : []);
       setParentList(parentsRes.status === "fulfilled" ? parentsRes.value.data || [] : []);
       setErrorEntities(
-        [classesRes, subjectsRes, teachersRes, parentsRes].find(r => r.status === "rejected")
+        results.find(r => r.status === "rejected")
           ? "Failed to load some entities." : null
       );
     }).catch(() => {
