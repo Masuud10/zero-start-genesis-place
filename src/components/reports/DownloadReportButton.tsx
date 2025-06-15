@@ -72,8 +72,9 @@ const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
         });
       }
 
-      // Fetch all (handle pagination if needed)
-      const { data, error } = await query;
+      // Fix: Avoid TS type recursion error by type casting
+      // @ts-expect-error: type instantiation is too deep
+      const { data, error } = await (query as any);
 
       if (error) throw error;
       if (!data || data.length === 0) {
