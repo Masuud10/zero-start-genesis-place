@@ -42,15 +42,18 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
         .select('class_id')
         .eq('teacher_id', user.id);
 
-      const classIds = (teacherClassRows ?? []).map(row => row.class_id);
+      const classIds: string[] = (teacherClassRows ?? []).map(row => row.class_id);
 
       let studentsCount = 0;
       if (classIds.length > 0) {
+        // Only run .in() with a non-empty array
         const { count } = await supabase
           .from('students')
           .select('id', { count: 'exact', head: true })
           .in('class_id', classIds);
         studentsCount = count ?? 0;
+      } else {
+        studentsCount = 0;
       }
 
       // 3. Count of pending grades (status='draft', submitted_by=teacher)
@@ -64,13 +67,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
       let todaysClasses = 0;
       if (classIds.length > 0) {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-        // We assume timetable_slots have a "day" (e.g., "monday", "tuesday")
         const { data: timetableSlots } = await supabase
           .from('timetable_slots')
           .select('id')
           .in('class_id', classIds)
           .eq('day', today);
         todaysClasses = timetableSlots?.length ?? 0;
+      } else {
+        todaysClasses = 0;
       }
 
       setStats({

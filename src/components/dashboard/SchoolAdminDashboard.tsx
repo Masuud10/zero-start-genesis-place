@@ -47,7 +47,7 @@ const SchoolAdminDashboard: React.FC<SchoolAdminDashboardProps> = ({ user, onMod
       const today = new Date().toISOString().split('T')[0];
       const { data: attendance } = await supabase
         .from('attendance')
-        .select('status', 'student_id')
+        .select('status,student_id') // FIX: string, not multiple params
         .eq('school_id', user.school_id)
         .eq('date', today);
 
@@ -60,7 +60,7 @@ const SchoolAdminDashboard: React.FC<SchoolAdminDashboardProps> = ({ user, onMod
       // 4. Fee Collection (percentage for current term)
       const { data: fees } = await supabase
         .from('fees')
-        .select('amount, paid_amount')
+        .select('amount,paid_amount')
         .eq('school_id', user.school_id);
 
       let feeCollection = 0;
