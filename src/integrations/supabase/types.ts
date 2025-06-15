@@ -2458,115 +2458,53 @@ export type Database = {
         }
         Relationships: []
       }
-      timetable_slots: {
-        Row: {
-          created_at: string | null
-          day: string | null
-          end_time: string
-          id: string
-          room: string | null
-          start_time: string
-          subject_id: string | null
-          teacher_id: string | null
-          timetable_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          day?: string | null
-          end_time: string
-          id?: string
-          room?: string | null
-          start_time: string
-          subject_id?: string | null
-          teacher_id?: string | null
-          timetable_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          day?: string | null
-          end_time?: string
-          id?: string
-          room?: string | null
-          start_time?: string
-          subject_id?: string | null
-          teacher_id?: string | null
-          timetable_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "timetable_slots_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "timetable_slots_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "timetable_slots_timetable_id_fkey"
-            columns: ["timetable_id"]
-            isOneToOne: false
-            referencedRelation: "timetables"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       timetables: {
         Row: {
-          class_id: string | null
+          class_id: string
           created_at: string | null
-          created_by: string | null
+          created_by_principal_id: string
+          day_of_week: string
+          end_time: string
           id: string
-          is_active: boolean | null
-          school_id: string | null
-          version: number | null
+          is_published: boolean
+          school_id: string
+          start_time: string
+          subject_id: string
+          teacher_id: string
+          term: string | null
+          updated_at: string | null
         }
         Insert: {
-          class_id?: string | null
+          class_id: string
           created_at?: string | null
-          created_by?: string | null
+          created_by_principal_id: string
+          day_of_week: string
+          end_time: string
           id?: string
-          is_active?: boolean | null
-          school_id?: string | null
-          version?: number | null
+          is_published?: boolean
+          school_id: string
+          start_time: string
+          subject_id: string
+          teacher_id: string
+          term?: string | null
+          updated_at?: string | null
         }
         Update: {
-          class_id?: string | null
+          class_id?: string
           created_at?: string | null
-          created_by?: string | null
+          created_by_principal_id?: string
+          day_of_week?: string
+          end_time?: string
           id?: string
-          is_active?: boolean | null
-          school_id?: string | null
-          version?: number | null
+          is_published?: boolean
+          school_id?: string
+          start_time?: string
+          subject_id?: string
+          teacher_id?: string
+          term?: string | null
+          updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "timetables_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "timetables_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "timetables_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_login_details: {
         Row: {

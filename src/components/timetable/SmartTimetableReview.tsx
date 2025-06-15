@@ -5,14 +5,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+// This interface now matches the full 'timetables' table schema
 interface TimetableRow {
   id: string;
   class_id: string;
   school_id: string;
+  subject_id: string;
+  teacher_id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
   is_published: boolean;
   created_at: string;
   created_by_principal_id: string;
-  term: string;
+  term: string | null;
 }
 
 const SmartTimetableReview = ({
@@ -23,6 +29,7 @@ const SmartTimetableReview = ({
   onPublish: () => void;
 }) => {
   const { user } = useAuth();
+  // State holds a summary: one row per class from the draft.
   const [rows, setRows] = useState<TimetableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -37,7 +44,7 @@ const SmartTimetableReview = ({
       try {
         const { data, error } = await supabase
           .from("timetables")
-          .select("id,class_id,school_id,is_published,created_at,created_by_principal_id,term")
+          .select("*") // Fetch all fields to align with the new schema
           .eq("school_id", user.school_id)
           .eq("term", term)
           .eq("is_published", false);
@@ -50,7 +57,11 @@ const SmartTimetableReview = ({
           setErrorMsg("No valid draft timetable found.");
           setRows([]);
         } else {
-          setRows(data as TimetableRow[]);
+          // Process data to show one summary row per class_id.
+          const classSummary = Array.from(
+            new Map(data.map((item) => [item.class_id, item])).values()
+          );
+          setRows(classSummary);
         }
       } catch (err: any) {
         console.error("Fetch error:", err);

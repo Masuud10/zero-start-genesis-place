@@ -9,6 +9,7 @@ interface TimetableViewerProps {
   studentId?: string;
 }
 
+// Updated to fully match the new 'timetables' table schema
 interface TimetableRow {
   id: string;
   class_id: string;
@@ -21,6 +22,7 @@ interface TimetableRow {
   is_published: boolean;
   created_at: string;
   created_by_principal_id: string;
+  term: string | null; // Added missing term field
 }
 
 const TimetableViewer: React.FC<TimetableViewerProps> = ({
