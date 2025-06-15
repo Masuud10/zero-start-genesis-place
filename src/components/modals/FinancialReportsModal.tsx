@@ -1,12 +1,14 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
+import { Download, TrendingUp, DollarSign, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { supabase } from '@/integrations/supabase/client';
+import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from 'date-fns';
 
 interface FinancialReportsModalProps {
   onClose: () => void;
@@ -15,17 +17,118 @@ interface FinancialReportsModalProps {
 const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }) => {
   const [reportPeriod, setReportPeriod] = useState('');
   const [reportType, setReportType] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [financialData, setFinancialData] = useState({
+    totalRevenue: 0,
+    outstanding: 0,
+    collected: 0,
+    collectionRate: 0,
+  });
+
   const { toast } = useToast();
+  const { getCurrentSchoolId } = useSchoolScopedData();
+  const schoolId = getCurrentSchoolId();
 
   const periods = ['This Month', 'Last Month', 'This Term', 'Last Term', 'This Year'];
   const reportTypes = ['Revenue Summary', 'Outstanding Fees', 'Payment Methods', 'Collection Trends'];
 
-  const mockFinancialData = {
-    totalRevenue: 2500000,
-    outstanding: 350000,
-    collected: 2150000,
-    collectionRate: 86
-  };
+  useEffect(() => {
+    if (!reportPeriod || !schoolId) {
+      setFinancialData({ totalRevenue: 0, outstanding: 0, collected: 0, collectionRate: 0 });
+      return;
+    }
+
+    const fetchFinancialData = async () => {
+      setLoading(true);
+
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      const now = new Date();
+
+      switch (reportPeriod) {
+        case 'This Month':
+          startDate = startOfMonth(now);
+          endDate = endOfMonth(now);
+          break;
+        case 'Last Month':
+          const lastMonth = subMonths(now, 1);
+          startDate = startOfMonth(lastMonth);
+          endDate = endOfMonth(lastMonth);
+          break;
+        case 'This Year':
+          startDate = startOfYear(now);
+          endDate = endOfYear(now);
+          break;
+        case 'This Term':
+        case 'Last Term':
+          toast({
+            title: "Coming Soon",
+            description: `Reporting for '${reportPeriod}' is not yet available.`,
+            variant: "default",
+          });
+          setFinancialData({ totalRevenue: 0, outstanding: 0, collected: 0, collectionRate: 0 });
+          setLoading(false);
+          return;
+        default:
+          setFinancialData({ totalRevenue: 0, outstanding: 0, collected: 0, collectionRate: 0 });
+          setLoading(false);
+          return;
+      }
+      
+      try {
+        const outstandingPromise = supabase.rpc('get_outstanding_fees', { p_school_id: schoolId });
+        
+        const revenuePromise = supabase
+          .from('fees')
+          .select('amount')
+          .eq('school_id', schoolId)
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
+
+        const collectedPromise = supabase
+          .from('fees')
+          .select('paid_amount')
+          .eq('school_id', schoolId)
+          .gte('paid_date', startDate.toISOString())
+          .lte('paid_date', endDate.toISOString());
+
+        const [
+          { data: outstandingData, error: outstandingError },
+          { data: revenueData, error: revenueError },
+          { data: collectedData, error: collectedError }
+        ] = await Promise.all([outstandingPromise, revenuePromise, collectedPromise]);
+
+        if (outstandingError || revenueError || collectedError) {
+          console.error({ outstandingError, revenueError, collectedError });
+          throw new Error('Failed to fetch financial data for the report.');
+        }
+
+        const totalRevenue = (revenueData || []).reduce((sum, fee) => sum + (fee.amount || 0), 0);
+        const collected = (collectedData || []).reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
+        const outstanding = outstandingData || 0;
+        const collectionRate = totalRevenue > 0 ? (collected / totalRevenue) * 100 : 0;
+        
+        setFinancialData({
+            totalRevenue,
+            outstanding,
+            collected,
+            collectionRate,
+        });
+
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Could not load financial data.",
+          variant: "destructive"
+        });
+        setFinancialData({ totalRevenue: 0, outstanding: 0, collected: 0, collectionRate: 0 });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFinancialData();
+  }, [reportPeriod, schoolId, toast]);
 
   const handleGenerateReport = (format: 'pdf' | 'excel') => {
     if (!reportPeriod || !reportType) {
@@ -41,6 +144,12 @@ const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }
       title: "Success",
       description: `Financial ${format.toUpperCase()} report generated successfully`,
     });
+  };
+
+  const renderStat = (value: number, isCurrency = true) => {
+    if (loading) return <Loader2 className="h-5 w-5 animate-spin" />;
+    if (isCurrency) return `KES ${value.toLocaleString()}`;
+    return `${value.toFixed(1)}%`;
   };
 
   return (
@@ -96,7 +205,7 @@ const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold">KES {mockFinancialData.totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{renderStat(financialData.totalRevenue)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -110,7 +219,7 @@ const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Collected</p>
-                    <p className="text-2xl font-bold">KES {mockFinancialData.collected.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{renderStat(financialData.collected)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -124,7 +233,7 @@ const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Outstanding</p>
-                    <p className="text-2xl font-bold">KES {mockFinancialData.outstanding.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{renderStat(financialData.outstanding)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -138,7 +247,7 @@ const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Collection Rate</p>
-                    <p className="text-2xl font-bold">{mockFinancialData.collectionRate}%</p>
+                    <p className="text-2xl font-bold">{renderStat(financialData.collectionRate, false)}</p>
                   </div>
                 </div>
               </CardContent>
