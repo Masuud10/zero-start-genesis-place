@@ -36,6 +36,7 @@ const ParentGradesView: React.FC = () => {
                 if (studentIds.length === 0) {
                     setError("No children found for your account.");
                     setGrades([]);
+                    setLoading(false);
                     return;
                 }
 
@@ -45,8 +46,8 @@ const ParentGradesView: React.FC = () => {
                         id,
                         term,
                         percentage,
-                        subjects ( name ),
-                        students ( name )
+                        subjects!subject_id( name ),
+                        students( name )
                     `)
                     .in('student_id', studentIds)
                     .eq('is_released', true)

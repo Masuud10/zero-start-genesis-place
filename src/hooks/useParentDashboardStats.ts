@@ -81,7 +81,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
         // Recent grade
         const { data: grades } = await supabase
           .from('grades')
-          .select('percentage, subjects(name)')
+          .select('percentage, subjects!subject_id(name)')
           .in('student_id', childrenIds)
           .order('created_at', { ascending: false })
           .limit(1);

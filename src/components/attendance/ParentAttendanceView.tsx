@@ -46,17 +46,23 @@ const ParentAttendanceView: React.FC = () => {
       try {
         const { data: parentStudents, error: parentStudentsError } = await supabase
           .from('parent_students')
-          .select('students(id, name, classes(name))')
+          .select('students!student_id(id, name, classes!class_id(name))')
           .eq('parent_id', user.id);
         
         if (parentStudentsError) throw parentStudentsError;
         
-        const studentIds = parentStudents.map((ps: any) => ps.students.id);
-        const studentMap = new Map(parentStudents.map((ps: any) => [ps.students.id, { name: ps.students.name, className: ps.students.classes?.name || 'N/A' }]));
+        const studentMap = new Map(parentStudents.map((ps: any) => {
+            const student = ps.students;
+            if (!student) return [null, {}];
+            return [student.id, { name: student.name, className: student.classes?.name || 'N/A' }];
+        }).filter(item => item[0]));
+
+        const studentIds = Array.from(studentMap.keys());
 
         if (studentIds.length === 0) {
           setError("No children found for your account.");
           setRecords([]);
+          setLoading(false);
           return;
         }
 
