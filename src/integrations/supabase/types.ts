@@ -600,6 +600,84 @@ export type Database = {
           },
         ]
       }
+      class_analytics: {
+        Row: {
+          attendance_rate: number | null
+          avg_grade: number | null
+          best_subjects: Json | null
+          class_id: string
+          fee_collection: number | null
+          id: string
+          improvement: number | null
+          low_attendance_count: number | null
+          outstanding_fees: number | null
+          performance_trend: string | null
+          prev_avg_grade: number | null
+          reporting_period: string
+          school_id: string
+          term: string | null
+          top_students: Json | null
+          updated_at: string | null
+          weakest_subjects: Json | null
+          year: string | null
+        }
+        Insert: {
+          attendance_rate?: number | null
+          avg_grade?: number | null
+          best_subjects?: Json | null
+          class_id: string
+          fee_collection?: number | null
+          id?: string
+          improvement?: number | null
+          low_attendance_count?: number | null
+          outstanding_fees?: number | null
+          performance_trend?: string | null
+          prev_avg_grade?: number | null
+          reporting_period: string
+          school_id: string
+          term?: string | null
+          top_students?: Json | null
+          updated_at?: string | null
+          weakest_subjects?: Json | null
+          year?: string | null
+        }
+        Update: {
+          attendance_rate?: number | null
+          avg_grade?: number | null
+          best_subjects?: Json | null
+          class_id?: string
+          fee_collection?: number | null
+          id?: string
+          improvement?: number | null
+          low_attendance_count?: number | null
+          outstanding_fees?: number | null
+          performance_trend?: string | null
+          prev_avg_grade?: number | null
+          reporting_period?: string
+          school_id?: string
+          term?: string | null
+          top_students?: Json | null
+          updated_at?: string | null
+          weakest_subjects?: Json | null
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_analytics_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string | null
@@ -1434,6 +1512,74 @@ export type Database = {
         }
         Relationships: []
       }
+      school_analytics: {
+        Row: {
+          attendance_rate: number | null
+          avg_grade: number | null
+          best_class_id: string | null
+          best_subject_id: string | null
+          collection_rate: number | null
+          fee_collected: number | null
+          fee_pending: number | null
+          id: string
+          improvement: number | null
+          outstanding_fees: Json | null
+          performance_trend: string | null
+          reporting_period: string
+          school_id: string
+          term: string | null
+          top_students: Json | null
+          updated_at: string | null
+          year: string | null
+        }
+        Insert: {
+          attendance_rate?: number | null
+          avg_grade?: number | null
+          best_class_id?: string | null
+          best_subject_id?: string | null
+          collection_rate?: number | null
+          fee_collected?: number | null
+          fee_pending?: number | null
+          id?: string
+          improvement?: number | null
+          outstanding_fees?: Json | null
+          performance_trend?: string | null
+          reporting_period: string
+          school_id: string
+          term?: string | null
+          top_students?: Json | null
+          updated_at?: string | null
+          year?: string | null
+        }
+        Update: {
+          attendance_rate?: number | null
+          avg_grade?: number | null
+          best_class_id?: string | null
+          best_subject_id?: string | null
+          collection_rate?: number | null
+          fee_collected?: number | null
+          fee_pending?: number | null
+          id?: string
+          improvement?: number | null
+          outstanding_fees?: Json | null
+          performance_trend?: string | null
+          reporting_period?: string
+          school_id?: string
+          term?: string | null
+          top_students?: Json | null
+          updated_at?: string | null
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_analytics_summary: {
         Row: {
           attendance_updates: number | null
@@ -1570,6 +1716,85 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      student_analytics: {
+        Row: {
+          absences: number | null
+          attendance_rate: number | null
+          avg_grade: number | null
+          class_id: string | null
+          id: string
+          improvement: number | null
+          low_attendance: boolean | null
+          performance_trend: string | null
+          present: number | null
+          prev_avg_grade: number | null
+          reporting_period: string
+          school_id: string
+          student_id: string
+          term: string | null
+          updated_at: string | null
+          year: string | null
+        }
+        Insert: {
+          absences?: number | null
+          attendance_rate?: number | null
+          avg_grade?: number | null
+          class_id?: string | null
+          id?: string
+          improvement?: number | null
+          low_attendance?: boolean | null
+          performance_trend?: string | null
+          present?: number | null
+          prev_avg_grade?: number | null
+          reporting_period: string
+          school_id: string
+          student_id: string
+          term?: string | null
+          updated_at?: string | null
+          year?: string | null
+        }
+        Update: {
+          absences?: number | null
+          attendance_rate?: number | null
+          avg_grade?: number | null
+          class_id?: string | null
+          id?: string
+          improvement?: number | null
+          low_attendance?: boolean | null
+          performance_trend?: string | null
+          present?: number | null
+          prev_avg_grade?: number | null
+          reporting_period?: string
+          school_id?: string
+          student_id?: string
+          term?: string | null
+          updated_at?: string | null
+          year?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_analytics_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_analytics_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_classes: {
         Row: {
@@ -1964,6 +2189,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_analytics: {
+        Row: {
+          avg_attendance: number | null
+          error_summary: Json | null
+          id: string
+          improving_schools: Json | null
+          low_collection_schools: Json | null
+          popular_subjects: Json | null
+          reporting_period: string
+          system_usage: Json | null
+          term: string | null
+          top_schools: Json | null
+          updated_at: string | null
+          year: string | null
+        }
+        Insert: {
+          avg_attendance?: number | null
+          error_summary?: Json | null
+          id?: string
+          improving_schools?: Json | null
+          low_collection_schools?: Json | null
+          popular_subjects?: Json | null
+          reporting_period: string
+          system_usage?: Json | null
+          term?: string | null
+          top_schools?: Json | null
+          updated_at?: string | null
+          year?: string | null
+        }
+        Update: {
+          avg_attendance?: number | null
+          error_summary?: Json | null
+          id?: string
+          improving_schools?: Json | null
+          low_collection_schools?: Json | null
+          popular_subjects?: Json | null
+          reporting_period?: string
+          system_usage?: Json | null
+          term?: string | null
+          top_schools?: Json | null
+          updated_at?: string | null
+          year?: string | null
+        }
+        Relationships: []
       }
       system_metrics: {
         Row: {
