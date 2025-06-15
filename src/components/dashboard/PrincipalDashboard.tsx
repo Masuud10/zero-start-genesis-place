@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,61 +22,75 @@ import SmartTimetableGenerator from "@/components/timetable/SmartTimetableGenera
 import SmartTimetableReview from "@/components/timetable/SmartTimetableReview";
 import PrincipalManagementPanel from "./principal/PrincipalManagementPanel";
 
+// Add missing types for clarity
+type StatsType = {
+  totalStudents: number;
+  totalTeachers: number;
+  totalSubjects: number;
+  totalClasses: number;
+};
+
 const PrincipalDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { getCurrentSchoolId, validateSchoolAccess, isReady } = useSchoolScopedData();
-  
-  const [stats, setStats] = useState({
+
+  // Main stats for dashboard cards
+  const [stats, setStats] = useState<StatsType>({
     totalStudents: 0,
     totalTeachers: 0,
     totalSubjects: 0,
     totalClasses: 0
   });
-  
-  const [recentActivities, setRecentActivities] = useState([]);
+
+  // Recent activities, entity previews, and error/loading state
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
+
+  // Modal open/close
   const [addTeacherOpen, setAddTeacherOpen] = useState(false);
   const [addParentOpen, setAddParentOpen] = useState(false);
   const [addClassOpen, setAddClassOpen] = useState(false);
+
+  // Used to reload data on entity change
   const [reloadKey, setReloadKey] = useState(0);
-  
-  const [classList, setClassList] = useState([]);
-  const [subjectList, setSubjectList] = useState([]);
-  const [teacherList, setTeacherList] = useState([]);
-  const [parentList, setParentList] = useState([]);
+
+  // Entity preview lists
+  const [classList, setClassList] = useState<any[]>([]);
+  const [subjectList, setSubjectList] = useState<any[]>([]);
+  const [teacherList, setTeacherList] = useState<any[]>([]);
+  const [parentList, setParentList] = useState<any[]>([]);
   const [loadingEntities, setLoadingEntities] = useState(true);
   const [errorEntities, setErrorEntities] = useState<string | null>(null);
 
+  // Gather school id from context/user
   const schoolId = getCurrentSchoolId();
 
+  // ================= MAIN SCHOOL DATA (stats, activities) ==============
   useEffect(() => {
+    // Always check both context and user for a school id
     const effectiveSchoolId = schoolId || user?.school_id;
     if (effectiveSchoolId) {
-      fetchSchoolData();
+      fetchSchoolData(effectiveSchoolId);
     } else {
       setLoading(false);
       setError('No school assignment found. Please contact your administrator.');
     }
+    // eslint-disable-next-line
   }, [schoolId, user?.school_id, reloadKey]);
 
-  const fetchSchoolData = async () => {
+  const fetchSchoolData = async (targetSchoolId: string) => {
     try {
       setLoading(true);
       setError(null);
-      const effectiveSchoolId = schoolId || user?.school_id;
 
-      if (!effectiveSchoolId) {
-        throw new Error('No school ID available for data fetch');
-      }
-      
-      if (validateSchoolAccess && !validateSchoolAccess(effectiveSchoolId)) {
+      if (validateSchoolAccess && !validateSchoolAccess(targetSchoolId)) {
         throw new Error('Access denied to school data');
       }
 
-      // Fetch all data in parallel
+      // Fetch data in parallel for speed
       const [
         studentsResult,
         teachersResult,
@@ -86,33 +101,37 @@ const PrincipalDashboard = () => {
         supabase
           .from('students')
           .select('id', { count: 'exact' })
-          .eq('school_id', effectiveSchoolId)
+          .eq('school_id', targetSchoolId)
           .eq('is_active', true),
         supabase
           .from('profiles')
           .select('id', { count: 'exact' })
-          .eq('school_id', effectiveSchoolId)
+          .eq('school_id', targetSchoolId)
           .eq('role', 'teacher'),
         supabase
           .from('subjects')
           .select('id', { count: 'exact' })
-          .eq('school_id', effectiveSchoolId),
+          .eq('school_id', targetSchoolId),
         supabase
           .from('classes')
           .select('id', { count: 'exact' })
-          .eq('school_id', effectiveSchoolId),
+          .eq('school_id', targetSchoolId),
         supabase
           .from('announcements')
           .select('id, title, created_at')
-          .eq('school_id', effectiveSchoolId)
+          .eq('school_id', targetSchoolId)
           .order('created_at', { ascending: false })
           .limit(5)
       ]);
 
-      const studentsCount = studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
-      const teachersCount = teachersResult.status === 'fulfilled' ? (teachersResult.value?.count || 0) : 0;
-      const subjectsCount = subjectsResult.status === 'fulfilled' ? (subjectsResult.value?.count || 0) : 0;
-      const classesCount = classesResult.status === 'fulfilled' ? (classesResult.value?.count || 0) : 0;
+      const studentsCount =
+        studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
+      const teachersCount =
+        teachersResult.status === 'fulfilled' ? (teachersResult.value?.count || 0) : 0;
+      const subjectsCount =
+        subjectsResult.status === 'fulfilled' ? (subjectsResult.value?.count || 0) : 0;
+      const classesCount =
+        classesResult.status === 'fulfilled' ? (classesResult.value?.count || 0) : 0;
 
       setStats({
         totalStudents: studentsCount,
@@ -121,24 +140,23 @@ const PrincipalDashboard = () => {
         totalClasses: classesCount
       });
 
-      // Process announcements
-      let activities = [];
+      // Parse recent activities (announcements)
+      let activities: any[] = [];
       if (announcementsResult.status === 'fulfilled') {
         const data = announcementsResult.value.data || [];
-        activities = data.map(announcement => ({
+        activities = data.map((announcement: any) => ({
           id: announcement.id,
           type: 'announcement',
           description: `New announcement: ${announcement.title || 'Untitled'}`,
           timestamp: announcement.created_at
         }));
       }
-
       setRecentActivities(activities);
-    } catch (error: any) {
-      setError(error.message || 'Failed to fetch school data');
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch school data');
       toast({
         title: "Error",
-        description: `Failed to fetch school data: ${error.message || 'Unknown error'}`,
+        description: `Failed to fetch school data: ${err.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -146,10 +164,11 @@ const PrincipalDashboard = () => {
     }
   };
 
+  // ================= PREVIEW ENTITIES (lists) ==============
   useEffect(() => {
     const effectiveSchoolId = schoolId || user?.school_id;
     if (!effectiveSchoolId) return;
-    
+
     setLoadingEntities(true);
     setErrorEntities(null);
 
@@ -170,12 +189,17 @@ const PrincipalDashboard = () => {
     }).catch(() => {
       setErrorEntities("Failed to load entities.");
     }).finally(() => setLoadingEntities(false));
+    // eslint-disable-next-line
   }, [schoolId, user?.school_id, reloadKey]);
 
+  // After any entity (add/edit), refresh data
   const handleEntityCreated = () => {
     setReloadKey(k => k + 1);
   };
 
+  // ========== BUTTONS/MODALS are simple: always just toggle/open, so no fixes needed ==========
+
+  // UX fixes for initial loading
   if (!isReady) {
     return (
       <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
@@ -185,18 +209,17 @@ const PrincipalDashboard = () => {
       </div>
     );
   }
-
   if (loading) {
     return <PrincipalDashboardLoading />;
   }
-
   if (error) {
-    return <PrincipalDashboardErrorCard error={error} onRetry={fetchSchoolData} />;
+    return <PrincipalDashboardErrorCard error={error} onRetry={() => fetchSchoolData(schoolId || user?.school_id)} />;
   }
 
   return (
     <RoleGuard allowedRoles={['principal']} requireSchoolAssignment={true}>
       <div className="space-y-6">
+        {/* Welcome and user header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
           <PrincipalWelcomeHeader user={user} />
           <div className="flex flex-col items-end">
@@ -213,13 +236,14 @@ const PrincipalDashboard = () => {
                 <span className="text-white font-bold text-xs">{user?.name?.[0] || "U"}</span>
               </div>
               <div className="text-xs">
-                <div className="font-semibold text-gray-900 text-xs">{user.email?.split('@')[0]}</div>
-                <div className="text-gray-500 text-[10px]">{user.email}</div>
+                <div className="font-semibold text-gray-900 text-xs">{user?.email?.split('@')[0]}</div>
+                <div className="text-gray-500 text-[10px]">{user?.email}</div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Reports */}
         <ReportActionsPanel
           downloadingReport={downloadingReport}
           setDownloadingReport={setDownloadingReport}
@@ -228,8 +252,10 @@ const PrincipalDashboard = () => {
           toast={toast}
         />
 
+        {/* Statistics cards */}
         <PrincipalStatsCards stats={stats} />
 
+        {/* Manual quick actions */}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setAddClassOpen(true)}>
             <Plus className="w-4 h-4 mr-1" />
@@ -241,6 +267,7 @@ const PrincipalDashboard = () => {
           </Button>
         </div>
 
+        {/* Quick action panel for adding parent/teacher */}
         <QuickActionsCard
           onAddParent={() => setAddParentOpen(true)}
           onAddTeacher={() => setAddTeacherOpen(true)}
@@ -248,13 +275,14 @@ const PrincipalDashboard = () => {
 
         <RecentActivitiesPanel recentActivities={recentActivities} />
 
-        {/* ======= 🧠 SMART TIMETABLE INTEGRATION ======= */}
+        {/* Timetable actions */}
         <SmartTimetableGenerator term={String(new Date().getFullYear())} onGenerationSuccess={handleEntityCreated} />
         <SmartTimetableReview term={String(new Date().getFullYear())} onPublish={handleEntityCreated} />
 
-        {/* ======= 🧠 PRINCIPAL MANAGEMENT PANELS ======= */}
+        {/* Management panels for classes, subjects, teachers, students */}
         <PrincipalManagementPanel />
 
+        {/* Entity preview panels for showing classes/subjects/teachers/parents */}
         <EntityPreviewPanels
           classList={classList}
           subjectList={subjectList}
@@ -265,18 +293,17 @@ const PrincipalDashboard = () => {
           error={errorEntities}
         />
 
+        {/* MODALS */}
         <AddTeacherModal
           open={addTeacherOpen}
           onClose={() => setAddTeacherOpen(false)}
           onTeacherCreated={handleEntityCreated}
         />
-        
         <AddParentModal
           open={addParentOpen}
           onClose={() => setAddParentOpen(false)}
           onParentCreated={handleEntityCreated}
         />
-        
         <AddClassModal
           open={addClassOpen}
           onClose={() => setAddClassOpen(false)}
