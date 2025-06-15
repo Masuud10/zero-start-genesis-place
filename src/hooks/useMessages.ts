@@ -27,71 +27,74 @@ export const useMessages = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadMessages = async () => {
+    if (!user) {
+      setLoading(false);
+      setError("No user found");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch real messages from Supabase
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey(name),
+          receiver:profiles!messages_receiver_id_fkey(name)
+        `)
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (messagesError) {
+        throw messagesError;
+      }
+
+      // Transform messages data
+      const transformedMessages: Message[] = (messagesData || []).map(msg => ({
+        id: msg.id,
+        sender_id: msg.sender_id,
+        receiver_id: msg.receiver_id,
+        content: msg.content,
+        created_at: msg.created_at,
+        is_read: msg.is_read,
+        sender_name: msg.sender?.name || 'Unknown',
+        receiver_name: msg.receiver?.name || 'Unknown'
+      }));
+
+      // Fetch potential conversation partners from the same school
+      const { data: conversationsData, error: conversationsError } = await supabase
+        .from('profiles')
+        .select('id, name, role')
+        .eq('school_id', user.school_id)
+        .neq('id', user.id);
+
+      if (conversationsError) {
+        throw conversationsError;
+      }
+
+      const transformedConversations: Conversation[] = (conversationsData || []).map(profile => ({
+        id: profile.id,
+        name: profile.name,
+        role: profile.role
+      }));
+
+      setMessages(transformedMessages);
+      setConversations(transformedConversations);
+      setError(null);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load messages. Please try again.');
+      setMessages([]);
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadMessages = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch real messages from Supabase
-        const { data: messagesData, error: messagesError } = await supabase
-          .from('messages')
-          .select(`
-            *,
-            sender:profiles!messages_sender_id_fkey(name),
-            receiver:profiles!messages_receiver_id_fkey(name)
-          `)
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .order('created_at', { ascending: false });
-
-        if (messagesError) {
-          throw messagesError;
-        }
-
-        // Transform messages data
-        const transformedMessages: Message[] = (messagesData || []).map(msg => ({
-          id: msg.id,
-          sender_id: msg.sender_id,
-          receiver_id: msg.receiver_id,
-          content: msg.content,
-          created_at: msg.created_at,
-          is_read: msg.is_read,
-          sender_name: msg.sender?.name || 'Unknown',
-          receiver_name: msg.receiver?.name || 'Unknown'
-        }));
-
-        // Fetch potential conversation partners from the same school
-        const { data: conversationsData, error: conversationsError } = await supabase
-          .from('profiles')
-          .select('id, name, role')
-          .eq('school_id', user.school_id)
-          .neq('id', user.id);
-
-        if (conversationsError) {
-          throw conversationsError;
-        }
-
-        const transformedConversations: Conversation[] = (conversationsData || []).map(profile => ({
-          id: profile.id,
-          name: profile.name,
-          role: profile.role
-        }));
-        
-        setMessages(transformedMessages);
-        setConversations(transformedConversations);
-      } catch (err) {
-        console.error('Error loading messages:', err);
-        setError('Failed to load messages. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadMessages();
   }, [user]);
 
@@ -105,7 +108,6 @@ export const useMessages = () => {
     }
 
     try {
-      // Generate a conversation ID based on the participants
       const conversationId = [user.id, receiverId].sort().join('-');
 
       const { data, error } = await supabase
@@ -126,7 +128,7 @@ export const useMessages = () => {
 
       // Refresh messages
       const receiverName = conversations.find(c => c.id === receiverId)?.name || 'Unknown';
-      
+
       const newMessage: Message = {
         id: data.id,
         sender_id: user.id,
@@ -141,7 +143,6 @@ export const useMessages = () => {
       setMessages(prev => [newMessage, ...prev]);
       return { error: null };
     } catch (err) {
-      console.error('Error sending message:', err);
       return { error: { message: 'Failed to send message. Please try again.' } };
     }
   };
@@ -158,14 +159,13 @@ export const useMessages = () => {
         throw error;
       }
 
-      setMessages(prev => 
-        prev.map(msg => 
+      setMessages(prev =>
+        prev.map(msg =>
           msg.id === messageId ? { ...msg, is_read: true } : msg
         )
       );
       return { error: null };
     } catch (err) {
-      console.error('Error marking message as read:', err);
       return { error: { message: 'Failed to mark message as read' } };
     }
   };
@@ -176,6 +176,7 @@ export const useMessages = () => {
     loading,
     error,
     sendMessage,
-    markAsRead
+    markAsRead,
+    retry: loadMessages,
   };
 };

@@ -45,17 +45,14 @@ export const useClasses = () => {
         query = query.eq('school_id', schoolId);
       }
 
-      // Always call order before making the request!
       query = query.order('name');
-
-      // The key fix is here:
       const { data, error: fetchError } = await useTimeoutPromise(
         Promise.resolve(query.then(x => x)),
         7000
       );
       if (fetchError) throw fetchError;
-
       setClasses(data || []);
+      setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch classes data';
       setError(message);
@@ -83,6 +80,6 @@ export const useClasses = () => {
     classes,
     loading,
     error,
-    refetchClasses: fetchClasses
+    retry: fetchClasses
   };
 };

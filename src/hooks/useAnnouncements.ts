@@ -44,7 +44,6 @@ export const useAnnouncements = () => {
         `)
         .order('created_at', { ascending: false });
 
-      // The key fix is here:
       const { data, error: fetchError } = await useTimeoutPromise(
         Promise.resolve(query.then(x => x)),
         7000
@@ -58,11 +57,11 @@ export const useAnnouncements = () => {
       })) || [];
 
       setAnnouncements(formattedData);
+      setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch announcements';
       setError(message);
       setAnnouncements([]);
-      // Optionally: toast about error here if needed
     } finally {
       setLoading(false);
     }
@@ -101,6 +100,7 @@ export const useAnnouncements = () => {
     loading,
     error,
     createAnnouncement,
-    refetch: fetchAnnouncements
+    refetch: fetchAnnouncements,
+    retry: fetchAnnouncements,
   };
 };

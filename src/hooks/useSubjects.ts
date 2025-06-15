@@ -52,7 +52,6 @@ export const useSubjects = (classId?: string) => {
       }
 
       query = query.order('name');
-
       const { data, error: fetchError } = await useTimeoutPromise(
         Promise.resolve(query.then(x => x)),
         7000
@@ -60,6 +59,7 @@ export const useSubjects = (classId?: string) => {
       if (fetchError) throw fetchError;
 
       setSubjects(data || []);
+      setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch subjects data';
       setError(message);
@@ -87,6 +87,6 @@ export const useSubjects = (classId?: string) => {
     subjects,
     loading,
     error,
-    refetchSubjects: fetchSubjects
+    retry: fetchSubjects
   };
 };

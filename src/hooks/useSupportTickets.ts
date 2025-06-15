@@ -70,11 +70,11 @@ export const useSupportTickets = () => {
       })) || [];
 
       setTickets(formattedData);
+      setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch support tickets';
       setError(message);
       setTickets([]);
-      // Optionally: toast about error here if desired
     } finally {
       setLoading(false);
     }
@@ -114,6 +114,7 @@ export const useSupportTickets = () => {
     loading,
     error,
     createTicket,
-    refetch: fetchTickets
+    refetch: fetchTickets,
+    retry: fetchTickets,
   };
 };

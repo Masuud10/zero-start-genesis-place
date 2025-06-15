@@ -64,7 +64,6 @@ export const useStudents = (classId?: string) => {
       }
 
       query = query.order('name');
-
       const { data, error: fetchError } = await useTimeoutPromise(
         Promise.resolve(query.then(x => x)),
         7000
@@ -73,6 +72,7 @@ export const useStudents = (classId?: string) => {
       if (fetchError) throw fetchError;
 
       setStudents(data || []);
+      setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch students data';
       setError(message);
@@ -88,7 +88,6 @@ export const useStudents = (classId?: string) => {
   }, [classId, isSystemAdmin, schoolId, toast]);
 
   useEffect(() => {
-    // Only fetch if we have a schoolId (unless admin)
     if (schoolId !== null || isSystemAdmin) {
       fetchStudents();
     } else {
@@ -101,6 +100,6 @@ export const useStudents = (classId?: string) => {
     students,
     loading,
     error,
-    refetchStudents: fetchStudents
+    retry: fetchStudents
   };
 };
