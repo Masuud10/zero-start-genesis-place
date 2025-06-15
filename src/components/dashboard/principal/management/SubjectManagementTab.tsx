@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { Edit, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 const SubjectManagementTab = () => {
   const { toast } = useToast();
@@ -44,6 +46,10 @@ const SubjectManagementTab = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  };
+
+  const handleCurriculumChange = (value: string) => {
+    setForm(f => ({ ...f, curriculum: value }));
   };
 
   const alreadyExists = (name: string) =>
@@ -129,10 +135,28 @@ const SubjectManagementTab = () => {
   return (
     <div>
       <div className="font-semibold text-lg mb-2">{editingId ? "Edit Subject" : "Add New Subject"}</div>
-      <form className="flex flex-col gap-2 max-w-md mb-4" onSubmit={handleCreateOrEdit}>
-        <Input name="name" required placeholder="Subject Name (e.g., Mathematics)" value={form.name} onChange={handleChange} />
-        <Input name="code" required placeholder="Subject Code (e.g., MATH101)" value={form.code} onChange={handleChange} />
-        <Input name="curriculum" required placeholder="Curriculum (CBC or IGCSE)" value={form.curriculum} onChange={handleChange} />
+      <form className="flex flex-col gap-4 max-w-md mb-4" onSubmit={handleCreateOrEdit}>
+        <div>
+          <Label htmlFor="name">Subject Name</Label>
+          <Input id="name" name="name" required placeholder="e.g., Mathematics" value={form.name} onChange={handleChange} />
+        </div>
+        <div>
+          <Label htmlFor="code">Subject Code</Label>
+          <Input id="code" name="code" required placeholder="e.g., MATH101" value={form.code} onChange={handleChange} />
+        </div>
+        <div>
+          <Label htmlFor="curriculum">Curriculum</Label>
+          <Select required value={form.curriculum} onValueChange={handleCurriculumChange}>
+            <SelectTrigger id="curriculum">
+              <SelectValue placeholder="Select curriculum" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="CBC">CBC</SelectItem>
+              <SelectItem value="IGCSE">IGCSE</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex gap-2">
           <Button type="submit" disabled={loading}>
             {loading ? (editingId ? "Saving..." : "Creating...") : (editingId ? "Save Changes" : "Create Subject")}
