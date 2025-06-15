@@ -14,8 +14,8 @@ const StudentParentManagementTab = () => {
   const {
     classList,
     parentList,
-    loading: loadingEntities,
-    error: errorEntities,
+    loadingEntities,
+    errorEntities,
   } = usePrincipalEntityLists(reloadKey);
   
   const { retry: retryStudents } = useStudents();

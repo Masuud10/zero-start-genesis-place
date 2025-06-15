@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { useStudents } from '@/hooks/useStudents';
 import { useClasses } from '@/hooks/useClasses';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import StudentAdmissionModal from '@/components/modals/StudentAdmissionModal';
+import { useParents } from '@/hooks/useParents';
 
 const StudentsModule = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,6 +23,7 @@ const StudentsModule = () => {
   const { isReady } = useSchoolScopedData();
   const { students, loading: studentsLoading, error: studentsError, retry: retryStudents } = useStudents(classFilter !== 'all' ? classFilter : undefined);
   const { classes, loading: classesLoading, error: classesError, retry: retryClasses } = useClasses();
+  const { parents, loadingParents } = useParents(admitStudentOpen);
 
   const loading = studentsLoading || classesLoading || !isReady;
   const hasError = studentsError || classesError;
@@ -264,6 +267,9 @@ const StudentsModule = () => {
         open={admitStudentOpen}
         onClose={() => setAdmitStudentOpen(false)}
         onSuccess={handleAdmissionSuccess}
+        classes={classes}
+        parents={parents}
+        loadingParents={classesLoading || loadingParents}
       />
     </div>
   );
