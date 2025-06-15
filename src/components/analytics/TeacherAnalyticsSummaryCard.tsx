@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import RoleReportDownloadButton from "../reports/RoleReportDownloadButton";
 
 /**
  * Fetches summary analytics for classes this teacher is assigned to:
@@ -213,6 +213,10 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
         <p className="text-xs text-muted-foreground">
           Track student grades and attendance for your classes.
         </p>
+        <div className="mt-2">
+          <RoleReportDownloadButton type="grades" term={"" + (new Date().getFullYear())} label="Download Grades (Excel)" />
+          <RoleReportDownloadButton type="attendance" term={"" + (new Date().getFullYear())} label="Download Attendance (Excel)" />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col md:flex-row gap-4">
@@ -230,4 +234,3 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
 };
 
 export default TeacherAnalyticsSummaryCard;
-
