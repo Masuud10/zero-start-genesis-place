@@ -14,7 +14,7 @@ const TeacherAssignmentTab = () => {
     const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
     const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
     
-    const { classList, teacherList, subjectList, loadingEntities } = usePrincipalEntityLists();
+    const { classList, teacherList, subjectList, loadingEntities } = usePrincipalEntityLists(0);
     const { data: assignments, isLoading: loadingAssignments } = useTeacherAssignments(selectedClassId);
     const { assignTeacher, unassignTeacher, loading: isAssigning } = useRelationships();
 
