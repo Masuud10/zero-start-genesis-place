@@ -34,7 +34,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     // Fetch subject performance
     const { data: subjectGrades, error: subjectGradesError } = await supabase
         .from('grades')
-        .select('score, subjects!inner(name)')
+        .select('score, subjects!inner!subject_id(name)')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year);
@@ -61,7 +61,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     // Fetch student rankings
     const { data: studentRankingsData, error: studentRankingsError } = await supabase
         .from('grade_summary')
-        .select('average_score, class_position, students!inner(name, classes!inner(name))')
+        .select('average_score, class_position, students!inner(name, classes!inner!class_id(name))')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year)
@@ -81,7 +81,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     // Fetch teacher activity
     const { data: teacherActivityData, error: teacherActivityError } = await supabase
         .from('grades')
-        .select('submitted_by, profiles!inner(name)')
+        .select('submitted_by, teacher:profiles!inner!submitted_by(name)')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year)
@@ -90,8 +90,8 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     if (teacherActivityError) throw new Error(`Fetching teacher activity: ${teacherActivityError.message}`);
 
     const teacherActivityMap = (teacherActivityData || []).reduce((acc, grade) => {
-        if (!grade.profiles) return acc;
-        const teacherName = grade.profiles.name;
+        if (!grade.teacher) return acc;
+        const teacherName = grade.teacher.name;
         if (!acc[teacherName]) acc[teacherName] = { submissions: 0 };
         acc[teacherName].submissions++;
         return acc;
