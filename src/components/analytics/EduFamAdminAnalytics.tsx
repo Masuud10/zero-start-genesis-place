@@ -10,6 +10,8 @@ const EduFamAdminAnalytics = () => {
   const [schoolId, setSchoolId] = useState<string | undefined>(undefined);
   const [classId, setClassId] = useState<string | undefined>(undefined);
   const [dateFilter, setDateFilter] = useState("this_month");
+
+  // Improved: Always valid date range
   const now = new Date();
   let startDate: string | undefined;
   let endDate: string | undefined;
@@ -50,6 +52,80 @@ const EduFamAdminAnalytics = () => {
     }
     return "N/A";
   };
+
+  // LOGGING for debugging
+  React.useEffect(() => {
+    if (error) {
+      console.error("❌ Analytics Fetch Error:", error);
+      toast({
+        title: "Analytics Error",
+        description: typeof error === "string" ? error : "Failed to load analytics",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  // If loading or error, show a single card that spans all columns
+  if (loading) {
+    return (
+      <div className="w-full flex flex-col items-center gap-6">
+        <div className="py-10 flex flex-col items-center">
+          <span className="text-gray-600 animate-pulse">Loading analytics summary...</span>
+          <div className="w-12 h-12 mt-4 animate-spin rounded-full border-t-2 border-blue-500 border-solid"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full flex flex-col items-center gap-6">
+        <Card className="bg-red-50 border-red-200 max-w-xl w-full">
+          <CardHeader>
+            <CardTitle className="text-red-600">Analytics Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-red-700 font-medium mb-2">
+              Failed to load analytics summary.
+            </div>
+            <div className="mb-4">{typeof error === "string" ? error : "Unknown error."}</div>
+            <button
+              className="bg-red-100 text-red-800 px-4 py-2 rounded"
+              onClick={() => retry()}
+            >
+              Retry
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show empty state if summary is null or has all zeros
+  if (!summary ||
+    (summary.grades.totalGrades === 0 && summary.attendance.records === 0 && (summary.finance?.transactionCount === 0 || !summary.finance))
+  ) {
+    return (
+      <div className="w-full flex flex-col items-center gap-6">
+        <Card className="max-w-xl w-full">
+          <CardHeader>
+            <CardTitle>No Analytics Data</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 text-gray-500">
+              There is no analytics data available for the selected criteria. Try adjusting the filters, or check that schools are submitting grades, attendance, and finances.
+            </div>
+            <button
+              className="bg-blue-100 text-blue-800 px-4 py-2 rounded"
+              onClick={() => retry()}
+            >
+              Retry
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -99,21 +175,16 @@ const EduFamAdminAnalytics = () => {
             <CardTitle>Grades</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div>Loading grades...</div>
-            ) : error ? (
-              <div className="text-red-600">{error}</div>
-            ) : summary ? (
+            {summary.grades ? (
               <div>
                 <div className="font-bold text-2xl">{summary.grades.totalGrades ?? 0}</div>
                 <div className="text-muted-foreground">Total Grades Recorded</div>
                 <div className="font-semibold mt-2">
-                  Avg. Score:{" "}
-                  {safeFormat(summary.grades.avgScore)}%
+                  Avg. Score: {safeFormat(summary.grades.avgScore)}%
                 </div>
               </div>
             ) : (
-              <div>No data</div>
+              <div>No grade data</div>
             )}
           </CardContent>
         </Card>
@@ -122,21 +193,16 @@ const EduFamAdminAnalytics = () => {
             <CardTitle>Attendance</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div>Loading attendance...</div>
-            ) : error ? (
-              <div className="text-red-600">{error}</div>
-            ) : summary ? (
+            {summary.attendance ? (
               <div>
                 <div className="font-bold text-2xl">{summary.attendance.records ?? 0}</div>
                 <div className="text-muted-foreground">Attendance Records</div>
                 <div className="font-semibold mt-2">
-                  Avg. Attendance:{" "}
-                  {safeFormat(summary.attendance.avgAttendance)}%
+                  Avg. Attendance: {safeFormat(summary.attendance.avgAttendance)}%
                 </div>
               </div>
             ) : (
-              <div>No data</div>
+              <div>No attendance data</div>
             )}
           </CardContent>
         </Card>
@@ -145,11 +211,7 @@ const EduFamAdminAnalytics = () => {
             <CardTitle>Finance</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div>Loading finances...</div>
-            ) : error ? (
-              <div className="text-red-600">{error}</div>
-            ) : summary ? (
+            {summary.finance ? (
               <div>
                 <div className="font-bold text-2xl">
                   KES{" "}
@@ -160,22 +222,11 @@ const EduFamAdminAnalytics = () => {
                 <div className="text-muted-foreground">Transactions: {summary.finance.transactionCount}</div>
               </div>
             ) : (
-              <div>No data</div>
+              <div>No finance data</div>
             )}
           </CardContent>
         </Card>
       </div>
-      {/* Retry on error */}
-      {error && (
-        <div className="py-4">
-          <button
-            className="bg-red-100 text-red-800 px-4 py-2 rounded"
-            onClick={() => retry()}
-          >
-            Retry
-          </button>
-        </div>
-      )}
     </div>
   );
 };
