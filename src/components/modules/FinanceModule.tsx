@@ -215,7 +215,7 @@ const FinanceModule = () => {
           <DownloadReportButton
             type="finance"
             label="Download Fees Report"
-            queryFilters={isSystemAdmin ? {} : { school_id }}
+            queryFilters={isSystemAdmin ? {} : { school_id: schoolId }}
           />
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />

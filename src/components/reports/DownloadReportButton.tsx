@@ -22,23 +22,24 @@ function exportToExcel(data: any[], filename: string) {
   XLSX.writeFile(wb, filename);
 }
 
-const tableMeta = {
+// Only allow valid table names for type safety!
+const TABLE_MAP = {
   grades: {
-    table: "grades",
+    table: "grades" as const,
     select: `
       student_id, subject_id, class_id, score, max_score, percentage, position, term, exam_type, status, submitted_by, submitted_at
     `,
     filename: "grades-report.xlsx"
   },
   attendance: {
-    table: "attendance",
+    table: "attendance" as const,
     select: `
       student_id, class_id, date, status, remarks, session, submitted_by, submitted_at, term
     `,
     filename: "attendance-report.xlsx"
   },
   finance: {
-    table: "fees",
+    table: "fees" as const,
     select: `
       student_id, amount, paid_amount, due_date, category, status, term, payment_method, mpesa_code, academic_year
     `,
@@ -59,7 +60,7 @@ const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
   const handleDownload = async () => {
     setLoading(true);
     try {
-      const meta = tableMeta[type];
+      const meta = TABLE_MAP[type];
       let query = supabase.from(meta.table).select(meta.select);
 
       // Filters (school_id etc) - can be extended!
