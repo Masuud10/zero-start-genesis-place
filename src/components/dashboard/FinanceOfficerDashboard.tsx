@@ -5,7 +5,6 @@ import { AuthUser } from '@/types/auth';
 import { DollarSign, Users, CreditCard, BarChart3, FileText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -81,7 +80,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
 
   return (
     <div className="space-y-6">
-      <ReportDownloadPanel />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Finance Dashboard</h2>
