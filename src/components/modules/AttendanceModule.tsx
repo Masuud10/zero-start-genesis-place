@@ -1,22 +1,26 @@
+
 import React, { useState, useEffect } from 'react';
 import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import AttendanceAdminSummary from './AttendanceAdminSummary';
+import TeacherAttendancePanel from '../attendance/TeacherAttendancePanel';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const AttendanceModule: React.FC = () => {
   const { user } = useAuth();
   const isEdufamAdmin = user?.role === 'edufam_admin';
+  const isTeacher = user?.role === 'teacher';
 
+  // Edufam Admin View (summary)
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [attendanceSummary, setAttendanceSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch schools for dropdown (for admin filter)
+  // Fetch schools for dropdown (admin)
   useEffect(() => {
     if (!isEdufamAdmin) return;
     supabase.from("schools")
@@ -27,7 +31,7 @@ const AttendanceModule: React.FC = () => {
       });
   }, [isEdufamAdmin]);
 
-  // Fetch summary from view only (no details)
+  // Fetch admin summary
   useEffect(() => {
     if (!isEdufamAdmin) return;
     setLoading(true);
@@ -51,7 +55,7 @@ const AttendanceModule: React.FC = () => {
     });
   }, [isEdufamAdmin, schoolFilter]);
 
-  // Edufam admin: summary only
+  // Admin view
   if (isEdufamAdmin) {
     if (loading) {
       return (
@@ -96,7 +100,12 @@ const AttendanceModule: React.FC = () => {
     );
   }
 
-  // For all non-Edufam admins, we won't return anything here (to avoid reference errors from the truncated code block).
+  // Teacher view - Mark & Review Attendance for own classes
+  if (isTeacher) {
+    return <TeacherAttendancePanel teacherId={user?.id} schoolId={user?.school_id} />;
+  }
+
+  // Restrict access for others
   return (
     <div className="p-8">
       <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
@@ -105,3 +114,4 @@ const AttendanceModule: React.FC = () => {
 };
 
 export default AttendanceModule;
+
