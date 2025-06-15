@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -23,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useSchool } from '@/contexts/SchoolContext';
+import IGCSEGradesModal from './IGCSEGradesModal';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -163,6 +163,11 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     }
   };
 
+  // --- Modal Switching: If IGCSE, display that workflow ---
+  if (curriculumType === 'igcse') {
+    return <IGCSEGradesModal onClose={onClose} userRole={userRole} />;
+  }
+  // Otherwise, use regular CBC modal
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
