@@ -10,10 +10,28 @@ export const useGradeSubmission = () => {
   const submitGrade = async (gradeData: any) => {
     setIsSubmitting(true);
     try {
+      if (!gradeData.class_id) {
+        throw new Error("class_id is required to submit a grade");
+      }
+
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('school_id')
+        .eq('id', gradeData.class_id)
+        .single();
+
+      if (classError) throw classError;
+      if (!classData?.school_id) throw new Error("Could not find school for the class");
+      
+      const completeGradeData = {
+        ...gradeData,
+        school_id: classData.school_id,
+      };
+
       // Submit grade to database
       const { data, error } = await supabase
         .from('grades')
-        .insert(gradeData)
+        .insert(completeGradeData)
         .select()
         .single();
 

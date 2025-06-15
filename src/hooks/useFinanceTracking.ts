@@ -10,10 +10,28 @@ export const useFinanceTracking = () => {
   const processPayment = async (paymentData: any) => {
     setIsProcessing(true);
     try {
+      if (!paymentData.student_id) {
+        throw new Error("student_id is required to process a payment");
+      }
+      
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('school_id')
+        .eq('id', paymentData.student_id)
+        .single();
+
+      if (studentError) throw studentError;
+      if (!studentData?.school_id) throw new Error("Could not find school for the student");
+
+      const completePaymentData = {
+        ...paymentData,
+        school_id: studentData.school_id,
+      };
+
       // Process payment in database
       const { data, error } = await supabase
         .from('financial_transactions')
-        .insert(paymentData)
+        .insert(completePaymentData)
         .select()
         .single();
 

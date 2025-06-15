@@ -313,7 +313,7 @@ export type Database = {
           date: string
           id: string
           remarks: string | null
-          school_id: string | null
+          school_id: string
           session: string | null
           status: string | null
           student_id: string | null
@@ -328,7 +328,7 @@ export type Database = {
           date: string
           id?: string
           remarks?: string | null
-          school_id?: string | null
+          school_id: string
           session?: string | null
           status?: string | null
           student_id?: string | null
@@ -343,7 +343,7 @@ export type Database = {
           date?: string
           id?: string
           remarks?: string | null
-          school_id?: string | null
+          school_id?: string
           session?: string | null
           status?: string | null
           student_id?: string | null
@@ -1087,7 +1087,7 @@ export type Database = {
           position: number | null
           reviewed_at: string | null
           reviewed_by: string | null
-          school_id: string | null
+          school_id: string
           score: number
           status: string | null
           student_id: string | null
@@ -1110,7 +1110,7 @@ export type Database = {
           position?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          school_id?: string | null
+          school_id: string
           score: number
           status?: string | null
           student_id?: string | null
@@ -1133,7 +1133,7 @@ export type Database = {
           position?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          school_id?: string | null
+          school_id?: string
           score?: number
           status?: string | null
           student_id?: string | null
@@ -1411,7 +1411,7 @@ export type Database = {
           is_primary_contact: boolean | null
           parent_id: string
           relationship_type: string | null
-          school_id: string | null
+          school_id: string
           student_id: string
         }
         Insert: {
@@ -1420,7 +1420,7 @@ export type Database = {
           is_primary_contact?: boolean | null
           parent_id: string
           relationship_type?: string | null
-          school_id?: string | null
+          school_id: string
           student_id: string
         }
         Update: {
@@ -1429,7 +1429,7 @@ export type Database = {
           is_primary_contact?: boolean | null
           parent_id?: string
           relationship_type?: string | null
-          school_id?: string | null
+          school_id?: string
           student_id?: string
         }
         Relationships: [
@@ -1894,7 +1894,7 @@ export type Database = {
           enrollment_date: string | null
           id: string
           is_active: boolean | null
-          school_id: string | null
+          school_id: string
           student_id: string
         }
         Insert: {
@@ -1904,7 +1904,7 @@ export type Database = {
           enrollment_date?: string | null
           id?: string
           is_active?: boolean | null
-          school_id?: string | null
+          school_id: string
           student_id: string
         }
         Update: {
@@ -1914,7 +1914,7 @@ export type Database = {
           enrollment_date?: string | null
           id?: string
           is_active?: boolean | null
-          school_id?: string | null
+          school_id?: string
           student_id?: string
         }
         Relationships: [
@@ -2424,7 +2424,7 @@ export type Database = {
           class_id: string
           created_at: string | null
           id: string
-          school_id: string | null
+          school_id: string
           subject_id: string | null
           teacher_id: string
         }
@@ -2432,7 +2432,7 @@ export type Database = {
           class_id: string
           created_at?: string | null
           id?: string
-          school_id?: string | null
+          school_id: string
           subject_id?: string | null
           teacher_id: string
         }
@@ -2440,7 +2440,7 @@ export type Database = {
           class_id?: string
           created_at?: string | null
           id?: string
-          school_id?: string | null
+          school_id?: string
           subject_id?: string | null
           teacher_id?: string
         }

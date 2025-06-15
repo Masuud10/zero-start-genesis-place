@@ -1,10 +1,12 @@
 
 import { DataServiceCore } from './core/dataServiceCore';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DatabaseGradeInsert {
   student_id: string;
   subject_id: string;
   class_id: string;
+  school_id: string;
   score: number;
   max_score: number;
   percentage?: number;
@@ -46,10 +48,24 @@ export interface GradeData {
 
 export class GradeService {
   static async createGrade(gradeData: Partial<GradeData>) {
+    if (!gradeData.class_id) {
+      throw new Error("class_id is required to create a grade");
+    }
+
+    const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('school_id')
+        .eq('id', gradeData.class_id)
+        .single();
+    
+    if (classError) throw classError;
+    if (!classData?.school_id) throw new Error("Could not find school for the class");
+
     const dbData: DatabaseGradeInsert = {
       student_id: gradeData.student_id!,
       subject_id: gradeData.subject_id!,
       class_id: gradeData.class_id!,
+      school_id: classData.school_id,
       score: gradeData.score!,
       max_score: gradeData.max_score!,
       percentage: gradeData.percentage,
