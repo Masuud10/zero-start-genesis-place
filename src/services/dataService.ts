@@ -5,6 +5,12 @@ import { AttendanceService, AttendanceData } from './attendanceService';
 import { FinanceService, FinancialData } from './financeService';
 import { ReportService } from './reportService';
 
+// Define UserScope as ReportService now requires it for its methods.
+interface UserScope {
+  isSystemAdmin: boolean;
+  schoolId: string | null;
+}
+
 // Legacy DataService that delegates to new modular services
 // This maintains backward compatibility while using the new architecture
 export class DataService {
@@ -53,16 +59,16 @@ export class DataService {
   }
 
   // Reporting - delegate to ReportService
-  static async generateStudentReport(studentId: string, academicYear: string, term: string) {
-    return ReportService.generateStudentReport(studentId, academicYear, term);
+  static async generateStudentReport(scope: UserScope, studentId: string, academicYear: string, term: string) {
+    return ReportService.generateStudentReport(scope, studentId, academicYear, term);
   }
 
-  static async generateClassReport(classId: string, academicYear: string, term: string) {
-    return ReportService.generateClassReport(classId, academicYear, term);
+  static async generateClassReport(scope: UserScope, classId: string, academicYear: string, term: string) {
+    return ReportService.generateClassReport(scope, classId, academicYear, term);
   }
 
-  static async generateFinancialReport(schoolId?: string, academicYear?: string) {
-    return ReportService.generateFinancialReport(schoolId, academicYear);
+  static async generateFinancialReport(scope: UserScope, schoolId?: string, academicYear?: string) {
+    return ReportService.generateFinancialReport(scope, schoolId, academicYear);
   }
 }
 
