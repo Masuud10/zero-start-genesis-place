@@ -10,7 +10,22 @@ const fetchSchoolClasses = async (schoolId: string): Promise<Class[]> => {
         .select('*')
         .eq('school_id', schoolId);
     if (error) throw new Error(error.message);
-    return data as Class[];
+    
+    if (!data) {
+        return [];
+    }
+    
+    // Manually map to fix snake_case to camelCase mismatch and handle optional properties
+    const classes: Class[] = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        schoolId: item.school_id, // Map from snake_case
+        created_at: item.created_at,
+        teacherId: item.teacher_id, // Map from snake_case
+        // `students` and `subjects` are optional and not fetched here
+    }));
+
+    return classes;
 };
 
 export const useSchoolClasses = () => {

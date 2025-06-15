@@ -1,12 +1,11 @@
-
 import { Student } from './student';
 
 export interface Class {
   id: string;
   name: string;
   teacherId?: string; // Made optional since we now have many-to-many
-  students: Student[];
-  subjects: Subject[];
+  students?: Student[];
+  subjects?: Subject[];
   schoolId: string; // Required for multi-tenancy
   created_at: string;
 }
