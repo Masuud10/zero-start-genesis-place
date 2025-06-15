@@ -41,27 +41,46 @@ const ParentGradesView: React.FC = () => {
                     return;
                 }
 
+                // Pre-fetch student names
+                const { data: studentData, error: studentError } = await supabase
+                    .from('students')
+                    .select('id, name')
+                    .in('id', studentIds);
+                if (studentError) throw studentError;
+                const studentMap = new Map(studentData?.map(s => [s.id, s.name]));
+
                 const { data: gradeData, error: gradeError } = await supabase
                     .from('grades')
-                    .select(`
-                        id,
-                        term,
-                        percentage,
-                        subjects!subject_id( name ),
-                        students( name )
-                    `)
+                    .select('id, term, percentage, subject_id, student_id')
                     .in('student_id', studentIds)
                     .eq('is_released', true)
                     .order('term', { ascending: false });
                 
                 if (gradeError) throw gradeError;
 
-                const formattedGrades = gradeData.map((g: any) => ({
+                if (!gradeData || gradeData.length === 0) {
+                    setGrades([]);
+                    return; // finally will set loading to false
+                }
+
+                const subjectIds = [...new Set(gradeData.map(g => g.subject_id).filter(Boolean))];
+                const subjectMap = new Map<string, string>();
+
+                if (subjectIds.length > 0) {
+                    const { data: subjectData, error: subjectError } = await supabase
+                        .from('subjects')
+                        .select('id, name')
+                        .in('id', subjectIds);
+                    if (subjectError) throw subjectError;
+                    subjectData?.forEach(s => subjectMap.set(s.id, s.name));
+                }
+
+                const formattedGrades = gradeData.map((g) => ({
                     id: g.id,
                     term: g.term,
                     percentage: g.percentage,
-                    subjectName: g.subjects?.name || 'N/A',
-                    studentName: g.students?.name || 'N/A',
+                    subjectName: g.subject_id ? subjectMap.get(g.subject_id) || 'N/A' : 'N/A',
+                    studentName: g.student_id ? studentMap.get(g.student_id) || 'N/A' : 'N/A',
                 }));
 
                 setGrades(formattedGrades);
