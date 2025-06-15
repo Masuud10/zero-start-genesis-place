@@ -24,6 +24,7 @@ export class SchoolService {
       console.log('🏫 SchoolService: Creating school via database function', schoolData);
 
       // Use the create_school database function (only elimisha_admin can call this)
+      // Cast to 'any' to avoid TS2353 until Supabase types are regenerated/updated
       const { data, error } = await supabase.rpc('create_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
@@ -32,7 +33,7 @@ export class SchoolService {
         owner_email: schoolData.ownerEmail || null,
         owner_name: schoolData.ownerName || null,
         curriculum_type: schoolData.curriculumType || 'cbc'
-      });
+      } as any);
 
       if (error) {
         console.error('🏫 SchoolService: Database function error:', error);
