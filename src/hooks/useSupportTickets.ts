@@ -19,6 +19,8 @@ export interface SupportTicket {
   creator_name?: string;
 }
 
+export type NewSupportTicket = Omit<SupportTicket, 'id' | 'created_at' | 'created_by' | 'school_id' | 'status' | 'creator_name' | 'resolved_at' | 'assigned_to' | 'attachments'>
+
 function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
@@ -35,16 +37,21 @@ export const useSupportTickets = () => {
   const { user } = useAuth();
 
   const fetchTickets = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const query = supabase
+      let query = supabase
         .from('support_tickets')
         .select(`
           *,
           profiles!support_tickets_created_by_fkey(name)
         `)
         .order('created_at', { ascending: false });
+
+      if (user.role !== 'edufam_admin') {
+        query = query.eq('created_by', user.id);
+      }
 
       const { data, error: fetchError } = await useTimeoutPromise(
         Promise.resolve(query.then(x => x)),
@@ -78,7 +85,7 @@ export const useSupportTickets = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -89,14 +96,16 @@ export const useSupportTickets = () => {
     }
   }, [user, fetchTickets]);
 
-  const createTicket = async (ticket: Omit<SupportTicket, 'id' | 'created_at' | 'created_by'>) => {
+  const createTicket = async (ticket: NewSupportTicket) => {
+    if (!user) return { data: null, error: new Error("User not authenticated") };
+
     try {
       const { data, error } = await supabase
         .from('support_tickets')
         .insert({
           ...ticket,
-          created_by: user?.id,
-          school_id: user?.school_id
+          created_by: user.id,
+          school_id: user.school_id
         })
         .select()
         .single();

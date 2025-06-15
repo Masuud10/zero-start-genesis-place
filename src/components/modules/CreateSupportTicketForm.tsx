@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,126 +8,141 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
 import { useSupportTickets } from '@/hooks/useSupportTickets';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const ticketSchema = z.object({
-  type: z.enum(['technical', 'feature_request', 'billing', 'feedback']),
-  title: z.string().min(5, 'Subject must be at least 5 characters long.'),
+  title: z.string().min(5, 'Title must be at least 5 characters long.'),
   description: z.string().min(20, 'Description must be at least 20 characters long.'),
+  type: z.enum(['technical', 'feature_request', 'billing', 'feedback']),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']),
 });
 
-const CreateSupportTicketForm = () => {
-    const { toast } = useToast();
-    const { createTicket } = useSupportTickets();
-    const [isSubmitting, setIsSubmitting] = useState(false);
+type TicketFormData = z.infer<typeof ticketSchema>;
 
-    const form = useForm<z.infer<typeof ticketSchema>>({
-        resolver: zodResolver(ticketSchema),
-        defaultValues: {
-            type: 'technical',
-            title: '',
-            description: '',
-        },
-    });
+interface CreateSupportTicketFormProps {
+  onSuccess?: () => void;
+}
 
-    const onSubmit = async (values: z.infer<typeof ticketSchema>) => {
-        setIsSubmitting(true);
-        const ticketData = {
-            title: values.title,
-            description: values.description,
-            type: values.type,
-            status: 'open' as const,
-            priority: 'medium' as const,
-        };
-        
-        const { error } = await createTicket(ticketData);
+const CreateSupportTicketForm: React.FC<CreateSupportTicketFormProps> = ({ onSuccess }) => {
+  const { createTicket } = useSupportTickets();
+  const { toast } = useToast();
+  const form = useForm<TicketFormData>({
+    resolver: zodResolver(ticketSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      type: 'technical',
+      priority: 'medium',
+    },
+  });
 
-        if (error) {
-            toast({
-                title: 'Error submitting ticket',
-                description: (error as any).message || 'An unknown error occurred.',
-                variant: 'destructive',
-            });
-        } else {
-            toast({
-                title: 'Ticket submitted successfully!',
-                description: 'Our team will get back to you shortly.',
-            });
-            form.reset();
-        }
-        setIsSubmitting(false);
-    };
+  const { isSubmitting } = form.formState;
 
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                    control={form.control}
-                    name="type"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Ticket Type</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a ticket type" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="technical">Technical Issue</SelectItem>
-                                    <SelectItem value="billing">Billing Question</SelectItem>
-                                    <SelectItem value="feature_request">Feature Request</SelectItem>
-                                    <SelectItem value="feedback">General Feedback</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+  const onSubmit = async (values: TicketFormData) => {
+    const { data, error } = await createTicket(values);
 
-                <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Subject</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g., Issue with payment processing" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+    if (error) {
+      toast({
+        title: 'Error creating ticket',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Support ticket created',
+        description: 'We have received your request and will get back to you shortly.',
+      });
+      form.reset();
+      onSuccess?.();
+    }
+  };
 
-                <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                                <Textarea placeholder="Please describe the issue in detail..." rows={8} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                
-                <Button type="submit" disabled={isSubmitting} className="w-full">
-                    {isSubmitting ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Submitting...
-                        </>
-                    ) : (
-                        'Submit Ticket'
-                    )}
-                </Button>
-            </form>
-        </Form>
-    );
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Unable to login" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Please describe the issue in detail..." {...field} rows={6} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select ticket type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="technical">Technical Issue</SelectItem>
+                    <SelectItem value="feature_request">Feature Request</SelectItem>
+                    <SelectItem value="billing">Billing Inquiry</SelectItem>
+                    <SelectItem value="feedback">Feedback</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="priority"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Priority</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority level" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Submit Ticket
+        </Button>
+      </form>
+    </Form>
+  );
 };
 
 export default CreateSupportTicketForm;

@@ -24,6 +24,7 @@ import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
 import FinanceReportsModule from '@/components/modules/FinanceReportsModule';
 import FeeManagementModule from '@/components/modules/FeeManagementModule';
 import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
+import FinanceSupportModule from '@/components/modules/FinanceSupportModule';
 
 const ContentRenderer: React.FC = () => {
   const { activeSection } = useNavigation();
@@ -50,7 +51,15 @@ const ContentRenderer: React.FC = () => {
         return <FinanceReportsModule />;
       }
       return <ReportsModule />;
-    case 'support': return <SupportModule />;
+    case 'support':
+        if (user?.role === 'edufam_admin') {
+            return <SupportModule />;
+        }
+        if (['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(user?.role || '')) {
+            return <FinanceSupportModule />;
+        }
+        // Fallback for any other case or if user role is not defined
+        return <Dashboard />; // Or an access denied component
     case 'settings': return <SettingsModule />;
     case 'finance-settings': return <FinanceSettingsModule />;
     case 'security': return <SecurityModule />;
