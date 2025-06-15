@@ -24,11 +24,21 @@ import { AlertTriangle } from 'lucide-react';
 import { useSchool } from '@/contexts/SchoolContext';
 import IGCSEGradesModal from './IGCSEGradesModal';
 import { getGradingPermissions } from '@/utils/grading-permissions';
+import { UserRole } from '@/types/user';
 
 interface GradesModalProps {
   onClose: () => void;
   userRole: string;
 }
+
+const GRADING_ROLES: UserRole[] = [
+  'school_owner',
+  'principal',
+  'teacher',
+  'parent',
+  'finance_officer',
+  'edufam_admin'
+];
 
 const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const { user } = useAuth();
@@ -49,8 +59,13 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const { toast } = useToast();
   const { currentSchool } = useSchool();
 
+  // === Fix: Safe UserRole Handling ===
+  function getValidUserRole(role: string | undefined): UserRole {
+    return (GRADING_ROLES.includes(role as UserRole) ? role : 'teacher') as UserRole;
+  }
+
   const curriculumType = currentSchool?.curriculum_type || 'cbc';
-  const permissions = getGradingPermissions(user?.role);
+  const permissions = getGradingPermissions(getValidUserRole(user?.role));
 
   useEffect(() => {
     const loadClasses = async () => {
