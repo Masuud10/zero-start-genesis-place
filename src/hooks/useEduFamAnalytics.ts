@@ -45,8 +45,9 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
         throw new Error("Insufficient permissions for analytics summary.");
 
       // --- Grades Summary ---
-      let gradesQuery: any = supabase
-        .from<any, any>("school_grades_summary")
+      // Use `as any` to avoid TS2558 for views/not-in-types
+      let gradesQuery: any = (supabase as any)
+        .from("school_grades_summary")
         .select("*");
 
       if (filters.schoolId) {
@@ -64,15 +65,12 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
           : null;
 
       // --- Attendance Summary ---
-      let attendanceQuery: any = supabase
-        .from<any, any>("school_attendance_summary")
+      let attendanceQuery: any = (supabase as any)
+        .from("school_attendance_summary")
         .select("*");
 
       if (filters.schoolId) {
-        attendanceQuery = attendanceQuery.eq(
-          "school_id",
-          filters.schoolId
-        );
+        attendanceQuery = attendanceQuery.eq("school_id", filters.schoolId);
       }
 
       const { data: attendanceData, error: attendanceErr } =
@@ -87,8 +85,8 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
           : null;
 
       // --- Finance Summary ---
-      let financeQuery: any = supabase
-        .from<any, any>("school_finance_summary")
+      let financeQuery: any = (supabase as any)
+        .from("school_finance_summary")
         .select("*");
       if (filters.schoolId) {
         financeQuery = financeQuery.eq("school_id", filters.schoolId);
