@@ -85,7 +85,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     // Fetch subject performance
     const { data: subjectGrades, error: subjectGradesError } = await supabase
         .from('grades')
-        .select('score, subjects!subject_id!inner(name)')
+        .select('score, subjects!inner(name)')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year)
@@ -113,7 +113,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     // Fetch student rankings
     const { data: studentRankingsData, error: studentRankingsError } = await supabase
         .from('grade_summary')
-        .select('average_score, class_position, students!student_id!inner(name, classes!class_id!inner(name))')
+        .select('average_score, class_position, students!inner(name, classes!inner(name))')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year)
@@ -136,7 +136,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     // Fetch teacher activity
     const { data: teacherActivityData, error: teacherActivityError } = await supabase
         .from('grades')
-        .select('submitted_by, teacher:profiles!submitted_by!inner(name)')
+        .select('submitted_by, teacher:profiles!inner(name)')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year)
