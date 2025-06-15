@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -7,6 +8,18 @@ interface TeacherDashboardStats {
   students: number;
   pendingGrades: number;
   todaysClasses: number;
+}
+
+interface TeacherClassesRow {
+  class_id: string;
+}
+
+interface Student {
+  id: string;
+}
+
+interface TimetableSlot {
+  id: string;
 }
 
 export function useTeacherDashboardStats(user: AuthUser) {
@@ -39,17 +52,17 @@ export function useTeacherDashboardStats(user: AuthUser) {
       const { data: teacherClassRows, error: tcErr } = await supabase
         .from('teacher_classes')
         .select('class_id')
-        .eq('teacher_id', user.id);
+        .eq('teacher_id', user.id) as { data: TeacherClassesRow[] | null; error: Error | null; };
       if (tcErr) throw tcErr;
 
       const classIds: string[] = (teacherClassRows ?? []).map(row => row.class_id);
 
       let studentsCount = 0;
-      if (classIds.length > 0) {
+      if (Array.isArray(classIds) && classIds.length > 0) {
         const { count, error: scErr } = await supabase
           .from('students')
           .select('id', { count: 'exact', head: true })
-          .in('class_id', classIds);
+          .in('class_id', classIds as string[]);
         if (scErr) throw scErr;
         studentsCount = count ?? 0;
       } else {
@@ -66,18 +79,23 @@ export function useTeacherDashboardStats(user: AuthUser) {
 
       // 4. Today's classes (from teacher_classes and timetables)
       let todaysClasses = 0;
-      if (classIds.length > 0) {
+      if (Array.isArray(classIds) && classIds.length > 0) {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-        // Only apply .in() if array is NOT empty (already checked above)
         const { data: timetableSlots, error: ttErr } = await supabase
           .from('timetable_slots')
-          .select('id')
-          .in('class_id', classIds)
-          .eq('day', today);
+          .select('id') as { data: TimetableSlot[] | null; error: Error | null };
+        // Filter by class_id only if classIds is not empty
+        let filteredSlots: TimetableSlot[] = [];
+        if (timetableSlots && timetableSlots.length > 0) {
+          filteredSlots = timetableSlots.filter(slot => classIds.includes((slot as any).class_id));
+        }
         if (ttErr) throw ttErr;
-        todaysClasses = timetableSlots?.length ?? 0;
+        // This could be optimized as a .in() but doing this avoids TypeScript recursion
+        todaysClasses = filteredSlots.filter(slot => {
+          const slotDay = (slot as any).day?.toLowerCase?.() ?? '';
+          return slotDay === today;
+        }).length;
       } else {
-        // If there are no classes, skip the query and set to 0
         todaysClasses = 0;
       }
 
@@ -107,3 +125,5 @@ export function useTeacherDashboardStats(user: AuthUser) {
 
   return { stats, loading, error, retry: fetchStats };
 }
+
+// ... end of file
