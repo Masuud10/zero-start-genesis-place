@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,38 +31,69 @@ const SchoolAdminDashboard: React.FC<SchoolAdminDashboardProps> = ({ user, onMod
       }
       setLoading(true);
 
-      // 1. Students count
-      const { count: studentsCount } = await supabase
+      const schoolId = user.school_id;
+
+      // Fetch current academic term to scope fee collection
+      const currentTermPromise = supabase
+        .from('academic_terms')
+        .select('start_date, end_date')
+        .eq('school_id', schoolId)
+        .eq('is_current', true)
+        .maybeSingle();
+
+      // 1. Students count (active only)
+      const studentsCountPromise = supabase
         .from('students')
         .select('id', { count: 'exact', head: true })
-        .eq('school_id', user.school_id);
+        .eq('school_id', schoolId)
+        .eq('is_active', true);
 
-      // 2. Teachers count (from profiles table, role='teacher')
-      const { count: teachersCount } = await supabase
+      // 2. Teachers count
+      const teachersCountPromise = supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('school_id', user.school_id)
+        .eq('school_id', schoolId)
         .eq('role', 'teacher');
 
-      // 3. Attendance rate (avg attendance for today)
+      // 3. Attendance rate for today
       const today = new Date().toISOString().split('T')[0];
-      const { data: attendance } = await supabase
+      const attendancePromise = supabase
         .from('attendance')
-        .select('status,student_id') // FIX: string, not multiple params
-        .eq('school_id', user.school_id)
+        .select('status')
+        .eq('school_id', schoolId)
         .eq('date', today);
+        
+      const [
+        { data: currentTerm }, 
+        { count: studentsCount }, 
+        { count: teachersCount }, 
+        { data: attendance }
+      ] = await Promise.all([
+        currentTermPromise,
+        studentsCountPromise,
+        teachersCountPromise,
+        attendancePromise
+      ]);
 
       let attendanceRate = 0;
       if (attendance && attendance.length > 0) {
         const present = attendance.filter(a => a.status?.toLowerCase() === 'present').length;
-        attendanceRate = attendance.length > 0 ? (present / attendance.length) * 100 : 0;
+        attendanceRate = (present / attendance.length) * 100;
       }
 
       // 4. Fee Collection (percentage for current term)
-      const { data: fees } = await supabase
+      const feesQuery = supabase
         .from('fees')
         .select('amount,paid_amount')
-        .eq('school_id', user.school_id);
+        .eq('school_id', schoolId);
+      
+      if (currentTerm?.start_date && currentTerm?.end_date) {
+        feesQuery
+          .gte('due_date', currentTerm.start_date)
+          .lte('due_date', currentTerm.end_date);
+      }
+
+      const { data: fees } = await feesQuery;
 
       let feeCollection = 0;
       if (fees && fees.length > 0) {
