@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,11 +92,13 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
         setAttendanceMap({});
       } else {
         // Build map: student_id -> {status, remarks}
+        const validStatus = (v: any): AttendanceStatus =>
+          v === "present" || v === "absent" || v === "late" ? v : "present";
         const attMap: Record<string, { status: AttendanceStatus; remarks: string }> = {};
         if (Array.isArray(attData)) {
           attData.forEach((a) => {
             attMap[a.student_id] = {
-              status: a.status || "present",
+              status: validStatus(a.status),
               remarks: a.remarks || "",
             };
           });
@@ -253,7 +254,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ teacher
               </TableHead>
               <TableBody>
                 {students.map((student) => {
-                  const status = attendanceMap[student.id]?.status || "present";
+                  const status = (attendanceMap[student.id]?.status || "present") as AttendanceStatus;
                   const remarks = attendanceMap[student.id]?.remarks || "";
                   return (
                     <TableRow key={student.id}>
