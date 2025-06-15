@@ -1,6 +1,4 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 import type { Database } from '@/integrations/supabase/types';
 
 // Type for valid table names
@@ -10,17 +8,15 @@ type TableName = keyof Database['public']['Tables'];
 export class DataServiceCore {
   static async createRecord<T>(
     table: TableName, 
-    data: Partial<T>, 
-    requiresSchoolScope: boolean = true
+    data: Partial<T>
   ) {
     try {
-      const scopedData = requiresSchoolScope 
-        ? await MultiTenantUtils.ensureSchoolScope(data)
-        : data;
-
+      // The client-side school scope enforcement has been removed.
+      // This logic is now handled by the caller preparing the data
+      // and is securely enforced by database-level RLS policies.
       const { data: result, error } = await supabase
         .from(table as any)
-        .insert(scopedData as any)
+        .insert(data as any)
         .select()
         .single();
 
