@@ -2558,7 +2558,61 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      school_attendance_summary: {
+        Row: {
+          attendance_count: number | null
+          attendance_rate: number | null
+          school_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attendance_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_finance_summary: {
+        Row: {
+          school_id: string | null
+          total_collected: number | null
+          transactions_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_grades_summary: {
+        Row: {
+          average_grade: number | null
+          grades_count: number | null
+          school_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_grades_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       assign_school_to_user: {
