@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AuthUser } from '@/types/auth';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
@@ -10,6 +9,8 @@ import ParentDashboard from './ParentDashboard';
 import FinanceOfficerDashboard from './FinanceOfficerDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
+import SchoolOwnerDashboard from './SchoolOwnerDashboard';
+import PrincipalDashboard from './PrincipalDashboard';
 
 interface DashboardRoleBasedContentProps {
   user: AuthUser;
@@ -104,9 +105,12 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
       return <SystemAdminDashboard user={user} onModalOpen={onModalOpen} />;
 
     case 'school_owner':
+      console.log('📊 DashboardRoleBasedContent: Rendering SchoolOwnerDashboard for school_owner');
+      return <SchoolOwnerDashboard />;
+
     case 'principal':
-      console.log('📊 DashboardRoleBasedContent: Rendering SchoolAdminDashboard for:', user.role);
-      return <SchoolAdminDashboard user={user} onModalOpen={onModalOpen} />;
+      console.log('📊 DashboardRoleBasedContent: Rendering PrincipalDashboard for principal');
+      return <PrincipalDashboard />;
 
     case 'teacher':
       console.log('📊 DashboardRoleBasedContent: Rendering TeacherDashboard for teacher');
