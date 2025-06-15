@@ -1,21 +1,8 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-interface TimetableRow {
-  id: string;
-  class_id: string;
-  // Remove subject_id, teacher_id, day_of_week, start_time, end_time since these do not exist based on your errors
-  // Only use fields that exist: id, class_id, school_id, is_active, created_at, created_by, version
-  school_id?: string;
-  is_active?: boolean;
-  created_at?: string;
-  created_by?: string;
-  version?: number;
-}
 
 const SmartTimetableReview = ({
   term,
@@ -37,6 +24,7 @@ const SmartTimetableReview = ({
     setErrorMsg(null);
     (async () => {
       try {
+        // Don't use any generics on .select, just use as any[]
         const { data, error } = await supabase
           .from("timetables")
           .select("id,class_id,school_id,is_active,created_at,created_by,version")
@@ -51,7 +39,7 @@ const SmartTimetableReview = ({
           setErrorMsg("No valid draft timetable found.");
           setRows([]);
         } else {
-          setRows(data as any[]); // **** TYPECAST HERE ****
+          setRows(data as any[]); // Always cast to any[]
         }
       } catch (e: any) {
         setErrorMsg("Error fetching timetable draft: " + (e?.message ?? String(e)));
@@ -89,7 +77,7 @@ const SmartTimetableReview = ({
     }
   };
 
-  // Ensure mapping over array with type any[]
+  // Always use `safeRows` cast as any[]
   const safeRows: any[] = Array.isArray(rows) ? rows : [];
 
   return (
@@ -117,7 +105,7 @@ const SmartTimetableReview = ({
               </tr>
             </thead>
             <tbody>
-              {safeRows.map((r) => (
+              {safeRows.map((r: any) => (
                 <tr key={r.id}>
                   <td>{r.class_id}</td>
                   <td>{r.school_id ?? "-"}</td>

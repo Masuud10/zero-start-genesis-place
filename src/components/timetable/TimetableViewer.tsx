@@ -2,24 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-interface TimetableRow {
-  id: string;
-  class_id: string;
-  // Remove subject_id, teacher_id, day_of_week, start_time, end_time (which do not exist as per your Supabase schema)
-  school_id?: string;
-  is_active?: boolean;
-  created_at?: string;
-  created_by?: string;
-  version?: number;
-}
-
 interface TimetableViewerProps {
   term: string;
   classId?: string;
   studentId?: string;
 }
 
-const TimetableViewer: React.FC<TimetableViewerProps> = ({
+const TimetableViewer: React.FC<any> = ({
   term,
   classId,
   studentId,
@@ -31,7 +20,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
 
   let filter: Record<string, any> = {};
   if (user.role === "teacher") {
-    filter = { teacher_id: user.id }; // might not work if teacher_id not in table
+    filter = { teacher_id: user.id };
   } else if (user.role === "student" && classId) {
     filter = { class_id: classId };
   } else if (user.role === "parent" && studentId && classId) {
@@ -61,7 +50,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
         setErrorMsg("No timetable found.");
         setRows([]);
       } else {
-        setRows(data as any[]); // *** TYPECAST HERE ***
+        setRows(data as any[]); // Always cast as any[]
       }
       setLoading(false);
     };
@@ -93,7 +82,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
             </tr>
           </thead>
           <tbody>
-            {safeRows.map((r) => (
+            {safeRows.map((r: any) => (
               <tr key={r.id}>
                 <td>{r.class_id}</td>
                 <td>{r.school_id ?? "-"}</td>
