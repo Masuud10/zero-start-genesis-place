@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +15,7 @@ export type StatsType = {
 export const usePrincipalDashboardData = (reloadKey: number) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
+  const { schoolId, validateSchoolAccess } = useSchoolScopedData();
 
   const [stats, setStats] = useState<StatsType>({
     totalStudents: 0,
@@ -29,8 +28,6 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const schoolId = getCurrentSchoolId() || user?.school_id;
 
   const fetchSchoolData = useCallback(async (targetSchoolId: string) => {
     try {

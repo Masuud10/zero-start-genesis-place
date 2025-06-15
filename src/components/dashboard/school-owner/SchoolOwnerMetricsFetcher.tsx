@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,12 +20,10 @@ const initialMetrics: SchoolMetrics = {
 const SchoolOwnerMetricsFetcher: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
+  const { schoolId, validateSchoolAccess } = useSchoolScopedData();
   const [metrics, setMetrics] = useState<SchoolMetrics>(initialMetrics);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const schoolId = getCurrentSchoolId();
 
   const fetchSchoolMetrics = useCallback(async () => {
     try {

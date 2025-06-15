@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
@@ -37,48 +37,43 @@ export const useSchoolScopedData = () => {
     }
   }, [user, isLoading]);
 
-  const getCurrentSchoolId = () => {
-    return schoolId;
-  };
-
-  const validateSchoolAccess = (targetSchoolId: string) => {
+  const validateSchoolAccess = useCallback((targetSchoolId: string) => {
     if (isSystemAdmin) {
       return true; // System admins can access any school
     }
     
     return schoolId === targetSchoolId;
-  };
+  }, [isSystemAdmin, schoolId]);
 
-  const canManageUsers = () => {
+  const canManageUsers = useCallback(() => {
     return user && ['edufam_admin', 'school_owner', 'principal'].includes(user.role);
-  };
+  }, [user]);
 
-  const canManageSchools = () => {
+  const canManageSchools = useCallback(() => {
     return user && ['edufam_admin'].includes(user.role);
-  };
+  }, [user]);
 
-  const canViewAnalytics = () => {
+  const canViewAnalytics = useCallback(() => {
     return user && ['edufam_admin', 'school_owner', 'principal'].includes(user.role);
-  };
+  }, [user]);
 
-  const canManageFinances = () => {
+  const canManageFinances = useCallback(() => {
     return user && ['edufam_admin', 'school_owner', 'principal', 'finance_officer'].includes(user.role);
-  };
+  }, [user]);
 
-  const filterDataBySchoolScope = <T extends { school_id?: string }>(data: T[]): T[] => {
+  const filterDataBySchoolScope = useCallback(<T extends { school_id?: string }>(data: T[]): T[] => {
     if (isSystemAdmin) {
       return data; // System admins see all data
     }
 
     return data.filter(item => item.school_id === schoolId);
-  };
+  }, [isSystemAdmin, schoolId]);
 
   return {
     isSystemAdmin,
     schoolId,
     userRole,
     isReady,
-    getCurrentSchoolId,
     validateSchoolAccess,
     canManageUsers,
     canManageSchools,
