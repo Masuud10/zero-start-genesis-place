@@ -389,6 +389,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_attendance_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_attendance_student_id"
             columns: ["student_id"]
             isOneToOne: false
@@ -883,6 +890,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_fees_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_fees_student_id"
             columns: ["student_id"]
             isOneToOne: false
@@ -1064,6 +1078,7 @@ export type Database = {
           position: number | null
           reviewed_at: string | null
           reviewed_by: string | null
+          school_id: string | null
           score: number
           status: string | null
           student_id: string | null
@@ -1086,6 +1101,7 @@ export type Database = {
           position?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          school_id?: string | null
           score: number
           status?: string | null
           student_id?: string | null
@@ -1108,6 +1124,7 @@ export type Database = {
           position?: number | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          school_id?: string | null
           score?: number
           status?: string | null
           student_id?: string | null
@@ -1130,6 +1147,13 @@ export type Database = {
             columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_grades_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
