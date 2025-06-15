@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +10,10 @@ import UsersTable from './users/UsersTable';
 import { Button } from '@/components/ui/button';
 import { UserPlus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface UsersModuleProps {
+  onDataChanged?: () => void;
+}
 
 interface User {
   id: string;
@@ -25,7 +28,7 @@ interface User {
   };
 }
 
-const UsersModule = () => {
+const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,6 +115,8 @@ const UsersModule = () => {
       
       console.log('🔍 UsersModule: Final filtered users:', finalUsers);
       setUsers(finalUsers);
+
+      if (onDataChanged) onDataChanged(); // Notify parent dashboard after fetch/refresh
 
     } catch (error: any) {
       console.error('🔍 UsersModule: Error in fetchUsers:', {

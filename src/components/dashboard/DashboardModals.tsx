@@ -8,10 +8,16 @@ import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 interface DashboardModalsProps {
   activeModal: string | null;
   onClose: () => void;
-  user: AuthUser;
+  user: AuthUser | null;
+  onDataChanged?: () => void;
 }
 
-const DashboardModals: React.FC<DashboardModalsProps> = ({ activeModal, onClose, user }) => {
+const DashboardModals: React.FC<DashboardModalsProps> = ({
+  activeModal,
+  onClose,
+  user,
+  onDataChanged,
+}) => {
   if (!activeModal) {
     return null;
   }
@@ -19,14 +25,22 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({ activeModal, onClose,
   let modalContent = null;
   let title = '';
 
-  // Render real management modules/components for each modal type
+  // Wrap onDataChanged to also close modal
+  const handleDataChanged = () => {
+    if (onDataChanged) {
+      onDataChanged();
+    } else {
+      onClose();
+    }
+  };
+
   switch (activeModal) {
     case 'schools':
-      modalContent = <SchoolsModule />;
+      modalContent = <SchoolsModule onDataChanged={handleDataChanged} />;
       title = "Manage Schools";
       break;
     case 'users':
-      modalContent = <UsersModule />;
+      modalContent = <UsersModule onDataChanged={handleDataChanged} />;
       title = "Manage Users";
       break;
     case 'analytics':

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -10,6 +9,7 @@ import UserRoleBreakdown from './edufam-admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
+import DashboardModals from './edufam-admin/DashboardModals';
 
 interface EduFamAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -17,6 +17,7 @@ interface EduFamAdminDashboardProps {
 
 const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
 
   // Use separated hooks for fetching
   const {
@@ -38,6 +39,20 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const handleUserCreated = () => {
     console.log('👥 EduFamAdmin: User created, refreshing data');
     setRefreshKey(prev => prev + 1);
+  };
+
+  const handleModalOpen = (modalType: string) => {
+    setActiveModal(modalType);
+  };
+
+  const handleModalClose = () => {
+    setActiveModal(null);
+  };
+
+  // Called from modals (SchoolsModule, UsersModule) after data has changed
+  const handleDataChangedInModal = () => {
+    setRefreshKey(prev => prev + 1);
+    setActiveModal(null);
   };
 
   const handleRetryAll = () => {
@@ -75,8 +90,15 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       />
 
       <AdministrativeHub
-        onModalOpen={onModalOpen}
+        onModalOpen={handleModalOpen}
         onUserCreated={handleUserCreated}
+      />
+
+      <DashboardModals
+        activeModal={activeModal}
+        onClose={handleModalClose}
+        user={null}
+        onDataChanged={handleDataChangedInModal}
       />
 
       <RecentSchoolsSection

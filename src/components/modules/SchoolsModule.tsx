@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
@@ -7,6 +6,10 @@ import AddSchoolDialog from './schools/AddSchoolDialog';
 import SchoolsFilter from './schools/SchoolsFilter';
 import SchoolsTable from './schools/SchoolsTable';
 import { supabase } from '@/integrations/supabase/client';
+
+interface SchoolsModuleProps {
+  onDataChanged?: () => void;
+}
 
 interface School {
   id: string;
@@ -23,7 +26,7 @@ interface School {
   }[];
 }
 
-const SchoolsModule = () => {
+const SchoolsModule: React.FC<SchoolsModuleProps> = ({ onDataChanged }) => {
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,6 +76,7 @@ const SchoolsModule = () => {
       }));
 
       setSchools(transformedSchools);
+      if (onDataChanged) onDataChanged(); // Notify parent after successful fetch (i.e. after add/edit/delete)
     } catch (error) {
       console.error('Error fetching schools:', error);
       toast({
