@@ -13,8 +13,7 @@ interface TimetableRow {
   day_of_week: string;
   start_time: string;
   end_time: string;
-  subjects?: { name?: string };
-  profiles?: { name?: string };
+  // Optionally: subjectName, teacherName (we'll skip for now, can add later)
 }
 
 const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: () => void }) => {
@@ -30,11 +29,13 @@ const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: ()
       try {
         const { data } = await supabase
           .from("timetables")
-          .select(`*, subjects(name), profiles:teacher_id(name)`)
+          .select(
+            "id,class_id,subject_id,teacher_id,day_of_week,start_time,end_time"
+          )
           .eq("school_id", user.school_id)
           .eq("term", term)
           .eq("is_published", false);
-        setRows(data || []);
+        setRows((data ?? []) as TimetableRow[]);
       } catch (e) {
         setRows([]);
       } finally {
@@ -53,10 +54,18 @@ const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: ()
         .eq("term", term)
         .eq("is_published", false);
       if (error) throw new Error(error.message);
-      toast({ title: "Published", description: "Timetable published to all users", variant: "default" });
+      toast({
+        title: "Published",
+        description: "Timetable published to all users",
+        variant: "default",
+      });
       if (onPublish) onPublish();
     } catch (err: any) {
-      toast({ title: "Publish Failed", description: err.message, variant: "destructive" });
+      toast({
+        title: "Publish Failed",
+        description: err.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -64,7 +73,9 @@ const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: ()
 
   return (
     <div className="my-6">
-      <div className="font-bold text-lg mb-2">AI-Generated Timetable (Draft)</div>
+      <div className="font-bold text-lg mb-2">
+        AI-Generated Timetable (Draft)
+      </div>
       {loading ? (
         <div className="text-gray-500">Loading...</div>
       ) : (
@@ -87,13 +98,17 @@ const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: ()
                   <td>{r.day_of_week}</td>
                   <td>{r.start_time}</td>
                   <td>{r.end_time}</td>
-                  <td>{r.subjects?.name || r.subject_id}</td>
-                  <td>{r.profiles?.name || r.teacher_id}</td>
+                  <td>{r.subject_id}</td>
+                  <td>{r.teacher_id}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <Button onClick={handlePublish} disabled={loading || !rows.length} className="bg-green-600 text-white">
+          <Button
+            onClick={handlePublish}
+            disabled={loading || !rows.length}
+            className="bg-green-600 text-white"
+          >
             {loading ? "Publishing..." : "Publish Timetable"}
           </Button>
         </>

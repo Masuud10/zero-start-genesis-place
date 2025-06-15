@@ -17,11 +17,13 @@ interface TimetableRow {
   day_of_week: string;
   start_time: string;
   end_time: string;
-  subjects?: { name?: string };
-  profiles?: { name?: string };
 }
 
-const TimetableViewer: React.FC<TimetableViewerProps> = ({ term, classId, studentId }) => {
+const TimetableViewer: React.FC<TimetableViewerProps> = ({
+  term,
+  classId,
+  studentId,
+}) => {
   const { user } = useAuth();
   const [rows, setRows] = useState<TimetableRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,13 +40,19 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({ term, classId, studen
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
-      let q = supabase.from("timetables").select("*, subjects(name), profiles:teacher_id(name)")
+      let q = supabase
+        .from("timetables")
+        .select(
+          "id,class_id,subject_id,teacher_id,day_of_week,start_time,end_time"
+        )
         .eq("school_id", user.school_id)
         .eq("term", term)
         .eq("is_published", true);
-      Object.entries(filter).forEach(([k, v]) => { q = q.eq(k, v); });
+      Object.entries(filter).forEach(([k, v]) => {
+        q = q.eq(k, v);
+      });
       const { data } = await q;
-      setRows(data || []);
+      setRows((data ?? []) as TimetableRow[]);
       setLoading(false);
     };
     fetch();
@@ -73,8 +81,8 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({ term, classId, studen
                 <td>{r.day_of_week}</td>
                 <td>{r.start_time}</td>
                 <td>{r.end_time}</td>
-                <td>{r.subjects?.name || r.subject_id}</td>
-                <td>{r.profiles?.name || r.teacher_id}</td>
+                <td>{r.subject_id}</td>
+                <td>{r.teacher_id}</td>
               </tr>
             ))}
           </tbody>
