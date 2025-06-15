@@ -1,73 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DollarSign, TrendingUp, Users, FileText, Plus, Download, CreditCard } from 'lucide-react';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import DownloadReportButton from "@/components/reports/DownloadReportButton";
-import FinanceAdminSummary from './FinanceAdminSummary';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-interface FeeRecord {
-  id: string;
-  student_id: string;
-  amount: number;
-  paid_amount: number;
-  category: string;
-  status: string;
-  due_date: string;
-  student?: {
-    name: string;
-    admission_number: string;
-    class_id: string;
-  };
-  className?: string;
-}
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import FinanceAdminSummary from './FinanceAdminSummary';
+import FinanceOfficerDashboard from '../dashboard/FinanceOfficerDashboard';
+import ParentFinanceView from '../finance/ParentFinanceView';
 
 const FinanceModule: React.FC = () => {
   const { user } = useAuth();
-  const isEdufamAdmin = user?.role === 'edufam_admin';
-
+  
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [financeSummary, setFinanceSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const isSummaryRole = user?.role && ['edufam_admin', 'principal', 'school_owner'].includes(user.role);
 
   useEffect(() => {
-    if (!isEdufamAdmin) return;
-    setLoading(true);
-    supabase.from("schools")
-      .select("id, name")
-      .then(({ data, error }) => {
-        if (error) setError("Failed to fetch schools list. Please try again later.");
-        else setSchools(data || []);
+    if (!isSummaryRole) {
         setLoading(false);
-      });
-  }, [isEdufamAdmin]);
-
-  // Fetch summary from view only (no details)
-  useEffect(() => {
-    if (!isEdufamAdmin) return;
+        return;
+    }
+    
     setLoading(true);
     setError(null);
-    let query = (supabase as any)
-      .from("school_finance_summary")
-      .select("*");
-    if (schoolFilter) {
-      query = query.eq("school_id", schoolFilter);
+
+    if (user.role === 'edufam_admin') {
+      supabase.from("schools")
+        .select("id, name")
+        .then(({ data, error }) => {
+          if (error) setError("Failed to fetch schools list.");
+          else setSchools(data || []);
+        });
     }
+
+    const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
+
+    if (!effectiveSchoolId && user.role === 'edufam_admin') {
+      setFinanceSummary(null);
+      setLoading(false);
+      return;
+    }
+    
+    if (!effectiveSchoolId) {
+        setError("Your account is not associated with a school.");
+        setLoading(false);
+        return;
+    }
+
+    let query = supabase.from("school_finance_summary").select("*").eq("school_id", effectiveSchoolId);
+    
     query.then(({ data, error }: any) => {
       if (error) {
-        setError("Could not load financial summary data. Please try again shortly.");
+        setError("Could not load financial summary data.");
         setFinanceSummary(null);
       } else if (!data || data.length === 0) {
         setFinanceSummary(null);
@@ -76,9 +63,9 @@ const FinanceModule: React.FC = () => {
       }
       setLoading(false);
     });
-  }, [isEdufamAdmin, schoolFilter]);
+  }, [isSummaryRole, user?.role, user?.school_id, schoolFilter]);
 
-  if (isEdufamAdmin) {
+  const renderForSummaryRole = () => {
     if (loading) {
       return (
         <div className="p-6 flex items-center">
@@ -91,19 +78,21 @@ const FinanceModule: React.FC = () => {
       return (
         <Alert variant="destructive" className="my-8">
           <AlertTitle>Could not load summary</AlertTitle>
-          <AlertDescription>
-            {error}
-          </AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       );
     }
+    if (user?.role === 'edufam_admin' && !schoolFilter && schools.length > 0) {
+      return <FinanceAdminSummary schools={schools} schoolFilter={schoolFilter} setSchoolFilter={setSchoolFilter} financeSummary={null} loading={false} error={null} />;
+    }
     if (!financeSummary) {
+      const message = user?.role === 'edufam_admin' && schools.length === 0
+        ? "No schools found."
+        : "There is no financial summary available for this school.";
       return (
         <Alert className="my-8">
           <AlertTitle>No Summary Data</AlertTitle>
-          <AlertDescription>
-            There is no financial summary available for this school or filter. Try selecting a different school or check back later.
-          </AlertDescription>
+          <AlertDescription>{message}</AlertDescription>
         </Alert>
       );
     }
@@ -113,7 +102,7 @@ const FinanceModule: React.FC = () => {
         error={null}
         financeSummary={{
           total_collected: financeSummary.total_collected ?? 0,
-          outstanding: '—',
+          outstanding: '—', 
           major_expenses: '—'
         }}
         schools={schools}
@@ -123,12 +112,27 @@ const FinanceModule: React.FC = () => {
     );
   }
 
-  // For non-Edufam admin: hide everything (fix errors!)
-  return (
-    <div className="p-8">
-      <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
-    </div>
-  );
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
+  switch (user.role) {
+    case 'edufam_admin':
+    case 'principal':
+    case 'school_owner':
+      return renderForSummaryRole();
+    case 'finance_officer':
+      return <FinanceOfficerDashboard user={user} onModalOpen={() => {}} />;
+    case 'parent':
+      return <ParentFinanceView />;
+    default:
+      return (
+        <div className="p-8">
+          <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
+          <p className="text-gray-500">Your role ({user.role}) does not have access to the finance module.</p>
+        </div>
+      );
+  }
 };
 
 export default FinanceModule;

@@ -1,40 +1,128 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
 import { useClasses } from '@/hooks/useClasses';
-import ClassFilterBar from '@/components/grades/ClassFilterBar';
-import GradeStatsCards from '@/components/grades/GradeStatsCards';
-import NoGradebookPermission from '@/components/grades/NoGradebookPermission';
-import GradeOverviewPanel from '@/components/grades/GradeOverviewPanel';
-import DownloadReportButton from "@/components/reports/DownloadReportButton";
-import GradesAdminSummary from './GradesAdminSummary';
 import GradesMainPanel from './GradesMainPanel';
+import GradesAdminSummary from './GradesAdminSummary';
+import ParentGradesView from '../grades/ParentGradesView';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-interface GradesModuleProps {}
-
-const GradesModule: React.FC<GradesModuleProps> = () => {
+const GradesModule: React.FC = () => {
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const { user } = useAuth();
   const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
 
-  // Class filtering
   const { classes, loading: loadingClasses } = useClasses();
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
-  // Class filtering logic
   const availableClasses = useMemo(
     () => classes.map((c) => ({ id: c.id, name: c.name })), 
     [classes]
   );
-  const classFilterEnabled = availableClasses.length > 0;
+  
+  const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [gradesSummary, setGradesSummary] = useState<any>(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [errorSummary, setErrorSummary] = useState<string | null>(null);
 
+  const isSummaryRole = user?.role && ['edufam_admin', 'principal', 'school_owner'].includes(user.role);
+
+  useEffect(() => {
+    if (!isSummaryRole) {
+        setLoadingSummary(false);
+        return;
+    }
+    setLoadingSummary(true);
+    setErrorSummary(null);
+
+    if (user.role === 'edufam_admin') {
+        supabase.from("schools").select("id, name")
+            .then(({ data, error }) => {
+                if (error) setErrorSummary("Failed to fetch schools list.");
+                else setSchools(data || []);
+            });
+    }
+
+    const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
+
+    if (!effectiveSchoolId && user.role === 'edufam_admin') {
+        setGradesSummary(null);
+        setLoadingSummary(false);
+        return;
+    }
+
+    if (!effectiveSchoolId) {
+        setErrorSummary("Your account is not associated with a school.");
+        setLoadingSummary(false);
+        return;
+    }
+
+    let query = supabase.from("school_grades_summary").select("*").eq("school_id", effectiveSchoolId);
+
+    query.then(({ data, error }: any) => {
+        if (error) {
+            setErrorSummary("Could not load grades summary data.");
+            setGradesSummary(null);
+        } else if (!data || data.length === 0) {
+            setGradesSummary(null);
+        } else {
+            setGradesSummary(data[0]);
+        }
+        setLoadingSummary(false);
+    });
+  }, [isSummaryRole, user?.role, user?.school_id, schoolFilter]);
+
+  const renderForSummaryRole = () => {
+    if (loadingSummary) {
+      return (
+        <div className="p-6 flex items-center">
+          <span className="animate-spin h-6 w-6 mr-2 rounded-full border-2 border-blue-400 border-t-transparent"></span>
+          Loading summary...
+        </div>
+      );
+    }
+    if (errorSummary) {
+      return (
+        <Alert variant="destructive" className="my-8">
+          <AlertTitle>Could not load summary</AlertTitle>
+          <AlertDescription>{errorSummary}</AlertDescription>
+        </Alert>
+      );
+    }
+    if (user?.role === 'edufam_admin' && !schoolFilter && schools.length > 0) {
+        return <GradesAdminSummary schools={schools} schoolFilter={schoolFilter} setSchoolFilter={setSchoolFilter} gradesSummary={null} loading={false} error={null} />;
+    }
+    if (!gradesSummary) {
+      const message = user?.role === 'edufam_admin' && schools.length === 0
+        ? "No schools found."
+        : "There is no grades summary available for this school.";
+      return (
+        <Alert className="my-8">
+          <AlertTitle>No Summary Data</AlertTitle>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      );
+    }
+    return (
+      <GradesAdminSummary
+        loading={loadingSummary}
+        error={null}
+        gradesSummary={{
+          avg_grade: gradesSummary.average_grade ?? null,
+          most_improved_school: '—',
+          declining_alerts: 0
+        }}
+        schools={schools}
+        schoolFilter={schoolFilter}
+        setSchoolFilter={setSchoolFilter}
+      />
+    );
+  };
+  
   // Demo/mock data for students (eventually replace with useStudents hook and tie to class)
   const ALL_MOCK_STUDENTS = [
     { studentId: '1', name: 'John Doe', admissionNumber: 'ADM001', rollNumber: 'R001', currentScore: 85, percentage: 85, position: 1, isAbsent: false },
@@ -90,127 +178,47 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
-  // Stats
-  const gradeStats = {
-    totalStudents: 1247,
-    averageScore: 78.5,
-    topPerformingSubject: 'Mathematics',
-    studentsAbove90: 320
-  };
+  if (!user) return <div>Loading...</div>;
 
-  // Summary state for Admin
-  const isEdufamAdmin = user?.role === 'edufam_admin';
-  const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
-  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
-  const [gradesSummary, setGradesSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch schools for school filter
-  useEffect(() => {
-    if (!isEdufamAdmin) return;
-    setLoading(true);
-    supabase.from("schools")
-      .select("id, name")
-      .then(({ data, error }) => {
-        if (error) setError("Failed to fetch schools list. Please try again later.");
-        else setSchools(data || []);
-        setLoading(false);
-      });
-  }, [isEdufamAdmin]);
-
-  // Fetch summary from view only (no details)
-  useEffect(() => {
-    if (!isEdufamAdmin) return;
-    setLoading(true);
-    setError(null);
-    let query = (supabase as any)
-      .from("school_grades_summary")
-      .select("*");
-    if (schoolFilter) {
-      query = query.eq("school_id", schoolFilter);
-    }
-    query.then(({ data, error }: any) => {
-      if (error) {
-        setError("Could not load grades summary data. Please try again shortly.");
-        setGradesSummary(null);
-      } else if (!data || data.length === 0) {
-        setGradesSummary(null);
-      } else {
-        setGradesSummary(data[0]);
-      }
-      setLoading(false);
-    });
-  }, [isEdufamAdmin, schoolFilter]);
-
-  if (isEdufamAdmin) {
-    if (loading) {
+  switch (user.role) {
+    case 'edufam_admin':
+    case 'principal':
+    case 'school_owner':
+      return renderForSummaryRole();
+    case 'teacher':
       return (
-        <div className="p-6 flex items-center">
-          <span className="animate-spin h-6 w-6 mr-2 rounded-full border-2 border-blue-400 border-t-transparent"></span>
-          Loading summary...
+        <GradesMainPanel
+          hasPermission={hasPermission}
+          user={user}
+          availableClasses={availableClasses}
+          selectedClassId={selectedClassId}
+          setSelectedClassId={setSelectedClassId}
+          isModalOpen={isModalOpen}
+          handleOpenModal={handleOpenModal}
+          handleCloseModal={handleCloseModal}
+          showBulkModal={showBulkModal}
+          setShowBulkModal={setShowBulkModal}
+          handleSaveGrades={handleSaveGrades}
+          handleSubmitGrades={handleSubmitGrades}
+          mockGradingSession={mockGradingSession}
+          mockClassId={mockClassId}
+          mockSubjectId={mockSubjectId}
+          mockTerm={mockTerm}
+          mockExamType={mockExamType}
+          mockMaxScore={mockMaxScore}
+          mockStudents={mockStudents}
+        />
+      );
+    case 'parent':
+      return <ParentGradesView />;
+    default:
+      return (
+        <div className="p-8">
+          <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
+          <p className="text-gray-500">Your role ({user.role}) does not have access to the grades module.</p>
         </div>
       );
-    }
-    if (error) {
-      return (
-        <Alert variant="destructive" className="my-8">
-          <AlertTitle>Could not load summary</AlertTitle>
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    if (!gradesSummary) {
-      return (
-        <Alert className="my-8">
-          <AlertTitle>No Summary Data</AlertTitle>
-          <AlertDescription>
-            There is no grades summary available for this school or filter. Try selecting a different school or check back later.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return (
-      <GradesAdminSummary
-        loading={loading}
-        error={null}
-        gradesSummary={{
-          avg_grade: gradesSummary.average_grade ?? null,
-          most_improved_school: '—',
-          declining_alerts: 0
-        }}
-        schools={schools}
-        schoolFilter={schoolFilter}
-        setSchoolFilter={setSchoolFilter}
-      />
-    );
   }
-
-  return (
-    <GradesMainPanel
-      hasPermission={hasPermission}
-      user={user}
-      availableClasses={availableClasses}
-      selectedClassId={selectedClassId}
-      setSelectedClassId={setSelectedClassId}
-      isModalOpen={isModalOpen}
-      handleOpenModal={handleOpenModal}
-      handleCloseModal={handleCloseModal}
-      showBulkModal={showBulkModal}
-      setShowBulkModal={setShowBulkModal}
-      handleSaveGrades={handleSaveGrades}
-      handleSubmitGrades={handleSubmitGrades}
-      mockGradingSession={mockGradingSession}
-      mockClassId={mockClassId}
-      mockSubjectId={mockSubjectId}
-      mockTerm={mockTerm}
-      mockExamType={mockExamType}
-      mockMaxScore={mockMaxScore}
-      mockStudents={mockStudents}
-    />
-  );
 };
 
 export default GradesModule;

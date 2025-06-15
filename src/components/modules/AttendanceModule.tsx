@@ -1,47 +1,57 @@
 
 import React, { useState, useEffect } from 'react';
-import SchoolSummaryFilter from '../shared/SchoolSummaryFilter';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import AttendanceAdminSummary from './AttendanceAdminSummary';
 import TeacherAttendancePanel from '../attendance/TeacherAttendancePanel';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import ParentAttendanceView from '../attendance/ParentAttendanceView';
 
 const AttendanceModule: React.FC = () => {
   const { user } = useAuth();
-  const isEdufamAdmin = user?.role === 'edufam_admin';
-  const isTeacher = user?.role === 'teacher';
-
-  // Edufam Admin View (summary)
+  
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [attendanceSummary, setAttendanceSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch schools for dropdown (admin)
-  useEffect(() => {
-    if (!isEdufamAdmin) return;
-    supabase.from("schools")
-      .select("id, name")
-      .then(({ data, error }) => {
-        if (error) setError("Could not fetch schools");
-        else setSchools(data || []);
-      });
-  }, [isEdufamAdmin]);
+  const isSummaryRole = user?.role && ['edufam_admin', 'principal', 'school_owner'].includes(user.role);
 
-  // Fetch admin summary
   useEffect(() => {
-    if (!isEdufamAdmin) return;
+    if (!isSummaryRole) {
+        setLoading(false);
+        return;
+    };
+
     setLoading(true);
     setError(null);
-    let query = (supabase as any)
-      .from("school_attendance_summary")
-      .select("*");
-    if (schoolFilter) {
-      query = query.eq("school_id", schoolFilter);
+
+    if (user.role === 'edufam_admin') {
+      supabase.from("schools")
+        .select("id, name")
+        .then(({ data, error }) => {
+          if (error) setError("Could not fetch schools list.");
+          else setSchools(data || []);
+        });
     }
+
+    const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
+
+    if (!effectiveSchoolId && user.role === 'edufam_admin') {
+      setAttendanceSummary(null);
+      setLoading(false);
+      return;
+    }
+    
+    if (!effectiveSchoolId) {
+        setError("Your account is not associated with a school.");
+        setLoading(false);
+        return;
+    }
+
+    let query = supabase.from("school_attendance_summary").select("*").eq("school_id", effectiveSchoolId);
+    
     query.then(({ data, error }: any) => {
       if (error) {
         setError("Could not load attendance summary data. Please try again shortly.");
@@ -53,10 +63,9 @@ const AttendanceModule: React.FC = () => {
       }
       setLoading(false);
     });
-  }, [isEdufamAdmin, schoolFilter]);
+  }, [isSummaryRole, user?.role, user?.school_id, schoolFilter]);
 
-  // Admin view
-  if (isEdufamAdmin) {
+  const renderForSummaryRole = () => {
     if (loading) {
       return (
         <div className="p-6 flex items-center">
@@ -69,22 +78,27 @@ const AttendanceModule: React.FC = () => {
       return (
         <Alert variant="destructive" className="my-8">
           <AlertTitle>Could not load summary</AlertTitle>
-          <AlertDescription>
-            {error}
-          </AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       );
     }
+    
+    if (user?.role === 'edufam_admin' && !schoolFilter && schools.length > 0) {
+      return <AttendanceAdminSummary schools={schools} schoolFilter={schoolFilter} setSchoolFilter={setSchoolFilter} attendanceSummary={null} loading={false} error={null} />;
+    }
+      
     if (!attendanceSummary) {
+      const message = user?.role === 'edufam_admin' && schools.length === 0
+        ? "No schools found."
+        : "There is no attendance summary available for this school.";
       return (
         <Alert className="my-8">
           <AlertTitle>No Summary Data</AlertTitle>
-          <AlertDescription>
-            There is no attendance summary available for this school or filter. Try selecting a different school or check back later.
-          </AlertDescription>
+          <AlertDescription>{message}</AlertDescription>
         </Alert>
       );
     }
+
     return (
       <AttendanceAdminSummary
         loading={loading}
@@ -100,18 +114,27 @@ const AttendanceModule: React.FC = () => {
     );
   }
 
-  // Teacher view - Mark & Review Attendance for own classes
-  if (isTeacher) {
-    return <TeacherAttendancePanel teacherId={user?.id} schoolId={user?.school_id} />;
+  if (!user) {
+    return <div>Loading...</div>;
   }
 
-  // Restrict access for others
-  return (
-    <div className="p-8">
-      <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
-    </div>
-  );
+  switch (user.role) {
+    case 'edufam_admin':
+    case 'principal':
+    case 'school_owner':
+      return renderForSummaryRole();
+    case 'teacher':
+      return <TeacherAttendancePanel teacherId={user.id} schoolId={user.school_id} />;
+    case 'parent':
+      return <ParentAttendanceView />;
+    default:
+      return (
+        <div className="p-8">
+          <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
+          <p className="text-gray-500">Your role ({user.role}) does not have access to the attendance module.</p>
+        </div>
+      );
+  }
 };
 
 export default AttendanceModule;
-
