@@ -19,13 +19,12 @@ const SmartTimetableGenerator = ({
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      // Call edge function with school_id and preferences
       const { data, error } = await supabase.functions.invoke("generate-timetable", {
         body: { school_id: user.school_id, term },
-        headers: { "x-user-id": user.id }, // for audit
+        headers: { "x-user-id": user.id },
       });
       if (error || data?.error) throw new Error(error?.message || data?.error);
-      toast({ title: "Success", description: "AI Timetable generated", variant: "success" });
+      toast({ title: "Success", description: "AI Timetable generated", variant: "default" });
       if (onGenerationSuccess) onGenerationSuccess();
     } catch (err: any) {
       toast({ title: "Generation Failed", description: err.message, variant: "destructive" });
@@ -38,8 +37,8 @@ const SmartTimetableGenerator = ({
     <div className="my-4">
       <Button 
         onClick={handleGenerate} 
-        loading={loading}
         className="bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+        disabled={loading}
       >
         {loading ? "Generating..." : "Generate Smart Timetable"}
       </Button>

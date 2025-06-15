@@ -9,13 +9,24 @@ interface TimetableViewerProps {
   studentId?: string;
 }
 
+interface TimetableRow {
+  id: string;
+  class_id: string;
+  subject_id: string;
+  teacher_id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  subjects?: { name?: string };
+  profiles?: { name?: string };
+}
+
 const TimetableViewer: React.FC<TimetableViewerProps> = ({ term, classId, studentId }) => {
   const { user } = useAuth();
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<TimetableRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Determine relevant filter based on user role
-  let filter = {};
+  let filter: Record<string, any> = {};
   if (user.role === "teacher") {
     filter = { teacher_id: user.id };
   } else if (user.role === "student" && classId) {
@@ -31,8 +42,7 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({ term, classId, studen
         .eq("school_id", user.school_id)
         .eq("term", term)
         .eq("is_published", true);
-      // Apply view filter
-      Object.entries(filter).forEach(([k, v]) => { q = q.eq(k, v as any); });
+      Object.entries(filter).forEach(([k, v]) => { q = q.eq(k, v); });
       const { data } = await q;
       setRows(data || []);
       setLoading(false);

@@ -5,23 +5,42 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+interface TimetableRow {
+  id: string;
+  class_id: string;
+  subject_id: string;
+  teacher_id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  subjects?: { name?: string };
+  profiles?: { name?: string };
+}
+
 const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: () => void }) => {
   const { user } = useAuth();
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<TimetableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!user?.school_id) return;
     setLoading(true);
-    supabase
-      .from("timetables")
-      .select(`*, subjects(name), profiles:teacher_id(name)`)
-      .eq("school_id", user.school_id)
-      .eq("term", term)
-      .eq("is_published", false)
-      .then(({ data }) => setRows(data || []))
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("timetables")
+          .select(`*, subjects(name), profiles:teacher_id(name)`)
+          .eq("school_id", user.school_id)
+          .eq("term", term)
+          .eq("is_published", false);
+        setRows(data || []);
+      } catch (e) {
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [user?.school_id, term]);
 
   const handlePublish = async () => {
@@ -29,12 +48,12 @@ const SmartTimetableReview = ({ term, onPublish }: { term: string; onPublish: ()
     try {
       const { error } = await supabase
         .from("timetables")
-        .update({ is_published: true })
+        .update({ is_published: true } as any)
         .eq("school_id", user.school_id)
         .eq("term", term)
         .eq("is_published", false);
       if (error) throw new Error(error.message);
-      toast({ title: "Published", description: "Timetable published to all users", variant: "success" });
+      toast({ title: "Published", description: "Timetable published to all users", variant: "default" });
       if (onPublish) onPublish();
     } catch (err: any) {
       toast({ title: "Publish Failed", description: err.message, variant: "destructive" });
