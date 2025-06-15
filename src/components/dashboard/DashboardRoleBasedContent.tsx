@@ -118,7 +118,7 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
 
     case 'finance_officer':
       console.log('📊 DashboardRoleBasedContent: Rendering FinanceOfficerDashboard for finance_officer');
-      return <FinanceOfficerDashboard user={user} onModalOpen={onModalOpen} />;
+      return <FinanceOfficerDashboard user={user} />;
 
     case 'parent':
       console.log('📊 DashboardRoleBasedContent: Rendering ParentDashboard for parent');

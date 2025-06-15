@@ -134,7 +134,7 @@ const FinanceModule: React.FC = () => {
     case 'principal':
       return renderForSummaryRole();
     case 'finance_officer':
-      return <FinanceOfficerDashboard user={user} onModalOpen={() => {}} />;
+      return <FinanceOfficerDashboard user={user} />;
     case 'parent':
       return <ParentFinanceView />;
     default:
