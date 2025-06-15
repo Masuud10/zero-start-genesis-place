@@ -17,7 +17,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
-  
+
   const [stats, setStats] = useState<StatsType>({
     totalStudents: 0,
     totalTeachers: 0,
@@ -29,7 +29,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const schoolId = getCurrentSchoolId() || user?.school_id;
 
   const fetchSchoolData = useCallback(async (targetSchoolId: string) => {
@@ -40,7 +40,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
       if (validateSchoolAccess && !validateSchoolAccess(targetSchoolId)) {
         throw new Error('Access denied to school data');
       }
-      
+
       const fetchCount = async (query: any) => {
         const { count, error } = await query;
         if (error) {
@@ -55,7 +55,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
       const subjectsQuery = supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId);
       const classesQuery = supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId);
       const parentsQuery = supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent');
-      
+
       const auditLogsQuery = supabase
         .from('security_audit_logs')
         .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
@@ -64,7 +64,8 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         .in('action', ['create', 'update'])
         .order('created_at', { ascending: false })
         .limit(5);
-      
+
+      // Removed `as const` here to avoid tuple deep type instantiation
       const promises = [
         fetchCount(studentsQuery),
         fetchCount(teachersQuery),
@@ -72,22 +73,16 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         fetchCount(classesQuery),
         fetchCount(parentsQuery),
         auditLogsQuery,
-      ] as const;
-      
-      const [
-        studentsCountRes,
-        teachersCountRes,
-        subjectsCountRes,
-        classesCountRes,
-        parentsCountRes,
-        auditLogsResultRes,
-      ] = await Promise.allSettled(promises);
+      ];
 
-      const studentsCount = studentsCountRes.status === 'fulfilled' ? studentsCountRes.value : 0;
-      const teachersCount = teachersCountRes.status === 'fulfilled' ? teachersCountRes.value : 0;
-      const subjectsCount = subjectsCountRes.status === 'fulfilled' ? subjectsCountRes.value : 0;
-      const classesCount = classesCountRes.status === 'fulfilled' ? classesCountRes.value : 0;
-      const parentsCount = parentsCountRes.status === 'fulfilled' ? parentsCountRes.value : 0;
+      // Cast result to array of PromiseSettledResult<any>
+      const settledResults: PromiseSettledResult<any>[] = await Promise.allSettled(promises);
+
+      const studentsCount = settledResults[0].status === 'fulfilled' ? settledResults[0].value : 0;
+      const teachersCount = settledResults[1].status === 'fulfilled' ? settledResults[1].value : 0;
+      const subjectsCount = settledResults[2].status === 'fulfilled' ? settledResults[2].value : 0;
+      const classesCount = settledResults[3].status === 'fulfilled' ? settledResults[3].value : 0;
+      const parentsCount = settledResults[4].status === 'fulfilled' ? settledResults[4].value : 0;
 
       setStats({
         totalStudents: studentsCount,
@@ -98,6 +93,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
       });
 
       let activities: any[] = [];
+      const auditLogsResultRes = settledResults[5];
       if (auditLogsResultRes.status === 'fulfilled') {
         const auditLogsResult = auditLogsResultRes.value;
         if (auditLogsResult.error) {
@@ -107,13 +103,13 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
           activities = logs.map((log: any) => {
             const userName = log.profiles?.name || 'A user';
             const actionVerb = log.action === 'create' ? 'created' : 'updated';
-            
+
             let entityName = '';
             if (log.metadata && typeof log.metadata === 'object') {
               if ('name' in log.metadata && log.metadata.name) {
-                  entityName = `"${log.metadata.name}"`;
+                entityName = `"${log.metadata.name}"`;
               } else if ('title' in log.metadata && log.metadata.title) {
-                  entityName = `"${log.metadata.title}"`;
+                entityName = `"${log.metadata.title}"`;
               }
             }
 
