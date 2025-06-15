@@ -91,7 +91,12 @@ const CreateFeeStructureDialog: React.FC<CreateFeeStructureDialogProps> = ({ onC
       toast({ title: 'Error', description: 'No school associated with your account.', variant: 'destructive' });
       return;
     }
-    mutation.mutate({ ...values, school_id: user.school_id });
+    mutation.mutate({
+      name: values.name,
+      academic_year: values.academic_year,
+      term: values.term,
+      school_id: user.school_id,
+    });
   };
 
   return (
