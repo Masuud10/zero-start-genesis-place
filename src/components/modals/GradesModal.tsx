@@ -25,6 +25,8 @@ import { useSchool } from '@/contexts/SchoolContext';
 import IGCSEGradesModal from './IGCSEGradesModal';
 import { getGradingPermissions } from '@/utils/grading-permissions';
 import { UserRole } from '@/types/user';
+import GradesForm from './GradesForm';
+import GradeActionButtons from './GradeActionButtons';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -189,6 +191,14 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     }
   };
 
+  const handleRelease = () => {
+    toast({
+      title: "Release Results",
+      description: "Release logic would go here.",
+    });
+    // Implement release logic if needed
+  };
+
   const isTeacher = resolvedUserRole === "teacher";
   const isPrincipal = resolvedUserRole === "principal";
 
@@ -224,147 +234,40 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
             </span>
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          {/* Class Select */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="class" className="text-right">Class</Label>
-            <Select onValueChange={setSelectedClass}>
-              <SelectTrigger id="class" className="col-span-3">
-                <SelectValue placeholder="Select Class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Subject Select */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="subject" className="text-right">Subject</Label>
-            <Select onValueChange={setSelectedSubject} disabled={!selectedClass}>
-              <SelectTrigger id="subject" className="col-span-3">
-                <SelectValue placeholder="Select Subject" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Student Select */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="student" className="text-right">Student</Label>
-            <Select onValueChange={setSelectedStudent} disabled={!selectedClass}>
-              <SelectTrigger id="student" className="col-span-3">
-                <SelectValue placeholder="Select Student" />
-              </SelectTrigger>
-              <SelectContent>
-                {students.map((student) => (
-                  <SelectItem key={student.id} value={student.id}>
-                    {student.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Term Select */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="term" className="text-right">Term</Label>
-            <Select onValueChange={setSelectedTerm}>
-              <SelectTrigger id="term" className="col-span-3">
-                <SelectValue placeholder="Select Term" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="term1">Term 1</SelectItem>
-                <SelectItem value="term2">Term 2</SelectItem>
-                <SelectItem value="term3">Term 3</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Exam Type */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="examType" className="text-right">Exam Type</Label>
-            <Select onValueChange={setSelectedExamType}>
-              <SelectTrigger id="examType" className="col-span-3">
-                <SelectValue placeholder="Select Exam Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="opener">Opener</SelectItem>
-                <SelectItem value="mid_term">Mid Term</SelectItem>
-                <SelectItem value="end_term">End Term</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Score */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="score" className="text-right">Score</Label>
-            <Input
-              type="number"
-              id="score"
-              className="col-span-3"
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-              max={maxScore}
-              disabled={!canInput}
-            />
-          </div>
-          {/* Max Score */}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="maxScore" className="text-right">Max Score</Label>
-            <Input
-              type="number"
-              id="maxScore"
-              className="col-span-3"
-              value={maxScore}
-              onChange={(e) => setMaxScore(e.target.value)}
-              disabled={!canInput}
-            />
-          </div>
-          {/* Principal Override Notice */}
-          {isPrincipal && canOverride && (
-            <div className="mt-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
-              <b>Override Mode:</b> You can update or override any grade here for quality assurance.
-            </div>
-          )}
-        </div>
-        {/* Modal Action Buttons */}
+        <GradesForm
+          classes={classes}
+          selectedClass={selectedClass}
+          setSelectedClass={setSelectedClass}
+          subjects={subjects}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
+          students={students}
+          selectedStudent={selectedStudent}
+          setSelectedStudent={setSelectedStudent}
+          selectedTerm={selectedTerm}
+          setSelectedTerm={setSelectedTerm}
+          selectedExamType={selectedExamType}
+          setSelectedExamType={setSelectedExamType}
+          score={score}
+          setScore={setScore}
+          maxScore={maxScore}
+          setMaxScore={setMaxScore}
+          canInput={canInput}
+          isPrincipal={isPrincipal}
+          canOverride={canOverride}
+        />
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          {(canInput || canSubmit || canApprove) && (
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={loading || (!canInput && !canApprove && !canSubmit)}
-            >
-              {loading
-                ? 'Submitting...'
-                : (isTeacher && canSubmit ? 'Submit for Approval'
-                  : isPrincipal && canOverride ? 'Add/Update Grade'
-                  : isPrincipal && canApprove ? 'Approve'
-                  : isPrincipal && canInput ? 'Submit'
-                  : 'Submit')}
-            </Button>
-          )}
-          {isPrincipal && canRelease && (
-            <Button
-              type="button"
-              variant="default"
-              className="ml-2"
-              onClick={() => toast({
-                title: "Release Results",
-                description: "Release logic would go here.",
-                // Implement release logic or hook as needed
-              })}
-            >
-              Release Results
-            </Button>
-          )}
+          <GradeActionButtons
+            onClose={onClose}
+            onSubmit={handleSubmit}
+            loading={loading}
+            permissions={{ canInput, canSubmit, canApprove, canRelease, canOverride }}
+            role={isTeacher ? 'teacher' : isPrincipal ? 'principal' : 'other'}
+            isPrincipal={isPrincipal}
+            isTeacher={isTeacher}
+            canRelease={canRelease}
+            handleRelease={handleRelease}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
