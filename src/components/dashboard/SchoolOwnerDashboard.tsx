@@ -11,6 +11,7 @@ import SchoolFilteredAnalytics from '../analytics/SchoolFilteredAnalytics';
 import AnalyticsSecurityGuard from '../analytics/AnalyticsSecurityGuard';
 import SchoolOwnerStatsCards, { SchoolMetrics } from "./school-owner/SchoolOwnerStatsCards";
 import SchoolManagementActions from "./school-owner/SchoolManagementActions";
+import { startOfYear, subMonths, startOfMonth } from 'date-fns';
 
 const SchoolOwnerDashboard = () => {
   const { user } = useAuth();
@@ -64,40 +65,71 @@ const SchoolOwnerDashboard = () => {
         .eq('school_id', schoolId)
         .eq('role', 'teacher');
       
-      const revenuePromise = supabase
+      const ytdRevenuePromise = supabase
         .from('fees')
         .select('paid_amount')
         .eq('school_id', schoolId)
-        .eq('status', 'paid');
+        .eq('status', 'paid')
+        .gte('paid_date', startOfYear(new Date()).toISOString());
         
       const outstandingFeesPromise = supabase.rpc('get_outstanding_fees', { p_school_id: schoolId });
+
+      const now = new Date();
+      const startOfThisMonth = startOfMonth(now);
+      const startOfLastMonth = startOfMonth(subMonths(now, 1));
+
+      const newStudentsThisMonthPromise = supabase
+        .from('students')
+        .select('id', { count: 'exact' })
+        .eq('school_id', schoolId)
+        .gte('created_at', startOfThisMonth.toISOString());
+
+      const newStudentsLastMonthPromise = supabase
+        .from('students')
+        .select('id', { count: 'exact' })
+        .eq('school_id', schoolId)
+        .gte('created_at', startOfLastMonth.toISOString())
+        .lt('created_at', startOfThisMonth.toISOString());
 
       const [
           { count: studentsCount, error: studentsError },
           { count: teachersCount, error: teachersError },
           { data: revenueData, error: revenueError },
-          { data: outstandingFees, error: outstandingError }
+          { data: outstandingFees, error: outstandingError },
+          { count: newStudentsThisMonth, error: newStudentsThisMonthError },
+          { count: newStudentsLastMonth, error: newStudentsLastMonthError },
       ] = await Promise.all([
           studentsCountPromise,
           teachersCountPromise,
-          revenuePromise,
-          outstandingFeesPromise
+          ytdRevenuePromise,
+          outstandingFeesPromise,
+          newStudentsThisMonthPromise,
+          newStudentsLastMonthPromise,
       ]);
       
-      if (studentsError || teachersError || revenueError || outstandingError) {
-        const errors = [studentsError, teachersError, revenueError, outstandingError].filter(Boolean);
+      if (studentsError || teachersError || revenueError || outstandingError || newStudentsThisMonthError || newStudentsLastMonthError) {
+        const errors = [studentsError, teachersError, revenueError, outstandingError, newStudentsThisMonthError, newStudentsLastMonthError].filter(Boolean);
         console.error('📈 SchoolOwnerDashboard: Query errors:', errors);
         throw new Error('Failed to fetch some data');
       }
 
       const totalRevenue = (revenueData || []).reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
+      
+      const lastMonthCount = newStudentsLastMonth || 0;
+      const thisMonthCount = newStudentsThisMonth || 0;
+      let monthlyGrowth = 0;
+      if (lastMonthCount > 0) {
+        monthlyGrowth = ((thisMonthCount - lastMonthCount) / lastMonthCount) * 100;
+      } else if (thisMonthCount > 0) {
+        monthlyGrowth = 100;
+      }
 
       setMetrics({
         totalStudents: studentsCount || 0,
         totalTeachers: teachersCount || 0,
         totalRevenue,
         outstandingFees: outstandingFees || 0,
-        monthlyGrowth: 5.2 // Mock data for now
+        monthlyGrowth,
       });
 
       console.log('📈 SchoolOwnerDashboard: Metrics fetched successfully');
