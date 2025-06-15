@@ -13,7 +13,7 @@ import PrincipalQuickActions from "./principal/PrincipalQuickActions";
 import AcademicReportPanel from "./principal/AcademicReportPanel";
 import PrincipalWelcomeHeader from "./principal/PrincipalWelcomeHeader";
 import RecentActivities from "./principal/RecentActivities";
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 interface SchoolStats {
   totalStudents: number;

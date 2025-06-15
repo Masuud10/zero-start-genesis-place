@@ -38,6 +38,10 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
     { id: '5', name: 'Grade 3A' }
   ];
 
+  // Add missing parent/parents state and loading state
+  const [parents, setParents] = useState<{id: string, name: string, email: string}[]>([]);
+  const [loadingParents, setLoadingParents] = useState(false);
+
   // Fetch parents on open - keep loading existing parents for selection only
   useEffect(() => {
     if (!open) return;
@@ -73,7 +77,6 @@ const StudentAdmissionModal: React.FC<StudentAdmissionModalProps> = ({ open, onC
           parent_contact: formData.parent_contact,
           class_id: formData.class_id,
           parent_id: formData.parent_id,
-          // Remove: school_id: '1'
         })
         .select()
         .single();
