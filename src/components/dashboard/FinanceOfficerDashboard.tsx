@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,14 +108,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Finance Dashboard</h2>
-          <p className="text-muted-foreground">
-            Welcome {user.name}! Monitor and manage school finances.
-          </p>
-        </div>
-      </div>
       <FinanceStatsCards loading={loading} stats={stats} />
       {/* Finance Actions */}
       <div className="w-full">

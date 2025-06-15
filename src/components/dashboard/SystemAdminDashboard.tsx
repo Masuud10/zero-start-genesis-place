@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AuthUser } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,15 +77,6 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user, onMod
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">System Administration</h2>
-          <p className="text-muted-foreground">
-            Welcome {user.name}! Monitor and manage the entire EduFam system.
-          </p>
-        </div>
-      </div>
-
       <SystemStatsCards stats={stats} loading={loading} />
       <SystemActionsPanel onModalOpen={onModalOpen} />
     </div>
