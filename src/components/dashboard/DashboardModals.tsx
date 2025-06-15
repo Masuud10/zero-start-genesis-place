@@ -8,6 +8,8 @@ import ParentGradesView from '@/components/grades/ParentGradesView';
 import ParentAttendanceView from '@/components/attendance/ParentAttendanceView';
 import ParentFinanceView from '@/components/finance/ParentFinanceView';
 import MessagesModule from '@/components/modules/MessagesModule';
+import ParentTimetableView from '@/components/timetable/ParentTimetableView';
+import ParentSupportModule from '@/components/modules/ParentSupportModule';
 
 interface DashboardModalsProps {
   activeModal: string | null;
@@ -78,6 +80,14 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
       modalContent = <MessagesModule />;
       title = "School Messages";
       break;
+    case 'timetable':
+      modalContent = <ParentTimetableView />;
+      title = "Class Timetable";
+      break;
+    case 'support':
+      modalContent = <ParentSupportModule />;
+      title = "Help & Support";
+      break;
     default:
       modalContent = (
         <div>
@@ -92,15 +102,15 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div className="relative bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between mb-4 border-b pb-2">
+      <div className="relative bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden dark:bg-gray-900">
+        <div className="flex items-center justify-between mb-4 border-b pb-2 dark:border-gray-700">
           <h3 className="text-lg md:text-xl font-semibold">{title}</h3>
           <button
             onClick={onClose}
-            className="ml-4 px-3 py-1 rounded text-gray-700 hover:bg-gray-100 focus:outline-none"
+            className="ml-4 p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-ring"
             aria-label="Close"
           >
-            &times;
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto pr-2">

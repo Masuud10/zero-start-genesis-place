@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, GraduationCap, CalendarCheck, DollarSign, MessageSquare } from 'lucide-react';
+import { User, GraduationCap, CalendarCheck, DollarSign, MessageSquare, CalendarClock, LifeBuoy } from 'lucide-react';
 
 interface ParentActionButtonsProps {
   onModalOpen: (modalType: string) => void;
@@ -13,6 +13,8 @@ const parentActions = [
   { id: 'attendance', label: 'Attendance Record', icon: CalendarCheck, description: 'Check daily attendance' },
   { id: 'finance', label: 'School Fees', icon: DollarSign, description: 'Payment history & balance' },
   { id: 'messages', label: 'School Messages', icon: MessageSquare, description: 'Communications from school' },
+  { id: 'timetable', label: 'Class Timetable', icon: CalendarClock, description: 'View weekly schedule' },
+  { id: 'support', label: 'Support Ticket', icon: LifeBuoy, description: 'Get help and support' },
 ];
 
 const ParentActionButtons: React.FC<ParentActionButtonsProps> = ({ onModalOpen }) => {
@@ -28,7 +30,7 @@ const ParentActionButtons: React.FC<ParentActionButtonsProps> = ({ onModalOpen }
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {parentActions.map((action) => (
             <Button
               key={action.id}
