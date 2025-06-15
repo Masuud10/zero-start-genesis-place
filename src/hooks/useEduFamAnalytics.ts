@@ -1,4 +1,3 @@
-
 // Edufam Analytics Hook: Returns summary objects for grades, attendance, and finance for edufam_admin using summary views
 
 import { useEffect, useState, useCallback } from "react";
@@ -47,18 +46,16 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
       // --- Grades Summary ---
       let gradesQuery: any = supabase
-        .from<any>("school_grades_summary")
+        .from<any, any>("school_grades_summary")
         .select("*");
 
       if (filters.schoolId) {
         gradesQuery = gradesQuery.eq("school_id", filters.schoolId);
       }
 
-      // Use single() instead of maybeSingle() because the view returns 1 row per school_id (or array for all)
       const { data: gradesData, error: gradesErr } = await gradesQuery;
       if (gradesErr) throw gradesErr;
 
-      // Find the right record
       let gradesSummary =
         filters.schoolId && Array.isArray(gradesData)
           ? gradesData[0]
@@ -68,7 +65,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
       // --- Attendance Summary ---
       let attendanceQuery: any = supabase
-        .from<any>("school_attendance_summary")
+        .from<any, any>("school_attendance_summary")
         .select("*");
 
       if (filters.schoolId) {
@@ -91,7 +88,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
       // --- Finance Summary ---
       let financeQuery: any = supabase
-        .from<any>("school_finance_summary")
+        .from<any, any>("school_finance_summary")
         .select("*");
       if (filters.schoolId) {
         financeQuery = financeQuery.eq("school_id", filters.schoolId);
@@ -145,5 +142,3 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
   return { summary, loading, error, retry: fetchSummary };
 }
-// ... end of file
-
