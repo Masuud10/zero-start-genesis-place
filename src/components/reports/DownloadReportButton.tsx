@@ -57,7 +57,9 @@ const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
     setLoading(true);
     try {
       const meta = TABLE_MAP[type];
-      let query = supabase.from(meta.table).select(meta.select);
+      // Perform `as any` on the query builder right after select,
+      // preventing deep type inference down the chain
+      let query = (supabase.from(meta.table).select(meta.select) as any);
 
       // Filters (school_id etc) - can be extended!
       if (queryFilters) {
@@ -72,8 +74,8 @@ const DownloadReportButton: React.FC<DownloadReportButtonProps> = ({
         });
       }
 
-      // Fix: Avoid TS type recursion error by type casting at the await
-      const { data, error } = await (query as any);
+      // Await the query (already as any)
+      const { data, error } = await query;
 
       if (error) throw error;
       if (!data || data.length === 0) {
