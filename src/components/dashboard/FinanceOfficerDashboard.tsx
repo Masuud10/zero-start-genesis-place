@@ -90,7 +90,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user,
           </p>
         </div>
       </div>
-
       {/* Finance Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

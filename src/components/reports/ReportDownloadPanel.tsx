@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/contexts/SchoolContext";
 
+// Role-specific report options mapping
 const ROLE_REPORT_OPTIONS: Record<string, { value: string, label: string, desc: string }[]> = {
   principal: [
     { value: "grades", label: "Grades Report", desc: "Full class, subject grades & stats" },
@@ -55,7 +56,7 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
   const [term, setTerm] = useState(termOptions[0]);
   const [downloading, setDownloading] = useState(false);
 
-  // Determine allowed reports
+  // Determine allowed reports for the given role or fallback
   const available = ROLE_REPORT_OPTIONS[user?.role as string] || DEFAULT_REPORTS;
 
   const handleDownload = async () => {
@@ -65,7 +66,7 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
     }
     setDownloading(true);
     try {
-      // Map our UI report type to API value
+      // Map UI report type to API reportType
       let apiType = "";
       switch (reportType) {
         case "grades": apiType = ["principal", "school_owner"].includes(user?.role || "") ? "principal-academic" : "teacher-parent-grades"; break;
@@ -74,7 +75,6 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
         case "school_summary": apiType = "school-summary"; break;
         default: apiType = "custom";
       }
-
       // Compose request payload
       const payload = {
         reportType: apiType,
@@ -90,7 +90,6 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
           userSchoolId: user?.school_id || "",
         }
       };
-
       const response = await fetch(
         "https://lmqyizrnuahkmwauonqr.functions.supabase.co/generate_report",
         {
@@ -102,7 +101,7 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({extraFilters = 
       if (!response.ok) throw new Error("Failed to generate report");
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      // Pick filename
+      // Filename
       const name = `${user?.role || "user"}_${reportType}_report_${year}_${term}.pdf`;
       const a = document.createElement("a");
       a.href = url;

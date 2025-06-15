@@ -130,7 +130,6 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user, onModalOpen }) 
           </p>
         </div>
       </div>
-
       {/* Parent Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

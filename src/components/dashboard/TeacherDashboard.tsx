@@ -28,7 +28,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
           </p>
         </div>
       </div>
-
       {/* Teacher Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
