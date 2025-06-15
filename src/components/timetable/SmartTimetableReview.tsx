@@ -13,7 +13,7 @@ const SmartTimetableReview = ({
   onPublish: () => void;
 }) => {
   const { user } = useAuth();
-  // Use explicit any[] state type
+  // EXPLICIT any[] STATE
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -25,7 +25,7 @@ const SmartTimetableReview = ({
     setErrorMsg(null);
 
     (async () => {
-      // NEVER infer deep TS, use as any[]
+      // DO NOT use deep TS inference
       const { data, error } = await supabase
         .from("timetables")
         .select(
@@ -40,12 +40,12 @@ const SmartTimetableReview = ({
         setRows([]);
       } else if (
         !Array.isArray(data) ||
-        data.some((row) => !row?.id || !row?.class_id)
+        data.some((row: any) => !row?.id || !row?.class_id)
       ) {
         setErrorMsg("No valid draft timetable found.");
         setRows([]);
       } else {
-        setRows(data as any[]); // Always force as any[]
+        setRows(data as any[]);
       }
       setLoading(false);
     })();
@@ -78,7 +78,7 @@ const SmartTimetableReview = ({
     }
   };
 
-  // Always force rows to any[]
+  // Always cast rows as any[]
   const safeRows: any[] = Array.isArray(rows) ? rows : [];
 
   return (
@@ -139,3 +139,4 @@ const SmartTimetableReview = ({
 };
 
 export default SmartTimetableReview;
+

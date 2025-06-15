@@ -15,6 +15,7 @@ const TimetableViewer: React.FC<any> = ({
   studentId,
 }) => {
   const { user } = useAuth();
+  // EXPLICIT any[] STATE
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -49,7 +50,7 @@ const TimetableViewer: React.FC<any> = ({
         setRows([]);
       } else if (
         !Array.isArray(data) ||
-        data.some((row) => !row?.id || !row?.class_id)
+        data.some((row: any) => !row?.id || !row?.class_id)
       ) {
         setErrorMsg("No timetable found.");
         setRows([]);
@@ -62,7 +63,7 @@ const TimetableViewer: React.FC<any> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.school_id, term, classId, studentId]);
 
-  // Safety: always use `any[]` for mapping
+  // Always cast as any[]
   const safeRows: any[] = Array.isArray(rows) ? rows : [];
 
   return (
@@ -108,3 +109,4 @@ const TimetableViewer: React.FC<any> = ({
 };
 
 export default TimetableViewer;
+
