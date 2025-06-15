@@ -1,24 +1,15 @@
 
 import React from 'react';
-import { Button } from '../ui/button';
-import { Textarea } from '../ui/textarea';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import CreateSupportTicketForm from './CreateSupportTicketForm';
 
 const FinanceSupportModule = () => {
     return (
-        <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Contact Support</h3>
-            <p className="text-muted-foreground">Having an issue? Let us know.</p>
-            <div className="space-y-2">
-                <Label htmlFor="support-subject">Subject</Label>
-                <Input id="support-subject" placeholder="e.g., Issue with payment processing" />
+        <div className="space-y-4 max-w-2xl mx-auto py-4">
+            <div className="text-center mb-6">
+                <h3 className="text-2xl font-semibold">Contact Support</h3>
+                <p className="text-muted-foreground">Having an issue? Let us know and we'll get back to you.</p>
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="support-description">Description</Label>
-                <Textarea id="support-description" placeholder="Please describe the issue in detail..." rows={6} />
-            </div>
-            <Button>Submit Ticket</Button>
+            <CreateSupportTicketForm />
         </div>
     )
 };

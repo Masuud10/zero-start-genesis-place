@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,8 +20,15 @@ interface StudentFeeInfo {
   balance: number;
 }
 
-interface EnrichedFinancialTransaction extends FinancialTransaction {
+interface EnrichedFinancialTransaction {
+    id: string;
     students: { name: string } | null;
+    amount: number;
+    payment_method: string | null;
+    mpesa_code: string | null;
+    reference_number: string | null;
+    processed_at: string | null;
+    created_at: string;
 }
 
 const ProcessPaymentsModule = () => {

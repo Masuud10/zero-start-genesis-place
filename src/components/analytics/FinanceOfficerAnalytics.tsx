@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -26,7 +25,7 @@ const fetchAnalyticsData = async (schoolId: string, filters: FinanceOfficerAnaly
   // 1. Fetch fees, students and classes
   const { data: fees, error: feesError } = await supabase
     .from('fees')
-    .select('amount, paid_amount, due_date, mpesa_code, students(id, name, classes(name)))')
+    .select('amount, paid_amount, due_date, mpesa_code, students(id, name, classes(name))')
     .eq('school_id', schoolId);
   if (feesError) throw new Error(`Fetching fees: ${feesError.message}`);
 
@@ -229,7 +228,7 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Daily Transaction Trends */}
         <Card>
           <CardHeader>
@@ -249,34 +248,6 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
                   name="Amount (KES)"
                 />
               </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* Expense Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Expense Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <PieChart>
-                <Pie
-                  data={expenseBreakdown}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percentage }) => `${name} ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {expenseBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-              </PieChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -344,4 +315,3 @@ const FinanceOfficerAnalytics = ({ filters }: FinanceOfficerAnalyticsProps) => {
 };
 
 export default FinanceOfficerAnalytics;
-
