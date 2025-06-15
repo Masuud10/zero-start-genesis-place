@@ -42,57 +42,70 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
     setError(null);
 
     try {
-      if (!shouldFetch) throw new Error("Insufficient permissions for analytics summary.");
+      if (!shouldFetch)
+        throw new Error("Insufficient permissions for analytics summary.");
+
       // --- Grades Summary ---
-      let gradesQuery = supabase
-        .from("school_grades_summary")
-        .select("*")
-        .maybeSingle();
+      let gradesQuery: any = supabase
+        .from<any>("school_grades_summary")
+        .select("*");
 
       if (filters.schoolId) {
-        gradesQuery = supabase
-          .from("school_grades_summary")
-          .select("*")
-          .eq("school_id", filters.schoolId)
-          .maybeSingle();
+        gradesQuery = gradesQuery.eq("school_id", filters.schoolId);
       }
 
-      const { data: gradesSummary, error: gradesErr } = await gradesQuery;
+      // Use single() instead of maybeSingle() because the view returns 1 row per school_id (or array for all)
+      const { data: gradesData, error: gradesErr } = await gradesQuery;
       if (gradesErr) throw gradesErr;
 
+      // Find the right record
+      let gradesSummary =
+        filters.schoolId && Array.isArray(gradesData)
+          ? gradesData[0]
+          : Array.isArray(gradesData) && gradesData.length > 0
+          ? gradesData[0]
+          : null;
+
       // --- Attendance Summary ---
-      let attendanceQuery = supabase
-        .from("school_attendance_summary")
-        .select("*")
-        .maybeSingle();
+      let attendanceQuery: any = supabase
+        .from<any>("school_attendance_summary")
+        .select("*");
 
       if (filters.schoolId) {
-        attendanceQuery = supabase
-          .from("school_attendance_summary")
-          .select("*")
-          .eq("school_id", filters.schoolId)
-          .maybeSingle();
+        attendanceQuery = attendanceQuery.eq(
+          "school_id",
+          filters.schoolId
+        );
       }
 
-      const { data: attendanceSummary, error: attendanceErr } = await attendanceQuery;
+      const { data: attendanceData, error: attendanceErr } =
+        await attendanceQuery;
       if (attendanceErr) throw attendanceErr;
 
-      // --- Finance Summary ---
-      let financeQuery = supabase
-        .from("school_finance_summary")
-        .select("*")
-        .maybeSingle();
+      let attendanceSummary =
+        filters.schoolId && Array.isArray(attendanceData)
+          ? attendanceData[0]
+          : Array.isArray(attendanceData) && attendanceData.length > 0
+          ? attendanceData[0]
+          : null;
 
+      // --- Finance Summary ---
+      let financeQuery: any = supabase
+        .from<any>("school_finance_summary")
+        .select("*");
       if (filters.schoolId) {
-        financeQuery = supabase
-          .from("school_finance_summary")
-          .select("*")
-          .eq("school_id", filters.schoolId)
-          .maybeSingle();
+        financeQuery = financeQuery.eq("school_id", filters.schoolId);
       }
 
-      const { data: financeSummary, error: financeErr } = await financeQuery;
+      const { data: financeData, error: financeErr } = await financeQuery;
       if (financeErr) throw financeErr;
+
+      let financeSummary =
+        filters.schoolId && Array.isArray(financeData)
+          ? financeData[0]
+          : Array.isArray(financeData) && financeData.length > 0
+          ? financeData[0]
+          : null;
 
       setSummary({
         grades: {
