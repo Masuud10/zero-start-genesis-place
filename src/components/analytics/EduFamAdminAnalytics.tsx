@@ -36,6 +36,16 @@ const EduFamAdminAnalytics = () => {
 
   const { toast } = useToast();
 
+  // Debug: Log analytic state
+  React.useEffect(() => {
+    console.log("[EduFamAdminAnalytics] State update", {
+      summary, loading, error, schoolId, classId, startDate, endDate
+    });
+    if (error) {
+      console.error("[EduFamAdminAnalytics] Error:", error);
+    }
+  }, [summary, loading, error, schoolId, classId, startDate, endDate]);
+
   const schoolOptions = [
     { id: "", name: "All Schools" },
     { id: "school1", name: "Greenwood Primary" },
@@ -100,8 +110,9 @@ const EduFamAdminAnalytics = () => {
     );
   }
 
-  // Show empty state ONLY if summary is null/undefined (don't check for all zeros)
+  // Handle summary being null (no results)
   if (!summary) {
+    console.warn("[EduFamAdminAnalytics] No summary data returned.");
     return (
       <div className="w-full flex flex-col items-center gap-6">
         <Card className="max-w-xl w-full">
@@ -172,17 +183,13 @@ const EduFamAdminAnalytics = () => {
             <CardTitle>Grades</CardTitle>
           </CardHeader>
           <CardContent>
-            {summary.grades ? (
-              <div>
-                <div className="font-bold text-2xl">{summary.grades.totalGrades ?? 0}</div>
-                <div className="text-muted-foreground">Total Grades Recorded</div>
-                <div className="font-semibold mt-2">
-                  Avg. Score: {safeFormat(summary.grades.avgScore)}%
-                </div>
+            <div>
+              <div className="font-bold text-2xl">{summary?.grades.totalGrades ?? 0}</div>
+              <div className="text-muted-foreground">Total Grades Recorded</div>
+              <div className="font-semibold mt-2">
+                Avg. Score: {safeFormat(summary?.grades.avgScore)}%
               </div>
-            ) : (
-              <div>No grade data</div>
-            )}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -190,17 +197,13 @@ const EduFamAdminAnalytics = () => {
             <CardTitle>Attendance</CardTitle>
           </CardHeader>
           <CardContent>
-            {summary.attendance ? (
-              <div>
-                <div className="font-bold text-2xl">{summary.attendance.records ?? 0}</div>
-                <div className="text-muted-foreground">Attendance Records</div>
-                <div className="font-semibold mt-2">
-                  Avg. Attendance: {safeFormat(summary.attendance.avgAttendance)}%
-                </div>
+            <div>
+              <div className="font-bold text-2xl">{summary?.attendance.records ?? 0}</div>
+              <div className="text-muted-foreground">Attendance Records</div>
+              <div className="font-semibold mt-2">
+                Avg. Attendance: {safeFormat(summary?.attendance.avgAttendance)}%
               </div>
-            ) : (
-              <div>No attendance data</div>
-            )}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -208,19 +211,15 @@ const EduFamAdminAnalytics = () => {
             <CardTitle>Finance</CardTitle>
           </CardHeader>
           <CardContent>
-            {summary.finance ? (
-              <div>
-                <div className="font-bold text-2xl">
-                  KES{" "}
-                  {typeof summary.finance.totalAmount === "number" && !isNaN(summary.finance.totalAmount)
-                    ? summary.finance.totalAmount.toLocaleString()
-                    : "0"}
-                </div>
-                <div className="text-muted-foreground">Transactions: {summary.finance.transactionCount}</div>
+            <div>
+              <div className="font-bold text-2xl">
+                KES{" "}
+                {typeof summary?.finance.totalAmount === "number" && !isNaN(summary.finance.totalAmount)
+                  ? summary.finance.totalAmount.toLocaleString()
+                  : "0"}
               </div>
-            ) : (
-              <div>No finance data</div>
-            )}
+              <div className="text-muted-foreground">Transactions: {summary?.finance.transactionCount ?? 0}</div>
+            </div>
           </CardContent>
         </Card>
       </div>

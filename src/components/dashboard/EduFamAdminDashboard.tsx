@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -42,7 +41,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     setRefreshKey(prev => prev + 1);
   };
 
-  // Ensure local modal logic is correct
+  // Always pass local handleModalOpen to AdministrativeHub and modals!
   const handleModalOpen = (modalType: string) => {
     console.log('[EduFamAdminDashboard] handleModalOpen called with:', modalType);
     setActiveModal(modalType);
@@ -94,12 +93,13 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         usersRefetching={usersRefetching}
       />
 
+      {/* Pass correct handleModalOpen property! */}
       <AdministrativeHub
         onModalOpen={handleModalOpen}
         onUserCreated={handleUserCreated}
       />
 
-      {/* Show modals for admin sections */}
+      {/* Admin modals */}
       <DashboardModals
         activeModal={activeModal}
         onClose={handleModalClose}
