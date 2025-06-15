@@ -1,6 +1,4 @@
-
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -30,6 +28,7 @@ import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
 import GradesModal from '@/components/modals/GradesModal';
 import BulkGradingTable from '@/components/grading/BulkGradingTable';
+import BulkGradeUploadModal from "@/components/grading/BulkGradeUploadModal";
 import { GradingSession } from '@/types/grading';
 
 interface GradesModuleProps {
@@ -38,6 +37,7 @@ interface GradesModuleProps {
 
 const GradesModule: React.FC<GradesModuleProps> = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const { user } = useAuth();
   const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
 
@@ -123,6 +123,20 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
       }
     ]
   };
+
+  const mockClassId = "mock-class";
+  const mockSubjectId = "mock-subject";
+  const mockTerm = "Term 1";
+  const mockExamType = "MID_TERM";
+  const mockMaxScore = 100;
+  const mockStudents = useMemo(
+    () =>
+      mockGradingSession.students.map((stu) => ({
+        id: stu.studentId,
+        name: stu.name,
+      })),
+    [mockGradingSession]
+  );
 
   const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
     // Mock handler - no actual saving for system admins
@@ -210,6 +224,12 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
                   <Button onClick={handleOpenModal}>
                     Open Grades Modal
                   </Button>
+                  <Button
+                    onClick={() => setShowBulkModal(true)}
+                    variant="default"
+                  >
+                    Bulk Upload Grades
+                  </Button>
                 </>
               )}
             </div>
@@ -293,9 +313,20 @@ const GradesModule: React.FC<GradesModuleProps> = () => {
       {isModalOpen && (
         <GradesModal onClose={handleCloseModal} userRole={user?.role || 'guest'} />
       )}
+      {showBulkModal && (
+        <BulkGradeUploadModal
+          classId={mockClassId}
+          subjectId={mockSubjectId}
+          term={mockTerm}
+          examType={mockExamType}
+          maxScore={mockMaxScore}
+          students={mockStudents}
+          open={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+        />
+      )}
     </div>
   );
 };
 
 export default GradesModule;
-
