@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MessageSquare, AlertTriangle } from 'lucide-react';
@@ -35,15 +36,15 @@ const PrincipalDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
-  const [stats, setStats] = useState<SchoolStats>({
+  const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
     totalSubjects: 0,
     totalClasses: 0
   });
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [addTeacherOpen, setAddTeacherOpen] = useState(false);
   const [addParentOpen, setAddParentOpen] = useState(false);
@@ -52,6 +53,7 @@ const PrincipalDashboard = () => {
   const schoolId = getCurrentSchoolId();
 
   useEffect(() => {
+    console.log('[PrincipalDashboard] useEffect triggered', { schoolId, userSchoolId: user?.school_id, reloadKey });
     const effectiveSchoolId = schoolId || user?.school_id;
     if (effectiveSchoolId) {
       fetchSchoolData();
@@ -66,16 +68,14 @@ const PrincipalDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-
       const effectiveSchoolId = schoolId || user?.school_id;
       if (!effectiveSchoolId) {
         throw new Error('No school ID available for data fetch');
       }
-
       if (validateSchoolAccess && !validateSchoolAccess(effectiveSchoolId)) {
         throw new Error('Access denied to school data');
       }
-
+      console.log('[PrincipalDashboard] Fetching school data for', effectiveSchoolId);
       // Fetch all data in parallel
       const [
         studentsResult,
@@ -132,7 +132,9 @@ const PrincipalDashboard = () => {
 
       setRecentActivities(activities);
 
-    } catch (error: any) {
+      console.log('[PrincipalDashboard] Stats set:', { studentsCount, teachersCount, subjectsCount, classesCount });
+      console.log('[PrincipalDashboard] Recent activities:', activities);
+    } catch (error) {
       setError(error.message || 'Failed to fetch school data');
       toast({
         title: "Error",
@@ -149,17 +151,19 @@ const PrincipalDashboard = () => {
     setReloadKey(k => k + 1);
   };
 
-  // Error state
   if (error && !loading) {
+    console.log('[PrincipalDashboard] Rendering error:', error);
     return (
       <PrincipalDashboardErrorCard error={error} onRetry={fetchSchoolData} />
     );
   }
 
-  // Loading state
   if (loading) {
+    console.log('[PrincipalDashboard] Rendering loading');
     return <PrincipalDashboardLoading />;
   }
+
+  console.log('[PrincipalDashboard] Rendering overview with stats:', stats);
 
   return (
     <div className="space-y-6">
@@ -173,14 +177,12 @@ const PrincipalDashboard = () => {
       />
       <PrincipalWelcomeHeader user={user} />
       <PrincipalStatsCards stats={stats} />
-      
       <div className="flex justify-end">
         <Button variant="outline" onClick={() => setAddParentOpen(true)}>
           <Plus className="w-4 h-4 mr-1" />
           Add Parent
         </Button>
       </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
