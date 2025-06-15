@@ -19,7 +19,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
   return (
     <div className="space-y-6">
-      <ReportDownloadPanel />
+      {/* Removed ReportDownloadPanel from dashboard overview for cleanliness */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Teacher Dashboard</h2>

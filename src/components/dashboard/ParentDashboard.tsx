@@ -121,7 +121,6 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user, onModalOpen }) 
 
   return (
     <div className="space-y-6">
-      <ReportDownloadPanel />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Parent Dashboard</h2>
