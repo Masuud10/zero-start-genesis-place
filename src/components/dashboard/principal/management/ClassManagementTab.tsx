@@ -9,7 +9,7 @@ import { Edit, X } from "lucide-react";
 
 const ClassManagementTab = () => {
   const { toast } = useToast();
-  const { getCurrentSchoolId } = useSchoolScopedData();
+  const { schoolId } = useSchoolScopedData();
   const [form, setForm] = useState({ name: "", level: "", stream: "", year: "" });
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -17,7 +17,6 @@ const ClassManagementTab = () => {
   // For table of existing classes:
   const [classRows, setClassRows] = useState<any[]>([]);
   const [loadingTable, setLoadingTable] = useState(true);
-  const schoolId = getCurrentSchoolId();
 
   // Fetch all classes for current school
   const fetchClasses = async () => {

@@ -6,7 +6,7 @@ import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 export const usePrincipalEntityLists = (reloadKey: number) => {
   const { user } = useAuth();
-  const { getCurrentSchoolId } = useSchoolScopedData();
+  const { schoolId } = useSchoolScopedData();
   
   const [classList, setClassList] = useState<any[]>([]);
   const [subjectList, setSubjectList] = useState<any[]>([]);
@@ -15,7 +15,7 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
   const [loadingEntities, setLoadingEntities] = useState(true);
   const [errorEntities, setErrorEntities] = useState<string | null>(null);
   
-  const effectiveSchoolId = getCurrentSchoolId() || user?.school_id;
+  const effectiveSchoolId = schoolId || user?.school_id;
 
   useEffect(() => {
     if (!effectiveSchoolId) return;

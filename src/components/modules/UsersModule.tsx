@@ -36,14 +36,14 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isSystemAdmin, getCurrentSchoolId, validateSchoolAccess } = useSchoolScopedData();
+  const { isSystemAdmin, schoolId, validateSchoolAccess } = useSchoolScopedData();
 
   console.log('🔍 UsersModule: Current user state:', {
     user: user,
     userRole: user?.role,
     userEmail: user?.email,
     isSystemAdmin,
-    schoolId: getCurrentSchoolId()
+    schoolId: schoolId
   });
 
   useEffect(() => {
@@ -109,7 +109,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
       
       // Additional filtering for non-system admins
       const finalUsers = isSystemAdmin ? transformedUsers : transformedUsers.filter(u => {
-        const userSchoolId = getCurrentSchoolId();
+        const userSchoolId = schoolId;
         return userSchoolId && u.school_id === userSchoolId;
       });
       

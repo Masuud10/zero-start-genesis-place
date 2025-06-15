@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,14 +11,13 @@ import { Label } from "@/components/ui/label";
 
 const SubjectManagementTab = () => {
   const { toast } = useToast();
-  const { getCurrentSchoolId } = useSchoolScopedData();
+  const { schoolId } = useSchoolScopedData();
   const [form, setForm] = useState({ name: "", code: "", curriculum: "" });
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [subjectRows, setSubjectRows] = useState<any[]>([]);
   const [loadingTable, setLoadingTable] = useState(true);
-  const schoolId = getCurrentSchoolId();
 
   const fetchSubjects = async () => {
     if (!schoolId) {

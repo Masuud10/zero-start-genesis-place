@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -26,8 +27,7 @@ const FinancialReportsModal: React.FC<FinancialReportsModalProps> = ({ onClose }
   });
 
   const { toast } = useToast();
-  const { getCurrentSchoolId } = useSchoolScopedData();
-  const schoolId = getCurrentSchoolId();
+  const { schoolId } = useSchoolScopedData();
 
   const periods = ['This Month', 'Last Month', 'This Term', 'Last Term', 'This Year'];
   const reportTypes = ['Revenue Summary', 'Outstanding Fees', 'Payment Methods', 'Collection Trends'];
