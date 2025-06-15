@@ -2,158 +2,170 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface GradeRecord {
-  id: string;
-  term: string;
-  percentage: number;
-  subjectName: string;
-  studentName: string;
+interface SubjectGrade {
+  name: string;
+  score?: number | null;
+  letter_grade?: string | null;
+  cbc_performance_level?: string | null;
+  comments?: string | null;
 }
 
-const ParentGradesView: React.FC = () => {
-    const { user } = useAuth();
-    const [grades, setGrades] = useState<GradeRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+interface StudentGrades {
+  student_id: string;
+  student_name: string;
+  reports: Record<string, SubjectGrade[]>;
+}
 
-    useEffect(() => {
-        const fetchGrades = async () => {
-            if (!user?.id) return;
-            setLoading(true);
-            setError(null);
+const ParentGradesView = () => {
+  const { user } = useAuth();
+  const [studentGrades, setStudentGrades] = useState<StudentGrades[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-            try {
-                const { data: parentStudents, error: parentStudentsError } = await supabase
-                    .from('parent_students')
-                    .select('student_id')
-                    .eq('parent_id', user.id);
-                if (parentStudentsError) throw parentStudentsError;
+  useEffect(() => {
+    const fetchGrades = async () => {
+      if (!user) return;
+      setLoading(true);
+      setError(null);
 
-                const studentIds = parentStudents.map(ps => ps.student_id);
-                if (studentIds.length === 0) {
-                    setError("No children found for your account.");
-                    setGrades([]);
-                    setLoading(false);
-                    return;
-                }
+      const { data: parentStudents, error: parentStudentsError } = await supabase
+        .from('parent_students')
+        .select('student_id')
+        .eq('parent_id', user.id);
 
-                // Pre-fetch student names
-                const { data: studentData, error: studentError } = await supabase
-                    .from('students')
-                    .select('id, name')
-                    .in('id', studentIds);
-                if (studentError) throw studentError;
-                const studentMap = new Map(studentData?.map(s => [s.id, s.name]));
+      if (parentStudentsError) {
+        setError('Could not fetch your children information.');
+        setLoading(false);
+        return;
+      }
 
-                const { data: gradeData, error: gradeError } = await supabase
-                    .from('grades')
-                    .select('id, term, percentage, subject_id, student_id')
-                    .in('student_id', studentIds)
-                    .eq('is_released', true)
-                    .order('term', { ascending: false });
-                
-                if (gradeError) throw gradeError;
+      if (!parentStudents || parentStudents.length === 0) {
+        setLoading(false);
+        return;
+      }
+      
+      const studentIds = parentStudents.map(ps => ps.student_id);
 
-                if (!gradeData || gradeData.length === 0) {
-                    setGrades([]);
-                    return; // finally will set loading to false
-                }
+      const { data: gradesData, error: gradesError } = await supabase
+        .from('grades')
+        .select(`
+          student_id, term, exam_type, score, letter_grade, cbc_performance_level, comments,
+          students (name),
+          subjects (name)
+        `)
+        .in('student_id', studentIds)
+        .eq('status', 'released');
 
-                const subjectIds = [...new Set(gradeData.map(g => g.subject_id).filter(Boolean))];
-                const subjectMap = new Map<string, string>();
+      if (gradesError) {
+        setError('Could not fetch grades.');
+        setLoading(false);
+        return;
+      }
 
-                if (subjectIds.length > 0) {
-                    const { data: subjectData, error: subjectError } = await supabase
-                        .from('subjects')
-                        .select('id, name')
-                        .in('id', subjectIds);
-                    if (subjectError) throw subjectError;
-                    subjectData?.forEach(s => subjectMap.set(s.id, s.name));
-                }
+      const processedGrades: Record<string, { student_name: string, reports: Record<string, any[]> }> = {};
 
-                const formattedGrades = gradeData.map((g) => ({
-                    id: g.id,
-                    term: g.term,
-                    percentage: g.percentage,
-                    subjectName: g.subject_id ? subjectMap.get(g.subject_id) || 'N/A' : 'N/A',
-                    studentName: g.student_id ? studentMap.get(g.student_id) || 'N/A' : 'N/A',
-                }));
+      for (const grade of gradesData) {
+        const studentId = grade.student_id;
+        if (!studentId || !grade.students || !grade.subjects) continue;
 
-                setGrades(formattedGrades);
-            } catch (err: any) {
-                setError(`Failed to load grades: ${err.message}`);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchGrades();
-    }, [user]);
-    
-    const gradesByStudent = grades.reduce((acc, grade) => {
-        const { studentName } = grade;
-        if (!acc[studentName]) {
-            acc[studentName] = [];
+        if (!processedGrades[studentId]) {
+          processedGrades[studentId] = {
+            student_name: grade.students.name,
+            reports: {}
+          };
         }
-        acc[studentName].push(grade);
-        return acc;
-    }, {} as Record<string, GradeRecord[]>);
 
-    if (loading) return <div>Loading grades...</div>;
+        const reportKey = `${grade.term} - ${grade.exam_type}`;
+        if (!processedGrades[studentId].reports[reportKey]) {
+          processedGrades[studentId].reports[reportKey] = [];
+        }
+        
+        processedGrades[studentId].reports[reportKey].push({
+            name: grade.subjects.name,
+            score: grade.score,
+            letter_grade: grade.letter_grade,
+            cbc_performance_level: grade.cbc_performance_level,
+            comments: grade.comments,
+        });
+      }
 
-    if (error) {
-        return (
-            <Alert variant="destructive">
-                <AlertTitle>Error Loading Grades</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
-        );
-    }
+      const finalStudentGrades = Object.entries(processedGrades).map(([id, data]) => ({
+        student_id: id,
+        student_name: data.student_name,
+        reports: data.reports,
+      }));
+      
+      setStudentGrades(finalStudentGrades);
+      setLoading(false);
+    };
 
-    return (
-        <div className="space-y-6">
-            <h3 className="text-2xl font-bold mb-2">Child Grade Records</h3>
-            {grades.length === 0 ? (
-                <Card>
-                    <CardContent className="pt-6">
-                        <p>No released grade records found for your child(ren).</p>
-                    </CardContent>
-                </Card>
-            ) : (
-                Object.entries(gradesByStudent).map(([studentName, studentGrades]) => (
-                    <Card key={studentName}>
-                        <CardHeader>
-                            <CardTitle>{studentName}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Subject</TableHead>
-                                        <TableHead>Term</TableHead>
-                                        <TableHead className="text-right">Percentage</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {studentGrades.map(grade => (
-                                        <TableRow key={grade.id}>
-                                            <TableCell className="font-medium">{grade.subjectName}</TableCell>
-                                            <TableCell>{grade.term}</TableCell>
-                                            <TableCell className="text-right font-semibold">{grade.percentage}%</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                ))
-            )}
-        </div>
-    );
+    fetchGrades();
+  }, [user]);
+
+  if (loading) {
+    return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
+  if (error) {
+    return <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">My Children's Grades</h1>
+      {studentGrades.length === 0 ? (
+        <Alert><AlertDescription>No released grades found for your children at the moment.</AlertDescription></Alert>
+      ) : (
+        studentGrades.map(student => (
+          <Card key={student.student_id}>
+            <CardHeader>
+              <CardTitle>{student.student_name}</CardTitle>
+              <CardDescription>Academic performance overview. Only released results are shown here.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                {Object.keys(student.reports).length === 0 ? (
+                  <p className="text-muted-foreground">No reports available for {student.student_name}.</p>
+                ) : Object.entries(student.reports).map(([reportKey, subjectGrades]) => (
+                  <AccordionItem value={reportKey} key={reportKey}>
+                    <AccordionTrigger>{reportKey}</AccordionTrigger>
+                    <AccordionContent>
+                       <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Subject</TableHead>
+                                  <TableHead className="text-right">Grade/Score</TableHead>
+                                  <TableHead>Comments</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {subjectGrades.map((subjectGrade: SubjectGrade) => (
+                                  <TableRow key={subjectGrade.name}>
+                                      <TableCell className="font-medium">{subjectGrade.name}</TableCell>
+                                      <TableCell className="text-right">
+                                          {subjectGrade.score ?? subjectGrade.letter_grade ?? subjectGrade.cbc_performance_level ?? 'N/A'}
+                                      </TableCell>
+                                      <TableCell>{subjectGrade.comments ?? '-'}</TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                       </Table>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </div>
+  );
 };
 
 export default ParentGradesView;

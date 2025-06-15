@@ -1,28 +1,21 @@
-import React, { useState, useMemo, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
-import { useClasses } from '@/hooks/useClasses';
-import GradesMainPanel from './GradesMainPanel';
 import GradesAdminSummary from './GradesAdminSummary';
 import ParentGradesView from '../grades/ParentGradesView';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import BulkGradingModal from '../modals/BulkGradingModal';
+import NoGradebookPermission from '../grades/NoGradebookPermission';
+import BulkGradingQuickAction from '../dashboard/principal/BulkGradingQuickAction';
 
 const GradesModule: React.FC = () => {
   const { user } = useAuth();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
 
-  const { classes, loading: loadingClasses } = useClasses();
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-
-  const availableClasses = useMemo(
-    () => classes.map((c) => ({ id: c.id, name: c.name })), 
-    [classes]
-  );
-  
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [gradesSummary, setGradesSummary] = useState<any>(null);
@@ -49,7 +42,7 @@ const GradesModule: React.FC = () => {
 
     const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
 
-    if (!effectiveSchoolId && user.role === 'edufam_admin') {
+    if (!effectiveSchoolId && user.role === 'edufam_admin' && !schoolFilter) {
         setGradesSummary(null);
         setLoadingSummary(false);
         return;
@@ -123,91 +116,44 @@ const GradesModule: React.FC = () => {
     );
   };
   
-  // Demo/mock data for students (eventually replace with useStudents hook and tie to class)
-  const ALL_MOCK_STUDENTS = [
-    { studentId: '1', name: 'John Doe', admissionNumber: 'ADM001', rollNumber: 'R001', currentScore: 85, percentage: 85, position: 1, isAbsent: false },
-    { studentId: '2', name: 'Jane Smith', admissionNumber: 'ADM002', rollNumber: 'R002', currentScore: 78, percentage: 78, position: 2, isAbsent: false },
-    { studentId: '3', name: 'Bob Wilson', admissionNumber: 'ADM003', rollNumber: 'R003', isAbsent: true },
-    { studentId: '4', name: 'Ahmed Noor', admissionNumber: 'ADM004', rollNumber: 'R004', currentScore: 60, percentage: 60, position: 4, isAbsent: false },
-    { studentId: '5', name: 'Maria Ivanova', admissionNumber: 'ADM005', rollNumber: 'R005', currentScore: 92, percentage: 92, position: 0, isAbsent: false },
-  ];
-
-  // Filter mock students by class (simulate: every student in every class in demo)
-  const filteredStudents = ALL_MOCK_STUDENTS; // Replace with actual filter for real implementation
-
-  // Ensure type safety for examType for GradingSession
-  const mockExamType: "MID_TERM" | "OPENER" | "END_TERM" = "MID_TERM";
-
-  const mockGradingSession = {
-    id: 'mock-session',
-    classId: selectedClassId || 'mock-class',
-    subjectId: 'mock-subject',
-    term: 'Term 1',
-    examType: mockExamType,
-    maxScore: 100,
-    teacherId: 'mock-teacher',
-    createdAt: new Date(),
-    isActive: true,
-    students: filteredStudents,
-  };
-
-  const mockClassId = selectedClassId || "mock-class";
-  const mockSubjectId = "mock-subject";
-  const mockTerm = "Term 1";
-  // Use exact union as above for extra props
-  const mockMaxScore = 100;
-  const mockStudents = useMemo(
-    () =>
-      filteredStudents.map((stu) => ({
-        id: stu.studentId,
-        name: stu.name,
-      })),
-    [filteredStudents]
-  );
-
-  const handleSaveGrades = (grades: { studentId: string; score: number; isAbsent: boolean }[]) => {
-    // Mock handler - no actual saving for system admins
-    console.log('Mock save grades:', grades);
-  };
-
-  const handleSubmitGrades = () => {
-    // Mock handler - no actual submission for system admins
-    console.log('Mock submit grades');
-  };
-
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => setIsModalOpen(false);
-
   if (!user) return <div>Loading...</div>;
+
+  if (user.role !== 'parent' && !hasPermission('view_gradebook')) {
+      return <NoGradebookPermission role={user.role} hasPermission={false} />;
+  }
 
   switch (user.role) {
     case 'edufam_admin':
-    case 'principal':
     case 'school_owner':
       return renderForSummaryRole();
+    case 'principal':
+        return (
+            <div className="space-y-6">
+                {renderForSummaryRole()}
+                <div className="pt-6 border-t">
+                  <BulkGradingQuickAction onOpenBulkGrade={() => setShowBulkModal(true)} />
+                </div>
+                {showBulkModal && <BulkGradingModal onClose={() => setShowBulkModal(false)} />}
+            </div>
+        );
     case 'teacher':
       return (
-        <GradesMainPanel
-          hasPermission={hasPermission}
-          user={user}
-          availableClasses={availableClasses}
-          selectedClassId={selectedClassId}
-          setSelectedClassId={setSelectedClassId}
-          isModalOpen={isModalOpen}
-          handleOpenModal={handleOpenModal}
-          handleCloseModal={handleCloseModal}
-          showBulkModal={showBulkModal}
-          setShowBulkModal={setShowBulkModal}
-          handleSaveGrades={handleSaveGrades}
-          handleSubmitGrades={handleSubmitGrades}
-          mockGradingSession={mockGradingSession}
-          mockClassId={mockClassId}
-          mockSubjectId={mockSubjectId}
-          mockTerm={mockTerm}
-          mockExamType={mockExamType}
-          mockMaxScore={mockMaxScore}
-          mockStudents={mockStudents}
-        />
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Grade Management
+              </h1>
+              <p className="text-muted-foreground">
+                Enter and manage student grades for your classes.
+              </p>
+            </div>
+          </div>
+          
+          <BulkGradingQuickAction onOpenBulkGrade={() => setShowBulkModal(true)} />
+
+          {showBulkModal && <BulkGradingModal onClose={() => setShowBulkModal(false)} />}
+        </div>
       );
     case 'parent':
       return <ParentGradesView />;
