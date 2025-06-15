@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -35,23 +34,19 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
   // Fetch classes based on user role
   useEffect(() => {
     async function fetchClasses() {
-      if (userRole === 'teacher' && userId) {
+      if (userRole === 'teacher' && userId && schoolId) {
         const { data, error } = await supabase
-          .from("teacher_classes")
-          .select("class_id, classes(name)")
-          .eq("teacher_id", userId);
-        if (!error && Array.isArray(data)) {
-          setClasses(
-            data
-              .map((row: any) =>
-                row.classes
-                  ? { id: row.class_id, name: row.classes.name }
-                  : null
-              )
-              .filter(Boolean)
-          );
+          .from("classes")
+          .select("id, name, teacher_classes!inner(teacher_id)")
+          .eq("school_id", schoolId)
+          .eq("teacher_classes.teacher_id", userId);
+        
+        if (error) {
+          toast({ title: "Error", description: "Failed to fetch teacher's classes.", variant: "destructive" });
+        } else if (data) {
+          setClasses(data.map(c => ({ id: c.id, name: c.name })));
         }
-      } else if (schoolId) { // For principal
+      } else if (userRole !== 'teacher' && schoolId) { // For principal or other school-level admins
         const { data, error } = await supabase
           .from("classes")
           .select("id, name")

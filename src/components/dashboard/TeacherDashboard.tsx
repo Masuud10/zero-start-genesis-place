@@ -5,7 +5,6 @@ import TeacherAnalyticsSummaryCard from "@/components/analytics/TeacherAnalytics
 import RoleGuard from "@/components/common/RoleGuard";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { useTeacherDashboardStats } from "@/hooks/useTeacherDashboardStats";
-import TeacherWelcomeHeader from './teacher/TeacherWelcomeHeader';
 import TeacherStatsCards from './teacher/TeacherStatsCards';
 import TeacherActions from './teacher/TeacherActions';
 
@@ -34,8 +33,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   return (
     <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
       <div className="space-y-6">
-        <TeacherWelcomeHeader user={user} />
-
         <TeacherStatsCards stats={stats} loading={loading} />
 
         {/* Teacher Analytics Overview */}

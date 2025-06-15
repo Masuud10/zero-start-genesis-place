@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -31,13 +30,16 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
       try {
         setLoading(true);
 
-        // Fetch teacher's classes
-        const { data: teacherClasses } = await supabase
-          .from('teacher_classes')
-          .select('class_id')
-          .eq('teacher_id', user.id);
+        // Fetch teacher's classes for the current school
+        const { data: teacherClassesData, error: classesError } = await supabase
+            .from('classes')
+            .select('id, teacher_classes!inner(teacher_id)')
+            .eq('school_id', schoolId)
+            .eq('teacher_classes.teacher_id', user.id);
+        
+        if (classesError) throw classesError;
 
-        const classIds = teacherClasses?.map(tc => tc.class_id) || [];
+        const classIds = teacherClassesData?.map(c => c.id) || [];
 
         // Fetch students in teacher's classes
         let studentCount = 0;
@@ -50,12 +52,13 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
           studentCount = count || 0;
         }
 
-        // Fetch pending grades (draft status)
+        // Fetch pending grades (draft status) for the current school
         const { count: pendingGradesCount } = await supabase
           .from('grades')
           .select('id', { count: 'exact' })
           .eq('submitted_by', user.id)
-          .eq('status', 'draft');
+          .eq('status', 'draft')
+          .eq('school_id', schoolId);
 
         // Fetch today's classes from timetable
         const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
