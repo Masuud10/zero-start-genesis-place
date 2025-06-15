@@ -35,13 +35,16 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  let filter: Record<string, any> = {};
+  // Define a more specific type for the filter to help TypeScript inference
+  type FilterKey = "teacher_id" | "class_id";
+  const filter: Partial<Record<FilterKey, string>> = {};
+
   if (user?.role === "teacher") {
-    filter = { teacher_id: user.id };
+    filter.teacher_id = user.id;
   } else if (user?.role === "student" && classId) {
-    filter = { class_id: classId };
+    filter.class_id = classId;
   } else if (user?.role === "parent" && studentId && classId) {
-    filter = { class_id: classId };
+    filter.class_id = classId;
   }
 
   useEffect(() => {
@@ -59,8 +62,11 @@ const TimetableViewer: React.FC<TimetableViewerProps> = ({
           .order('day_of_week')
           .order('start_time');
 
-        Object.entries(filter).forEach(([k, v]) => {
-          q = q.eq(k, v);
+        // Apply dynamic filters in a type-safe way
+        (Object.keys(filter) as FilterKey[]).forEach((key) => {
+          if (filter[key]) {
+            q = q.eq(key, filter[key]);
+          }
         });
         
         const { data, error } = await q;
