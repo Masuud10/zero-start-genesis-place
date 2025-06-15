@@ -1754,6 +1754,7 @@ export type Database = {
           metadata: Json | null
           resource: string
           resource_id: string | null
+          school_id: string | null
           success: boolean
           user_agent: string | null
           user_id: string | null
@@ -1767,6 +1768,7 @@ export type Database = {
           metadata?: Json | null
           resource: string
           resource_id?: string | null
+          school_id?: string | null
           success: boolean
           user_agent?: string | null
           user_id?: string | null
@@ -1780,11 +1782,20 @@ export type Database = {
           metadata?: Json | null
           resource?: string
           resource_id?: string | null
+          school_id?: string | null
           success?: boolean
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_security_audit_logs_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_analytics: {
         Row: {

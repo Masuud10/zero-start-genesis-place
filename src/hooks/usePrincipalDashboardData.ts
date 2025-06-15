@@ -78,11 +78,11 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         totalParents: parentsCount
       });
 
-      // Fetch audit logs without profile join to prevent TS error
+      // Fetch audit logs with school_id to fix the bug and simplify logic
       const { data: rawAuditLogs, error: auditLogsError } = await supabase
         .from('security_audit_logs')
         .select('id, created_at, action, resource, metadata, user_id')
-        .eq('school_id', targetSchoolId)
+        .eq('school_id', targetSchoolId) // This is the crucial fix
         .eq('success', true)
         .in('action', ['create', 'update'])
         .order('created_at', { ascending: false })
