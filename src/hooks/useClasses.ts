@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,18 +12,27 @@ interface Class {
   created_at: string;
 }
 
+function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    )
+  ]) as Promise<T>;
+}
+
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      
       let query = supabase.from('classes').select(`
         id,
         name,
@@ -32,46 +41,39 @@ export const useClasses = () => {
         created_at
       `);
 
-      // Apply school filter for non-admin users
       if (!isSystemAdmin && schoolId) {
         query = query.eq('school_id', schoolId);
       }
 
-      const { data, error: fetchError } = await query.order('name');
-
-      if (fetchError) {
-        console.error('Error fetching classes:', fetchError);
-        setError(fetchError.message);
-        toast({
-          title: "Error",
-          description: "Failed to fetch classes data",
-          variant: "destructive",
-        });
-        setClasses([]);
-        return;
-      }
+      const { data, error: fetchError } = await useTimeoutPromise(
+        query.order('name'),
+        7000
+      );
+      if (fetchError) throw fetchError;
 
       setClasses(data || []);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(errorMessage);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to fetch classes data';
+      setError(message);
+      setClasses([]);
       toast({
-        title: "Error",
-        description: "Failed to fetch classes data",
+        title: "Class Fetch Error",
+        description: message,
         variant: "destructive",
       });
-      setClasses([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [isSystemAdmin, schoolId, toast]);
 
   useEffect(() => {
     if (schoolId !== null || isSystemAdmin) {
       fetchClasses();
+    } else {
+      setClasses([]);
+      setLoading(false);
     }
-  }, [isSystemAdmin, schoolId]);
+  }, [isSystemAdmin, schoolId, fetchClasses]);
 
   return {
     classes,

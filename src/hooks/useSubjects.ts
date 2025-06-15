@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,18 +14,26 @@ interface Subject {
   created_at: string;
 }
 
+function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    )
+  ]) as Promise<T>;
+}
+
 export const useSubjects = (classId?: string) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
       let query = supabase.from('subjects').select(`
         id,
         name,
@@ -36,50 +44,42 @@ export const useSubjects = (classId?: string) => {
         created_at
       `);
 
-      // Apply school filter for non-admin users
       if (!isSystemAdmin && schoolId) {
         query = query.eq('school_id', schoolId);
       }
-
       if (classId && classId !== 'all') {
         query = query.eq('class_id', classId);
       }
 
-      const { data, error: fetchError } = await query.order('name');
-
-      if (fetchError) {
-        console.error('Error fetching subjects:', fetchError);
-        setError(fetchError.message);
-        toast({
-          title: "Error",
-          description: "Failed to fetch subjects data",
-          variant: "destructive",
-        });
-        setSubjects([]);
-        return;
-      }
+      const { data, error: fetchError } = await useTimeoutPromise(
+        query.order('name'),
+        7000
+      );
+      if (fetchError) throw fetchError;
 
       setSubjects(data || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(errorMessage);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to fetch subjects data';
+      setError(message);
+      setSubjects([]);
       toast({
-        title: "Error",
-        description: "Failed to fetch subjects data",
+        title: "Subjects Fetch Error",
+        description: message,
         variant: "destructive",
       });
-      setSubjects([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId, isSystemAdmin, schoolId, toast]);
 
   useEffect(() => {
     if (schoolId !== null || isSystemAdmin) {
       fetchSubjects();
+    } else {
+      setSubjects([]);
+      setLoading(false);
     }
-  }, [classId, isSystemAdmin, schoolId]);
+  }, [classId, isSystemAdmin, schoolId, fetchSubjects]);
 
   return {
     subjects,

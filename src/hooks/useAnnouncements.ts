@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -17,28 +17,36 @@ export interface Announcement {
   creator_name?: string;
 }
 
+function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    )
+  ]) as Promise<T>;
+}
+
 export const useAnnouncements = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchAnnouncements();
-    }
-  }, [user]);
-
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from('announcements')
-        .select(`
-          *,
-          profiles!announcements_created_by_fkey(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const { data, error: fetchError } = await useTimeoutPromise(
+        supabase
+          .from('announcements')
+          .select(`
+            *,
+            profiles!announcements_created_by_fkey(name)
+          `)
+          .order('created_at', { ascending: false }),
+        7000
+      );
+      if (fetchError) throw fetchError;
 
       const formattedData = data?.map(item => ({
         ...item,
@@ -46,12 +54,24 @@ export const useAnnouncements = () => {
       })) || [];
 
       setAnnouncements(formattedData);
-    } catch (error) {
-      console.error('Error fetching announcements:', error);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to fetch announcements';
+      setError(message);
+      setAnnouncements([]);
+      // Optionally: toast about error here if needed
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchAnnouncements();
+    } else {
+      setAnnouncements([]);
+      setLoading(false);
+    }
+  }, [user, fetchAnnouncements]);
 
   const createAnnouncement = async (announcement: Omit<Announcement, 'id' | 'created_at' | 'created_by'>) => {
     try {
@@ -67,8 +87,7 @@ export const useAnnouncements = () => {
       if (error) throw error;
       await fetchAnnouncements();
       return { data, error: null };
-    } catch (error) {
-      console.error('Error creating announcement:', error);
+    } catch (error: any) {
       return { data: null, error };
     }
   };
@@ -76,6 +95,7 @@ export const useAnnouncements = () => {
   return {
     announcements,
     loading,
+    error,
     createAnnouncement,
     refetch: fetchAnnouncements
   };

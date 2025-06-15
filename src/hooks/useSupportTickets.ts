@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,28 +19,37 @@ export interface SupportTicket {
   creator_name?: string;
 }
 
+function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    )
+  ]) as Promise<T>;
+}
+
 export const useSupportTickets = () => {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchTickets();
-    }
-  }, [user]);
-
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select(`
-          *,
-          profiles!support_tickets_created_by_fkey(name)
-        `)
-        .order('created_at', { ascending: false });
+      const { data, error: fetchError } = await useTimeoutPromise(
+        supabase
+          .from('support_tickets')
+          .select(`
+            *,
+            profiles!support_tickets_created_by_fkey(name)
+          `)
+          .order('created_at', { ascending: false }),
+        7000
+      );
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
       const formattedData = data?.map(item => ({
         id: item.id,
@@ -59,12 +68,24 @@ export const useSupportTickets = () => {
       })) || [];
 
       setTickets(formattedData);
-    } catch (error) {
-      console.error('Error fetching support tickets:', error);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to fetch support tickets';
+      setError(message);
+      setTickets([]);
+      // Optionally: toast about error here if desired
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchTickets();
+    } else {
+      setTickets([]);
+      setLoading(false);
+    }
+  }, [user, fetchTickets]);
 
   const createTicket = async (ticket: Omit<SupportTicket, 'id' | 'created_at' | 'created_by'>) => {
     try {
@@ -81,8 +102,7 @@ export const useSupportTickets = () => {
       if (error) throw error;
       await fetchTickets();
       return { data, error: null };
-    } catch (error) {
-      console.error('Error creating support ticket:', error);
+    } catch (error: any) {
       return { data: null, error };
     }
   };
@@ -90,6 +110,7 @@ export const useSupportTickets = () => {
   return {
     tickets,
     loading,
+    error,
     createTicket,
     refetch: fetchTickets
   };
