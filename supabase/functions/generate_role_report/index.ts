@@ -1,4 +1,3 @@
-
 // Edge Function: generate_role_report
 // Generates a report for grades/attendance with correct scope for teachers, principals, admins.
 
@@ -56,14 +55,21 @@ serve(async (req: Request) => {
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
       resultRows = data || [];
     } else if (role === "edufam_admin") {
-      const { data, error } = await supabase
+      let query = supabase
         .from("grades")
         .select("school_id, class_id, student_id, percentage, term")
-        .eq("school_id", school_id)
         .eq("term", term);
+      
+      if (school_id) {
+        query = query.eq("school_id", school_id);
+        reportTitle = `Grades Report (For ${schoolInfo?.name || 'Selected School'})`;
+      } else {
+        reportTitle = `Grades Report (All Schools)`;
+      }
+
+      const { data, error } = await query;
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
       resultRows = data || [];
-      reportTitle = "Grades Report (Summary)";
     }
   } else if (type === "attendance") {
     reportTitle = `Attendance Report`;
@@ -84,14 +90,21 @@ serve(async (req: Request) => {
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
       resultRows = data || [];
     } else if (role === "edufam_admin") {
-      const { data, error } = await supabase
+      let query = supabase
         .from("attendance")
         .select("school_id, class_id, student_id, status, session, date, term")
-        .eq("school_id", school_id)
         .eq("term", term);
+
+      if (school_id) {
+        query = query.eq("school_id", school_id);
+        reportTitle = `Attendance Report (For ${schoolInfo?.name || 'Selected School'})`;
+      } else {
+        reportTitle = `Attendance Report (All Schools)`;
+      }
+        
+      const { data, error } = await query;
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
       resultRows = data || [];
-      reportTitle = "Attendance Report (Summary)";
     }
   } else {
     return new Response(JSON.stringify({ error: "Unknown report type" }), { status: 400, headers: corsHeaders });

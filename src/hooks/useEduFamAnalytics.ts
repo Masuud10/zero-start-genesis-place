@@ -1,3 +1,4 @@
+
 // Edufam Analytics Hook: Returns summary objects for grades, attendance, and finance for edufam_admin using summary views
 
 import { useEffect, useState, useCallback } from "react";
@@ -45,7 +46,6 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
         throw new Error("Insufficient permissions for analytics summary.");
 
       // --- Grades Summary ---
-      // Use `as any` to avoid TS2558 for views/not-in-types
       let gradesQuery: any = (supabase as any)
         .from("school_grades_summary")
         .select("*");
@@ -56,13 +56,26 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
       const { data: gradesData, error: gradesErr } = await gradesQuery;
       if (gradesErr) throw gradesErr;
+      
+      let gradesSummary;
+      if (filters.schoolId) {
+        gradesSummary = Array.isArray(gradesData) && gradesData.length > 0 ? gradesData[0] : null;
+      } else if (Array.isArray(gradesData) && gradesData.length > 0) {
+        const aggregated = gradesData.reduce((acc, summary) => {
+          const count = summary.grades_count || 0;
+          acc.grades_count += count;
+          acc.total_weighted_grade += (summary.average_grade || 0) * count;
+          return acc;
+        }, { grades_count: 0, total_weighted_grade: 0 });
+        
+        gradesSummary = {
+          grades_count: aggregated.grades_count,
+          average_grade: aggregated.grades_count > 0 ? aggregated.total_weighted_grade / aggregated.grades_count : null
+        };
+      } else {
+        gradesSummary = null;
+      }
 
-      let gradesSummary =
-        filters.schoolId && Array.isArray(gradesData)
-          ? gradesData[0]
-          : Array.isArray(gradesData) && gradesData.length > 0
-          ? gradesData[0]
-          : null;
 
       // --- Attendance Summary ---
       let attendanceQuery: any = (supabase as any)
@@ -76,13 +89,26 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       const { data: attendanceData, error: attendanceErr } =
         await attendanceQuery;
       if (attendanceErr) throw attendanceErr;
+      
+      let attendanceSummary;
+      if (filters.schoolId) {
+          attendanceSummary = Array.isArray(attendanceData) && attendanceData.length > 0 ? attendanceData[0] : null;
+      } else if (Array.isArray(attendanceData) && attendanceData.length > 0) {
+          const aggregated = attendanceData.reduce((acc, summary) => {
+              const count = summary.attendance_count || 0;
+              acc.attendance_count += count;
+              acc.total_weighted_rate += (summary.attendance_rate || 0) * count;
+              return acc;
+          }, { attendance_count: 0, total_weighted_rate: 0 });
 
-      let attendanceSummary =
-        filters.schoolId && Array.isArray(attendanceData)
-          ? attendanceData[0]
-          : Array.isArray(attendanceData) && attendanceData.length > 0
-          ? attendanceData[0]
-          : null;
+          attendanceSummary = {
+            attendance_count: aggregated.attendance_count,
+            attendance_rate: aggregated.attendance_count > 0 ? aggregated.total_weighted_rate / aggregated.attendance_count : null,
+          };
+      } else {
+          attendanceSummary = null;
+      }
+
 
       // --- Finance Summary ---
       let financeQuery: any = (supabase as any)
@@ -94,13 +120,19 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
       const { data: financeData, error: financeErr } = await financeQuery;
       if (financeErr) throw financeErr;
-
-      let financeSummary =
-        filters.schoolId && Array.isArray(financeData)
-          ? financeData[0]
-          : Array.isArray(financeData) && financeData.length > 0
-          ? financeData[0]
-          : null;
+      
+      let financeSummary;
+      if (filters.schoolId) {
+          financeSummary = Array.isArray(financeData) && financeData.length > 0 ? financeData[0] : null;
+      } else if (Array.isArray(financeData) && financeData.length > 0) {
+          financeSummary = financeData.reduce((acc, summary) => {
+              acc.total_collected += summary.total_collected || 0;
+              acc.transactions_count += summary.transactions_count || 0;
+              return acc;
+          }, { total_collected: 0, transactions_count: 0 });
+      } else {
+          financeSummary = null;
+      }
 
       setSummary({
         grades: {
@@ -114,7 +146,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
           totalRecords: attendanceSummary?.attendance_count ?? 0,
           attendanceRate:
             attendanceSummary?.attendance_rate !== null && attendanceSummary?.attendance_rate !== undefined
-              ? Math.round(attendanceSummary?.attendance_rate * 10) / 10
+              ? Math.round(attendanceSummary?.attendance_rate * 100) / 100 // Use 100 for percentage
               : null,
         },
         finance: {
