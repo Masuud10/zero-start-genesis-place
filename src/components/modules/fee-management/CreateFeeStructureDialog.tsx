@@ -41,10 +41,10 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const createFeeStructure = async ({ school_id, ...rest }: FormData & { school_id: string }): Promise<FeeStructure> => {
+const createFeeStructure = async (values: FormData & { school_id: string }): Promise<FeeStructure> => {
   const { data, error } = await supabase
     .from('fee_structures')
-    .insert({ ...rest, school_id })
+    .insert(values)
     .select()
     .single();
 
