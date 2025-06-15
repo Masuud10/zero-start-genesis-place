@@ -6,12 +6,33 @@ import { useEduFamAnalytics } from "@/hooks/useEduFamAnalytics";
 import { useClasses } from "@/hooks/useClasses";
 import { useToast } from "@/hooks/use-toast";
 
+// [New] For later, if we want to dynamically load schools list from Supabase
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
+
 const EduFamAdminAnalytics = () => {
   const [schoolId, setSchoolId] = useState<string | undefined>(undefined);
   const [classId, setClassId] = useState<string | undefined>(undefined);
   const [dateFilter, setDateFilter] = useState("this_month");
+  const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
+  const { user } = useAuth();
 
-  // Improved: Always valid date range
+  // Load real school list for cross-school analytics (if edufam admin)
+  React.useEffect(() => {
+    const loadSchools = async () => {
+      if (user?.role === "edufam_admin") {
+        setSchoolsLoading(true);
+        const { data, error } = await supabase.from("schools").select("id, name");
+        setSchools(data || []);
+        setSchoolsLoading(false);
+      }
+    };
+    loadSchools();
+  }, [user?.role]);
+
+  // Date range calculation (no change here)
   const now = new Date();
   let startDate: string | undefined;
   let endDate: string | undefined;
@@ -27,7 +48,6 @@ const EduFamAdminAnalytics = () => {
   }
 
   const { classes } = useClasses();
-
   const { summary, loading, error, retry } = useEduFamAnalytics({
     schoolId,
     classId,
@@ -37,36 +57,29 @@ const EduFamAdminAnalytics = () => {
 
   const { toast } = useToast();
 
-  // Debug: Log analytic state
+  // LOGGING for debugging & QA
   React.useEffect(() => {
-    console.log("[EduFamAdminAnalytics] State update", {
-      summary, loading, error, schoolId, classId, startDate, endDate
-    });
+    // Add details for troubleshooting real data connection
+    if (loading) {
+      console.log("[EduFamAdminAnalytics] Loading state...", { schoolId, classId, startDate, endDate });
+    }
     if (error) {
-      console.error("[EduFamAdminAnalytics] Error:", error);
+      console.error("[EduFamAdminAnalytics] Error:", error, { schoolId, classId, startDate, endDate });
+    }
+    if (summary) {
+      console.log("[EduFamAdminAnalytics] Loaded analytics summary:", summary);
     }
   }, [summary, loading, error, schoolId, classId, startDate, endDate]);
 
-  const schoolOptions = [
-    { id: "", name: "All Schools" },
-    { id: "school1", name: "Greenwood Primary" },
-    { id: "school2", name: "Riverside Academy" },
-    { id: "school3", name: "Sunshine School" },
-    { id: "school4", name: "Oak Tree Primary" },
-  ];
-
-  // Helper to safely format numbers that could be undefined or null
+  // Helper: format numbers (handles null/undefined as N/A)
   const safeFormat = (value: number | null | undefined, digits = 1) => {
-    if (typeof value === "number" && !isNaN(value)) {
-      return value.toFixed(digits);
-    }
+    if (typeof value === "number" && !isNaN(value)) return value.toFixed(digits);
     return "N/A";
   };
 
-  // LOGGING for debugging
+  // Handle error toast (one-time per error)
   React.useEffect(() => {
     if (error) {
-      console.error("❌ Analytics Fetch Error:", error);
       toast({
         title: "Analytics Error",
         description: typeof error === "string" ? error : "Failed to load analytics",
@@ -75,22 +88,27 @@ const EduFamAdminAnalytics = () => {
     }
   }, [error, toast]);
 
-  // Defensive checks for summary
+  // Defensive checks for summary structure
   const gradesSummary = summary?.grades || { totalGrades: 0, avgScore: null };
   const attendanceSummary = summary?.attendance || { records: 0, avgAttendance: null };
   const financeSummary = summary?.finance || { totalAmount: null, transactionCount: 0 };
 
-  if (loading) {
+  // SCHOOL FILTER
+  const schoolOptions = [{ id: "", name: "All Schools" }, ...schools];
+
+  // LOADING state (show spinner and hint)
+  if (loading || schoolsLoading) {
     return (
       <div className="w-full flex flex-col items-center gap-6">
         <div className="py-10 flex flex-col items-center">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-2" />
           <span className="text-gray-600 animate-pulse">Loading analytics summary...</span>
-          <div className="w-12 h-12 mt-4 animate-spin rounded-full border-t-2 border-blue-500 border-solid"></div>
         </div>
       </div>
     );
   }
 
+  // ERROR state (API/fetch error)
   if (error) {
     return (
       <div className="w-full flex flex-col items-center gap-6">
@@ -102,7 +120,9 @@ const EduFamAdminAnalytics = () => {
             <div className="text-red-700 font-medium mb-2">
               Failed to load analytics summary.
             </div>
-            <div className="mb-4">{typeof error === "string" ? error : "Unknown error."}</div>
+            <div className="mb-4 break-words">
+              {typeof error === "string" ? error : "Unknown error."}
+            </div>
             <button
               className="bg-red-100 text-red-800 px-4 py-2 rounded"
               onClick={() => retry()}
@@ -115,8 +135,8 @@ const EduFamAdminAnalytics = () => {
     );
   }
 
-  if (!summary) {
-    console.warn("[EduFamAdminAnalytics] No summary data returned.");
+  // EMPTY state (no data)
+  if (!summary || (!gradesSummary.totalGrades && !attendanceSummary.records && !financeSummary.transactionCount)) {
     return (
       <div className="w-full flex flex-col items-center gap-6">
         <Card className="max-w-xl w-full">
@@ -139,6 +159,13 @@ const EduFamAdminAnalytics = () => {
     );
   }
 
+  // INCOMPLETE state (partial data; show what we have, clarify incomplete)
+  const hasPartial =
+    (gradesSummary.totalGrades && !attendanceSummary.records && !financeSummary.transactionCount) ||
+    (!gradesSummary.totalGrades && attendanceSummary.records && !financeSummary.transactionCount) ||
+    (!gradesSummary.totalGrades && !attendanceSummary.records && financeSummary.transactionCount);
+
+  // UI
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -179,6 +206,11 @@ const EduFamAdminAnalytics = () => {
           </SelectContent>
         </Select>
       </div>
+      {hasPartial && (
+        <div className="w-full text-yellow-700 bg-yellow-100 rounded px-4 py-2 font-medium mb-4 text-sm">
+          Analytics data is incomplete for the selected filters. Some categories may have no records yet.
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

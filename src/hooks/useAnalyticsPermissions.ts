@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { useCallback } from 'react';
@@ -7,6 +6,7 @@ export const useAnalyticsPermissions = () => {
   const { user } = useAuth();
   const { currentSchool } = useSchool();
 
+  // Expanded: System (edufam_admin) can view all schools analytics
   const canViewSystemAnalytics = useCallback(() => {
     return user?.role === 'edufam_admin';
   }, [user?.role]);
@@ -16,11 +16,9 @@ export const useAnalyticsPermissions = () => {
     if (canViewSystemAnalytics()) {
       return true;
     }
-
     // School-level users can only view their own school's analytics
     const userSchoolId = user?.school_id;
     const targetSchoolId = schoolId || currentSchool?.id;
-    
     return userSchoolId && targetSchoolId && userSchoolId === targetSchoolId;
   }, [user?.school_id, currentSchool?.id, canViewSystemAnalytics]);
 
@@ -29,25 +27,15 @@ export const useAnalyticsPermissions = () => {
   }, [user?.role]);
 
   const getAnalyticsScope = useCallback(() => {
-    if (user?.role === 'edufam_admin') {
-      return 'system';
-    }
-    if (['school_owner', 'principal'].includes(user?.role || '')) {
-      return 'school';
-    }
-    if (user?.role === 'teacher') {
-      return 'class';
-    }
-    if (user?.role === 'parent') {
-      return 'student';
-    }
+    if (user?.role === 'edufam_admin') return 'system';
+    if (['school_owner', 'principal'].includes(user?.role || '')) return 'school';
+    if (user?.role === 'teacher') return 'class';
+    if (user?.role === 'parent') return 'student';
     return 'none';
   }, [user?.role]);
 
   const getAllowedSchoolIds = useCallback(() => {
-    if (canViewSystemAnalytics()) {
-      return null; // Can view all schools
-    }
+    if (canViewSystemAnalytics()) return null; // All schools
     return user?.school_id ? [user.school_id] : [];
   }, [user?.school_id, canViewSystemAnalytics]);
 

@@ -1,8 +1,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAnalyticsPermissions } from "./useAnalyticsPermissions";
 
-// Helper types
 export interface AnalyticsSummary {
   grades: {
     totalGrades: number;
@@ -25,18 +26,27 @@ export interface AnalyticsFilter {
   endDate?: string;
 }
 
-// Main hook
 export function useEduFamAnalytics(filters: AnalyticsFilter) {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Permissions: Ensures the role has access to multi-school analytics
+  const { canViewSystemAnalytics } = useAnalyticsPermissions();
+  const { user } = useAuth();
+
+  // API guard: Edufam admins only
+  const isEdufamAdmin = user?.role === "edufam_admin";
+  // Only fetch analytics if system admin
+  const shouldFetch = isEdufamAdmin && canViewSystemAnalytics;
 
   const fetchSummary = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Grades aggregation
+      if (!shouldFetch) throw new Error("Insufficient permissions for analytics summary.");
+      // Grades aggregation (real data)
       let gradesQuery = supabase
         .from("grades")
         .select("score, max_score", { count: "exact" }) as any;
@@ -45,11 +55,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       if (filters.startDate) gradesQuery = gradesQuery.gte("created_at", filters.startDate);
       if (filters.endDate) gradesQuery = gradesQuery.lte("created_at", filters.endDate);
 
-      const {
-        data: grades_raw,
-        count: gradesCount,
-        error: gradesErr
-      } = await gradesQuery;
+      const { data: grades_raw, count: gradesCount, error: gradesErr } = await gradesQuery;
 
       if (gradesErr) throw gradesErr;
       const grades: any[] = Array.isArray(grades_raw) ? grades_raw : [];
@@ -65,7 +71,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
             validScores.length
           : null;
 
-      // Attendance aggregation
+      // Attendance aggregation (real data)
       let attendanceQuery = supabase
         .from("attendance")
         .select("status", { count: "exact" }) as any;
@@ -74,11 +80,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       if (filters.startDate) attendanceQuery = attendanceQuery.gte("date", filters.startDate);
       if (filters.endDate) attendanceQuery = attendanceQuery.lte("date", filters.endDate);
 
-      const {
-        data: attendance_raw,
-        count: attendanceCount,
-        error: attErr
-      } = await attendanceQuery;
+      const { data: attendance_raw, count: attendanceCount, error: attErr } = await attendanceQuery;
 
       if (attErr) throw attErr;
       const attendance: any[] = Array.isArray(attendance_raw) ? attendance_raw : [];
@@ -86,7 +88,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       const presentCount = attendance.filter((a) => a.status === "present").length;
       const avgAttendance = records > 0 ? (presentCount * 100) / records : null;
 
-      // Finance aggregation
+      // Finance aggregation (real data)
       let financeQuery = supabase
         .from("financial_transactions")
         .select("amount", { count: "exact" }) as any;
@@ -94,11 +96,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       if (filters.startDate) financeQuery = financeQuery.gte("created_at", filters.startDate);
       if (filters.endDate) financeQuery = financeQuery.lte("created_at", filters.endDate);
 
-      const {
-        data: finance_raw,
-        count: transactionCount,
-        error: finErr
-      } = await financeQuery;
+      const { data: finance_raw, count: transactionCount, error: finErr } = await financeQuery;
 
       if (finErr) throw finErr;
       const finance: any[] = Array.isArray(finance_raw) ? finance_raw : [];
@@ -126,10 +124,11 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
       setLoading(false);
     }
   }, [
+    shouldFetch,
     filters.schoolId,
     filters.classId,
     filters.startDate,
-    filters.endDate
+    filters.endDate,
   ]);
 
   useEffect(() => {
@@ -138,5 +137,4 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
   return { summary, loading, error, retry: fetchSummary };
 }
-
 // ... end of file
