@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,6 +87,38 @@ const PrincipalDashboard = () => {
         throw new Error('Access denied to school data');
       }
 
+      // Define queries separately to help TypeScript with type inference
+      const studentsQuery = supabase
+        .from('students')
+        .select('id', { count: 'exact' })
+        .eq('school_id', targetSchoolId)
+        .eq('is_active', true);
+
+      const teachersQuery = supabase
+        .from('profiles')
+        .select('id', { count: 'exact' })
+        .eq('school_id', targetSchoolId)
+        .eq('role', 'teacher');
+      
+      const subjectsQuery = supabase
+        .from('subjects')
+        .select('id', { count: 'exact' })
+        .eq('school_id', targetSchoolId);
+
+      const classesQuery = supabase
+        .from('classes')
+        .select('id', { count: 'exact' })
+        .eq('school_id', targetSchoolId);
+
+      const auditLogsQuery = supabase
+        .from('security_audit_logs')
+        .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
+        .eq('school_id', targetSchoolId)
+        .eq('success', true)
+        .in('action', ['create', 'update'])
+        .order('created_at', { ascending: false })
+        .limit(5);
+
       // Fetch data in parallel for speed
       const [
         studentsResult,
@@ -96,33 +127,12 @@ const PrincipalDashboard = () => {
         classesResult,
         auditLogsResult
       ] = await Promise.allSettled([
-        supabase
-          .from('students')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId)
-          .eq('is_active', true),
-        supabase
-          .from('profiles')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId)
-          .eq('role', 'teacher'),
-        supabase
-          .from('subjects')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId),
-        supabase
-          .from('classes')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId),
-        supabase
-          .from('security_audit_logs')
-          .select('id, created_at, action, resource, metadata, user_id, profiles(name)')
-          .eq('school_id', targetSchoolId)
-          .eq('success', true)
-          .in('action', ['create', 'update'])
-          .order('created_at', { ascending: false })
-          .limit(5)
-      ] as const);
+        studentsQuery,
+        teachersQuery,
+        subjectsQuery,
+        classesQuery,
+        auditLogsQuery,
+      ]);
 
       const studentsCount =
         studentsResult.status === 'fulfilled' ? (studentsResult.value?.count || 0) : 0;
