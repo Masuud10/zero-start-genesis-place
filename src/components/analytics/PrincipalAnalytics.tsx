@@ -114,26 +114,30 @@ const PrincipalAnalytics = () => {
         {/* Subject Performance */}
         <Card>
           <CardHeader>
-            <CardTitle>Subject Performance (Sample)</CardTitle>
+            <CardTitle>Subject Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {subjectPerformance.map((subject) => (
-                <div key={subject.subject} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{subject.subject}</p>
-                    <p className="text-sm text-muted-foreground">Average: {subject.average}%</p>
+              {subjectPerformance.length > 0 ? (
+                subjectPerformance.map((subject) => (
+                  <div key={subject.subject} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{subject.subject}</p>
+                      <p className="text-sm text-muted-foreground">Average: {subject.average.toFixed(1)}%</p>
+                    </div>
+                    <div className="text-right">
+                      <Badge 
+                        variant={subject.improvement > 0 ? 'default' : subject.improvement < 0 ? 'destructive' : 'secondary'}
+                        className={subject.improvement > 0 ? 'bg-green-100 text-green-800' : subject.improvement < 0 ? 'bg-red-100 text-red-800' : ''}
+                      >
+                        {subject.improvement >= 0 ? '+' : ''}{subject.improvement.toFixed(1)}%
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <Badge 
-                      variant={subject.improvement > 0 ? 'default' : subject.improvement < 0 ? 'destructive' : 'secondary'}
-                      className={subject.improvement > 0 ? 'bg-green-100 text-green-800' : subject.improvement < 0 ? 'bg-red-100 text-red-800' : ''}
-                    >
-                      {subject.improvement > 0 ? '+' : ''}{subject.improvement}%
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-4">No subject performance data available.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -141,26 +145,30 @@ const PrincipalAnalytics = () => {
         {/* Top Students */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Student Rankings (Sample)</CardTitle>
+            <CardTitle>Top Student Rankings</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {studentRankings.map((student) => (
-                <div key={student.name} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                      {student.position}
+              {studentRankings.length > 0 ? (
+                studentRankings.map((student) => (
+                  <div key={student.name} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                        {student.position}
+                      </div>
+                      <div>
+                        <p className="font-medium">{student.name}</p>
+                        <p className="text-sm text-muted-foreground">{student.class}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{student.name}</p>
-                      <p className="text-sm text-muted-foreground">{student.class}</p>
+                    <div className="text-right">
+                      <div className="font-semibold">{student.average.toFixed(1)}%</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{student.average}%</div>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-4">No student ranking data available.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -169,30 +177,34 @@ const PrincipalAnalytics = () => {
       {/* Teacher Activity Logs */}
       <Card>
         <CardHeader>
-          <CardTitle>Teacher Grading Activity (Sample)</CardTitle>
+          <CardTitle>Teacher Grading Activity</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {teacherActivity.map((teacher) => (
-              <div key={teacher.teacher} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">{teacher.teacher}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {teacher.grades} grades submitted
-                  </p>
-                </div>
-                <div className="flex gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="font-medium">{teacher.submissions}</div>
-                    <div className="text-muted-foreground">Submissions</div>
+            {teacherActivity.length > 0 ? (
+              teacherActivity.map((teacher) => (
+                <div key={teacher.teacher} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{teacher.teacher}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {teacher.grades} grades submitted
+                    </p>
                   </div>
-                  <div className="text-center">
-                    <div className="font-medium text-green-600">{teacher.onTime}%</div>
-                    <div className="text-muted-foreground">On Time</div>
+                  <div className="flex gap-4 text-sm">
+                    <div className="text-center">
+                      <div className="font-medium">{teacher.submissions}</div>
+                      <div className="text-muted-foreground">Submissions</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium text-green-600">{teacher.onTime}%</div>
+                      <div className="text-muted-foreground">On Time</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground py-4">No teacher activity data available.</p>
+            )}
           </div>
         </CardContent>
       </Card>

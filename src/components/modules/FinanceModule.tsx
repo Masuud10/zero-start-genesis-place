@@ -16,7 +16,7 @@ const FinanceModule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const isSummaryRole = user?.role && ['edufam_admin', 'school_owner', 'principal'].includes(user.role);
+  const isSummaryRole = user?.role && ['edufam_admin', 'school_owner'].includes(user.role);
 
   useEffect(() => {
     if (!isSummaryRole) {
@@ -131,8 +131,8 @@ const FinanceModule: React.FC = () => {
   switch (user.role) {
     case 'edufam_admin':
     case 'school_owner':
-    case 'principal':
       return renderForSummaryRole();
+    case 'principal':
     case 'finance_officer':
       return <FinanceOfficerDashboard user={user} />;
     case 'parent':
