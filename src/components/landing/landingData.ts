@@ -26,8 +26,8 @@ export const coreFeatures = [
   },
   {
     icon: BookOpen,
-    title: "Grade Management & CBC",
-    description: "Advanced grading system supporting Kenya's CBC curriculum with competency-based assessments and automated report generation.",
+    title: "Grade Management in IGCSE & CBC",
+    description: "Advanced grading system supporting Kenya's CBC curriculum and IGCSE curriculum with competency-based assessments and automated report generation.",
     benefits: ["CBC compliance", "Automated calculations", "Progress tracking", "Competency mapping"],
     color: "from-green-500 to-green-600"
   },
