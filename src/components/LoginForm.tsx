@@ -1,33 +1,32 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, Lock, Mail, AlertTriangle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useSecureAuth } from '@/hooks/useSecureAuth';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff, Lock, Mail, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useSecureAuth } from "@/hooks/useSecureAuth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const LoginForm: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [securityWarning, setSecurityWarning] = useState('');
+  const [securityWarning, setSecurityWarning] = useState("");
   const { secureSignIn, isLoading, csrfToken } = useSecureAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
-      setSecurityWarning('Please fill in all fields');
+      setSecurityWarning("Please fill in all fields");
       return;
     }
 
     try {
-      setSecurityWarning('');
+      setSecurityWarning("");
       const { data, error } = await secureSignIn(email, password, csrfToken);
-      
+
       if (error) {
         setSecurityWarning(error.message);
         return;
@@ -36,19 +35,19 @@ const LoginForm: React.FC = () => {
       if (data?.user) {
         toast({
           title: "Login Successful",
-          description: "Welcome back! Loading your dashboard…"
+          description: "Welcome back! Loading your dashboard…",
         });
         // DO NOT reload or redirect here. Let the global auth observer and root AppContent handle dashboard routing.
       }
     } catch (error: any) {
-      setSecurityWarning(error.message || 'Login failed. Please try again.');
+      setSecurityWarning(error.message || "Login failed. Please try again.");
     }
   };
 
   // Store CSRF token in session storage
   React.useEffect(() => {
     if (csrfToken) {
-      sessionStorage.setItem('csrf_token', csrfToken);
+      sessionStorage.setItem("csrf_token", csrfToken);
     }
   }, [csrfToken]);
 
@@ -74,7 +73,10 @@ const LoginForm: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-700"
+              >
                 Email Address
               </label>
               <div className="relative">
@@ -93,14 +95,17 @@ const LoginForm: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
@@ -113,31 +118,30 @@ const LoginForm: React.FC = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Signing In...
                 </div>
               ) : (
-                'Sign In'
+                "Sign In"
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
-              Protected by enterprise-grade security measures including encryption, 
-              rate limiting, and audit logging.
+              Protected by enterprise-grade security measures
             </p>
           </div>
         </CardContent>

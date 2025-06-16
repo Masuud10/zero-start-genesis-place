@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { GraduationCap, Mail, Phone, MapPin } from 'lucide-react';
+import React from "react";
+import { GraduationCap, Mail, Phone, MapPin } from "lucide-react";
 
 interface FooterProps {
   onNavClick: (section: string) => void;
@@ -19,38 +18,73 @@ const Footer = ({ onNavClick, onPricing, onScheduleDemo }: FooterProps) => {
               <span className="text-2xl font-bold">EduFam</span>
             </div>
             <p className="text-gray-400 leading-relaxed">
-              Empowering Kenyan schools with comprehensive management solutions 
+              Empowering Kenyan schools with comprehensive management solutions
               designed for the modern educational landscape.
             </p>
           </div>
-          
+
           <div>
             <h4 className="font-bold text-lg mb-4">Product</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><button onClick={() => onNavClick('features')} className="hover:text-white transition-colors">Features</button></li>
-              <li><button onClick={onPricing} className="hover:text-white transition-colors">Pricing</button></li>
-              <li><button onClick={onScheduleDemo} className="hover:text-white transition-colors">Demo</button></li>
+              <li>
+                <button
+                  onClick={() => onNavClick("features")}
+                  className="hover:text-white transition-colors"
+                >
+                  Features
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onPricing}
+                  className="hover:text-white transition-colors"
+                >
+                  Pricing
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onScheduleDemo}
+                  className="hover:text-white transition-colors"
+                >
+                  Demo
+                </button>
+              </li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-bold text-lg mb-4">Company</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><button onClick={() => onNavClick('about')} className="hover:text-white transition-colors">About</button></li>
-              <li><button onClick={() => onNavClick('contact')} className="hover:text-white transition-colors">Contact</button></li>
+              <li>
+                <button
+                  onClick={() => onNavClick("about")}
+                  className="hover:text-white transition-colors"
+                >
+                  About
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavClick("contact")}
+                  className="hover:text-white transition-colors"
+                >
+                  Contact
+                </button>
+              </li>
             </ul>
           </div>
-          
+
           <div>
             <h4 className="font-bold text-lg mb-4">Contact</h4>
             <div className="space-y-2 text-gray-400">
               <div className="flex items-center">
                 <Mail className="w-4 h-4 mr-2" />
-                <span>hello@edufam.co.ke</span>
+                <span>info@edufam.org</span>
               </div>
               <div className="flex items-center">
                 <Phone className="w-4 h-4 mr-2" />
-                <span>+254 700 000 000</span>
+                <span>+254 708066322</span>
               </div>
               <div className="flex items-center">
                 <MapPin className="w-4 h-4 mr-2" />
@@ -59,9 +93,12 @@ const Footer = ({ onNavClick, onPricing, onScheduleDemo }: FooterProps) => {
             </div>
           </div>
         </div>
-        
+
         <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 EduFam. All rights reserved. Proudly serving Kenyan schools.</p>
+          <p>
+            &copy; 2025 EduFam. All rights reserved. Proudly serving Kenyan
+            schools.
+          </p>
         </div>
       </div>
     </footer>

@@ -1,8 +1,7 @@
-
-import React, { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
-import PromoVideo from '@/components/PromoVideo';
+import React, { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+import PromoVideo from "@/components/PromoVideo";
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -13,13 +12,13 @@ const VideoModal = ({ isOpen, onClose }: VideoModalProps) => {
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
-    
+
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
@@ -32,9 +31,9 @@ const VideoModal = ({ isOpen, onClose }: VideoModalProps) => {
           <h3 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
             EduFam Promotional Video
           </h3>
-          <Button 
-            variant="ghost" 
-            onClick={onClose} 
+          <Button
+            variant="ghost"
+            onClick={onClose}
             className="p-2 md:p-3 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-full text-white/80 hover:scale-110"
           >
             <X className="w-5 h-5 md:w-6 md:h-6" />
