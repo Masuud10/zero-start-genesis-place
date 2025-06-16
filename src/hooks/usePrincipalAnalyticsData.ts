@@ -39,7 +39,7 @@ interface PrincipalAnalyticsData {
 const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: string): Promise<PrincipalAnalyticsData> => {
     
     // Fetch from school_analytics summary table
-    const { data, error } = await supabase
+    const { data: schoolAnalyticsData, error: schoolAnalyticsError } = await supabase
         .from('school_analytics')
         .select('*')
         .eq('school_id', schoolId)
@@ -49,17 +49,45 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         .limit(1)
         .maybeSingle();
 
-    if (error) throw new Error(error.message);
+    if (schoolAnalyticsError) throw new Error(schoolAnalyticsError.message);
 
-    // Fetch class performances
-    const { data: classData, error: classError } = await supabase
+    // Fetch class performances with basic selection to avoid deep type issues
+    const { data: classAnalyticsData, error: classAnalyticsError } = await supabase
         .from('class_analytics')
-        .select('*, classes(name)')
+        .select('class_id, avg_grade, attendance_rate')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('year', year);
     
-    if (classError) throw new Error(classError.message);
+    if (classAnalyticsError) throw new Error(classAnalyticsError.message);
+
+    // Get class names separately to avoid complex joins
+    let classPerformance: any[] = [];
+    if (classAnalyticsData && classAnalyticsData.length > 0) {
+        const classIds = classAnalyticsData.map(c => c.class_id).filter(Boolean);
+        
+        if (classIds.length > 0) {
+            const { data: classesData, error: classesError } = await supabase
+                .from('classes')
+                .select('id, name')
+                .in('id', classIds);
+
+            if (classesError) {
+                console.error('Error fetching classes:', classesError.message);
+            } else if (classesData) {
+                const classLookup = classesData.reduce((acc: Record<string, string>, cls) => {
+                    acc[cls.id] = cls.name;
+                    return acc;
+                }, {});
+
+                classPerformance = classAnalyticsData.map(c => ({
+                    class: classLookup[c.class_id] || 'Unknown Class',
+                    average: c.avg_grade,
+                    attendance: c.attendance_rate
+                }));
+            }
+        }
+    }
 
     // Fetch subject performance - simplified approach
     const { data: subjectGrades, error: subjectGradesError } = await supabase
@@ -150,7 +178,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     }
 
     const studentRankings = (studentRankingsData || [])
-        .filter(s => studentLookup[s.student_id] && classLookup[s.class_id])
+        .filter(s => s.student_id && s.class_id && studentLookup[s.student_id] && classLookup[s.class_id])
         .map(s => ({
             name: studentLookup[s.student_id],
             class: classLookup[s.class_id],
@@ -201,20 +229,16 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         onTime: 0, // Placeholder
     }));
 
-    const topStudents = data?.top_students;
+    const topStudents = schoolAnalyticsData?.top_students;
 
     return {
         keyMetrics: {
             totalStudents: Array.isArray(topStudents) ? topStudents.length : 0,
-            schoolAverage: data?.avg_grade ?? 0,
-            attendanceRate: data?.attendance_rate ?? 0,
+            schoolAverage: schoolAnalyticsData?.avg_grade ?? 0,
+            attendanceRate: schoolAnalyticsData?.attendance_rate ?? 0,
             resultsReleased: 0, // This needs a proper query
         },
-        classPerformance: classData?.map(c => ({
-            class: c.classes?.name,
-            average: c.avg_grade,
-            attendance: c.attendance_rate
-        })) || [],
+        classPerformance: classPerformance,
         subjectPerformance: subjectPerformance,
         studentRankings: studentRankings,
         teacherActivity: teacherActivity,
