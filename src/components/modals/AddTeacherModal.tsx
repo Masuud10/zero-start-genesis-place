@@ -15,6 +15,12 @@ interface AddTeacherModalProps {
   onTeacherCreated?: (teacher: { id: string, name: string, email: string }) => void;
 }
 
+interface CreateUserRpcResponse {
+  error?: string;
+  success?: boolean;
+  user_id?: string;
+}
+
 const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeacherCreated }) => {
   const [form, setForm] = useState({ name: '', email: '' });
   const [loading, setLoading] = useState(false);
@@ -50,8 +56,11 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
 
       if (error) throw error;
 
-      if (data?.error) {
-        throw new Error(data.error);
+      // Type the response data properly
+      const responseData = data as CreateUserRpcResponse;
+
+      if (responseData?.error) {
+        throw new Error(responseData.error);
       }
 
       toast({ 
@@ -60,7 +69,7 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
       });
       
       onTeacherCreated && onTeacherCreated({ 
-        id: data.user_id, 
+        id: responseData.user_id || '', 
         name: form.name, 
         email: form.email 
       });
