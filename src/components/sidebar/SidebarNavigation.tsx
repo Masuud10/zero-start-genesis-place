@@ -26,10 +26,16 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   const { checkAccess } = useAccessControl();
   
   console.log('🧭 SidebarNavigation: Rendering for user role:', user?.role);
+  console.log('🧭 SidebarNavigation: Active section:', activeSection);
   
   const menuItems = getMenuItems(user?.role);
+  console.log('🧭 SidebarNavigation: All menu items for role:', user?.role, menuItems.map(item => item.id));
   
-  const filteredItems = menuItems.filter(item => checkAccess(item.id));
+  const filteredItems = menuItems.filter(item => {
+    const hasAccess = checkAccess(item.id);
+    console.log('🧭 SidebarNavigation: Item', item.id, 'access check result:', hasAccess);
+    return hasAccess;
+  });
 
   console.log('🧭 SidebarNavigation: Filtered items for role', user?.role, ':', filteredItems.map(item => item.id));
 

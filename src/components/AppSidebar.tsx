@@ -11,6 +11,8 @@ import { useNavigation } from '@/contexts/NavigationContext';
 const AppSidebar: React.FC = () => {
   const { activeSection, onSectionChange } = useNavigation();
   
+  console.log('🏗️ AppSidebar: Rendering with activeSection:', activeSection);
+  
   return (
     <Sidebar>
       <SidebarHeader>

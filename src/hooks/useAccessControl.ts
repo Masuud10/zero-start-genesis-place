@@ -14,12 +14,20 @@ export const useAccessControl = () => {
 
   const checkAccess = useCallback((section: string): boolean => {
     if (!user?.role) {
+      console.log('🔒 useAccessControl: No user role found');
       return false;
     }
+
+    console.log('🔒 useAccessControl: Checking access for section:', section, 'user role:', user.role);
 
     if (section === 'dashboard') return true;
 
     switch (section) {
+      case 'school-management':
+        // Only principals should have access to school management
+        const hasSchoolManagementAccess = user.role === 'principal';
+        console.log('🔒 useAccessControl: School management access:', hasSchoolManagementAccess);
+        return hasSchoolManagementAccess;
       case 'grades':
         return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
       case 'attendance':
@@ -53,6 +61,7 @@ export const useAccessControl = () => {
       case 'support':
         return hasPermission(PERMISSIONS.ACCESS_SUPPORT);
       default:
+        console.log('🔒 useAccessControl: Unknown section:', section);
         return false;
     }
   }, [user, hasPermission]);

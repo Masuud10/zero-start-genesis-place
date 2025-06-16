@@ -31,10 +31,18 @@ const ContentRenderer: React.FC = () => {
   const { activeSection } = useNavigation();
   const { user } = useAuth();
 
+  console.log('🎯 ContentRenderer: Rendering section:', activeSection, 'for user role:', user?.role);
+
   switch (activeSection) {
-    case 'dashboard': return <Dashboard />;
-    case 'school-management': return <SchoolManagementDashboard />;
-    case 'analytics': return <AnalyticsDashboard />;
+    case 'dashboard': 
+      console.log('🎯 ContentRenderer: Rendering Dashboard');
+      return <Dashboard />;
+    case 'school-management': 
+      console.log('🎯 ContentRenderer: Rendering SchoolManagementDashboard');
+      return <SchoolManagementDashboard />;
+    case 'analytics': 
+      console.log('🎯 ContentRenderer: Rendering AnalyticsDashboard');
+      return <AnalyticsDashboard />;
     case 'grades': return <GradesModule />;
     case 'attendance': return <AttendanceModule />;
     case 'students': return <StudentsModule />;
@@ -69,6 +77,7 @@ const ContentRenderer: React.FC = () => {
     case 'billing': return <BillingModule />;
     case 'system-health': return <SystemHealthModule />;
     default:
+      console.log('🎯 ContentRenderer: Unknown section, defaulting to Dashboard');
       return <Dashboard />;
   }
 };
