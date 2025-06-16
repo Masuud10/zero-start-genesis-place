@@ -1,8 +1,15 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Award, Users, Globe, TrendingUp, Heart, CheckCircle } from 'lucide-react';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  ArrowLeft,
+  Award,
+  Users,
+  Globe,
+  TrendingUp,
+  Heart,
+  CheckCircle,
+} from "lucide-react";
 
 interface AboutPageProps {
   onBack: () => void;
@@ -15,8 +22,8 @@ const AboutPage = ({ onBack, onContactUs, onGetStarted }: AboutPageProps) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={onBack}
             className="mb-8 text-blue-600 hover:text-blue-800 group"
           >
@@ -27,7 +34,8 @@ const AboutPage = ({ onBack, onContactUs, onGetStarted }: AboutPageProps) => {
             About EduFam
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Empowering Kenyan education through intelligent school management solutions.
+            Empowering Kenyan education through intelligent school management
+            solutions.
           </p>
         </div>
 
@@ -35,9 +43,10 @@ const AboutPage = ({ onBack, onContactUs, onGetStarted }: AboutPageProps) => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-blue-900">Our Mission</h2>
             <p className="text-lg text-gray-600 leading-relaxed">
-              To revolutionize education management in Kenya by providing comprehensive, 
-              CBC-compliant solutions that streamline operations, improve academic outcomes, 
-              and foster digital transformation in schools across the country.
+              To revolutionize education management in Kenya by providing
+              comprehensive, CBC-compliant solutions that streamline operations,
+              improve academic outcomes, and foster digital transformation in
+              schools across the country.
             </p>
             <div className="space-y-4">
               <div className="flex items-center">
@@ -50,7 +59,9 @@ const AboutPage = ({ onBack, onContactUs, onGetStarted }: AboutPageProps) => {
               </div>
               <div className="flex items-center">
                 <CheckCircle className="w-6 h-6 text-green-500 mr-3" />
-                <span className="text-gray-700">Local Support in Swahili & English</span>
+                <span className="text-gray-700">
+                  Local Support in Swahili & English
+                </span>
               </div>
             </div>
           </div>
@@ -59,7 +70,7 @@ const AboutPage = ({ onBack, onContactUs, onGetStarted }: AboutPageProps) => {
             <div className="space-y-4">
               <div className="flex items-center">
                 <Users className="w-6 h-6 mr-3" />
-                <span>1,000+ Schools Trust Us</span>
+                <span>10+ Schools Trust Us</span>
               </div>
               <div className="flex items-center">
                 <Globe className="w-6 h-6 mr-3" />
@@ -78,17 +89,19 @@ const AboutPage = ({ onBack, onContactUs, onGetStarted }: AboutPageProps) => {
         </div>
 
         <div className="text-center">
-          <h3 className="text-3xl font-bold text-blue-900 mb-8">Ready to Transform Your School?</h3>
+          <h3 className="text-3xl font-bold text-blue-900 mb-8">
+            Ready to Transform Your School?
+          </h3>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
+            <Button
               onClick={onGetStarted}
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white"
             >
               Start Free Trial
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
               onClick={onContactUs}
               className="border-blue-300 text-blue-900 hover:bg-blue-50"

@@ -131,8 +131,8 @@ export const testimonials = [
 ];
 
 export const stats = [
-  { number: "1,000+", label: "Schools Empowered", icon: Globe, description: "Trusted across Kenya" },
-  { number: "200K+", label: "Students Managed", icon: Users, description: "Growing daily" },
+  { number: "10+", label: "Schools Empowered", icon: Globe, description: "Trusted across Kenya" },
+  { number: "1K+", label: "Students Managed", icon: Users, description: "Growing daily" },
   { number: "99.9%", label: "Uptime Guarantee", icon: Shield, description: "Always available" },
   { number: "24/7", label: "Expert Support", icon: Clock, description: "Local support team" }
 ];
