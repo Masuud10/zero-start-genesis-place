@@ -17,6 +17,7 @@ import SchoolsModule from '@/components/modules/SchoolsModule';
 import UsersModule from '@/components/modules/UsersModule';
 import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
+import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import ProcessPaymentsModule from '@/components/modules/ProcessPaymentsModule';
@@ -32,6 +33,7 @@ const ContentRenderer: React.FC = () => {
 
   switch (activeSection) {
     case 'dashboard': return <Dashboard />;
+    case 'school-management': return <SchoolManagementDashboard />;
     case 'analytics': return <AnalyticsDashboard />;
     case 'grades': return <GradesModule />;
     case 'attendance': return <AttendanceModule />;
@@ -58,8 +60,7 @@ const ContentRenderer: React.FC = () => {
         if (['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(user?.role || '')) {
             return <FinanceSupportModule />;
         }
-        // Fallback for any other case or if user role is not defined
-        return <Dashboard />; // Or an access denied component
+        return <Dashboard />;
     case 'settings': return <SettingsModule />;
     case 'finance-settings': return <FinanceSettingsModule />;
     case 'security': return <SecurityModule />;

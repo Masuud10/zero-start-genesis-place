@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardRoleBasedContent from '@/components/dashboard/DashboardRoleBasedContent';
 import DashboardModals from '@/components/dashboard/DashboardModals';
 import DashboardAnnouncements from '@/components/dashboard/DashboardAnnouncements';
-import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
 import { LoadingCard, ErrorState } from '@/components/common/LoadingStates';
 import { UserRole } from '@/types/user';
 import { useRoleValidation } from '@/hooks/useRoleValidation';
@@ -89,15 +88,6 @@ const Dashboard = () => {
       console.error('📊 Dashboard: Error closing modal:', error);
     }
   };
-
-  // Check if we should show School Management dashboard
-  if (activeSection === 'school-management' && user.role === 'principal') {
-    return (
-      <RoleGuard requireSchoolAssignment={false}>
-        <SchoolManagementDashboard />
-      </RoleGuard>
-    );
-  }
 
   console.log('📊 Dashboard: Rendering role-based content for role:', user.role);
 

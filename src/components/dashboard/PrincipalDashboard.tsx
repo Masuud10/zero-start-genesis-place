@@ -20,7 +20,6 @@ import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { usePrincipalDashboardModals } from '@/hooks/usePrincipalDashboardModals';
 import BulkGradingQuickAction from './principal/BulkGradingQuickAction';
 import BulkGradingModal from '../modals/BulkGradingModal';
-import AcademicSettings from './principal/AcademicSettings';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -86,9 +85,6 @@ const PrincipalDashboard = () => {
       <div className="space-y-6">
         {/* Statistics cards */}
         <PrincipalStatsCards stats={stats} />
-        
-        {/* Academic Period Settings */}
-        <AcademicSettings />
 
         {/* Analytics Charts */}
         <div className="bg-white/90 p-6 rounded-lg border border-gray-200">
