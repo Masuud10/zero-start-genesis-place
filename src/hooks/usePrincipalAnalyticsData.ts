@@ -64,7 +64,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     // Get class names separately to avoid complex joins
     let classPerformance: any[] = [];
     if (classAnalyticsData && classAnalyticsData.length > 0) {
-        const classIds = classAnalyticsData.map(c => c.class_id).filter(Boolean);
+        const classIds = classAnalyticsData.map(c => c.class_id).filter(id => id !== null && id !== undefined);
         
         if (classIds.length > 0) {
             const { data: classesData, error: classesError } = await supabase
@@ -147,8 +147,8 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     if (studentRankingsError) throw new Error(`Fetching student rankings: ${studentRankingsError.message}`);
 
     // Get student and class data separately
-    const studentIds = studentRankingsData?.map(s => s.student_id).filter(Boolean) || [];
-    const classIds = studentRankingsData?.map(s => s.class_id).filter(Boolean) || [];
+    const studentIds = studentRankingsData?.map(s => s.student_id).filter(id => id !== null && id !== undefined) || [];
+    const classIds = studentRankingsData?.map(s => s.class_id).filter(id => id !== null && id !== undefined) || [];
 
     let studentLookup: Record<string, string> = {};
     let classLookup: Record<string, string> = {};
@@ -198,7 +198,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
     if (teacherActivityError) throw new Error(`Fetching teacher activity: ${teacherActivityError.message}`);
 
     // Get teacher names separately
-    const teacherIds = [...new Set(teacherActivityData?.map(g => g.submitted_by).filter(Boolean))] || [];
+    const teacherIds = [...new Set(teacherActivityData?.map(g => g.submitted_by).filter(id => id !== null && id !== undefined))] || [];
     let teacherLookup: Record<string, string> = {};
 
     if (teacherIds.length > 0) {

@@ -4,15 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardRoleBasedContent from '@/components/dashboard/DashboardRoleBasedContent';
 import DashboardModals from '@/components/dashboard/DashboardModals';
 import DashboardAnnouncements from '@/components/dashboard/DashboardAnnouncements';
+import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
 import { LoadingCard, ErrorState } from '@/components/common/LoadingStates';
 import { UserRole } from '@/types/user';
 import { useRoleValidation } from '@/hooks/useRoleValidation';
 import RoleGuard from '@/components/common/RoleGuard';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 const Dashboard = () => {
   const { user, isLoading, error } = useAuth();
   const { isValid, hasValidRole, redirectPath } = useRoleValidation();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const { activeSection } = useNavigation();
 
   console.log('📊 Dashboard: Rendering with user:', {
     hasUser: !!user,
@@ -22,7 +25,8 @@ const Dashboard = () => {
     error,
     isValid,
     hasValidRole,
-    redirectPath
+    redirectPath,
+    activeSection
   });
 
   // Show loading state
@@ -85,6 +89,15 @@ const Dashboard = () => {
       console.error('📊 Dashboard: Error closing modal:', error);
     }
   };
+
+  // Check if we should show School Management dashboard
+  if (activeSection === 'school-management' && user.role === 'principal') {
+    return (
+      <RoleGuard requireSchoolAssignment={false}>
+        <SchoolManagementDashboard />
+      </RoleGuard>
+    );
+  }
 
   console.log('📊 Dashboard: Rendering role-based content for role:', user.role);
 

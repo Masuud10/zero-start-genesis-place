@@ -12,10 +12,9 @@ import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 import RoleGuard from '@/components/common/RoleGuard';
 import ReportActionsPanel from './principal/ReportActionsPanel';
-import EntityPreviewPanels from './principal/EntityPreviewPanels';
 import QuickActionsCard from './principal/QuickActionsCard';
 import RecentActivitiesPanel from './principal/RecentActivitiesPanel';
-import PrincipalManagementPanel from "./principal/PrincipalManagementPanel";
+import PrincipalAnalyticsCharts from './principal/PrincipalAnalyticsCharts';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { usePrincipalDashboardModals } from '@/hooks/usePrincipalDashboardModals';
@@ -91,6 +90,12 @@ const PrincipalDashboard = () => {
         {/* Academic Period Settings */}
         <AcademicSettings />
 
+        {/* Analytics Charts */}
+        <div className="bg-white/90 p-6 rounded-lg border border-gray-200">
+          <h2 className="text-xl font-semibold mb-4">School Performance Analytics</h2>
+          <PrincipalAnalyticsCharts />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Quick action panel for adding parent/teacher/class */}
           <QuickActionsCard
@@ -102,23 +107,7 @@ const PrincipalDashboard = () => {
           <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
         </div>
 
-
         <RecentActivitiesPanel recentActivities={recentActivities} />
-
-        {/* Management panels for classes, subjects, teachers, students */}
-        <PrincipalManagementPanel />
-
-        {/* Entity preview panels for showing classes/subjects/teachers/parents */}
-        <EntityPreviewPanels
-          classList={classList}
-          subjectList={subjectList}
-          teacherList={teacherList}
-          parentList={parentList}
-          stats={stats}
-          loading={loadingEntities}
-          error={errorEntities}
-          onAddSubject={() => setAddSubjectOpen(true)}
-        />
 
         {/* Reports */}
         <ReportActionsPanel
