@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -5,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { v4 as uuidv4 } from 'uuid';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { Loader2, UserPlus } from 'lucide-react';
 
 interface AddTeacherModalProps {
   open: boolean;
@@ -18,7 +19,7 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
   const [form, setForm] = useState({ name: '', email: '' });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { schoolId } = useSchoolScopedData();
 
   const handleChange = (field: string, value: string) => {
     setForm(f => ({ ...f, [field]: value }));
@@ -26,52 +27,110 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!schoolId) {
+      toast({ 
+        title: "Error", 
+        description: "School context not found", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const newId = uuidv4();
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert({
-          id: newId,
-          name: form.name,
-          email: form.email,
-          role: 'teacher',
-          school_id: user?.school_id || null,
-        })
-        .select()
-        .single();
+      // Use the admin function to create teacher with proper school assignment
+      const { data, error } = await supabase.rpc('create_admin_user', {
+        user_email: form.email,
+        user_password: 'TempPassword123!', // Temporary password
+        user_name: form.name,
+        user_role: 'teacher',
+        user_school_id: schoolId
+      });
+
       if (error) throw error;
-      toast({ title: "Teacher Created", description: `${form.name} was added.` });
-      onTeacherCreated && onTeacherCreated({ id: data.id, name: data.name, email: data.email });
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({ 
+        title: "Teacher Created", 
+        description: `${form.name} has been added as a teacher. They will receive login credentials separately.` 
+      });
+      
+      onTeacherCreated && onTeacherCreated({ 
+        id: data.user_id, 
+        name: form.name, 
+        email: form.email 
+      });
+      
+      setForm({ name: '', email: '' });
       onClose();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      console.error('Error creating teacher:', err);
+      toast({ 
+        title: "Error", 
+        description: err.message || "Failed to create teacher", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleClose = () => {
+    setForm({ name: '', email: '' });
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Teacher</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5" />
+            Add New Teacher
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Name</Label>
-            <Input value={form.name} onChange={e => handleChange('name', e.target.value)} required />
+            <Label htmlFor="teacher-name">Full Name</Label>
+            <Input 
+              id="teacher-name"
+              value={form.name} 
+              onChange={e => handleChange('name', e.target.value)} 
+              placeholder="Enter teacher's full name"
+              required 
+            />
           </div>
           <div>
-            <Label>Email</Label>
-            <Input type="email" value={form.email} onChange={e => handleChange('email', e.target.value)} required />
+            <Label htmlFor="teacher-email">Email Address</Label>
+            <Input 
+              id="teacher-email"
+              type="email" 
+              value={form.email} 
+              onChange={e => handleChange('email', e.target.value)} 
+              placeholder="Enter teacher's email"
+              required 
+            />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Adding..." : "Add Teacher"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add Teacher
+                </>
+              )}
             </Button>
           </div>
         </form>

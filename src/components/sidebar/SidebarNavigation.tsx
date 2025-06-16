@@ -49,6 +49,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <SidebarGroupLabel>
           {user.role === 'edufam_admin' 
             ? 'System Administration' 
+            : user.role === 'principal'
+            ? 'School Administration'
             : 'Main Navigation'
           }
         </SidebarGroupLabel>

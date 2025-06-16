@@ -36,72 +36,84 @@ interface PrincipalAnalyticsData {
 }
 
 const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: string): Promise<PrincipalAnalyticsData> => {
-    // Fetch basic school analytics with simplified query
-    const schoolAnalyticsQuery = supabase
+    // Get total students count
+    const studentsQuery = await supabase
+        .from('students')
+        .select('id', { count: 'exact', head: true })
+        .eq('school_id', schoolId)
+        .eq('is_active', true);
+
+    const totalStudents = studentsQuery.count || 0;
+
+    // Fetch school analytics
+    const schoolAnalyticsQuery = await supabase
         .from('school_analytics')
         .select('*')
         .eq('school_id', schoolId)
         .eq('term', term)
-        .eq('year', year);
-    
-    const { data: schoolAnalyticsData } = await schoolAnalyticsQuery.maybeSingle();
+        .eq('year', year)
+        .maybeSingle();
 
-    // Fetch class analytics with basic data - simplified query
-    const classAnalyticsQuery = supabase
+    const schoolAnalyticsData = schoolAnalyticsQuery.data;
+
+    // Fetch class analytics
+    const classAnalyticsQuery = await supabase
         .from('class_analytics')
         .select('class_id, avg_grade, attendance_rate')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('year', year);
     
-    const { data: classAnalyticsData } = await classAnalyticsQuery;
+    const classAnalyticsData = classAnalyticsQuery.data || [];
 
-    // Get class names with separate query
-    const classIds = classAnalyticsData?.map(c => c.class_id).filter(Boolean) || [];
+    // Get class names
+    const classIds = classAnalyticsData.map(c => c.class_id).filter(Boolean);
     let classLookup: Record<string, string> = {};
     
     if (classIds.length > 0) {
-        const { data: classesData } = await supabase
+        const classesQuery = await supabase
             .from('classes')
             .select('id, name')
             .in('id', classIds);
 
-        classLookup = classesData?.reduce((acc: Record<string, string>, cls) => {
-            acc[cls.id] = cls.name;
-            return acc;
-        }, {}) || {};
+        if (classesQuery.data) {
+            classLookup = classesQuery.data.reduce((acc: Record<string, string>, cls) => {
+                acc[cls.id] = cls.name;
+                return acc;
+            }, {});
+        }
     }
 
-    const classPerformance = classAnalyticsData?.map(c => ({
+    const classPerformance = classAnalyticsData.map(c => ({
         class: classLookup[c.class_id] || 'Unknown Class',
         average: c.avg_grade || 0,
         attendance: c.attendance_rate || 0
-    })) || [];
+    }));
 
-    // Fetch grades for subject performance with simplified query
-    const gradesQuery = supabase
+    // Fetch grades for subject performance
+    const gradesQuery = await supabase
         .from('grades')
         .select('score, subject_id')
         .eq('school_id', schoolId)
         .eq('term', term)
-        .eq('academic_year', year)
-        .not('score', 'is', null);
+        .neq('score', null);
     
-    const { data: subjectGrades } = await gradesQuery;
+    const subjectGrades = gradesQuery.data || [];
 
     // Get subject names
-    const { data: subjects } = await supabase
+    const subjectsQuery = await supabase
         .from('subjects')
         .select('id, name')
         .eq('school_id', schoolId);
 
-    const subjectLookup = subjects?.reduce((acc: Record<string, string>, subject) => {
+    const subjects = subjectsQuery.data || [];
+    const subjectLookup = subjects.reduce((acc: Record<string, string>, subject) => {
         acc[subject.id] = subject.name;
         return acc;
-    }, {}) || {};
+    }, {});
 
     // Process subject performance
-    const subjectMap = (subjectGrades || []).reduce((acc: Record<string, number[]>, grade) => {
+    const subjectMap = subjectGrades.reduce((acc: Record<string, number[]>, grade) => {
         const subjectName = subjectLookup[grade.subject_id];
         if (subjectName && typeof grade.score === 'number') {
             if (!acc[subjectName]) acc[subjectName] = [];
@@ -116,51 +128,55 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         improvement: 0
     }));
 
-    // Fetch student rankings with simplified query
-    const rankingsQuery = supabase
+    // Fetch student rankings
+    const rankingsQuery = await supabase
         .from('grade_summary')
         .select('average_score, class_position, student_id, class_id')
         .eq('school_id', schoolId)
         .eq('term', term)
         .eq('academic_year', year)
-        .not('average_score', 'is', null)
+        .neq('average_score', null)
         .order('average_score', { ascending: false })
         .limit(5);
     
-    const { data: studentRankingsData } = await rankingsQuery;
+    const studentRankingsData = rankingsQuery.data || [];
 
     // Get student and class data for rankings
-    const studentIds = studentRankingsData?.map(s => s.student_id).filter(Boolean) || [];
-    const rankingClassIds = studentRankingsData?.map(s => s.class_id).filter(Boolean) || [];
+    const studentIds = studentRankingsData.map(s => s.student_id).filter(Boolean);
+    const rankingClassIds = studentRankingsData.map(s => s.class_id).filter(Boolean);
 
     let studentLookup: Record<string, string> = {};
     let rankingClassLookup: Record<string, string> = {};
 
     if (studentIds.length > 0) {
-        const { data: studentsData } = await supabase
+        const studentsDataQuery = await supabase
             .from('students')
             .select('id, name')
             .in('id', studentIds);
 
-        studentLookup = studentsData?.reduce((acc: Record<string, string>, student) => {
-            acc[student.id] = student.name;
-            return acc;
-        }, {}) || {};
+        if (studentsDataQuery.data) {
+            studentLookup = studentsDataQuery.data.reduce((acc: Record<string, string>, student) => {
+                acc[student.id] = student.name;
+                return acc;
+            }, {});
+        }
     }
 
     if (rankingClassIds.length > 0) {
-        const { data: rankingClassesData } = await supabase
+        const rankingClassesQuery = await supabase
             .from('classes')
             .select('id, name')
             .in('id', rankingClassIds);
 
-        rankingClassLookup = rankingClassesData?.reduce((acc: Record<string, string>, cls) => {
-            acc[cls.id] = cls.name;
-            return acc;
-        }, {}) || {};
+        if (rankingClassesQuery.data) {
+            rankingClassLookup = rankingClassesQuery.data.reduce((acc: Record<string, string>, cls) => {
+                acc[cls.id] = cls.name;
+                return acc;
+            }, {});
+        }
     }
 
-    const studentRankings = (studentRankingsData || [])
+    const studentRankings = studentRankingsData
         .filter(s => s.student_id && s.class_id && studentLookup[s.student_id] && rankingClassLookup[s.class_id])
         .map(s => ({
             name: studentLookup[s.student_id],
@@ -169,33 +185,34 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
             position: s.class_position || 0,
         }));
 
-    // Fetch teacher activity with simplified query
-    const teacherActivityQuery = supabase
+    // Fetch teacher activity
+    const teacherActivityQuery = await supabase
         .from('grades')
         .select('submitted_by')
         .eq('school_id', schoolId)
         .eq('term', term)
-        .eq('academic_year', year)
-        .not('submitted_by', 'is', null);
+        .neq('submitted_by', null);
     
-    const { data: teacherActivityData } = await teacherActivityQuery;
+    const teacherActivityData = teacherActivityQuery.data || [];
 
-    const teacherIds = [...new Set(teacherActivityData?.map(g => g.submitted_by).filter(Boolean))] || [];
+    const teacherIds = [...new Set(teacherActivityData.map(g => g.submitted_by).filter(Boolean))];
     let teacherLookup: Record<string, string> = {};
     
     if (teacherIds.length > 0) {
-        const { data: teachersData } = await supabase
+        const teachersQuery = await supabase
             .from('profiles')
             .select('id, name')
             .in('id', teacherIds);
 
-        teacherLookup = teachersData?.reduce((acc: Record<string, string>, teacher) => {
-            acc[teacher.id] = teacher.name;
-            return acc;
-        }, {}) || {};
+        if (teachersQuery.data) {
+            teacherLookup = teachersQuery.data.reduce((acc: Record<string, string>, teacher) => {
+                acc[teacher.id] = teacher.name;
+                return acc;
+            }, {});
+        }
     }
 
-    const teacherMap = (teacherActivityData || []).reduce((acc: Record<string, number>, grade) => {
+    const teacherMap = teacherActivityData.reduce((acc: Record<string, number>, grade) => {
         const teacherName = teacherLookup[grade.submitted_by];
         if (teacherName) {
             acc[teacherName] = (acc[teacherName] || 0) + 1;
@@ -210,16 +227,9 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         onTime: 0,
     }));
 
-    // Get total students count separately
-    const { count: totalStudents } = await supabase
-        .from('students')
-        .select('*', { count: 'exact', head: true })
-        .eq('school_id', schoolId)
-        .eq('is_active', true);
-
     return {
         keyMetrics: {
-            totalStudents: totalStudents || 0,
+            totalStudents,
             schoolAverage: schoolAnalyticsData?.avg_grade || 0,
             attendanceRate: schoolAnalyticsData?.attendance_rate || 0,
             resultsReleased: 0,
