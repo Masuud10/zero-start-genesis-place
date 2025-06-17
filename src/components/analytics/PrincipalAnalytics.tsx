@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +16,7 @@ import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 const PrincipalAnalytics = () => {
   const { schoolId } = useSchoolScopedData();
   const { data, isLoading, error } = usePrincipalAnalyticsData();
-  const { academicInfo, loading: academicInfoLoading } =
-    useCurrentAcademicInfo(schoolId);
+  const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(schoolId);
 
   const chartConfig = {
     average: { label: "Average Score", color: "#3b82f6" },
@@ -27,43 +27,42 @@ const PrincipalAnalytics = () => {
   if (isLoading || academicInfoLoading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />{" "}
+        <Loader2 className="h-8 w-8 animate-spin" />
         <span className="ml-2">Loading Analytics...</span>
       </div>
     );
   }
 
-  if (error || academicInfoError) {
+  if (error) {
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle className="h-12 w-12 text-red-500" />
         <CardTitle className="mt-4">Could not load analytics</CardTitle>
         <p className="text-muted-foreground mt-2">
-          {error?.message ||
-            (academicInfoError &&
-            typeof academicInfoError === "object" &&
-            "message" in academicInfoError
-              ? academicInfoError.message
-              : "Unknown error occurred")}
+          {error?.message || "Unknown error occurred"}
         </p>
       </Card>
     );
   }
 
-  if (!data) {
+  if (!data || !data.keyMetrics) {
     return (
-      <div className="p-8 text-center">
-        No analytics data available for the current academic period.
-      </div>
+      <Card className="flex flex-col items-center justify-center p-8 text-center">
+        <AlertCircle className="h-12 w-12 text-yellow-500" />
+        <CardTitle className="mt-4">No Analytics Data</CardTitle>
+        <p className="text-muted-foreground mt-2">
+          No analytics data available for the current academic period. Please ensure students, classes, and subjects are set up.
+        </p>
+      </Card>
     );
   }
 
   const {
     keyMetrics,
-    classPerformance,
-    subjectPerformance,
-    studentRankings,
-    teacherActivity,
+    classPerformance = [],
+    subjectPerformance = [],
+    studentRankings = [],
+    teacherActivity = [],
   } = data;
 
   return (
@@ -94,7 +93,7 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {keyMetrics.totalStudents}
+              {keyMetrics.totalStudents || 0}
             </div>
             <p className="text-xs text-muted-foreground">Across all classes</p>
           </CardContent>
@@ -108,10 +107,10 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {keyMetrics.schoolAverage.toFixed(1)}%
+              {keyMetrics.schoolAverage ? keyMetrics.schoolAverage.toFixed(1) : '0.0'}%
             </div>
             <p className="text-xs text-muted-foreground">
-              +2.1% from last term
+              Overall performance
             </p>
           </CardContent>
         </Card>
@@ -124,9 +123,9 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {keyMetrics.attendanceRate.toFixed(1)}%
+              {keyMetrics.attendanceRate ? keyMetrics.attendanceRate.toFixed(1) : '0.0'}%
             </div>
-            <p className="text-xs text-muted-foreground">Above target (90%)</p>
+            <p className="text-xs text-muted-foreground">Current term</p>
           </CardContent>
         </Card>
 
@@ -137,37 +136,53 @@ const PrincipalAnalytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">8/12</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {keyMetrics.resultsReleased || 0}/{subjectPerformance.length || 0}
+            </div>
             <p className="text-xs text-muted-foreground">Subjects published</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Class Performance Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Class Performance Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={classPerformance}>
-              <XAxis dataKey="class" tick={{ fontSize: 12 }} />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar
-                dataKey="average"
-                fill="var(--color-average)"
-                name="Academic Average (%)"
-              />
-              <Bar
-                dataKey="attendance"
-                fill="var(--color-attendance)"
-                name="Attendance Rate (%)"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {classPerformance.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Class Performance Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={classPerformance}>
+                <XAxis dataKey="class" tick={{ fontSize: 12 }} />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="average"
+                  fill="var(--color-average)"
+                  name="Academic Average (%)"
+                />
+                <Bar
+                  dataKey="attendance"
+                  fill="var(--color-attendance)"
+                  name="Attendance Rate (%)"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Class Performance Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No class performance data available.</p>
+              <p className="text-sm">Add students and grades to see performance metrics.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Subject Performance */}
@@ -178,36 +193,36 @@ const PrincipalAnalytics = () => {
           <CardContent>
             <div className="space-y-4">
               {subjectPerformance.length > 0 ? (
-                subjectPerformance.map((subject) => (
+                subjectPerformance.map((subject, index) => (
                   <div
-                    key={subject.subject}
+                    key={`${subject.subject}-${index}`}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div>
                       <p className="font-medium">{subject.subject}</p>
                       <p className="text-sm text-muted-foreground">
-                        Average: {subject.average.toFixed(1)}%
+                        Average: {subject.average ? subject.average.toFixed(1) : '0.0'}%
                       </p>
                     </div>
                     <div className="text-right">
                       <Badge
                         variant={
-                          subject.improvement > 0
+                          (subject.improvement || 0) > 0
                             ? "default"
-                            : subject.improvement < 0
+                            : (subject.improvement || 0) < 0
                             ? "destructive"
                             : "secondary"
                         }
                         className={
-                          subject.improvement > 0
+                          (subject.improvement || 0) > 0
                             ? "bg-green-100 text-green-800"
-                            : subject.improvement < 0
+                            : (subject.improvement || 0) < 0
                             ? "bg-red-100 text-red-800"
                             : ""
                         }
                       >
-                        {subject.improvement >= 0 ? "+" : ""}
-                        {subject.improvement.toFixed(1)}%
+                        {(subject.improvement || 0) >= 0 ? "+" : ""}
+                        {(subject.improvement || 0).toFixed(1)}%
                       </Badge>
                     </div>
                   </div>
@@ -229,14 +244,14 @@ const PrincipalAnalytics = () => {
           <CardContent>
             <div className="space-y-3">
               {studentRankings.length > 0 ? (
-                studentRankings.map((student) => (
+                studentRankings.map((student, index) => (
                   <div
-                    key={student.name}
+                    key={`${student.name}-${index}`}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                        {student.position}
+                        {student.position || index + 1}
                       </div>
                       <div>
                         <p className="font-medium">{student.name}</p>
@@ -247,7 +262,7 @@ const PrincipalAnalytics = () => {
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">
-                        {student.average.toFixed(1)}%
+                        {student.average ? student.average.toFixed(1) : '0.0'}%
                       </div>
                     </div>
                   </div>
@@ -270,25 +285,25 @@ const PrincipalAnalytics = () => {
         <CardContent>
           <div className="space-y-4">
             {teacherActivity.length > 0 ? (
-              teacherActivity.map((teacher) => (
+              teacherActivity.map((teacher, index) => (
                 <div
-                  key={teacher.teacher}
+                  key={`${teacher.teacher}-${index}`}
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div>
                     <p className="font-medium">{teacher.teacher}</p>
                     <p className="text-sm text-muted-foreground">
-                      {teacher.grades} grades submitted
+                      {teacher.grades || 0} grades submitted
                     </p>
                   </div>
                   <div className="flex gap-4 text-sm">
                     <div className="text-center">
-                      <div className="font-medium">{teacher.submissions}</div>
+                      <div className="font-medium">{teacher.submissions || 0}</div>
                       <div className="text-muted-foreground">Submissions</div>
                     </div>
                     <div className="text-center">
                       <div className="font-medium text-green-600">
-                        {teacher.onTime}%
+                        {teacher.onTime || 0}%
                       </div>
                       <div className="text-muted-foreground">On Time</div>
                     </div>
