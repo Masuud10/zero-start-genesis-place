@@ -14,7 +14,10 @@ import { Loader2, Send, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 
 interface BulkGradingModalProps {
+  open: boolean;
   onClose: () => void;
+  classList: any[];
+  subjectList: any[];
 }
 
 type GradeValue = {
@@ -24,7 +27,7 @@ type GradeValue = {
   percentage?: number | null;
 };
 
-const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
+const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, classList, subjectList }) => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
 
@@ -110,7 +113,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   });
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col">
         <BulkGradingHeader
           isTeacher={isTeacher}
