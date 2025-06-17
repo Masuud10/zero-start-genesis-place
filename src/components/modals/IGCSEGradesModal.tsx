@@ -1,54 +1,53 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
-import IGCSEGradesForm from './IGCSEGradesForm';
-import IGCSEGradeActionButtons from './IGCSEGradeActionButtons';
-import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchool } from "@/contexts/SchoolContext";
+import IGCSEGradesForm from "./IGCSEGradesForm";
+import IGCSEGradeActionButtons from "./IGCSEGradeActionButtons";
+import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface IGCSEGradesModalProps {
   onClose: () => void;
   userRole: string;
 }
 
-const IGCSE_LETTER_GRADES = [
-  'A*', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'U'
-];
+const IGCSE_LETTER_GRADES = ["A*", "A", "B", "C", "D", "E", "F", "G", "U"];
 
 const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
   const { user } = useAuth();
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState('');
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState("");
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
-  const [gradeChoice, setGradeChoice] = useState('');
-  const [customGrade, setCustomGrade] = useState('');
-  const [freeformSubject, setFreeformSubject] = useState('');
+  const [gradeChoice, setGradeChoice] = useState("");
+  const [customGrade, setCustomGrade] = useState("");
+  const [freeformSubject, setFreeformSubject] = useState("");
   const [useCustomSubject, setUseCustomSubject] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { toast } = useToast();
   const { currentSchool } = useSchool();
-  const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(user?.school_id);
+  const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(
+    user?.school_id
+  );
 
   useEffect(() => {
     if (!user?.school_id) return;
     supabase
-      .from('classes')
-      .select('*')
-      .eq('school_id', user.school_id)
+      .from("classes")
+      .select("*")
+      .eq("school_id", user.school_id)
       .then(({ data }) => setClasses(data || []));
   }, [user?.school_id]);
 
@@ -58,20 +57,20 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
       return;
     }
     supabase
-      .from('subjects')
-      .select('*')
-      .eq('class_id', selectedClass)
-      .eq('school_id', user.school_id)
+      .from("subjects")
+      .select("*")
+      .eq("class_id", selectedClass)
+      .eq("school_id", user.school_id)
       .then(({ data }) => setSubjects(data || []));
   }, [selectedClass, user?.school_id]);
 
   useEffect(() => {
     if (!selectedClass || !user?.school_id) return;
     supabase
-      .from('students')
-      .select('*')
-      .eq('class_id', selectedClass)
-      .eq('school_id', user.school_id)
+      .from("students")
+      .select("*")
+      .eq("class_id", selectedClass)
+      .eq("school_id", user.school_id)
       .then(({ data }) => setStudents(data || []));
   }, [selectedClass, user?.school_id]);
 
@@ -103,17 +102,17 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
     const subjectToInsert = useCustomSubject ? null : selectedSubject;
 
     if (!user?.school_id) {
-        toast({
-            title: "Error",
-            description: "Your school is not identified. Cannot submit grade.",
-            variant: "destructive",
-        });
-        setLoading(false);
-        return;
+      toast({
+        title: "Error",
+        description: "Your school is not identified. Cannot submit grade.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
     }
 
     try {
-      const { error } = await supabase.from('grades').insert({
+      const { error } = await supabase.from("grades").insert({
         school_id: user.school_id,
         student_id: selectedStudent,
         class_id: selectedClass,
@@ -121,9 +120,11 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         score: null,
         max_score: null,
         letter_grade: gradeToInsert,
-        comments: useCustomSubject ? `Custom Subject: ${freeformSubject}` : undefined,
+        comments: useCustomSubject
+          ? `Custom Subject: ${freeformSubject}`
+          : undefined,
         submitted_by: user?.id,
-        status: 'submitted',
+        status: "submitted",
         term: academicInfo.term,
       });
       if (error) {
@@ -152,9 +153,12 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
           <DialogTitle>Enter IGCSE Grade</DialogTitle>
         </DialogHeader>
         {academicInfoError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{academicInfoError.message || 'Failed to load academic information'}</AlertDescription>
-            </Alert>
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              {academicInfoError.message ||
+                "Failed to load academic information"}
+            </AlertDescription>
+          </Alert>
         )}
         <IGCSEGradesForm
           classes={classes}
