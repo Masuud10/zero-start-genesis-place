@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,6 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import BulkGradingModal from '../grading/BulkGradingModal';
 import NoGradebookPermission from '../grades/NoGradebookPermission';
 import BulkGradingQuickAction from '../dashboard/principal/BulkGradingQuickAction';
-import { APIOptimizationUtils } from '@/utils/apiOptimization';
 
 const GradesModule: React.FC = () => {
   const { user } = useAuth();
@@ -34,7 +34,7 @@ const GradesModule: React.FC = () => {
     return user?.role && ['edufam_admin', 'principal', 'school_owner'].includes(user.role);
   }, [user?.role]);
 
-  // Optimized data fetching with caching
+  // Optimized data fetching with proper async/await
   const fetchGradesData = async () => {
     if (!isSummaryRole || !user) {
       setLoadingSummary(false);
@@ -64,27 +64,33 @@ const GradesModule: React.FC = () => {
       let schoolsData = schoolsCache.current;
       let summaryData = null;
 
-      // Fetch schools if admin and not cached
+      // Fetch schools if admin and not cached - FIX: Properly await the query
       if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
         const { data: schoolsResponse, error: schoolsError } = await supabase
           .from("schools")
           .select("id, name")
           .order('name');
           
-        if (schoolsError) throw new Error("Failed to fetch schools list.");
+        if (schoolsError) {
+          console.error('🚫 Schools fetch error:', schoolsError);
+          throw new Error("Failed to fetch schools list.");
+        }
         schoolsData = schoolsResponse || [];
         schoolsCache.current = schoolsData; // Cache schools
       }
 
-      // Fetch grades summary if school is selected
+      // Fetch grades summary if school is selected - FIX: Properly await the query
       if (effectiveSchoolId) {
         const { data: summaryResponse, error: summaryError } = await supabase
           .from("school_grades_summary")
           .select("*")
           .eq("school_id", effectiveSchoolId)
-          .maybeSingle();
+          .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no data
           
-        if (summaryError) throw new Error("Could not load grades summary data.");
+        if (summaryError) {
+          console.error('🚫 Grades summary fetch error:', summaryError);
+          throw new Error("Could not load grades summary data.");
+        }
         summaryData = summaryResponse;
       }
 
