@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import BulkGradingModal from '../grading/BulkGradingModal';
 import NoGradebookPermission from '../grades/NoGradebookPermission';
 import BulkGradingQuickAction from '../dashboard/principal/BulkGradingQuickAction';
+import { APIOptimizationUtils } from '@/utils/apiOptimization';
 
 const GradesModule: React.FC = () => {
   const { user } = useAuth();
@@ -64,20 +66,18 @@ const GradesModule: React.FC = () => {
 
       // Fetch schools if admin and not cached
       if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
-        promises.push(
-          supabase.from("schools").select("id, name").order('name')
-        );
+        const schoolsQuery = supabase.from("schools").select("id, name").order('name');
+        promises.push(schoolsQuery);
       }
 
       // Fetch grades summary if school is selected
       if (effectiveSchoolId) {
-        promises.push(
-          supabase
-            .from("school_grades_summary")
-            .select("*")
-            .eq("school_id", effectiveSchoolId)
-            .maybeSingle()
-        );
+        const summaryQuery = supabase
+          .from("school_grades_summary")
+          .select("*")
+          .eq("school_id", effectiveSchoolId)
+          .maybeSingle();
+        promises.push(summaryQuery);
       }
 
       if (promises.length === 0) {
