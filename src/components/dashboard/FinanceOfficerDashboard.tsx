@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { AuthUser } from '@/types/auth';
 import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -10,11 +10,7 @@ import DailyTransactionsChart from '@/components/analytics/finance/DailyTransact
 import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
 import TopDefaultersList from '@/components/analytics/finance/TopDefaultersList';
 import ClassCollectionProgress from '@/components/analytics/finance/ClassCollectionProgress';
-import { Button } from '@/components/ui/button';
-import ExpenseModal from '@/components/modals/ExpenseModal';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { PlusCircle } from 'lucide-react';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -23,17 +19,10 @@ interface FinanceOfficerDashboardProps {
 const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user }) => {
   console.log('💰 FinanceOfficerDashboard: Rendering for finance officer:', user.email);
   
-  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const { user: authUser } = useAuth();
-  const queryClient = useQueryClient();
 
   const filters = { term: 'current', class: 'all' };
   const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
-
-  const handleExpenseAdded = () => {
-      setIsExpenseModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['financeOfficerAnalytics', authUser?.school_id, filters] });
-  };
 
   if (isLoading) {
       return (
@@ -68,18 +57,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
     <div className="space-y-6">
       <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Management Center</h2>
-          <Button onClick={() => setIsExpenseModalOpen(true)} className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" /> 
-              Record Expense
-          </Button>
       </div>
-
-      {isExpenseModalOpen && (
-          <ExpenseModal
-              onClose={() => setIsExpenseModalOpen(false)}
-              onExpenseAdded={handleExpenseAdded}
-          />
-      )}
       
       <FinanceKeyMetrics keyMetrics={keyMetrics} />
       

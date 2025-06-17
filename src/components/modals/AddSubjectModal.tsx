@@ -87,7 +87,7 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ open, onClose, onSubj
         return;
       }
 
-      // Create the subject
+      // Create the subject - FIXED: Removed .single()
       const { data, error } = await supabase
         .from('subjects')
         .insert([{
@@ -95,8 +95,7 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ open, onClose, onSubj
           code: subjectCode.trim().toUpperCase(),
           school_id: schoolId,
         }])
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('Error creating subject:', error);

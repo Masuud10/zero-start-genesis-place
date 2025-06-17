@@ -119,7 +119,7 @@ const PrincipalDashboard = () => {
           <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
         </div>
 
-        {/* Financial Overview - Read Only */}
+        {/* Financial Overview - Read Only (without Add Expense button) */}
         <FinancialOverviewReadOnly />
 
         {/* Timetable Management Card */}

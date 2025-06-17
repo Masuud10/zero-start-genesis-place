@@ -219,15 +219,13 @@ const SubjectManagementTab = () => {
           .update(subjectData)
           .eq('id', editingId)
           .eq('school_id', schoolId) // Ensure user can only update subjects in their school
-          .select()
-          .single();
+          .select();
       } else {
-        // Create new subject
+        // Create new subject - FIXED: Removed .single()
         result = await supabase
           .from('subjects')
           .insert(subjectData)
-          .select()
-          .single();
+          .select();
       }
 
       if (result.error) {
