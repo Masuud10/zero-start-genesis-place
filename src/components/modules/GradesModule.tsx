@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,7 @@ import { UserRole } from '@/types/user';
 import GradesAdminSummary from './GradesAdminSummary';
 import ParentGradesView from '../grades/ParentGradesView';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import BulkGradingModal from '../modals/BulkGradingModal';
+import BulkGradingModal from '../grading/BulkGradingModal';
 import NoGradebookPermission from '../grades/NoGradebookPermission';
 import BulkGradingQuickAction from '../dashboard/principal/BulkGradingQuickAction';
 
