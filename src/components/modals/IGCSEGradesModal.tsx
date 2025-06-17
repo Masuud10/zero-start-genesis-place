@@ -153,7 +153,7 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         </DialogHeader>
         {academicInfoError && (
             <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{academicInfoError}</AlertDescription>
+              <AlertDescription>{academicInfoError.message || 'Failed to load academic information'}</AlertDescription>
             </Alert>
         )}
         <IGCSEGradesForm
