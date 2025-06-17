@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Building2, Save, Upload } from 'lucide-react';
+import { Building2, Save } from 'lucide-react';
 import RoleGuard from '@/components/common/RoleGuard';
 
 interface SchoolDetails {
@@ -21,6 +21,12 @@ interface SchoolDetails {
   email: string;
   logo_url: string;
   curriculum_type: string;
+  location: string;
+  website_url: string;
+  motto: string;
+  slogan: string;
+  principal_name: string;
+  principal_contact: string;
 }
 
 const SchoolRegistrationDetails = () => {
@@ -107,7 +113,7 @@ const SchoolRegistrationDetails = () => {
             </h1>
           </div>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Manage your school's official information and branding details
+            Manage your school's official information and branding details for certificates and reports
           </p>
         </div>
 
@@ -126,6 +132,7 @@ const SchoolRegistrationDetails = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name">School Name *</Label>
@@ -136,6 +143,17 @@ const SchoolRegistrationDetails = () => {
                       placeholder="Enter school name"
                       disabled={!canEdit}
                       required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location || ''}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      placeholder="Town, County"
+                      disabled={!canEdit}
                     />
                   </div>
 
@@ -163,6 +181,17 @@ const SchoolRegistrationDetails = () => {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="website_url">Website URL</Label>
+                    <Input
+                      id="website_url"
+                      value={formData.website_url || ''}
+                      onChange={(e) => handleInputChange('website_url', e.target.value)}
+                      placeholder="https://school.com"
+                      disabled={!canEdit}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="curriculum">Curriculum Type</Label>
                     <select
                       id="curriculum"
@@ -178,19 +207,9 @@ const SchoolRegistrationDetails = () => {
                       <option value="ib">International Baccalaureate</option>
                     </select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="logo_url">School Logo URL</Label>
-                    <Input
-                      id="logo_url"
-                      value={formData.logo_url || ''}
-                      onChange={(e) => handleInputChange('logo_url', e.target.value)}
-                      placeholder="https://example.com/logo.png"
-                      disabled={!canEdit}
-                    />
-                  </div>
                 </div>
 
+                {/* Address */}
                 <div className="space-y-2">
                   <Label htmlFor="address">School Address</Label>
                   <Textarea
@@ -201,6 +220,67 @@ const SchoolRegistrationDetails = () => {
                     disabled={!canEdit}
                     rows={3}
                   />
+                </div>
+
+                {/* Branding Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="logo_url">School Logo URL</Label>
+                    <Input
+                      id="logo_url"
+                      value={formData.logo_url || ''}
+                      onChange={(e) => handleInputChange('logo_url', e.target.value)}
+                      placeholder="https://example.com/logo.png"
+                      disabled={!canEdit}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="motto">School Motto</Label>
+                    <Input
+                      id="motto"
+                      value={formData.motto || ''}
+                      onChange={(e) => handleInputChange('motto', e.target.value)}
+                      placeholder="Excellence in Education"
+                      disabled={!canEdit}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="slogan">School Slogan</Label>
+                  <Input
+                    id="slogan"
+                    value={formData.slogan || ''}
+                    onChange={(e) => handleInputChange('slogan', e.target.value)}
+                    placeholder="Nurturing Tomorrow's Leaders"
+                    disabled={!canEdit}
+                  />
+                </div>
+
+                {/* Principal Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="principal_name">Principal's Name</Label>
+                    <Input
+                      id="principal_name"
+                      value={formData.principal_name || ''}
+                      onChange={(e) => handleInputChange('principal_name', e.target.value)}
+                      placeholder="Principal's full name"
+                      disabled={!canEdit}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="principal_contact">Principal's Contact</Label>
+                    <Input
+                      id="principal_contact"
+                      value={formData.principal_contact || ''}
+                      onChange={(e) => handleInputChange('principal_contact', e.target.value)}
+                      placeholder="Principal's phone/email"
+                      disabled={!canEdit}
+                    />
+                  </div>
                 </div>
 
                 {canEdit && (
@@ -231,23 +311,42 @@ const SchoolRegistrationDetails = () => {
               <CardTitle>School Information Preview</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-start gap-4">
-                {school.logo_url && (
-                  <img
-                    src={school.logo_url}
-                    alt={`${school.name} Logo`}
-                    className="w-16 h-16 object-contain rounded-lg border"
-                  />
-                )}
-                <div>
-                  <h3 className="text-xl font-semibold">{school.name}</h3>
-                  <p className="text-gray-600">{school.address}</p>
-                  <p className="text-sm text-gray-500">
-                    {school.phone} | {school.email}
-                  </p>
-                  <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                    {school.curriculum_type?.toUpperCase()}
-                  </span>
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  {school.logo_url && (
+                    <img
+                      src={school.logo_url}
+                      alt={`${school.name} Logo`}
+                      className="w-16 h-16 object-contain rounded-lg border"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold">{school.name}</h3>
+                    {school.motto && (
+                      <p className="text-sm font-medium text-blue-600 italic">"{school.motto}"</p>
+                    )}
+                    {school.slogan && (
+                      <p className="text-sm text-gray-600">{school.slogan}</p>
+                    )}
+                    <div className="mt-2 space-y-1">
+                      <p className="text-gray-600">{school.location && `${school.location} • `}{school.address}</p>
+                      <p className="text-sm text-gray-500">
+                        {school.phone} | {school.email}
+                        {school.website_url && (
+                          <span> | <a href={school.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{school.website_url}</a></span>
+                        )}
+                      </p>
+                      {school.principal_name && (
+                        <p className="text-sm text-gray-500">
+                          Principal: {school.principal_name}
+                          {school.principal_contact && ` (${school.principal_contact})`}
+                        </p>
+                      )}
+                    </div>
+                    <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      {school.curriculum_type?.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>

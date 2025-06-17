@@ -17,6 +17,12 @@ interface UserProfile {
   role: string;
   school_id: string;
   avatar_url: string;
+  phone: string;
+  national_id: string;
+  date_of_birth: string;
+  gender: string;
+  address: string;
+  profile_photo_url: string;
 }
 
 const UserProfileManagement = () => {
@@ -121,9 +127,9 @@ const UserProfileManagement = () => {
               {/* Avatar Section */}
               <div className="flex items-center gap-6">
                 <div className="relative">
-                  {formData.avatar_url ? (
+                  {formData.profile_photo_url || formData.avatar_url ? (
                     <img
-                      src={formData.avatar_url}
+                      src={formData.profile_photo_url || formData.avatar_url}
                       alt="Profile"
                       className="w-20 h-20 rounded-full object-cover border-4 border-gray-200"
                     />
@@ -139,18 +145,19 @@ const UserProfileManagement = () => {
                     <Camera className="h-3 w-3" />
                   </button>
                 </div>
-                <div>
-                  <Label htmlFor="avatar_url">Profile Picture URL</Label>
+                <div className="flex-1">
+                  <Label htmlFor="profile_photo_url">Profile Picture URL</Label>
                   <Input
-                    id="avatar_url"
-                    value={formData.avatar_url || ''}
-                    onChange={(e) => handleInputChange('avatar_url', e.target.value)}
+                    id="profile_photo_url"
+                    value={formData.profile_photo_url || formData.avatar_url || ''}
+                    onChange={(e) => handleInputChange('profile_photo_url', e.target.value)}
                     placeholder="https://example.com/avatar.jpg"
                     className="mt-1"
                   />
                 </div>
               </div>
 
+              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name *</Label>
@@ -176,6 +183,51 @@ const UserProfileManagement = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone || ''}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    placeholder="+254 XXX XXXXXX"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="national_id">National ID</Label>
+                  <Input
+                    id="national_id"
+                    value={formData.national_id || ''}
+                    onChange={(e) => handleInputChange('national_id', e.target.value)}
+                    placeholder="National ID number"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date_of_birth">Date of Birth</Label>
+                  <Input
+                    id="date_of_birth"
+                    type="date"
+                    value={formData.date_of_birth || ''}
+                    onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <select
+                    id="gender"
+                    value={formData.gender || ''}
+                    onChange={(e) => handleInputChange('gender', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
                   <Input
                     id="role"
@@ -185,6 +237,17 @@ const UserProfileManagement = () => {
                   />
                   <p className="text-xs text-gray-500">Role cannot be changed by users</p>
                 </div>
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={formData.address || ''}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="Your physical address"
+                />
               </div>
 
               <div className="flex justify-end">

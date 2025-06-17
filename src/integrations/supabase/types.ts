@@ -2135,49 +2135,67 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
           created_at: string | null
+          date_of_birth: string | null
           email: string
           failed_login_attempts: number | null
+          gender: string | null
           id: string
           last_login_at: string | null
           last_login_ip: unknown | null
           locked_until: string | null
           mfa_enabled: boolean | null
           name: string
+          national_id: string | null
           password_changed_at: string | null
+          phone: string | null
+          profile_photo_url: string | null
           role: string
           school_id: string | null
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           email: string
           failed_login_attempts?: number | null
+          gender?: string | null
           id: string
           last_login_at?: string | null
           last_login_ip?: unknown | null
           locked_until?: string | null
           mfa_enabled?: boolean | null
           name: string
+          national_id?: string | null
           password_changed_at?: string | null
+          phone?: string | null
+          profile_photo_url?: string | null
           role?: string
           school_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           email?: string
           failed_login_attempts?: number | null
+          gender?: string | null
           id?: string
           last_login_at?: string | null
           last_login_ip?: unknown | null
           locked_until?: string | null
           mfa_enabled?: boolean | null
           name?: string
+          national_id?: string | null
           password_changed_at?: string | null
+          phone?: string | null
+          profile_photo_url?: string | null
           role?: string
           school_id?: string | null
           updated_at?: string | null
@@ -2273,6 +2291,78 @@ export type Database = {
           window_start?: string | null
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string | null
+          filters: Json | null
+          generated_at: string | null
+          generated_by: string
+          id: string
+          report_data: Json
+          report_type: string
+          school_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          filters?: Json | null
+          generated_at?: string | null
+          generated_by: string
+          id?: string
+          report_data: Json
+          report_type: string
+          school_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          filters?: Json | null
+          generated_at?: string | null
+          generated_by?: string
+          id?: string
+          report_data?: Json
+          report_type?: string
+          school_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "reports_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "reports_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "reports_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       school_analytics: {
         Row: {
@@ -2465,12 +2555,18 @@ export type Database = {
           curriculum_type: string
           email: string | null
           id: string
+          location: string | null
           logo_url: string | null
+          motto: string | null
           name: string
           owner_id: string | null
           phone: string | null
+          principal_contact: string | null
           principal_id: string | null
+          principal_name: string | null
+          slogan: string | null
           updated_at: string | null
+          website_url: string | null
         }
         Insert: {
           address?: string | null
@@ -2478,12 +2574,18 @@ export type Database = {
           curriculum_type?: string
           email?: string | null
           id?: string
+          location?: string | null
           logo_url?: string | null
+          motto?: string | null
           name: string
           owner_id?: string | null
           phone?: string | null
+          principal_contact?: string | null
           principal_id?: string | null
+          principal_name?: string | null
+          slogan?: string | null
           updated_at?: string | null
+          website_url?: string | null
         }
         Update: {
           address?: string | null
@@ -2491,12 +2593,18 @@ export type Database = {
           curriculum_type?: string
           email?: string | null
           id?: string
+          location?: string | null
           logo_url?: string | null
+          motto?: string | null
           name?: string
           owner_id?: string | null
           phone?: string | null
+          principal_contact?: string | null
           principal_id?: string | null
+          principal_name?: string | null
+          slogan?: string | null
           updated_at?: string | null
+          website_url?: string | null
         }
         Relationships: [
           {
@@ -3759,6 +3867,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_class_report_data: {
+        Args: { p_class_id: string; p_academic_year: string; p_term?: string }
+        Returns: Json
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3777,6 +3889,10 @@ export type Database = {
           p_academic_year: string
           p_class_id: string
         }
+        Returns: Json
+      }
+      get_student_report_data: {
+        Args: { p_student_id: string; p_academic_year: string; p_term?: string }
         Returns: Json
       }
       get_user_role: {
