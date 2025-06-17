@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import EduFamAdminDashboard from './edufam-admin/EduFamAdminDashboard';
 import SchoolAdminDashboard from './school-admin/SchoolAdminDashboard';
-import TeacherDashboard from './teacher/TeacherDashboard';
+import TeacherDashboard from './TeacherDashboard';
 import ParentDashboard from './parent/ParentDashboard';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
@@ -33,10 +33,15 @@ const AdminDashboard = () => {
     );
   }
 
+  const handleModalOpen = (modalType: string) => {
+    console.log('AdminDashboard: Opening modal:', modalType);
+    // Handle modal opening logic here
+  };
+
   // Role-based dashboard rendering
   switch (user.role) {
     case 'edufam_admin':
-      return <EduFamAdminDashboard onModalOpen={() => {}} />;
+      return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
     
     case 'principal':
     case 'school_owner':
@@ -53,7 +58,7 @@ const AdminDashboard = () => {
           </Card>
         );
       }
-      return <SchoolAdminDashboard />;
+      return <SchoolAdminDashboard user={user} onModalOpen={handleModalOpen} />;
     
     case 'teacher':
       if (!schoolId) {
@@ -69,7 +74,7 @@ const AdminDashboard = () => {
           </Card>
         );
       }
-      return <TeacherDashboard user={user} onModalOpen={() => {}} />;
+      return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
     
     case 'parent':
       return <ParentDashboard />;

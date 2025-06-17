@@ -1,49 +1,77 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Users, BarChart3, GraduationCap, DollarSign, CalendarCheck } from 'lucide-react';
+import { UserPlus, School, BookOpen, Calendar, FileText, Settings } from 'lucide-react';
 
 interface SchoolAdminQuickActionsProps {
   onModalOpen: (modalType: string) => void;
 }
 
-const quickActions = [
-  { id: 'students', label: 'Manage Students', icon: Users, description: 'Add, edit student records' },
-  { id: 'grades', label: 'Review Grades', icon: GraduationCap, description: 'Monitor academic performance' },
-  { id: 'finance', label: 'Financial Overview', icon: DollarSign, description: 'Track fees and payments' },
-  { id: 'attendance', label: 'Attendance Reports', icon: CalendarCheck, description: 'Monitor daily attendance' },
-  { id: 'analytics', label: 'School Analytics', icon: BarChart3, description: 'Performance insights' },
-];
-
 const SchoolAdminQuickActions: React.FC<SchoolAdminQuickActionsProps> = ({ onModalOpen }) => {
+  const actions = [
+    {
+      title: 'Add Student',
+      icon: UserPlus,
+      action: () => onModalOpen('studentAdmission'),
+      color: 'bg-blue-50 hover:bg-blue-100 text-blue-700'
+    },
+    {
+      title: 'Add Teacher',
+      icon: UserPlus,
+      action: () => onModalOpen('teacherAdmission'),
+      color: 'bg-green-50 hover:bg-green-100 text-green-700'
+    },
+    {
+      title: 'Add Class',
+      icon: School,
+      action: () => onModalOpen('addClass'),
+      color: 'bg-purple-50 hover:bg-purple-100 text-purple-700'
+    },
+    {
+      title: 'Add Subject',
+      icon: BookOpen,
+      action: () => onModalOpen('addSubject'),
+      color: 'bg-orange-50 hover:bg-orange-100 text-orange-700'
+    },
+    {
+      title: 'Manage Timetable',
+      icon: Calendar,
+      action: () => onModalOpen('timetable'),
+      color: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
+    },
+    {
+      title: 'View Reports',
+      icon: FileText,
+      action: () => onModalOpen('reports'),
+      color: 'bg-pink-50 hover:bg-pink-100 text-pink-700'
+    }
+  ];
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
+          <Settings className="h-5 w-5" />
           Quick Actions
         </CardTitle>
-        <CardDescription>
-          Access key school management features
-        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {quickActions.map((action) => (
-            <Button
-              key={action.id}
-              variant="outline"
-              className="h-24 flex-col gap-2 p-4"
-              onClick={() => onModalOpen(action.id)}
-            >
-              <action.icon className="h-6 w-6" />
-              <div className="text-center">
-                <div className="font-medium text-sm">{action.label}</div>
-                <div className="text-xs text-muted-foreground">{action.description}</div>
-              </div>
-            </Button>
-          ))}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {actions.map((action, index) => {
+            const Icon = action.icon;
+            return (
+              <Button
+                key={index}
+                variant="outline"
+                className={`h-auto p-4 flex flex-col items-center gap-2 ${action.color}`}
+                onClick={action.action}
+              >
+                <Icon className="h-6 w-6" />
+                <span className="text-xs font-medium">{action.title}</span>
+              </Button>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
