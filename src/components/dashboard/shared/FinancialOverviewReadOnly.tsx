@@ -114,9 +114,9 @@ const FinancialOverviewReadOnly = () => {
           <div className="p-4 bg-white border rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Transactions</p>
+                <p className="text-sm text-muted-foreground">M-Pesa Transactions</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {keyMetrics?.transactionCount || 0}
+                  {keyMetrics?.mpesaTransactions || 0}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-purple-600" />

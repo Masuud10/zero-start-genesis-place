@@ -16,6 +16,8 @@ export interface SchoolMetrics {
   feeCollectionRate: number;
   totalRevenue: number;
   attendanceRate: number;
+  outstandingFees: number;
+  monthlyGrowth: number;
 }
 
 const SchoolOwnerMetricsFetcher: React.FC = () => {
@@ -29,6 +31,8 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
     feeCollectionRate: 0,
     totalRevenue: 0,
     attendanceRate: 0,
+    outstandingFees: 0,
+    monthlyGrowth: 0,
   });
   
   const [loading, setLoading] = useState(true);
@@ -84,7 +88,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
 
       const totalRevenue = financialData?.reduce((sum, transaction) => sum + (transaction.amount || 0), 0) || 0;
 
-      // Calculate fee collection rate
+      // Calculate fee collection rate and outstanding fees
       const { data: feeData } = await supabase
         .from('fees')
         .select('amount, paid_amount')
@@ -93,6 +97,37 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
       const totalExpected = feeData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
       const totalCollected = feeData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
       const feeCollectionRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0;
+      const outstandingFees = totalExpected - totalCollected;
+
+      // Calculate monthly growth (simplified - comparing current month to previous)
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+      const { data: currentMonthData } = await supabase
+        .from('financial_transactions')
+        .select('amount')
+        .eq('school_id', targetSchoolId)
+        .eq('transaction_type', 'payment')
+        .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
+        .lt('created_at', new Date(currentYear, currentMonth + 1, 1).toISOString());
+
+      const { data: previousMonthData } = await supabase
+        .from('financial_transactions')
+        .select('amount')
+        .eq('school_id', targetSchoolId)
+        .eq('transaction_type', 'payment')
+        .gte('created_at', new Date(previousYear, previousMonth, 1).toISOString())
+        .lt('created_at', new Date(previousYear, previousMonth + 1, 1).toISOString());
+
+      const currentMonthRevenue = currentMonthData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      const previousMonthRevenue = previousMonthData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      
+      const monthlyGrowth = previousMonthRevenue > 0 
+        ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
+        : 0;
 
       setMetrics({
         totalStudents: studentsRes.count || 0,
@@ -101,6 +136,8 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
         feeCollectionRate: Math.round(feeCollectionRate),
         totalRevenue: Math.round(totalRevenue),
         attendanceRate: Math.round(attendanceRate),
+        outstandingFees: Math.round(outstandingFees),
+        monthlyGrowth: Math.round(monthlyGrowth * 10) / 10,
       });
 
       setError(null);
