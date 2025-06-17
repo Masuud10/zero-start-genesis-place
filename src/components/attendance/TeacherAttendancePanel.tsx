@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Users, Save, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import AttendanceSessionValidator from './AttendanceSessionValidator';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TeacherAttendancePanelProps {
   userId: string;
@@ -26,10 +27,10 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
 
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedSession, setSelectedSession] = useState('full_day');
+  const [selectedSession, setSelectedSession] = useState('morning');
+  const [sessionError, setSessionError] = useState('');
   const [attendance, setAttendance] = useState<Record<string, { status: string; remarks: string }>>({});
 
-  // Fetch classes
   const { data: classes } = useQuery({
     queryKey: ['classes', schoolId],
     queryFn: async () => {
@@ -46,7 +47,6 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
     enabled: !!schoolId,
   });
 
-  // Fetch students for selected class
   const { data: students, isLoading: loadingStudents } = useQuery({
     queryKey: ['students', schoolId, selectedClass],
     queryFn: async () => {
@@ -66,7 +66,6 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
     enabled: !!schoolId && !!selectedClass,
   });
 
-  // Fetch existing attendance for the selected date
   const { data: existingAttendance } = useQuery({
     queryKey: ['attendance', schoolId, selectedClass, selectedDate, selectedSession],
     queryFn: async () => {
@@ -86,7 +85,6 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
     enabled: !!schoolId && !!selectedClass && !!selectedDate,
   });
 
-  // Update attendance state when existing attendance is loaded
   React.useEffect(() => {
     if (existingAttendance) {
       const attendanceMap = existingAttendance.reduce((acc, att) => {
@@ -100,11 +98,18 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
     }
   }, [existingAttendance]);
 
-  // Submit attendance mutation with proper upsert
   const submitAttendance = useMutation({
     mutationFn: async () => {
+      if (!selectedSession || !['morning', 'afternoon', 'full_day'].includes(selectedSession)) {
+        throw new Error('Please select a valid session (morning, afternoon, or full day)');
+      }
+
       if (!schoolId || !selectedClass || !selectedDate || !academicInfo.term || !academicInfo.year) {
-        throw new Error('Missing required information');
+        throw new Error('Missing required information. Please ensure all fields are selected.');
+      }
+
+      if (Object.keys(attendance).length === 0) {
+        throw new Error('No attendance data to submit');
       }
 
       const attendanceRecords = Object.entries(attendance).map(([studentId, record]) => ({
@@ -113,7 +118,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
         school_id: schoolId,
         date: selectedDate,
         status: record.status,
-        session: selectedSession,
+        session: selectedSession, // Ensure session is always included
         remarks: record.remarks || null,
         term: academicInfo.term,
         academic_year: academicInfo.year,
@@ -121,7 +126,8 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
         submitted_at: new Date().toISOString(),
       }));
 
-      // Use upsert with proper conflict resolution for the unique constraint
+      console.log('Submitting attendance records:', attendanceRecords);
+
       const { error } = await supabase
         .from('attendance')
         .upsert(attendanceRecords, {
@@ -140,12 +146,21 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
         description: `Attendance submitted successfully for ${Object.keys(attendance).length} students.` 
       });
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      setSessionError('');
     },
     onError: (error) => {
       console.error('Attendance submission error:', error);
+      if (error.message.includes('session')) {
+        setSessionError(error.message);
+      }
       toast({ title: "Error", description: error.message, variant: 'destructive' });
     }
   });
+
+  const handleSessionChange = (session: string) => {
+    setSelectedSession(session);
+    setSessionError('');
+  };
 
   const handleStatusChange = (studentId: string, status: string) => {
     setAttendance(prev => ({
@@ -276,17 +291,12 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
             </div>
 
             <div>
-              <Label htmlFor="session">Session</Label>
-              <Select value={selectedSession} onValueChange={setSelectedSession}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="morning">Morning</SelectItem>
-                  <SelectItem value="afternoon">Afternoon</SelectItem>
-                  <SelectItem value="full_day">Full Day</SelectItem>
-                </SelectContent>
-              </Select>
+              <AttendanceSessionValidator
+                value={selectedSession}
+                onValueChange={handleSessionChange}
+                error={sessionError}
+                required={true}
+              />
             </div>
 
             <div className="flex items-end">
@@ -324,9 +334,9 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
                 <div className="text-2xl font-bold text-yellow-600">{attendanceStats.late}</div>
                 <div className="text-sm text-yellow-600">Late</div>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{attendanceStats.excused}</div>
-                <div className="text-sm text-blue-600">Excused</div>
+              <div className="p-3 bg-purple-50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">{attendanceStats.excused}</div>
+                <div className="text-sm text-purple-600">Excused</div>
               </div>
             </div>
           </CardContent>

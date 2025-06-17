@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -18,6 +17,7 @@ import { useSchool } from '@/contexts/SchoolContext';
 import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import AttendanceSessionValidator from '../attendance/AttendanceSessionValidator';
 
 interface AttendanceModalProps {
   onClose: () => void;
@@ -47,6 +47,8 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedSession, setSelectedSession] = useState('morning');
+  const [sessionError, setSessionError] = useState('');
   const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>({});
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -179,6 +181,11 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
     }
   };
 
+  const handleSessionChange = (session: string) => {
+    setSelectedSession(session);
+    setSessionError('');
+  };
+
   const handleAttendanceChange = (studentId: string, session: 'morning' | 'afternoon', status: string) => {
     setAttendance(prev => ({
       ...prev,
@@ -200,6 +207,12 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
   };
 
   const handleSubmit = async () => {
+    // Validate session
+    if (!selectedSession || !['morning', 'afternoon', 'full_day'].includes(selectedSession)) {
+      setSessionError('Please select a valid session');
+      return;
+    }
+
     if (!selectedClass || !selectedDate || !academicInfo.term) {
       toast({
         title: "Missing Information",
@@ -213,38 +226,60 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
     try {
       const attendanceRecords = [];
       
-      // Create records for each student and session
-      Object.values(attendance).forEach(record => {
-        // Morning session
-        attendanceRecords.push({
-          school_id: currentSchool?.id,
-          student_id: record.student_id,
-          class_id: selectedClass,
-          date: selectedDate,
-          session: 'morning',
-          status: record.morning_status,
-          remarks: record.remarks || null,
-          submitted_by: user?.id,
-          submitted_at: new Date().toISOString(),
-          term: academicInfo.term,
-          academic_year: academicInfo.year || new Date().getFullYear().toString()
-        });
+      if (selectedSession === 'full_day') {
+        // Create records for both sessions
+        Object.values(attendance).forEach(record => {
+          // Morning session
+          attendanceRecords.push({
+            school_id: currentSchool?.id,
+            student_id: record.student_id,
+            class_id: selectedClass,
+            date: selectedDate,
+            session: 'morning',
+            status: record.morning_status,
+            remarks: record.remarks || null,
+            submitted_by: user?.id,
+            submitted_at: new Date().toISOString(),
+            term: academicInfo.term,
+            academic_year: academicInfo.year || new Date().getFullYear().toString()
+          });
 
-        // Afternoon session
-        attendanceRecords.push({
-          school_id: currentSchool?.id,
-          student_id: record.student_id,
-          class_id: selectedClass,
-          date: selectedDate,
-          session: 'afternoon',
-          status: record.afternoon_status,
-          remarks: record.remarks || null,
-          submitted_by: user?.id,
-          submitted_at: new Date().toISOString(),
-          term: academicInfo.term,
-          academic_year: academicInfo.year || new Date().getFullYear().toString()
+          // Afternoon session
+          attendanceRecords.push({
+            school_id: currentSchool?.id,
+            student_id: record.student_id,
+            class_id: selectedClass,
+            date: selectedDate,
+            session: 'afternoon',
+            status: record.afternoon_status,
+            remarks: record.remarks || null,
+            submitted_by: user?.id,
+            submitted_at: new Date().toISOString(),
+            term: academicInfo.term,
+            academic_year: academicInfo.year || new Date().getFullYear().toString()
+          });
         });
-      });
+      } else {
+        // Create records for single session
+        Object.values(attendance).forEach(record => {
+          const status = selectedSession === 'morning' ? record.morning_status : record.afternoon_status;
+          attendanceRecords.push({
+            school_id: currentSchool?.id,
+            student_id: record.student_id,
+            class_id: selectedClass,
+            date: selectedDate,
+            session: selectedSession,
+            status: status,
+            remarks: record.remarks || null,
+            submitted_by: user?.id,
+            submitted_at: new Date().toISOString(),
+            term: academicInfo.term,
+            academic_year: academicInfo.year || new Date().getFullYear().toString()
+          });
+        });
+      }
+
+      console.log('Submitting attendance records:', attendanceRecords);
 
       // Use upsert to handle existing records with proper conflict resolution
       const { error } = await supabase
@@ -288,7 +323,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="class">Class</Label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -318,6 +353,15 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
             </div>
 
             <div>
+              <AttendanceSessionValidator
+                value={selectedSession}
+                onValueChange={handleSessionChange}
+                error={sessionError}
+                required={true}
+              />
+            </div>
+
+            <div>
               <Label>Academic Info</Label>
               <div className="text-sm text-muted-foreground p-2 border rounded">
                 <div>Term: {academicInfo.term || 'Not Set'}</div>
@@ -333,8 +377,14 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
                   <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead>Admission No.</TableHead>
-                    <TableHead>Morning</TableHead>
-                    <TableHead>Afternoon</TableHead>
+                    {selectedSession === 'full_day' ? (
+                      <>
+                        <TableHead>Morning</TableHead>
+                        <TableHead>Afternoon</TableHead>
+                      </>
+                    ) : (
+                      <TableHead>Status</TableHead>
+                    )}
                     <TableHead>Remarks</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -343,38 +393,63 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
                     <TableRow key={student.id}>
                       <TableCell className="font-medium">{student.name}</TableCell>
                       <TableCell>{student.admission_number}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={attendance[student.id]?.morning_status || 'present'}
-                          onValueChange={(value) => handleAttendanceChange(student.id, 'morning', value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="present">Present</SelectItem>
-                            <SelectItem value="absent">Absent</SelectItem>
-                            <SelectItem value="late">Late</SelectItem>
-                            <SelectItem value="excused">Excused</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={attendance[student.id]?.afternoon_status || 'present'}
-                          onValueChange={(value) => handleAttendanceChange(student.id, 'afternoon', value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="present">Present</SelectItem>
-                            <SelectItem value="absent">Absent</SelectItem>
-                            <SelectItem value="late">Late</SelectItem>
-                            <SelectItem value="excused">Excused</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
+                      {selectedSession === 'full_day' ? (
+                        <>
+                          <TableCell>
+                            <Select
+                              value={attendance[student.id]?.morning_status || 'present'}
+                              onValueChange={(value) => handleAttendanceChange(student.id, 'morning', value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="present">Present</SelectItem>
+                                <SelectItem value="absent">Absent</SelectItem>
+                                <SelectItem value="late">Late</SelectItem>
+                                <SelectItem value="excused">Excused</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={attendance[student.id]?.afternoon_status || 'present'}
+                              onValueChange={(value) => handleAttendanceChange(student.id, 'afternoon', value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="present">Present</SelectItem>
+                                <SelectItem value="absent">Absent</SelectItem>
+                                <SelectItem value="late">Late</SelectItem>
+                                <SelectItem value="excused">Excused</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </>
+                      ) : (
+                        <TableCell>
+                          <Select
+                            value={
+                              selectedSession === 'morning' 
+                                ? (attendance[student.id]?.morning_status || 'present')
+                                : (attendance[student.id]?.afternoon_status || 'present')
+                            }
+                            onValueChange={(value) => handleAttendanceChange(student.id, selectedSession as 'morning' | 'afternoon', value)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="present">Present</SelectItem>
+                              <SelectItem value="absent">Absent</SelectItem>
+                              <SelectItem value="late">Late</SelectItem>
+                              <SelectItem value="excused">Excused</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <input
                           type="text"
@@ -404,7 +479,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={submitting || !selectedClass || students.length === 0}
+            disabled={submitting || !selectedClass || students.length === 0 || !!sessionError}
           >
             {submitting ? 'Saving...' : 'Save Attendance'}
           </Button>
