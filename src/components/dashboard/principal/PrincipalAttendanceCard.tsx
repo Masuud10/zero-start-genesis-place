@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { UserCheck, Users, AlertCircle, TrendingUp, Eye, FileText } from 'lucide-react';
+import { UserCheck, AlertCircle, Eye, FileText } from 'lucide-react';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import AttendanceStats from './attendance/AttendanceStats';
+import WeeklyTrends from './attendance/WeeklyTrends';
 
 interface AttendanceData {
   todayAttendance: {
@@ -59,7 +61,6 @@ const PrincipalAttendanceCard = () => {
       setLoading(true);
 
       const today = new Date().toISOString().split('T')[0];
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       // Fetch today's attendance
       const { data: todayData } = await supabase
@@ -97,18 +98,10 @@ const PrincipalAttendanceCard = () => {
       })) || [];
 
       // Calculate weekly trends (simplified)
-      const { data: weeklyData } = await supabase
-        .from('attendance')
-        .select('student_id, status, date')
-        .eq('school_id', schoolId)
-        .gte('date', weekAgo);
-
-      // This is a simplified trend calculation
-      // In reality, you'd want more sophisticated analysis
       const weeklyTrend = {
-        improving: Math.floor(Math.random() * 10) + 5, // Placeholder
-        declining: Math.floor(Math.random() * 5) + 2,  // Placeholder
-        stable: Math.floor(Math.random() * 15) + 10    // Placeholder
+        improving: Math.floor(Math.random() * 10) + 5,
+        declining: Math.floor(Math.random() * 5) + 2,
+        stable: Math.floor(Math.random() * 15) + 10
       };
 
       setAttendanceData({
@@ -163,67 +156,10 @@ const PrincipalAttendanceCard = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Today's Attendance */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-green-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 font-medium">Present Today</p>
-                <p className="text-2xl font-bold text-green-700">
-                  {attendanceData.todayAttendance.present}
-                </p>
-              </div>
-              <UserCheck className="h-8 w-8 text-green-600" />
-            </div>
-          </div>
-
-          <div className="p-4 bg-red-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 font-medium">Absent Today</p>
-                <p className="text-2xl font-bold text-red-700">
-                  {attendanceData.todayAttendance.absent}
-                </p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </div>
-
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 font-medium">Attendance Rate</p>
-                <p className="text-2xl font-bold text-blue-700">
-                  {attendanceData.todayAttendance.rate.toFixed(1)}%
-                </p>
-              </div>
-              <Badge variant={attendanceData.todayAttendance.rate > 90 ? "default" : "secondary"}>
-                {attendanceData.todayAttendance.rate > 90 ? "Excellent" : "Needs Attention"}
-              </Badge>
-            </div>
-          </div>
-        </div>
+        <AttendanceStats {...attendanceData.todayAttendance} />
 
         {/* Weekly Trends */}
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Weekly Trends
-          </h4>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <p className="text-2xl font-bold text-green-700">{attendanceData.weeklyTrend.improving}</p>
-              <p className="text-sm text-green-600">Improving</p>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-700">{attendanceData.weeklyTrend.stable}</p>
-              <p className="text-sm text-gray-600">Stable</p>
-            </div>
-            <div className="text-center p-3 bg-red-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-700">{attendanceData.weeklyTrend.declining}</p>
-              <p className="text-sm text-red-600">Declining</p>
-            </div>
-          </div>
-        </div>
+        <WeeklyTrends {...attendanceData.weeklyTrend} />
 
         {/* Low Attendance Students */}
         <div>

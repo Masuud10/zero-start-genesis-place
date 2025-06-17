@@ -1,12 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 export const usePrincipalEntityLists = (reloadKey: number) => {
-  const { user } = useAuth();
-  const { schoolId } = useSchoolScopedData();
+  const { schoolId, isReady } = useSchoolScopedData();
   
   const [classList, setClassList] = useState<any[]>([]);
   const [subjectList, setSubjectList] = useState<any[]>([]);
@@ -14,54 +12,73 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
   const [parentList, setParentList] = useState<any[]>([]);
   const [loadingEntities, setLoadingEntities] = useState(true);
   const [errorEntities, setErrorEntities] = useState<string | null>(null);
-  
-  const effectiveSchoolId = schoolId || user?.school_id;
 
   useEffect(() => {
-    if (!effectiveSchoolId) return;
+    if (!isReady || !schoolId) {
+      setLoadingEntities(false);
+      return;
+    }
 
-    const fetchEntities = async () => {
-        setLoadingEntities(true);
-        setErrorEntities(null);
+    fetchEntityLists();
+  }, [schoolId, reloadKey, isReady]);
 
-        try {
-            const classesQuery = supabase.from('classes').select('id, name, created_at').eq('school_id', effectiveSchoolId).order('name');
-            const subjectsQuery = supabase.from('subjects').select('id, name, code, created_at').eq('school_id', effectiveSchoolId).order('name');
-            const teachersQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'teacher').order('name');
-            const parentsQuery = supabase.from('profiles').select('id, name, email').eq('school_id', effectiveSchoolId).eq('role', 'parent').order('name');
+  const fetchEntityLists = async () => {
+    if (!schoolId) return;
 
-            const [
-              classesRes,
-              subjectsRes,
-              teachersRes,
-              parentsRes,
-            ] = await Promise.all([classesQuery, subjectsQuery, teachersQuery, parentsQuery]);
-            
-            if (classesRes.error || subjectsRes.error || teachersRes.error || parentsRes.error) {
-              console.error("Error fetching entities", {
-                classes: classesRes.error,
-                subjects: subjectsRes.error,
-                teachers: teachersRes.error,
-                parents: parentsRes.error,
-              });
-              setErrorEntities("Failed to load some entities.");
-            }
+    try {
+      setLoadingEntities(true);
+      setErrorEntities(null);
 
-            setClassList(classesRes.data || []);
-            setSubjectList(subjectsRes.data || []);
-            setTeacherList(teachersRes.data || []);
-            setParentList(parentsRes.data || []);
+      const [classesRes, subjectsRes, teachersRes, parentsRes] = await Promise.all([
+        supabase
+          .from('classes')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('name'),
+        supabase
+          .from('subjects')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('name'),
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('role', 'teacher')
+          .order('name'),
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('role', 'parent')
+          .order('name')
+      ]);
 
-        } catch (err: any) {
-            console.error("Exception when fetching entities", err);
-            setErrorEntities("Failed to load entities.");
-        } finally {
-            setLoadingEntities(false);
-        }
-    };
-    
-    fetchEntities();
-  }, [effectiveSchoolId, reloadKey]);
+      if (classesRes.error) throw classesRes.error;
+      if (subjectsRes.error) throw subjectsRes.error;
+      if (teachersRes.error) throw teachersRes.error;
+      if (parentsRes.error) throw parentsRes.error;
 
-  return { classList, subjectList, teacherList, parentList, loadingEntities, errorEntities };
+      setClassList(classesRes.data || []);
+      setSubjectList(subjectsRes.data || []);
+      setTeacherList(teachersRes.data || []);
+      setParentList(parentsRes.data || []);
+
+    } catch (error: any) {
+      console.error('Error fetching entity lists:', error);
+      setErrorEntities(error.message || 'Failed to load entity lists');
+    } finally {
+      setLoadingEntities(false);
+    }
+  };
+
+  return {
+    classList,
+    subjectList,
+    teacherList,
+    parentList,
+    loadingEntities,
+    errorEntities,
+    refetchEntities: fetchEntityLists
+  };
 };

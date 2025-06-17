@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, BookOpen, Settings, RefreshCw } from 'lucide-react';
+import { Calendar, Settings, RefreshCw, Users } from 'lucide-react';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import TimetableStats from './timetable/TimetableStats';
+import TodaySchedule from './timetable/TodaySchedule';
 
 interface TimetableData {
   totalSchedules: number;
@@ -132,19 +133,22 @@ const PrincipalTimetableCard = () => {
     try {
       setGenerating(true);
 
-      // This is a simplified timetable generation
-      // In a real implementation, this would be more sophisticated
-      const { data: classes } = await supabase
-        .from('classes')
-        .select('id, name')
-        .eq('school_id', schoolId);
+      // Get current academic term
+      const currentTerm = 'Term 1'; // This should come from academic settings
 
-      const { data: subjects } = await supabase
-        .from('subjects')
-        .select('id, name, teacher_id, class_id')
-        .eq('school_id', schoolId);
+      // Get classes and subjects
+      const [classesRes, subjectsRes] = await Promise.all([
+        supabase
+          .from('classes')
+          .select('id, name')
+          .eq('school_id', schoolId),
+        supabase
+          .from('subjects')
+          .select('id, name, teacher_id, class_id')
+          .eq('school_id', schoolId)
+      ]);
 
-      if (!classes || !subjects) {
+      if (!classesRes.data || !subjectsRes.data) {
         throw new Error('Missing class or subject data');
       }
 
@@ -163,7 +167,7 @@ const PrincipalTimetableCard = () => {
       
       for (const day of days) {
         let slotIndex = 0;
-        for (const subject of subjects) {
+        for (const subject of subjectsRes.data) {
           if (slotIndex >= timeSlots.length) break;
           
           const timeSlot = timeSlots[slotIndex];
@@ -176,8 +180,8 @@ const PrincipalTimetableCard = () => {
             start_time: timeSlot.start,
             end_time: timeSlot.end,
             room: `Room ${slotIndex + 1}`,
-            term: 'Current Term',
-            created_by_principal_id: schoolId, // This should be principal's ID
+            term: currentTerm,
+            created_by_principal_id: schoolId,
             is_published: false
           });
           
@@ -247,69 +251,14 @@ const PrincipalTimetableCard = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Timetable Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 font-medium">Total Schedules</p>
-                <p className="text-2xl font-bold text-blue-700">{timetableData.totalSchedules}</p>
-              </div>
-              <BookOpen className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="p-4 bg-green-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 font-medium">Published</p>
-                <p className="text-2xl font-bold text-green-700">{timetableData.publishedSchedules}</p>
-              </div>
-              <Badge variant={timetableData.publishedSchedules > 0 ? "default" : "secondary"}>
-                {timetableData.publishedSchedules > 0 ? "Active" : "Draft"}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="p-4 bg-red-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 font-medium">Conflicts</p>
-                <p className="text-2xl font-bold text-red-700">{timetableData.conflictsCount}</p>
-              </div>
-              <Badge variant={timetableData.conflictsCount === 0 ? "default" : "destructive"}>
-                {timetableData.conflictsCount === 0 ? "Clear" : "Attention Needed"}
-              </Badge>
-            </div>
-          </div>
-        </div>
+        <TimetableStats
+          totalSchedules={timetableData.totalSchedules}
+          publishedSchedules={timetableData.publishedSchedules}
+          conflictsCount={timetableData.conflictsCount}
+        />
 
         {/* Today's Schedule */}
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Today's Schedule
-          </h4>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {timetableData.todaySchedule.length > 0 ? (
-              timetableData.todaySchedule.map((schedule) => (
-                <div key={schedule.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{schedule.subjectName}</p>
-                    <p className="text-sm text-gray-500">
-                      {schedule.className} • {schedule.teacherName}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{schedule.startTime} - {schedule.endTime}</p>
-                    <p className="text-sm text-gray-500">{schedule.room}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No classes scheduled for today</p>
-            )}
-          </div>
-        </div>
+        <TodaySchedule schedule={timetableData.todaySchedule} />
 
         {/* Action Buttons */}
         <div className="flex gap-3">
