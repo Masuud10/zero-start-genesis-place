@@ -265,6 +265,9 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
                     grades={grades}
                     onGradeChange={handleGradeChange}
                     curriculumType={curriculumType as any}
+                    selectedClass={selectedClass}
+                    selectedTerm={selectedTerm}
+                    selectedExamType={selectedExamType}
                   />
                 </div>
               )}
