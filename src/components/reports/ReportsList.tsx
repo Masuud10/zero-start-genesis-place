@@ -88,7 +88,7 @@ const ReportsList = () => {
                         {getReportTypeLabel(report.report_type)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{report.generated_by_profile?.name}</TableCell>
+                    <TableCell>{report.generated_by_profile?.name || 'Unknown'}</TableCell>
                     <TableCell className="text-sm">
                       {new Date(report.generated_at).toLocaleDateString()}
                     </TableCell>

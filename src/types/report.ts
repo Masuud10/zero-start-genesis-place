@@ -1,4 +1,3 @@
-
 export interface Report {
   id: string;
   school_id: string;
@@ -9,6 +8,17 @@ export interface Report {
   generated_at: string;
   created_at: string;
   updated_at: string;
+  // Joined data from queries
+  school?: {
+    name: string;
+    logo_url: string;
+    address: string;
+    phone: string;
+    email: string;
+  };
+  generated_by_profile?: {
+    name: string;
+  };
 }
 
 export interface ReportFilters {
