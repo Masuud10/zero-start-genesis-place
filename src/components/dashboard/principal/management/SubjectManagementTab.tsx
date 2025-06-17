@@ -68,7 +68,9 @@ const SubjectManagementTab = () => {
 
     setLoading(true);
     try {
-      // Fetch subjects, classes, and teachers in parallel
+      console.log('Fetching data for school:', schoolId);
+
+      // Fetch subjects, classes, and teachers in parallel with better error handling
       const [subjectsRes, classesRes, teachersRes] = await Promise.all([
         supabase
           .from('subjects')
@@ -82,30 +84,46 @@ const SubjectManagementTab = () => {
           .order('name'),
         supabase
           .from('profiles')
-          .select('id, name')
+          .select('id, name, email')
           .eq('school_id', schoolId)
           .eq('role', 'teacher')
           .order('name')
       ]);
 
+      // Handle subjects response
       if (subjectsRes.error) {
         console.error('Error fetching subjects:', subjectsRes.error);
-        throw subjectsRes.error;
+        if (subjectsRes.error.code === 'PGRST116') {
+          // Table or view doesn't exist or no permission
+          throw new Error('Unable to access subjects data. Please check permissions.');
+        }
+        throw new Error(`Failed to fetch subjects: ${subjectsRes.error.message}`);
       }
+
+      // Handle classes response
       if (classesRes.error) {
         console.error('Error fetching classes:', classesRes.error);
-        throw classesRes.error;
+        if (classesRes.error.code === 'PGRST116') {
+          throw new Error('Unable to access classes data. Please check permissions.');
+        }
+        throw new Error(`Failed to fetch classes: ${classesRes.error.message}`);
       }
+
+      // Handle teachers response
       if (teachersRes.error) {
         console.error('Error fetching teachers:', teachersRes.error);
-        throw teachersRes.error;
+        if (teachersRes.error.code === 'PGRST116') {
+          throw new Error('Unable to access teacher data. Please check permissions.');
+        }
+        throw new Error(`Failed to fetch teachers: ${teachersRes.error.message}`);
       }
 
-      setSubjects(subjectsRes.data || []);
-      setClasses(classesRes.data || []);
-      setTeachers(teachersRes.data || []);
+      // Set data with null safety
+      setSubjects(Array.isArray(subjectsRes.data) ? subjectsRes.data : []);
+      setClasses(Array.isArray(classesRes.data) ? classesRes.data : []);
+      setTeachers(Array.isArray(teachersRes.data) ? teachersRes.data : []);
 
-      console.log('Fetched data successfully:', {
+      console.log('Data fetched successfully:', {
         subjects: subjectsRes.data?.length || 0,
         classes: classesRes.data?.length || 0,
         teachers: teachersRes.data?.length || 0
@@ -113,14 +131,58 @@ const SubjectManagementTab = () => {
 
     } catch (error: any) {
       console.error('Error fetching data:', error);
+      const errorMessage = error.message || 'Unknown error occurred while fetching data';
+      
       toast({
-        title: "Error",
-        description: "Failed to load data: " + (error.message || 'Unknown error'),
+        title: "Error Loading Data",
+        description: errorMessage,
         variant: "destructive"
       });
+
+      // Set empty arrays on error to prevent UI crashes
+      setSubjects([]);
+      setClasses([]);
+      setTeachers([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const validateFormData = () => {
+    if (!formData.name?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Subject name is required",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.code?.trim()) {
+      toast({
+        title: "Validation Error", 
+        description: "Subject code is required",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // Check for duplicate subject codes within the school
+    const isDuplicate = subjects.some(subject => 
+      subject.code.toUpperCase() === formData.code.trim().toUpperCase() && 
+      subject.id !== editingId
+    );
+
+    if (isDuplicate) {
+      toast({
+        title: "Validation Error",
+        description: "A subject with this code already exists in your school",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,18 +191,13 @@ const SubjectManagementTab = () => {
     if (!schoolId) {
       toast({
         title: "Error",
-        description: "School ID not found",
+        description: "School ID not found. Please refresh the page.",
         variant: "destructive"
       });
       return;
     }
 
-    if (!formData.name.trim() || !formData.code.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Subject name and code are required",
-        variant: "destructive"
-      });
+    if (!validateFormData()) {
       return;
     }
 
@@ -178,7 +235,20 @@ const SubjectManagementTab = () => {
 
       if (result.error) {
         console.error('Subject operation error:', result.error);
-        throw result.error;
+        
+        // Handle specific database errors
+        if (result.error.code === '23505') {
+          // Unique constraint violation
+          throw new Error('A subject with this code already exists in your school');
+        } else if (result.error.code === '23503') {
+          // Foreign key constraint violation
+          throw new Error('Invalid class or teacher selection');
+        } else if (result.error.code === 'PGRST116') {
+          // Permission error
+          throw new Error('You do not have permission to create subjects');
+        }
+        
+        throw new Error(result.error.message || 'Failed to save subject');
       }
 
       console.log('Subject operation successful:', result.data);
@@ -196,17 +266,9 @@ const SubjectManagementTab = () => {
     } catch (error: any) {
       console.error('Error saving subject:', error);
       
-      // Provide more specific error messages
-      let errorMessage = 'Failed to save subject';
-      if (error.message?.includes('duplicate key')) {
-        errorMessage = 'A subject with this code already exists';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
       toast({
         title: "Error",
-        description: `${editingId ? 'Failed to update' : 'Failed to create'} subject: ${errorMessage}`,
+        description: error.message || `Failed to ${editingId ? 'update' : 'create'} subject`,
         variant: "destructive"
       });
     } finally {
@@ -238,7 +300,10 @@ const SubjectManagementTab = () => {
 
       if (error) {
         console.error('Error deleting subject:', error);
-        throw error;
+        if (error.code === '23503') {
+          throw new Error('Cannot delete subject as it is being used in other records (grades, timetables, etc.)');
+        }
+        throw new Error(error.message || 'Failed to delete subject');
       }
 
       toast({
@@ -251,7 +316,7 @@ const SubjectManagementTab = () => {
       console.error('Error deleting subject:', error);
       toast({
         title: "Error",
-        description: "Failed to delete subject: " + (error.message || 'Unknown error'),
+        description: error.message || 'Failed to delete subject',
         variant: "destructive"
       });
     }
@@ -317,6 +382,7 @@ const SubjectManagementTab = () => {
                   placeholder="e.g., Mathematics"
                   required
                   disabled={creating}
+                  maxLength={100}
                 />
               </div>
               <div>
@@ -328,6 +394,8 @@ const SubjectManagementTab = () => {
                   placeholder="e.g., MATH"
                   required
                   disabled={creating}
+                  maxLength={10}
+                  style={{ textTransform: 'uppercase' }}
                 />
               </div>
               <div>

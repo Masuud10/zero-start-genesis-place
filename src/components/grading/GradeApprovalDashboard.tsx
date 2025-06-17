@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +48,7 @@ const GradeApprovalDashboard = () => {
     try {
       console.log('Fetching grade submissions for school:', schoolId);
       
+      // Use explicit joins to avoid ambiguous relationships
       const { data: gradesData, error: gradesError } = await supabase
         .from('grades')
         .select(`
@@ -60,10 +60,7 @@ const GradeApprovalDashboard = () => {
           submitted_at,
           status,
           submitted_by,
-          score,
-          classes!inner(name),
-          subjects!inner(name),
-          profiles!grades_submitted_by_fkey(name)
+          score
         `)
         .eq('school_id', schoolId)
         .in('status', ['submitted', 'approved', 'released'])
@@ -78,6 +75,35 @@ const GradeApprovalDashboard = () => {
         return;
       }
 
+      // Fetch related data separately to avoid join ambiguity
+      const classIds = [...new Set(gradesData.map(g => g.class_id))];
+      const subjectIds = [...new Set(gradesData.map(g => g.subject_id))];
+      const teacherIds = [...new Set(gradesData.map(g => g.submitted_by).filter(Boolean))];
+
+      const [classesRes, subjectsRes, teachersRes] = await Promise.all([
+        supabase
+          .from('classes')
+          .select('id, name')
+          .in('id', classIds),
+        supabase
+          .from('subjects') 
+          .select('id, name')
+          .in('id', subjectIds),
+        supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', teacherIds)
+      ]);
+
+      if (classesRes.error) throw classesRes.error;
+      if (subjectsRes.error) throw subjectsRes.error;
+      if (teachersRes.error) throw teachersRes.error;
+
+      // Create lookup maps
+      const classesMap = new Map(classesRes.data?.map(c => [c.id, c.name]) || []);
+      const subjectsMap = new Map(subjectsRes.data?.map(s => [s.id, s.name]) || []);
+      const teachersMap = new Map(teachersRes.data?.map(t => [t.id, t.name]) || []);
+
       // Group grades by submission (class + subject + term + exam_type + submitted_by)
       const grouped: Record<string, GradeSubmission> = {};
       
@@ -87,9 +113,9 @@ const GradeApprovalDashboard = () => {
         if (!grouped[key]) {
           grouped[key] = {
             id: key,
-            class_name: grade.classes?.name || 'Unknown Class',
-            subject_name: grade.subjects?.name || 'Unknown Subject',
-            teacher_name: grade.profiles?.name || 'Unknown Teacher',
+            class_name: classesMap.get(grade.class_id) || 'Unknown Class',
+            subject_name: subjectsMap.get(grade.subject_id) || 'Unknown Subject',
+            teacher_name: teachersMap.get(grade.submitted_by) || 'Unknown Teacher',
             term: grade.term,
             exam_type: grade.exam_type,
             submitted_at: grade.submitted_at,
