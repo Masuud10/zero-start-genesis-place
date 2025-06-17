@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
-import { Loader2, AlertCircle, PlusCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics';
 import FeeCollectionChart from '@/components/analytics/finance/FeeCollectionChart';
@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import ExpenseModal from '@/components/modals/ExpenseModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import BeautifulReportGeneration from './shared/BeautifulReportGeneration';
+import { PlusCircle } from 'lucide-react';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -66,9 +68,10 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Financial Overview</h2>
-          <Button onClick={() => setIsExpenseModalOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Record Expense
+          <h2 className="text-2xl font-bold">Financial Management Center</h2>
+          <Button onClick={() => setIsExpenseModalOpen(true)} className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" /> 
+              Record Expense
           </Button>
       </div>
 
@@ -91,6 +94,9 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
       <TopDefaultersList data={defaultersList} />
 
       <ClassCollectionProgress data={feeCollectionData} />
+
+      {/* Beautiful Report Generation */}
+      <BeautifulReportGeneration userRole="finance_officer" />
     </div>
   );
 };

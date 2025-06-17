@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Settings, BarChart3 } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import SchoolOwnerStatsCards, { SchoolMetrics } from "./SchoolOwnerStatsCards";
 import SchoolManagementActions from "./SchoolManagementActions";
@@ -11,7 +11,7 @@ interface SchoolOwnerDashboardLayoutProps {
   metrics: SchoolMetrics;
   loading: boolean;
   schoolId: string | null;
-  onManagementAction?: (action: string) => void; // Made optional since it's now handled internally
+  onManagementAction?: (action: string) => void;
 }
 
 const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
@@ -26,11 +26,11 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
     <div className="rounded-lg bg-white/75 border shadow-sm">
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2 font-semibold text-lg">
-          <Settings className="h-5 w-5" />
-          Key Administrative Functions
+          <BarChart3 className="h-5 w-5" />
+          School Management Overview
         </div>
         <div className="mb-4 text-muted-foreground text-sm">
-          Click any function below to navigate to the respective management area
+          Monitor and oversee your school's key management areas
         </div>
         <SchoolManagementActions onAction={onManagementAction} />
       </div>

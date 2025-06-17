@@ -11,7 +11,6 @@ import PrincipalStatsCards from "./principal/PrincipalStatsCards";
 import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 import RoleGuard from '@/components/common/RoleGuard';
-import ReportActionsPanel from './principal/ReportActionsPanel';
 import QuickActionsCard from './principal/QuickActionsCard';
 import RecentActivitiesPanel from './principal/RecentActivitiesPanel';
 import PrincipalAnalyticsCharts from './principal/PrincipalAnalyticsCharts';
@@ -21,9 +20,10 @@ import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { usePrincipalDashboardModals } from '@/hooks/usePrincipalDashboardModals';
 import BulkGradingQuickAction from './principal/BulkGradingQuickAction';
 import BulkGradingModal from '../grading/BulkGradingModal';
-import PrincipalFinanceCard from './principal/PrincipalFinanceCard';
 import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
 import PrincipalAttendanceCard from './principal/PrincipalAttendanceCard';
+import BeautifulReportGeneration from './shared/BeautifulReportGeneration';
+import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -31,7 +31,6 @@ const PrincipalDashboard = () => {
   const { isReady } = useSchoolScopedData();
 
   const [reloadKey, setReloadKey] = useState(0);
-  const [downloadingReport, setDownloadingReport] = useState(false);
 
   const {
     stats,
@@ -121,8 +120,8 @@ const PrincipalDashboard = () => {
           <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
         </div>
 
-        {/* Finance Card - without add expense functionality for principals */}
-        <PrincipalFinanceCard />
+        {/* Financial Overview - Read Only */}
+        <FinancialOverviewReadOnly />
 
         {/* Timetable Management Card */}
         <PrincipalTimetableCard />
@@ -132,14 +131,8 @@ const PrincipalDashboard = () => {
 
         <RecentActivitiesPanel recentActivities={recentActivities} />
 
-        {/* Reports */}
-        <ReportActionsPanel
-          downloadingReport={downloadingReport}
-          setDownloadingReport={setDownloadingReport}
-          user={user}
-          schoolId={schoolId}
-          toast={toast}
-        />
+        {/* Beautiful Report Generation */}
+        <BeautifulReportGeneration userRole="principal" />
 
         {/* MODALS */}
         <AddTeacherModal
