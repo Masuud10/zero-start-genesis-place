@@ -20,6 +20,7 @@ interface GradeSubmission {
   submitted_at: string;
   status: string;
   grades_count: number;
+  grade_ids: string[];
 }
 
 const GradeApprovalDashboard = () => {
