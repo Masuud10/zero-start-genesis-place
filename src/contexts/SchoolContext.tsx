@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,7 +14,7 @@ interface School {
   principal_id?: string;
   created_at?: string;
   updated_at?: string;
-  curriculum_type?: string; // fix: allow curriculum_type from DB
+  curriculum_type?: string;
 }
 
 interface SchoolContextType {
@@ -43,6 +44,10 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   const { user } = useAuth();
+  const fetchInProgressRef = useRef(false);
+  const schoolsCacheRef = useRef<{ [key: string]: School[] }>({});
+  const lastFetchRef = useRef<number>(0);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   console.log('🏫 SchoolProvider: Initializing with user:', {
     hasUser: !!user,
@@ -50,6 +55,12 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
     userSchoolId: user?.school_id,
     userEmail: user?.email
   });
+
+  const getCacheKey = (userRole: string, schoolId?: string) => {
+    return userRole === 'elimisha_admin' || userRole === 'edufam_admin' 
+      ? 'all_schools' 
+      : `school_${schoolId}`;
+  };
 
   const fetchSchools = async () => {
     if (!user) {
@@ -61,11 +72,34 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Prevent multiple simultaneous fetches
+    if (fetchInProgressRef.current) {
+      console.log('🏫 SchoolProvider: Fetch already in progress, skipping');
+      return;
+    }
+
+    const cacheKey = getCacheKey(user.role, user.school_id);
+    const now = Date.now();
+    
+    // Check cache first
+    if (schoolsCacheRef.current[cacheKey] && (now - lastFetchRef.current) < CACHE_DURATION) {
+      console.log('🏫 SchoolProvider: Using cached schools data');
+      const cachedSchools = schoolsCacheRef.current[cacheKey];
+      setSchools(cachedSchools);
+      if (cachedSchools.length === 1) {
+        setCurrentSchool(cachedSchools[0]);
+      }
+      return;
+    }
+
     try {
+      fetchInProgressRef.current = true;
       setIsLoading(true);
       setError(null);
 
-      console.log('🏫 SchoolProvider: Fetching schools for user role:', user.role, 'school_id:', user.school_id);
+      console.log('🏫 SchoolProvider: Fetching fresh schools for user role:', user.role, 'school_id:', user.school_id);
+
+      let schoolsData: School[] = [];
 
       // For system admins, fetch all schools
       if (user.role === 'elimisha_admin' || user.role === 'edufam_admin') {
@@ -79,8 +113,8 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
           throw fetchError;
         }
         
-        setSchools(data || []);
-        console.log('🏫 SchoolProvider: Fetched', data?.length || 0, 'schools for admin');
+        schoolsData = data || [];
+        console.log('🏫 SchoolProvider: Fetched', schoolsData.length, 'schools for admin');
       } 
       // For school-specific users, fetch their school
       else if (user.school_id) {
@@ -95,8 +129,9 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
           setSchools([]);
           setCurrentSchool(null);
           setError(`Failed to fetch school: ${fetchError.message}`);
+          return;
         } else if (data) {
-          setSchools([data]);
+          schoolsData = [data];
           setCurrentSchool(data);
           console.log('🏫 SchoolProvider: Fetched user school:', data.name);
         } else {
@@ -104,13 +139,22 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
           setSchools([]);
           setCurrentSchool(null);
           setError('Your assigned school was not found. Please contact your administrator.');
+          return;
         }
       } else {
         console.log('🏫 SchoolProvider: User has no school assignment');
         setSchools([]);
         setCurrentSchool(null);
         setError(null);
+        return;
       }
+
+      // Cache the results
+      schoolsCacheRef.current[cacheKey] = schoolsData;
+      lastFetchRef.current = now;
+      
+      setSchools(schoolsData);
+      
     } catch (error: any) {
       console.error('🏫 SchoolProvider: Error fetching schools:', error);
       setError(error.message || 'Failed to fetch schools');
@@ -118,10 +162,16 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       setCurrentSchool(null);
     } finally {
       setIsLoading(false);
+      fetchInProgressRef.current = false;
     }
   };
 
-  const refetch = fetchSchools;
+  const refetch = async () => {
+    // Clear cache and force refetch
+    schoolsCacheRef.current = {};
+    lastFetchRef.current = 0;
+    await fetchSchools();
+  };
 
   // Effect to fetch schools when user changes
   useEffect(() => {
@@ -134,6 +184,9 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       setCurrentSchool(null);
       setIsLoading(false);
       setError(null);
+      // Clear cache when user logs out
+      schoolsCacheRef.current = {};
+      lastFetchRef.current = 0;
     }
   }, [user?.id, user?.role, user?.school_id]);
 

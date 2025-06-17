@@ -1,14 +1,29 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MultiTenantUtils } from '@/utils/multiTenantUtils';
 
 export const useSchoolScopedData = () => {
   const { user, isLoading } = useAuth();
-  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
-  const [schoolId, setSchoolId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+
+  // Memoize derived values to prevent unnecessary recalculations
+  const derivedValues = useMemo(() => {
+    if (isLoading || !user) {
+      return {
+        isSystemAdmin: false,
+        schoolId: null,
+        userRole: null,
+      };
+    }
+
+    const isAdmin = MultiTenantUtils.isSystemAdmin(user.role);
+    return {
+      isSystemAdmin: isAdmin,
+      schoolId: user.school_id || null,
+      userRole: user.role,
+    };
+  }, [user, isLoading]);
 
   useEffect(() => {
     if (isLoading) {
@@ -16,34 +31,24 @@ export const useSchoolScopedData = () => {
       return;
     }
 
-    if (user) {
-      const isAdmin = MultiTenantUtils.isSystemAdmin(user.role);
-      setIsSystemAdmin(isAdmin);
-      setSchoolId(user.school_id || null);
-      setUserRole(user.role);
-      setIsReady(true);
-      
-      console.log('🏫 useSchoolScopedData: Updated scope:', {
-        userId: user.id,
-        userRole: user.role,
-        schoolId: user.school_id,
-        isSystemAdmin: isAdmin
-      });
-    } else {
-      setIsSystemAdmin(false);
-      setSchoolId(null);
-      setUserRole(null);
-      setIsReady(true);
-    }
-  }, [user, isLoading]);
+    setIsReady(true);
+    
+    console.log('🏫 useSchoolScopedData: Updated scope:', {
+      userId: user?.id,
+      userRole: derivedValues.userRole,
+      schoolId: derivedValues.schoolId,
+      isSystemAdmin: derivedValues.isSystemAdmin
+    });
+  }, [user, isLoading, derivedValues]);
 
+  // Memoize permission check functions to avoid recreation on every render
   const validateSchoolAccess = useCallback((targetSchoolId: string) => {
-    if (isSystemAdmin) {
+    if (derivedValues.isSystemAdmin) {
       return true; // System admins can access any school
     }
     
-    return schoolId === targetSchoolId;
-  }, [isSystemAdmin, schoolId]);
+    return derivedValues.schoolId === targetSchoolId;
+  }, [derivedValues.isSystemAdmin, derivedValues.schoolId]);
 
   const canManageUsers = useCallback(() => {
     return user && ['edufam_admin', 'school_owner', 'principal'].includes(user.role);
@@ -62,17 +67,17 @@ export const useSchoolScopedData = () => {
   }, [user]);
 
   const filterDataBySchoolScope = useCallback(<T extends { school_id?: string }>(data: T[]): T[] => {
-    if (isSystemAdmin) {
+    if (derivedValues.isSystemAdmin) {
       return data; // System admins see all data
     }
 
-    return data.filter(item => item.school_id === schoolId);
-  }, [isSystemAdmin, schoolId]);
+    return data.filter(item => item.school_id === derivedValues.schoolId);
+  }, [derivedValues.isSystemAdmin, derivedValues.schoolId]);
 
   return {
-    isSystemAdmin,
-    schoolId,
-    userRole,
+    isSystemAdmin: derivedValues.isSystemAdmin,
+    schoolId: derivedValues.schoolId,
+    userRole: derivedValues.userRole,
     isReady,
     validateSchoolAccess,
     canManageUsers,

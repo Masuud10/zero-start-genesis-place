@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/utils/permissions';
@@ -21,52 +21,132 @@ const GradesModule: React.FC = () => {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [errorSummary, setErrorSummary] = useState<string | null>(null);
 
-  const isSummaryRole = user?.role && ['edufam_admin', 'principal', 'school_owner'].includes(user.role);
+  // Caching and optimization refs
+  const dataFetchedRef = useRef(false);
+  const summaryCache = useRef<Map<string, any>>(new Map());
+  const schoolsCache = useRef<{ id: string; name: string }[]>([]);
+  const lastFetchTime = useRef<number>(0);
+  const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
 
-  useEffect(() => {
-    if (!isSummaryRole) {
-        setLoadingSummary(false);
-        return;
+  // Memoize role check to avoid recalculation
+  const isSummaryRole = useMemo(() => {
+    return user?.role && ['edufam_admin', 'principal', 'school_owner'].includes(user.role);
+  }, [user?.role]);
+
+  // Optimized data fetching with caching
+  const fetchGradesData = async () => {
+    if (!isSummaryRole || !user) {
+      setLoadingSummary(false);
+      return;
     }
+
+    const now = Date.now();
+    const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
+    const cacheKey = `${user.role}_${effectiveSchoolId || 'all'}`;
+
+    // Check cache first
+    if (summaryCache.current.has(cacheKey) && (now - lastFetchTime.current) < CACHE_DURATION) {
+      console.log('🎓 GradesModule: Using cached data for', cacheKey);
+      const cachedData = summaryCache.current.get(cacheKey);
+      setGradesSummary(cachedData.summary);
+      setSchools(cachedData.schools);
+      setLoadingSummary(false);
+      return;
+    }
+
     setLoadingSummary(true);
     setErrorSummary(null);
 
-    if (user.role === 'edufam_admin') {
-        supabase.from("schools").select("id, name")
-            .then(({ data, error }) => {
-                if (error) setErrorSummary("Failed to fetch schools list.");
-                else setSchools(data || []);
-            });
-    }
+    try {
+      console.log('🎓 GradesModule: Fetching fresh data for', cacheKey);
 
-    const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
+      const promises: Promise<any>[] = [];
 
-    if (!effectiveSchoolId && user.role === 'edufam_admin' && !schoolFilter) {
+      // Fetch schools if admin and not cached
+      if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
+        promises.push(
+          supabase.from("schools").select("id, name").order('name')
+        );
+      }
+
+      // Fetch grades summary if school is selected
+      if (effectiveSchoolId) {
+        promises.push(
+          supabase
+            .from("school_grades_summary")
+            .select("*")
+            .eq("school_id", effectiveSchoolId)
+            .maybeSingle()
+        );
+      }
+
+      if (promises.length === 0) {
         setGradesSummary(null);
         setLoadingSummary(false);
         return;
+      }
+
+      const results = await Promise.all(promises);
+      let schoolsData = schoolsCache.current;
+      let summaryData = null;
+
+      // Process results
+      if (user.role === 'edufam_admin' && results.length > 1) {
+        // Schools and summary
+        const [schoolsRes, summaryRes] = results;
+        if (schoolsRes.error) throw new Error("Failed to fetch schools list.");
+        schoolsData = schoolsRes.data || [];
+        schoolsCache.current = schoolsData; // Cache schools
+        
+        if (summaryRes.error) throw new Error("Could not load grades summary data.");
+        summaryData = summaryRes.data;
+      } else if (results.length === 1) {
+        // Just summary
+        const [summaryRes] = results;
+        if (summaryRes.error) throw new Error("Could not load grades summary data.");
+        summaryData = summaryRes.data;
+      }
+
+      // Cache the results
+      summaryCache.current.set(cacheKey, {
+        summary: summaryData,
+        schools: schoolsData
+      });
+      lastFetchTime.current = now;
+
+      setSchools(schoolsData);
+      setGradesSummary(summaryData);
+
+    } catch (error: any) {
+      console.error('🎓 GradesModule: Error fetching data:', error);
+      setErrorSummary(error.message || "Failed to load grades data.");
+      setGradesSummary(null);
+    } finally {
+      setLoadingSummary(false);
     }
+  };
 
-    if (!effectiveSchoolId) {
-        setErrorSummary("Your account is not associated with a school.");
-        setLoadingSummary(false);
-        return;
+  // Only fetch data when dependencies change and avoid duplicate calls
+  useEffect(() => {
+    if (!user || dataFetchedRef.current) return;
+    
+    dataFetchedRef.current = true;
+    fetchGradesData();
+  }, [isSummaryRole, user?.role, user?.school_id]);
+
+  // Handle school filter changes (only for admins)
+  useEffect(() => {
+    if (user?.role === 'edufam_admin' && dataFetchedRef.current) {
+      fetchGradesData();
     }
+  }, [schoolFilter]);
 
-    let query = supabase.from("school_grades_summary").select("*").eq("school_id", effectiveSchoolId);
-
-    query.then(({ data, error }: any) => {
-        if (error) {
-            setErrorSummary("Could not load grades summary data.");
-            setGradesSummary(null);
-        } else if (!data || data.length === 0) {
-            setGradesSummary(null);
-        } else {
-            setGradesSummary(data[0]);
-        }
-        setLoadingSummary(false);
-    });
-  }, [isSummaryRole, user?.role, user?.school_id, schoolFilter]);
+  // Reset data fetch flag when user changes
+  useEffect(() => {
+    dataFetchedRef.current = false;
+    summaryCache.current.clear();
+    lastFetchTime.current = 0;
+  }, [user?.id]);
 
   const renderForSummaryRole = () => {
     if (loadingSummary) {

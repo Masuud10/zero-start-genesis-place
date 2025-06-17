@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,13 +40,28 @@ export const useBulkGradingDataLoader = ({
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // Fetch initial data (classes and terms)
+  // Caching refs
+  const initialDataCache = useRef<{ classes: any[], terms: any[] } | null>(null);
+  const classDataCache = useRef<Map<string, { students: any[], subjects: any[] }>>(new Map());
+  const gradesCache = useRef<Map<string, any>>(new Map());
+
+  // Fetch initial data with caching (classes and terms)
   const fetchInitialData = useCallback(async () => {
     if (!schoolId) return;
     
+    // Check cache first
+    if (initialDataCache.current) {
+      console.log('🎓 BulkGrading: Using cached initial data');
+      setClasses(initialDataCache.current.classes);
+      setAcademicTerms(initialDataCache.current.terms);
+      setInitialLoading(false);
+      return;
+    }
+    
     try {
-      console.log('Fetching initial data for school:', schoolId);
+      console.log('🎓 BulkGrading: Fetching initial data for school:', schoolId);
       
+      // Fetch both in parallel
       const [classesRes, termsRes] = await Promise.all([
         supabase.from('classes').select('*').eq('school_id', schoolId).order('name'),
         supabase.from('academic_terms').select('*').eq('school_id', schoolId).order('start_date', { ascending: false })
@@ -55,14 +70,19 @@ export const useBulkGradingDataLoader = ({
       if (classesRes.error) throw classesRes.error;
       if (termsRes.error) throw termsRes.error;
 
-      console.log('Classes found:', classesRes.data?.length || 0);
-      console.log('Terms found:', termsRes.data?.length || 0);
-
       const validClasses = Array.isArray(classesRes.data) ? classesRes.data : [];
       const validTerms = Array.isArray(termsRes.data) ? termsRes.data : [];
 
+      // Cache the results
+      initialDataCache.current = {
+        classes: validClasses,
+        terms: validTerms
+      };
+
       setClasses(validClasses);
       setAcademicTerms(validTerms);
+      
+      console.log('🎓 BulkGrading: Cached initial data - Classes:', validClasses.length, 'Terms:', validTerms.length);
       
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -76,7 +96,7 @@ export const useBulkGradingDataLoader = ({
     }
   }, [schoolId, toast]);
 
-  // Fetch class data (students and subjects)
+  // Fetch class data with caching (students and subjects)
   const fetchClassData = useCallback(async () => {
     if (!selectedClass || !schoolId) {
       setStudents([]);
@@ -84,31 +104,47 @@ export const useBulkGradingDataLoader = ({
       return;
     }
     
+    const cacheKey = `${selectedClass}_${isTeacher ? userId : 'all'}`;
+    
+    // Check cache first
+    if (classDataCache.current.has(cacheKey)) {
+      console.log('🎓 BulkGrading: Using cached class data for', cacheKey);
+      const cached = classDataCache.current.get(cacheKey)!;
+      setStudents(cached.students);
+      setSubjects(cached.subjects);
+      return;
+    }
+    
     setLoading(true);
     try {
-      console.log('Fetching data for class:', selectedClass, 'school:', schoolId);
+      console.log('🎓 BulkGrading: Fetching class data for:', selectedClass);
       
+      // Build queries based on teacher role
+      const studentsQuery = supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', selectedClass)
+        .eq('school_id', schoolId)
+        .eq('is_active', true)
+        .order('name');
+
+      const subjectsQuery = isTeacher
+        ? supabase
+            .from('subjects')
+            .select('*')
+            .eq('school_id', schoolId)
+            .eq('teacher_id', userId)
+            .eq('class_id', selectedClass)
+        : supabase
+            .from('subjects')
+            .select('*')
+            .eq('school_id', schoolId)
+            .eq('class_id', selectedClass);
+
+      // Fetch both in parallel
       const [studentsRes, subjectsRes] = await Promise.all([
-        supabase
-          .from('students')
-          .select('*')
-          .eq('class_id', selectedClass)
-          .eq('school_id', schoolId)
-          .eq('is_active', true)
-          .order('name'),
-        
-        isTeacher
-          ? supabase
-              .from('subjects')
-              .select('*')
-              .eq('school_id', schoolId)
-              .eq('teacher_id', userId)
-              .eq('class_id', selectedClass)
-          : supabase
-              .from('subjects')
-              .select('*')
-              .eq('school_id', schoolId)
-              .eq('class_id', selectedClass)
+        studentsQuery,
+        subjectsQuery
       ]);
 
       if (studentsRes.error) throw studentsRes.error;
@@ -117,17 +153,22 @@ export const useBulkGradingDataLoader = ({
       const validStudents = Array.isArray(studentsRes.data) ? studentsRes.data.filter(s => s && s.id && s.name) : [];
       const validSubjects = Array.isArray(subjectsRes.data) ? subjectsRes.data.filter(s => s && s.id && s.name) : [];
 
-      console.log('Valid students:', validStudents.length);
-      console.log('Valid subjects:', validSubjects.length);
+      // Cache the results
+      classDataCache.current.set(cacheKey, {
+        students: validStudents,
+        subjects: validSubjects
+      });
 
       setStudents(validStudents);
       setSubjects(validSubjects);
 
-      // Show specific messages based on what's missing
+      console.log('🎓 BulkGrading: Cached class data - Students:', validStudents.length, 'Subjects:', validSubjects.length);
+
+      // Show specific messages only if there are issues
       if (validStudents.length === 0) {
         toast({
           title: "No Students Found",
-          description: `No active students found in the selected class. Please ensure students are properly enrolled.`,
+          description: `No active students found in the selected class.`,
           variant: "default"
         });
       }
@@ -135,7 +176,7 @@ export const useBulkGradingDataLoader = ({
       if (validSubjects.length === 0) {
         const message = isTeacher 
           ? "You are not assigned to teach any subjects for this class."
-          : "No subjects found for this class. Please ensure subjects are properly set up.";
+          : "No subjects found for this class.";
         
         toast({
           title: "No Subjects Found",
@@ -158,13 +199,24 @@ export const useBulkGradingDataLoader = ({
     }
   }, [selectedClass, schoolId, userId, isTeacher, toast]);
 
-  // Fetch existing grades
+  // Fetch existing grades with caching
   const fetchExistingGrades = useCallback(async () => {
     if (!selectedClass || !selectedTerm || !selectedExamType || !schoolId) return;
     
+    const cacheKey = `${selectedClass}_${selectedTerm}_${selectedExamType}`;
+    
+    // Check cache first
+    if (gradesCache.current.has(cacheKey)) {
+      console.log('🎓 BulkGrading: Using cached grades for', cacheKey);
+      const cachedGrades = gradesCache.current.get(cacheKey);
+      updatePermissions(cachedGrades.data || []);
+      setGrades(cachedGrades.grades || {});
+      return;
+    }
+    
     setLoading(true);
     try {
-      console.log('Fetching existing grades for:', { selectedClass, selectedTerm, selectedExamType });
+      console.log('🎓 BulkGrading: Fetching grades for:', { selectedClass, selectedTerm, selectedExamType });
       
       const { data, error } = await supabase
         .from('grades')
@@ -175,13 +227,10 @@ export const useBulkGradingDataLoader = ({
         .eq('school_id', schoolId);
       
       if (error) throw error;
-      console.log('Existing grades found:', data?.length || 0);
-
-      updatePermissions(data || []);
-
+      
+      // Process grades
+      const newGrades: Record<string, Record<string, GradeValue>> = {};
       if (data && data.length > 0) {
-        // Load existing grades
-        const newGrades: Record<string, Record<string, GradeValue>> = {};
         for (const grade of data) {
           if (!newGrades[grade.student_id]) {
             newGrades[grade.student_id] = {};
@@ -193,12 +242,19 @@ export const useBulkGradingDataLoader = ({
             percentage: grade.percentage
           };
         }
-        setGrades(newGrades);
-        console.log('Grades loaded for:', Object.keys(newGrades).length, 'students');
-      } else {
-        setGrades({});
-        console.log('No existing grades found');
       }
+
+      // Cache the results
+      gradesCache.current.set(cacheKey, {
+        data: data || [],
+        grades: newGrades
+      });
+
+      updatePermissions(data || []);
+      setGrades(newGrades);
+      
+      console.log('🎓 BulkGrading: Cached grades - Records:', data?.length || 0, 'Students:', Object.keys(newGrades).length);
+      
     } catch (error) {
       console.error('Error fetching existing grades:', error);
       toast({
@@ -211,18 +267,29 @@ export const useBulkGradingDataLoader = ({
     }
   }, [selectedClass, selectedTerm, selectedExamType, schoolId, updatePermissions, toast]);
 
-  // Effects
+  // Effects with optimized dependencies
   useEffect(() => {
     fetchInitialData();
   }, [fetchInitialData]);
 
   useEffect(() => {
-    fetchClassData();
+    if (selectedClass) {
+      fetchClassData();
+    }
   }, [fetchClassData]);
 
   useEffect(() => {
-    fetchExistingGrades();
+    if (selectedClass && selectedTerm && selectedExamType) {
+      fetchExistingGrades();
+    }
   }, [fetchExistingGrades]);
+
+  // Clear caches when school changes
+  useEffect(() => {
+    initialDataCache.current = null;
+    classDataCache.current.clear();
+    gradesCache.current.clear();
+  }, [schoolId]);
 
   return {
     classes,
