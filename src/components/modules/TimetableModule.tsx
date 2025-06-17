@@ -1,140 +1,86 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, Loader2, Send, Calendar } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import SmartTimetableReview from '@/components/timetable/SmartTimetableReview';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
+import { useTeacherTimetable } from '@/hooks/useTeacherTimetable';
+import { Calendar, Clock, Users, BookOpen, MapPin, Lock } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const TimetableModule = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
   const { academicInfo } = useCurrentAcademicInfo(schoolId);
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [term, setTerm] = useState(academicInfo.term || 'Term 1 2025');
-  const [generationKey, setGenerationKey] = useState(0);
-  const [sendingToTeachers, setSendingToTeachers] = useState(false);
+  const { data: teacherTimetable, isLoading, error } = useTeacherTimetable();
 
-  const handleGenerateTimetable = async () => {
-    if (!schoolId) {
-        toast({ title: "Error", description: "School information not found.", variant: "destructive" });
-        return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log('📊 Generating timetable for:', { schoolId, term });
-      
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        throw new Error('No active session found');
-      }
+  // Only principals can generate/modify timetables
+  const canManageTimetable = user?.role === 'principal';
 
-      const { data, error: functionError } = await supabase.functions.invoke('generate-timetable', {
-        body: {
-          school_id: schoolId,
-          term: term,
-        },
-        headers: {
-          Authorization: `Bearer ${session.session.access_token}`,
-        },
-      });
+  if (user?.role === 'teacher') {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              My Timetable
+            </h1>
+            <p className="text-muted-foreground">
+              View your teaching schedule for {academicInfo.term || 'current term'}
+            </p>
+          </div>
+        </div>
 
-      console.log('📊 Function response:', data);
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center">Loading timetable...</div>
+            </CardContent>
+          </Card>
+        ) : error ? (
+          <Card>
+            <CardContent className="p-6">
+              <Alert variant="destructive">
+                <AlertDescription>Failed to load timetable</AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        ) : !teacherTimetable || teacherTimetable.length === 0 ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2">No Timetable Available</h3>
+                <p>Your timetable has not been generated yet. Please contact the principal.</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <TeacherTimetableView timetable={teacherTimetable} />
+        )}
+      </div>
+    );
+  }
 
-      if (functionError) {
-        console.error('📊 Function error:', functionError);
-        throw new Error(functionError.message || 'Failed to generate timetable');
-      }
-
-      if (data?.error) {
-        console.error('📊 Response error:', data.error);
-        throw new Error(data.error);
-      }
-
-      toast({
-        title: 'Timetable Generation Started',
-        description: `A new draft timetable for ${term} has been created with ${data.rowsCount || 0} entries. You can now review it below.`,
-      });
-      setGenerationKey(k => k + 1);
-    } catch (err: any) {
-      console.error('📊 Generation error:', err);
-      const errorMessage = err.message || "An unknown error occurred during timetable generation.";
-      setError(errorMessage);
-      toast({
-        title: 'Generation Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendToTeachers = async () => {
-    if (!schoolId) {
-      toast({ title: "Error", description: "School information not found.", variant: "destructive" });
-      return;
-    }
-
-    setSendingToTeachers(true);
-    try {
-      // Get all teachers for this school
-      const { data: teachers, error: teachersError } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .eq('school_id', schoolId)
-        .eq('role', 'teacher');
-
-      if (teachersError) throw new Error(teachersError.message);
-
-      if (!teachers || teachers.length === 0) {
-        toast({ 
-          title: "No Teachers Found", 
-          description: "No teachers found in this school to send the timetable to.",
-          variant: "destructive" 
-        });
-        return;
-      }
-
-      // Here you would typically send notifications or emails to teachers
-      // For now, we'll just show a success message
-      toast({
-        title: "Timetable Sent",
-        description: `Timetable has been sent to ${teachers.length} teacher(s) in your school.`,
-      });
-
-      console.log('📧 Timetable sent to teachers:', teachers.map(t => t.name));
-
-    } catch (err: any) {
-      console.error('📧 Send error:', err);
-      toast({
-        title: 'Send Failed',
-        description: err.message || 'Failed to send timetable to teachers',
-        variant: 'destructive',
-      });
-    } finally {
-      setSendingToTeachers(false);
-    }
-  };
-
-  const handlePublishSuccess = () => {
-    toast({
-        title: "Timetable Published!",
-        description: `The timetable for ${term} is now live for all users.`,
-    });
-    setGenerationKey(k => k + 1);
-  };
+  if (!canManageTimetable) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">Access Restricted</h3>
+              <p className="text-muted-foreground">
+                Timetable management is only available to principals.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -143,88 +89,100 @@ const TimetableModule = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Timetable Management
           </h1>
-          <p className="text-muted-foreground">Generate, review, and publish school timetables using the AI-powered generator.</p>
+          <p className="text-muted-foreground">
+            Generate and manage school timetables for {academicInfo.term || 'current term'}
+          </p>
         </div>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Calendar className="h-4 w-4 mr-2" />
+          Generate New Timetable
+        </Button>
       </div>
-      
+
+      <Alert>
+        <Calendar className="h-4 w-4" />
+        <AlertDescription>
+          As a principal, you have full access to create, modify, and publish timetables for all classes and teachers.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
-            Timetable Generation
-          </CardTitle>
-          <CardDescription>
-            Generate, review, and publish school timetables using the AI-powered generator.
-          </CardDescription>
+          <CardTitle>Timetable Management Tools</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            <Select value={term} onValueChange={setTerm}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select Term" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Term 1 2025">Term 1 2025</SelectItem>
-                <SelectItem value="Term 2 2025">Term 2 2025</SelectItem>
-                <SelectItem value="Term 3 2025">Term 3 2025</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Button onClick={handleGenerateTimetable} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                'Generate New Draft'
-              )}
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <Calendar className="h-8 w-8 mb-2" />
+              <span>Create Timetable</span>
             </Button>
-
-            <Button 
-              onClick={handleSendToTeachers} 
-              disabled={sendingToTeachers} 
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              {sendingToTeachers ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Send to Teachers
-                </>
-              )}
+            <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <Users className="h-8 w-8 mb-2" />
+              <span>Assign Teachers</span>
             </Button>
-          </div>
-          
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 mb-2">Prerequisites for Timetable Generation:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Classes must be created and assigned to your school</li>
-              <li>• Subjects must be created and linked to classes</li>
-              <li>• Teachers must be assigned to classes and subjects</li>
-              <li>• Teacher availability can be set (optional)</li>
-            </ul>
+            <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <BookOpen className="h-8 w-8 mb-2" />
+              <span>Manage Subjects</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
-      
-      <SmartTimetableReview 
-        key={generationKey} 
-        term={term} 
-        onPublish={handlePublishSuccess} 
-      />
+    </div>
+  );
+};
+
+// Component for displaying teacher's timetable
+const TeacherTimetableView = ({ timetable }: { timetable: any[] }) => {
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      {daysOfWeek.map(day => {
+        const daySchedule = timetable
+          .filter(entry => entry.day_of_week === day)
+          .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+        return (
+          <Card key={day}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">{day}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {daySchedule.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  No classes
+                </div>
+              ) : (
+                daySchedule.map((entry) => (
+                  <div key={entry.id} className="p-3 border rounded-lg bg-blue-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium">
+                        {entry.start_time} - {entry.end_time}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <Badge variant="outline" className="text-xs">
+                        {entry.subject.name}
+                      </Badge>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {entry.class.name}
+                      </div>
+                      {entry.room && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          Room {entry.room}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

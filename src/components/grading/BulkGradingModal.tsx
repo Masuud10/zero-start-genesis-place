@@ -1,358 +1,381 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
-import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Save, Send, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSchool } from '@/contexts/SchoolContext';
+import BulkGradingControls from '../grading/BulkGradingControls';
+import BulkGradingSheet from '../grading/BulkGradingSheet';
+import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '../ui/alert';
+import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
 
 interface BulkGradingModalProps {
   onClose: () => void;
 }
 
+type GradeValue = {
+  score?: number | null;
+  letter_grade?: string | null;
+  cbc_performance_level?: string | null;
+};
+
 const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
-  const { schoolId } = useSchoolScopedData();
-  const { academicInfo } = useCurrentAcademicInfo(schoolId);
+  const { user } = useAuth();
+  const { currentSchool } = useSchool();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { academicInfo } = useCurrentAcademicInfo(currentSchool?.id);
 
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [examType, setExamType] = useState('');
-  const [maxScore, setMaxScore] = useState(100);
-  const [grades, setGrades] = useState<Record<string, { score: number; isAbsent: boolean }>>({});
+  const [selectedExamType, setSelectedExamType] = useState('');
+  
+  const [grades, setGrades] = useState<Record<string, Record<string, GradeValue>>>({});
+  
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  // Fetch classes with proper school isolation
-  const { data: classes, isLoading: loadingClasses } = useQuery({
-    queryKey: ['classes', schoolId],
-    queryFn: async () => {
-      if (!schoolId) return [];
-      const { data, error } = await supabase
-        .from('classes')
-        .select('id, name')
-        .eq('school_id', schoolId)
-        .order('name');
-      
-      if (error) throw new Error(error.message);
-      return data || [];
-    },
-    enabled: !!schoolId,
-  });
+  const schoolId = currentSchool?.id;
+  const curriculumType = currentSchool?.curriculum_type || 'standard';
+  const currentTerm = academicInfo.term;
 
-  // Fetch subjects for selected class with proper school isolation
-  const { data: subjects, isLoading: loadingSubjects } = useQuery({
-    queryKey: ['subjects', schoolId, selectedClass],
-    queryFn: async () => {
-      if (!schoolId) return [];
-      
-      let query = supabase
-        .from('subjects')
-        .select('id, name, code')
-        .eq('school_id', schoolId);
-      
-      // If a class is selected, filter subjects by class or show all subjects
-      if (selectedClass) {
-        query = query.or(`class_id.eq.${selectedClass},class_id.is.null`);
+  useEffect(() => {
+    if (!schoolId) return;
+    
+    const fetchInitialData = async () => {
+      try {
+        const { data: classesData, error: classesError } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('name');
+
+        if (classesError) throw classesError;
+        setClasses(classesData || []);
+      } catch (error) {
+        console.error('Error fetching classes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load classes",
+          variant: "destructive"
+        });
+      } finally {
+        setInitialLoading(false);
       }
-      
-      const { data, error } = await query.order('name');
-      
-      if (error) throw new Error(error.message);
-      return data || [];
-    },
-    enabled: !!schoolId,
-  });
+    };
 
-  // Fetch students for selected class with proper school isolation
-  const { data: students, isLoading: loadingStudents } = useQuery({
-    queryKey: ['students', schoolId, selectedClass],
-    queryFn: async () => {
-      if (!schoolId || !selectedClass) return [];
+    fetchInitialData();
+  }, [schoolId, toast]);
+
+  const fetchClassData = useCallback(async () => {
+    if (!selectedClass || !schoolId) {
+      setStudents([]);
+      setSubjects([]);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('Fetching data for class:', selectedClass, 'school:', schoolId);
       
-      // First get students directly from the class
-      const { data: classStudents, error: classError } = await supabase
+      // Fetch students for the class
+      const { data: studentsData, error: studentsError } = await supabase
         .from('students')
-        .select('id, name, admission_number')
-        .eq('school_id', schoolId)
+        .select('*')
         .eq('class_id', selectedClass)
+        .eq('school_id', schoolId)
         .eq('is_active', true)
         .order('name');
 
-      if (classError) {
-        console.error('Error fetching students from class:', classError);
-        // Fallback: try student_classes table
-        const { data: studentClassData, error: scError } = await supabase
-          .from('student_classes')
-          .select(`
-            students!inner(id, name, admission_number)
-          `)
-          .eq('school_id', schoolId)
-          .eq('class_id', selectedClass)
-          .eq('is_active', true);
+      if (studentsError) {
+        console.error('Students fetch error:', studentsError);
+        throw studentsError;
+      }
 
-        if (scError) throw new Error(scError.message);
-        
-        return studentClassData?.map(sc => sc.students).filter(Boolean) || [];
+      console.log('Students found:', studentsData?.length);
+
+      // Fetch subjects - try class-specific first, then school-wide
+      let subjectsData = [];
+      
+      // First try to get subjects specific to this class
+      const { data: classSubjects, error: classSubjectsError } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('class_id', selectedClass)
+        .eq('school_id', schoolId);
+
+      if (!classSubjectsError && classSubjects && classSubjects.length > 0) {
+        subjectsData = classSubjects;
+      } else {
+        // Fallback to school-wide subjects if no class-specific subjects
+        const { data: schoolSubjects, error: schoolSubjectsError } = await supabase
+          .from('subjects')
+          .select('*')
+          .eq('school_id', schoolId)
+          .is('class_id', null);
+
+        if (!schoolSubjectsError) {
+          subjectsData = schoolSubjects || [];
+        }
+      }
+
+      // Filter subjects by teacher if user is a teacher
+      if (user?.role === 'teacher') {
+        subjectsData = subjectsData.filter(subject => subject.teacher_id === user.id);
+      }
+
+      console.log('Subjects found:', subjectsData?.length);
+
+      setStudents(studentsData || []);
+      setSubjects(subjectsData || []);
+
+    } catch (error) {
+      console.error('Error fetching class data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load class data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedClass, schoolId, user?.id, user?.role, toast]);
+
+  useEffect(() => {
+    fetchClassData();
+  }, [fetchClassData]);
+
+  const fetchExistingGrades = useCallback(async () => {
+    if (!selectedClass || !currentTerm || !selectedExamType) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('grades')
+        .select('*')
+        .eq('class_id', selectedClass)
+        .eq('term', currentTerm)
+        .eq('exam_type', selectedExamType)
+        .eq('school_id', schoolId);
+      
+      if (error) throw error;
+
+      if (data) {
+        const newGrades: Record<string, Record<string, GradeValue>> = {};
+        for (const grade of data) {
+          if (!newGrades[grade.student_id]) {
+            newGrades[grade.student_id] = {};
+          }
+          newGrades[grade.student_id][grade.subject_id] = {
+            score: grade.score,
+            letter_grade: grade.letter_grade,
+            cbc_performance_level: grade.cbc_performance_level,
+          };
+        }
+        setGrades(newGrades);
+      }
+    } catch (error) {
+      console.error('Error fetching existing grades:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedClass, currentTerm, selectedExamType, schoolId]);
+
+  useEffect(() => {
+    fetchExistingGrades();
+  }, [fetchExistingGrades]);
+
+  const handleGradeChange = (studentId: string, subjectId: string, value: GradeValue) => {
+    setGrades(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        [subjectId]: { ...(prev[studentId]?.[subjectId] || {}), ...value },
+      },
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedClass || !currentTerm || !selectedExamType) {
+      toast({ 
+        title: "Missing Information", 
+        description: "Please select a class and exam type.", 
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!currentTerm) {
+      toast({ 
+        title: "No Academic Term", 
+        description: "Current academic term is not set. Please contact administration.", 
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const gradesToUpsert = [];
+      for (const studentId in grades) {
+        for (const subjectId in grades[studentId]) {
+          const grade = grades[studentId][subjectId];
+          if (grade.score !== undefined && grade.score !== null) {
+            gradesToUpsert.push({
+              school_id: schoolId,
+              student_id: studentId,
+              class_id: selectedClass,
+              subject_id: subjectId,
+              term: currentTerm,
+              exam_type: selectedExamType,
+              score: grade.score,
+              letter_grade: grade.letter_grade || null,
+              cbc_performance_level: grade.cbc_performance_level || null,
+              submitted_by: user?.id,
+              status: user?.role === 'teacher' ? 'submitted' : 'draft',
+            });
+          }
+        }
       }
       
-      return classStudents || [];
-    },
-    enabled: !!schoolId && !!selectedClass,
-  });
-
-  // Save grades mutation
-  const saveGrades = useMutation({
-    mutationFn: async () => {
-      if (!schoolId || !selectedClass || !selectedSubject || !academicInfo.term || !academicInfo.year) {
-        throw new Error('Missing required information');
-      }
-
-      const gradesToSave = Object.entries(grades)
-        .filter(([_, grade]) => !grade.isAbsent && grade.score !== undefined)
-        .map(([studentId, grade]) => ({
-          student_id: studentId,
-          class_id: selectedClass,
-          subject_id: selectedSubject,
-          school_id: schoolId,
-          score: grade.score,
-          max_score: maxScore,
-          term: academicInfo.term,
-          exam_type: examType || 'CONTINUOUS_ASSESSMENT',
-          status: 'draft',
-          submitted_by: null, // Will be set by RLS
-          submitted_at: new Date().toISOString(),
-        }));
-
-      if (gradesToSave.length === 0) {
-        throw new Error('No grades to save');
+      if (gradesToUpsert.length === 0) {
+        toast({ 
+          title: "No Grades to Submit", 
+          description: "Please enter at least one grade.", 
+          variant: "default"
+        });
+        return;
       }
 
       const { error } = await supabase
         .from('grades')
-        .upsert(gradesToSave, {
-          onConflict: 'student_id,subject_id,class_id,term,exam_type',
-          ignoreDuplicates: false
+        .upsert(gradesToUpsert, {
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type',
         });
 
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Grades saved successfully." });
-      queryClient.invalidateQueries({ queryKey: ['grades'] });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: 'destructive' });
-    }
-  });
+      if (error) throw error;
 
-  const handleScoreChange = (studentId: string, score: string) => {
-    const numScore = parseFloat(score);
-    if (!isNaN(numScore) && numScore >= 0 && numScore <= maxScore) {
-      setGrades(prev => ({
-        ...prev,
-        [studentId]: { ...prev[studentId], score: numScore, isAbsent: false }
-      }));
+      toast({ 
+        title: "Success", 
+        description: `${gradesToUpsert.length} grades ${user?.role === 'teacher' ? 'submitted for approval' : 'saved'} successfully.`
+      });
+      onClose();
+      
+    } catch (error: any) {
+      console.error('Error submitting grades:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to submit grades", 
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAbsentToggle = (studentId: string) => {
-    setGrades(prev => ({
-      ...prev,
-      [studentId]: { 
-        ...prev[studentId], 
-        isAbsent: !prev[studentId]?.isAbsent,
-        score: prev[studentId]?.isAbsent ? 0 : undefined
-      }
-    }));
-  };
-
-  const canSave = selectedClass && selectedSubject && students && students.length > 0 && Object.keys(grades).length > 0;
-
-  if (!schoolId) {
-    return (
-      <Dialog open onOpenChange={onClose}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Error</DialogTitle>
-          </DialogHeader>
-          <p>No school assignment found. Please contact your administrator.</p>
-          <Button onClick={onClose}>Close</Button>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const canProceed = selectedClass && selectedExamType && currentTerm;
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            Bulk Grade Entry
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>Bulk Grade Entry</DialogTitle>
+          <DialogDescription>
+            Enter grades for multiple students and subjects at once. 
+            {user?.role === 'teacher' && ' Grades will be submitted to the principal for approval.'}
+          </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-            <div>
-              <Label htmlFor="class">Class</Label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes?.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {loadingClasses && <p className="text-xs text-blue-600 mt-1">Loading classes...</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="subject">Subject</Label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={!selectedClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects?.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name} ({subject.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {loadingSubjects && <p className="text-xs text-blue-600 mt-1">Loading subjects...</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="examType">Exam Type</Label>
-              <Select value={examType} onValueChange={setExamType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Exam Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="OPENER">Opener Exam</SelectItem>
-                  <SelectItem value="MID_TERM">Mid Term Exam</SelectItem>
-                  <SelectItem value="END_TERM">End Term Exam</SelectItem>
-                  <SelectItem value="CONTINUOUS_ASSESSMENT">Continuous Assessment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="maxScore">Max Score</Label>
-              <Input
-                id="maxScore"
-                type="number"
-                value={maxScore}
-                onChange={(e) => setMaxScore(parseInt(e.target.value) || 100)}
-                min="1"
-                max="1000"
-              />
-            </div>
+        
+        {initialLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading...</span>
           </div>
+        ) : (
+          <>
+            <BulkGradingControls
+              classes={classes}
+              academicTerms={[{ term_name: currentTerm || 'Current Term' }]}
+              selectedClass={selectedClass}
+              onClassChange={setSelectedClass}
+              selectedTerm={currentTerm || ''}
+              onTermChange={() => {}} // Read-only current term
+              selectedExamType={selectedExamType}
+              onExamTypeChange={setSelectedExamType}
+            />
 
-          {/* Current Academic Info */}
-          <div className="flex gap-4 text-sm text-muted-foreground">
-            <Badge variant="outline">Term: {academicInfo.term || 'Not Set'}</Badge>
-            <Badge variant="outline">Year: {academicInfo.year || 'Not Set'}</Badge>
-          </div>
+            {loading && !initialLoading && (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading data...</span>
+              </div>
+            )}
 
-          {/* Students Table */}
-          {selectedClass && selectedSubject ? (
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Admission Number</TableHead>
-                    <TableHead>Score (out of {maxScore})</TableHead>
-                    <TableHead>Absent</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loadingStudents ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-2">Loading students...</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : students && students.length > 0 ? (
-                    students.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{student.admission_number}</TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="0"
-                            max={maxScore}
-                            value={grades[student.id]?.score || ''}
-                            onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                            disabled={grades[student.id]?.isAbsent}
-                            className="w-20"
-                            placeholder="0"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <input
-                            type="checkbox"
-                            checked={grades[student.id]?.isAbsent || false}
-                            onChange={() => handleAbsentToggle(student.id)}
-                            className="h-4 w-4"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <p className="text-muted-foreground">
-                          {selectedClass 
-                            ? "No students found for the selected class. Please check class setup and student assignments."
-                            : "Please select a class to view students."
-                          }
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="border rounded-lg p-8 text-center">
-              <p className="text-muted-foreground">
-                Please select both a class and subject to view students and enter grades.
-              </p>
-            </div>
-          )}
+            {!canProceed && (
+              <div className="flex-grow flex items-center justify-center">
+                <Alert className="max-w-md">
+                  <AlertDescription>
+                    Please select a class and exam type to load the grading sheet.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+            
+            {canProceed && !loading && students.length > 0 && subjects.length > 0 && (
+              <div className="flex-grow overflow-hidden">
+                <BulkGradingSheet
+                  students={students}
+                  subjects={subjects}
+                  grades={grades}
+                  onGradeChange={handleGradeChange}
+                  curriculumType={curriculumType as any}
+                />
+              </div>
+            )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => saveGrades.mutate()} 
-              disabled={!canSave || saveGrades.isPending}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {saveGrades.isPending ? 'Saving...' : 'Save Grades'}
-            </Button>
-          </div>
-        </div>
+            {canProceed && !loading && (students.length === 0 || subjects.length === 0) && (
+              <div className="flex-grow flex items-center justify-center">
+                <Alert variant="destructive" className="max-w-md">
+                  <AlertDescription>
+                    {students.length === 0 && subjects.length === 0 
+                      ? "No students or subjects found for the selected class."
+                      : students.length === 0 
+                      ? "No students found for the selected class."
+                      : "No subjects found for the selected class."
+                    }
+                    <br />
+                    Please check class setup and subject assignments.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+          </>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={loading || !canProceed || students.length === 0 || subjects.length === 0}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                Submitting...
+              </>
+            ) : (
+              user?.role === 'teacher' ? 'Submit for Approval' : 'Save Grades'
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

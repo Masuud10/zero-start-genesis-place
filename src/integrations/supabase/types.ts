@@ -1204,6 +1204,8 @@ export type Database = {
       }
       grades: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           cbc_performance_level: string | null
           class_id: string | null
           comments: string | null
@@ -1216,6 +1218,8 @@ export type Database = {
           max_score: number | null
           percentage: number | null
           position: number | null
+          released_at: string | null
+          released_by: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           school_id: string
@@ -1229,6 +1233,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
@@ -1241,6 +1247,8 @@ export type Database = {
           max_score?: number | null
           percentage?: number | null
           position?: number | null
+          released_at?: string | null
+          released_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           school_id: string
@@ -1254,6 +1262,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
@@ -1266,6 +1276,8 @@ export type Database = {
           max_score?: number | null
           percentage?: number | null
           position?: number | null
+          released_at?: string | null
+          released_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           school_id?: string
@@ -2941,6 +2953,10 @@ export type Database = {
       requires_mfa: {
         Args: { user_role: string }
         Returns: boolean
+      }
+      update_grade_status: {
+        Args: { grade_ids: string[]; new_status: string; user_id: string }
+        Returns: Json
       }
       update_user_role: {
         Args: { target_user_id: string; new_role: string }

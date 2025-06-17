@@ -15,11 +15,12 @@ import ReportActionsPanel from './principal/ReportActionsPanel';
 import QuickActionsCard from './principal/QuickActionsCard';
 import RecentActivitiesPanel from './principal/RecentActivitiesPanel';
 import PrincipalAnalyticsCharts from './principal/PrincipalAnalyticsCharts';
+import GradeApprovalDashboard from '@/components/grading/GradeApprovalDashboard';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { usePrincipalDashboardModals } from '@/hooks/usePrincipalDashboardModals';
 import BulkGradingQuickAction from './principal/BulkGradingQuickAction';
-import BulkGradingModal from '../modals/BulkGradingModal';
+import BulkGradingModal from '../grading/BulkGradingModal';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -91,6 +92,9 @@ const PrincipalDashboard = () => {
           <h2 className="text-xl font-semibold mb-4">School Performance Analytics</h2>
           <PrincipalAnalyticsCharts />
         </div>
+
+        {/* Grade Approval Dashboard */}
+        <GradeApprovalDashboard />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Quick action panel for adding parent/teacher/class */}

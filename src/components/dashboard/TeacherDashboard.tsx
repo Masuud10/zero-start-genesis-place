@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import TeacherAnalyticsSummaryCard from "@/components/analytics/TeacherAnalyticsSummaryCard";
 import RoleGuard from "@/components/common/RoleGuard";
@@ -8,19 +8,40 @@ import { useTeacherDashboardStats } from "@/hooks/useTeacherDashboardStats";
 import TeacherStatsCards from './teacher/TeacherStatsCards';
 import TeacherActions from './teacher/TeacherActions';
 import MyClasses from './teacher/MyClasses';
-import TeacherTimetable from './teacher/TeacherTimetable';
+import CompactTeacherTimetable from './teacher/CompactTeacherTimetable';
+import BulkGradingModal from '@/components/grading/BulkGradingModal';
+import AttendanceModal from '@/components/modals/AttendanceModal';
+import GradesModal from '@/components/modals/GradesModal';
 
 interface TeacherDashboardProps {
   user: AuthUser;
   onModalOpen: (modalType: string) => void;
 }
 
-// Teacher dashboard now requires confirmed role & school assignment before showing content.
-// Everything queries strictly by school_id (except EduFam Admin for global).
-
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }) => {
   const { isReady } = useSchoolScopedData();
   const { stats, loading } = useTeacherDashboardStats(user);
+  
+  // Modal states
+  const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [gradesModalOpen, setGradesModalOpen] = useState(false);
+
+  const handleModalOpen = (modalType: string) => {
+    switch (modalType) {
+      case 'bulkGrading':
+        setBulkGradingOpen(true);
+        break;
+      case 'attendance':
+        setAttendanceModalOpen(true);
+        break;
+      case 'grades':
+        setGradesModalOpen(true);
+        break;
+      default:
+        onModalOpen(modalType);
+    }
+  };
 
   // Prevent any render before role/school_id are ready
   if (!isReady) {
@@ -31,23 +52,39 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
     );
   }
 
-  // Only show for valid teacher role, with school scoped
   return (
     <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
       <div className="space-y-6">
         <TeacherStatsCards stats={stats} loading={loading} />
 
         {/* Teacher Analytics Overview */}
-        {user.role === "teacher" && (
-          <TeacherAnalyticsSummaryCard />
-        )}
+        <TeacherAnalyticsSummaryCard />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <MyClasses />
-            <TeacherTimetable />
+          <MyClasses />
+          <CompactTeacherTimetable />
         </div>
 
-        <TeacherActions user={user} onModalOpen={onModalOpen} />
+        <TeacherActions user={user} onModalOpen={handleModalOpen} />
+
+        {/* Modals */}
+        {bulkGradingOpen && (
+          <BulkGradingModal onClose={() => setBulkGradingOpen(false)} />
+        )}
+        
+        {attendanceModalOpen && (
+          <AttendanceModal 
+            onClose={() => setAttendanceModalOpen(false)} 
+            userRole={user.role} 
+          />
+        )}
+        
+        {gradesModalOpen && (
+          <GradesModal 
+            onClose={() => setGradesModalOpen(false)} 
+            userRole={user.role} 
+          />
+        )}
       </div>
     </RoleGuard>
   );
