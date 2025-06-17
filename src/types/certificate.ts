@@ -48,15 +48,30 @@ export interface SubjectPerformance {
   grade: string;
 }
 
+export interface CertificateFilters {
+  school_id?: string;
+  academic_year?: string;
+  class_id?: string;
+  student_id?: string;
+}
+
 export interface CertificateGenerationRequest {
   student_id: string;
   class_id: string;
   academic_year: string;
 }
 
-export interface CertificateFilters {
-  school_id?: string;
-  academic_year?: string;
-  class_id?: string;
-  student_name?: string;
+export interface School {
+  id: string;
+  name: string;
+  location?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+  website_url?: string;
+  motto?: string;
+  slogan?: string;
+  principal_name?: string;
+  principal_contact?: string;
 }
