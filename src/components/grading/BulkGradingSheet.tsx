@@ -40,9 +40,9 @@ interface BulkGradingSheetProps {
 }
 
 const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
-  students,
-  subjects,
-  grades,
+  students = [],
+  subjects = [],
+  grades = {},
   onGradeChange,
   curriculumType,
   isReadOnly = false,
@@ -50,16 +50,46 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
   selectedTerm,
   selectedExamType
 }) => {
+  console.log('BulkGradingSheet render:', { 
+    studentsCount: students?.length || 0, 
+    subjectsCount: subjects?.length || 0, 
+    gradesKeys: Object.keys(grades || {}).length,
+    students: students,
+    subjects: subjects
+  });
+
   // Calculate student totals and positions
   const studentStats = useMemo(() => {
+    if (!students || !Array.isArray(students) || !subjects || !Array.isArray(subjects)) {
+      console.warn('Invalid students or subjects data:', { students, subjects });
+      return {};
+    }
+
     const stats = students.map(student => {
+      if (!student || typeof student !== 'object' || !student.id) {
+        console.warn('Invalid student object:', student);
+        return {
+          studentId: '',
+          totalScore: 0,
+          totalPossible: 0,
+          percentage: 0,
+          average: 0,
+          subjectCount: 0
+        };
+      }
+
       let totalScore = 0;
       let totalPossible = 0;
       let subjectCount = 0;
 
       subjects.forEach(subject => {
-        const grade = grades[student.id]?.[subject.id];
-        if (grade?.score && grade.score > 0) {
+        if (!subject || typeof subject !== 'object' || !subject.id) {
+          console.warn('Invalid subject object:', subject);
+          return;
+        }
+
+        const grade = grades?.[student.id]?.[subject.id];
+        if (grade?.score && typeof grade.score === 'number' && grade.score > 0) {
           totalScore += Number(grade.score);
           totalPossible += 100; // Assuming max 100 per subject
           subjectCount++;
@@ -77,7 +107,7 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
         average,
         subjectCount
       };
-    });
+    }).filter(stat => stat.studentId); // Filter out invalid entries
 
     // Calculate positions based on percentage
     const sortedStats = [...stats].sort((a, b) => b.percentage - a.percentage);
@@ -174,6 +204,24 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
     }
   };
 
+  // Early return with better error handling
+  if (!students || !Array.isArray(students) || !subjects || !Array.isArray(subjects)) {
+    console.error('Invalid data provided to BulkGradingSheet:', { students, subjects });
+    return (
+      <Card className="p-8">
+        <CardContent className="text-center">
+          <div className="text-muted-foreground">
+            <Calculator className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium">Invalid Data Structure</p>
+            <p className="text-sm">
+              The grading data could not be loaded properly. Please refresh and try again.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (students.length === 0 || subjects.length === 0) {
     return (
       <Card className="p-8">
@@ -258,16 +306,27 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
           </TableHeader>
           <TableBody>
             {students.map((student, rowIndex) => {
-              const stats = studentStats[student.id];
+              if (!student || !student.id) {
+                console.warn('Skipping invalid student:', student);
+                return null;
+              }
+
+              const stats = studentStats[student.id] || {
+                totalScore: 0,
+                totalPossible: 0,
+                percentage: 0,
+                average: 0,
+                position: null
+              };
               
               return (
                 <TableRow key={student.id} className={rowIndex % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}>
                   {/* Student Info */}
                   <TableCell className="sticky left-0 bg-inherit z-10 border-r-2 border-border">
                     <div className="min-w-[180px] space-y-1">
-                      <div className="font-medium text-sm">{student.name}</div>
+                      <div className="font-medium text-sm">{student.name || 'Unknown Student'}</div>
                       <div className="text-xs text-muted-foreground">
-                        {student.admission_number}
+                        {student.admission_number || 'No Admission Number'}
                         {student.roll_number && ` | Roll: ${student.roll_number}`}
                       </div>
                     </div>
@@ -275,7 +334,12 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
 
                   {/* Subject Grades */}
                   {subjects.map((subject, colIndex) => {
-                    const currentGrade = grades[student.id]?.[subject.id] || {};
+                    if (!subject || !subject.id) {
+                      console.warn('Skipping invalid subject:', subject);
+                      return null;
+                    }
+
+                    const currentGrade = grades?.[student.id]?.[subject.id] || {};
                     
                     return (
                       <TableCell key={subject.id} className="p-2 bg-blue-50/30">
@@ -343,7 +407,7 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
                   </TableCell>
                 </TableRow>
               );
-            })}
+            }).filter(Boolean)}
           </TableBody>
         </Table>
       </div>

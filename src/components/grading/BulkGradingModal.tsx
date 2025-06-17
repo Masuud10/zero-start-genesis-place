@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -67,12 +66,16 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         console.log('Classes found:', classesRes.data?.length || 0);
         console.log('Terms found:', termsRes.data?.length || 0);
 
-        setClasses(classesRes.data || []);
-        setAcademicTerms(termsRes.data || []);
+        // Ensure we have valid arrays
+        const validClasses = Array.isArray(classesRes.data) ? classesRes.data : [];
+        const validTerms = Array.isArray(termsRes.data) ? termsRes.data : [];
+
+        setClasses(validClasses);
+        setAcademicTerms(validTerms);
         
         // Auto-select current term
-        if (termsRes.data && termsRes.data.length > 0) {
-          const currentTerm = termsRes.data.find(term => term.is_current) || termsRes.data[0];
+        if (validTerms.length > 0) {
+          const currentTerm = validTerms.find(term => term.is_current) || validTerms[0];
           setSelectedTerm(currentTerm.term_name);
         }
       } catch (error) {
@@ -116,6 +119,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
       }
 
       console.log('Students query result:', studentsData?.length || 0, 'students found');
+      console.log('Students data:', studentsData);
 
       // Fetch subjects based on user role
       let subjectsData = [];
@@ -153,11 +157,20 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         console.log('All class subjects found:', subjectsData.length);
       }
 
-      setStudents(studentsData || []);
-      setSubjects(subjectsData || []);
+      console.log('Subjects data:', subjectsData);
+
+      // Ensure we have valid arrays and validate data structure
+      const validStudents = Array.isArray(studentsData) ? studentsData.filter(s => s && s.id && s.name) : [];
+      const validSubjects = Array.isArray(subjectsData) ? subjectsData.filter(s => s && s.id && s.name) : [];
+
+      console.log('Valid students:', validStudents.length);
+      console.log('Valid subjects:', validSubjects.length);
+
+      setStudents(validStudents);
+      setSubjects(validSubjects);
 
       // Show specific messages based on what's missing
-      if (!studentsData || studentsData.length === 0) {
+      if (validStudents.length === 0) {
         toast({
           title: "No Students Found",
           description: `No active students found in the selected class. Please ensure students are properly enrolled.`,
@@ -165,7 +178,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         });
       }
 
-      if (!subjectsData || subjectsData.length === 0) {
+      if (validSubjects.length === 0) {
         const message = isTeacher 
           ? "You are not assigned to teach any subjects for this class."
           : "No subjects found for this class. Please ensure subjects are properly set up.";
@@ -179,6 +192,8 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
 
     } catch (error) {
       console.error('Error fetching class data:', error);
+      setStudents([]);
+      setSubjects([]);
       toast({
         title: "Error",
         description: `Failed to load class data: ${error.message}`,
@@ -391,7 +406,16 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   };
 
   const canProceed = selectedClass && selectedTerm && selectedExamType;
-  const hasData = students.length > 0 && subjects.length > 0;
+  const hasData = Array.isArray(students) && students.length > 0 && Array.isArray(subjects) && subjects.length > 0;
+
+  console.log('Render state:', { 
+    canProceed, 
+    hasData, 
+    studentsLength: students?.length || 0, 
+    subjectsLength: subjects?.length || 0,
+    loading,
+    initialLoading 
+  });
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -471,9 +495,9 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
               <div className="flex-grow flex items-center justify-center">
                 <Alert variant="default" className="max-w-lg">
                   <AlertDescription>
-                    {students.length === 0 && subjects.length === 0 
+                    {(!students || students.length === 0) && (!subjects || subjects.length === 0)
                       ? "No students or subjects found for the selected class. Please ensure the class has students enrolled and subjects assigned."
-                      : students.length === 0 
+                      : (!students || students.length === 0)
                       ? "No students found for the selected class. Please ensure students are enrolled in this class."
                       : isTeacher
                       ? "No subjects found that you are assigned to teach for this class. Please contact your principal to assign you to subjects for this class."
