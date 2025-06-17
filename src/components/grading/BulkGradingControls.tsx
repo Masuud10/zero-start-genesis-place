@@ -15,10 +15,11 @@ interface BulkGradingControlsProps {
 }
 
 const EXAM_TYPES = [
-  { value: 'opener', label: 'Opener' },
-  { value: 'mid_term', label: 'Mid Term' },
-  { value: 'end_term', label: 'End Term' },
-  { value: 'project', label: 'Project' },
+  { value: 'opener', label: 'Opener Exam' },
+  { value: 'mid_term', label: 'Mid Term Exam' },
+  { value: 'end_term', label: 'End Term Exam' },
+  { value: 'project', label: 'Project Assessment' },
+  { value: 'cat', label: 'CAT (Continuous Assessment)' },
 ];
 
 const BulkGradingControls: React.FC<BulkGradingControlsProps> = ({
@@ -32,31 +33,59 @@ const BulkGradingControls: React.FC<BulkGradingControlsProps> = ({
   onExamTypeChange,
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md mb-4">
-      <div>
-        <Label>Class</Label>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 border rounded-lg mb-4">
+      <div className="space-y-2">
+        <Label htmlFor="class-select" className="text-sm font-medium">Class</Label>
         <Select onValueChange={onClassChange} value={selectedClass}>
-          <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
+          <SelectTrigger id="class-select">
+            <SelectValue placeholder="Select Class" />
+          </SelectTrigger>
           <SelectContent>
-            {classes.map((cls) => (<SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>))}
+            {classes.length === 0 ? (
+              <SelectItem value="no-classes" disabled>No classes found</SelectItem>
+            ) : (
+              classes.map((cls) => (
+                <SelectItem key={cls.id} value={cls.id}>
+                  {cls.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>
-      <div>
-        <Label>Term</Label>
+      
+      <div className="space-y-2">
+        <Label htmlFor="term-select" className="text-sm font-medium">Academic Term</Label>
         <Select onValueChange={onTermChange} value={selectedTerm}>
-          <SelectTrigger><SelectValue placeholder="Select Term" /></SelectTrigger>
+          <SelectTrigger id="term-select">
+            <SelectValue placeholder="Select Term" />
+          </SelectTrigger>
           <SelectContent>
-            {academicTerms.map((term) => (<SelectItem key={term.id} value={term.term_name}>{term.term_name}</SelectItem>))}
+            {academicTerms.length === 0 ? (
+              <SelectItem value="no-terms" disabled>No terms found</SelectItem>
+            ) : (
+              academicTerms.map((term) => (
+                <SelectItem key={term.id || term.term_name} value={term.term_name}>
+                  {term.term_name} {term.is_current && "(Current)"}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>
-      <div>
-        <Label>Assessment / Exam Type</Label>
+      
+      <div className="space-y-2">
+        <Label htmlFor="exam-select" className="text-sm font-medium">Assessment Type</Label>
         <Select onValueChange={onExamTypeChange} value={selectedExamType}>
-          <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
+          <SelectTrigger id="exam-select">
+            <SelectValue placeholder="Select Assessment" />
+          </SelectTrigger>
           <SelectContent>
-            {EXAM_TYPES.map((type) => (<SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>))}
+            {EXAM_TYPES.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

@@ -1,5 +1,5 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AcademicInfo {
@@ -8,48 +8,80 @@ interface AcademicInfo {
   academicYear: string | null;
 }
 
-const fetchCurrentAcademicInfo = async (schoolId: string): Promise<AcademicInfo> => {
-  console.log('📅 Fetching current academic info for school:', schoolId);
-
-  // Fetch current academic year
-  const { data: currentYear } = await supabase
-    .from('academic_years')
-    .select('year_name')
-    .eq('school_id', schoolId)
-    .eq('is_current', true)
-    .single();
-
-  // Fetch current academic term
-  const { data: currentTerm } = await supabase
-    .from('academic_terms')
-    .select('term_name')
-    .eq('school_id', schoolId)
-    .eq('is_current', true)
-    .single();
-
-  const result = {
-    term: currentTerm?.term_name || null,
-    year: currentYear?.year_name || null,
-    academicYear: currentYear?.year_name || null,
-  };
-
-  console.log('📅 Current academic info:', result);
-  return result;
-};
-
-export const useCurrentAcademicInfo = (schoolId: string | null) => {
-  const query = useQuery({
-    queryKey: ['currentAcademicInfo', schoolId],
-    queryFn: () => fetchCurrentAcademicInfo(schoolId!),
-    enabled: !!schoolId,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchOnWindowFocus: false,
+export const useCurrentAcademicInfo = (schoolId?: string | null) => {
+  const [academicInfo, setAcademicInfo] = useState<AcademicInfo>({
+    term: null,
+    year: null,
+    academicYear: null
   });
+  const [loading, setLoading] = useState(true);
 
-  return {
-    academicInfo: query.data || { term: null, year: null, academicYear: null },
-    loading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch,
-  };
+  useEffect(() => {
+    const fetchAcademicInfo = async () => {
+      if (!schoolId) {
+        // Set default values when no school
+        setAcademicInfo({
+          term: 'Term 1',
+          year: new Date().getFullYear().toString(),
+          academicYear: new Date().getFullYear().toString()
+        });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Try to get current academic term
+        const { data: termData } = await supabase
+          .from('academic_terms')
+          .select('term_name, academic_year_id')
+          .eq('school_id', schoolId)
+          .eq('is_current', true)
+          .single();
+
+        if (termData) {
+          // Get academic year info
+          const { data: yearData } = await supabase
+            .from('academic_years')
+            .select('year_name')
+            .eq('id', termData.academic_year_id)
+            .single();
+
+          setAcademicInfo({
+            term: termData.term_name,
+            year: yearData?.year_name || new Date().getFullYear().toString(),
+            academicYear: yearData?.year_name || new Date().getFullYear().toString()
+          });
+        } else {
+          // Fallback to most recent term
+          const { data: recentTerm } = await supabase
+            .from('academic_terms')
+            .select('term_name')
+            .eq('school_id', schoolId)
+            .order('start_date', { ascending: false })
+            .limit(1)
+            .single();
+
+          setAcademicInfo({
+            term: recentTerm?.term_name || 'Term 1',
+            year: new Date().getFullYear().toString(),
+            academicYear: new Date().getFullYear().toString()
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching academic info:', error);
+        // Set fallback values
+        setAcademicInfo({
+          term: 'Term 1',
+          year: new Date().getFullYear().toString(),
+          academicYear: new Date().getFullYear().toString()
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAcademicInfo();
+  }, [schoolId]);
+
+  return { academicInfo, loading };
 };

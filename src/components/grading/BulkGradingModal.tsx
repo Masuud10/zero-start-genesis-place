@@ -5,12 +5,11 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
-import BulkGradingControls from '../grading/BulkGradingControls';
-import BulkGradingSheet from '../grading/BulkGradingSheet';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import BulkGradingControls from './BulkGradingControls';
+import BulkGradingSheet from './BulkGradingSheet';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
-import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
 
 interface BulkGradingModalProps {
   onClose: () => void;
@@ -24,15 +23,16 @@ type GradeValue = {
 
 const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   const { user } = useAuth();
-  const { currentSchool } = useSchool();
+  const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
-  const { academicInfo } = useCurrentAcademicInfo(currentSchool?.id);
 
   const [classes, setClasses] = useState<any[]>([]);
+  const [academicTerms, setAcademicTerms] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('');
   const [selectedExamType, setSelectedExamType] = useState('');
   
   const [grades, setGrades] = useState<Record<string, Record<string, GradeValue>>>({});
@@ -40,28 +40,45 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const schoolId = currentSchool?.id;
-  const curriculumType = currentSchool?.curriculum_type || 'standard';
-  const currentTerm = academicInfo.term;
+  const curriculumType = 'standard'; // Default to standard for now
 
   useEffect(() => {
     if (!schoolId) return;
     
     const fetchInitialData = async () => {
       try {
-        const { data: classesData, error: classesError } = await supabase
-          .from('classes')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('name');
+        console.log('Fetching initial data for school:', schoolId);
+        
+        const [classesRes, termsRes] = await Promise.all([
+          supabase.from('classes').select('*').eq('school_id', schoolId).order('name'),
+          supabase.from('academic_terms').select('*').eq('school_id', schoolId).order('start_date', { ascending: false })
+        ]);
 
-        if (classesError) throw classesError;
-        setClasses(classesData || []);
+        if (classesRes.error) {
+          console.error('Classes error:', classesRes.error);
+          throw classesRes.error;
+        }
+        if (termsRes.error) {
+          console.error('Terms error:', termsRes.error);
+          throw termsRes.error;
+        }
+
+        console.log('Classes loaded:', classesRes.data?.length);
+        console.log('Terms loaded:', termsRes.data?.length);
+
+        setClasses(classesRes.data || []);
+        setAcademicTerms(termsRes.data || []);
+        
+        // Auto-select current term if available
+        if (termsRes.data && termsRes.data.length > 0) {
+          const currentTerm = termsRes.data.find(term => term.is_current) || termsRes.data[0];
+          setSelectedTerm(currentTerm.term_name);
+        }
       } catch (error) {
-        console.error('Error fetching classes:', error);
+        console.error('Error fetching initial data:', error);
         toast({
           title: "Error",
-          description: "Failed to load classes",
+          description: "Failed to load classes and terms",
           variant: "destructive"
         });
       } finally {
@@ -99,10 +116,10 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
 
       console.log('Students found:', studentsData?.length);
 
-      // Fetch subjects - try class-specific first, then school-wide
+      // Fetch subjects for the class - try different approaches
       let subjectsData = [];
       
-      // First try to get subjects specific to this class
+      // First try to get subjects assigned to this specific class
       const { data: classSubjects, error: classSubjectsError } = await supabase
         .from('subjects')
         .select('*')
@@ -111,28 +128,50 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
 
       if (!classSubjectsError && classSubjects && classSubjects.length > 0) {
         subjectsData = classSubjects;
+        console.log('Found class-specific subjects:', subjectsData.length);
       } else {
-        // Fallback to school-wide subjects if no class-specific subjects
+        // Fallback: get all subjects for the school (for schools with general subjects)
         const { data: schoolSubjects, error: schoolSubjectsError } = await supabase
           .from('subjects')
           .select('*')
           .eq('school_id', schoolId)
           .is('class_id', null);
 
-        if (!schoolSubjectsError) {
-          subjectsData = schoolSubjects || [];
+        if (!schoolSubjectsError && schoolSubjects) {
+          subjectsData = schoolSubjects;
+          console.log('Found school-wide subjects:', subjectsData.length);
         }
       }
 
-      // Filter subjects by teacher if user is a teacher
-      if (user?.role === 'teacher') {
+      // If user is a teacher, filter subjects they're assigned to
+      if (user?.role === 'teacher' && subjectsData.length > 0) {
         subjectsData = subjectsData.filter(subject => subject.teacher_id === user.id);
+        console.log('Filtered subjects for teacher:', subjectsData.length);
       }
 
-      console.log('Subjects found:', subjectsData?.length);
+      console.log('Final subjects count:', subjectsData.length);
 
       setStudents(studentsData || []);
       setSubjects(subjectsData || []);
+
+      // Show helpful message if no data found
+      if (!studentsData || studentsData.length === 0) {
+        toast({
+          title: "No Students",
+          description: "No active students found for this class.",
+          variant: "default"
+        });
+      }
+
+      if (!subjectsData || subjectsData.length === 0) {
+        toast({
+          title: "No Subjects",
+          description: user?.role === 'teacher' 
+            ? "You are not assigned to any subjects for this class."
+            : "No subjects found for this class. Please ensure subjects are properly set up.",
+          variant: "default"
+        });
+      }
 
     } catch (error) {
       console.error('Error fetching class data:', error);
@@ -151,21 +190,28 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   }, [fetchClassData]);
 
   const fetchExistingGrades = useCallback(async () => {
-    if (!selectedClass || !currentTerm || !selectedExamType) return;
+    if (!selectedClass || !selectedTerm || !selectedExamType || !schoolId) return;
     
     setLoading(true);
     try {
+      console.log('Fetching existing grades for:', { selectedClass, selectedTerm, selectedExamType, schoolId });
+      
       const { data, error } = await supabase
         .from('grades')
         .select('*')
         .eq('class_id', selectedClass)
-        .eq('term', currentTerm)
+        .eq('term', selectedTerm)
         .eq('exam_type', selectedExamType)
         .eq('school_id', schoolId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching grades:', error);
+        throw error;
+      }
 
-      if (data) {
+      console.log('Existing grades found:', data?.length);
+
+      if (data && data.length > 0) {
         const newGrades: Record<string, Record<string, GradeValue>> = {};
         for (const grade of data) {
           if (!newGrades[grade.student_id]) {
@@ -178,13 +224,21 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
           };
         }
         setGrades(newGrades);
+        console.log('Loaded existing grades for students:', Object.keys(newGrades).length);
+      } else {
+        setGrades({});
       }
     } catch (error) {
       console.error('Error fetching existing grades:', error);
+      toast({
+        title: "Warning",
+        description: "Could not load existing grades. You can still enter new grades.",
+        variant: "default"
+      });
     } finally {
       setLoading(false);
     }
-  }, [selectedClass, currentTerm, selectedExamType, schoolId]);
+  }, [selectedClass, selectedTerm, selectedExamType, schoolId, toast]);
 
   useEffect(() => {
     fetchExistingGrades();
@@ -201,19 +255,10 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedClass || !currentTerm || !selectedExamType) {
+    if (!selectedClass || !selectedTerm || !selectedExamType || !schoolId) {
       toast({ 
         title: "Missing Information", 
-        description: "Please select a class and exam type.", 
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!currentTerm) {
-      toast({ 
-        title: "No Academic Term", 
-        description: "Current academic term is not set. Please contact administration.", 
+        description: "Please select a class, term, and exam type.", 
         variant: "destructive"
       });
       return;
@@ -223,23 +268,29 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
     
     try {
       const gradesToUpsert = [];
+      let validGradeCount = 0;
+      
       for (const studentId in grades) {
         for (const subjectId in grades[studentId]) {
           const grade = grades[studentId][subjectId];
-          if (grade.score !== undefined && grade.score !== null) {
+          
+          // Only include grades that have actual values
+          if (grade.score !== undefined && grade.score !== null && grade.score !== '') {
             gradesToUpsert.push({
               school_id: schoolId,
               student_id: studentId,
               class_id: selectedClass,
               subject_id: subjectId,
-              term: currentTerm,
+              term: selectedTerm,
               exam_type: selectedExamType,
-              score: grade.score,
+              score: Number(grade.score),
               letter_grade: grade.letter_grade || null,
               cbc_performance_level: grade.cbc_performance_level || null,
               submitted_by: user?.id,
               status: user?.role === 'teacher' ? 'submitted' : 'draft',
+              submitted_at: new Date().toISOString(),
             });
+            validGradeCount++;
           }
         }
       }
@@ -247,11 +298,13 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
       if (gradesToUpsert.length === 0) {
         toast({ 
           title: "No Grades to Submit", 
-          description: "Please enter at least one grade.", 
+          description: "Please enter at least one grade score.", 
           variant: "default"
         });
         return;
       }
+
+      console.log('Submitting grades:', gradesToUpsert.length);
 
       const { error } = await supabase
         .from('grades')
@@ -259,11 +312,18 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
           onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type',
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error submitting grades:', error);
+        throw error;
+      }
+
+      const statusMessage = user?.role === 'teacher' 
+        ? 'submitted for principal approval' 
+        : 'saved successfully';
 
       toast({ 
         title: "Success", 
-        description: `${gradesToUpsert.length} grades ${user?.role === 'teacher' ? 'submitted for approval' : 'saved'} successfully.`
+        description: `${validGradeCount} grades ${statusMessage}.`
       });
       onClose();
       
@@ -271,7 +331,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
       console.error('Error submitting grades:', error);
       toast({ 
         title: "Error", 
-        description: error.message || "Failed to submit grades", 
+        description: error.message || "Failed to submit grades. Please try again.", 
         variant: "destructive"
       });
     } finally {
@@ -279,15 +339,16 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
     }
   };
 
-  const canProceed = selectedClass && selectedExamType && currentTerm;
+  const canProceed = selectedClass && selectedTerm && selectedExamType;
+  const hasData = students.length > 0 && subjects.length > 0;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-7xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Bulk Grade Entry</DialogTitle>
+          <DialogTitle>Bulk Grade Entry - Excel-like Interface</DialogTitle>
           <DialogDescription>
-            Enter grades for multiple students and subjects at once. 
+            Enter grades for multiple students and subjects in a spreadsheet format. 
             {user?.role === 'teacher' && ' Grades will be submitted to the principal for approval.'}
           </DialogDescription>
         </DialogHeader>
@@ -295,17 +356,17 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         {initialLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading...</span>
+            <span className="ml-2">Loading classes and terms...</span>
           </div>
         ) : (
           <>
             <BulkGradingControls
               classes={classes}
-              academicTerms={[{ term_name: currentTerm || 'Current Term' }]}
+              academicTerms={academicTerms}
               selectedClass={selectedClass}
               onClassChange={setSelectedClass}
-              selectedTerm={currentTerm || ''}
-              onTermChange={() => {}} // Read-only current term
+              selectedTerm={selectedTerm}
+              onTermChange={setSelectedTerm}
               selectedExamType={selectedExamType}
               onExamTypeChange={setSelectedExamType}
             />
@@ -313,44 +374,44 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
             {loading && !initialLoading && (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="ml-2">Loading data...</span>
+                <span className="ml-2">Loading class data...</span>
               </div>
             )}
 
-            {!canProceed && (
+            {!canProceed && !initialLoading && (
               <div className="flex-grow flex items-center justify-center">
                 <Alert className="max-w-md">
                   <AlertDescription>
-                    Please select a class and exam type to load the grading sheet.
+                    Please select a class, term, and exam type to load the grading interface.
                   </AlertDescription>
                 </Alert>
               </div>
             )}
             
-            {canProceed && !loading && students.length > 0 && subjects.length > 0 && (
+            {canProceed && !loading && hasData && (
               <div className="flex-grow overflow-hidden">
-                <BulkGradingSheet
-                  students={students}
-                  subjects={subjects}
-                  grades={grades}
-                  onGradeChange={handleGradeChange}
-                  curriculumType={curriculumType as any}
-                />
+                <div className="h-full border rounded-lg">
+                  <BulkGradingSheet
+                    students={students}
+                    subjects={subjects}
+                    grades={grades}
+                    onGradeChange={handleGradeChange}
+                    curriculumType={curriculumType}
+                  />
+                </div>
               </div>
             )}
 
-            {canProceed && !loading && (students.length === 0 || subjects.length === 0) && (
+            {canProceed && !loading && !hasData && (
               <div className="flex-grow flex items-center justify-center">
-                <Alert variant="destructive" className="max-w-md">
+                <Alert variant="default" className="max-w-lg">
                   <AlertDescription>
                     {students.length === 0 && subjects.length === 0 
-                      ? "No students or subjects found for the selected class."
+                      ? "No students or subjects found for the selected class. Please ensure the class has enrolled students and assigned subjects."
                       : students.length === 0 
-                      ? "No students found for the selected class."
-                      : "No subjects found for the selected class."
+                      ? "No students found for the selected class. Please ensure students are enrolled in this class."
+                      : "No subjects found for the selected class. Please ensure subjects are assigned to this class or contact your administrator."
                     }
-                    <br />
-                    Please check class setup and subject assignments.
                   </AlertDescription>
                 </Alert>
               </div>
@@ -358,13 +419,13 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
           </>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="border-t pt-4">
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={loading || !canProceed || students.length === 0 || subjects.length === 0}
+            disabled={loading || !canProceed || !hasData}
           >
             {loading ? (
               <>

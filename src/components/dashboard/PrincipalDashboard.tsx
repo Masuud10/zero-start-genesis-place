@@ -63,6 +63,10 @@ const PrincipalDashboard = () => {
 
   const handleEntityCreated = () => {
     setReloadKey(k => k + 1);
+    toast({
+      title: "Success",
+      description: "Entity created successfully",
+    });
   };
 
   if (!isReady) {
@@ -74,9 +78,11 @@ const PrincipalDashboard = () => {
       </div>
     );
   }
+  
   if (loading) {
     return <PrincipalDashboardLoading />;
   }
+  
   if (error) {
     return <PrincipalDashboardErrorCard error={error} onRetry={() => schoolId && fetchSchoolData(schoolId)} />;
   }
@@ -93,8 +99,11 @@ const PrincipalDashboard = () => {
           <PrincipalAnalyticsCharts />
         </div>
 
-        {/* Grade Approval Dashboard */}
-        <GradeApprovalDashboard />
+        {/* Grade Approval Dashboard - Principal's key responsibility */}
+        <div className="bg-white/90 p-6 rounded-lg border border-gray-200">
+          <h2 className="text-xl font-semibold mb-4">Grade Management & Approval</h2>
+          <GradeApprovalDashboard />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Quick action panel for adding parent/teacher/class */}
