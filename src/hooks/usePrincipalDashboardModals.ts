@@ -6,6 +6,7 @@ export const usePrincipalDashboardModals = () => {
   const [addParentOpen, setAddParentOpen] = useState(false);
   const [addClassOpen, setAddClassOpen] = useState(false);
   const [addSubjectOpen, setAddSubjectOpen] = useState(false);
+  const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
 
   return {
     addTeacherOpen,
@@ -16,5 +17,7 @@ export const usePrincipalDashboardModals = () => {
     setAddClassOpen,
     addSubjectOpen,
     setAddSubjectOpen,
+    bulkGradingOpen,
+    setBulkGradingOpen,
   };
 };

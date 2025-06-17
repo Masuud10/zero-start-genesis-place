@@ -68,11 +68,13 @@ const PrincipalDashboard = () => {
   } = usePrincipalDashboardModals();
 
   if (!isReady || loading) return <PrincipalDashboardLoading />;
-  if (error) return <PrincipalDashboardErrorCard error={error} />;
+  if (error) return <PrincipalDashboardErrorCard error={error} onRetry={() => fetchSchoolData(schoolId || '')} />;
 
   const handleEntityCreated = () => {
     setReloadKey(prev => prev + 1);
-    fetchSchoolData();
+    if (schoolId) {
+      fetchSchoolData(schoolId);
+    }
   };
 
   return (
@@ -103,7 +105,7 @@ const PrincipalDashboard = () => {
           </div>
           
           <div className="space-y-6">
-            <BulkGradingQuickAction onOpen={() => setBulkGradingOpen(true)} />
+            <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
             
             {/* Quick Navigation to Key Features */}
             <Card>
@@ -151,7 +153,7 @@ const PrincipalDashboard = () => {
         {/* Analytics and Activity Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <PrincipalAnalyticsCharts />
-          <RecentActivitiesPanel activities={recentActivities} />
+          <RecentActivitiesPanel recentActivities={recentActivities} />
         </div>
 
         {/* Operational Overview */}
@@ -169,8 +171,6 @@ const PrincipalDashboard = () => {
           open={addTeacherOpen}
           onClose={() => setAddTeacherOpen(false)}
           onTeacherCreated={handleEntityCreated}
-          classList={classList}
-          subjectList={subjectList}
         />
 
         <AddParentModal
@@ -183,7 +183,6 @@ const PrincipalDashboard = () => {
           open={addClassOpen}
           onClose={() => setAddClassOpen(false)}
           onClassCreated={handleEntityCreated}
-          teacherList={teacherList}
         />
 
         <AddSubjectModal

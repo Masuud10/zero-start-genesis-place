@@ -8,12 +8,14 @@ interface QuickActionsCardProps {
   onAddParent: () => void;
   onAddTeacher: () => void;
   onAddClass: () => void;
+  onAddSubject: () => void;
 }
 
 const QuickActionsCard: React.FC<QuickActionsCardProps> = ({ 
   onAddParent, 
   onAddTeacher,
-  onAddClass
+  onAddClass,
+  onAddSubject
 }) => (
   <Card>
     <CardHeader>
@@ -30,6 +32,7 @@ const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
         onAddParent={onAddParent}
         onAddTeacher={onAddTeacher}
         onAddClass={onAddClass}
+        onAddSubject={onAddSubject}
       />
     </CardContent>
   </Card>

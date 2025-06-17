@@ -1,11 +1,12 @@
 
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 
 interface Props {
   error: string;
-  onRetry: () => void;
+  onRetry?: () => void;
 }
 
 const PrincipalDashboardErrorCard: React.FC<Props> = ({ error, onRetry }) => (
@@ -21,12 +22,15 @@ const PrincipalDashboardErrorCard: React.FC<Props> = ({ error, onRetry }) => (
     </CardHeader>
     <CardContent>
       <p className="text-red-600 mb-4">{error}</p>
-      <button
-        className="px-4 py-2 border border-gray-300 rounded hover:bg-red-100"
-        onClick={onRetry}
-      >
-        Try Again
-      </button>
+      {onRetry && (
+        <Button
+          variant="outline"
+          onClick={onRetry}
+          className="border-red-300 text-red-700 hover:bg-red-100"
+        >
+          Try Again
+        </Button>
+      )}
     </CardContent>
   </Card>
 );
