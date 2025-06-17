@@ -1,49 +1,44 @@
+
 import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
-import { useCallback } from 'react';
+import { useSchoolScopedData } from './useSchoolScopedData';
+import { useMemo } from 'react';
 
 export const useAnalyticsPermissions = () => {
   const { user } = useAuth();
-  const { currentSchool } = useSchool();
+  const { schoolId, isSystemAdmin } = useSchoolScopedData();
 
-  // Expanded: System (edufam_admin) can view all schools analytics
-  const canViewSystemAnalytics = useCallback(() => {
-    return user?.role === 'edufam_admin';
-  }, [user?.role]);
-
-  const canViewSchoolAnalytics = useCallback((schoolId?: string) => {
-    // System admins can view any school's analytics
-    if (canViewSystemAnalytics()) {
-      return true;
+  const permissions = useMemo(() => {
+    if (!user) {
+      return {
+        canViewSystemAnalytics: false,
+        canViewSchoolAnalytics: () => false,
+        analyticsScope: 'none'
+      };
     }
-    // School-level users can only view their own school's analytics
-    const userSchoolId = user?.school_id;
-    const targetSchoolId = schoolId || currentSchool?.id;
-    return userSchoolId && targetSchoolId && userSchoolId === targetSchoolId;
-  }, [user?.school_id, currentSchool?.id, canViewSystemAnalytics]);
 
-  const canManageAnalytics = useCallback(() => {
-    return ['edufam_admin', 'school_owner', 'principal'].includes(user?.role || '');
-  }, [user?.role]);
+    const canViewSystemAnalytics = user.role === 'edufam_admin';
+    
+    const canViewSchoolAnalytics = (targetSchoolId?: string) => {
+      if (user.role === 'edufam_admin') return true;
+      if (!schoolId) return false;
+      if (targetSchoolId && targetSchoolId !== schoolId) return false;
+      return ['principal', 'school_owner'].includes(user.role);
+    };
 
-  const getAnalyticsScope = useCallback(() => {
-    if (user?.role === 'edufam_admin') return 'system';
-    if (['school_owner', 'principal'].includes(user?.role || '')) return 'school';
-    if (user?.role === 'teacher') return 'class';
-    if (user?.role === 'parent') return 'student';
-    return 'none';
-  }, [user?.role]);
+    const analyticsScope = (() => {
+      if (user.role === 'edufam_admin') return 'system';
+      if (['principal', 'school_owner'].includes(user.role)) return 'school';
+      if (user.role === 'teacher') return 'class';
+      if (user.role === 'parent') return 'student';
+      return 'none';
+    })();
 
-  const getAllowedSchoolIds = useCallback(() => {
-    if (canViewSystemAnalytics()) return null; // All schools
-    return user?.school_id ? [user.school_id] : [];
-  }, [user?.school_id, canViewSystemAnalytics]);
+    return {
+      canViewSystemAnalytics,
+      canViewSchoolAnalytics,
+      analyticsScope
+    };
+  }, [user, schoolId]);
 
-  return {
-    canViewSystemAnalytics: canViewSystemAnalytics(),
-    canViewSchoolAnalytics,
-    canManageAnalytics: canManageAnalytics(),
-    analyticsScope: getAnalyticsScope(),
-    allowedSchoolIds: getAllowedSchoolIds()
-  };
+  return permissions;
 };
