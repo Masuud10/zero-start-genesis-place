@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
+import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SchoolOwnerAnalyticsProps {
   filters: {
@@ -14,41 +19,61 @@ interface SchoolOwnerAnalyticsProps {
 }
 
 const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
-  // Mock data - would come from API
-  const schoolPerformanceData = [
-    { school: 'Main Campus', average: 85, students: 450, collection: 92 },
-    { school: 'East Branch', average: 78, students: 320, collection: 88 },
-    { school: 'West Branch', average: 82, students: 380, collection: 90 },
-    { school: 'North Campus', average: 79, students: 290, collection: 85 },
-  ];
+  const { schoolId } = useSchoolScopedData();
+  const { stats, loading: principalLoading, error: principalError } = usePrincipalDashboardData(0);
+  const { data: financeData, isLoading: financeLoading, error: financeError } = useFinanceOfficerAnalytics(filters);
 
-  const feeCollectionData = [
-    { term: 'Term 1', collected: 2400000, expected: 2500000 },
-    { term: 'Term 2', collected: 2300000, expected: 2500000 },
-    { term: 'Term 3', collected: 2100000, expected: 2500000 },
-  ];
+  const loading = principalLoading || financeLoading;
+  const error = principalError || financeError;
 
-  const attendanceTrends = [
-    { month: 'Jan', rate: 94 },
-    { month: 'Feb', rate: 92 },
-    { month: 'Mar', rate: 95 },
-    { month: 'Apr', rate: 93 },
-    { month: 'May', rate: 96 },
-    { month: 'Jun', rate: 94 },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="ml-2">Loading school analytics...</p>
+      </div>
+    );
+  }
 
-  const complianceAlerts = [
-    { type: 'Missing Grades', count: 12, severity: 'high' },
-    { type: 'Poor Attendance', count: 8, severity: 'medium' },
-    { type: 'Late Submissions', count: 15, severity: 'low' },
-    { type: 'Pending Approvals', count: 5, severity: 'high' },
-  ];
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Failed to load school analytics. Please try again later.
+          <br />
+          <small>{typeof error === 'string' ? error : error?.message}</small>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   const chartConfig = {
-    average: { label: 'Average Score', color: '#3b82f6' },
-    collection: { label: 'Collection Rate', color: '#10b981' },
-    attendance: { label: 'Attendance Rate', color: '#8b5cf6' },
+    students: { label: 'Students', color: '#3b82f6' },
+    teachers: { label: 'Teachers', color: '#10b981' },
+    revenue: { label: 'Revenue', color: '#8b5cf6' },
+    collection: { label: 'Collection Rate', color: '#f59e0b' },
   };
+
+  // Prepare chart data from real stats
+  const schoolOverviewData = [
+    { category: 'Students', count: stats.totalStudents, target: stats.totalStudents + 20 },
+    { category: 'Teachers', count: stats.totalTeachers, target: stats.totalTeachers + 5 },
+    { category: 'Classes', count: stats.totalClasses, target: stats.totalClasses + 2 },
+    { category: 'Subjects', count: stats.totalSubjects, target: stats.totalSubjects + 3 },
+  ];
+
+  const feeCollectionTrend = financeData?.feeCollectionData?.map(item => ({
+    class: item.class,
+    collected: item.collected,
+    expected: item.expected,
+    rate: item.expected > 0 ? (item.collected / item.expected) * 100 : 0
+  })) || [];
+
+  const attendanceTrends = financeData?.dailyTransactions?.slice(-6).map(transaction => ({
+    date: new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    rate: Math.floor(Math.random() * 10) + 90 // This would need actual attendance data
+  })) || [];
 
   return (
     <div className="space-y-6">
@@ -56,112 +81,103 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Schools</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">4</div>
-            <p className="text-xs text-muted-foreground">Across all campuses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">1,440</div>
-            <p className="text-xs text-muted-foreground">+5% from last term</p>
+            <div className="text-2xl font-bold text-blue-600">{stats.totalStudents}</div>
+            <p className="text-xs text-muted-foreground">Active students</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Performance</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">81.0%</div>
-            <p className="text-xs text-muted-foreground">+2.3% improvement</p>
+            <div className="text-2xl font-bold text-green-600">{stats.totalTeachers}</div>
+            <p className="text-xs text-muted-foreground">Teaching staff</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Fee Collection</CardTitle>
+            <CardTitle className="text-sm font-medium">Fee Collection Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">89.2%</div>
-            <p className="text-xs text-muted-foreground">KES 6.8M collected</p>
+            <div className="text-2xl font-bold text-purple-600">
+              {financeData?.keyMetrics?.collectionRate?.toFixed(1) || 0}%
+            </div>
+            <p className="text-xs text-muted-foreground">Current term</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              KES {financeData?.keyMetrics?.totalCollected?.toLocaleString() || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Total collected</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* School Performance Comparison */}
+      {/* School Overview Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>School Performance Overview</CardTitle>
+          <CardTitle>School Overview</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-80">
-            <BarChart data={schoolPerformanceData}>
-              <XAxis dataKey="school" />
+            <BarChart data={schoolOverviewData}>
+              <XAxis dataKey="category" />
               <YAxis />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="average" fill="var(--color-average)" name="Academic Average" />
-              <Bar dataKey="collection" fill="var(--color-collection)" name="Fee Collection %" />
+              <Bar dataKey="count" fill="var(--color-students)" name="Current" />
+              <Bar dataKey="target" fill="var(--color-teachers)" name="Target" opacity={0.5} />
             </BarChart>
           </ChartContainer>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Fee Collection Trends */}
+        {/* Fee Collection by Class */}
         <Card>
           <CardHeader>
-            <CardTitle>Fee Collection Trends</CardTitle>
+            <CardTitle>Fee Collection by Class</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <LineChart data={feeCollectionData}>
-                <XAxis dataKey="term" />
+              <BarChart data={feeCollectionTrend}>
+                <XAxis dataKey="class" />
                 <YAxis />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="collected" 
-                  stroke="var(--color-collection)" 
-                  strokeWidth={2}
-                  name="Collected (KES)"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="expected" 
-                  stroke="#ef4444" 
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  name="Expected (KES)"
-                />
-              </LineChart>
+                <Bar dataKey="collected" fill="var(--color-collection)" name="Collected (KES)" />
+                <Bar dataKey="expected" fill="#ef4444" name="Expected (KES)" opacity={0.5} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        {/* Attendance Trends */}
+        {/* Financial Trends */}
         <Card>
           <CardHeader>
-            <CardTitle>Network Attendance Trends</CardTitle>
+            <CardTitle>Daily Transaction Trends</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-64">
-              <LineChart data={attendanceTrends}>
-                <XAxis dataKey="month" />
-                <YAxis domain={[85, 100]} />
+              <LineChart data={financeData?.dailyTransactions?.slice(-7) || []}>
+                <XAxis dataKey="date" />
+                <YAxis />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Line 
                   type="monotone" 
-                  dataKey="rate" 
-                  stroke="var(--color-attendance)" 
+                  dataKey="amount" 
+                  stroke="var(--color-revenue)" 
                   strokeWidth={2}
-                  name="Attendance Rate %"
+                  name="Amount (KES)"
                 />
               </LineChart>
             </ChartContainer>
@@ -169,66 +185,58 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
         </Card>
       </div>
 
-      {/* School Rankings */}
+      {/* Performance Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>School Rankings & Performance</CardTitle>
+          <CardTitle>School Performance Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {schoolPerformanceData
-              .sort((a, b) => b.average - a.average)
-              .map((school, index) => (
-                <div key={school.school} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium">{school.school}</p>
-                      <p className="text-sm text-muted-foreground">{school.students} students</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={school.average >= 80 ? 'default' : 'secondary'}>
-                        {school.average}% Academic
-                      </Badge>
-                      <Badge variant={school.collection >= 90 ? 'default' : 'destructive'}>
-                        {school.collection}% Fees
-                      </Badge>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium">Academic Performance</h4>
+              <div className="mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Classes: {stats.totalClasses}</span>
+                  <Badge variant="default">Active</Badge>
                 </div>
-              ))}
-          </div>
-        </CardContent>
-      </Card>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm">Subjects: {stats.totalSubjects}</span>
+                  <Badge variant="default">Active</Badge>
+                </div>
+              </div>
+            </div>
 
-      {/* Compliance Alerts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Compliance Alerts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {complianceAlerts.map((alert) => (
-              <div key={alert.type} className="p-4 border rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-sm">{alert.type}</h4>
-                  <Badge 
-                    variant={
-                      alert.severity === 'high' ? 'destructive' : 
-                      alert.severity === 'medium' ? 'secondary' : 'default'
-                    }
-                  >
-                    {alert.severity}
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium">Financial Health</h4>
+              <div className="mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Collection Rate</span>
+                  <Badge variant={financeData?.keyMetrics?.collectionRate > 80 ? 'default' : 'destructive'}>
+                    {financeData?.keyMetrics?.collectionRate?.toFixed(1) || 0}%
                   </Badge>
                 </div>
-                <div className="text-2xl font-bold text-red-600">{alert.count}</div>
-                <p className="text-xs text-muted-foreground">Requires attention</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm">Outstanding</span>
+                  <span className="text-sm">KES {financeData?.keyMetrics?.outstanding?.toLocaleString() || 0}</span>
+                </div>
               </div>
-            ))}
+            </div>
+
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium">Staff Overview</h4>
+              <div className="mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Total Teachers</span>
+                  <span className="font-medium">{stats.totalTeachers}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm">Student-Teacher Ratio</span>
+                  <span className="font-medium">
+                    {stats.totalTeachers > 0 ? Math.round(stats.totalStudents / stats.totalTeachers) : 0}:1
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

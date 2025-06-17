@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import SchoolOwnerStatsCards, { SchoolMetrics } from "./SchoolOwnerStatsCards";
 import SchoolManagementActions from "./SchoolManagementActions";
 import AnalyticsSecurityGuard from "../../analytics/AnalyticsSecurityGuard";
-import SchoolFilteredAnalytics from "../../analytics/SchoolFilteredAnalytics";
+import SchoolOwnerAnalytics from "../../analytics/SchoolOwnerAnalytics";
 
 interface SchoolOwnerDashboardLayoutProps {
   metrics: SchoolMetrics;
@@ -48,11 +48,11 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
             School Performance Analytics
           </CardTitle>
           <CardDescription>
-            Real-time insights into your school's performance
+            Real-time insights into your school's performance and financial data
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SchoolFilteredAnalytics schoolId={schoolId} timeRange="30d" />
+          <SchoolOwnerAnalytics filters={{ term: 'current', class: 'all' }} />
         </CardContent>
       </Card>
     </AnalyticsSecurityGuard>

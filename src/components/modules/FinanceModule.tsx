@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +17,8 @@ const FinanceModule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const isSummaryRole = user?.role && ['edufam_admin', 'school_owner'].includes(user.role);
+  const isSummaryRole = user?.role && ['edufam_admin'].includes(user.role);
+  const isFinanceDashboardRole = user?.role && ['school_owner', 'principal', 'finance_officer'].includes(user.role);
 
   useEffect(() => {
     if (!isSummaryRole) {
@@ -130,8 +132,8 @@ const FinanceModule: React.FC = () => {
 
   switch (user.role) {
     case 'edufam_admin':
-    case 'school_owner':
       return renderForSummaryRole();
+    case 'school_owner':
     case 'principal':
     case 'finance_officer':
       return <FinanceOfficerDashboard user={user} />;

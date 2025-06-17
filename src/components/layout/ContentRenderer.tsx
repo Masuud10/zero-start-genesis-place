@@ -47,9 +47,7 @@ const ContentRenderer: React.FC = () => {
     case 'attendance': return <AttendanceModule />;
     case 'students': return <StudentsModule />;
     case 'finance':
-      if (user?.role === 'finance_officer') {
-        return <FeeManagementModule />;
-      }
+      // School owners now get the full finance dashboard instead of summary
       return <FinanceModule />;
     case 'payments': return <ProcessPaymentsModule />;
     case 'student-accounts': return <StudentAccountsModule />;
