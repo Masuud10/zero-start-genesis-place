@@ -52,27 +52,6 @@ export type Database = {
             foreignKeyName: "academic_terms_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "academic_terms_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "academic_terms_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "academic_terms_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -107,27 +86,6 @@ export type Database = {
           year_name?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "academic_years_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "academic_years_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "academic_years_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
           {
             foreignKeyName: "academic_years_school_id_fkey"
             columns: ["school_id"]
@@ -169,27 +127,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "analytics_events_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "analytics_events_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "analytics_events_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
           {
             foreignKeyName: "analytics_events_school_id_fkey"
             columns: ["school_id"]
@@ -364,27 +301,6 @@ export type Database = {
             foreignKeyName: "announcements_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "announcements_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "announcements_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "announcements_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -448,27 +364,6 @@ export type Database = {
             foreignKeyName: "attendance_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "attendance_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "attendance_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "attendance_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -492,27 +387,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_attendance_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_attendance_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_attendance_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_attendance_school_id"
@@ -592,27 +466,6 @@ export type Database = {
             foreignKeyName: "attendance_summary_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "attendance_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "attendance_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "attendance_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -666,27 +519,6 @@ export type Database = {
           transaction_type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "billing_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "billing_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "billing_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
           {
             foreignKeyName: "billing_transactions_school_id_fkey"
             columns: ["school_id"]
@@ -848,27 +680,6 @@ export type Database = {
             foreignKeyName: "class_analytics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "class_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "class_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "class_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -910,27 +721,6 @@ export type Database = {
             foreignKeyName: "classes_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "classes_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "classes_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "classes_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -945,50 +735,8 @@ export type Database = {
             foreignKeyName: "fk_classes_school"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_classes_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_classes_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_classes_school"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_classes_school_id"
@@ -1116,27 +864,6 @@ export type Database = {
             foreignKeyName: "expenses_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "expenses_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "expenses_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "expenses_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -1219,27 +946,6 @@ export type Database = {
             foreignKeyName: "fee_structures_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fee_structures_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fee_structures_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fee_structures_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -1311,27 +1017,6 @@ export type Database = {
             foreignKeyName: "fees_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fees_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fees_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fees_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -1341,27 +1026,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_fees_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_fees_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_fees_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_fees_school_id"
@@ -1456,27 +1120,6 @@ export type Database = {
             foreignKeyName: "financial_transactions_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -1542,27 +1185,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "grade_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "grade_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "grade_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "grade_summary_school_id_fkey"
@@ -1682,27 +1304,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_grades_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_grades_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_grades_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_grades_school_id"
@@ -1872,27 +1473,6 @@ export type Database = {
             foreignKeyName: "messages_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -2004,27 +1584,6 @@ export type Database = {
             foreignKeyName: "fk_parent_students_school_id"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_parent_students_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_parent_students_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_parent_students_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -2098,50 +1657,8 @@ export type Database = {
             foreignKeyName: "fk_profiles_school"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_profiles_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_profiles_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_profiles_school"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "profiles_school_id_fkey"
@@ -2248,27 +1765,6 @@ export type Database = {
             foreignKeyName: "school_analytics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -2306,27 +1802,6 @@ export type Database = {
           user_activities?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "school_analytics_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: true
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_analytics_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: true
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "school_analytics_summary_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: true
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
           {
             foreignKeyName: "school_analytics_summary_school_id_fkey"
             columns: ["school_id"]
@@ -2474,27 +1949,6 @@ export type Database = {
             foreignKeyName: "fk_security_audit_logs_school_id"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_security_audit_logs_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_security_audit_logs_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_security_audit_logs_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -2567,27 +2021,6 @@ export type Database = {
             foreignKeyName: "student_analytics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "student_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "student_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "student_analytics_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -2632,27 +2065,6 @@ export type Database = {
           student_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_student_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_student_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_student_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
           {
             foreignKeyName: "fk_student_classes_school_id"
             columns: ["school_id"]
@@ -2753,50 +2165,8 @@ export type Database = {
             foreignKeyName: "fk_students_school"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_students_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_students_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_students_school"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_students_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_students_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_students_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_students_school_id"
@@ -2818,27 +2188,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "students_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "students_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "students_school_id_fkey"
@@ -2931,50 +2280,8 @@ export type Database = {
             foreignKeyName: "fk_subjects_school"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_subjects_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_subjects_school"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_subjects_school"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_subjects_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_subjects_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_subjects_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_subjects_school_id"
@@ -2996,27 +2303,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subjects_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "subjects_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "subjects_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "subjects_school_id_fkey"
@@ -3112,27 +2398,6 @@ export type Database = {
             foreignKeyName: "subscriptions_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "subscriptions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "subscriptions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "subscriptions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -3195,27 +2460,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "support_tickets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "support_tickets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "support_tickets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "support_tickets_school_id_fkey"
@@ -3348,27 +2592,6 @@ export type Database = {
           teacher_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_teacher_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_teacher_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_teacher_classes_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
           {
             foreignKeyName: "fk_teacher_classes_school_id"
             columns: ["school_id"]
@@ -3602,29 +2825,55 @@ export type Database = {
           attendance_count: number | null
           attendance_rate: number | null
           school_id: string | null
-          school_name: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "attendance_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attendance_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       school_finance_summary: {
         Row: {
-          outstanding_fees: number | null
           school_id: string | null
-          school_name: string | null
           total_collected: number | null
           transactions_count: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       school_grades_summary: {
         Row: {
           average_grade: number | null
-          average_percentage: number | null
           grades_count: number | null
           school_id: string | null
-          school_name: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_grades_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
