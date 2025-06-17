@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -203,7 +202,6 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Selection Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
             <div>
               <Label htmlFor="class">Class</Label>

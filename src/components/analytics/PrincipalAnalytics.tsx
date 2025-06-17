@@ -29,7 +29,7 @@ const PrincipalAnalytics = () => {
       <Card className="flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle className="h-12 w-12 text-red-500" />
         <CardTitle className="mt-4">Could not load analytics</CardTitle>
-        <p className="text-muted-foreground mt-2">{error?.message || academicInfoError}</p>
+        <p className="text-muted-foreground mt-2">{error?.message || academicInfoError?.message || 'Unknown error occurred'}</p>
       </Card>
     );
   }

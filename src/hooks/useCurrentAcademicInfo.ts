@@ -38,11 +38,18 @@ const fetchCurrentAcademicInfo = async (schoolId: string): Promise<AcademicInfo>
 };
 
 export const useCurrentAcademicInfo = (schoolId: string | null) => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['currentAcademicInfo', schoolId],
     queryFn: () => fetchCurrentAcademicInfo(schoolId!),
     enabled: !!schoolId,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     refetchOnWindowFocus: false,
   });
+
+  return {
+    academicInfo: query.data || { term: null, year: null, academicYear: null },
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 };
