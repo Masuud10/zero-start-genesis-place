@@ -2,34 +2,42 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { ErrorBoundary } from '@/utils/errorBoundary';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorMessage } from '@/components/common/ErrorMessage';
 import EduFamAdminDashboard from './edufam-admin/EduFamAdminDashboard';
 import SchoolAdminDashboard from './school-admin/SchoolAdminDashboard';
 import TeacherDashboard from './TeacherDashboard';
 import ParentDashboard from './parent/ParentDashboard';
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const { user, isLoading } = useAuth();
-  const { schoolId, isSystemAdmin } = useSchoolScopedData();
+  const { user, isLoading, error } = useAuth();
+  const { schoolId } = useSchoolScopedData();
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <LoadingSpinner size="lg" text="Loading your dashboard..." />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage 
+        error={error}
+        onRetry={() => window.location.reload()}
+        className="max-w-md mx-auto mt-20"
+      />
     );
   }
 
   if (!user) {
     return (
-      <Card className="max-w-md mx-auto mt-20">
-        <CardContent className="p-6 text-center">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
-          <p className="text-muted-foreground">Please log in to access the dashboard.</p>
-        </CardContent>
-      </Card>
+      <ErrorMessage 
+        error="Please log in to access the dashboard."
+        className="max-w-md mx-auto mt-20"
+      />
     );
   }
 
@@ -38,60 +46,51 @@ const AdminDashboard = () => {
     // Handle modal opening logic here
   };
 
-  // Role-based dashboard rendering
-  switch (user.role) {
-    case 'edufam_admin':
-      return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
-    
-    case 'principal':
-    case 'school_owner':
-      if (!schoolId) {
-        return (
-          <Card className="max-w-md mx-auto mt-20">
-            <CardContent className="p-6 text-center">
-              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">School Assignment Required</h3>
-              <p className="text-muted-foreground">
-                Your account needs to be assigned to a school. Please contact the system administrator.
-              </p>
-            </CardContent>
-          </Card>
-        );
-      }
-      return <SchoolAdminDashboard user={user} onModalOpen={handleModalOpen} />;
-    
-    case 'teacher':
-      if (!schoolId) {
-        return (
-          <Card className="max-w-md mx-auto mt-20">
-            <CardContent className="p-6 text-center">
-              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">School Assignment Required</h3>
-              <p className="text-muted-foreground">
-                Your account needs to be assigned to a school. Please contact your principal.
-              </p>
-            </CardContent>
-          </Card>
-        );
-      }
-      return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
-    
-    case 'parent':
-      return <ParentDashboard />;
-    
-    default:
-      return (
-        <Card className="max-w-md mx-auto mt-20">
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Invalid Role</h3>
-            <p className="text-muted-foreground">
-              Your account role is not recognized. Please contact support.
-            </p>
-          </CardContent>
-        </Card>
-      );
-  }
+  // Role-based dashboard rendering with proper error boundaries
+  return (
+    <ErrorBoundary>
+      {(() => {
+        switch (user.role) {
+          case 'edufam_admin':
+            return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
+          
+          case 'principal':
+          case 'school_owner':
+            if (!schoolId) {
+              return (
+                <ErrorMessage 
+                  error="Your account needs to be assigned to a school. Please contact the system administrator."
+                  className="max-w-md mx-auto mt-20"
+                />
+              );
+            }
+            return <SchoolAdminDashboard user={user} onModalOpen={handleModalOpen} />;
+          
+          case 'teacher':
+            if (!schoolId) {
+              return (
+                <ErrorMessage 
+                  error="Your account needs to be assigned to a school. Please contact your principal."
+                  className="max-w-md mx-auto mt-20"
+                />
+              );
+            }
+            return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
+          
+          case 'parent':
+            return <ParentDashboard />;
+          
+          default:
+            return (
+              <ErrorMessage 
+                error={`Invalid user role: ${user.role}. Please contact support.`}
+                className="max-w-md mx-auto mt-20"
+              />
+            );
+        }
+      })()}
+    </ErrorBoundary>
+  );
 };
 
 export default AdminDashboard;

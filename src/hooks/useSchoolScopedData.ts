@@ -31,8 +31,17 @@ export const useSchoolScopedData = () => {
   const validateSchoolAccess = useMemo(() => {
     return (targetSchoolId: string) => {
       if (isSystemAdmin) return true;
+      if (!schoolId) {
+        console.warn('validateSchoolAccess: No school assignment for non-admin user');
+        return false;
+      }
       return schoolId === targetSchoolId;
     };
+  }, [isSystemAdmin, schoolId]);
+
+  const allowedSchoolIds = useMemo(() => {
+    if (isSystemAdmin) return []; // Empty array means all schools
+    return schoolId ? [schoolId] : [];
   }, [isSystemAdmin, schoolId]);
 
   return {
@@ -41,6 +50,7 @@ export const useSchoolScopedData = () => {
     canAccessMultipleSchools,
     userRole: user?.role,
     isReady,
-    validateSchoolAccess
+    validateSchoolAccess,
+    allowedSchoolIds
   };
 };
