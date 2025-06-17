@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,7 +5,7 @@ import { useEduFamAnalytics } from "@/hooks/useEduFamAnalytics";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, TrendingUp, TrendingDown, Users, GraduationCap, CalendarCheck, DollarSign } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Users, GraduationCap, CalendarCheck, DollarSign, BarChart3 } from "lucide-react";
 
 interface School {
   id: string;
