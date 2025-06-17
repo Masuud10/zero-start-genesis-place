@@ -1,13 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, Send, Eye, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Send, Eye, Clock, AlertTriangle, FileText, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import BulkGradingModal from './BulkGradingModal';
 
 interface GradeSubmission {
   id: string;
@@ -20,6 +23,9 @@ interface GradeSubmission {
   status: string;
   grades_count: number;
   grade_ids: string[];
+  average_score?: number;
+  highest_score?: number;
+  lowest_score?: number;
 }
 
 const GradeApprovalDashboard = () => {
@@ -29,6 +35,8 @@ const GradeApprovalDashboard = () => {
   const [submissions, setSubmissions] = useState<GradeSubmission[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<string | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'principal' && schoolId) {
@@ -43,7 +51,6 @@ const GradeApprovalDashboard = () => {
     try {
       console.log('Fetching grade submissions for school:', schoolId);
       
-      // Get all grades that are submitted or approved for this school
       const { data: gradesData, error: gradesError } = await supabase
         .from('grades')
         .select(`
@@ -54,42 +61,24 @@ const GradeApprovalDashboard = () => {
           exam_type,
           submitted_at,
           status,
-          submitted_by
+          submitted_by,
+          score,
+          classes!inner(name),
+          subjects!inner(name),
+          profiles!grades_submitted_by_fkey(name)
         `)
         .eq('school_id', schoolId)
-        .in('status', ['submitted', 'approved'])
+        .in('status', ['submitted', 'approved', 'released'])
         .not('submitted_at', 'is', null)
         .order('submitted_at', { ascending: false });
 
-      if (gradesError) {
-        console.error('Error fetching grades:', gradesError);
-        throw gradesError;
-      }
-
-      console.log('Grades data:', gradesData?.length);
+      if (gradesError) throw gradesError;
 
       if (!gradesData || gradesData.length === 0) {
         setSubmissions([]);
         setLoading(false);
         return;
       }
-
-      // Get unique class IDs, subject IDs, and user IDs for additional queries
-      const classIds = [...new Set(gradesData.map(g => g.class_id))];
-      const subjectIds = [...new Set(gradesData.map(g => g.subject_id))];
-      const userIds = [...new Set(gradesData.map(g => g.submitted_by).filter(Boolean))];
-
-      // Fetch class names, subject names, and user names in parallel
-      const [classesRes, subjectsRes, usersRes] = await Promise.all([
-        supabase.from('classes').select('id, name').in('id', classIds),
-        supabase.from('subjects').select('id, name').in('id', subjectIds),
-        supabase.from('profiles').select('id, name').in('id', userIds)
-      ]);
-
-      // Create lookup objects
-      const classLookup = Object.fromEntries((classesRes.data || []).map(c => [c.id, c.name]));
-      const subjectLookup = Object.fromEntries((subjectsRes.data || []).map(s => [s.id, s.name]));
-      const userLookup = Object.fromEntries((usersRes.data || []).map(u => [u.id, u.name]));
 
       // Group grades by submission (class + subject + term + exam_type + submitted_by)
       const grouped: Record<string, GradeSubmission> = {};
@@ -100,20 +89,39 @@ const GradeApprovalDashboard = () => {
         if (!grouped[key]) {
           grouped[key] = {
             id: key,
-            class_name: classLookup[grade.class_id] || 'Unknown Class',
-            subject_name: subjectLookup[grade.subject_id] || 'Unknown Subject',
-            teacher_name: userLookup[grade.submitted_by] || 'Unknown Teacher',
+            class_name: grade.classes?.name || 'Unknown Class',
+            subject_name: grade.subjects?.name || 'Unknown Subject',
+            teacher_name: grade.profiles?.name || 'Unknown Teacher',
             term: grade.term,
             exam_type: grade.exam_type,
             submitted_at: grade.submitted_at,
             status: grade.status,
             grades_count: 0,
-            grade_ids: []
+            grade_ids: [],
+            average_score: 0,
+            highest_score: 0,
+            lowest_score: 100
           };
         }
         
         grouped[key].grades_count++;
         grouped[key].grade_ids.push(grade.id);
+        
+        // Calculate statistics
+        if (grade.score) {
+          const currentAvg = grouped[key].average_score || 0;
+          const currentCount = grouped[key].grades_count;
+          grouped[key].average_score = ((currentAvg * (currentCount - 1)) + grade.score) / currentCount;
+          grouped[key].highest_score = Math.max(grouped[key].highest_score || 0, grade.score);
+          grouped[key].lowest_score = Math.min(grouped[key].lowest_score || 100, grade.score);
+        }
+      });
+
+      // Round averages
+      Object.values(grouped).forEach(submission => {
+        if (submission.average_score) {
+          submission.average_score = Math.round(submission.average_score * 10) / 10;
+        }
       });
 
       const submissionsList = Object.values(grouped);
@@ -148,7 +156,7 @@ const GradeApprovalDashboard = () => {
 
       toast({
         title: "Success",
-        description: "Grades approved successfully",
+        description: `Grades for ${submission.class_name} - ${submission.subject_name} approved successfully`,
       });
       
       fetchSubmissions();
@@ -180,7 +188,7 @@ const GradeApprovalDashboard = () => {
 
       toast({
         title: "Success",
-        description: "Results released to parents successfully",
+        description: `Results for ${submission.class_name} - ${submission.subject_name} released to parents successfully`,
       });
       
       fetchSubmissions();
@@ -199,20 +207,48 @@ const GradeApprovalDashboard = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'submitted':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-600">Pending Review</Badge>;
+        return (
+          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending Review
+          </Badge>
+        );
       case 'approved':
-        return <Badge variant="outline" className="text-green-600 border-green-600">Approved</Badge>;
+        return (
+          <Badge variant="outline" className="text-green-600 border-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Approved
+          </Badge>
+        );
       case 'released':
-        return <Badge variant="outline" className="text-purple-600 border-purple-600">Released</Badge>;
+        return (
+          <Badge variant="outline" className="text-purple-600 border-purple-600">
+            <Send className="h-3 w-3 mr-1" />
+            Released
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const getExamTypeDisplay = (examType: string) => {
+    const typeMap: Record<string, string> = {
+      'OPENER': 'Opener',
+      'MID_TERM': 'Mid Term',
+      'END_TERM': 'End Term',
+      'ASSIGNMENT': 'Assignment',
+      'TEST': 'Test',
+      'PROJECT': 'Project'
+    };
+    return typeMap[examType] || examType;
   };
 
   if (user?.role !== 'principal') {
     return (
       <Card>
         <CardContent className="p-6 text-center">
+          <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-orange-500" />
           <p className="text-muted-foreground">Grade approval is only available to principals.</p>
         </CardContent>
       </Card>
@@ -220,101 +256,169 @@ const GradeApprovalDashboard = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Grade Approval Dashboard
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-            Loading submissions...
-          </div>
-        ) : submissions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium">No grade submissions pending review</p>
-            <p className="text-sm">Teachers haven't submitted any grades for approval yet.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Teacher</TableHead>
-                  <TableHead>Term/Exam</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Grades</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {submissions.map((submission) => (
-                  <TableRow key={submission.id}>
-                    <TableCell className="font-medium">{submission.class_name}</TableCell>
-                    <TableCell>{submission.subject_name}</TableCell>
-                    <TableCell>{submission.teacher_name}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{submission.term}</div>
-                        <div className="text-muted-foreground">{submission.exam_type}</div>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Grade Approval Dashboard
+            <Badge variant="secondary" className="ml-auto">
+              {submissions.length} Submissions
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p>Loading submissions...</p>
+            </div>
+          ) : submissions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium">No grade submissions pending review</p>
+              <p className="text-sm">Teachers haven't submitted any grades for approval yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-yellow-500" />
+                    <div>
+                      <div className="font-semibold">
+                        {submissions.filter(s => s.status === 'submitted').length}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {new Date(submission.submitted_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{submission.grades_count}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {submission.status === 'submitted' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleApprove(submission.id)}
-                            disabled={selectedSubmission === submission.id}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
-                        )}
-                        {submission.status === 'approved' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleRelease(submission.id)}
-                            disabled={selectedSubmission === submission.id}
-                            className="bg-purple-600 hover:bg-purple-700"
-                          >
-                            <Send className="h-4 w-4 mr-1" />
-                            Release
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {/* View details */}}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                      <div className="text-sm text-muted-foreground">Pending Review</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <div>
+                      <div className="font-semibold">
+                        {submissions.filter(s => s.status === 'approved').length}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                      <div className="text-sm text-muted-foreground">Approved</div>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Send className="h-5 w-5 text-purple-500" />
+                    <div>
+                      <div className="font-semibold">
+                        {submissions.filter(s => s.status === 'released').length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Released</div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Submissions Table */}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Class & Subject</TableHead>
+                      <TableHead>Teacher</TableHead>
+                      <TableHead>Term/Exam</TableHead>
+                      <TableHead>Statistics</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {submissions.map((submission) => (
+                      <TableRow key={submission.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{submission.class_name}</div>
+                            <div className="text-sm text-muted-foreground">{submission.subject_name}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            {submission.teacher_name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">{submission.term}</div>
+                            <div className="text-muted-foreground">{getExamTypeDisplay(submission.exam_type)}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm space-y-1">
+                            <div><strong>{submission.grades_count}</strong> grades</div>
+                            {submission.average_score && (
+                              <>
+                                <div>Avg: <strong>{submission.average_score}%</strong></div>
+                                <div className="text-xs text-muted-foreground">
+                                  Range: {submission.lowest_score}% - {submission.highest_score}%
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {new Date(submission.submitted_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {submission.status === 'submitted' && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleApprove(submission.id)}
+                                disabled={selectedSubmission === submission.id}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                            )}
+                            {submission.status === 'approved' && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleRelease(submission.id)}
+                                disabled={selectedSubmission === submission.id}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                <Send className="h-4 w-4 mr-1" />
+                                Release
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setOverrideModalOpen(true)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Override
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Grade Override Modal */}
+      {overrideModalOpen && (
+        <BulkGradingModal onClose={() => setOverrideModalOpen(false)} />
+      )}
+    </>
   );
 };
 
