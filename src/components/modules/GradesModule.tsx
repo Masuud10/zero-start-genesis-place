@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,51 +61,31 @@ const GradesModule: React.FC = () => {
     try {
       console.log('🎓 GradesModule: Fetching fresh data for', cacheKey);
 
-      const promises: Promise<any>[] = [];
+      let schoolsData = schoolsCache.current;
+      let summaryData = null;
 
       // Fetch schools if admin and not cached
       if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
-        promises.push(
-          supabase.from("schools").select("id, name").order('name')
-        );
+        const { data: schoolsResponse, error: schoolsError } = await supabase
+          .from("schools")
+          .select("id, name")
+          .order('name');
+          
+        if (schoolsError) throw new Error("Failed to fetch schools list.");
+        schoolsData = schoolsResponse || [];
+        schoolsCache.current = schoolsData; // Cache schools
       }
 
       // Fetch grades summary if school is selected
       if (effectiveSchoolId) {
-        promises.push(
-          supabase
-            .from("school_grades_summary")
-            .select("*")
-            .eq("school_id", effectiveSchoolId)
-            .maybeSingle()
-        );
-      }
-
-      if (promises.length === 0) {
-        setGradesSummary(null);
-        setLoadingSummary(false);
-        return;
-      }
-
-      const results = await Promise.all(promises);
-      let schoolsData = schoolsCache.current;
-      let summaryData = null;
-
-      // Process results
-      if (user.role === 'edufam_admin' && results.length > 1) {
-        // Schools and summary
-        const [schoolsRes, summaryRes] = results;
-        if (schoolsRes.error) throw new Error("Failed to fetch schools list.");
-        schoolsData = schoolsRes.data || [];
-        schoolsCache.current = schoolsData; // Cache schools
-        
-        if (summaryRes.error) throw new Error("Could not load grades summary data.");
-        summaryData = summaryRes.data;
-      } else if (results.length === 1) {
-        // Just summary
-        const [summaryRes] = results;
-        if (summaryRes.error) throw new Error("Could not load grades summary data.");
-        summaryData = summaryRes.data;
+        const { data: summaryResponse, error: summaryError } = await supabase
+          .from("school_grades_summary")
+          .select("*")
+          .eq("school_id", effectiveSchoolId)
+          .maybeSingle();
+          
+        if (summaryError) throw new Error("Could not load grades summary data.");
+        summaryData = summaryResponse;
       }
 
       // Cache the results
