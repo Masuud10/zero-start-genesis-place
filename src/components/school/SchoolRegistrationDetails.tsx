@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -45,10 +45,14 @@ const SchoolRegistrationDetails = () => {
       return data as SchoolDetails;
     },
     enabled: !!schoolId,
-    onSuccess: (data) => {
-      setFormData(data);
-    },
   });
+
+  // Update form data when school data changes
+  useEffect(() => {
+    if (school) {
+      setFormData(school);
+    }
+  }, [school]);
 
   const updateSchoolMutation = useMutation({
     mutationFn: async (updates: Partial<SchoolDetails>) => {
