@@ -11,7 +11,7 @@ interface SchoolOwnerDashboardLayoutProps {
   metrics: SchoolMetrics;
   loading: boolean;
   schoolId: string | null;
-  onManagementAction: (action: string) => void;
+  onManagementAction?: (action: string) => void; // Made optional since it's now handled internally
 }
 
 const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
@@ -27,10 +27,10 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2 font-semibold text-lg">
           <Settings className="h-5 w-5" />
-          School Management
+          Key Administrative Functions
         </div>
-        <div className="mb-2 text-muted-foreground text-sm">
-          Key administrative functions
+        <div className="mb-4 text-muted-foreground text-sm">
+          Click any function below to navigate to the respective management area
         </div>
         <SchoolManagementActions onAction={onManagementAction} />
       </div>

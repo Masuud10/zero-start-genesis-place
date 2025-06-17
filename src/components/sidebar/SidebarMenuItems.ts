@@ -1,4 +1,3 @@
-
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -57,11 +56,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // School Owner - school-wide access, NO settings access
+  // School Owner - school-wide access, including user management
   if (userRole === 'school_owner') {
     return [
       ...baseItems,
       { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['school_owner'] },
+      { id: 'users', label: 'Staff Management', icon: UserCheck, roles: ['school_owner'] },
       { id: 'grades', label: 'School Grades', icon: GraduationCap, roles: ['school_owner'] },
       { id: 'attendance', label: 'School Attendance', icon: CalendarCheck, roles: ['school_owner'] },
       { id: 'students', label: 'Student Management', icon: Users, roles: ['school_owner'] },
