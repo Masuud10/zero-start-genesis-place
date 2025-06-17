@@ -39,7 +39,7 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
 
   const { toast } = useToast();
   const { currentSchool } = useSchool();
-  const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(
+  const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(
     user?.school_id
   );
 
@@ -153,11 +153,10 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
         <DialogHeader>
           <DialogTitle>Enter IGCSE Grade</DialogTitle>
         </DialogHeader>
-        {academicInfoError && (
+        {!academicInfo.term && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
-              {academicInfoError.message ||
-                "Failed to load academic information"}
+              Academic term information is not available. Please contact your administrator.
             </AlertDescription>
           </Alert>
         )}

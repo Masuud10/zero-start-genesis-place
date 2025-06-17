@@ -275,7 +275,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
           const grade = grades[studentId][subjectId];
           
           // Only include grades that have actual values
-          if (grade.score !== undefined && grade.score !== null && grade.score !== '') {
+          if (grade.score !== undefined && grade.score !== null && grade.score.toString() !== '') {
             gradesToUpsert.push({
               school_id: schoolId,
               student_id: studentId,
