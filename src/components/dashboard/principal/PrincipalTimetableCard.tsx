@@ -45,7 +45,6 @@ const PrincipalTimetableCard = () => {
     try {
       setLoading(true);
 
-      const currentDay = new Date().toLocaleLowerCase().slice(0, 3); // 'mon', 'tue', etc.
       const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][new Date().getDay()];
 
       // Fetch timetable statistics
