@@ -1,65 +1,48 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AcademicInfo {
-  year: string | null;
   term: string | null;
+  year: string | null;
+  academicYear: string | null;
 }
 
-export const useCurrentAcademicInfo = (schoolId?: string) => {
-  const [academicInfo, setAcademicInfo] = useState<AcademicInfo>({ year: null, term: null });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const fetchCurrentAcademicInfo = async (schoolId: string): Promise<AcademicInfo> => {
+  console.log('📅 Fetching current academic info for school:', schoolId);
 
-  useEffect(() => {
-    if (!schoolId) {
-      setLoading(false);
-      return;
-    }
+  // Fetch current academic year
+  const { data: currentYear } = await supabase
+    .from('academic_years')
+    .select('year_name')
+    .eq('school_id', schoolId)
+    .eq('is_current', true)
+    .single();
 
-    const fetchAcademicInfo = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const yearPromise = supabase
-          .from('academic_years')
-          .select('year_name')
-          .eq('school_id', schoolId)
-          .eq('is_current', true)
-          .maybeSingle();
+  // Fetch current academic term
+  const { data: currentTerm } = await supabase
+    .from('academic_terms')
+    .select('term_name')
+    .eq('school_id', schoolId)
+    .eq('is_current', true)
+    .single();
 
-        const termPromise = supabase
-          .from('academic_terms')
-          .select('term_name')
-          .eq('school_id', schoolId)
-          .eq('is_current', true)
-          .maybeSingle();
+  const result = {
+    term: currentTerm?.term_name || null,
+    year: currentYear?.year_name || null,
+    academicYear: currentYear?.year_name || null,
+  };
 
-        const [yearResult, termResult] = await Promise.all([yearPromise, termPromise]);
+  console.log('📅 Current academic info:', result);
+  return result;
+};
 
-        if (yearResult.error) throw new Error(`Could not fetch current academic year: ${yearResult.error.message}`);
-        if (termResult.error) throw new Error(`Could not fetch current academic term: ${termResult.error.message}`);
-
-        const year = yearResult.data?.year_name || null;
-        const term = termResult.data?.term_name || null;
-
-        if (!year || !term) {
-            setError('Current academic year or term is not set for this school. Please contact administration.');
-        }
-
-        setAcademicInfo({ year, term });
-
-      } catch (err: any) {
-        setError(err.message);
-        setAcademicInfo({ year: null, term: null });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAcademicInfo();
-  }, [schoolId]);
-
-  return { academicInfo, loading, error };
+export const useCurrentAcademicInfo = (schoolId: string | null) => {
+  return useQuery({
+    queryKey: ['currentAcademicInfo', schoolId],
+    queryFn: () => fetchCurrentAcademicInfo(schoolId!),
+    enabled: !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    refetchOnWindowFocus: false,
+  });
 };
