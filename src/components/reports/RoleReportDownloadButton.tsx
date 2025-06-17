@@ -8,16 +8,16 @@ import { useSchool } from "@/contexts/SchoolContext";
 import type { VariantProps } from "class-variance-authority";
 
 interface RoleReportDownloadButtonProps extends VariantProps<typeof buttonVariants> {
-  type: "grades" | "attendance";
+  type: "grades" | "attendance" | "finance" | "students" | "comprehensive";
   classId?: string;
-  term: string;
+  term?: string;
   label?: string;
 }
 
 const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({ 
   type, 
   classId, 
-  term, 
+  term = 'current', 
   label,
   variant,
   size
@@ -39,6 +39,8 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
         user_id: user?.id
       };
       
+      console.log('📊 Generating report with payload:', payload);
+      
       const res = await fetch(
         "https://lmqyizrnuahkmwauonqr.functions.supabase.co/generate_role_report",
         {
@@ -48,13 +50,16 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
         }
       );
       
-      if (!res.ok) throw new Error("Could not generate report");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Report generation failed: ${errorText}`);
+      }
       
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${type}_report_${term}.xlsx`;
+      a.download = `${type}_report_${term}_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => window.URL.revokeObjectURL(url), 500);
@@ -65,9 +70,10 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
         description: label || "Report downloaded successfully." 
       });
     } catch (e: any) {
+      console.error('❌ Report download error:', e);
       toast({ 
         title: "Download Failed", 
-        description: e.message, 
+        description: e.message || "Failed to generate report. Please try again.", 
         variant: "destructive" 
       });
     }

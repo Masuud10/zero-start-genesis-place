@@ -18,7 +18,10 @@ import {
   UserCheck,
   Settings,
   Shield,
-  SchoolIcon
+  SchoolIcon,
+  Receipt,
+  Calculator,
+  Coins
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -120,6 +123,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'finance', label: 'Fee Management', icon: DollarSign, roles: ['finance_officer'] },
       { id: 'payments', label: 'Process Payments', icon: CreditCard, roles: ['finance_officer'] },
       { id: 'student-accounts', label: 'Student Accounts', icon: Users, roles: ['finance_officer'] },
+      { id: 'fee-management', label: 'Fee Assignment', icon: Coins, roles: ['finance_officer'] },
       { id: 'reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
       { id: 'finance-settings', label: 'Finance Settings', icon: Settings, roles: ['finance_officer'] },
       { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
@@ -141,6 +145,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'timetable', label: 'Class Timetable', icon: Calendar, roles: ['parent'] },
       { id: 'announcements', label: 'School News', icon: Megaphone, roles: ['parent'] },
       { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['parent'] },
+      { id: 'reports', label: 'Progress Reports', icon: FileText, roles: ['parent'] },
       { id: 'security', label: 'Security', icon: Shield, roles: ['parent'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['parent'] },
     ];
