@@ -12,6 +12,7 @@ export interface Report {
 }
 
 export interface ReportFilters {
+  school_id?: string;
   academic_year?: string;
   term?: string;
   class_id?: string;
