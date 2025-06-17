@@ -8,7 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SchoolProvider } from '@/contexts/SchoolContext';
 import { NavigationProvider } from '@/contexts/NavigationContext';
 import { ErrorBoundary } from '@/utils/errorBoundary';
-import AppContent from './AppContent';
+import AppContent from '@/components/AppContent';
 
 // Create a stable query client instance
 const queryClient = new QueryClient({

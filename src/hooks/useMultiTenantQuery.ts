@@ -1,16 +1,23 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { useSchoolScopedData } from './useSchoolScopedData';
 
-type TableName = keyof Database['public']['Tables'];
+// Define valid table names for type safety
+const VALID_TABLES = [
+  'students', 'classes', 'subjects', 'timetables', 'announcements',
+  'support_tickets', 'messages', 'grades', 'attendance', 'fees',
+  'profiles', 'schools', 'academic_years', 'academic_terms',
+  'cbc_assessments', 'competency_progress', 'learner_portfolios', 'parent_engagements'
+] as const;
+
+type ValidTableName = typeof VALID_TABLES[number];
 
 export const useMultiTenantQuery = () => {
   const { user } = useAuth();
   const { schoolId, isSystemAdmin } = useSchoolScopedData();
 
-  const addSchoolFilter = (query: any, tableName: TableName) => {
+  const addSchoolFilter = (query: any, tableName: ValidTableName) => {
     // System admins can access all data
     if (isSystemAdmin) {
       return query;
@@ -56,12 +63,12 @@ export const useMultiTenantQuery = () => {
     }
   };
 
-  const createSchoolScopedQuery = (tableName: TableName, selectClause = '*') => {
-    const baseQuery = supabase.from(tableName).select(selectClause);
+  const createSchoolScopedQuery = (tableName: ValidTableName, selectClause = '*') => {
+    const baseQuery = supabase.from(tableName as any).select(selectClause);
     return addSchoolFilter(baseQuery, tableName);
   };
 
-  const ensureSchoolAccess = (data: any, tableName: TableName) => {
+  const ensureSchoolAccess = (data: any, tableName: ValidTableName) => {
     if (isSystemAdmin) {
       return true;
     }

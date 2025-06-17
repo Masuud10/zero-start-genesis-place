@@ -5,9 +5,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { APIOptimizationUtils } from '@/utils/apiOptimization';
 
-interface OptimizedQueryOptions<T> extends Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'> {
+// Define valid table names to fix TypeScript overload issues
+const VALID_TABLES = [
+  'students', 'classes', 'subjects', 'timetables', 'announcements',
+  'support_tickets', 'messages', 'grades', 'attendance', 'fees',
+  'profiles', 'schools', 'academic_years', 'academic_terms'
+] as const;
+
+type ValidTableName = typeof VALID_TABLES[number];
+
+interface OptimizedQueryOptions<T = any> extends Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'> {
   queryKey: string[];
-  tableName: string;
+  tableName: ValidTableName;
   selectFields?: string;
   filters?: Record<string, any>;
   requiresAuth?: boolean;
@@ -15,7 +24,7 @@ interface OptimizedQueryOptions<T> extends Omit<UseQueryOptions<T>, 'queryKey' |
   cacheTTL?: number;
 }
 
-export const useOptimizedQuery = <T>({
+export const useOptimizedQuery = <T = any>({
   queryKey,
   tableName,
   selectFields = '*',
@@ -32,7 +41,7 @@ export const useOptimizedQuery = <T>({
 
   return useQuery({
     queryKey,
-    queryFn: async () => {
+    queryFn: async (): Promise<T> => {
       // Check cache first
       const cached = APIOptimizationUtils.getCachedData<T>(cacheKey);
       if (cached) return cached;
@@ -48,7 +57,8 @@ export const useOptimizedQuery = <T>({
 
       // Build query with deduplication
       return APIOptimizationUtils.deduplicateRequest(cacheKey, async () => {
-        let query = supabase.from(tableName).select(selectFields);
+        // Use explicit type assertion to fix TypeScript overload issue
+        let query = supabase.from(tableName as any).select(selectFields);
 
         // Apply school_id filter for multi-tenancy
         if (requiresSchool && schoolId) {
