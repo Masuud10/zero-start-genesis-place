@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
@@ -82,7 +83,7 @@ const GradeCell: React.FC<GradeCellProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Tab" || e.key === "Enter") {
-      e.currentTarget.blur();
+      (e.currentTarget as HTMLElement).blur();
       const inputs = Array.from(
         document.querySelectorAll('input[type="number"], select')
       );

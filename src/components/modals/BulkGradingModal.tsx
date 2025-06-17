@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -37,10 +38,10 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
 
-  // Changed state type to number | null
-  const [selectedClass, setSelectedClass] = useState<number | null>(null);
-  const [selectedTerm, setSelectedTerm] = useState<number | null>(null);
-  const [selectedExamType, setSelectedExamType] = useState<number | null>(null);
+  // Changed state type to string for compatibility
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [selectedTerm, setSelectedTerm] = useState<string>("");
+  const [selectedExamType, setSelectedExamType] = useState<string>("");
 
   const [grades, setGrades] = useState<
     Record<string, Record<string, GradeValue>>
@@ -204,9 +205,9 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   };
 
   const canProceed =
-    selectedClass !== null &&
-    selectedTerm !== null &&
-    selectedExamType !== null;
+    selectedClass !== "" &&
+    selectedTerm !== "" &&
+    selectedExamType !== "";
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -229,11 +230,11 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
               classes={classes}
               academicTerms={academicTerms}
               selectedClass={selectedClass}
-              onClassChange={(value) => setSelectedClass(Number(value))}
+              onClassChange={setSelectedClass}
               selectedTerm={selectedTerm}
-              onTermChange={(value) => setSelectedTerm(Number(value))}
+              onTermChange={setSelectedTerm}
               selectedExamType={selectedExamType}
-              onExamTypeChange={(value) => setSelectedExamType(Number(value))}
+              onExamTypeChange={setSelectedExamType}
             />
 
             {loading && !initialLoading && (

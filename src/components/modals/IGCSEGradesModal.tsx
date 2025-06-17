@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -38,7 +39,7 @@ const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
 
   const { toast } = useToast();
   const { currentSchool } = useSchool();
-  const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(
+  const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(
     user?.school_id
   );
 
