@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,11 +92,13 @@ const GradeApprovalDashboard = () => {
       const userLookup = Object.fromEntries((usersRes.data || []).map(u => [u.id, u.name]));
 
       // Group grades by submission (class + subject + term + exam_type + submitted_by)
-      const grouped = gradesData.reduce((acc: any, grade: any) => {
+      const grouped: Record<string, GradeSubmission> = {};
+      
+      gradesData.forEach((grade: any) => {
         const key = `${grade.class_id}-${grade.subject_id}-${grade.term}-${grade.exam_type}-${grade.submitted_by}`;
         
-        if (!acc[key]) {
-          acc[key] = {
+        if (!grouped[key]) {
+          grouped[key] = {
             id: key,
             class_name: classLookup[grade.class_id] || 'Unknown Class',
             subject_name: subjectLookup[grade.subject_id] || 'Unknown Subject',
@@ -111,10 +112,9 @@ const GradeApprovalDashboard = () => {
           };
         }
         
-        acc[key].grades_count++;
-        acc[key].grade_ids.push(grade.id);
-        return acc;
-      }, {});
+        grouped[key].grades_count++;
+        grouped[key].grade_ids.push(grade.id);
+      });
 
       const submissionsList = Object.values(grouped);
       console.log('Processed submissions:', submissionsList.length);
