@@ -1,162 +1,163 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Users, School, CreditCard, Settings, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-
-// Utility: List of admin features/tabs
-const ADMIN_SECTIONS = [
-  {
-    key: "schools",
-    icon: <School className="w-5 h-5 mr-1" />,
-    label: "Schools",
-    description: "Manage all schools registered in EduFam.",
-    color: "bg-gradient-to-r from-emerald-500 to-blue-600"
-  },
-  {
-    key: "users",
-    icon: <Users className="w-5 h-5 mr-1" />,
-    label: "Users",
-    description: "Oversee all platform users and roles.",
-    color: "bg-gradient-to-r from-blue-600 to-purple-600"
-  },
-  {
-    key: "billing",
-    icon: <CreditCard className="w-5 h-5 mr-1" />,
-    label: "Billing",
-    description: "Review and manage billing/subscription data.",
-    color: "bg-gradient-to-r from-purple-600 to-pink-500"
-  },
-  {
-    key: "system-settings",
-    icon: <Settings className="w-5 h-5 mr-1" />,
-    label: "System Settings",
-    description: "Configure global platform settings.",
-    color: "bg-gradient-to-r from-gray-400 to-gray-700"
-  }
-];
-
-// Simple error banner
-const ErrorBanner = ({ error }: { error: string }) =>
-  <div className="p-3 bg-red-50 border border-red-200 rounded mb-4 text-red-700 font-medium">
-    {error}
-  </div>;
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Users, 
+  Building2, 
+  BarChart3, 
+  Settings, 
+  Shield, 
+  CreditCard, 
+  Headphones, 
+  Activity,
+  Database,
+  Globe
+} from 'lucide-react';
 
 interface AdministrativeHubProps {
-  onModalOpen: (type: string) => void;
+  onModalOpen: (modalType: string) => void;
   onUserCreated?: () => void;
 }
 
-const AdministrativeHub: React.FC<AdministrativeHubProps> = ({ onModalOpen, onUserCreated }) => {
-  const [activeTab, setActiveTab] = useState("schools");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  // Helper: trigger modals with loading, success & error toasts
-  const handleAction = async (key: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log(`[AdministrativeHub] Action triggered: ${key}`);
-      
-      // Simulate brief loading for UX
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      if (["schools", "users"].includes(key)) {
-        onModalOpen(key);
-        toast({ 
-          title: "Success", 
-          description: `Opened ${ADMIN_SECTIONS.find(s => s.key === key)?.label} management.`,
-          variant: "default"
-        });
-      } else if (["billing", "system-settings"].includes(key)) {
-        toast({ 
-          title: "Coming Soon", 
-          description: `${ADMIN_SECTIONS.find(s => s.key === key)?.label} feature is under development.`,
-          variant: "default"
-        });
-      } else {
-        throw new Error("Unknown action requested");
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
-      setError(errorMessage);
-      toast({ 
-        title: "Error", 
-        description: errorMessage,
-        variant: "destructive" 
-      });
-    } finally {
-      setLoading(false);
+const AdministrativeHub = ({ onModalOpen, onUserCreated }: AdministrativeHubProps) => {
+  
+  const systemActions = [
+    {
+      id: 'create-user',
+      title: 'User Management',
+      description: 'Create and manage user accounts across all schools',
+      icon: Users,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      hoverColor: 'hover:bg-blue-100',
+      action: () => onModalOpen('createUser')
+    },
+    {
+      id: 'create-school',
+      title: 'Schools Management',
+      description: 'Add new schools and manage existing institutions',
+      icon: Building2,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
+      hoverColor: 'hover:bg-green-100',
+      action: () => onModalOpen('createSchool')
+    },
+    {
+      id: 'analytics',
+      title: 'System Analytics',
+      description: 'View comprehensive analytics across all schools',
+      icon: BarChart3,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      hoverColor: 'hover:bg-purple-100',
+      action: () => console.log('Navigate to analytics')
+    },
+    {
+      id: 'billing',
+      title: 'Billing & Subscriptions',
+      description: 'Manage school subscriptions and billing',
+      icon: CreditCard,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      hoverColor: 'hover:bg-orange-100',
+      action: () => console.log('Navigate to billing')
+    },
+    {
+      id: 'system-health',
+      title: 'System Health',
+      description: 'Monitor system performance and uptime',
+      icon: Activity,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
+      hoverColor: 'hover:bg-red-100',
+      action: () => console.log('Navigate to system health')
+    },
+    {
+      id: 'security',
+      title: 'Security Center',
+      description: 'Manage security settings and audit logs',
+      icon: Shield,
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50',
+      hoverColor: 'hover:bg-indigo-100',
+      action: () => console.log('Navigate to security')
+    },
+    {
+      id: 'support',
+      title: 'Support Center',
+      description: 'Manage support tickets and user assistance',
+      icon: Headphones,
+      color: 'text-cyan-600',
+      bgColor: 'bg-cyan-50',
+      hoverColor: 'hover:bg-cyan-100',
+      action: () => console.log('Navigate to support')
+    },
+    {
+      id: 'database',
+      title: 'Database Management',
+      description: 'Manage database operations and backups',
+      icon: Database,
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-50',
+      hoverColor: 'hover:bg-gray-100',
+      action: () => console.log('Navigate to database')
+    },
+    {
+      id: 'settings',
+      title: 'System Settings',
+      description: 'Configure global system settings and preferences',
+      icon: Settings,
+      color: 'text-slate-600',
+      bgColor: 'bg-slate-50',
+      hoverColor: 'hover:bg-slate-100',
+      action: () => console.log('Navigate to settings')
     }
-  };
+  ];
 
   return (
-    <Card className="mt-3 shadow border-0">
-      <CardHeader>
-        <CardTitle className="text-2xl flex items-center gap-2">
-          <Settings className="w-6 h-6 text-blue-500" />
-          EduFam Admin Hub
-        </CardTitle>
-        <CardDescription>One-stop access to system administration features.</CardDescription>
+    <Card className="rounded-2xl border-0 shadow-sm">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+            <Globe className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <CardTitle className="text-xl font-bold text-gray-900">System Management</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">Comprehensive admin tools and controls</p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        {/* Error and info feedback */}
-        {error && <ErrorBanner error={error} />}
-
-        {/* Tab nav */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-          <TabsList className="grid w-full grid-cols-4">
-            {ADMIN_SECTIONS.map(s =>
-              <TabsTrigger
-                key={s.key}
-                value={s.key}
-                className="flex items-center px-2 text-xs sm:text-sm"
-                data-testid={`hub-tab-${s.key}`}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {systemActions.map((action) => {
+            const IconComponent = action.icon;
+            return (
+              <div
+                key={action.id}
+                onClick={action.action}
+                className={`
+                  group cursor-pointer p-4 rounded-xl border border-gray-200 
+                  transition-all duration-300 hover:shadow-md hover:scale-105
+                  ${action.bgColor} ${action.hoverColor}
+                `}
               >
-                {s.icon}
-                <span className="hidden sm:inline ml-1">{s.label}</span>
-              </TabsTrigger>
-            )}
-          </TabsList>
-          {ADMIN_SECTIONS.map(s =>
-            <TabsContent value={s.key} key={s.key} className="mt-4">
-              <div className="p-4 border rounded-lg bg-gray-50/50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`rounded-lg p-3 text-white ${s.color}`}>{s.icon}</div>
-                  <div>
-                    <div className="font-semibold text-lg">{s.label}</div>
-                    <div className="text-sm text-gray-600">{s.description}</div>
+                <div className="flex items-start gap-3">
+                  <div className={`p-2 rounded-lg bg-white shadow-sm group-hover:shadow-md transition-shadow`}>
+                    <IconComponent className={`h-5 w-5 ${action.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-gray-800 transition-colors">
+                      {action.title}
+                    </h3>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {action.description}
+                    </p>
                   </div>
                 </div>
-                <div className="flex gap-4">
-                  <Button
-                    onClick={() => handleAction(s.key)}
-                    className="flex items-center"
-                    disabled={loading}
-                    variant="default"
-                  >
-                    {loading ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        {s.icon}
-                        Open {s.label}
-                      </>
-                    )}
-                  </Button>
-                </div>
               </div>
-            </TabsContent>
-          )}
-        </Tabs>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );

@@ -6,7 +6,7 @@ import { useEduFamAnalytics } from "@/hooks/useEduFamAnalytics";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, TrendingUp, TrendingDown, Users, GraduationCap, CalendarCheck, DollarSign, BarChart3, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, TrendingUp, Users, GraduationCap, CalendarCheck, DollarSign, BarChart3, AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface School {
@@ -255,7 +255,7 @@ const EduFamAdminAnalytics = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg border shadow-sm">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-2xl border shadow-sm">
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700">School:</label>
           <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
@@ -290,7 +290,7 @@ const EduFamAdminAnalytics = () => {
       {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Grades Analytics Card */}
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 rounded-2xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-700">
               Academic Performance
@@ -319,7 +319,7 @@ const EduFamAdminAnalytics = () => {
         </Card>
 
         {/* Attendance Analytics Card */}
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 rounded-2xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-700">
               Attendance Tracking
@@ -348,7 +348,7 @@ const EduFamAdminAnalytics = () => {
         </Card>
 
         {/* Finance Analytics Card */}
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-all duration-300 rounded-2xl border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-700">
               Financial Overview
@@ -383,7 +383,7 @@ const EduFamAdminAnalytics = () => {
         attendanceSummary.totalRecords === 0 && 
         financeSummary.transactionsCount === 0
       ) && (
-        <Card className="text-center py-12">
+        <Card className="text-center py-12 rounded-2xl border-0 shadow-sm">
           <CardContent>
             <div className="text-gray-500 mb-4">
               <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -397,7 +397,7 @@ const EduFamAdminAnalytics = () => {
             </div>
             <button
               onClick={retry}
-              className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-2 rounded transition-colors"
+              className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-2 rounded-lg transition-colors"
             >
               Refresh Data
             </button>
