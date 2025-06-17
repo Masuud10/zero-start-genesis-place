@@ -7,20 +7,20 @@ import SchoolAdminStatsCards from './school-admin/SchoolAdminStatsCards';
 import SchoolAdminQuickActions from './school-admin/SchoolAdminQuickActions';
 
 interface SchoolAdminDashboardProps {
-  user: AuthUser;
-  onModalOpen: (modalType: string) => void;
+  user?: AuthUser;
+  onModalOpen?: (modalType: string) => void;
 }
 
 const SchoolAdminDashboard: React.FC<SchoolAdminDashboardProps> = ({ user, onModalOpen }) => {
-  console.log('🏫 SchoolAdminDashboard: Rendering for school admin:', user.email, 'Role:', user.role);
+  console.log('🏫 SchoolAdminDashboard: Rendering for school admin:', user?.email, 'Role:', user?.role);
 
-  const { stats, loading } = useSchoolAdminStats(user.school_id);
+  const { stats, loading } = useSchoolAdminStats(user?.school_id);
 
   return (
     <div className="space-y-6">
       <SchoolAdminWelcomeHeader user={user} />
       <SchoolAdminStatsCards stats={stats} loading={loading} />
-      <SchoolAdminQuickActions onModalOpen={onModalOpen} />
+      <SchoolAdminQuickActions onModalOpen={onModalOpen || (() => {})} />
     </div>
   );
 };
