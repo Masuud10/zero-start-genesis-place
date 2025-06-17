@@ -10,10 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { schoolId, isSystemAdmin } = useSchoolScopedData();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -36,7 +36,7 @@ const AdminDashboard = () => {
   // Role-based dashboard rendering
   switch (user.role) {
     case 'edufam_admin':
-      return <EduFamAdminDashboard />;
+      return <EduFamAdminDashboard onModalOpen={() => {}} />;
     
     case 'principal':
     case 'school_owner':
@@ -69,7 +69,7 @@ const AdminDashboard = () => {
           </Card>
         );
       }
-      return <TeacherDashboard />;
+      return <TeacherDashboard user={user} onModalOpen={() => {}} />;
     
     case 'parent':
       return <ParentDashboard />;

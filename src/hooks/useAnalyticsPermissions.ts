@@ -12,7 +12,8 @@ export const useAnalyticsPermissions = () => {
       return {
         canViewSystemAnalytics: false,
         canViewSchoolAnalytics: () => false,
-        analyticsScope: 'none'
+        analyticsScope: 'none',
+        allowedSchoolIds: []
       };
     }
 
@@ -33,10 +34,17 @@ export const useAnalyticsPermissions = () => {
       return 'none';
     })();
 
+    const allowedSchoolIds = (() => {
+      if (user.role === 'edufam_admin') return []; // All schools
+      if (schoolId) return [schoolId];
+      return [];
+    })();
+
     return {
       canViewSystemAnalytics,
       canViewSchoolAnalytics,
-      analyticsScope
+      analyticsScope,
+      allowedSchoolIds
     };
   }, [user, schoolId]);
 

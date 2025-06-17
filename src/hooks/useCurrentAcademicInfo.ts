@@ -46,6 +46,7 @@ export const useCurrentAcademicInfo = (schoolId: string | null) => {
       year: new Date().getFullYear().toString(),
       academicYear: `${new Date().getFullYear()}`
     },
-    isLoading
+    isLoading,
+    loading: isLoading
   };
 };

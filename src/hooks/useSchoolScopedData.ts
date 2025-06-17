@@ -24,10 +24,23 @@ export const useSchoolScopedData = () => {
     return user?.role === 'edufam_admin';
   }, [user]);
 
+  const isReady = useMemo(() => {
+    return user !== null;
+  }, [user]);
+
+  const validateSchoolAccess = useMemo(() => {
+    return (targetSchoolId: string) => {
+      if (isSystemAdmin) return true;
+      return schoolId === targetSchoolId;
+    };
+  }, [isSystemAdmin, schoolId]);
+
   return {
     schoolId,
     isSystemAdmin,
     canAccessMultipleSchools,
-    userRole: user?.role
+    userRole: user?.role,
+    isReady,
+    validateSchoolAccess
   };
 };

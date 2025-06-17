@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +19,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import AdministrativeHub from './AdministrativeHub';
 
-const EduFamAdminDashboard = () => {
+interface EduFamAdminDashboardProps {
+  onModalOpen: (modalType: string) => void;
+}
+
+const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [selectedSchool, setSelectedSchool] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'overview' | 'schools' | 'analytics' | 'management'>('overview');
   const { toast } = useToast();
@@ -242,7 +245,7 @@ const EduFamAdminDashboard = () => {
 
       {/* Content */}
       {activeTab === 'overview' && renderOverview()}
-      {activeTab === 'management' && <AdministrativeHub />}
+      {activeTab === 'management' && <AdministrativeHub onModalOpen={onModalOpen} onUserCreated={() => {}} />}
     </div>
   );
 };
