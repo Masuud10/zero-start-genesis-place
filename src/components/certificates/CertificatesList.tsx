@@ -3,34 +3,82 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useCertificates } from '@/hooks/useCertificates';
-import { Trash2, Download, Eye, Award } from 'lucide-react';
-import { format } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Award, Download, Eye, Trash2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 const CertificatesList = () => {
-  const { certificates, isLoading, deleteCertificate, isDeleting } = useCertificates();
+  const { user } = useAuth();
+  const { schoolId } = useSchoolScopedData();
+  const { toast } = useToast();
+
+  const { data: certificates, isLoading, refetch } = useQuery({
+    queryKey: ['certificates', schoolId],
+    queryFn: async () => {
+      let query = supabase
+        .from('certificates')
+        .select(`
+          *,
+          student:students(name, admission_number),
+          class:classes(name, level, stream),
+          generated_by_profile:profiles!certificates_generated_by_fkey(name)
+        `)
+        .order('generated_at', { ascending: false });
+
+      if (user?.role !== 'edufam_admin') {
+        query = query.eq('school_id', schoolId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!schoolId || user?.role === 'edufam_admin'
+  });
+
+  const handleDelete = async (certificateId: string) => {
+    try {
+      const { error } = await supabase
+        .from('certificates')
+        .delete()
+        .eq('id', certificateId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Certificate deleted successfully",
+      });
+      
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete certificate",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownload = (certificate: any) => {
+    // This would typically generate and download a PDF
+    toast({
+      title: "Download",
+      description: "Certificate download would be implemented here",
+    });
+  };
 
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!certificates || certificates.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center py-8">
-            <Award className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Certificates Found</h3>
-            <p className="text-gray-500">Generate your first certificate to get started.</p>
-          </div>
+        <CardContent className="p-6 text-center">
+          <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+          <p>Loading certificates...</p>
         </CardContent>
       </Card>
     );
@@ -39,62 +87,86 @@ const CertificatesList = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Generated Certificates</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Award className="h-5 w-5" />
+          Generated Certificates
+          <Badge variant="secondary" className="ml-auto">
+            {certificates?.length || 0} Total
+          </Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {certificates.map((certificate) => (
-            <div
-              key={certificate.id}
-              className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                  <Award className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-gray-900">
-                      Academic Certificate - {certificate.academic_year}
-                    </h4>
-                    <Badge className="bg-blue-100 text-blue-800">
-                      Certificate
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Generated on {format(new Date(certificate.generated_at), 'PPp')}
-                  </p>
-                  {certificate.performance?.student && (
-                    <p className="text-sm text-gray-600">
-                      Student: {certificate.performance.student.name} 
-                      ({certificate.performance.student.admission_number})
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => deleteCertificate(certificate.id)}
-                  disabled={isDeleting}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {!certificates || certificates.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium">No certificates generated yet</p>
+            <p className="text-sm">Generate academic certificates for students to get started.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Academic Year</TableHead>
+                  <TableHead>Generated By</TableHead>
+                  <TableHead>Generated Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {certificates.map((certificate) => (
+                  <TableRow key={certificate.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{certificate.student?.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {certificate.student?.admission_number}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">{certificate.class?.name}</div>
+                        {certificate.class?.stream && (
+                          <div className="text-muted-foreground">{certificate.class.stream}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{certificate.academic_year}</TableCell>
+                    <TableCell>{certificate.generated_by_profile?.name}</TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(certificate.generated_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownload(certificate)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                        {(user?.role === 'principal' || user?.role === 'edufam_admin') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(certificate.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

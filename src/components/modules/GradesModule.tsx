@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,7 +63,7 @@ const GradesModule: React.FC = () => {
       let schoolsData = schoolsCache.current;
       let summaryData = null;
 
-      // Fetch schools if admin and not cached - FIX: Properly await the query
+      // Fetch schools if admin and not cached
       if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
         const { data: schoolsResponse, error: schoolsError } = await supabase
           .from("schools")
@@ -76,16 +75,16 @@ const GradesModule: React.FC = () => {
           throw new Error("Failed to fetch schools list.");
         }
         schoolsData = schoolsResponse || [];
-        schoolsCache.current = schoolsData; // Cache schools
+        schoolsCache.current = schoolsData;
       }
 
-      // Fetch grades summary if school is selected - FIX: Properly await the query
+      // Fetch grades summary if school is selected
       if (effectiveSchoolId) {
         const { data: summaryResponse, error: summaryError } = await supabase
           .from("school_grades_summary")
           .select("*")
           .eq("school_id", effectiveSchoolId)
-          .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no data
+          .maybeSingle();
           
         if (summaryError) {
           console.error('🚫 Grades summary fetch error:', summaryError);

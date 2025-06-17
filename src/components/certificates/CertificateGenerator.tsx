@@ -1,153 +1,147 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useCertificates } from '@/hooks/useCertificates';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, Award, Download, Eye } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Award, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 const CertificateGenerator = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
-  const [selectedClassId, setSelectedClassId] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [bulkGeneration, setBulkGeneration] = useState(false);
+  const { toast } = useToast();
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString());
+  const [generating, setGenerating] = useState(false);
 
-  const { generateCertificate, isGenerating } = useCertificates();
-
-  // Get available academic years
-  const { data: academicYears } = useQuery({
-    queryKey: ['academic-years', schoolId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('grades')
-        .select('term')
-        .eq('school_id', schoolId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      // Extract unique years from grades
-      const years = [...new Set(data.map(g => new Date(g.term || '').getFullYear().toString()))]
-        .filter(year => year !== 'NaN')
-        .sort((a, b) => b.localeCompare(a));
-      
-      return years;
-    },
-    enabled: !!schoolId,
-  });
-
-  // Get classes
+  // Fetch classes
   const { data: classes } = useQuery({
     queryKey: ['classes', schoolId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('classes')
-        .select('id, name, level')
+        .select('id, name, level, stream')
         .eq('school_id', schoolId)
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    enabled: !!schoolId,
+    enabled: !!schoolId
   });
 
-  // Get students for selected class
+  // Fetch students for selected class
   const { data: students } = useQuery({
-    queryKey: ['students', selectedClassId],
+    queryKey: ['students', selectedClass],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('students')
         .select('id, name, admission_number')
-        .eq('class_id', selectedClassId)
+        .eq('class_id', selectedClass)
         .eq('is_active', true)
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    enabled: !!selectedClassId,
+    enabled: !!selectedClass
   });
 
-  const handleGenerate = () => {
-    if (!selectedAcademicYear || !selectedClassId) return;
+  const handleGenerate = async () => {
+    if (!selectedStudent || !selectedClass) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both a class and a student",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    if (bulkGeneration && students) {
-      // Generate for all students in class
-      students.forEach(student => {
-        generateCertificate({
-          student_id: student.id,
-          class_id: selectedClassId,
-          academic_year: selectedAcademicYear,
+    setGenerating(true);
+    try {
+      // Get certificate data using the database function
+      const { data: certificateData, error: dataError } = await supabase
+        .rpc('get_student_certificate_data', {
+          p_student_id: selectedStudent,
+          p_academic_year: academicYear,
+          p_class_id: selectedClass
         });
+
+      if (dataError) throw dataError;
+
+      // Create certificate record
+      const { error: insertError } = await supabase
+        .from('certificates')
+        .insert({
+          school_id: schoolId,
+          student_id: selectedStudent,
+          class_id: selectedClass,
+          academic_year: academicYear,
+          performance: certificateData,
+          generated_by: user?.id
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Success",
+        description: "Certificate generated successfully",
       });
-    } else if (selectedStudentId) {
-      // Generate for single student
-      generateCertificate({
-        student_id: selectedStudentId,
-        class_id: selectedClassId,
-        academic_year: selectedAcademicYear,
+
+      // Reset form
+      setSelectedStudent('');
+      setSelectedClass('');
+    } catch (error: any) {
+      console.error('Error generating certificate:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate certificate",
+        variant: "destructive"
       });
+    } finally {
+      setGenerating(false);
     }
   };
-
-  const canGenerate = user?.role === 'principal' || user?.role === 'edufam_admin';
-
-  if (!canGenerate) {
-    return (
-      <Alert>
-        <AlertDescription>
-          You don't have permission to generate certificates. Only principals and system administrators can generate certificates.
-        </AlertDescription>
-      </Alert>
-    );
-  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Award className="h-5 w-5" />
-          Certificate Generator
+          Generate Student Certificate
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="academic-year">Academic Year</Label>
-            <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear}>
+            <label className="text-sm font-medium">Academic Year</label>
+            <Select value={academicYear} onValueChange={setAcademicYear}>
               <SelectTrigger>
                 <SelectValue placeholder="Select academic year" />
               </SelectTrigger>
               <SelectContent>
-                {academicYears?.map(year => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
+                <SelectItem value="2024">2024</SelectItem>
+                <SelectItem value="2023">2023</SelectItem>
+                <SelectItem value="2022">2022</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="class">Class</Label>
-            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+            <label className="text-sm font-medium">Class</label>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger>
                 <SelectValue placeholder="Select class" />
               </SelectTrigger>
               <SelectContent>
-                {classes?.map(cls => (
+                {classes?.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name} {cls.level && `- ${cls.level}`}
+                    {cls.name} {cls.stream && `- ${cls.stream}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -155,48 +149,30 @@ const CertificateGenerator = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="bulk-generation"
-              checked={bulkGeneration}
-              onChange={(e) => setBulkGeneration(e.target.checked)}
-              className="rounded"
-            />
-            <Label htmlFor="bulk-generation">Generate for entire class</Label>
+        {selectedClass && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Student</label>
+            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select student" />
+              </SelectTrigger>
+              <SelectContent>
+                {students?.map((student) => (
+                  <SelectItem key={student.id} value={student.id}>
+                    {student.name} ({student.admission_number})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+        )}
 
-          {!bulkGeneration && (
-            <div className="space-y-2">
-              <Label htmlFor="student">Student</Label>
-              <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select student" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students?.map(student => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name} ({student.admission_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
-
-        <Button
-          onClick={handleGenerate}
-          disabled={
-            !selectedAcademicYear || 
-            !selectedClassId || 
-            (!bulkGeneration && !selectedStudentId) ||
-            isGenerating
-          }
+        <Button 
+          onClick={handleGenerate} 
+          disabled={generating || !selectedStudent || !selectedClass}
           className="w-full"
         >
-          {isGenerating ? (
+          {generating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Generating...
@@ -204,7 +180,7 @@ const CertificateGenerator = () => {
           ) : (
             <>
               <Award className="mr-2 h-4 w-4" />
-              Generate Certificate{bulkGeneration ? 's' : ''}
+              Generate Certificate
             </>
           )}
         </Button>

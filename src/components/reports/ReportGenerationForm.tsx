@@ -3,13 +3,12 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { useReports } from '@/hooks/useReports';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { useReports } from '@/hooks/useReports';
+import { FileText, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { FileText, Users, DollarSign, CalendarCheck } from 'lucide-react';
 
 const ReportGenerationForm = () => {
   const { user } = useAuth();
@@ -19,34 +18,16 @@ const ReportGenerationForm = () => {
     generateClassReport, 
     isGeneratingStudent, 
     isGeneratingClass,
-    canGenerateReports,
     availableReportTypes 
   } = useReports();
 
-  const [reportType, setReportType] = useState<string>('');
-  const [studentId, setStudentId] = useState<string>('');
-  const [classId, setClassId] = useState<string>('');
-  const [academicYear, setAcademicYear] = useState<string>(new Date().getFullYear().toString());
-  const [term, setTerm] = useState<string>('');
+  const [reportType, setReportType] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString());
+  const [term, setTerm] = useState('');
 
-  // Get students for the school
-  const { data: students } = useQuery({
-    queryKey: ['students', schoolId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('students')
-        .select('id, name, admission_number, class_id')
-        .eq('school_id', schoolId)
-        .eq('is_active', true)
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!schoolId && canGenerateReports,
-  });
-
-  // Get classes for the school
+  // Fetch classes
   const { data: classes } = useQuery({
     queryKey: ['classes', schoolId],
     queryFn: async () => {
@@ -57,71 +38,60 @@ const ReportGenerationForm = () => {
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
-    enabled: !!schoolId && canGenerateReports,
+    enabled: !!schoolId
   });
 
-  if (!canGenerateReports) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-center text-gray-500">You don't have permission to generate reports.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Fetch students for selected class
+  const { data: students } = useQuery({
+    queryKey: ['students', selectedClass],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, name, admission_number')
+        .eq('class_id', selectedClass)
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedClass
+  });
 
-  const handleGenerateReport = () => {
-    if (!reportType || !academicYear) return;
-
-    const request = {
-      report_type: reportType as any,
-      academic_year: academicYear,
-      term: term || undefined,
-      filters: {}
-    };
-
+  const handleGenerate = () => {
     if (reportType === 'individual_academic') {
-      if (!studentId) return;
-      generateStudentReport({ ...request, student_id: studentId });
+      generateStudentReport({
+        report_type: 'individual_academic',
+        student_id: selectedStudent,
+        academic_year: academicYear,
+        term: term || undefined,
+        filters: { class_id: selectedClass }
+      });
     } else if (reportType === 'class_academic') {
-      if (!classId) return;
-      generateClassReport({ ...request, class_id: classId });
+      generateClassReport({
+        report_type: 'class_academic',
+        class_id: selectedClass,
+        academic_year: academicYear,
+        term: term || undefined,
+        filters: {}
+      });
     }
   };
 
-  const getReportTypeIcon = (type: string) => {
-    switch (type) {
-      case 'individual_academic':
-        return <FileText className="h-4 w-4" />;
-      case 'class_academic':
-        return <Users className="h-4 w-4" />;
-      case 'financial':
-        return <DollarSign className="h-4 w-4" />;
-      case 'attendance':
-        return <CalendarCheck className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
+  const canGenerate = reportType && academicYear && 
+    (reportType === 'class_academic' ? selectedClass : (selectedClass && selectedStudent));
 
   const getReportTypeLabel = (type: string) => {
-    switch (type) {
-      case 'individual_academic':
-        return 'Individual Student Academic Report';
-      case 'class_academic':
-        return 'Class Academic Report';
-      case 'financial':
-        return 'Financial Report';
-      case 'attendance':
-        return 'Attendance Report';
-      default:
-        return type;
-    }
+    const labels: Record<string, string> = {
+      'individual_academic': 'Individual Academic Report',
+      'class_academic': 'Class Academic Report',
+      'financial': 'Financial Report',
+      'attendance': 'Attendance Report'
+    };
+    return labels[type] || type;
   };
-
-  const isGenerating = isGeneratingStudent || isGeneratingClass;
 
   return (
     <Card>
@@ -134,7 +104,7 @@ const ReportGenerationForm = () => {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="reportType">Report Type *</Label>
+            <label className="text-sm font-medium">Report Type</label>
             <Select value={reportType} onValueChange={setReportType}>
               <SelectTrigger>
                 <SelectValue placeholder="Select report type" />
@@ -142,10 +112,7 @@ const ReportGenerationForm = () => {
               <SelectContent>
                 {availableReportTypes.map((type) => (
                   <SelectItem key={type} value={type}>
-                    <div className="flex items-center gap-2">
-                      {getReportTypeIcon(type)}
-                      {getReportTypeLabel(type)}
-                    </div>
+                    {getReportTypeLabel(type)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -153,7 +120,7 @@ const ReportGenerationForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="academicYear">Academic Year *</Label>
+            <label className="text-sm font-medium">Academic Year</label>
             <Select value={academicYear} onValueChange={setAcademicYear}>
               <SelectTrigger>
                 <SelectValue placeholder="Select academic year" />
@@ -165,12 +132,14 @@ const ReportGenerationForm = () => {
               </SelectContent>
             </Select>
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="term">Term (Optional)</Label>
+            <label className="text-sm font-medium">Term (Optional)</label>
             <Select value={term} onValueChange={setTerm}>
               <SelectTrigger>
-                <SelectValue placeholder="Select term" />
+                <SelectValue placeholder="All terms" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Terms</SelectItem>
@@ -181,65 +150,58 @@ const ReportGenerationForm = () => {
             </Select>
           </div>
 
-          {reportType === 'individual_academic' && (
-            <div className="space-y-2">
-              <Label htmlFor="student">Student *</Label>
-              <Select value={studentId} onValueChange={setStudentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select student" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students?.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name} ({student.admission_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {reportType === 'class_academic' && (
-            <div className="space-y-2">
-              <Label htmlFor="class">Class *</Label>
-              <Select value={classId} onValueChange={setClassId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes?.map((classItem) => (
-                    <SelectItem key={classItem.id} value={classItem.id}>
-                      {classItem.name} {classItem.stream && `- ${classItem.stream}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Class</label>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes?.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name} {cls.stream && `- ${cls.stream}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex justify-end">
-          <Button
-            onClick={handleGenerateReport}
-            disabled={
-              isGenerating ||
-              !reportType ||
-              !academicYear ||
-              (reportType === 'individual_academic' && !studentId) ||
-              (reportType === 'class_academic' && !classId)
-            }
-            className="min-w-[140px]"
-          >
-            {isGenerating ? (
-              <>
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                Generating...
-              </>
-            ) : (
-              'Generate Report'
-            )}
-          </Button>
-        </div>
+        {reportType === 'individual_academic' && selectedClass && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Student</label>
+            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select student" />
+              </SelectTrigger>
+              <SelectContent>
+                {students?.map((student) => (
+                  <SelectItem key={student.id} value={student.id}>
+                    {student.name} ({student.admission_number})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <Button 
+          onClick={handleGenerate} 
+          disabled={!canGenerate || isGeneratingStudent || isGeneratingClass}
+          className="w-full"
+        >
+          {(isGeneratingStudent || isGeneratingClass) ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <FileText className="mr-2 h-4 w-4" />
+              Generate Report
+            </>
+          )}
+        </Button>
       </CardContent>
     </Card>
   );
