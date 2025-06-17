@@ -64,6 +64,9 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         if (classesRes.error) throw classesRes.error;
         if (termsRes.error) throw termsRes.error;
 
+        console.log('Classes found:', classesRes.data?.length || 0);
+        console.log('Terms found:', termsRes.data?.length || 0);
+
         setClasses(classesRes.data || []);
         setAcademicTerms(termsRes.data || []);
         
@@ -96,9 +99,9 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
     
     setLoading(true);
     try {
-      console.log('Fetching data for class:', selectedClass);
+      console.log('Fetching data for class:', selectedClass, 'school:', schoolId);
       
-      // Fetch students
+      // Fetch students - get all students in the class regardless of enrollment table
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('*')
@@ -107,44 +110,69 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         .eq('is_active', true)
         .order('name');
 
-      if (studentsError) throw studentsError;
-      console.log('Students fetched:', studentsData?.length || 0);
+      if (studentsError) {
+        console.error('Students fetch error:', studentsError);
+        throw studentsError;
+      }
 
-      // Fetch subjects - different logic for teachers vs principals
+      console.log('Students query result:', studentsData?.length || 0, 'students found');
+
+      // Fetch subjects based on user role
       let subjectsData = [];
       
       if (isTeacher) {
-        // Teachers can only see subjects they teach
+        // Teachers can only see subjects they teach in this class
         const { data: teacherSubjects, error: subjectsError } = await supabase
           .from('subjects')
           .select('*')
           .eq('school_id', schoolId)
           .eq('teacher_id', user.id)
-          .or(`class_id.eq.${selectedClass},class_id.is.null`);
+          .eq('class_id', selectedClass);
 
-        if (subjectsError) throw subjectsError;
+        if (subjectsError) {
+          console.error('Teacher subjects fetch error:', subjectsError);
+          throw subjectsError;
+        }
+        
         subjectsData = teacherSubjects || [];
-        console.log('Teacher subjects fetched:', subjectsData.length);
+        console.log('Teacher subjects found:', subjectsData.length);
       } else {
-        // Principals can see all subjects for the class
+        // Principals and admins can see all subjects for the class
         const { data: classSubjects, error: classSubjectsError } = await supabase
           .from('subjects')
           .select('*')
           .eq('school_id', schoolId)
-          .or(`class_id.eq.${selectedClass},class_id.is.null`);
+          .eq('class_id', selectedClass);
 
-        if (classSubjectsError) throw classSubjectsError;
+        if (classSubjectsError) {
+          console.error('Class subjects fetch error:', classSubjectsError);
+          throw classSubjectsError;
+        }
+        
         subjectsData = classSubjects || [];
-        console.log('All subjects fetched:', subjectsData.length);
+        console.log('All class subjects found:', subjectsData.length);
       }
 
       setStudents(studentsData || []);
       setSubjects(subjectsData || []);
 
-      if (isTeacher && (!subjectsData || subjectsData.length === 0)) {
+      // Show specific messages based on what's missing
+      if (!studentsData || studentsData.length === 0) {
         toast({
-          title: "No Subjects Assigned",
-          description: "You are not assigned to any subjects for this class.",
+          title: "No Students Found",
+          description: `No active students found in the selected class. Please ensure students are properly enrolled.`,
+          variant: "default"
+        });
+      }
+
+      if (!subjectsData || subjectsData.length === 0) {
+        const message = isTeacher 
+          ? "You are not assigned to teach any subjects for this class."
+          : "No subjects found for this class. Please ensure subjects are properly set up.";
+        
+        toast({
+          title: "No Subjects Found",
+          description: message,
           variant: "default"
         });
       }
@@ -153,7 +181,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
       console.error('Error fetching class data:', error);
       toast({
         title: "Error",
-        description: "Failed to load class data",
+        description: `Failed to load class data: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -220,7 +248,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
           };
         }
         setGrades(newGrades);
-        console.log('Grades loaded:', Object.keys(newGrades).length, 'students');
+        console.log('Grades loaded for:', Object.keys(newGrades).length, 'students');
       } else {
         setGrades({});
         setExistingGradesStatus('');
@@ -444,12 +472,12 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
                 <Alert variant="default" className="max-w-lg">
                   <AlertDescription>
                     {students.length === 0 && subjects.length === 0 
-                      ? "No students or subjects found for the selected class."
+                      ? "No students or subjects found for the selected class. Please ensure the class has students enrolled and subjects assigned."
                       : students.length === 0 
-                      ? "No students found for the selected class."
+                      ? "No students found for the selected class. Please ensure students are enrolled in this class."
                       : isTeacher
-                      ? "No subjects found that you are assigned to teach for this class."
-                      : "No subjects found for the selected class."
+                      ? "No subjects found that you are assigned to teach for this class. Please contact your principal to assign you to subjects for this class."
+                      : "No subjects found for the selected class. Please ensure subjects are properly assigned to this class."
                     }
                   </AlertDescription>
                 </Alert>
