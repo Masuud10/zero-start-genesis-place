@@ -51,6 +51,10 @@ const ContentRenderer: React.FC = () => {
     case 'payments': return <ProcessPaymentsModule />;
     case 'student-accounts': return <StudentAccountsModule />;
     case 'fee-management': return <FeeManagementModule />;
+    case 'certificates': 
+      return React.createElement(
+        React.lazy(() => import('@/components/modules/CertificatesModule'))
+      );
     case 'timetable': return <TimetableModule />;
     case 'announcements': return <AnnouncementsModule />;
     case 'messages': return <MessagesModule />;

@@ -775,6 +775,95 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          academic_year: string
+          class_id: string
+          created_at: string | null
+          generated_at: string | null
+          generated_by: string
+          id: string
+          performance: Json
+          school_id: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year: string
+          class_id: string
+          created_at?: string | null
+          generated_at?: string | null
+          generated_by: string
+          id?: string
+          performance?: Json
+          school_id: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          class_id?: string
+          created_at?: string | null
+          generated_at?: string | null
+          generated_by?: string
+          id?: string
+          performance?: Json
+          school_id?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "certificates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "certificates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "certificates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_analytics: {
         Row: {
           attendance_rate: number | null
@@ -3681,6 +3770,14 @@ export type Database = {
       get_outstanding_fees: {
         Args: { p_school_id: string }
         Returns: number
+      }
+      get_student_certificate_data: {
+        Args: {
+          p_student_id: string
+          p_academic_year: string
+          p_class_id: string
+        }
+        Returns: Json
       }
       get_user_role: {
         Args: { user_id: string }
