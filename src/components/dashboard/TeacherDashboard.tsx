@@ -99,7 +99,12 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
         {/* Local Modals - Teacher specific */}
         {bulkGradingOpen && (
-          <BulkGradingModal onClose={() => handleModalClose('bulkGrading')} />
+          <BulkGradingModal 
+            open={bulkGradingOpen}
+            onClose={() => handleModalClose('bulkGrading')}
+            classList={[]}
+            subjectList={[]}
+          />
         )}
         
         {attendanceModalOpen && (

@@ -199,7 +199,14 @@ const GradesModule: React.FC = () => {
                 <div className="pt-6 border-t">
                   <BulkGradingQuickAction onOpenBulkGrade={() => setShowBulkModal(true)} />
                 </div>
-                {showBulkModal && <BulkGradingModal onClose={() => setShowBulkModal(false)} />}
+                {showBulkModal && (
+                  <BulkGradingModal 
+                    open={showBulkModal}
+                    onClose={() => setShowBulkModal(false)}
+                    classList={[]}
+                    subjectList={[]}
+                  />
+                )}
             </div>
         );
     case 'teacher':
@@ -218,7 +225,14 @@ const GradesModule: React.FC = () => {
           
           <BulkGradingQuickAction onOpenBulkGrade={() => setShowBulkModal(true)} />
 
-          {showBulkModal && <BulkGradingModal onClose={() => setShowBulkModal(false)} />}
+          {showBulkModal && (
+            <BulkGradingModal 
+              open={showBulkModal}
+              onClose={() => setShowBulkModal(false)}
+              classList={[]}
+              subjectList={[]}
+            />
+          )}
         </div>
       );
     case 'parent':

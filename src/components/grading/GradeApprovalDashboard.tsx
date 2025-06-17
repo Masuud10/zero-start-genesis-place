@@ -440,7 +440,12 @@ const GradeApprovalDashboard = () => {
 
       {/* Grade Override Modal */}
       {overrideModalOpen && (
-        <BulkGradingModal onClose={() => setOverrideModalOpen(false)} />
+        <BulkGradingModal 
+          open={overrideModalOpen}
+          onClose={() => setOverrideModalOpen(false)}
+          classList={[]}
+          subjectList={[]}
+        />
       )}
     </>
   );
