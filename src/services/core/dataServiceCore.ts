@@ -28,6 +28,31 @@ export class DataServiceCore {
     }
   }
 
+  static async upsertRecord<T>(
+    table: TableName,
+    data: Partial<T>,
+    options?: { onConflict?: string }
+  ) {
+    try {
+      let query = supabase
+        .from(table as any)
+        .upsert(data as any, {
+          onConflict: options?.onConflict,
+          ignoreDuplicates: false
+        })
+        .select()
+        .single();
+
+      const { data: result, error } = await query;
+
+      if (error) throw error;
+      return { data: result, error: null };
+    } catch (error) {
+      console.error(`Error upserting ${table} record:`, error);
+      return { data: null, error };
+    }
+  }
+
   static async updateRecord<T>(
     table: TableName,
     id: string,
