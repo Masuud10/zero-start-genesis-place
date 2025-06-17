@@ -66,18 +66,20 @@ const GradesModule: React.FC = () => {
 
       // Fetch schools if admin and not cached
       if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
-        const schoolsQuery = supabase.from("schools").select("id, name").order('name');
-        promises.push(schoolsQuery);
+        promises.push(
+          supabase.from("schools").select("id, name").order('name')
+        );
       }
 
       // Fetch grades summary if school is selected
       if (effectiveSchoolId) {
-        const summaryQuery = supabase
-          .from("school_grades_summary")
-          .select("*")
-          .eq("school_id", effectiveSchoolId)
-          .maybeSingle();
-        promises.push(summaryQuery);
+        promises.push(
+          supabase
+            .from("school_grades_summary")
+            .select("*")
+            .eq("school_id", effectiveSchoolId)
+            .maybeSingle()
+        );
       }
 
       if (promises.length === 0) {
