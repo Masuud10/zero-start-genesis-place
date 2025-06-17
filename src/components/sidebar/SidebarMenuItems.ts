@@ -21,7 +21,8 @@ import {
   SchoolIcon,
   Receipt,
   Calculator,
-  Coins
+  Coins,
+  Award
 } from 'lucide-react';
 
 export interface MenuItem {

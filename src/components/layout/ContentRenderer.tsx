@@ -18,6 +18,8 @@ import UsersModule from '@/components/modules/UsersModule';
 import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
+import SchoolRegistrationDetails from '@/components/school/SchoolRegistrationDetails';
+import UserProfileManagement from '@/components/user/UserProfileManagement';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import ProcessPaymentsModule from '@/components/modules/ProcessPaymentsModule';
@@ -40,6 +42,10 @@ const ContentRenderer: React.FC = () => {
     case 'school-management': 
       console.log('🎯 ContentRenderer: Rendering SchoolManagementDashboard');
       return <SchoolManagementDashboard />;
+    case 'school-registration':
+      return <SchoolRegistrationDetails />;
+    case 'profile':
+      return <UserProfileManagement />;
     case 'analytics': 
       console.log('🎯 ContentRenderer: Rendering AnalyticsDashboard');
       return <AnalyticsDashboard />;
