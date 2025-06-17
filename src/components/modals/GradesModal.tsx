@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -28,6 +29,7 @@ import { UserRole } from '@/types/user';
 import GradesForm from './GradesForm';
 import GradeActionButtons from './GradeActionButtons';
 import CBCGradesForm from './CBCGradesForm';
+import { useOptimizedGradeQuery, useGradeSubmissionMutation } from '@/hooks/useOptimizedGradeQuery';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -63,6 +65,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const { toast } = useToast();
   const { currentSchool } = useSchool();
@@ -71,15 +74,28 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const resolvedUserRole = getValidUserRole(user?.role);
   const permissions = getGradingPermissions(resolvedUserRole);
 
+  const gradeSubmissionMutation = useGradeSubmissionMutation();
+
   useEffect(() => {
     const loadClasses = async () => {
       if (!user?.school_id) return;
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('school_id', user.school_id);
-      if (!error && data) {
-        setClasses(data);
+      
+      try {
+        const { data, error } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('school_id', user.school_id);
+          
+        if (error) {
+          console.error('Error loading classes:', error);
+          setFormError(`Failed to load classes: ${error.message}`);
+          return;
+        }
+        
+        setClasses(data || []);
+      } catch (err: any) {
+        console.error('Error loading classes:', err);
+        setFormError('Failed to load classes. Please try again.');
       }
     };
     loadClasses();
@@ -92,51 +108,61 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         return;
       }
 
-      let query = supabase
-        .from('subjects')
-        .select('*')
-        .eq('class_id', selectedClass)
-        .eq('school_id', user.school_id);
-      
-      if (user.role === 'teacher') {
-        query = query.eq('teacher_id', user.id);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        setSubjects(data);
-        if (data.length === 0 && user.role === 'teacher') {
-            toast({
-                title: "No Subjects Assigned",
-                description: "You are not assigned to any subjects for this class.",
-                variant: "default"
-            });
+      try {
+        let query = supabase
+          .from('subjects')
+          .select('*')
+          .eq('class_id', selectedClass)
+          .eq('school_id', user.school_id);
+        
+        if (user.role === 'teacher') {
+          query = query.eq('teacher_id', user.id);
         }
-      } else if (error) {
-        toast({
-            title: "Error loading subjects",
-            description: error.message,
-            variant: "destructive"
-        });
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('Error loading subjects:', error);
+          setFormError(`Failed to load subjects: ${error.message}`);
+          return;
+        }
+
+        setSubjects(data || []);
+        if (data?.length === 0 && user.role === 'teacher') {
+          setFormError("You are not assigned to any subjects for this class.");
+        } else {
+          setFormError(null);
+        }
+      } catch (err: any) {
+        console.error('Error loading subjects:', err);
+        setFormError('Failed to load subjects. Please try again.');
       }
     };
 
     loadSubjects();
-  }, [selectedClass, user?.school_id, user?.id, user?.role, toast]);
+  }, [selectedClass, user?.school_id, user?.id, user?.role]);
 
   useEffect(() => {
     const loadStudents = async () => {
       if (!selectedClass || !user?.school_id) return;
 
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('class_id', selectedClass)
-        .eq('school_id', user.school_id);
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('*')
+          .eq('class_id', selectedClass)
+          .eq('school_id', user.school_id);
 
-      if (!error && data) {
-        setStudents(data);
+        if (error) {
+          console.error('Error loading students:', error);
+          setFormError(`Failed to load students: ${error.message}`);
+          return;
+        }
+
+        setStudents(data || []);
+      } catch (err: any) {
+        console.error('Error loading students:', err);
+        setFormError('Failed to load students. Please try again.');
       }
     };
 
@@ -153,81 +179,108 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     setSelectedStudent('');
     setStatus('draft');
     setCbcLevel('');
+    setFormError(null);
+  };
+
+  const validateForm = () => {
+    const isCBC = curriculumType === 'cbc';
+    
+    if (!selectedClass) {
+      setFormError("Please select a class");
+      return false;
+    }
+    if (!selectedSubject) {
+      setFormError("Please select a subject");
+      return false;
+    }
+    if (!selectedTerm) {
+      setFormError("Please select a term");
+      return false;
+    }
+    if (!selectedExamType) {
+      setFormError("Please select an exam type");
+      return false;
+    }
+    if (!selectedStudent) {
+      setFormError("Please select a student");
+      return false;
+    }
+    if (isCBC && !cbcLevel) {
+      setFormError("Please select a CBC performance level");
+      return false;
+    }
+    if (!isCBC && !score) {
+      setFormError("Please enter a score");
+      return false;
+    }
+    if (!isCBC && (!maxScore || parseFloat(maxScore) <= 0)) {
+      setFormError("Please enter a valid maximum score");
+      return false;
+    }
+    if (!isCBC && parseFloat(score) > parseFloat(maxScore)) {
+      setFormError("Score cannot be greater than maximum score");
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async () => {
-    const isCBC = curriculumType === 'cbc';
-    if (
-      !selectedClass ||
-      !selectedSubject ||
-      !selectedTerm ||
-      !selectedExamType ||
-      !selectedStudent ||
-      (isCBC ? !cbcLevel : !score)
-    ) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
+    setFormError(null);
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    // Check permissions
+    if (!(permissions.canCreateGrades || permissions.canEditGrades)) {
+      setFormError("You don't have permission to create or edit grades.");
       return;
     }
 
     setLoading(true);
 
     try {
-      if (!currentSchool?.id) {
-        toast({
-          title: "Error",
-          description: "School is not identified. Cannot submit grade.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      // Only allow create/edit if permissions are granted
-      if (!(permissions.canCreateGrades || permissions.canEditGrades)) {
-        toast({
-          title: "No Permission",
-          description: "You cannot create or edit grades.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
+      const isCBC = curriculumType === 'cbc';
+      
       const gradeData = {
-        school_id: currentSchool.id,
         student_id: selectedStudent,
         subject_id: selectedSubject,
         class_id: selectedClass,
         term: selectedTerm,
         exam_type: selectedExamType,
-        submitted_by: user?.id,
-        status: resolvedUserRole === "teacher" ? 'submitted' : status, // teachers submit, principals may set
+        status: resolvedUserRole === "teacher" ? 'submitted' : status,
         ...(isCBC
-          ? { cbc_performance_level: cbcLevel, score: null, max_score: null, percentage: null }
-          : { score: parseFloat(score), max_score: parseFloat(maxScore), percentage: (parseFloat(score) / parseFloat(maxScore)) * 100 }
+          ? { 
+              cbc_performance_level: cbcLevel, 
+              score: null, 
+              max_score: null, 
+              percentage: null 
+            }
+          : { 
+              score: parseFloat(score), 
+              max_score: parseFloat(maxScore), 
+              percentage: (parseFloat(score) / parseFloat(maxScore)) * 100 
+            }
         )
       };
 
-      const { error } = await supabase
-        .from('grades')
-        .insert(gradeData);
-
-      if (error) throw error;
+      await gradeSubmissionMutation(gradeData);
 
       toast({
         title: "Success",
         description: "Grade submitted successfully.",
       });
+
       resetForm();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting grade:", error);
+      setFormError(error.message || "Failed to submit grade. Please try again.");
+      
       toast({
         title: "Error",
-        description: "Failed to submit grade. Please try again.",
+        description: error.message || "Failed to submit grade. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -240,7 +293,6 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
       title: "Release Results",
       description: "Release logic would go here.",
     });
-    // Implement release logic if needed
   };
 
   const isTeacher = resolvedUserRole === "teacher";
@@ -259,7 +311,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             Enter Grades
@@ -278,6 +330,14 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
             </span>
           </DialogTitle>
         </DialogHeader>
+        
+        {formError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        )}
+
         {curriculumType === 'cbc' ? (
           <CBCGradesForm
             classes={classes}
@@ -321,6 +381,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
             canOverride={canOverride}
           />
         )}
+        
         {isPrincipal && (
           <div className="grid grid-cols-4 items-center gap-4 py-4">
             <Label htmlFor="status" className="text-right">
@@ -342,6 +403,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
             </Select>
           </div>
         )}
+        
         <DialogFooter>
           {(isTeacher || isPrincipal) && (
             <GradeActionButtons

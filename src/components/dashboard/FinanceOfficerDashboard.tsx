@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import ExpenseModal from '@/components/modals/ExpenseModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import BeautifulReportGeneration from './shared/BeautifulReportGeneration';
 import { PlusCircle } from 'lucide-react';
 
 interface FinanceOfficerDashboardProps {
@@ -94,9 +93,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
       <TopDefaultersList data={defaultersList} />
 
       <ClassCollectionProgress data={feeCollectionData} />
-
-      {/* Beautiful Report Generation */}
-      <BeautifulReportGeneration userRole="finance_officer" />
     </div>
   );
 };

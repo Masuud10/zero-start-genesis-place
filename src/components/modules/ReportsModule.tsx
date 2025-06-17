@@ -1,15 +1,40 @@
 
 import React from 'react';
-import ReportDownloadPanel from '@/components/reports/ReportDownloadPanel';
+import BeautifulReportGeneration from '@/components/dashboard/shared/BeautifulReportGeneration';
+import { useAuth } from '@/contexts/AuthContext';
 
-// ReportsModule: This is shown when a user clicks "Reports" in the sidebar.
-// This card provides access to role-appropriate download types.
 const ReportsModule = () => {
+  const { user } = useAuth();
+  
+  const getUserRole = () => {
+    switch (user?.role) {
+      case 'principal':
+        return 'principal';
+      case 'school_owner':
+        return 'school_owner';
+      case 'finance_officer':
+        return 'finance_officer';
+      case 'teacher':
+        return 'teacher';
+      case 'parent':
+        return 'parent';
+      case 'edufam_admin':
+        return 'edufam_admin';
+      default:
+        return 'teacher';
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] w-full p-4">
-      <div className="max-w-xl w-full">
-        <ReportDownloadPanel />
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Reports Center</h1>
+        <p className="text-gray-600 mt-2">
+          Generate comprehensive reports for your school's performance and analytics
+        </p>
       </div>
+      
+      <BeautifulReportGeneration userRole={getUserRole()} />
     </div>
   );
 };

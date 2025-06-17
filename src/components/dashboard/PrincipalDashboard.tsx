@@ -22,7 +22,6 @@ import BulkGradingQuickAction from './principal/BulkGradingQuickAction';
 import BulkGradingModal from '../grading/BulkGradingModal';
 import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
 import PrincipalAttendanceCard from './principal/PrincipalAttendanceCard';
-import BeautifulReportGeneration from './shared/BeautifulReportGeneration';
 import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
 
 const PrincipalDashboard = () => {
@@ -130,9 +129,6 @@ const PrincipalDashboard = () => {
         <PrincipalAttendanceCard />
 
         <RecentActivitiesPanel recentActivities={recentActivities} />
-
-        {/* Beautiful Report Generation */}
-        <BeautifulReportGeneration userRole="principal" />
 
         {/* MODALS */}
         <AddTeacherModal

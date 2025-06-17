@@ -47,17 +47,14 @@ const ContentRenderer: React.FC = () => {
     case 'attendance': return <AttendanceModule />;
     case 'students': return <StudentsModule />;
     case 'finance':
-      // School owners now get the full finance dashboard instead of summary
       return <FinanceModule />;
     case 'payments': return <ProcessPaymentsModule />;
     case 'student-accounts': return <StudentAccountsModule />;
+    case 'fee-management': return <FeeManagementModule />;
     case 'timetable': return <TimetableModule />;
     case 'announcements': return <AnnouncementsModule />;
     case 'messages': return <MessagesModule />;
     case 'reports':
-      if (user?.role === 'finance_officer') {
-        return <FinanceReportsModule />;
-      }
       return <ReportsModule />;
     case 'support':
         if (user?.role === 'edufam_admin') {

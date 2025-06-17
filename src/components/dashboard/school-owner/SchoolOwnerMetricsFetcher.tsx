@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import SchoolOwnerDashboardLayout from "./SchoolOwnerDashboardLayout";
 import FinancialOverviewReadOnly from "../shared/FinancialOverviewReadOnly";
-import BeautifulReportGeneration from "../shared/BeautifulReportGeneration";
 
 export interface SchoolMetrics {
   totalStudents: number;
@@ -51,7 +50,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
 
       const targetSchoolId = schoolId || user?.school_id;
 
-      // Fetch basic school metrics
+      // Fetch basic school metrics with proper error handling
       const [studentsRes, teachersRes, classesRes] = await Promise.all([
         supabase
           .from('students')
@@ -69,30 +68,59 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           .eq('school_id', targetSchoolId)
       ]);
 
-      // Calculate attendance rate
-      const { data: attendanceData } = await supabase
+      // Check for errors in basic queries
+      if (studentsRes.error) {
+        console.error('Error fetching students:', studentsRes.error);
+        throw new Error(`Failed to fetch students: ${studentsRes.error.message}`);
+      }
+      if (teachersRes.error) {
+        console.error('Error fetching teachers:', teachersRes.error);
+        throw new Error(`Failed to fetch teachers: ${teachersRes.error.message}`);
+      }
+      if (classesRes.error) {
+        console.error('Error fetching classes:', classesRes.error);
+        throw new Error(`Failed to fetch classes: ${classesRes.error.message}`);
+      }
+
+      // Calculate attendance rate with error handling
+      const { data: attendanceData, error: attendanceError } = await supabase
         .from('attendance')
         .select('status')
         .eq('school_id', targetSchoolId);
+
+      if (attendanceError) {
+        console.error('Error fetching attendance:', attendanceError);
+        // Don't throw error, just set to 0
+      }
 
       const totalAttendance = attendanceData?.length || 0;
       const presentCount = attendanceData?.filter(a => a.status === 'present').length || 0;
       const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
 
-      // Calculate financial metrics
-      const { data: financialData } = await supabase
+      // Calculate financial metrics with error handling
+      const { data: financialData, error: financialError } = await supabase
         .from('financial_transactions')
         .select('amount')
         .eq('school_id', targetSchoolId)
         .eq('transaction_type', 'payment');
 
+      if (financialError) {
+        console.error('Error fetching financial data:', financialError);
+        // Don't throw error, continue with default values
+      }
+
       const totalRevenue = financialData?.reduce((sum, transaction) => sum + (transaction.amount || 0), 0) || 0;
 
-      // Calculate fee collection rate and outstanding fees
-      const { data: feeData } = await supabase
+      // Calculate fee collection rate and outstanding fees with error handling
+      const { data: feeData, error: feeError } = await supabase
         .from('fees')
         .select('amount, paid_amount')
         .eq('school_id', targetSchoolId);
+
+      if (feeError) {
+        console.error('Error fetching fee data:', feeError);
+        // Don't throw error, continue with default values
+      }
 
       const totalExpected = feeData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
       const totalCollected = feeData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
@@ -143,7 +171,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
       setError(null);
     } catch (err: any) {
       console.error("📊 SchoolOwnerMetricsFetcher: Error fetching metrics:", err);
-      setError("Failed to load school metrics. Please try again.");
+      setError(err.message || "Failed to load school metrics. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -172,9 +200,6 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
       
       {/* Financial Overview - Linked to Finance Officer Dashboard */}
       <FinancialOverviewReadOnly />
-      
-      {/* Beautiful Report Generation */}
-      <BeautifulReportGeneration userRole="school_owner" />
     </div>
   );
 };

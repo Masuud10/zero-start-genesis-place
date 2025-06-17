@@ -1,147 +1,163 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, PlusCircle, MoreHorizontal } from 'lucide-react';
-import { useFeeStructures } from '@/hooks/useFeeStructures';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import CreateFeeStructureDialog from './fee-management/CreateFeeStructureDialog';
-import AssignFeeStructureDialog from './fee-management/AssignFeeStructureDialog';
-import { FeeStructure } from '@/types/finance';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, DollarSign, Users, FileText, Settings } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const FeeManagementModule = () => {
-    const { data: feeStructures, isLoading, error } = useFeeStructures();
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
-    const [selectedFeeStructure, setSelectedFeeStructure] = useState<FeeStructure | null>(null);
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('assign');
 
-    const handleOpenAssignDialog = (structure: FeeStructure) => {
-        setSelectedFeeStructure(structure);
-        setIsAssignDialogOpen(true);
-    };
+  const handleFeeAssign = () => {
+    toast({
+      title: "Fee Assignment",
+      description: "Fee assignment functionality will be implemented here",
+    });
+  };
 
-    const renderContent = () => {
-        if (isLoading) {
-            return (
-                <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    <p className="ml-2">Loading Fee Structures...</p>
-                </div>
-            );
-        }
+  const handleFeeStructure = () => {
+    toast({
+      title: "Fee Structure",
+      description: "Fee structure management functionality will be implemented here",
+    });
+  };
 
-        if (error) {
-            return (
-                <Alert variant="destructive">
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{error.message}</AlertDescription>
-                </Alert>
-            );
-        }
-
-        if (!feeStructures || feeStructures.length === 0) {
-            return (
-                <div className="text-center py-8">
-                    <h3 className="text-lg font-semibold">No Fee Structures Found</h3>
-                    <p className="text-muted-foreground mt-1">
-                        Get started by creating your first fee structure.
-                    </p>
-                    <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create Fee Structure
-                    </Button>
-                </div>
-            );
-        }
-
-        return (
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Academic Year</TableHead>
-                        <TableHead>Term</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created At</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {feeStructures.map((structure) => (
-                        <TableRow key={structure.id}>
-                            <TableCell className="font-medium">{structure.name}</TableCell>
-                            <TableCell>{structure.academic_year}</TableCell>
-                            <TableCell>{structure.term}</TableCell>
-                            <TableCell>
-                                <Badge variant={structure.is_active ? 'default' : 'secondary'}>
-                                    {structure.is_active ? 'Active' : 'Inactive'}
-                                </Badge>
-                            </TableCell>
-                            <TableCell>{new Date(structure.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Open menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => handleOpenAssignDialog(structure)}>
-                                            Assign to Class
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        );
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-2xl font-bold">Fee Structures</h2>
-                    <p className="text-muted-foreground">
-                        Manage fee structures for different academic years and terms.
-                    </p>
-                </div>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create New
-                </Button>
-            </div>
-            <Card>
-                <CardContent className="pt-6">
-                    {renderContent()}
-                </CardContent>
-            </Card>
-            
-            <CreateFeeStructureDialog
-                isOpen={isCreateDialogOpen}
-                onClose={() => setIsCreateDialogOpen(false)}
-            />
-
-            {selectedFeeStructure && (
-                <AssignFeeStructureDialog
-                    isOpen={isAssignDialogOpen}
-                    onClose={() => setIsAssignDialogOpen(false)}
-                    feeStructure={selectedFeeStructure}
-                />
-            )}
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
+          <p className="text-gray-600 mt-2">
+            Manage school fees, assignments, and payment structures
+          </p>
         </div>
-    );
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="assign" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Fee Assignment
+          </TabsTrigger>
+          <TabsTrigger value="structure" className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4" />
+            Fee Structure
+          </TabsTrigger>
+          <TabsTrigger value="collection" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Collection Reports
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Settings
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="assign" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Fee Assignment
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-2">Assign by Class</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Assign fees to entire classes or grade levels
+                  </p>
+                  <Button onClick={handleFeeAssign} className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Assign to Class
+                  </Button>
+                </Card>
+                
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-2">Individual Assignment</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Assign specific fees to individual students
+                  </p>
+                  <Button onClick={handleFeeAssign} className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Assign Individual
+                  </Button>
+                </Card>
+                
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-2">Bulk Assignment</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Upload CSV or Excel for bulk fee assignments
+                  </p>
+                  <Button onClick={handleFeeAssign} className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Bulk Assign
+                  </Button>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="structure" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Fee Structure Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Button onClick={handleFeeStructure} className="w-full md:w-auto">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Fee Structure
+                </Button>
+                <div className="text-center py-8 text-gray-500">
+                  Fee structure management interface will be implemented here
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="collection" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Collection Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                Fee collection reports will be displayed here
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Fee Management Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                Fee management settings will be available here
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 };
 
 export default FeeManagementModule;
