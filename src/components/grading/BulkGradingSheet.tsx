@@ -1,10 +1,11 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, Award, Calculator } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Student {
   id: string;
@@ -33,6 +34,9 @@ interface BulkGradingSheetProps {
   onGradeChange: (studentId: string, subjectId: string, grade: GradeValue) => void;
   curriculumType: 'cbc' | 'igcse' | 'standard';
   isReadOnly?: boolean;
+  selectedClass: string;
+  selectedTerm: string;
+  selectedExamType: string;
 }
 
 const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
@@ -41,7 +45,10 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
   grades,
   onGradeChange,
   curriculumType,
-  isReadOnly = false
+  isReadOnly = false,
+  selectedClass,
+  selectedTerm,
+  selectedExamType
 }) => {
   // Calculate student totals and positions
   const studentStats = useMemo(() => {
@@ -82,6 +89,27 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
     return Object.fromEntries(statsWithPosition.map(stat => [stat.studentId, stat]));
   }, [students, subjects, grades]);
 
+  // Auto-calculate positions when grades change
+  useEffect(() => {
+    const calculatePositions = async () => {
+      if (selectedClass && selectedTerm && selectedExamType) {
+        try {
+          await supabase.rpc('calculate_class_positions', {
+            p_class_id: selectedClass,
+            p_term: selectedTerm,
+            p_exam_type: selectedExamType
+          });
+        } catch (error) {
+          console.error('Error calculating positions:', error);
+        }
+      }
+    };
+
+    // Debounce position calculation
+    const timeoutId = setTimeout(calculatePositions, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [grades, selectedClass, selectedTerm, selectedExamType]);
+
   const getLetterGrade = (percentage: number): string => {
     if (percentage >= 90) return 'A+';
     if (percentage >= 80) return 'A';
@@ -117,6 +145,33 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
       percentage,
       letter_grade: letterGrade
     });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, colIndex: number) => {
+    if (isReadOnly) return;
+
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      
+      // Move to next cell
+      let nextRow = rowIndex;
+      let nextCol = colIndex + 1;
+      
+      if (nextCol >= subjects.length) {
+        nextCol = 0;
+        nextRow = rowIndex + 1;
+      }
+      
+      if (nextRow < students.length) {
+        const nextInput = document.querySelector(
+          `input[data-row="${nextRow}"][data-col="${nextCol}"]`
+        ) as HTMLInputElement;
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
+    }
   };
 
   if (students.length === 0 || subjects.length === 0) {
@@ -171,7 +226,7 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
       </div>
 
       {/* Grading Table */}
-      <div className="flex-1 overflow-auto border rounded-lg">
+      <div className="flex-1 overflow-auto border rounded-lg bg-white">
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">
             <TableRow>
@@ -182,48 +237,48 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
                 </div>
               </TableHead>
               {subjects.map((subject) => (
-                <TableHead key={subject.id} className="min-w-[120px] text-center">
+                <TableHead key={subject.id} className="min-w-[120px] text-center bg-blue-50">
                   <div className="space-y-1">
-                    <div className="font-semibold">{subject.name}</div>
-                    <div className="text-xs text-muted-foreground">{subject.code}</div>
-                    <div className="text-xs text-blue-600 font-medium">/ 100</div>
+                    <div className="font-semibold text-blue-800">{subject.name}</div>
+                    <div className="text-xs text-blue-600">{subject.code}</div>
+                    <div className="text-xs text-blue-700 font-medium">/ 100</div>
                   </div>
                 </TableHead>
               ))}
-              <TableHead className="min-w-[150px] text-center bg-gradient-to-r from-blue-50 to-indigo-50 sticky right-0 z-20">
+              <TableHead className="min-w-[150px] text-center bg-gradient-to-r from-green-50 to-blue-50 sticky right-0 z-20 border-l-2 border-border">
                 <div className="space-y-1">
-                  <div className="font-semibold flex items-center justify-center gap-1">
+                  <div className="font-semibold flex items-center justify-center gap-1 text-green-800">
                     <Award className="h-4 w-4" />
                     Summary
                   </div>
-                  <div className="text-xs text-muted-foreground">Total | % | Position</div>
+                  <div className="text-xs text-green-600">Total | % | Position</div>
                 </div>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {students.map((student, index) => {
+            {students.map((student, rowIndex) => {
               const stats = studentStats[student.id];
               
               return (
-                <TableRow key={student.id} className={index % 2 === 0 ? 'bg-muted/30' : 'bg-background'}>
+                <TableRow key={student.id} className={rowIndex % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}>
                   {/* Student Info */}
                   <TableCell className="sticky left-0 bg-inherit z-10 border-r-2 border-border">
                     <div className="min-w-[180px] space-y-1">
                       <div className="font-medium text-sm">{student.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {student.admission_number}
-                        {student.roll_number && ` | ${student.roll_number}`}
+                        {student.roll_number && ` | Roll: ${student.roll_number}`}
                       </div>
                     </div>
                   </TableCell>
 
                   {/* Subject Grades */}
-                  {subjects.map((subject) => {
+                  {subjects.map((subject, colIndex) => {
                     const currentGrade = grades[student.id]?.[subject.id] || {};
                     
                     return (
-                      <TableCell key={subject.id} className="p-2">
+                      <TableCell key={subject.id} className="p-2 bg-blue-50/30">
                         <div className="space-y-2">
                           <Input
                             type="number"
@@ -231,17 +286,30 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
                             max="100"
                             value={currentGrade.score?.toString() || ''}
                             onChange={(e) => handleScoreChange(student.id, subject.id, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
                             placeholder="0-100"
-                            className="h-8 text-center text-sm"
+                            className={`h-10 text-center text-sm font-medium ${
+                              isReadOnly 
+                                ? 'bg-gray-100 cursor-not-allowed' 
+                                : 'bg-white hover:bg-blue-50 focus:bg-white border-blue-200 focus:border-blue-400'
+                            }`}
                             disabled={isReadOnly}
+                            data-row={rowIndex}
+                            data-col={colIndex}
                           />
                           {currentGrade.score && (
                             <div className="text-center space-y-1">
-                              <div className="text-xs font-medium text-blue-600">
+                              <div className="text-xs font-bold text-blue-700">
                                 {currentGrade.percentage}%
                               </div>
                               <Badge 
-                                variant={currentGrade.percentage >= 70 ? "default" : currentGrade.percentage >= 50 ? "secondary" : "destructive"}
+                                variant={
+                                  currentGrade.percentage >= 70 
+                                    ? "default" 
+                                    : currentGrade.percentage >= 50 
+                                    ? "secondary" 
+                                    : "destructive"
+                                }
                                 className="text-xs"
                               >
                                 {currentGrade.letter_grade}
@@ -254,16 +322,16 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
                   })}
 
                   {/* Summary Column */}
-                  <TableCell className="p-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-center sticky right-0 z-10">
+                  <TableCell className="p-3 bg-gradient-to-r from-green-50 to-blue-50 text-center sticky right-0 z-10 border-l-2 border-border">
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">
+                      <div className="text-sm font-medium text-green-800">
                         {stats.totalScore > 0 ? `${stats.totalScore}/${stats.totalPossible}` : '-'}
                       </div>
-                      <div className="text-lg font-bold text-blue-600">
+                      <div className="text-lg font-bold text-blue-700">
                         {stats.percentage > 0 ? `${stats.percentage}%` : '-'}
                       </div>
                       {stats.position && (
-                        <Badge variant="outline" className="flex items-center gap-1">
+                        <Badge variant="outline" className="flex items-center gap-1 bg-white">
                           <TrendingUp className="h-3 w-3" />
                           #{stats.position}
                         </Badge>
@@ -281,7 +349,7 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
       </div>
 
       {/* Footer Summary */}
-      <div className="border-t bg-muted/30 px-4 py-3 text-xs text-muted-foreground mt-4">
+      <div className="border-t bg-gray-50 px-4 py-3 text-xs text-muted-foreground mt-4 rounded-b-lg">
         <div className="flex justify-between items-center">
           <div className="flex gap-6">
             <span><strong>{students.length}</strong> students</span>
@@ -290,9 +358,9 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
           </div>
           <div className="text-right">
             {isReadOnly ? (
-              <span className="text-orange-600 font-medium">📋 Read-only mode</span>
+              <span className="text-orange-600 font-medium">🔒 Read-only mode</span>
             ) : (
-              <span>💡 Enter scores (0-100) and press Tab/Enter to navigate</span>
+              <span className="text-green-600">💡 Enter scores (0-100) • Use Tab/Enter to navigate</span>
             )}
           </div>
         </div>

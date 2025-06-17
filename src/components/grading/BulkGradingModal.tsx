@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import BulkGradingControls from './BulkGradingControls';
 import BulkGradingSheet from './BulkGradingSheet';
-import { Loader2, Shield, AlertTriangle, CheckCircle, Send } from 'lucide-react';
+import { Loader2, Shield, AlertTriangle, CheckCircle, Send, Lock } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 
 interface BulkGradingModalProps {
@@ -96,6 +96,8 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
     
     setLoading(true);
     try {
+      console.log('Fetching data for class:', selectedClass);
+      
       // Fetch students
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
@@ -106,6 +108,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         .order('name');
 
       if (studentsError) throw studentsError;
+      console.log('Students fetched:', studentsData?.length || 0);
 
       // Fetch subjects - different logic for teachers vs principals
       let subjectsData = [];
@@ -121,6 +124,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
 
         if (subjectsError) throw subjectsError;
         subjectsData = teacherSubjects || [];
+        console.log('Teacher subjects fetched:', subjectsData.length);
       } else {
         // Principals can see all subjects for the class
         const { data: classSubjects, error: classSubjectsError } = await supabase
@@ -131,6 +135,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
 
         if (classSubjectsError) throw classSubjectsError;
         subjectsData = classSubjects || [];
+        console.log('All subjects fetched:', subjectsData.length);
       }
 
       setStudents(studentsData || []);
@@ -165,6 +170,8 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
     
     setLoading(true);
     try {
+      console.log('Fetching existing grades for:', { selectedClass, selectedTerm, selectedExamType });
+      
       const { data, error } = await supabase
         .from('grades')
         .select('*')
@@ -174,6 +181,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         .eq('school_id', schoolId);
       
       if (error) throw error;
+      console.log('Existing grades found:', data?.length || 0);
 
       if (data && data.length > 0) {
         // Check status of existing grades
@@ -181,6 +189,8 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         const hasSubmitted = statuses.includes('submitted');
         const hasApproved = statuses.includes('approved');
         const hasReleased = statuses.includes('released');
+
+        console.log('Grade statuses found:', statuses);
 
         if (hasReleased) {
           setExistingGradesStatus('released');
@@ -210,10 +220,12 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
           };
         }
         setGrades(newGrades);
+        console.log('Grades loaded:', Object.keys(newGrades).length, 'students');
       } else {
         setGrades({});
         setExistingGradesStatus('');
         setIsReadOnly(false);
+        console.log('No existing grades found');
       }
     } catch (error) {
       console.error('Error fetching existing grades:', error);
@@ -272,6 +284,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
               term: selectedTerm,
               exam_type: selectedExamType,
               score: Number(grade.score),
+              max_score: 100, // Default max score
               percentage: grade.percentage,
               letter_grade: grade.letter_grade || null,
               cbc_performance_level: grade.cbc_performance_level || null,
@@ -293,6 +306,8 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         return;
       }
 
+      console.log('Submitting grades:', gradesToUpsert.length, 'records');
+
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToUpsert, {
@@ -300,6 +315,15 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
         });
 
       if (error) throw error;
+
+      // Calculate positions after successful submission
+      if (selectedClass && selectedTerm && selectedExamType) {
+        await supabase.rpc('calculate_class_positions', {
+          p_class_id: selectedClass,
+          p_term: selectedTerm,
+          p_exam_type: selectedExamType
+        });
+      }
 
       const statusMessage = isTeacher 
         ? 'submitted for principal approval' 
@@ -326,11 +350,11 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
   const getStatusBadge = () => {
     switch (existingGradesStatus) {
       case 'submitted':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-600">Submitted for Approval</Badge>;
+        return <Badge variant="outline" className="text-yellow-600 border-yellow-600"><Send className="h-3 w-3 mr-1" />Submitted for Approval</Badge>;
       case 'approved':
-        return <Badge variant="outline" className="text-green-600 border-green-600">Approved</Badge>;
+        return <Badge variant="outline" className="text-green-600 border-green-600"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
       case 'released':
-        return <Badge variant="outline" className="text-purple-600 border-purple-600">Released</Badge>;
+        return <Badge variant="outline" className="text-purple-600 border-purple-600"><Lock className="h-3 w-3 mr-1" />Released</Badge>;
       case 'draft':
         return <Badge variant="outline" className="text-blue-600 border-blue-600">Draft</Badge>;
       default:
@@ -408,6 +432,9 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ onClose }) => {
                   onGradeChange={handleGradeChange}
                   curriculumType={curriculumType}
                   isReadOnly={isReadOnly}
+                  selectedClass={selectedClass}
+                  selectedTerm={selectedTerm}
+                  selectedExamType={selectedExamType}
                 />
               </div>
             )}

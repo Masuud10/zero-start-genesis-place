@@ -2885,6 +2885,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      calculate_class_positions: {
+        Args: { p_class_id: string; p_term: string; p_exam_type: string }
+        Returns: undefined
+      }
       check_rate_limit: {
         Args: {
           p_identifier: string

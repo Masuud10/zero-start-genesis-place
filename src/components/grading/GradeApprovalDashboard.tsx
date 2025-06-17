@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import BulkGradingModal from './BulkGradingModal';
 
 interface GradeSubmission {
@@ -35,7 +34,6 @@ const GradeApprovalDashboard = () => {
   const [submissions, setSubmissions] = useState<GradeSubmission[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<string | null>(null);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
 
   useEffect(() => {
