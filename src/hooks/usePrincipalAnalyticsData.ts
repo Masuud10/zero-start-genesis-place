@@ -47,6 +47,30 @@ interface PrincipalAnalyticsData {
 const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: string): Promise<PrincipalAnalyticsData> => {
     console.log('📊 Fetching principal analytics for:', { schoolId, term, year });
 
+    // Early return with empty data if no school ID
+    if (!schoolId) {
+        console.warn('No school ID provided for analytics');
+        return {
+            keyMetrics: {
+                totalStudents: 0,
+                schoolAverage: 0,
+                attendanceRate: 0,
+                resultsReleased: 0,
+                totalRevenue: 0,
+                outstandingFees: 0,
+            },
+            classPerformance: [],
+            subjectPerformance: [],
+            studentRankings: [],
+            teacherActivity: [],
+            financialSummary: {
+                totalCollected: 0,
+                totalPending: 0,
+                collectionRate: 0,
+            },
+        };
+    }
+
     try {
         // Get total students count with error handling
         const { count: totalStudents, error: studentsError } = await supabase
@@ -81,7 +105,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
                     .select('score')
                     .eq('school_id', schoolId)
                     .eq('class_id', cls.id)
-                    .eq('term', term)
+                    .eq('term', term || 'Term 1')
                     .not('score', 'is', null);
 
                 // Get attendance for this class
@@ -90,7 +114,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
                     .select('status')
                     .eq('school_id', schoolId)
                     .eq('class_id', cls.id)
-                    .eq('term', term);
+                    .eq('term', term || 'Term 1');
 
                 const totalGrades = grades?.length || 0;
                 const averageGrade = totalGrades > 0 
@@ -135,7 +159,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
                     .select('score')
                     .eq('school_id', schoolId)
                     .eq('subject_id', subject.id)
-                    .eq('term', term)
+                    .eq('term', term || 'Term 1')
                     .not('score', 'is', null);
 
                 const totalGrades = grades?.length || 0;
@@ -170,8 +194,8 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
                 classes!inner(id, name)
             `)
             .eq('school_id', schoolId)
-            .eq('term', term)
-            .eq('academic_year', year)
+            .eq('term', term || 'Term 1')
+            .eq('academic_year', year || new Date().getFullYear().toString())
             .not('average_score', 'is', null)
             .order('average_score', { ascending: false })
             .limit(10);
@@ -196,7 +220,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
                 profiles!grades_submitted_by_fkey(id, name)
             `)
             .eq('school_id', schoolId)
-            .eq('term', term)
+            .eq('term', term || 'Term 1')
             .not('submitted_by', 'is', null);
 
         if (teacherError) {
@@ -224,7 +248,7 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
             .from('fees')
             .select('amount, paid_amount, status')
             .eq('school_id', schoolId)
-            .eq('term', term);
+            .eq('term', term || 'Term 1');
 
         if (feeError) {
             console.warn('Error fetching fee data:', feeError);
@@ -293,13 +317,17 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
 };
 
 export const usePrincipalAnalyticsData = () => {
-    const { schoolId } = useSchoolScopedData();
+    const { schoolId, isReady } = useSchoolScopedData();
     const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(schoolId);
 
     return useQuery({
         queryKey: ['principalAnalytics', schoolId, academicInfo.term, academicInfo.year],
-        queryFn: () => fetchPrincipalAnalytics(schoolId!, academicInfo.term!, academicInfo.year!),
-        enabled: !!schoolId && !!academicInfo.term && !!academicInfo.year && !academicInfoLoading,
+        queryFn: () => fetchPrincipalAnalytics(
+            schoolId || '', 
+            academicInfo.term || 'Term 1', 
+            academicInfo.year || new Date().getFullYear().toString()
+        ),
+        enabled: !!schoolId && isReady && !academicInfoLoading,
         staleTime: 5 * 60 * 1000, // 5 minutes cache
         refetchOnWindowFocus: false,
         retry: 1,

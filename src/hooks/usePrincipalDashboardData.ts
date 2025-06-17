@@ -20,7 +20,7 @@ const dashboardCache = new Map<string, { data: any; timestamp: number }>();
 export const usePrincipalDashboardData = (reloadKey: number) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { schoolId, validateSchoolAccess } = useSchoolScopedData();
+  const { schoolId, validateSchoolAccess, isReady } = useSchoolScopedData();
 
   const [stats, setStats] = useState<StatsType>({
     totalStudents: 0,
@@ -142,16 +142,26 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
     } finally {
       setLoading(false);
     }
-  }, [toast, validateSchoolAccess, cacheKey]);
+  }, [validateSchoolAccess, cacheKey]);
 
   useEffect(() => {
+    // Wait for school scoped data to be ready
+    if (!isReady) {
+      return;
+    }
+
     if (schoolId) {
       fetchSchoolData(schoolId);
     } else {
       setLoading(false);
-      setError('No school assignment found. Please contact your administrator.');
+      // Check if user exists and has proper role
+      if (user?.role === 'principal') {
+        setError('Your principal account needs to be assigned to a school. Please contact your administrator.');
+      } else {
+        setError('No school assignment found. Please contact your administrator.');
+      }
     }
-  }, [schoolId, reloadKey, fetchSchoolData]);
+  }, [schoolId, reloadKey, fetchSchoolData, isReady, user]);
 
   return { stats, recentActivities, loading, error, schoolId, fetchSchoolData };
 };

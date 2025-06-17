@@ -9,12 +9,12 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { usePrincipalAnalyticsData } from "@/hooks/usePrincipalAnalyticsData";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, TrendingUp } from "lucide-react";
 import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 
 const PrincipalAnalytics = () => {
-  const { schoolId } = useSchoolScopedData();
+  const { schoolId, isReady } = useSchoolScopedData();
   const { data, isLoading, error } = usePrincipalAnalyticsData();
   const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(schoolId);
 
@@ -24,7 +24,7 @@ const PrincipalAnalytics = () => {
     improvement: { label: "Improvement", color: "#8b5cf6" },
   };
 
-  if (isLoading || academicInfoLoading) {
+  if (!isReady || isLoading || academicInfoLoading) {
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -48,10 +48,10 @@ const PrincipalAnalytics = () => {
   if (!data || !data.keyMetrics) {
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-yellow-500" />
-        <CardTitle className="mt-4">No Analytics Data</CardTitle>
+        <TrendingUp className="h-12 w-12 text-blue-500" />
+        <CardTitle className="mt-4">Getting Started with Analytics</CardTitle>
         <p className="text-muted-foreground mt-2">
-          No analytics data available for the current academic period. Please ensure students, classes, and subjects are set up.
+          Analytics will appear as you add students, classes, and start recording grades and attendance.
         </p>
       </Card>
     );
@@ -73,11 +73,11 @@ const PrincipalAnalytics = () => {
           <p className="text-sm text-muted-foreground">
             Displaying data for term:{" "}
             <span className="font-semibold text-primary">
-              {academicInfo.term || "Not Set"}
+              {academicInfo.term || "Current Term"}
             </span>
             , year:{" "}
             <span className="font-semibold text-primary">
-              {academicInfo.year || "Not Set"}
+              {academicInfo.year || new Date().getFullYear()}
             </span>
           </p>
         </CardHeader>

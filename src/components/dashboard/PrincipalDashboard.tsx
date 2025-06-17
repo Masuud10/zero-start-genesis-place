@@ -21,6 +21,9 @@ import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { usePrincipalDashboardModals } from '@/hooks/usePrincipalDashboardModals';
 import BulkGradingQuickAction from './principal/BulkGradingQuickAction';
 import BulkGradingModal from '../grading/BulkGradingModal';
+import PrincipalFinanceCard from './principal/PrincipalFinanceCard';
+import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
+import PrincipalAttendanceCard from './principal/PrincipalAttendanceCard';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -69,14 +72,16 @@ const PrincipalDashboard = () => {
     });
   };
 
+  const handleRetry = () => {
+    if (schoolId) {
+      fetchSchoolData(schoolId);
+    } else {
+      setReloadKey(k => k + 1);
+    }
+  };
+
   if (!isReady) {
-    return (
-      <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-300 rounded mb-2"></div>
-        </div>
-      </div>
-    );
+    return <PrincipalDashboardLoading />;
   }
   
   if (loading) {
@@ -84,7 +89,7 @@ const PrincipalDashboard = () => {
   }
   
   if (error) {
-    return <PrincipalDashboardErrorCard error={error} onRetry={() => schoolId && fetchSchoolData(schoolId)} />;
+    return <PrincipalDashboardErrorCard error={error} onRetry={handleRetry} />;
   }
 
   return (
@@ -115,6 +120,15 @@ const PrincipalDashboard = () => {
           {/* Bulk Grading Action */}
           <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
         </div>
+
+        {/* Finance Card - without add expense functionality for principals */}
+        <PrincipalFinanceCard />
+
+        {/* Timetable Management Card */}
+        <PrincipalTimetableCard />
+
+        {/* Attendance Management Card */}
+        <PrincipalAttendanceCard />
 
         <RecentActivitiesPanel recentActivities={recentActivities} />
 
