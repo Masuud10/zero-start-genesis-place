@@ -15,6 +15,7 @@ export interface SchoolMetrics {
   totalRevenue: number;
   outstandingFees: number;
   collectionRate: number;
+  monthlyGrowth: number;
 }
 
 const SchoolOwnerMetricsFetcher = () => {
@@ -29,6 +30,7 @@ const SchoolOwnerMetricsFetcher = () => {
     totalRevenue: 0,
     outstandingFees: 0,
     collectionRate: 0,
+    monthlyGrowth: 0,
   });
   
   const [loading, setLoading] = useState(true);
@@ -80,6 +82,7 @@ const SchoolOwnerMetricsFetcher = () => {
         totalRevenue: 0,
         outstandingFees: 0,
         collectionRate: 0,
+        monthlyGrowth: 0,
       };
 
       // Process finance data
@@ -96,6 +99,9 @@ const SchoolOwnerMetricsFetcher = () => {
         newMetrics.collectionRate = newMetrics.totalRevenue + newMetrics.outstandingFees > 0 
           ? (newMetrics.totalRevenue / (newMetrics.totalRevenue + newMetrics.outstandingFees)) * 100 
           : 0;
+
+        // Calculate monthly growth (simple placeholder calculation)
+        newMetrics.monthlyGrowth = financeData.monthly_growth || 0;
       }
 
       setMetrics(newMetrics);

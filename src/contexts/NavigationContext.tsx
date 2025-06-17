@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 interface NavigationContextType {
   activeSection: string;
+  setActiveSection: (section: string) => void;
   onSectionChange: (section: string) => void;
 }
 
@@ -19,7 +20,11 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   console.log('🧭 NavigationContext: Current active section:', activeSection);
 
   return (
-    <NavigationContext.Provider value={{ activeSection, onSectionChange }}>
+    <NavigationContext.Provider value={{ 
+      activeSection, 
+      setActiveSection, 
+      onSectionChange 
+    }}>
       {children}
     </NavigationContext.Provider>
   );
