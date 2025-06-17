@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +12,10 @@ export type StatsType = {
   totalClasses: number;
   totalParents: number;
 };
+
+// Add caching to prevent continuous API requests
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const dashboardCache = new Map<string, { data: any; timestamp: number }>();
 
 export const usePrincipalDashboardData = (reloadKey: number) => {
   const { user } = useAuth();
@@ -29,8 +34,20 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoize cache key to prevent unnecessary re-renders
+  const cacheKey = useMemo(() => `dashboard-${schoolId}-${reloadKey}`, [schoolId, reloadKey]);
+
   const fetchSchoolData = useCallback(async (targetSchoolId: string) => {
     try {
+      // Check cache first
+      const cached = dashboardCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        setStats(cached.data.stats);
+        setRecentActivities(cached.data.activities);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -38,76 +55,58 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         throw new Error('Access denied to school data');
       }
 
-      const fetchCount = async (query: any) => {
-        const { count, error } = await query;
-        if (error) {
-          console.error(`A count query failed: ${error.message}`);
-          return 0;
-        }
-        return count || 0;
+      console.log('📊 Fetching dashboard data for school:', targetSchoolId);
+
+      // Batch all queries together to reduce API calls
+      const [
+        studentsResult,
+        teachersResult,
+        subjectsResult,
+        classesResult,
+        parentsResult,
+        auditLogsResult
+      ] = await Promise.allSettled([
+        supabase.from('students').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true),
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'teacher'),
+        supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId),
+        supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId),
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent'),
+        supabase.from('security_audit_logs')
+          .select('id, created_at, action, resource, metadata, user_id')
+          .eq('school_id', targetSchoolId)
+          .eq('success', true)
+          .in('action', ['create', 'update'])
+          .order('created_at', { ascending: false })
+          .limit(5)
+      ]);
+
+      // Process results safely
+      const statsData = {
+        totalStudents: studentsResult.status === 'fulfilled' ? (studentsResult.value.count || 0) : 0,
+        totalTeachers: teachersResult.status === 'fulfilled' ? (teachersResult.value.count || 0) : 0,
+        totalSubjects: subjectsResult.status === 'fulfilled' ? (subjectsResult.value.count || 0) : 0,
+        totalClasses: classesResult.status === 'fulfilled' ? (classesResult.value.count || 0) : 0,
+        totalParents: parentsResult.status === 'fulfilled' ? (parentsResult.value.count || 0) : 0
       };
 
-      // Fetch counts separately to avoid complex Promise.allSettled typing issues
-      const studentsCount = await fetchCount(
-        supabase.from('students').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true)
-      );
-      
-      const teachersCount = await fetchCount(
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'teacher')
-      );
-      
-      const subjectsCount = await fetchCount(
-        supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId)
-      );
-      
-      const classesCount = await fetchCount(
-        supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId)
-      );
-      
-      const parentsCount = await fetchCount(
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent')
-      );
+      setStats(statsData);
 
-      setStats({
-        totalStudents: studentsCount,
-        totalTeachers: teachersCount,
-        totalSubjects: subjectsCount,
-        totalClasses: classesCount,
-        totalParents: parentsCount
-      });
-
-      // Fetch audit logs with school_id to fix the bug and simplify logic
-      const { data: rawAuditLogs, error: auditLogsError } = await supabase
-        .from('security_audit_logs')
-        .select('id, created_at, action, resource, metadata, user_id')
-        .eq('school_id', targetSchoolId) // This is the crucial fix
-        .eq('success', true)
-        .in('action', ['create', 'update'])
-        .order('created_at', { ascending: false })
-        .limit(5);
-
+      // Process recent activities
       let activities: any[] = [];
-      if (auditLogsError) {
-        console.error("Failed to fetch audit logs:", auditLogsError.message);
-      } else if (rawAuditLogs) {
-        // To avoid TS type instantiation error, we process userIds in a less complex way
-        const userIds: string[] = [];
-        for (const log of rawAuditLogs) {
-          if (log.user_id && !userIds.includes(log.user_id)) {
-            userIds.push(log.user_id);
-          }
-        }
+      if (auditLogsResult.status === 'fulfilled' && auditLogsResult.value.data) {
+        const rawAuditLogs = auditLogsResult.value.data;
         
+        // Get user names for activities
+        const userIds = [...new Set(rawAuditLogs.map(log => log.user_id).filter(Boolean))];
         let userNames: Record<string, string> = {};
+        
         if (userIds.length > 0) {
-          const { data: profilesData, error: profilesError } = await supabase
+          const { data: profilesData } = await supabase
             .from('profiles')
             .select('id, name')
             .in('id', userIds);
 
-          if (profilesError) {
-            console.error("Failed to fetch user profiles for audit logs:", profilesError.message);
-          } else if (profilesData){
+          if (profilesData) {
             profilesData.forEach(p => {
               userNames[p.id] = p.name;
             });
@@ -117,44 +116,33 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         activities = rawAuditLogs.map((log: any) => {
           const userName = log.user_id ? userNames[log.user_id] || 'A user' : 'A user';
           const actionVerb = log.action === 'create' ? 'created' : 'updated';
-
-          let entityName = '';
-          if (log.metadata && typeof log.metadata === 'object') {
-            if ('name' in log.metadata && log.metadata.name) {
-              entityName = `"${log.metadata.name}"`;
-            } else if ('title' in log.metadata && log.metadata.title) {
-              entityName = `"${log.metadata.title}"`;
-            }
-          }
-
           const resourceName = log.resource.replace(/_/g, ' ');
-          let description = `${userName} ${actionVerb} a ${resourceName}.`;
-          if (entityName) {
-            description = `${userName} ${actionVerb} the ${resourceName} ${entityName}.`;
-          }
-
+          
           return {
             id: log.id,
             type: log.resource,
-            description: description,
+            description: `${userName} ${actionVerb} a ${resourceName}`,
             timestamp: log.created_at,
           };
         });
       }
       
       setRecentActivities(activities);
+
+      // Cache the results
+      dashboardCache.set(cacheKey, {
+        data: { stats: statsData, activities },
+        timestamp: Date.now()
+      });
+
     } catch (err: any) {
       const detailedError = err.message || 'An unknown error occurred.';
       setError(`Failed to fetch school data. Reason: ${detailedError}`);
-      toast({
-        title: "Error Loading Dashboard",
-        description: `Could not load dashboard data. ${detailedError}`,
-        variant: "destructive",
-      });
+      console.error('📊 Dashboard data fetch error:', err);
     } finally {
       setLoading(false);
     }
-  }, [toast, validateSchoolAccess]);
+  }, [toast, validateSchoolAccess, cacheKey]);
 
   useEffect(() => {
     if (schoolId) {

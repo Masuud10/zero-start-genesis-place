@@ -1,266 +1,350 @@
 
-import React, { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
-import { Edit, X } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { BookOpen, Plus, Users, Trash2 } from 'lucide-react';
 
 const SubjectManagementTab = () => {
-  const { toast } = useToast();
   const { schoolId } = useSchoolScopedData();
-  const [form, setForm] = useState({ name: "", code: "", curriculum: "", class_id: "", teacher_id: "" });
-  const [loading, setLoading] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [newSubject, setNewSubject] = useState({
+    name: '',
+    code: '',
+    curriculum: 'cbc',
+    class_id: '',
+    teacher_id: ''
+  });
 
-  const [subjectRows, setSubjectRows] = useState<any[]>([]);
-  const [loadingTable, setLoadingTable] = useState(true);
+  // Fetch subjects with teacher and class info
+  const { data: subjects, isLoading: loadingSubjects } = useQuery({
+    queryKey: ['subjects', schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('subjects')
+        .select(`
+          *,
+          classes(id, name),
+          profiles!subjects_teacher_id_fkey(id, name)
+        `)
+        .eq('school_id', schoolId)
+        .order('name');
+      
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!schoolId,
+  });
 
-  const [classes, setClasses] = useState<any[]>([]);
-  const [teachers, setTeachers] = useState<any[]>([]);
+  // Fetch classes for dropdown
+  const { data: classes } = useQuery({
+    queryKey: ['classes', schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('school_id', schoolId)
+        .order('name');
+      
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!schoolId,
+  });
 
-  const fetchSubjects = async () => {
-    if (!schoolId) {
-      setSubjectRows([]);
-      setLoadingTable(false);
+  // Fetch teachers for dropdown
+  const { data: teachers } = useQuery({
+    queryKey: ['teachers', schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('school_id', schoolId)
+        .eq('role', 'teacher')
+        .order('name');
+      
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!schoolId,
+  });
+
+  // Create subject mutation
+  const createSubject = useMutation({
+    mutationFn: async (subjectData: typeof newSubject) => {
+      if (!schoolId) throw new Error('No school ID');
+      
+      const { error } = await supabase
+        .from('subjects')
+        .insert({
+          ...subjectData,
+          school_id: schoolId,
+          class_id: subjectData.class_id || null,
+          teacher_id: subjectData.teacher_id || null
+        });
+      
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Subject created successfully." });
+      setNewSubject({ name: '', code: '', curriculum: 'cbc', class_id: '', teacher_id: '' });
+      queryClient.invalidateQueries({ queryKey: ['subjects', schoolId] });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: 'destructive' });
+    }
+  });
+
+  // Update subject assignment mutation
+  const updateSubjectAssignment = useMutation({
+    mutationFn: async ({ subjectId, teacherId, classId }: { subjectId: string; teacherId?: string; classId?: string }) => {
+      if (!schoolId) throw new Error('No school ID');
+      
+      const { error } = await supabase
+        .from('subjects')
+        .update({
+          teacher_id: teacherId || null,
+          class_id: classId || null
+        })
+        .eq('id', subjectId)
+        .eq('school_id', schoolId);
+      
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Subject assignment updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ['subjects', schoolId] });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: 'destructive' });
+    }
+  });
+
+  // Delete subject mutation
+  const deleteSubject = useMutation({
+    mutationFn: async (subjectId: string) => {
+      if (!schoolId) throw new Error('No school ID');
+      
+      const { error } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', subjectId)
+        .eq('school_id', schoolId);
+      
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Subject deleted successfully." });
+      queryClient.invalidateQueries({ queryKey: ['subjects', schoolId] });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: 'destructive' });
+    }
+  });
+
+  const handleCreateSubject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubject.name || !newSubject.code) {
+      toast({ title: "Validation Error", description: "Please fill in subject name and code.", variant: "destructive" });
       return;
     }
-    setLoadingTable(true);
-    const { data, error } = await supabase
-      .from("subjects")
-      .select("*, class:classes(name), teacher:profiles(name)")
-      .eq("school_id", schoolId)
-      .order("name");
-
-    if (error) {
-      toast({ title: "Load Error", description: error.message, variant: "destructive" });
-      setSubjectRows([]);
-    } else {
-      setSubjectRows(data || []);
-    }
-    setLoadingTable(false);
+    createSubject.mutate(newSubject);
   };
-  
-  const fetchClassesAndTeachers = async () => {
-    if(!schoolId) return;
-    const [classesRes, teachersRes] = await Promise.all([
-      supabase.from('classes').select('id, name').eq('school_id', schoolId).order('name'),
-      supabase.from('profiles').select('id, name').eq('school_id', schoolId).eq('role', 'teacher').order('name')
-    ]);
-    
-    if(classesRes.data) setClasses(classesRes.data);
-    else if(classesRes.error) toast({ title: "Class Load Error", description: classesRes.error.message, variant: "destructive" });
 
-    if(teachersRes.data) setTeachers(teachersRes.data);
-    else if(teachersRes.error) toast({ title: "Teacher Load Error", description: teachersRes.error.message, variant: "destructive" });
+  if (!schoolId) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground">No school assignment found.</p>
+        </CardContent>
+      </Card>
+    );
   }
 
-  useEffect(() => { 
-    if (schoolId) {
-      fetchSubjects();
-      fetchClassesAndTeachers();
-    }
-  }, [schoolId]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-  };
-
-  const handleSelectChange = (name: string) => (value: string) => {
-    setForm(f => ({ ...f, [name]: value }));
-  };
-
-  const alreadyExists = (name: string, classId: string) =>
-    subjectRows.some(s => 
-      s.name.trim().toLowerCase() === name.trim().toLowerCase() && 
-      s.class_id === classId && 
-      s.id !== editingId
-    );
-
-  const handleCreateOrEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name || !form.code || !form.curriculum || !form.class_id) {
-      toast({ title: "Validation Error", description: "Subject Name, Code, Curriculum, and Class are required.", variant: "destructive" });
-      return;
-    }
-    if (alreadyExists(form.name, form.class_id)) {
-      toast({ title: "Duplicate", description: "A subject with this name already exists in the selected class.", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    
-    const subjectData = {
-        name: form.name,
-        code: form.code,
-        curriculum: form.curriculum,
-        class_id: form.class_id,
-        teacher_id: form.teacher_id || null,
-        school_id: schoolId,
-    };
-
-    let result;
-    if (editingId) {
-      const { error } = await supabase
-        .from("subjects")
-        .update(subjectData)
-        .eq("id", editingId);
-      result = { error };
-    } else {
-      const { error } = await supabase
-        .from("subjects")
-        .insert(subjectData);
-      result = { error };
-    }
-    setLoading(false);
-    if (result.error) {
-      toast({ title: "DB Error", description: result.error.message, variant: "destructive" });
-    } else {
-      toast({
-        title: editingId ? "Subject Updated" : "Subject Created",
-        description: editingId ? `Subject "${form.name}" updated.` : `Subject "${form.name}" added.`
-      });
-      handleCancelEdit();
-      fetchSubjects();
-    }
-  };
-
-  const handleEdit = (row: any) => {
-    setEditingId(row.id);
-    setForm({
-      name: row.name || "",
-      code: row.code || "",
-      curriculum: row.curriculum || "",
-      class_id: row.class_id || "",
-      teacher_id: row.teacher_id || ""
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this subject? This cannot be undone.")) return;
-    setLoading(true);
-    const { error } = await supabase
-      .from("subjects")
-      .delete()
-      .eq("id", id);
-    setLoading(false);
-    if (error) {
-      toast({ title: "Delete Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Subject Deleted", description: "Subject removed." });
-      setSubjectRows(subjectRows.filter(s => s.id !== id));
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setForm({ name: "", code: "", curriculum: "", class_id: "", teacher_id: "" });
-  };
-
   return (
-    <div>
-      <div className="font-semibold text-lg mb-2">{editingId ? "Edit Subject" : "Add New Subject"}</div>
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mb-6 border p-4 rounded-lg" onSubmit={handleCreateOrEdit}>
-        <div>
-          <Label htmlFor="name">Subject Name *</Label>
-          <Input id="name" name="name" required placeholder="e.g., Mathematics" value={form.name} onChange={handleChange} />
-        </div>
-        <div>
-          <Label htmlFor="code">Subject Code *</Label>
-          <Input id="code" name="code" required placeholder="e.g., MATH101" value={form.code} onChange={handleChange} />
-        </div>
-        <div>
-          <Label htmlFor="class_id">Class *</Label>
-          <Select required value={form.class_id} onValueChange={handleSelectChange('class_id')}>
-            <SelectTrigger id="class_id">
-              <SelectValue placeholder="Select class" />
-            </SelectTrigger>
-            <SelectContent>
-              {classes.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="teacher_id">Assign Teacher (Optional)</Label>
-          <Select value={form.teacher_id} onValueChange={handleSelectChange('teacher_id')}>
-            <SelectTrigger id="teacher_id">
-              <SelectValue placeholder="Select teacher" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">None</SelectItem>
-              {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="md:col-span-2">
-          <Label htmlFor="curriculum">Curriculum *</Label>
-          <Select required value={form.curriculum} onValueChange={handleSelectChange('curriculum')}>
-            <SelectTrigger id="curriculum">
-              <SelectValue placeholder="Select curriculum" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="CBC">CBC</SelectItem>
-              <SelectItem value="IGCSE">IGCSE</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex gap-2 md:col-span-2">
-          <Button type="submit" disabled={loading}>
-            {loading ? (editingId ? "Saving..." : "Creating...") : (editingId ? "Save Changes" : "Create Subject")}
-          </Button>
-          {editingId && (
-            <Button type="button" variant="outline" onClick={handleCancelEdit}>
-              Cancel
-            </Button>
-          )}
-        </div>
-      </form>
+    <div className="space-y-6">
+      {/* Create Subject Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5 text-green-600" />
+            Add New Subject
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreateSubject} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <Label htmlFor="name">Subject Name</Label>
+              <Input
+                id="name"
+                value={newSubject.name}
+                onChange={(e) => setNewSubject(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Mathematics"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="code">Subject Code</Label>
+              <Input
+                id="code"
+                value={newSubject.code}
+                onChange={(e) => setNewSubject(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                placeholder="e.g., MATH"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="class">Assign to Class (Optional)</Label>
+              <Select value={newSubject.class_id} onValueChange={(value) => setNewSubject(prev => ({ ...prev, class_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Class Assignment</SelectItem>
+                  {classes?.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="teacher">Assign Teacher (Optional)</Label>
+              <Select value={newSubject.teacher_id} onValueChange={(value) => setNewSubject(prev => ({ ...prev, teacher_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Teacher Assignment</SelectItem>
+                  {teachers?.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>{teacher.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button type="submit" disabled={createSubject.isPending} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Subject
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
-      <div className="font-semibold text-lg mb-2">Existing Subjects</div>
-      {loadingTable ? (
-        <div className="text-gray-500">Loading subjects...</div>
-      ) : !subjectRows.length ? (
-        <div className="text-gray-400 italic p-4 border rounded-lg">No subjects found for this school. Use the form above to add one.</div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="table-auto w-full border-collapse mb-4">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="border px-4 py-2">Name</th>
-                <th className="border px-4 py-2">Code</th>
-                <th className="border px-4 py-2">Class</th>
-                <th className="border px-4 py-2">Teacher</th>
-                <th className="border px-4 py-2">Curriculum</th>
-                <th className="border px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subjectRows.map((row: any) => (
-                <tr key={row.id} className="hover:bg-gray-50">
-                  <td className="border px-4 py-2">{row.name}</td>
-                  <td className="border px-4 py-2">{row.code}</td>
-                  <td className="border px-4 py-2">{row.class?.name ?? <span className="text-gray-400">N/A</span>}</td>
-                  <td className="border px-4 py-2">{row.teacher?.name ?? <span className="text-gray-400">N/A</span>}</td>
-                  <td className="border px-4 py-2">{row.curriculum ?? "-"}</td>
-                  <td className="border px-4 py-2 flex gap-2 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
-                      <Edit className="w-4 h-4 mr-1" /> Edit
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDelete(row.id)}>
-                      <X className="w-4 h-4 mr-1" /> Delete
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Subjects List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-blue-600" />
+            Subjects ({subjects?.length || 0})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingSubjects ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {subjects?.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No subjects found. Create your first subject to get started.
+                </p>
+              ) : (
+                subjects?.map((subject) => (
+                  <div key={subject.id} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-lg">{subject.name}</h3>
+                        <p className="text-sm text-muted-foreground">Code: {subject.code}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{subject.curriculum?.toUpperCase() || 'CBC'}</Badge>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteSubject.mutate(subject.id)}
+                          disabled={deleteSubject.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium">Assigned Class</Label>
+                        <Select 
+                          value={subject.class_id || ''} 
+                          onValueChange={(value) => updateSubjectAssignment.mutate({ 
+                            subjectId: subject.id, 
+                            classId: value,
+                            teacherId: subject.teacher_id 
+                          })}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select Class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">No Class Assignment</SelectItem>
+                            {classes?.map((cls) => (
+                              <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {subject.classes && (
+                          <p className="text-xs text-green-600 mt-1">
+                            Currently assigned to: {subject.classes.name}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium">Assigned Teacher</Label>
+                        <Select 
+                          value={subject.teacher_id || ''} 
+                          onValueChange={(value) => updateSubjectAssignment.mutate({ 
+                            subjectId: subject.id, 
+                            teacherId: value,
+                            classId: subject.class_id 
+                          })}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select Teacher" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">No Teacher Assignment</SelectItem>
+                            {teachers?.map((teacher) => (
+                              <SelectItem key={teacher.id} value={teacher.id}>{teacher.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {subject.profiles && (
+                          <p className="text-xs text-green-600 mt-1">
+                            Currently assigned to: {subject.profiles.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

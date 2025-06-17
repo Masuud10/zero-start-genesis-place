@@ -1,257 +1,445 @@
 
-import React, { useEffect, useState, useMemo } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import TeacherAttendanceTable from "./TeacherAttendanceTable";
-import { Student } from "./TeacherAttendanceUtils";
-import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
-import AttendanceControls from "./AttendanceControls";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar, Users, Save, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 
 interface TeacherAttendancePanelProps {
   userId: string;
-  schoolId?: string;
-  userRole?: string;
+  schoolId: string | null;
+  userRole: string;
 }
-
-// Re-defining types here to include 'excused' and avoid touching read-only file
-type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
-
-interface AttendanceRecord {
-  status: AttendanceStatus;
-  remarks: string;
-}
-
-const sessionOptions = [
-  { label: "Morning", value: "morning" },
-  { label: "Afternoon", value: "afternoon" },
-];
 
 const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId, schoolId, userRole }) => {
+  const { academicInfo } = useCurrentAcademicInfo(schoolId);
   const { toast } = useToast();
-  const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
-  const [session, setSession] = useState<string>("morning");
-  const [students, setStudents] = useState<Student[]>([]);
-  const [attendanceMap, setAttendanceMap] = useState<Record<string, Partial<AttendanceRecord>>>({});
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const { academicInfo, loading: academicInfoLoading, error: academicInfoError } = useCurrentAcademicInfo(schoolId);
+  const queryClient = useQueryClient();
 
-  // Fetch classes based on user role
-  useEffect(() => {
-    async function fetchClasses() {
-      if (!schoolId) return;
-      let query;
-      if (userRole === 'teacher' && userId) {
-        query = supabase
-          .from("teacher_classes")
-          .select("class_id, classes(id, name)")
-          .eq("teacher_id", userId)
-          .eq("school_id", schoolId);
-      } else if (userRole && ['principal', 'school_owner'].includes(userRole)) {
-        query = supabase
-          .from("classes")
-          .select("id, name")
-          .eq("school_id", schoolId);
-      } else {
-        return;
-      }
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedSession, setSelectedSession] = useState('full_day');
+  const [attendance, setAttendance] = useState<Record<string, { status: string; remarks: string }>>({});
+
+  // Fetch classes
+  const { data: classes } = useQuery({
+    queryKey: ['classes', schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('school_id', schoolId)
+        .order('name');
       
-      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!schoolId,
+  });
+
+  // Fetch students for selected class
+  const { data: students, isLoading: loadingStudents } = useQuery({
+    queryKey: ['students', schoolId, selectedClass],
+    queryFn: async () => {
+      if (!schoolId || !selectedClass) return [];
       
-      if (error) {
-        toast({ title: "Error", description: "Failed to fetch classes.", variant: "destructive" });
-      } else if (data) {
-        const formattedClasses = data
-          .map((item: any) => userRole === 'teacher' ? (item.classes ? { id: item.class_id, name: item.classes.name } : null) : item)
-          .filter((c): c is { id: string, name: string } => c !== null);
-        setClasses(formattedClasses);
-        if (formattedClasses.length > 0 && !selectedClass) {
-            // setSelectedClass(formattedClasses[0].id);
-        }
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, name, admission_number')
+        .eq('school_id', schoolId)
+        .eq('class_id', selectedClass)
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!schoolId && !!selectedClass,
+  });
+
+  // Fetch existing attendance for the selected date
+  const { data: existingAttendance } = useQuery({
+    queryKey: ['attendance', schoolId, selectedClass, selectedDate, selectedSession],
+    queryFn: async () => {
+      if (!schoolId || !selectedClass || !selectedDate) return [];
+      
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('school_id', schoolId)
+        .eq('class_id', selectedClass)
+        .eq('date', selectedDate)
+        .eq('session', selectedSession);
+      
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!schoolId && !!selectedClass && !!selectedDate,
+  });
+
+  // Update attendance state when existing attendance is loaded
+  React.useEffect(() => {
+    if (existingAttendance) {
+      const attendanceMap = existingAttendance.reduce((acc, att) => {
+        acc[att.student_id] = {
+          status: att.status || 'present',
+          remarks: att.remarks || ''
+        };
+        return acc;
+      }, {} as Record<string, { status: string; remarks: string }>);
+      setAttendance(attendanceMap);
+    }
+  }, [existingAttendance]);
+
+  // Submit attendance mutation
+  const submitAttendance = useMutation({
+    mutationFn: async () => {
+      if (!schoolId || !selectedClass || !selectedDate || !academicInfo.term || !academicInfo.year) {
+        throw new Error('Missing required information');
       }
-    }
-    fetchClasses();
-  }, [userId, schoolId, userRole, toast]);
 
-  // Fetch students and existing attendance for class
-  useEffect(() => {
-    async function fetchStudentsAndAttendance() {
-      if (!selectedClass) {
-        setStudents([]);
-        setAttendanceMap({});
-        return;
-      }
-      setLoading(true);
-
-      try {
-        const { data: studentsData, error: studentsError } = await supabase
-          .from("students")
-          .select("id, name, admission_number")
-          .eq("class_id", selectedClass)
-          .eq("is_active", true);
-
-        if (studentsError) throw studentsError;
-        setStudents(studentsData || []);
-
-        const { data: attData, error: attError } = await supabase
-          .from("attendance")
-          .select("student_id, status, remarks")
-          .eq("class_id", selectedClass)
-          .eq("date", selectedDate)
-          .eq("session", session);
-
-        if (attError) throw attError;
-        
-        const newAttendanceMap: Record<string, Partial<AttendanceRecord>> = {};
-        if (attData) {
-            for (const record of attData) {
-                if(record.student_id) {
-                    newAttendanceMap[record.student_id] = {
-                        status: record.status as AttendanceStatus,
-                        remarks: record.remarks || ""
-                    };
-                }
-            }
-        }
-        setAttendanceMap(newAttendanceMap);
-
-      } catch (err: any) {
-        toast({ title: "Error", description: `Could not load class data: ${err.message}`, variant: "destructive" });
-        setStudents([]);
-        setAttendanceMap({});
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStudentsAndAttendance();
-  }, [selectedClass, selectedDate, session, toast]);
-
-  const setStatus = (studentId: string, status: AttendanceStatus) => {
-    setAttendanceMap((prev) => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], status },
-    }));
-  }
-  
-  const setRemarks = (studentId: string, remarks: string) => {
-    setAttendanceMap((prev) => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], remarks },
-    }));
-  }
-
-  const handleMarkAll = (status: 'present' | 'absent') => {
-    const newMap: typeof attendanceMap = {};
-    students.forEach((stu) => {
-      newMap[stu.id] = { ...attendanceMap[stu.id], status, remarks: status === 'present' ? '' : attendanceMap[stu.id]?.remarks || '' };
-    });
-    setAttendanceMap(newMap);
-    toast({ title: `Marked All ${status.charAt(0).toUpperCase() + status.slice(1)}`, description: `All students set to ${status}.` });
-  }
-
-  const handleSaveAttendance = async () => {
-    if (!selectedClass || !userId || !schoolId) {
-      toast({ title: "Select class", description: "Please select a class.", variant: "destructive" });
-      return;
-    }
-    if (!academicInfo.year || !academicInfo.term) {
-      toast({ title: "Academic Info Missing", description: "Current academic year or term not set. Cannot save attendance.", variant: "destructive" });
-      return;
-    }
-    setSaving(true);
-
-    try {
-      const attendanceRows = students.map((s) => ({
-        student_id: s.id,
+      const attendanceRecords = Object.entries(attendance).map(([studentId, record]) => ({
+        student_id: studentId,
         class_id: selectedClass,
         school_id: schoolId,
         date: selectedDate,
-        session,
-        status: attendanceMap[s.id]?.status || "present",
-        remarks: attendanceMap[s.id]?.remarks || null,
-        submitted_by: userId,
+        status: record.status,
+        session: selectedSession,
+        remarks: record.remarks || null,
         term: academicInfo.term,
         academic_year: academicInfo.year,
+        submitted_by: userId,
+        submitted_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase.from("attendance").upsert(attendanceRows, {
-        onConflict: 'school_id,class_id,student_id,date,session',
-        ignoreDuplicates: false,
+      const { error } = await supabase
+        .from('attendance')
+        .upsert(attendanceRecords, {
+          onConflict: 'student_id,class_id,date,session',
+          ignoreDuplicates: false
+        });
+
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "Success", 
+        description: `Attendance submitted successfully for ${Object.keys(attendance).length} students.` 
       });
-
-      if (error) throw error;
-
-      toast({ title: "Attendance saved", description: "Attendance marked successfully." });
-    } catch (err: any) {
-      toast({ title: "Error", description: `Failed to save attendance: ${err.message}`, variant: "destructive" });
-    } finally {
-      setSaving(false);
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: 'destructive' });
     }
+  });
+
+  const handleStatusChange = (studentId: string, status: string) => {
+    setAttendance(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        status,
+      }
+    }));
+  };
+
+  const handleRemarksChange = (studentId: string, remarks: string) => {
+    setAttendance(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        remarks,
+      }
+    }));
+  };
+
+  const markAllPresent = () => {
+    if (students) {
+      const allPresent = students.reduce((acc, student) => {
+        acc[student.id] = { status: 'present', remarks: '' };
+        return acc;
+      }, {} as Record<string, { status: string; remarks: string }>);
+      setAttendance(allPresent);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'present':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'absent':
+        return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'late':
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+      case 'excused':
+        return <AlertTriangle className="h-4 w-4 text-blue-600" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'present':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'absent':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'late':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'excused':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const attendanceStats = React.useMemo(() => {
+    const total = Object.keys(attendance).length;
+    const present = Object.values(attendance).filter(a => a.status === 'present').length;
+    const absent = Object.values(attendance).filter(a => a.status === 'absent').length;
+    const late = Object.values(attendance).filter(a => a.status === 'late').length;
+    const excused = Object.values(attendance).filter(a => a.status === 'excused').length;
+    
+    return { total, present, absent, late, excused };
+  }, [attendance]);
+
+  if (!schoolId) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground">No school assignment found.</p>
+        </CardContent>
+      </Card>
+    );
   }
-  
-  const attendanceStats = useMemo(() => {
-    const stats: { total: number; present: number; absent: number; late: number; excused: number;[key: string]: number} = { total: students.length, present: 0, absent: 0, late: 0, excused: 0 };
-    for (const student of students) {
-        const status = attendanceMap[student.id]?.status ?? 'present';
-        if (stats.hasOwnProperty(status)) {
-            stats[status]++;
-        }
-    }
-    return stats;
-  }, [students, attendanceMap]);
 
   return (
-    <Card className="mt-2">
-      <CardHeader>
-        <CardTitle>Mark Attendance</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <AttendanceControls
-          classes={classes}
-          selectedClass={selectedClass}
-          onClassChange={setSelectedClass}
-          selectedDate={selectedDate}
-          onDateChange={(e) => setSelectedDate(e.target.value)}
-          session={session}
-          onSessionChange={setSession}
-          sessionOptions={sessionOptions}
-          onMarkAll={handleMarkAll}
-          onSaveAttendance={handleSaveAttendance}
-          loading={loading || academicInfoLoading}
-          saving={saving}
-          academicInfoError={academicInfoError}
-          stats={attendanceStats}
-        />
-        {academicInfoError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Configuration Error</AlertTitle>
-            <AlertDescription>{academicInfoError}</AlertDescription>
-          </Alert>
-        )}
-        
-        <div>
-          {loading || academicInfoLoading ? (
-            <div className="p-8 text-center flex justify-center items-center gap-2"><Loader2 className="animate-spin h-5 w-5" />Loading students...</div>
-          ) : !selectedClass ? (
-            <div className="p-8 text-center text-muted-foreground">Select a class to begin marking attendance.</div>
-          ) : students.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No students found in this class.</div>
-          ) : (
-            <TeacherAttendanceTable
-              students={students}
-              attendanceMap={attendanceMap}
-              setStatus={setStatus}
-              setRemarks={setRemarks}
-            />
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            Attendance Management
+          </CardTitle>
+        </CardHeader>
+      </Card>
+
+      {/* Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-purple-600" />
+            Attendance Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="class">Class</Label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes?.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="session">Session</Label>
+              <Select value={selectedSession} onValueChange={setSelectedSession}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">Morning</SelectItem>
+                  <SelectItem value="afternoon">Afternoon</SelectItem>
+                  <SelectItem value="full_day">Full Day</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button onClick={markAllPresent} variant="outline" className="w-full">
+                Mark All Present
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex gap-4 mt-4 text-sm">
+            <Badge variant="outline">Term: {academicInfo.term || 'Not Set'}</Badge>
+            <Badge variant="outline">Year: {academicInfo.year || 'Not Set'}</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Attendance Stats */}
+      {Object.keys(attendance).length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{attendanceStats.total}</div>
+                <div className="text-sm text-blue-600">Total</div>
+              </div>
+              <div className="p-3 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{attendanceStats.present}</div>
+                <div className="text-sm text-green-600">Present</div>
+              </div>
+              <div className="p-3 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{attendanceStats.absent}</div>
+                <div className="text-sm text-red-600">Absent</div>
+              </div>
+              <div className="p-3 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">{attendanceStats.late}</div>
+                <div className="text-sm text-yellow-600">Late</div>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{attendanceStats.excused}</div>
+                <div className="text-sm text-blue-600">Excused</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Students Table */}
+      {selectedClass ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Student Attendance</CardTitle>
+              <Button 
+                onClick={() => submitAttendance.mutate()} 
+                disabled={Object.keys(attendance).length === 0 || submitAttendance.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {submitAttendance.isPending ? 'Saving...' : 'Save Attendance'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingStudents ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="ml-3">Loading students...</p>
+              </div>
+            ) : students && students.length > 0 ? (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">Student Name</TableHead>
+                      <TableHead className="font-semibold">Admission No.</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold">Remarks</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {students.map((student) => (
+                      <TableRow key={student.id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">{student.name}</TableCell>
+                        <TableCell className="text-gray-600">{student.admission_number}</TableCell>
+                        <TableCell>
+                          <Select 
+                            value={attendance[student.id]?.status || 'present'} 
+                            onValueChange={(value) => handleStatusChange(student.id, value)}
+                          >
+                            <SelectTrigger className={`w-32 ${getStatusColor(attendance[student.id]?.status || 'present')}`}>
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(attendance[student.id]?.status || 'present')}
+                                <SelectValue />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="present">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  Present
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="absent">
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                  Absent
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="late">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-yellow-600" />
+                                  Late
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="excused">
+                                <div className="flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-blue-600" />
+                                  Excused
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Textarea
+                            value={attendance[student.id]?.remarks || ''}
+                            onChange={(e) => handleRemarksChange(student.id, e.target.value)}
+                            placeholder="Add remarks (optional)"
+                            className="min-h-[60px] resize-none"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                  No students found for the selected class. Please check class setup and student assignments.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-muted-foreground">
+              Please select a class to view students and mark attendance.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 
