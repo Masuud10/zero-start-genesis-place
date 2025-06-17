@@ -61,7 +61,10 @@ const SubjectManagementTab = () => {
   }, [schoolId]);
 
   const fetchData = async () => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      console.error('No school ID available');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -85,25 +88,34 @@ const SubjectManagementTab = () => {
           .order('name')
       ]);
 
-      if (subjectsRes.error) throw subjectsRes.error;
-      if (classesRes.error) throw classesRes.error;
-      if (teachersRes.error) throw teachersRes.error;
+      if (subjectsRes.error) {
+        console.error('Error fetching subjects:', subjectsRes.error);
+        throw subjectsRes.error;
+      }
+      if (classesRes.error) {
+        console.error('Error fetching classes:', classesRes.error);
+        throw classesRes.error;
+      }
+      if (teachersRes.error) {
+        console.error('Error fetching teachers:', teachersRes.error);
+        throw teachersRes.error;
+      }
 
       setSubjects(subjectsRes.data || []);
       setClasses(classesRes.data || []);
       setTeachers(teachersRes.data || []);
 
-      console.log('Fetched data:', {
-        subjects: subjectsRes.data?.length,
-        classes: classesRes.data?.length,
-        teachers: teachersRes.data?.length
+      console.log('Fetched data successfully:', {
+        subjects: subjectsRes.data?.length || 0,
+        classes: classesRes.data?.length || 0,
+        teachers: teachersRes.data?.length || 0
       });
 
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load data: " + error.message,
+        description: "Failed to load data: " + (error.message || 'Unknown error'),
         variant: "destructive"
       });
     } finally {
@@ -125,7 +137,7 @@ const SubjectManagementTab = () => {
 
     if (!formData.name.trim() || !formData.code.trim()) {
       toast({
-        title: "Error",
+        title: "Validation Error",
         description: "Subject name and code are required",
         variant: "destructive"
       });
@@ -141,6 +153,8 @@ const SubjectManagementTab = () => {
         class_id: formData.class_id || null,
         teacher_id: formData.teacher_id || null,
       };
+
+      console.log('Submitting subject data:', subjectData);
 
       let result;
       
@@ -167,6 +181,8 @@ const SubjectManagementTab = () => {
         throw result.error;
       }
 
+      console.log('Subject operation successful:', result.data);
+
       toast({
         title: "Success",
         description: editingId ? "Subject updated successfully" : "Subject created successfully",
@@ -175,13 +191,22 @@ const SubjectManagementTab = () => {
       // Reset form and refresh data
       setFormData({ name: '', code: '', class_id: '', teacher_id: '' });
       setEditingId(null);
-      fetchData();
+      await fetchData();
 
     } catch (error: any) {
       console.error('Error saving subject:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to save subject';
+      if (error.message?.includes('duplicate key')) {
+        errorMessage = 'A subject with this code already exists';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: `Failed to ${editingId ? 'update' : 'create'} subject: ${error.message}`,
+        description: `${editingId ? 'Failed to update' : 'Failed to create'} subject: ${errorMessage}`,
         variant: "destructive"
       });
     } finally {
@@ -200,7 +225,9 @@ const SubjectManagementTab = () => {
   };
 
   const handleDelete = async (subjectId: string) => {
-    if (!confirm('Are you sure you want to delete this subject?')) return;
+    if (!confirm('Are you sure you want to delete this subject? This action cannot be undone.')) {
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -209,19 +236,22 @@ const SubjectManagementTab = () => {
         .eq('id', subjectId)
         .eq('school_id', schoolId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting subject:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
         description: "Subject deleted successfully",
       });
 
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       console.error('Error deleting subject:', error);
       toast({
         title: "Error",
-        description: "Failed to delete subject: " + error.message,
+        description: "Failed to delete subject: " + (error.message || 'Unknown error'),
         variant: "destructive"
       });
     }
@@ -234,19 +264,21 @@ const SubjectManagementTab = () => {
 
   const getClassName = (classId?: string) => {
     if (!classId) return 'All Classes';
-    return classes.find(c => c.id === classId)?.name || 'Unknown Class';
+    const foundClass = classes.find(c => c.id === classId);
+    return foundClass?.name || 'Unknown Class';
   };
 
   const getTeacherName = (teacherId?: string) => {
     if (!teacherId) return 'Unassigned';
-    return teachers.find(t => t.id === teacherId)?.name || 'Unknown Teacher';
+    const foundTeacher = teachers.find(t => t.id === teacherId);
+    return foundTeacher?.name || 'Unknown Teacher';
   };
 
   if (loading) {
     return (
       <div className="text-center py-8">
         <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-        Loading subjects...
+        <p>Loading subjects...</p>
       </div>
     );
   }
@@ -284,6 +316,7 @@ const SubjectManagementTab = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g., Mathematics"
                   required
+                  disabled={creating}
                 />
               </div>
               <div>
@@ -294,6 +327,7 @@ const SubjectManagementTab = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
                   placeholder="e.g., MATH"
                   required
+                  disabled={creating}
                 />
               </div>
               <div>
@@ -301,6 +335,7 @@ const SubjectManagementTab = () => {
                 <Select
                   value={formData.class_id}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}
+                  disabled={creating}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select class (optional)" />
@@ -320,6 +355,7 @@ const SubjectManagementTab = () => {
                 <Select
                   value={formData.teacher_id}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, teacher_id: value }))}
+                  disabled={creating}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select teacher (optional)" />
@@ -350,7 +386,7 @@ const SubjectManagementTab = () => {
                 )}
               </Button>
               {editingId && (
-                <Button type="button" variant="outline" onClick={cancelEdit}>
+                <Button type="button" variant="outline" onClick={cancelEdit} disabled={creating}>
                   Cancel
                 </Button>
               )}
@@ -402,6 +438,7 @@ const SubjectManagementTab = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleEdit(subject)}
+                            disabled={creating}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -410,6 +447,7 @@ const SubjectManagementTab = () => {
                             variant="outline"
                             onClick={() => handleDelete(subject.id)}
                             className="text-red-600 hover:text-red-700"
+                            disabled={creating}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
