@@ -1,169 +1,171 @@
 
-import React, { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import React, { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface GradeCellProps {
-  curriculumType: "cbc" | "igcse" | "standard";
+  curriculumType: 'cbc' | 'igcse' | 'standard';
   grade: {
     score?: number | null;
     letter_grade?: string | null;
     cbc_performance_level?: string | null;
+    percentage?: number | null;
   };
-  onGradeChange: (value: {
-    score?: number | null;
-    letter_grade?: string | null;
-    cbc_performance_level?: string | null;
-  }) => void;
+  onGradeChange: (grade: any) => void;
 }
-
-const CBC_LEVELS = [
-  { value: "exceeds_expectations", label: "EE - Exceeds Expectations" },
-  { value: "meets_expectations", label: "ME - Meets Expectations" },
-  { value: "approaches_expectations", label: "AE - Approaches Expectations" },
-  { value: "below_expectations", label: "BE - Below Expectations" },
-];
-
-const LETTER_GRADES = [
-  { value: "A", label: "A" },
-  { value: "B", label: "B" },
-  { value: "C", label: "C" },
-  { value: "D", label: "D" },
-  { value: "E", label: "E" },
-  { value: "F", label: "F" },
-];
 
 const GradeCell: React.FC<GradeCellProps> = ({
   curriculumType,
   grade,
   onGradeChange,
 }) => {
-  const [localScore, setLocalScore] = useState<string>(
-    grade.score !== null && grade.score !== undefined
-      ? grade.score.toString()
-      : ""
-  );
+  const [scoreInput, setScoreInput] = useState(grade.score?.toString() || '');
 
   useEffect(() => {
-    setLocalScore(
-      grade.score !== null && grade.score !== undefined
-        ? grade.score.toString()
-        : ""
-    );
+    setScoreInput(grade.score?.toString() || '');
   }, [grade.score]);
 
   const handleScoreChange = (value: string) => {
-    setLocalScore(value);
-    if (value === "" || !isNaN(Number(value))) {
-      const numericValue = value === "" ? null : Number(value);
-      onGradeChange({ ...grade, score: numericValue });
+    setScoreInput(value);
+    
+    const numericValue = parseFloat(value);
+    if (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 100) {
+      const percentage = Math.round(numericValue);
+      let letterGrade = '';
+      let cbcLevel = '';
+
+      // Calculate letter grade for standard curriculum
+      if (curriculumType === 'standard') {
+        if (numericValue >= 90) letterGrade = 'A+';
+        else if (numericValue >= 80) letterGrade = 'A';
+        else if (numericValue >= 70) letterGrade = 'B+';
+        else if (numericValue >= 60) letterGrade = 'B';
+        else if (numericValue >= 50) letterGrade = 'C+';
+        else if (numericValue >= 40) letterGrade = 'C';
+        else if (numericValue >= 30) letterGrade = 'D+';
+        else if (numericValue >= 20) letterGrade = 'D';
+        else letterGrade = 'E';
+      }
+
+      // Calculate CBC performance level
+      if (curriculumType === 'cbc') {
+        if (numericValue >= 90) cbcLevel = 'Exceeds Expectations';
+        else if (numericValue >= 70) cbcLevel = 'Meets Expectations';
+        else if (numericValue >= 50) cbcLevel = 'Approaches Expectations';
+        else cbcLevel = 'Below Expectations';
+      }
+
+      onGradeChange({
+        score: numericValue,
+        percentage,
+        letter_grade: letterGrade || null,
+        cbc_performance_level: cbcLevel || null,
+      });
+    } else if (value === '') {
+      onGradeChange({
+        score: null,
+        percentage: null,
+        letter_grade: null,
+        cbc_performance_level: null,
+      });
     }
   };
 
-  const handleScoreBlur = () => {
-    if (
-      localScore !== "" &&
-      (isNaN(Number(localScore)) ||
-        Number(localScore) < 0 ||
-        Number(localScore) > 100)
-    ) {
-      setLocalScore(
-        grade.score !== null && grade.score !== undefined
-          ? grade.score.toString()
-          : ""
-      );
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Tab" || e.key === "Enter") {
-      (e.currentTarget as HTMLElement).blur();
-      const inputs = Array.from(
-        document.querySelectorAll('input[type="number"], select')
-      );
-      const currentIndex = inputs.indexOf(e.currentTarget as HTMLInputElement);
-      const nextInput = inputs[currentIndex + 1] as HTMLElement;
-      if (nextInput) {
-        nextInput.focus();
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    // Allow navigation with Tab and Enter
+    if (e.key === 'Tab' || e.key === 'Enter') {
+      e.preventDefault();
+      const nextCell = e.currentTarget.closest('td')?.nextElementSibling?.querySelector('input');
+      if (nextCell) {
+        (nextCell as HTMLElement).focus();
+      } else {
+        // Move to next row
+        const currentRow = e.currentTarget.closest('tr');
+        const nextRow = currentRow?.nextElementSibling;
+        const firstCellInNextRow = nextRow?.querySelector('td:nth-child(2) input');
+        if (firstCellInNextRow) {
+          (firstCellInNextRow as HTMLElement).focus();
+        }
       }
     }
   };
 
-  if (curriculumType === "cbc") {
-    return (
-      <Select
-        value={grade.cbc_performance_level || ""}
-        onValueChange={(value) =>
-          onGradeChange({ ...grade, cbc_performance_level: value })
-        }
-      >
-        <SelectTrigger className="w-full h-8">
-          <SelectValue placeholder="Select level" />
-        </SelectTrigger>
-        <SelectContent>
-          {CBC_LEVELS.map((level) => (
-            <SelectItem key={level.value} value={level.value}>
-              {level.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  }
-
-  if (curriculumType === "igcse") {
+  if (curriculumType === 'cbc') {
     return (
       <div className="space-y-1">
         <Input
           type="number"
           min="0"
           max="100"
-          value={localScore}
+          value={scoreInput}
           onChange={(e) => handleScoreChange(e.target.value)}
-          onBlur={handleScoreBlur}
-          onKeyDown={handleKeyDown}
-          placeholder="Score"
+          onKeyDown={handleKeyPress}
+          placeholder="0-100"
+          className="h-8 text-center"
+        />
+        {grade.cbc_performance_level && (
+          <div className="text-xs text-center text-muted-foreground">
+            {grade.cbc_performance_level}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (curriculumType === 'igcse') {
+    return (
+      <div className="space-y-1">
+        <Input
+          type="number"
+          min="0"
+          max="100"
+          value={scoreInput}
+          onChange={(e) => handleScoreChange(e.target.value)}
+          onKeyDown={handleKeyPress}
+          placeholder="0-100"
           className="h-8 text-center"
         />
         <Select
-          value={grade.letter_grade || ""}
-          onValueChange={(value) =>
-            onGradeChange({ ...grade, letter_grade: value })
-          }
+          value={grade.letter_grade || ''}
+          onValueChange={(value) => onGradeChange({ ...grade, letter_grade: value })}
         >
-          <SelectTrigger className="w-full h-6 text-xs">
+          <SelectTrigger className="h-6 text-xs">
             <SelectValue placeholder="Grade" />
           </SelectTrigger>
           <SelectContent>
-            {LETTER_GRADES.map((letterGrade) => (
-              <SelectItem key={letterGrade.value} value={letterGrade.value}>
-                {letterGrade.label}
-              </SelectItem>
-            ))}
+            <SelectItem value="A*">A*</SelectItem>
+            <SelectItem value="A">A</SelectItem>
+            <SelectItem value="B">B</SelectItem>
+            <SelectItem value="C">C</SelectItem>
+            <SelectItem value="D">D</SelectItem>
+            <SelectItem value="E">E</SelectItem>
+            <SelectItem value="F">F</SelectItem>
+            <SelectItem value="G">G</SelectItem>
           </SelectContent>
         </Select>
       </div>
     );
   }
 
+  // Standard curriculum
   return (
-    <Input
-      type="number"
-      min="0"
-      max="100"
-      value={localScore}
-      onChange={(e) => handleScoreChange(e.target.value)}
-      onBlur={handleScoreBlur}
-      onKeyDown={handleKeyDown}
-      placeholder="Score"
-      className="h-8 text-center"
-    />
+    <div className="space-y-1">
+      <Input
+        type="number"
+        min="0"
+        max="100"
+        value={scoreInput}
+        onChange={(e) => handleScoreChange(e.target.value)}
+        onKeyDown={handleKeyPress}
+        placeholder="0-100"
+        className="h-8 text-center"
+      />
+      {grade.letter_grade && (
+        <div className="text-xs text-center font-medium text-blue-600">
+          {grade.letter_grade}
+        </div>
+      )}
+    </div>
   );
 };
 

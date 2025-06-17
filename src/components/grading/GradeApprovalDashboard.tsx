@@ -38,9 +38,14 @@ const GradeApprovalDashboard = () => {
   }, [user, schoolId]);
 
   const fetchSubmissions = async () => {
+    if (!schoolId) return;
+    
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      console.log('Fetching grade submissions for school:', schoolId);
+      
+      // Get all grades that are submitted or approved for this school
+      const { data: gradesData, error: gradesError } = await supabase
         .from('grades')
         .select(`
           id,
@@ -50,27 +55,53 @@ const GradeApprovalDashboard = () => {
           exam_type,
           submitted_at,
           status,
-          submitted_by,
-          classes!inner(name),
-          subjects!inner(name),
-          profiles!grades_submitted_by_fkey(name)
+          submitted_by
         `)
         .eq('school_id', schoolId)
         .in('status', ['submitted', 'approved'])
+        .not('submitted_at', 'is', null)
         .order('submitted_at', { ascending: false });
 
-      if (error) throw error;
+      if (gradesError) {
+        console.error('Error fetching grades:', gradesError);
+        throw gradesError;
+      }
+
+      console.log('Grades data:', gradesData?.length);
+
+      if (!gradesData || gradesData.length === 0) {
+        setSubmissions([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get unique class IDs, subject IDs, and user IDs for additional queries
+      const classIds = [...new Set(gradesData.map(g => g.class_id))];
+      const subjectIds = [...new Set(gradesData.map(g => g.subject_id))];
+      const userIds = [...new Set(gradesData.map(g => g.submitted_by).filter(Boolean))];
+
+      // Fetch class names, subject names, and user names in parallel
+      const [classesRes, subjectsRes, usersRes] = await Promise.all([
+        supabase.from('classes').select('id, name').in('id', classIds),
+        supabase.from('subjects').select('id, name').in('id', subjectIds),
+        supabase.from('profiles').select('id, name').in('id', userIds)
+      ]);
+
+      // Create lookup objects
+      const classLookup = Object.fromEntries((classesRes.data || []).map(c => [c.id, c.name]));
+      const subjectLookup = Object.fromEntries((subjectsRes.data || []).map(s => [s.id, s.name]));
+      const userLookup = Object.fromEntries((usersRes.data || []).map(u => [u.id, u.name]));
 
       // Group grades by submission (class + subject + term + exam_type + submitted_by)
-      const grouped = data?.reduce((acc: any, grade: any) => {
+      const grouped = gradesData.reduce((acc: any, grade: any) => {
         const key = `${grade.class_id}-${grade.subject_id}-${grade.term}-${grade.exam_type}-${grade.submitted_by}`;
         
         if (!acc[key]) {
           acc[key] = {
             id: key,
-            class_name: grade.classes?.name || 'Unknown Class',
-            subject_name: grade.subjects?.name || 'Unknown Subject',
-            teacher_name: grade.profiles?.name || 'Unknown Teacher',
+            class_name: classLookup[grade.class_id] || 'Unknown Class',
+            subject_name: subjectLookup[grade.subject_id] || 'Unknown Subject',
+            teacher_name: userLookup[grade.submitted_by] || 'Unknown Teacher',
             term: grade.term,
             exam_type: grade.exam_type,
             submitted_at: grade.submitted_at,
@@ -85,12 +116,15 @@ const GradeApprovalDashboard = () => {
         return acc;
       }, {});
 
-      setSubmissions(Object.values(grouped || {}));
+      const submissionsList = Object.values(grouped);
+      console.log('Processed submissions:', submissionsList.length);
+      
+      setSubmissions(submissionsList);
     } catch (error: any) {
       console.error('Error fetching submissions:', error);
       toast({
         title: "Error",
-        description: "Failed to load grade submissions",
+        description: "Failed to load grade submissions: " + (error.message || 'Unknown error'),
         variant: "destructive"
       });
     } finally {
@@ -104,7 +138,7 @@ const GradeApprovalDashboard = () => {
 
     setSelectedSubmission(submissionId);
     try {
-      const { data, error } = await supabase.rpc('update_grade_status', {
+      const { error } = await supabase.rpc('update_grade_status', {
         grade_ids: submission.grade_ids,
         new_status: 'approved',
         user_id: user?.id
@@ -136,7 +170,7 @@ const GradeApprovalDashboard = () => {
 
     setSelectedSubmission(submissionId);
     try {
-      const { data, error } = await supabase.rpc('update_grade_status', {
+      const { error } = await supabase.rpc('update_grade_status', {
         grade_ids: submission.grade_ids,
         new_status: 'released',
         user_id: user?.id
@@ -195,82 +229,89 @@ const GradeApprovalDashboard = () => {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-center py-8">Loading submissions...</div>
+          <div className="text-center py-8">
+            <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+            Loading submissions...
+          </div>
         ) : submissions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No grade submissions pending review.
+            <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium">No grade submissions pending review</p>
+            <p className="text-sm">Teachers haven't submitted any grades for approval yet.</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Class</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Teacher</TableHead>
-                <TableHead>Term/Exam</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Grades</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell className="font-medium">{submission.class_name}</TableCell>
-                  <TableCell>{submission.subject_name}</TableCell>
-                  <TableCell>{submission.teacher_name}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{submission.term}</div>
-                      <div className="text-muted-foreground">{submission.exam_type}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {new Date(submission.submitted_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{submission.grades_count}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {submission.status === 'submitted' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleApprove(submission.id)}
-                          disabled={selectedSubmission === submission.id}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                      )}
-                      {submission.status === 'approved' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleRelease(submission.id)}
-                          disabled={selectedSubmission === submission.id}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          <Send className="h-4 w-4 mr-1" />
-                          Release
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {/* View details */}}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Teacher</TableHead>
+                  <TableHead>Term/Exam</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Grades</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {submissions.map((submission) => (
+                  <TableRow key={submission.id}>
+                    <TableCell className="font-medium">{submission.class_name}</TableCell>
+                    <TableCell>{submission.subject_name}</TableCell>
+                    <TableCell>{submission.teacher_name}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{submission.term}</div>
+                        <div className="text-muted-foreground">{submission.exam_type}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(submission.submitted_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{submission.grades_count}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {submission.status === 'submitted' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(submission.id)}
+                            disabled={selectedSubmission === submission.id}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                        )}
+                        {submission.status === 'approved' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleRelease(submission.id)}
+                            disabled={selectedSubmission === submission.id}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            <Send className="h-4 w-4 mr-1" />
+                            Release
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {/* View details */}}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
