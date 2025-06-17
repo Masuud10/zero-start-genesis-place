@@ -39,6 +39,7 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
 
   const fetchSummary = useCallback(async () => {
     if (!shouldFetch) {
+      console.warn('🚫 EduFamAnalytics: Access denied - user role:', user?.role, 'canViewSystemAnalytics:', canViewSystemAnalytics);
       setError("Insufficient permissions for analytics summary.");
       return;
     }
@@ -47,26 +48,56 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
     setError(null);
 
     try {
-      console.log('🔍 EduFamAnalytics: Fetching data for filters:', filters);
+      console.log('🔍 EduFamAnalytics: Starting fetch with filters:', filters);
+      console.log('🔍 EduFamAnalytics: User details:', { 
+        userId: user?.id, 
+        role: user?.role, 
+        schoolId: user?.school_id 
+      });
+
+      // Test database connection first
+      const { data: testData, error: testError } = await supabase
+        .from("schools")
+        .select("id, name")
+        .limit(1);
+
+      if (testError) {
+        console.error('🚫 EduFamAnalytics: Database connection test failed:', testError);
+        throw new Error(`Database connection failed: ${testError.message}`);
+      }
+
+      console.log('✅ EduFamAnalytics: Database connection successful');
 
       // --- Grades Summary ---
+      console.log('📊 EduFamAnalytics: Fetching grades summary...');
       let gradesQuery = supabase
         .from("school_grades_summary")
         .select("*");
 
       if (filters.schoolId) {
         gradesQuery = gradesQuery.eq("school_id", filters.schoolId);
+        console.log('🔍 EduFamAnalytics: Filtering grades by school_id:', filters.schoolId);
       }
 
       const { data: gradesData, error: gradesErr } = await gradesQuery;
+      
       if (gradesErr) {
-        console.error('Grades query error:', gradesErr);
-        throw gradesErr;
+        console.error('🚫 EduFamAnalytics: Grades query error:', {
+          error: gradesErr,
+          message: gradesErr.message,
+          details: gradesErr.details,
+          hint: gradesErr.hint,
+          code: gradesErr.code
+        });
+        throw new Error(`Grades query failed: ${gradesErr.message}`);
       }
+
+      console.log('📊 EduFamAnalytics: Grades data received:', gradesData);
       
       let gradesSummary;
       if (filters.schoolId) {
         gradesSummary = Array.isArray(gradesData) && gradesData.length > 0 ? gradesData[0] : null;
+        console.log('📊 EduFamAnalytics: Single school grades summary:', gradesSummary);
       } else if (Array.isArray(gradesData) && gradesData.length > 0) {
         const aggregated = gradesData.reduce((acc, summary) => {
           const count = summary.grades_count || 0;
@@ -79,28 +110,42 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
           grades_count: aggregated.grades_count,
           average_grade: aggregated.grades_count > 0 ? aggregated.total_weighted_grade / aggregated.grades_count : null
         };
+        console.log('📊 EduFamAnalytics: Aggregated grades summary:', gradesSummary);
       } else {
         gradesSummary = null;
+        console.log('📊 EduFamAnalytics: No grades data found');
       }
 
       // --- Attendance Summary ---
+      console.log('📅 EduFamAnalytics: Fetching attendance summary...');
       let attendanceQuery = supabase
         .from("school_attendance_summary")
         .select("*");
 
       if (filters.schoolId) {
         attendanceQuery = attendanceQuery.eq("school_id", filters.schoolId);
+        console.log('🔍 EduFamAnalytics: Filtering attendance by school_id:', filters.schoolId);
       }
 
       const { data: attendanceData, error: attendanceErr } = await attendanceQuery;
+      
       if (attendanceErr) {
-        console.error('Attendance query error:', attendanceErr);
-        throw attendanceErr;
+        console.error('🚫 EduFamAnalytics: Attendance query error:', {
+          error: attendanceErr,
+          message: attendanceErr.message,
+          details: attendanceErr.details,
+          hint: attendanceErr.hint,
+          code: attendanceErr.code
+        });
+        throw new Error(`Attendance query failed: ${attendanceErr.message}`);
       }
+
+      console.log('📅 EduFamAnalytics: Attendance data received:', attendanceData);
       
       let attendanceSummary;
       if (filters.schoolId) {
         attendanceSummary = Array.isArray(attendanceData) && attendanceData.length > 0 ? attendanceData[0] : null;
+        console.log('📅 EduFamAnalytics: Single school attendance summary:', attendanceSummary);
       } else if (Array.isArray(attendanceData) && attendanceData.length > 0) {
         const aggregated = attendanceData.reduce((acc, summary) => {
           const count = summary.attendance_count || 0;
@@ -113,36 +158,52 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
           attendance_count: aggregated.attendance_count,
           attendance_rate: aggregated.attendance_count > 0 ? aggregated.total_weighted_rate / aggregated.attendance_count : null,
         };
+        console.log('📅 EduFamAnalytics: Aggregated attendance summary:', attendanceSummary);
       } else {
         attendanceSummary = null;
+        console.log('📅 EduFamAnalytics: No attendance data found');
       }
 
       // --- Finance Summary ---
+      console.log('💰 EduFamAnalytics: Fetching finance summary...');
       let financeQuery = supabase
         .from("school_finance_summary")
         .select("*");
         
       if (filters.schoolId) {
         financeQuery = financeQuery.eq("school_id", filters.schoolId);
+        console.log('🔍 EduFamAnalytics: Filtering finance by school_id:', filters.schoolId);
       }
 
       const { data: financeData, error: financeErr } = await financeQuery;
+      
       if (financeErr) {
-        console.error('Finance query error:', financeErr);
-        throw financeErr;
+        console.error('🚫 EduFamAnalytics: Finance query error:', {
+          error: financeErr,
+          message: financeErr.message,
+          details: financeErr.details,
+          hint: financeErr.hint,
+          code: financeErr.code
+        });
+        throw new Error(`Finance query failed: ${financeErr.message}`);
       }
+
+      console.log('💰 EduFamAnalytics: Finance data received:', financeData);
       
       let financeSummary;
       if (filters.schoolId) {
         financeSummary = Array.isArray(financeData) && financeData.length > 0 ? financeData[0] : null;
+        console.log('💰 EduFamAnalytics: Single school finance summary:', financeSummary);
       } else if (Array.isArray(financeData) && financeData.length > 0) {
         financeSummary = financeData.reduce((acc, summary) => {
           acc.total_collected += summary.total_collected || 0;
           acc.transactions_count += summary.transactions_count || 0;
           return acc;
         }, { total_collected: 0, transactions_count: 0 });
+        console.log('💰 EduFamAnalytics: Aggregated finance summary:', financeSummary);
       } else {
         financeSummary = null;
+        console.log('💰 EduFamAnalytics: No finance data found');
       }
 
       const newSummary: AnalyticsSummary = {
@@ -166,17 +227,38 @@ export function useEduFamAnalytics(filters: AnalyticsFilter) {
         },
       };
 
-      console.log('📊 EduFamAnalytics: Summary computed:', newSummary);
+      console.log('✅ EduFamAnalytics: Final summary computed:', newSummary);
       setSummary(newSummary);
       setError(null);
     } catch (err: any) {
-      console.error('🚫 EduFamAnalytics: Error:', err);
+      console.error('🚫 EduFamAnalytics: Critical error occurred:', {
+        error: err,
+        message: err?.message,
+        stack: err?.stack,
+        name: err?.name,
+        filters: filters,
+        user: user
+      });
+      
       setSummary(null);
-      setError(err?.message ?? "Failed to load analytics summary");
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to load analytics data";
+      if (err?.message?.includes("permission")) {
+        errorMessage = "Permission denied: Unable to access analytics data";
+      } else if (err?.message?.includes("network")) {
+        errorMessage = "Network error: Please check your connection";
+      } else if (err?.message?.includes("timeout")) {
+        errorMessage = "Request timeout: Please try again";
+      } else if (err?.message) {
+        errorMessage = `Data fetch error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [shouldFetch, filters.schoolId, filters.startDate, filters.endDate]);
+  }, [shouldFetch, filters.schoolId, filters.startDate, filters.endDate, user, canViewSystemAnalytics]);
 
   useEffect(() => {
     fetchSummary();

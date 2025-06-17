@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -5,7 +6,8 @@ import { useEduFamAnalytics } from "@/hooks/useEduFamAnalytics";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, TrendingUp, TrendingDown, Users, GraduationCap, CalendarCheck, DollarSign, BarChart3 } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Users, GraduationCap, CalendarCheck, DollarSign, BarChart3, AlertTriangle, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface School {
   id: string;
@@ -16,6 +18,7 @@ const EduFamAdminAnalytics = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
   const [schools, setSchools] = useState<School[]>([]);
   const [schoolsLoading, setSchoolsLoading] = useState(false);
+  const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState("this_month");
   const { user } = useAuth();
   const { toast } = useToast();
@@ -25,19 +28,37 @@ const EduFamAdminAnalytics = () => {
     const loadSchools = async () => {
       if (user?.role === "edufam_admin") {
         setSchoolsLoading(true);
+        setSchoolsError(null);
+        
         try {
+          console.log('🏫 EduFamAnalytics: Loading schools list...');
+          
           const { data, error } = await supabase
             .from("schools")
             .select("id, name")
             .order("name");
           
-          if (error) throw error;
+          if (error) {
+            console.error('🚫 EduFamAnalytics: Schools loading error:', {
+              error,
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+            throw error;
+          }
+          
+          console.log('✅ EduFamAnalytics: Schools loaded successfully:', data);
           setSchools(data || []);
-        } catch (error) {
-          console.error("Failed to load schools:", error);
+          setSchoolsError(null);
+        } catch (error: any) {
+          console.error('🚫 EduFamAnalytics: Failed to load schools:', error);
+          const errorMessage = error?.message || "Failed to load schools list";
+          setSchoolsError(errorMessage);
           toast({
-            title: "Error",
-            description: "Failed to load schools list",
+            title: "Error Loading Schools",
+            description: errorMessage,
             variant: "destructive",
           });
         } finally {
@@ -89,38 +110,130 @@ const EduFamAdminAnalytics = () => {
     return "KES 0";
   };
 
+  // Permission check
+  if (user?.role !== "edufam_admin") {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Alert className="bg-red-50 border-red-200 max-w-md">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-600">Access Denied</AlertTitle>
+          <AlertDescription className="text-red-700">
+            Only EduFam Admins can access schools analytics.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   // Loading state
   if (loading || schoolsLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-4" />
-        <p className="text-gray-600">Loading schools analytics...</p>
+        <p className="text-gray-600">
+          {schoolsLoading ? "Loading schools..." : "Loading analytics data..."}
+        </p>
       </div>
     );
   }
 
-  // Error state
-  if (error) {
+  // Schools loading error
+  if (schoolsError) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <Card className="bg-red-50 border-red-200 max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-600 flex items-center gap-2">
-              <span>Analytics Error</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-700 mb-4">
-              {typeof error === "string" ? error : "Failed to load analytics data"}
-            </p>
+        <Alert className="bg-red-50 border-red-200 max-w-md">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-600">Failed to Load Schools</AlertTitle>
+          <AlertDescription className="text-red-700 mb-4">
+            {schoolsError}
+          </AlertDescription>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded transition-colors flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Analytics error state
+  if (error) {
+    return (
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Schools Analytics</h1>
+            <p className="text-gray-600 mt-1">System-wide analytics dashboard</p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">School:</label>
+            <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select a school" />
+              </SelectTrigger>
+              <SelectContent>
+                {schoolOptions.map(school => (
+                  <SelectItem key={school.id} value={school.id}>
+                    {school.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Period:</label>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="last_month">Last Month</SelectItem>
+                <SelectItem value="all_time">All Time</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Error Display */}
+        <Alert className="bg-red-50 border-red-200">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-600">Analytics Error</AlertTitle>
+          <AlertDescription className="text-red-700 mb-4">
+            {error}
+          </AlertDescription>
+          <div className="flex gap-2">
             <button
               onClick={retry}
-              className="bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded transition-colors"
+              className="bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded transition-colors flex items-center gap-2"
             >
+              <RefreshCw className="h-4 w-4" />
               Retry
             </button>
-          </CardContent>
-        </Card>
+            <button
+              onClick={() => {
+                console.log('🔧 Manual debug info:', {
+                  user,
+                  selectedSchoolId,
+                  dateFilter,
+                  schoolsCount: schools.length
+                });
+              }}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded transition-colors"
+            >
+              Debug Info
+            </button>
+          </div>
+        </Alert>
       </div>
     );
   }
