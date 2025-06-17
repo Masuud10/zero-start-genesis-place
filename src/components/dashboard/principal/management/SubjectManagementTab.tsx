@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,7 +24,7 @@ const SubjectManagementTab = () => {
     teacher_id: ''
   });
 
-  // Fetch subjects with teacher and class info
+  // Fetch subjects with teacher and class info - fix relationship hints
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
     queryKey: ['subjects', schoolId],
     queryFn: async () => {
@@ -34,7 +33,7 @@ const SubjectManagementTab = () => {
         .from('subjects')
         .select(`
           *,
-          classes(id, name),
+          classes!subjects_class_id_fkey(id, name),
           profiles!subjects_teacher_id_fkey(id, name)
         `)
         .eq('school_id', schoolId)

@@ -150,13 +150,13 @@ const fetchPrincipalAnalytics = async (schoolId: string, term: string, year: str
         position: ranking.class_position || index + 1,
     }));
 
-    // Fetch teacher activity
+    // Fetch teacher activity - fix relationship hint for profiles and grades
     const { data: teacherGrades } = await supabase
         .from('grades')
         .select(`
             submitted_by,
             submitted_at,
-            profiles!inner(id, name)
+            profiles!grades_submitted_by_fkey(id, name)
         `)
         .eq('school_id', schoolId)
         .eq('term', term)
