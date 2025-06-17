@@ -1,3 +1,4 @@
+
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -37,7 +38,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
   if (userRole === 'edufam_admin') {
     return [
       ...baseItems,
-      { id: 'analytics', label: 'System Analytics', icon: BarChart3, roles: ['edufam_admin'] },
+      { id: 'analytics', label: 'Schools Analytics', icon: BarChart3, roles: ['edufam_admin'] },
       { id: 'schools', label: 'Schools Management', icon: Building2, roles: ['edufam_admin'] },
       { id: 'users', label: 'User Management', icon: UserCheck, roles: ['edufam_admin'] },
       { id: 'grades', label: 'All Grades', icon: GraduationCap, roles: ['edufam_admin'] },
