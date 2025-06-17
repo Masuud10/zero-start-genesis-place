@@ -48,7 +48,10 @@ export class AttendanceService {
       term: attendanceData.term
     };
 
-    return DataServiceCore.createRecord('attendance', dbData);
+    // Use upsert instead of createRecord to handle duplicates
+    return DataServiceCore.upsertRecord('attendance', dbData, {
+      onConflict: 'school_id,class_id,student_id,date,session'
+    });
   }
 
   static async updateAttendance(id: string, updates: Partial<AttendanceData>) {

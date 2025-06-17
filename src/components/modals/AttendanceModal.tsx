@@ -246,14 +246,18 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({ onClose, userRole }) 
         });
       });
 
-      // Use upsert to handle existing records
+      // Use upsert to handle existing records with proper conflict resolution
       const { error } = await supabase
         .from('attendance')
         .upsert(attendanceRecords, {
-          onConflict: 'school_id,class_id,student_id,date,session'
+          onConflict: 'school_id,class_id,student_id,date,session',
+          ignoreDuplicates: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Attendance upsert error:', error);
+        throw new Error(error.message || 'Failed to save attendance');
+      }
 
       toast({
         title: "Success",

@@ -28,14 +28,20 @@ export const useAttendanceTracking = () => {
         school_id: classData.school_id,
       };
 
-      // Submit attendance to database
+      // Use upsert with proper conflict resolution
       const { data, error } = await supabase
         .from('attendance')
-        .insert(completeAttendanceData)
+        .upsert(completeAttendanceData, {
+          onConflict: 'school_id,class_id,student_id,date,session',
+          ignoreDuplicates: false
+        })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Attendance upsert error:', error);
+        throw new Error(error.message || 'Failed to save attendance');
+      }
 
       // Track the attendance event
       await trackAttendanceUpdate({

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -101,7 +100,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
     }
   }, [existingAttendance]);
 
-  // Submit attendance mutation
+  // Submit attendance mutation with proper upsert
   const submitAttendance = useMutation({
     mutationFn: async () => {
       if (!schoolId || !selectedClass || !selectedDate || !academicInfo.term || !academicInfo.year) {
@@ -122,14 +121,18 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
         submitted_at: new Date().toISOString(),
       }));
 
+      // Use upsert with proper conflict resolution for the unique constraint
       const { error } = await supabase
         .from('attendance')
         .upsert(attendanceRecords, {
-          onConflict: 'student_id,class_id,date,session',
+          onConflict: 'school_id,class_id,student_id,date,session',
           ignoreDuplicates: false
         });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Attendance upsert error:', error);
+        throw new Error(error.message || 'Failed to save attendance');
+      }
     },
     onSuccess: () => {
       toast({ 
@@ -139,6 +142,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
     },
     onError: (error) => {
+      console.error('Attendance submission error:', error);
       toast({ title: "Error", description: error.message, variant: 'destructive' });
     }
   });
