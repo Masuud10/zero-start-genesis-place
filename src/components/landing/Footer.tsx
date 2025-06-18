@@ -84,7 +84,7 @@ const Footer = ({ onNavClick, onPricing, onScheduleDemo }: FooterProps) => {
               </div>
               <div className="flex items-center">
                 <Phone className="w-4 h-4 mr-2" />
-                <span>+254 708066322</span>
+                <span>+254708066322</span>
               </div>
               <div className="flex items-center">
                 <MapPin className="w-4 h-4 mr-2" />
