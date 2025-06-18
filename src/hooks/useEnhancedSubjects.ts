@@ -12,7 +12,7 @@ interface EnhancedSubject {
   class_id?: string;
   teacher_id?: string;
   curriculum?: string;
-  category?: 'core' | 'optional' | 'specialized' | 'extra-curricular';
+  category?: string;
   credit_hours?: number;
   assessment_weight?: number;
   prerequisites?: string[];

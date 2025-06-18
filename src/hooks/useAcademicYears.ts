@@ -11,8 +11,8 @@ interface AcademicYear {
   start_date: string;
   end_date: string;
   is_current: boolean;
-  term_structure: '2-term' | '3-term' | 'semester';
-  status: 'active' | 'completed' | 'upcoming';
+  term_structure: string;
+  status: string;
   description?: string;
   created_at: string;
   updated_at: string;

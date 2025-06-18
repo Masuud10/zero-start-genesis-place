@@ -12,7 +12,7 @@ interface AcademicTerm {
   start_date: string;
   end_date: string;
   is_current: boolean;
-  status: 'upcoming' | 'active' | 'completed';
+  status: string;
   description?: string;
   assessment_period_start?: string;
   assessment_period_end?: string;

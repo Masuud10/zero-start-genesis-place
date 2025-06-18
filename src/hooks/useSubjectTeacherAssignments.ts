@@ -13,7 +13,7 @@ interface SubjectTeacherAssignment {
   assigned_by?: string;
   assigned_at: string;
   is_active: boolean;
-  workload_percentage: number;
+  workload_percentage?: number;
   created_at: string;
   updated_at: string;
   teacher?: {

@@ -9,13 +9,13 @@ interface EnhancedClass {
   name: string;
   school_id: string;
   teacher_id?: string;
-  academic_level?: 'pre-school' | 'primary' | 'secondary';
+  academic_level?: string;
   level?: string;
   stream?: string;
   year?: string;
   capacity?: number;
   room_number?: string;
-  class_type?: 'regular' | 'special' | 'remedial' | 'accelerated';
+  class_type?: string;
   created_at: string;
   updated_at: string;
 }
