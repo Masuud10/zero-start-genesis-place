@@ -11,6 +11,7 @@ interface Subject {
   school_id: string;
   class_id?: string;
   teacher_id?: string;
+  curriculum?: string;
   created_at: string;
 }
 
@@ -33,7 +34,10 @@ export const useSubjects = (classId?: string) => {
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
     try {
+      console.log('Fetching subjects with params:', { classId, isSystemAdmin, schoolId });
+      
       let query = supabase.from('subjects').select(`
         id,
         name,
@@ -41,9 +45,11 @@ export const useSubjects = (classId?: string) => {
         school_id,
         class_id,
         teacher_id,
+        curriculum,
         created_at
       `);
 
+      // Multi-tenancy is now enforced by RLS policies, but we still filter for performance
       if (!isSystemAdmin && schoolId) {
         query = query.eq('school_id', schoolId);
       }
@@ -54,16 +60,24 @@ export const useSubjects = (classId?: string) => {
       }
 
       query = query.order('name');
+      
       const { data, error: fetchError } = await useTimeoutPromise(
-        Promise.resolve(query.then(x => x)),
+        query,
         7000
       );
-      if (fetchError) throw fetchError;
+      
+      if (fetchError) {
+        console.error('Subjects fetch error:', fetchError);
+        throw fetchError;
+      }
 
+      console.log('Fetched subjects:', data?.length || 0);
       setSubjects(data || []);
       setError(null);
+      
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch subjects data';
+      console.error('Error fetching subjects:', err);
       setError(message);
       setSubjects([]);
       toast({
@@ -77,6 +91,7 @@ export const useSubjects = (classId?: string) => {
   }, [classId, isSystemAdmin, schoolId, toast]);
 
   useEffect(() => {
+    // Only fetch if we have school context or user is system admin
     if (schoolId !== null || isSystemAdmin) {
       fetchSubjects();
     } else {

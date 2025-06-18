@@ -3136,6 +3136,34 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_subject_teacher_assignments_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_subject_teacher_assignments_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_subject_teacher_assignments_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_subject_teacher_assignments_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subject_teacher_assignments_assigned_by_fkey"
             columns: ["assigned_by"]
             isOneToOne: false

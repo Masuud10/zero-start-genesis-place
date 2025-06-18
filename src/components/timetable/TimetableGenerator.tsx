@@ -20,6 +20,7 @@ interface Subject {
   name: string;
   code: string;
   teacher_id?: string;
+  school_id: string;
 }
 
 interface Teacher {
@@ -94,10 +95,10 @@ const TimetableGenerator = () => {
         throw classesError;
       }
 
-      // Fetch subjects - get all subjects for the school
+      // Fetch subjects - now with proper school_id filtering enforced by RLS
       const { data: subjectsData, error: subjectsError } = await supabase
         .from('subjects')
-        .select('id, name, code, teacher_id')
+        .select('id, name, code, teacher_id, school_id')
         .eq('school_id', schoolId)
         .order('name');
 
