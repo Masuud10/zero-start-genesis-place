@@ -53,7 +53,7 @@ export const useFees = () => {
     setError(null);
 
     try {
-      let query = supabase.from('fees').select('*');
+      let query = supabase.from('fees').select('id, school_id, fee_name, amount, term_id, class_id, due_date, description, created_at, updated_at');
 
       if (!isSystemAdmin && schoolId) {
         query = query.eq('school_id', schoolId);
@@ -230,11 +230,17 @@ export const useStudentFees = (studentId?: string) => {
 
       if (fetchError) throw fetchError;
 
-      // Type assertion to ensure proper typing
+      // Properly type the data
       const typedData = (data || []).map(item => ({
         ...item,
-        status: item.status as 'paid' | 'unpaid' | 'partial'
-      })) as StudentFee[];
+        status: item.status as 'paid' | 'unpaid' | 'partial',
+        fee: item.fee && typeof item.fee === 'object' && 'fee_name' in item.fee 
+          ? item.fee as Fee 
+          : undefined,
+        student: item.student && typeof item.student === 'object' && 'name' in item.student
+          ? item.student as { id: string; name: string; admission_number: string }
+          : undefined
+      }));
 
       setStudentFees(typedData);
       setError(null);
