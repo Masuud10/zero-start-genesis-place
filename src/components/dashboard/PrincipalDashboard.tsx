@@ -24,9 +24,10 @@ import BulkGradingModal from '../grading/BulkGradingModal';
 import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
 import PrincipalAttendanceCard from './principal/PrincipalAttendanceCard';
 import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
+import TeacherSubjectAssignmentQuickAction from './principal/TeacherSubjectAssignmentQuickAction';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Award, FileText, User } from 'lucide-react';
+import { Building2, Award, FileText, User, TrendingUp, Users, BookOpen } from 'lucide-react';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -93,9 +94,36 @@ const PrincipalDashboard = () => {
         {/* Statistics Cards */}
         <PrincipalStatsCards stats={stats} />
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        {/* Key Performance Metrics Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Key Metrics
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Active Teachers</span>
+                <span className="font-semibold">{stats.totalTeachers}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total Classes</span>
+                <span className="font-semibold">{stats.totalClasses}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Subjects Offered</span>
+                <span className="font-semibold">{stats.totalSubjects}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Parent Contacts</span>
+                <span className="font-semibold">{stats.totalParents}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="lg:col-span-3">
             <QuickActionsCard
               onAddTeacher={() => setAddTeacherOpen(true)}
               onAddParent={() => setAddParentOpen(true)}
@@ -103,54 +131,15 @@ const PrincipalDashboard = () => {
               onAddSubject={() => setAddSubjectOpen(true)}
             />
           </div>
-          
-          <div className="space-y-6">
-            <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
-            
-            {/* Quick Navigation to Key Features */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Navigation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setActiveSection('school-details')}
-                >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  School Details
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setActiveSection('certificates')}
-                >
-                  <Award className="h-4 w-4 mr-2" />
-                  Generate Certificates
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setActiveSection('reports')}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate Reports
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setActiveSection('profile')}
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  Update Profile
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
-        {/* Analytics and Activity Overview */}
+        {/* Quick Actions and Assignment Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TeacherSubjectAssignmentQuickAction />
+          <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
+        </div>
+
+        {/* Class Performance Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <PrincipalAnalyticsCharts />
           <RecentActivitiesPanel recentActivities={recentActivities} />
@@ -162,6 +151,67 @@ const PrincipalDashboard = () => {
           <PrincipalAttendanceCard />
           <FinancialOverviewReadOnly />
         </div>
+
+        {/* Quick Navigation Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              School Management Hub
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => setActiveSection('school-management')}
+              >
+                <Users className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">Manage Staff</div>
+                  <div className="text-xs text-muted-foreground">Teachers & Assignments</div>
+                </div>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => setActiveSection('school-details')}
+              >
+                <Building2 className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">School Details</div>
+                  <div className="text-xs text-muted-foreground">Basic Information</div>
+                </div>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => setActiveSection('certificates')}
+              >
+                <Award className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">Certificates</div>
+                  <div className="text-xs text-muted-foreground">Generate & Manage</div>
+                </div>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col gap-2"
+                onClick={() => setActiveSection('reports')}
+              >
+                <FileText className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">Reports</div>
+                  <div className="text-xs text-muted-foreground">Academic & Financial</div>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Grade Approval Section */}
         <GradeApprovalDashboard />
