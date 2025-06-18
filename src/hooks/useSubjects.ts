@@ -61,19 +61,19 @@ export const useSubjects = (classId?: string) => {
 
       query = query.order('name');
       
-      // Execute the query and await the result
-      const { data, error: fetchError } = await useTimeoutPromise(
+      // Execute the query with timeout
+      const result = await useTimeoutPromise(
         query,
         7000
       );
       
-      if (fetchError) {
-        console.error('Subjects fetch error:', fetchError);
-        throw fetchError;
+      if (result.error) {
+        console.error('Subjects fetch error:', result.error);
+        throw result.error;
       }
 
-      console.log('Fetched subjects:', data?.length || 0);
-      setSubjects(data || []);
+      console.log('Fetched subjects:', result.data?.length || 0);
+      setSubjects(result.data || []);
       setError(null);
       
     } catch (err: any) {
