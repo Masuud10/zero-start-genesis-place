@@ -29,7 +29,9 @@ const TeacherAssignmentForm: React.FC<TeacherAssignmentFormProps> = ({
 
   const { assignTeacherToSubject, getSubjectAssignments, removeAssignment, loading } = useSubjectManagement();
   const { classList, teacherList, loadingEntities } = usePrincipalEntityLists(0);
-  const { subjects: subjectList } = useSubjects(selectedClass);
+  
+  // Fetch all subjects for the school, not filtered by class
+  const { subjects: allSubjects, loading: subjectsLoading } = useSubjects();
 
   const fetchAssignments = async () => {
     const data = await getSubjectAssignments(selectedClass || undefined);
@@ -77,9 +79,8 @@ const TeacherAssignmentForm: React.FC<TeacherAssignmentFormProps> = ({
     onClose();
   };
 
-  const filteredSubjects = subjectList.filter(subject => 
-    !selectedClass || subject.class_id === selectedClass || !subject.class_id
-  );
+  // Show all subjects available for assignment
+  const availableSubjects = allSubjects || [];
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -122,11 +123,21 @@ const TeacherAssignmentForm: React.FC<TeacherAssignmentFormProps> = ({
                         <SelectValue placeholder="Select subject" />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredSubjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.name} ({subject.code})
-                          </SelectItem>
-                        ))}
+                        {subjectsLoading ? (
+                          <div className="p-2 text-center text-sm text-muted-foreground">
+                            Loading subjects...
+                          </div>
+                        ) : availableSubjects.length > 0 ? (
+                          availableSubjects.map((subject) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {subject.name} ({subject.code})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-center text-sm text-muted-foreground">
+                            No subjects available. Please create subjects first.
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -150,7 +161,7 @@ const TeacherAssignmentForm: React.FC<TeacherAssignmentFormProps> = ({
                   <div className="flex items-end">
                     <Button 
                       onClick={handleAssign}
-                      disabled={loading || !selectedSubject || !selectedTeacher || loadingEntities}
+                      disabled={loading || !selectedSubject || !selectedTeacher || loadingEntities || subjectsLoading}
                       className="w-full"
                     >
                       {loading ? (

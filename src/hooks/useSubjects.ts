@@ -47,6 +47,8 @@ export const useSubjects = (classId?: string) => {
       if (!isSystemAdmin && schoolId) {
         query = query.eq('school_id', schoolId);
       }
+      
+      // Only filter by class if classId is provided and not 'all'
       if (classId && classId !== 'all') {
         query = query.eq('class_id', classId);
       }
