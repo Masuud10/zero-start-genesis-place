@@ -152,7 +152,7 @@ export const useBulkGradingDataLoader = ({
         subjectsQuery = supabase
           .from('subject_teacher_assignments')
           .select(`
-            subject:subjects!fk_subject_teacher_assignments_subject_id (id, name, code, class_id)
+            subject:subjects(id, name, code, class_id)
           `)
           .eq('teacher_id', userId)
           .eq('class_id', selectedClass)
