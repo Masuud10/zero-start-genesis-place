@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,7 +69,7 @@ const FeeManagementPanel: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">KES {totalPai.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">KES {totalPaid.toLocaleString()}</div>
           </CardContent>
         </Card>
 

@@ -61,10 +61,10 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           throw new Error(`Failed to fetch expenses: ${expensesError.message}`);
         }
 
-        // Fetch financial transactions for MPESA count
+        // Fetch financial transactions for MPESA count - select all required fields
         const { data: transactions, error: transactionsError } = await supabase
           .from('financial_transactions')
-          .select('payment_method')
+          .select('payment_method, created_at, amount')
           .eq('school_id', schoolId)
           .eq('payment_method', 'mpesa');
 
