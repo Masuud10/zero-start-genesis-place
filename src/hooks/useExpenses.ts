@@ -7,12 +7,14 @@ import { supabase } from '@/integrations/supabase/client';
 interface Expense {
   id: string;
   school_id: string;
-  title: string;
+  title?: string;
   amount: number;
   category: string;
-  expense_date: string;
+  expense_date?: string;
+  date: string;
   description?: string;
   approved_by?: string;
+  receipt_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -74,8 +76,12 @@ export const useExpenses = () => {
       const { data, error } = await supabase
         .from('expenses')
         .insert({
-          ...expenseData,
           school_id: schoolId,
+          title: expenseData.title,
+          amount: expenseData.amount,
+          category: expenseData.category,
+          date: expenseData.expense_date, // Map expense_date to date
+          description: expenseData.description,
         })
         .select()
         .single();
