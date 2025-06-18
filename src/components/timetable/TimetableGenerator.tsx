@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Calendar, Clock, Users, BookOpen, Shuffle, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Class {
   id: string;
@@ -39,6 +39,7 @@ interface TimetableSlot {
 
 const TimetableGenerator = () => {
   const { schoolId } = useSchoolScopedData();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [classes, setClasses] = useState<Class[]>([]);
@@ -274,6 +275,15 @@ const TimetableGenerator = () => {
       return;
     }
 
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       // Delete existing timetable for this class
@@ -283,7 +293,7 @@ const TimetableGenerator = () => {
         .eq('class_id', selectedClassId)
         .eq('school_id', schoolId);
 
-      // Insert new timetable
+      // Insert new timetable with the required created_by_principal_id field
       const timetableData = timetable.map(slot => ({
         school_id: schoolId,
         class_id: selectedClassId,
@@ -293,6 +303,7 @@ const TimetableGenerator = () => {
         start_time: slot.startTime,
         end_time: slot.endTime,
         room: slot.room,
+        created_by_principal_id: user.id, // Add the required field
         is_published: true
       }));
 
