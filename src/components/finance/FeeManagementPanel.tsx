@@ -1,12 +1,14 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Filter, DollarSign, Users, Calendar } from 'lucide-react';
+import { Search, Filter, DollarSign, Users, Calendar, CreditCard } from 'lucide-react';
 import { useFees, useStudentFees } from '@/hooks/useFees';
 import FeeAssignmentDialog from './FeeAssignmentDialog';
+import PaymentDialog from './PaymentDialog';
 import { useToast } from '@/hooks/use-toast';
 
 const FeeManagementPanel: React.FC = () => {
@@ -35,8 +37,9 @@ const FeeManagementPanel: React.FC = () => {
     sf.fee?.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalFees = fees.reduce((sum, fee) => sum + fee.amount, 0);
-  const totalPaid = studentFees.reduce((sum, sf) => sum + sf.amount_paid, 0);
+  // Calculate totals with proper null checks and using the fees table structure
+  const totalFees = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+  const totalPaid = studentFees.reduce((sum, sf) => sum + (sf.amount_paid || 0), 0);
   const totalOutstanding = totalFees - totalPaid;
   const collectionRate = totalFees > 0 ? (totalPaid / totalFees) * 100 : 0;
 
@@ -213,16 +216,18 @@ const FeeManagementPanel: React.FC = () => {
                             </div>
                           </td>
                           <td className="p-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                // This would open a payment dialog
-                                console.log('Update payment for:', sf.id);
-                              }}
-                            >
-                              Update Payment
-                            </Button>
+                            <PaymentDialog
+                              studentFeeId={sf.id}
+                              studentName={sf.student?.name || 'Unknown Student'}
+                              feeAmount={sf.fee?.amount || 0}
+                              amountPaid={sf.amount_paid}
+                              trigger={
+                                <Button size="sm" variant="outline">
+                                  <CreditCard className="h-4 w-4 mr-2" />
+                                  Record Payment
+                                </Button>
+                              }
+                            />
                           </td>
                         </tr>
                       ))

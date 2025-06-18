@@ -98,7 +98,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Financial Management Center</h2>
-          <p className="text-muted-foreground">Manage fees, expenses, and financial analytics</p>
+          <p className="text-muted-foreground">Manage fees, expenses, and financial analytics with integrated payment methods</p>
         </div>
         <div className="flex gap-2">
           {activeTab === 'overview' && <CreateExpenseDialog />}

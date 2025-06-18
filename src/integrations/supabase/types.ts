@@ -4205,6 +4205,17 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_finance_report: {
+        Args: {
+          p_report_type: string
+          p_school_id?: string
+          p_class_id?: string
+          p_student_id?: string
+          p_academic_year?: string
+          p_term?: string
+        }
+        Returns: Json
+      }
       generate_timetable: {
         Args: { p_school_id: string; p_class_id: string; p_created_by: string }
         Returns: Json
@@ -4259,6 +4270,17 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: string
+      }
+      record_fee_payment: {
+        Args: {
+          p_student_fee_id: string
+          p_amount: number
+          p_payment_method: string
+          p_reference_number?: string
+          p_mpesa_code?: string
+          p_bank_reference?: string
+        }
+        Returns: Json
       }
       requires_mfa: {
         Args: { user_role: string }
