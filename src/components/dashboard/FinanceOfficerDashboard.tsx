@@ -1,15 +1,19 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics';
 import FeeCollectionChart from '@/components/analytics/finance/FeeCollectionChart';
 import DailyTransactionsChart from '@/components/analytics/finance/DailyTransactionsChart';
 import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
 import TopDefaultersList from '@/components/analytics/finance/TopDefaultersList';
 import ClassCollectionProgress from '@/components/analytics/finance/ClassCollectionProgress';
+import FeeManagementPanel from '@/components/finance/FeeManagementPanel';
+import FinanceReportsPanel from '@/components/finance/FinanceReportsPanel';
+import CreateExpenseDialog from '@/components/finance/CreateExpenseDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface FinanceOfficerDashboardProps {
@@ -20,6 +24,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
   console.log('💰 FinanceOfficerDashboard: Rendering for finance officer:', user.email);
   
   const { user: authUser } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
 
   const filters = { term: 'current', class: 'all' };
   const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
@@ -57,20 +62,51 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
     <div className="space-y-6">
       <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Financial Management Center</h2>
+          {activeTab === 'overview' && <CreateExpenseDialog />}
       </div>
       
-      <FinanceKeyMetrics keyMetrics={keyMetrics} />
-      
-      <FeeCollectionChart data={feeCollectionData} />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Financial Overview</TabsTrigger>
+          <TabsTrigger value="fees">Fee Management</TabsTrigger>
+          <TabsTrigger value="reports">Financial Reports</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DailyTransactionsChart data={dailyTransactions} />
-          <ExpenseBreakdownChart data={expenseBreakdown} />
-      </div>
+        <TabsContent value="overview" className="space-y-6">
+          <FinanceKeyMetrics keyMetrics={keyMetrics} />
+          
+          <FeeCollectionChart data={feeCollectionData} />
 
-      <TopDefaultersList data={defaultersList} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailyTransactionsChart data={dailyTransactions} />
+              <ExpenseBreakdownChart data={expenseBreakdown} />
+          </div>
 
-      <ClassCollectionProgress data={feeCollectionData} />
+          <TopDefaultersList data={defaultersList} />
+
+          <ClassCollectionProgress data={feeCollectionData} />
+        </TabsContent>
+
+        <TabsContent value="fees">
+          <FeeManagementPanel />
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <FinanceReportsPanel />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <FinanceKeyMetrics keyMetrics={keyMetrics} />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailyTransactionsChart data={dailyTransactions} />
+              <ExpenseBreakdownChart data={expenseBreakdown} />
+          </div>
+
+          <TopDefaultersList data={defaultersList} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

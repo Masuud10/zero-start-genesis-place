@@ -1219,9 +1219,11 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          expense_date: string | null
           id: string
           receipt_url: string | null
           school_id: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -1231,9 +1233,11 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          expense_date?: string | null
           id?: string
           receipt_url?: string | null
           school_id: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -1243,9 +1247,11 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          expense_date?: string | null
           id?: string
           receipt_url?: string | null
           school_id?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2933,6 +2939,85 @@ export type Database = {
           },
         ]
       }
+      student_fees: {
+        Row: {
+          amount_paid: number | null
+          created_at: string
+          due_date: string
+          fee_id: string
+          id: string
+          school_id: string
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string
+          due_date: string
+          fee_id: string
+          id?: string
+          school_id: string
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string
+          due_date?: string
+          fee_id?: string
+          id?: string
+          school_id?: string
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_fees_fee_id_fkey"
+            columns: ["fee_id"]
+            isOneToOne: false
+            referencedRelation: "fees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fees_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "student_fees_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "student_fees_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "student_fees_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fees_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           address: string | null
@@ -4064,6 +4149,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_fee_to_class_students: {
+        Args: { p_fee_id: string }
+        Returns: number
+      }
       assign_school_to_user: {
         Args: { target_user_id: string; target_school_id: string }
         Returns: Json
