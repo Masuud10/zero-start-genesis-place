@@ -3,68 +3,78 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Award, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
+import { Award, Download, FileText, Users } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CertificateGenerator = () => {
+  const { toast } = useToast();
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
-  const { toast } = useToast();
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState('');
-  const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString());
-  const [generating, setGenerating] = useState(false);
+  const { classList } = usePrincipalEntityLists(0);
+  
+  const [selectedClass, setSelectedClass] = useState<string>('');
+  const [selectedStudent, setSelectedStudent] = useState<string>('');
+  const [academicYear, setAcademicYear] = useState<string>(new Date().getFullYear().toString());
+  const [students, setStudents] = useState<any[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
-  // Fetch classes
-  const { data: classes } = useQuery({
-    queryKey: ['classes', schoolId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('id, name, level, stream')
-        .eq('school_id', schoolId)
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!schoolId
-  });
+  const academicYears = [
+    new Date().getFullYear().toString(),
+    (new Date().getFullYear() - 1).toString(),
+    (new Date().getFullYear() - 2).toString(),
+  ];
 
-  // Fetch students for selected class
-  const { data: students } = useQuery({
-    queryKey: ['students', selectedClass],
-    queryFn: async () => {
+  const handleClassChange = async (classId: string) => {
+    setSelectedClass(classId);
+    setSelectedStudent('');
+    
+    if (!classId) {
+      setStudents([]);
+      return;
+    }
+
+    setLoadingStudents(true);
+    try {
       const { data, error } = await supabase
         .from('students')
         .select('id, name, admission_number')
-        .eq('class_id', selectedClass)
+        .eq('class_id', classId)
+        .eq('school_id', schoolId)
         .eq('is_active', true)
         .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedClass
-  });
 
-  const handleGenerate = async () => {
-    if (!selectedStudent || !selectedClass) {
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (error: any) {
+      console.error('Error fetching students:', error);
       toast({
-        title: "Missing Information",
-        description: "Please select both a class and a student",
+        title: "Error",
+        description: "Failed to load students",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const generateCertificate = async () => {
+    if (!selectedClass || !selectedStudent || !academicYear) {
+      toast({
+        title: "Error",
+        description: "Please select class, student, and academic year",
         variant: "destructive"
       });
       return;
     }
 
-    setGenerating(true);
+    setIsGenerating(true);
     try {
-      // Get certificate data using the database function
+      // Get student certificate data
       const { data: certificateData, error: dataError } = await supabase
         .rpc('get_student_certificate_data', {
           p_student_id: selectedStudent,
@@ -74,8 +84,8 @@ const CertificateGenerator = () => {
 
       if (dataError) throw dataError;
 
-      // Create certificate record
-      const { error: insertError } = await supabase
+      // Save certificate record
+      const { error: saveError } = await supabase
         .from('certificates')
         .insert({
           school_id: schoolId,
@@ -86,16 +96,16 @@ const CertificateGenerator = () => {
           generated_by: user?.id
         });
 
-      if (insertError) throw insertError;
+      if (saveError) throw saveError;
 
       toast({
         title: "Success",
-        description: "Certificate generated successfully",
+        description: "Certificate generated successfully!",
       });
 
-      // Reset form
-      setSelectedStudent('');
-      setSelectedClass('');
+      // Here you would typically generate and download the PDF
+      console.log('Certificate data:', certificateData);
+
     } catch (error: any) {
       console.error('Error generating certificate:', error);
       toast({
@@ -104,44 +114,52 @@ const CertificateGenerator = () => {
         variant: "destructive"
       });
     } finally {
-      setGenerating(false);
+      setIsGenerating(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-lg border-0 rounded-2xl">
+      <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-2xl">
         <CardTitle className="flex items-center gap-2">
           <Award className="h-5 w-5" />
-          Generate Student Certificate
+          Certificate Generator
         </CardTitle>
+        <p className="text-purple-100 text-sm">Generate official academic certificates</p>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Class Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Academic Year</label>
-            <Select value={academicYear} onValueChange={setAcademicYear}>
+            <label className="text-sm font-medium text-gray-700">Select Class</label>
+            <Select value={selectedClass} onValueChange={handleClassChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select academic year" />
+                <SelectValue placeholder="Choose class" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2024">2024</SelectItem>
-                <SelectItem value="2023">2023</SelectItem>
-                <SelectItem value="2022">2022</SelectItem>
+                {classList.map((classItem) => (
+                  <SelectItem key={classItem.id} value={classItem.id}>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      {classItem.name}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Academic Year Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Class</label>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <label className="text-sm font-medium text-gray-700">Academic Year</label>
+            <Select value={academicYear} onValueChange={setAcademicYear}>
               <SelectTrigger>
-                <SelectValue placeholder="Select class" />
+                <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent>
-                {classes?.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name} {cls.stream && `- ${cls.stream}`}
+                {academicYears.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -149,41 +167,61 @@ const CertificateGenerator = () => {
           </div>
         </div>
 
-        {selectedClass && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Student</label>
-            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select student" />
-              </SelectTrigger>
-              <SelectContent>
-                {students?.map((student) => (
-                  <SelectItem key={student.id} value={student.id}>
-                    {student.name} ({student.admission_number})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Student Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Select Student</label>
+          <Select 
+            value={selectedStudent} 
+            onValueChange={setSelectedStudent}
+            disabled={!selectedClass || loadingStudents}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={
+                loadingStudents ? "Loading students..." : 
+                !selectedClass ? "Select a class first" : 
+                "Choose student"
+              } />
+            </SelectTrigger>
+            <SelectContent>
+              {students.map((student) => (
+                <SelectItem key={student.id} value={student.id}>
+                  {student.name} ({student.admission_number})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Button 
-          onClick={handleGenerate} 
-          disabled={generating || !selectedStudent || !selectedClass}
-          className="w-full"
-        >
-          {generating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Award className="mr-2 h-4 w-4" />
-              Generate Certificate
-            </>
-          )}
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex gap-4 pt-4">
+          <Button 
+            onClick={generateCertificate}
+            disabled={!selectedClass || !selectedStudent || !academicYear || isGenerating}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+          >
+            {isGenerating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                Generate Certificate
+              </>
+            )}
+          </Button>
+
+          <Button variant="outline" disabled>
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
+        </div>
+
+        {/* Branding */}
+        <div className="text-center pt-4 border-t">
+          <p className="text-xs text-gray-500">Powered by EduFam</p>
+        </div>
       </CardContent>
     </Card>
   );
