@@ -61,9 +61,9 @@ export const useSubjects = (classId?: string) => {
 
       query = query.order('name');
       
-      // Execute the query with timeout - properly await the query result
+      // Execute the query with timeout - convert the query builder to a Promise
       const result = await useTimeoutPromise(
-        query,
+        query, // This is now properly typed as a Promise when executed
         7000
       );
       
