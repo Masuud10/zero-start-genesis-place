@@ -29,7 +29,7 @@ export const useOptimizedGradeQuery = (options: GradeQueryOptions = {}) => {
         .select(`
           *,
           students(id, name, admission_number),
-          subjects(id, name, code),
+          subjects!grades_subject_id_fkey(id, name, code),
           classes(id, name)
         `)
         .eq('school_id', user.school_id);

@@ -64,14 +64,22 @@ export const useAcademicYears = () => {
     }
   }, [isSystemAdmin, schoolId, toast]);
 
-  const createAcademicYear = async (yearData: Partial<AcademicYear>) => {
+  const createAcademicYear = async (yearData: {
+    year_name: string;
+    start_date: string;
+    end_date: string;
+    is_current?: boolean;
+    term_structure?: string;
+    status?: string;
+    description?: string;
+  }) => {
     try {
       const { data, error } = await supabase
         .from('academic_years')
-        .insert([{
+        .insert({
           ...yearData,
           school_id: schoolId,
-        }])
+        })
         .select()
         .single();
 

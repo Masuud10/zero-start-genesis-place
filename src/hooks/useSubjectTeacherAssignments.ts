@@ -94,12 +94,12 @@ export const useSubjectTeacherAssignments = () => {
     try {
       const { data, error } = await supabase
         .from('subject_teacher_assignments')
-        .insert([{
+        .insert({
           ...assignmentData,
           school_id: schoolId,
           is_active: true,
           workload_percentage: assignmentData.workload_percentage || 100,
-        }])
+        })
         .select(`
           *,
           teacher:profiles!teacher_id(id, name, email),

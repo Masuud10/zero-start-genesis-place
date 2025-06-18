@@ -72,16 +72,28 @@ export const useEnhancedSubjects = (classId?: string) => {
     }
   }, [isSystemAdmin, schoolId, classId, toast]);
 
-  const createSubject = async (subjectData: Partial<EnhancedSubject>) => {
+  const createSubject = async (subjectData: {
+    name: string;
+    code: string;
+    class_id?: string;
+    teacher_id?: string;
+    curriculum?: string;
+    category?: string;
+    credit_hours?: number;
+    assessment_weight?: number;
+    prerequisites?: string[];
+    description?: string;
+    is_active?: boolean;
+  }) => {
     try {
       const { data, error } = await supabase
         .from('subjects')
-        .insert([{
+        .insert({
           ...subjectData,
           school_id: schoolId,
           is_active: true,
           updated_at: new Date().toISOString(),
-        }])
+        })
         .select()
         .single();
 

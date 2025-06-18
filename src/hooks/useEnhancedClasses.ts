@@ -66,15 +66,25 @@ export const useEnhancedClasses = () => {
     }
   }, [isSystemAdmin, schoolId, toast]);
 
-  const createClass = async (classData: Partial<EnhancedClass>) => {
+  const createClass = async (classData: {
+    name: string;
+    teacher_id?: string;
+    academic_level?: string;
+    level?: string;
+    stream?: string;
+    year?: string;
+    capacity?: number;
+    room_number?: string;
+    class_type?: string;
+  }) => {
     try {
       const { data, error } = await supabase
         .from('classes')
-        .insert([{
+        .insert({
           ...classData,
           school_id: schoolId,
           updated_at: new Date().toISOString(),
-        }])
+        })
         .select()
         .single();
 

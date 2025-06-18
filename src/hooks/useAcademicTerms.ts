@@ -72,14 +72,26 @@ export const useAcademicTerms = (academicYearId?: string) => {
     }
   }, [isSystemAdmin, schoolId, academicYearId, toast]);
 
-  const createAcademicTerm = async (termData: Partial<AcademicTerm>) => {
+  const createAcademicTerm = async (termData: {
+    academic_year_id: string;
+    term_name: string;
+    start_date: string;
+    end_date: string;
+    is_current?: boolean;
+    status?: string;
+    description?: string;
+    assessment_period_start?: string;
+    assessment_period_end?: string;
+    holiday_start?: string;
+    holiday_end?: string;
+  }) => {
     try {
       const { data, error } = await supabase
         .from('academic_terms')
-        .insert([{
+        .insert({
           ...termData,
           school_id: schoolId,
-        }])
+        })
         .select()
         .single();
 
