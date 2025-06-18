@@ -10,13 +10,21 @@ interface Expense {
   title?: string;
   amount: number;
   category: string;
-  expense_date?: string;
   date: string;
+  expense_date?: string;
   description?: string;
   approved_by?: string;
   receipt_url?: string;
   created_at: string;
   updated_at: string;
+}
+
+interface CreateExpenseData {
+  title: string;
+  amount: number;
+  category: string;
+  expense_date: string;
+  description?: string;
 }
 
 export const useExpenses = () => {
@@ -47,16 +55,21 @@ export const useExpenses = () => {
 
       const { data, error: fetchError } = await query;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Expenses fetch error:', fetchError);
+        throw new Error(`Failed to fetch expenses: ${fetchError.message}`);
+      }
 
+      console.log('Fetched expenses:', data);
       setExpenses(data || []);
       setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch expenses';
+      console.error('Expenses fetch error:', err);
       setError(message);
       setExpenses([]);
       toast({
-        title: "Expenses Fetch Error",
+        title: "Error Loading Expenses",
         description: message,
         variant: "destructive",
       });
@@ -65,40 +78,56 @@ export const useExpenses = () => {
     }
   }, [isSystemAdmin, schoolId, toast]);
 
-  const createExpense = async (expenseData: {
-    title: string;
-    amount: number;
-    category: string;
-    expense_date: string;
-    description?: string;
-  }) => {
+  const createExpense = async (expenseData: CreateExpenseData) => {
+    if (!schoolId) {
+      const message = 'School ID is required to create expenses';
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+      return { data: null, error: message };
+    }
+
     try {
+      console.log('Creating expense with data:', expenseData);
+
+      const insertData = {
+        school_id: schoolId,
+        title: expenseData.title,
+        amount: expenseData.amount,
+        category: expenseData.category,
+        date: expenseData.expense_date,
+        description: expenseData.description || null,
+      };
+
+      console.log('Insert data:', insertData);
+
       const { data, error } = await supabase
         .from('expenses')
-        .insert({
-          school_id: schoolId,
-          title: expenseData.title,
-          amount: expenseData.amount,
-          category: expenseData.category,
-          date: expenseData.expense_date, // Map expense_date to date
-          description: expenseData.description,
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Create expense error:', error);
+        throw new Error(`Failed to create expense: ${error.message}`);
+      }
+
+      console.log('Created expense:', data);
 
       toast({
-        title: "Expense Created",
+        title: "Success",
         description: "Expense has been recorded successfully.",
       });
 
-      fetchExpenses();
+      await fetchExpenses();
       return { data, error: null };
     } catch (err: any) {
       const message = err?.message || 'Failed to create expense';
+      console.error('Create expense error:', err);
       toast({
-        title: "Create Error",
+        title: "Error Creating Expense",
         description: message,
         variant: "destructive",
       });
@@ -115,19 +144,23 @@ export const useExpenses = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update expense error:', error);
+        throw new Error(`Failed to update expense: ${error.message}`);
+      }
 
       toast({
-        title: "Expense Updated",
+        title: "Success",
         description: "Expense has been updated successfully.",
       });
 
-      fetchExpenses();
+      await fetchExpenses();
       return { data, error: null };
     } catch (err: any) {
       const message = err?.message || 'Failed to update expense';
+      console.error('Update expense error:', err);
       toast({
-        title: "Update Error",
+        title: "Error Updating Expense",
         description: message,
         variant: "destructive",
       });
@@ -142,19 +175,23 @@ export const useExpenses = () => {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete expense error:', error);
+        throw new Error(`Failed to delete expense: ${error.message}`);
+      }
 
       toast({
-        title: "Expense Deleted",
+        title: "Success",
         description: "Expense has been deleted successfully.",
       });
 
-      fetchExpenses();
+      await fetchExpenses();
       return { error: null };
     } catch (err: any) {
       const message = err?.message || 'Failed to delete expense';
+      console.error('Delete expense error:', err);
       toast({
-        title: "Delete Error",
+        title: "Error Deleting Expense",
         description: message,
         variant: "destructive",
       });

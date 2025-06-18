@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,77 +34,152 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
 
       try {
         setIsLoading(true);
+        console.log('Fetching finance analytics for school:', schoolId);
 
-        // Fetch basic financial metrics
+        // Fetch student fees with proper error handling
         const { data: studentFees, error: feesError } = await supabase
           .from('student_fees')
           .select(`
             *,
-            fee:fees(amount, category)
+            fee:fees!inner(amount, category, term, academic_year)
           `)
           .eq('school_id', schoolId);
 
-        if (feesError) throw feesError;
+        if (feesError) {
+          console.error('Error fetching student fees:', feesError);
+          throw new Error(`Failed to fetch student fees: ${feesError.message}`);
+        }
 
+        // Fetch expenses with proper error handling
         const { data: expenses, error: expensesError } = await supabase
           .from('expenses')
           .select('*')
           .eq('school_id', schoolId);
 
-        if (expensesError) throw expensesError;
+        if (expensesError) {
+          console.error('Error fetching expenses:', expensesError);
+          throw new Error(`Failed to fetch expenses: ${expensesError.message}`);
+        }
 
-        // Calculate metrics
+        // Fetch financial transactions for MPESA count
+        const { data: transactions, error: transactionsError } = await supabase
+          .from('financial_transactions')
+          .select('payment_method')
+          .eq('school_id', schoolId)
+          .eq('payment_method', 'mpesa');
+
+        if (transactionsError) {
+          console.error('Error fetching transactions:', transactionsError);
+        }
+
+        // Calculate metrics safely
         const totalCollected = studentFees
           ?.filter(sf => sf.status === 'paid')
-          .reduce((sum, sf) => sum + sf.amount_paid, 0) || 0;
+          .reduce((sum, sf) => sum + (sf.amount_paid || 0), 0) || 0;
 
-        const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+        const totalExpenses = expenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
 
         const totalExpected = studentFees?.reduce((sum, sf) => {
           const feeAmount = sf.fee?.amount || 0;
           return sum + feeAmount;
         }, 0) || 0;
 
-        const outstanding = totalExpected - totalCollected;
+        const outstanding = Math.max(0, totalExpected - totalCollected);
         const collectionRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0;
         const defaulterCount = studentFees?.filter(sf => sf.status === 'unpaid').length || 0;
+        const mpesaTransactions = transactions?.length || 0;
+
+        // Prepare fee collection data for charts
+        const feeCollectionData = studentFees?.reduce((acc, sf) => {
+          const term = sf.fee?.term || 'Unknown';
+          const existing = acc.find(item => item.term === term);
+          if (existing) {
+            existing.collected += sf.amount_paid || 0;
+            existing.expected += sf.fee?.amount || 0;
+          } else {
+            acc.push({
+              term,
+              collected: sf.amount_paid || 0,
+              expected: sf.fee?.amount || 0,
+            });
+          }
+          return acc;
+        }, [] as any[]) || [];
+
+        // Prepare daily transactions data
+        const dailyTransactions = transactions?.reduce((acc, transaction) => {
+          const date = new Date(transaction.created_at).toISOString().split('T')[0];
+          const existing = acc.find(item => item.date === date);
+          if (existing) {
+            existing.count += 1;
+            existing.amount += transaction.amount || 0;
+          } else {
+            acc.push({
+              date,
+              count: 1,
+              amount: transaction.amount || 0,
+            });
+          }
+          return acc;
+        }, [] as any[]) || [];
+
+        // Prepare expense breakdown
+        const expenseBreakdown = expenses?.reduce((acc, exp) => {
+          const existing = acc.find(item => item.category === exp.category);
+          if (existing) {
+            existing.amount += exp.amount || 0;
+          } else {
+            acc.push({ 
+              category: exp.category, 
+              amount: exp.amount || 0,
+              name: exp.category.charAt(0).toUpperCase() + exp.category.slice(1)
+            });
+          }
+          return acc;
+        }, [] as any[]) || [];
+
+        // Prepare defaulters list
+        const defaultersList = studentFees
+          ?.filter(sf => sf.status === 'unpaid')
+          .slice(0, 10)
+          .map(sf => ({
+            id: sf.id,
+            student_id: sf.student_id,
+            amount: sf.fee?.amount || 0,
+            term: sf.fee?.term || 'Unknown',
+            due_date: sf.due_date,
+          })) || [];
 
         const analyticsData: FinanceAnalyticsData = {
           keyMetrics: {
             totalCollected,
             totalExpenses,
             netProfit: totalCollected - totalExpenses,
-            collectionRate,
+            collectionRate: Math.round(collectionRate * 10) / 10,
             outstanding,
             defaulterCount,
-            mpesaTransactions: 0, // Placeholder
+            mpesaTransactions,
           },
-          feeCollectionData: [], // Placeholder
-          dailyTransactions: [], // Placeholder
-          expenseBreakdown: expenses?.reduce((acc, exp) => {
-            const existing = acc.find(item => item.category === exp.category);
-            if (existing) {
-              existing.amount += exp.amount;
-            } else {
-              acc.push({ category: exp.category, amount: exp.amount });
-            }
-            return acc;
-          }, [] as any[]) || [],
-          defaultersList: studentFees?.filter(sf => sf.status === 'unpaid').slice(0, 10) || [],
+          feeCollectionData,
+          dailyTransactions,
+          expenseBreakdown,
+          defaultersList,
         };
 
+        console.log('Finance analytics data:', analyticsData);
         setData(analyticsData);
         setError(null);
       } catch (err) {
         console.error('Error fetching finance analytics:', err);
         setError(err as Error);
+        setData(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchAnalytics();
-  }, [schoolId, filters]);
+  }, [schoolId, filters.term, filters.class]);
 
   return { data, isLoading, error };
 };
