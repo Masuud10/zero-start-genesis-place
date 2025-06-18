@@ -18,10 +18,10 @@ interface Subject {
 function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise((_, reject) =>
+    new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error('Request timed out')), ms)
     )
-  ]) as Promise<T>;
+  ]);
 }
 
 export const useSubjects = (classId?: string) => {
