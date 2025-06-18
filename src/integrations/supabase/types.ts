@@ -12,33 +12,54 @@ export type Database = {
       academic_terms: {
         Row: {
           academic_year_id: string
+          assessment_period_end: string | null
+          assessment_period_start: string | null
           created_at: string | null
+          description: string | null
           end_date: string
+          holiday_end: string | null
+          holiday_start: string | null
           id: string
           is_current: boolean | null
           school_id: string
           start_date: string
+          status: string | null
           term_name: string
+          updated_at: string | null
         }
         Insert: {
           academic_year_id: string
+          assessment_period_end?: string | null
+          assessment_period_start?: string | null
           created_at?: string | null
+          description?: string | null
           end_date: string
+          holiday_end?: string | null
+          holiday_start?: string | null
           id?: string
           is_current?: boolean | null
           school_id: string
           start_date: string
+          status?: string | null
           term_name: string
+          updated_at?: string | null
         }
         Update: {
           academic_year_id?: string
+          assessment_period_end?: string | null
+          assessment_period_start?: string | null
           created_at?: string | null
+          description?: string | null
           end_date?: string
+          holiday_end?: string | null
+          holiday_start?: string | null
           id?: string
           is_current?: boolean | null
           school_id?: string
           start_date?: string
+          status?: string | null
           term_name?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -81,29 +102,41 @@ export type Database = {
       academic_years: {
         Row: {
           created_at: string | null
+          description: string | null
           end_date: string
           id: string
           is_current: boolean | null
           school_id: string
           start_date: string
+          status: string | null
+          term_structure: string | null
+          updated_at: string | null
           year_name: string
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           end_date: string
           id?: string
           is_current?: boolean | null
           school_id: string
           start_date: string
+          status?: string | null
+          term_structure?: string | null
+          updated_at?: string | null
           year_name: string
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           end_date?: string
           id?: string
           is_current?: boolean | null
           school_id?: string
           start_date?: string
+          status?: string | null
+          term_structure?: string | null
+          updated_at?: string | null
           year_name?: string
         }
         Relationships: [
@@ -965,33 +998,48 @@ export type Database = {
       }
       classes: {
         Row: {
+          academic_level: string | null
+          capacity: number | null
+          class_type: string | null
           created_at: string | null
           id: string
           level: string | null
           name: string
+          room_number: string | null
           school_id: string | null
           stream: string | null
           teacher_id: string | null
+          updated_at: string | null
           year: string | null
         }
         Insert: {
+          academic_level?: string | null
+          capacity?: number | null
+          class_type?: string | null
           created_at?: string | null
           id?: string
           level?: string | null
           name: string
+          room_number?: string | null
           school_id?: string | null
           stream?: string | null
           teacher_id?: string | null
+          updated_at?: string | null
           year?: string | null
         }
         Update: {
+          academic_level?: string | null
+          capacity?: number | null
+          class_type?: string | null
           created_at?: string | null
           id?: string
           level?: string | null
           name?: string
+          room_number?: string | null
           school_id?: string | null
           stream?: string | null
           teacher_id?: string | null
+          updated_at?: string | null
           year?: string | null
         }
         Relationships: [
@@ -2894,15 +2942,24 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           emergency_contact: string | null
+          enrollment_date: string | null
           gender: string | null
+          guardian_contact: string | null
+          guardian_name: string | null
+          guardian_relationship: string | null
           id: string
           is_active: boolean | null
           medical_notes: string | null
           name: string
+          nationality: string | null
           parent_contact: string | null
           parent_id: string | null
+          previous_school: string | null
+          religion: string | null
           roll_number: string | null
           school_id: string | null
+          special_needs: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -2913,15 +2970,24 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           emergency_contact?: string | null
+          enrollment_date?: string | null
           gender?: string | null
+          guardian_contact?: string | null
+          guardian_name?: string | null
+          guardian_relationship?: string | null
           id?: string
           is_active?: boolean | null
           medical_notes?: string | null
           name: string
+          nationality?: string | null
           parent_contact?: string | null
           parent_id?: string | null
+          previous_school?: string | null
+          religion?: string | null
           roll_number?: string | null
           school_id?: string | null
+          special_needs?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -2932,15 +2998,24 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           emergency_contact?: string | null
+          enrollment_date?: string | null
           gender?: string | null
+          guardian_contact?: string | null
+          guardian_name?: string | null
+          guardian_relationship?: string | null
           id?: string
           is_active?: boolean | null
           medical_notes?: string | null
           name?: string
+          nationality?: string | null
           parent_contact?: string | null
           parent_id?: string | null
+          previous_school?: string | null
+          religion?: string | null
           roll_number?: string | null
           school_id?: string | null
+          special_needs?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3223,34 +3298,55 @@ export type Database = {
       }
       subjects: {
         Row: {
+          assessment_weight: number | null
+          category: string | null
           class_id: string | null
           code: string
           created_at: string | null
+          credit_hours: number | null
           curriculum: string | null
+          description: string | null
           id: string
+          is_active: boolean | null
           name: string
+          prerequisites: string[] | null
           school_id: string | null
           teacher_id: string | null
+          updated_at: string | null
         }
         Insert: {
+          assessment_weight?: number | null
+          category?: string | null
           class_id?: string | null
           code: string
           created_at?: string | null
+          credit_hours?: number | null
           curriculum?: string | null
+          description?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          prerequisites?: string[] | null
           school_id?: string | null
           teacher_id?: string | null
+          updated_at?: string | null
         }
         Update: {
+          assessment_weight?: number | null
+          category?: string | null
           class_id?: string | null
           code?: string
           created_at?: string | null
+          credit_hours?: number | null
           curriculum?: string | null
+          description?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          prerequisites?: string[] | null
           school_id?: string | null
           teacher_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
