@@ -54,9 +54,9 @@ export const useSubjectTeacherAssignments = () => {
         .from('subject_teacher_assignments')
         .select(`
           *,
-          teacher:profiles!teacher_id(id, name, email),
-          subject:subjects(id, name, code),
-          class:classes(id, name)
+          teacher:profiles!fk_subject_teacher_assignments_teacher_id(id, name, email),
+          subject:subjects!fk_subject_teacher_assignments_subject_id(id, name, code),
+          class:classes!fk_subject_teacher_assignments_class_id(id, name)
         `);
 
       if (!isSystemAdmin && schoolId) {
@@ -102,9 +102,9 @@ export const useSubjectTeacherAssignments = () => {
         })
         .select(`
           *,
-          teacher:profiles!teacher_id(id, name, email),
-          subject:subjects(id, name, code),
-          class:classes(id, name)
+          teacher:profiles!fk_subject_teacher_assignments_teacher_id(id, name, email),
+          subject:subjects!fk_subject_teacher_assignments_subject_id(id, name, code),
+          class:classes!fk_subject_teacher_assignments_class_id(id, name)
         `)
         .single();
 
@@ -136,9 +136,9 @@ export const useSubjectTeacherAssignments = () => {
         .eq('id', id)
         .select(`
           *,
-          teacher:profiles!teacher_id(id, name, email),
-          subject:subjects(id, name, code),
-          class:classes(id, name)
+          teacher:profiles!fk_subject_teacher_assignments_teacher_id(id, name, email),
+          subject:subjects!fk_subject_teacher_assignments_subject_id(id, name, code),
+          class:classes!fk_subject_teacher_assignments_class_id(id, name)
         `)
         .single();
 

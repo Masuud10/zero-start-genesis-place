@@ -150,21 +150,22 @@ export const useBulkGradingDataLoader = ({
       if (isTeacher && userId) {
         // For teachers, get subjects they are assigned to teach for this specific class
         subjectsQuery = supabase
-          .from('teacher_classes')
+          .from('subject_teacher_assignments')
           .select(`
-            subject:subjects (id, name, code, class_id)
+            subject:subjects!fk_subject_teacher_assignments_subject_id (id, name, code, class_id)
           `)
           .eq('teacher_id', userId)
           .eq('class_id', selectedClass)
           .eq('school_id', schoolId)
-          .not('subject_id', 'is', null);
+          .eq('is_active', true);
       } else {
         // For non-teachers, get all subjects for the class
         subjectsQuery = supabase
           .from('subjects')
           .select('*')
           .eq('school_id', schoolId)
-          .eq('class_id', selectedClass);
+          .eq('class_id', selectedClass)
+          .eq('is_active', true);
       }
 
       const [studentsRes, subjectsRes] = await Promise.all([
@@ -179,7 +180,7 @@ export const useBulkGradingDataLoader = ({
       
       let validSubjects = [];
       if (isTeacher && userId) {
-        // Extract subjects from teacher_classes join
+        // Extract subjects from subject_teacher_assignments join
         validSubjects = (subjectsRes.data || [])
           .map((item: any) => item.subject)
           .filter((s: any) => s && s.id && s.name);
