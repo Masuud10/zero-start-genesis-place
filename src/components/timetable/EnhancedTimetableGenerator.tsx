@@ -24,6 +24,12 @@ interface TimetableEntry {
   room: string;
 }
 
+interface TimetableResponse {
+  success?: boolean;
+  message?: string;
+  error?: string;
+}
+
 const EnhancedTimetableGenerator = () => {
   const { toast } = useToast();
   const { schoolId } = useSchoolScopedData();
@@ -69,8 +75,11 @@ const EnhancedTimetableGenerator = () => {
 
       if (error) throw error;
 
-      if (data.error) {
-        throw new Error(data.error);
+      // Handle the response properly with type assertion
+      const response = data as TimetableResponse;
+      
+      if (response?.error) {
+        throw new Error(response.error);
       }
 
       // Fetch the generated timetable
