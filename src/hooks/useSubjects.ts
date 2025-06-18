@@ -53,21 +53,13 @@ export const useSubjects = (classId?: string) => {
       query = query.order('name');
       
       // Execute the query with proper timeout handling
-      const queryPromise = new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Request timed out'));
-        }, 7000);
-
-        query.then((result) => {
-          clearTimeout(timeoutId);
-          resolve(result);
-        }).catch((error) => {
-          clearTimeout(timeoutId);
-          reject(error);
-        });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timed out')), 7000);
       });
 
-      const result = await queryPromise as any;
+      const queryPromise = query;
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]);
       
       if (result.error) {
         console.error('Subjects fetch error:', result.error);
