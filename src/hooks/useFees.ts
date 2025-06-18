@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
@@ -146,6 +145,95 @@ export const useFees = () => {
     }
   };
 
+  const assignFeeToStudents = async (feeData: {
+    amount: number;
+    term: string;
+    category?: string;
+    due_date: string;
+    academic_year?: string;
+    student_ids: string[];
+  }) => {
+    try {
+      console.log('Starting fee assignment with data:', feeData);
+
+      if (!schoolId) {
+        throw new Error('School ID is required');
+      }
+
+      if (!feeData.student_ids || feeData.student_ids.length === 0) {
+        throw new Error('At least one student must be selected');
+      }
+
+      // Create individual fee records for each student
+      const feeRecords = feeData.student_ids.map(studentId => ({
+        school_id: schoolId,
+        student_id: studentId,
+        amount: feeData.amount,
+        term: feeData.term,
+        category: feeData.category || 'General',
+        due_date: feeData.due_date,
+        academic_year: feeData.academic_year || new Date().getFullYear().toString(),
+        status: 'pending',
+        paid_amount: 0,
+        discount_amount: 0,
+        late_fee_amount: 0,
+        installment_number: 1,
+      }));
+
+      console.log('Creating fee records:', feeRecords);
+
+      const { data: createdFees, error: feeError } = await supabase
+        .from('fees')
+        .insert(feeRecords)
+        .select();
+
+      if (feeError) {
+        console.error('Error creating fees:', feeError);
+        throw feeError;
+      }
+
+      console.log('Successfully created fees:', createdFees);
+
+      // Create student_fees records to link students to fees
+      const studentFeeRecords = createdFees.map(fee => ({
+        school_id: schoolId,
+        student_id: fee.student_id,
+        fee_id: fee.id,
+        status: 'unpaid' as const,
+        amount_paid: 0,
+        due_date: fee.due_date,
+      }));
+
+      console.log('Creating student fee records:', studentFeeRecords);
+
+      const { error: studentFeeError } = await supabase
+        .from('student_fees')
+        .insert(studentFeeRecords);
+
+      if (studentFeeError) {
+        console.error('Error creating student fees:', studentFeeError);
+        throw studentFeeError;
+      }
+
+      toast({
+        title: "Fees Assigned Successfully",
+        description: `Fees assigned to ${feeData.student_ids.length} student(s).`,
+      });
+
+      fetchFees();
+      return { data: createdFees, error: null };
+    } catch (err: any) {
+      console.error('Fee assignment error:', err);
+      const message = err?.message || 'Failed to assign fees';
+      toast({
+        title: "Assignment Error",
+        description: message,
+        variant: "destructive",
+      });
+      return { data: null, error: message };
+    }
+  };
+
   const updateFee = async (id: string, updates: Partial<Fee>) => {
     try {
       const { data, error } = await supabase
@@ -211,6 +299,7 @@ export const useFees = () => {
     loading,
     error,
     createFee,
+    assignFeeToStudents,
     updateFee,
     deleteFee,
     refetch: fetchFees

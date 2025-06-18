@@ -38,7 +38,7 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ onSuccess }) 
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
-  const { createFee, loading } = useFees();
+  const { assignFeeToStudents, loading } = useFees();
   const { students } = useStudents();
   const { classes } = useSchoolClasses();
   const { toast } = useToast();
@@ -61,6 +61,12 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ onSuccess }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Form submission started');
+    console.log('Form data:', formData);
+    console.log('Active tab:', activeTab);
+    console.log('Selected class:', selectedClassId);
+    console.log('Selected students:', selectedStudentIds);
     
     if (!formData.amount || !formData.term || !formData.due_date) {
       toast({
@@ -97,9 +103,12 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ onSuccess }) 
         studentsToAssign = students
           .filter(student => student.class_id === selectedClassId)
           .map(student => student.id);
+        
+        console.log('Students in class:', studentsToAssign);
       } else {
         // Use selected individual students
         studentsToAssign = selectedStudentIds;
+        console.log('Individual students selected:', studentsToAssign);
       }
 
       if (studentsToAssign.length === 0) {
@@ -113,26 +122,28 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ onSuccess }) 
         return;
       }
 
-      // Create fees for each student
-      const promises = studentsToAssign.map(studentId =>
-        createFee({
-          amount: parseFloat(formData.amount),
-          term: formData.term,
-          category: formData.category || undefined,
-          due_date: formData.due_date,
-          student_id: studentId,
-          academic_year: formData.academic_year,
-        })
-      );
+      console.log('Calling assignFeeToStudents with:', {
+        amount: parseFloat(formData.amount),
+        term: formData.term,
+        category: formData.category || 'General',
+        due_date: formData.due_date,
+        academic_year: formData.academic_year,
+        student_ids: studentsToAssign,
+      });
 
-      const results = await Promise.all(promises);
-      const successCount = results.filter(result => result.data).length;
-      const errorCount = results.filter(result => result.error).length;
+      const result = await assignFeeToStudents({
+        amount: parseFloat(formData.amount),
+        term: formData.term,
+        category: formData.category || 'General',
+        due_date: formData.due_date,
+        academic_year: formData.academic_year,
+        student_ids: studentsToAssign,
+      });
 
-      if (successCount > 0) {
+      if (result.data) {
         toast({
           title: "Fees Assigned Successfully",
-          description: `${successCount} fee(s) assigned successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+          description: `Fees assigned to ${studentsToAssign.length} student(s)`,
         });
 
         // Reset form
@@ -148,13 +159,15 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ onSuccess }) 
         setOpen(false);
         onSuccess?.();
       } else {
+        console.error('Assignment failed:', result.error);
         toast({
           title: "Assignment Failed",
-          description: "Failed to assign fees. Please try again.",
+          description: result.error || "Failed to assign fees. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Unexpected error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
