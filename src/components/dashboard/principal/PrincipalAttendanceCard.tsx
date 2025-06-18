@@ -1,9 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { UserCheck, AlertCircle, Eye, FileText } from 'lucide-react';
+import { UserCheck, AlertCircle } from 'lucide-react';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -129,7 +127,7 @@ const PrincipalAttendanceCard = () => {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="border border-gray-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserCheck className="h-5 w-5" />
@@ -147,12 +145,13 @@ const PrincipalAttendanceCard = () => {
   }
 
   return (
-    <Card>
+    <Card className="border border-gray-200">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserCheck className="h-5 w-5" />
           Attendance Overview
         </CardTitle>
+        <p className="text-gray-600 text-sm">Today's attendance summary</p>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Today's Attendance */}
@@ -170,7 +169,7 @@ const PrincipalAttendanceCard = () => {
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {attendanceData.lowAttendanceStudents.length > 0 ? (
               attendanceData.lowAttendanceStudents.map((student) => (
-                <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={student.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
                   <div>
                     <p className="font-medium">{student.name}</p>
                     <p className="text-sm text-gray-500">
@@ -178,9 +177,13 @@ const PrincipalAttendanceCard = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <Badge variant={student.attendanceRate < 60 ? "destructive" : "secondary"}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      student.attendanceRate < 60 
+                        ? 'bg-red-100 text-red-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
                       {student.attendanceRate.toFixed(1)}%
-                    </Badge>
+                    </span>
                   </div>
                 </div>
               ))
@@ -188,18 +191,6 @@ const PrincipalAttendanceCard = () => {
               <p className="text-gray-500 text-center py-4">All students have good attendance!</p>
             )}
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <Button variant="outline" className="flex-1">
-            <Eye className="h-4 w-4 mr-2" />
-            View Details
-          </Button>
-          <Button variant="outline" className="flex-1">
-            <FileText className="h-4 w-4 mr-2" />
-            Generate Report
-          </Button>
         </div>
       </CardContent>
     </Card>

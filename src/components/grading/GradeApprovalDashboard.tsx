@@ -205,7 +205,7 @@ const GradeApprovalDashboard = () => {
 
   if (loading) {
     return (
-      <Card className="shadow-lg border-0 rounded-2xl">
+      <Card className="border border-gray-200">
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent"></div>
@@ -217,15 +217,15 @@ const GradeApprovalDashboard = () => {
   }
 
   return (
-    <Card className="shadow-lg border-0 rounded-2xl">
-      <CardHeader className="bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-2xl">
+    <Card className="border border-gray-200">
+      <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Award className="h-5 w-5" />
           Grade Approval Dashboard
         </CardTitle>
-        <p className="text-orange-100 text-sm">Review and approve teacher grade submissions</p>
+        <p className="text-gray-600 text-sm">Review and approve teacher grade submissions</p>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent>
         {submissions.length === 0 ? (
           <div className="text-center py-8">
             <Award className="h-12 w-12 text-gray-400 mx-auto mb-4" />

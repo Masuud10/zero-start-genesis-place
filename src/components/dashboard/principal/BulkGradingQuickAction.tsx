@@ -1,24 +1,41 @@
 
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet, Award } from 'lucide-react';
 
 interface BulkGradingQuickActionProps {
   onOpenBulkGrade: () => void;
 }
 
-const BulkGradingQuickAction: React.FC<BulkGradingQuickActionProps> = ({ onOpenBulkGrade }) => {
+const BulkGradingQuickAction = ({ onOpenBulkGrade }: BulkGradingQuickActionProps) => {
   return (
-    <Card>
+    <Card className="border border-gray-200">
       <CardHeader>
-        <CardTitle>Grading Actions</CardTitle>
-        <CardDescription>Enter grades for an entire class at once.</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <Award className="h-5 w-5" />
+          Grade Management
+        </CardTitle>
+        <p className="text-gray-600 text-sm">Efficiently manage student grades</p>
       </CardHeader>
       <CardContent>
-        <Button onClick={onOpenBulkGrade}>
-          <FileSpreadsheet className="mr-2 h-4 w-4" /> Bulk Grade Entry
-        </Button>
+        <div className="flex gap-4">
+          <Button
+            onClick={onOpenBulkGrade}
+            className="flex items-center gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Bulk Grade Entry
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Award className="h-4 w-4" />
+            Grade Reports
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,175 +1,137 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, AlertCircle, Users } from 'lucide-react';
-import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface FinanceData {
+  totalRevenue: number;
+  totalPending: number;
+  collectionRate: number;
+}
 
 const FinancialOverviewReadOnly = () => {
-  const filters = { term: 'current', class: 'all' };
-  const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
+  const { schoolId } = useSchoolScopedData();
+  const { toast } = useToast();
+  const [financeData, setFinanceData] = useState<FinanceData>({
+    totalRevenue: 0,
+    totalPending: 0,
+    collectionRate: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Financial Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-            <p className="ml-2">Loading financial data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  useEffect(() => {
+    fetchFinanceData();
+  }, [schoolId]);
 
-  if (error || !data) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Financial Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 text-red-600">
-            <AlertCircle className="h-4 w-4" />
-            <p>Unable to load financial data</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const fetchFinanceData = async () => {
+    if (!schoolId) return;
 
-  const { keyMetrics, feeCollectionData, dailyTransactions } = data;
+    try {
+      setLoading(true);
 
-  const chartConfig = {
-    collected: { label: 'Collected', color: '#10b981' },
-    expected: { label: 'Expected', color: '#f59e0b' },
-    amount: { label: 'Amount', color: '#3b82f6' },
+      // Fetch financial summary
+      const [revenueRes, pendingRes] = await Promise.all([
+        supabase
+          .from('fees')
+          .select('paid_amount')
+          .eq('school_id', schoolId)
+          .eq('status', 'paid'),
+        supabase
+          .from('fees')
+          .select('amount, paid_amount')
+          .eq('school_id', schoolId)
+          .in('status', ['pending', 'partial']),
+      ]);
+
+      const totalRevenue = revenueRes.data?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+      const totalPending = pendingRes.data?.reduce((sum, fee) => sum + ((fee.amount || 0) - (fee.paid_amount || 0)), 0) || 0;
+      const collectionRate = totalRevenue + totalPending > 0 ? (totalRevenue / (totalRevenue + totalPending)) * 100 : 0;
+
+      setFinanceData({
+        totalRevenue,
+        totalPending,
+        collectionRate,
+      });
+
+    } catch (error) {
+      console.error('Error fetching finance data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load finance data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Financial Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="bg-gradient-to-br from-white to-green-50/30 border shadow-lg">
+    <Card className="border border-gray-200">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-white" />
-          </div>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5" />
           Financial Overview
-          <Badge variant="secondary" className="ml-auto">Read Only</Badge>
         </CardTitle>
-        <p className="text-muted-foreground">
-          Real-time financial insights and fee collection analytics
-        </p>
+        <p className="text-gray-600 text-sm">Fee collection summary</p>
       </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-white border rounded-lg">
-            <div className="flex items-center justify-between">
+      <CardContent className="space-y-4">
+        {/* Financial Metrics */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-5 w-5 text-green-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Total Collected</p>
-                <p className="text-2xl font-bold text-green-600">
-                  KES {keyMetrics?.totalCollected?.toLocaleString() || 0}
+                <p className="text-sm font-medium text-gray-900">Total Revenue</p>
+                <p className="text-lg font-bold text-green-600">
+                  KES {financeData.totalRevenue.toLocaleString()}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
             </div>
           </div>
 
-          <div className="p-4 bg-white border rounded-lg">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+            <div className="flex items-center gap-3">
+              <TrendingDown className="h-5 w-5 text-orange-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Outstanding</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  KES {keyMetrics?.outstanding?.toLocaleString() || 0}
+                <p className="text-sm font-medium text-gray-900">Pending Fees</p>
+                <p className="text-lg font-bold text-orange-600">
+                  KES {financeData.totalPending.toLocaleString()}
                 </p>
               </div>
-              <AlertCircle className="h-8 w-8 text-orange-600" />
             </div>
           </div>
 
-          <div className="p-4 bg-white border rounded-lg">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+            <div className="flex items-center gap-3">
+              <DollarSign className="h-5 w-5 text-blue-600" />
               <div>
-                <p className="text-sm text-muted-foreground">Collection Rate</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {keyMetrics?.collectionRate?.toFixed(1) || 0}%
+                <p className="text-sm font-medium text-gray-900">Collection Rate</p>
+                <p className="text-lg font-bold text-blue-600">
+                  {financeData.collectionRate.toFixed(1)}%
                 </p>
               </div>
-              <Users className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="p-4 bg-white border rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">M-Pesa Transactions</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {keyMetrics?.mpesaTransactions || 0}
-                </p>
-              </div>
-              <DollarSign className="h-8 w-8 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Fee Collection by Class */}
-          <div className="p-4 bg-white border rounded-lg">
-            <h4 className="font-semibold mb-4">Fee Collection by Class</h4>
-            <ChartContainer config={chartConfig} className="h-64">
-              <BarChart data={feeCollectionData || []}>
-                <XAxis dataKey="class" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="collected" fill="var(--color-collected)" name="Collected (KES)" />
-                <Bar dataKey="expected" fill="var(--color-expected)" name="Expected (KES)" opacity={0.5} />
-              </BarChart>
-            </ChartContainer>
-          </div>
-
-          {/* Daily Transactions Trend */}
-          <div className="p-4 bg-white border rounded-lg">
-            <h4 className="font-semibold mb-4">Recent Transaction Trends</h4>
-            <ChartContainer config={chartConfig} className="h-64">
-              <LineChart data={dailyTransactions?.slice(-7) || []}>
-                <XAxis dataKey="date" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="amount" 
-                  stroke="var(--color-amount)" 
-                  strokeWidth={2}
-                  name="Amount (KES)"
-                />
-              </LineChart>
-            </ChartContainer>
-          </div>
-        </div>
-
-        {/* Notice */}
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm">
-              <p className="text-blue-800 font-medium">Financial Data Access</p>
-              <p className="text-blue-700 mt-1">
-                This financial overview is synchronized with the Finance Officer's dashboard. 
-                For detailed financial management and transactions, please contact your Finance Officer.
-              </p>
             </div>
           </div>
         </div>
