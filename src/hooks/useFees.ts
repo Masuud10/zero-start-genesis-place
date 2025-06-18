@@ -230,7 +230,13 @@ export const useStudentFees = (studentId?: string) => {
 
       if (fetchError) throw fetchError;
 
-      setStudentFees(data || []);
+      // Type assertion to ensure proper typing
+      const typedData = (data || []).map(item => ({
+        ...item,
+        status: item.status as 'paid' | 'unpaid' | 'partial'
+      })) as StudentFee[];
+
+      setStudentFees(typedData);
       setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch student fees';

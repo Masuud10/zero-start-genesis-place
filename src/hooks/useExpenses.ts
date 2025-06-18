@@ -74,6 +74,7 @@ export const useExpenses = () => {
         .from('expenses')
         .insert({
           ...expenseData,
+          date: expenseData.expense_date, // Map expense_date to date for database
           school_id: schoolId,
         })
         .select()
