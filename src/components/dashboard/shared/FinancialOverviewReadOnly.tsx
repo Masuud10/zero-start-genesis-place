@@ -1,76 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { DollarSign, TrendingUp, TrendingDown, Users, AlertCircle } from 'lucide-react';
+import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { Loader2 } from 'lucide-react';
 
-interface FinanceData {
-  totalRevenue: number;
-  totalPending: number;
-  collectionRate: number;
-}
+const FinancialOverviewReadOnly: React.FC = () => {
+  const filters = { term: 'current', class: 'all' };
+  const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
 
-const FinancialOverviewReadOnly = () => {
-  const { schoolId } = useSchoolScopedData();
-  const { toast } = useToast();
-  const [financeData, setFinanceData] = useState<FinanceData>({
-    totalRevenue: 0,
-    totalPending: 0,
-    collectionRate: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchFinanceData();
-  }, [schoolId]);
-
-  const fetchFinanceData = async () => {
-    if (!schoolId) return;
-
-    try {
-      setLoading(true);
-
-      // Fetch financial summary
-      const [revenueRes, pendingRes] = await Promise.all([
-        supabase
-          .from('fees')
-          .select('paid_amount')
-          .eq('school_id', schoolId)
-          .eq('status', 'paid'),
-        supabase
-          .from('fees')
-          .select('amount, paid_amount')
-          .eq('school_id', schoolId)
-          .in('status', ['pending', 'partial']),
-      ]);
-
-      const totalRevenue = revenueRes.data?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-      const totalPending = pendingRes.data?.reduce((sum, fee) => sum + ((fee.amount || 0) - (fee.paid_amount || 0)), 0) || 0;
-      const collectionRate = totalRevenue + totalPending > 0 ? (totalRevenue / (totalRevenue + totalPending)) * 100 : 0;
-
-      setFinanceData({
-        totalRevenue,
-        totalPending,
-        collectionRate,
-      });
-
-    } catch (error) {
-      console.error('Error fetching finance data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load finance data",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <Card className="border border-gray-200">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -78,65 +22,186 @@ const FinancialOverviewReadOnly = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <span className="ml-2">Loading financial data...</span>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            Financial Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-red-600">
+            Error loading financial data. Please contact the finance department.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data || !data.keyMetrics) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Financial Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-muted-foreground">
+            No financial data available.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { keyMetrics, feeCollectionData, dailyTransactions, defaultersList } = data;
+
+  const chartConfig = {
+    collected: { label: 'Collected', color: '#10b981' },
+    expected: { label: 'Expected', color: '#3b82f6' },
+    amount: { label: 'Amount', color: '#8b5cf6' },
+  };
+
   return (
-    <Card className="border border-gray-200">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
-          Financial Overview
-        </CardTitle>
-        <p className="text-gray-600 text-sm">Fee collection summary</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Financial Metrics */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Total Revenue</p>
-                <p className="text-lg font-bold text-green-600">
-                  KES {financeData.totalRevenue.toLocaleString()}
-                </p>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Financial Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-600">Total Collected</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    KES {keyMetrics.totalCollected?.toLocaleString() || 0}
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+
+            <div className="bg-orange-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-600">Outstanding</p>
+                  <p className="text-2xl font-bold text-orange-700">
+                    KES {keyMetrics.outstanding?.toLocaleString() || 0}
+                  </p>
+                </div>
+                <TrendingDown className="h-8 w-8 text-orange-600" />
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600">Collection Rate</p>
+                  <p className="text-2xl font-bold text-blue-700">
+                    {keyMetrics.collectionRate?.toFixed(1) || 0}%
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-600">Active Students</p>
+                  <p className="text-2xl font-bold text-purple-700">
+                    {keyMetrics.activeStudents || 0}
+                  </p>
+                </div>
+                <Users className="h-8 w-8 text-purple-600" />
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
-            <div className="flex items-center gap-3">
-              <TrendingDown className="h-5 w-5 text-orange-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Pending Fees</p>
-                <p className="text-lg font-bold text-orange-600">
-                  KES {financeData.totalPending.toLocaleString()}
-                </p>
-              </div>
+          {/* Fee Collection Chart */}
+          {feeCollectionData && feeCollectionData.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold mb-3">Fee Collection by Class</h4>
+              <ChartContainer config={chartConfig} className="h-64">
+                <BarChart data={feeCollectionData}>
+                  <XAxis dataKey="class" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="collected" fill="var(--color-collected)" name="Collected (KES)" />
+                  <Bar dataKey="expected" fill="var(--color-expected)" name="Expected (KES)" opacity={0.6} />
+                </BarChart>
+              </ChartContainer>
             </div>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
-            <div className="flex items-center gap-3">
-              <DollarSign className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Collection Rate</p>
-                <p className="text-lg font-bold text-blue-600">
-                  {financeData.collectionRate.toFixed(1)}%
-                </p>
+          {/* Recent Transactions */}
+          {dailyTransactions && dailyTransactions.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold mb-3">Recent Transaction Trends</h4>
+              <ChartContainer config={chartConfig} className="h-48">
+                <LineChart data={dailyTransactions.slice(-7)}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="amount" 
+                    stroke="var(--color-amount)" 
+                    strokeWidth={2}
+                    name="Daily Amount (KES)"
+                  />
+                </LineChart>
+              </ChartContainer>
+            </div>
+          )}
+
+          {/* Top Defaulters */}
+          {defaultersList && defaultersList.length > 0 && (
+            <div>
+              <h4 className="text-lg font-semibold mb-3">Outstanding Fees Summary</h4>
+              <div className="space-y-2">
+                {defaultersList.slice(0, 5).map((defaulter, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div>
+                      <p className="font-medium">{defaulter.studentName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {defaulter.class} - {defaulter.admissionNumber}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-red-600">
+                        KES {defaulter.outstandingAmount?.toLocaleString()}
+                      </p>
+                      <Badge variant="destructive" className="text-xs">
+                        {defaulter.overdueCount} overdue
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
