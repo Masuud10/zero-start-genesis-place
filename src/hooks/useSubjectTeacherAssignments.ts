@@ -54,9 +54,8 @@ export const useSubjectTeacherAssignments = () => {
         .from('subject_teacher_assignments')
         .select(`
           *,
-          teacher:profiles(id, name, email),
-          subject:subjects(id, name, code),
-          class:classes(id, name)
+          subjects(id, name, code),
+          classes(id, name)
         `);
 
       if (!isSystemAdmin && schoolId) {
@@ -65,11 +64,34 @@ export const useSubjectTeacherAssignments = () => {
 
       query = query.eq('is_active', true).order('created_at', { ascending: false });
 
-      const { data, error: fetchError } = await query;
+      const { data: assignmentsData, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
-      setAssignments(data || []);
+      // Fetch teacher profiles separately to avoid the foreign key issue
+      const teacherIds = assignmentsData?.map(a => a.teacher_id).filter(Boolean) || [];
+      let teacherProfiles: any[] = [];
+      
+      if (teacherIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .in('id', teacherIds);
+        
+        if (!profilesError) {
+          teacherProfiles = profiles || [];
+        }
+      }
+
+      // Combine the data
+      const enrichedAssignments = (assignmentsData || []).map(assignment => ({
+        ...assignment,
+        teacher: teacherProfiles.find(p => p.id === assignment.teacher_id),
+        subject: assignment.subjects,
+        class: assignment.classes
+      })).filter(assignment => assignment.teacher); // Only include assignments with valid teacher data
+
+      setAssignments(enrichedAssignments);
       setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch subject assignments';
@@ -100,12 +122,7 @@ export const useSubjectTeacherAssignments = () => {
           is_active: true,
           workload_percentage: assignmentData.workload_percentage || 100,
         })
-        .select(`
-          *,
-          teacher:profiles(id, name, email),
-          subject:subjects(id, name, code),
-          class:classes(id, name)
-        `)
+        .select()
         .single();
 
       if (error) throw error;
@@ -134,12 +151,7 @@ export const useSubjectTeacherAssignments = () => {
         .from('subject_teacher_assignments')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
-        .select(`
-          *,
-          teacher:profiles(id, name, email),
-          subject:subjects(id, name, code),
-          class:classes(id, name)
-        `)
+        .select()
         .single();
 
       if (error) throw error;
