@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface AssignTeacherToClassParams {
@@ -20,9 +21,10 @@ interface LinkParentToStudentParams {
 }
 
 export const ClassManagementService = {
-  // Assign teacher to class
+  // Assign teacher to class with subject
   assignTeacherToClass: async (params: AssignTeacherToClassParams) => {
     try {
+      // Get school_id from the class
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('school_id')
@@ -31,6 +33,20 @@ export const ClassManagementService = {
       
       if (classError) throw classError;
       if (!classData?.school_id) throw new Error("Could not find school for the class");
+
+      // Check if this assignment already exists
+      const { data: existingAssignment } = await supabase
+        .from('teacher_classes')
+        .select('id')
+        .eq('teacher_id', params.teacherId)
+        .eq('class_id', params.classId)
+        .eq('subject_id', params.subjectId || null)
+        .eq('school_id', classData.school_id)
+        .single();
+
+      if (existingAssignment) {
+        throw new Error("This teacher is already assigned to this subject for this class");
+      }
 
       const { data, error } = await supabase
         .from('teacher_classes')
@@ -139,7 +155,6 @@ export const ClassManagementService = {
     }
   },
 
-  // Remove student from class
   removeStudentFromClass: async (studentId: string, classId: string) => {
     try {
       const { error } = await supabase
@@ -160,7 +175,6 @@ export const ClassManagementService = {
     }
   },
 
-  // Link parent to student
   linkParentToStudent: async (params: LinkParentToStudentParams) => {
     try {
       const { data: studentData, error: studentError } = await supabase
@@ -196,7 +210,6 @@ export const ClassManagementService = {
     }
   },
 
-  // Remove parent-student link
   unlinkParentFromStudent: async (parentId: string, studentId: string) => {
     try {
       const { error } = await supabase
@@ -217,7 +230,6 @@ export const ClassManagementService = {
     }
   },
 
-  // Get teachers for a class
   getTeachersForClass: async (classId: string) => {
     try {
       const { data, error } = await supabase
@@ -241,7 +253,6 @@ export const ClassManagementService = {
     }
   },
 
-  // Get students for a class
   getStudentsForClass: async (classId: string) => {
     try {
       const { data, error } = await supabase
@@ -265,7 +276,6 @@ export const ClassManagementService = {
     }
   },
 
-  // Get parents for a student
   getParentsForStudent: async (studentId: string) => {
     try {
       const { data, error } = await supabase

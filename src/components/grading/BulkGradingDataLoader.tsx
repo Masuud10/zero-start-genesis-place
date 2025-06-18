@@ -49,7 +49,6 @@ export const useBulkGradingDataLoader = ({
   const fetchInitialData = useCallback(async () => {
     if (!schoolId) return;
     
-    // Check cache first
     if (initialDataCache.current) {
       console.log('🎓 BulkGrading: Using cached initial data');
       setClasses(initialDataCache.current.classes);
@@ -61,9 +60,31 @@ export const useBulkGradingDataLoader = ({
     try {
       console.log('🎓 BulkGrading: Fetching initial data for school:', schoolId);
       
-      // Fetch both in parallel
+      // For teachers, only fetch classes they are assigned to
+      let classesQuery = supabase.from('classes').select('*').eq('school_id', schoolId);
+      
+      if (isTeacher && userId) {
+        // Get classes where the teacher is assigned
+        const { data: teacherClasses } = await supabase
+          .from('teacher_classes')
+          .select('class_id')
+          .eq('teacher_id', userId)
+          .eq('school_id', schoolId);
+        
+        const classIds = teacherClasses?.map(tc => tc.class_id) || [];
+        if (classIds.length > 0) {
+          classesQuery = classesQuery.in('id', classIds);
+        } else {
+          // Teacher has no class assignments
+          setClasses([]);
+          setAcademicTerms([]);
+          setInitialLoading(false);
+          return;
+        }
+      }
+      
       const [classesRes, termsRes] = await Promise.all([
-        supabase.from('classes').select('*').eq('school_id', schoolId).order('name'),
+        classesQuery.order('name'),
         supabase.from('academic_terms').select('*').eq('school_id', schoolId).order('start_date', { ascending: false })
       ]);
 
@@ -73,7 +94,6 @@ export const useBulkGradingDataLoader = ({
       const validClasses = Array.isArray(classesRes.data) ? classesRes.data : [];
       const validTerms = Array.isArray(termsRes.data) ? termsRes.data : [];
 
-      // Cache the results
       initialDataCache.current = {
         classes: validClasses,
         terms: validTerms
@@ -94,7 +114,7 @@ export const useBulkGradingDataLoader = ({
     } finally {
       setInitialLoading(false);
     }
-  }, [schoolId, toast]);
+  }, [schoolId, isTeacher, userId, toast]);
 
   // Fetch class data with caching (students and subjects)
   const fetchClassData = useCallback(async () => {
@@ -106,7 +126,6 @@ export const useBulkGradingDataLoader = ({
     
     const cacheKey = `${selectedClass}_${isTeacher ? userId : 'all'}`;
     
-    // Check cache first
     if (classDataCache.current.has(cacheKey)) {
       console.log('🎓 BulkGrading: Using cached class data for', cacheKey);
       const cached = classDataCache.current.get(cacheKey)!;
@@ -119,7 +138,6 @@ export const useBulkGradingDataLoader = ({
     try {
       console.log('🎓 BulkGrading: Fetching class data for:', selectedClass);
       
-      // Build queries based on teacher role
       const studentsQuery = supabase
         .from('students')
         .select('*')
@@ -128,20 +146,27 @@ export const useBulkGradingDataLoader = ({
         .eq('is_active', true)
         .order('name');
 
-      const subjectsQuery = isTeacher
-        ? supabase
-            .from('subjects')
-            .select('*')
-            .eq('school_id', schoolId)
-            .eq('teacher_id', userId)
-            .eq('class_id', selectedClass)
-        : supabase
-            .from('subjects')
-            .select('*')
-            .eq('school_id', schoolId)
-            .eq('class_id', selectedClass);
+      let subjectsQuery;
+      if (isTeacher && userId) {
+        // For teachers, get subjects they are assigned to teach for this specific class
+        subjectsQuery = supabase
+          .from('teacher_classes')
+          .select(`
+            subject:subjects (id, name, code, class_id)
+          `)
+          .eq('teacher_id', userId)
+          .eq('class_id', selectedClass)
+          .eq('school_id', schoolId)
+          .not('subject_id', 'is', null);
+      } else {
+        // For non-teachers, get all subjects for the class
+        subjectsQuery = supabase
+          .from('subjects')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('class_id', selectedClass);
+      }
 
-      // Fetch both in parallel
       const [studentsRes, subjectsRes] = await Promise.all([
         studentsQuery,
         subjectsQuery
@@ -151,9 +176,17 @@ export const useBulkGradingDataLoader = ({
       if (subjectsRes.error) throw subjectsRes.error;
 
       const validStudents = Array.isArray(studentsRes.data) ? studentsRes.data.filter(s => s && s.id && s.name) : [];
-      const validSubjects = Array.isArray(subjectsRes.data) ? subjectsRes.data.filter(s => s && s.id && s.name) : [];
+      
+      let validSubjects = [];
+      if (isTeacher && userId) {
+        // Extract subjects from teacher_classes join
+        validSubjects = (subjectsRes.data || [])
+          .map((item: any) => item.subject)
+          .filter((s: any) => s && s.id && s.name);
+      } else {
+        validSubjects = Array.isArray(subjectsRes.data) ? subjectsRes.data.filter(s => s && s.id && s.name) : [];
+      }
 
-      // Cache the results
       classDataCache.current.set(cacheKey, {
         students: validStudents,
         subjects: validSubjects
@@ -164,7 +197,6 @@ export const useBulkGradingDataLoader = ({
 
       console.log('🎓 BulkGrading: Cached class data - Students:', validStudents.length, 'Subjects:', validSubjects.length);
 
-      // Show specific messages only if there are issues
       if (validStudents.length === 0) {
         toast({
           title: "No Students Found",
@@ -175,7 +207,7 @@ export const useBulkGradingDataLoader = ({
 
       if (validSubjects.length === 0) {
         const message = isTeacher 
-          ? "You are not assigned to teach any subjects for this class."
+          ? "You are not assigned to teach any subjects for this class. Please contact your principal to assign you to subjects."
           : "No subjects found for this class.";
         
         toast({
@@ -205,7 +237,6 @@ export const useBulkGradingDataLoader = ({
     
     const cacheKey = `${selectedClass}_${selectedTerm}_${selectedExamType}`;
     
-    // Check cache first
     if (gradesCache.current.has(cacheKey)) {
       console.log('🎓 BulkGrading: Using cached grades for', cacheKey);
       const cachedGrades = gradesCache.current.get(cacheKey);
@@ -218,17 +249,24 @@ export const useBulkGradingDataLoader = ({
     try {
       console.log('🎓 BulkGrading: Fetching grades for:', { selectedClass, selectedTerm, selectedExamType });
       
-      const { data, error } = await supabase
+      let gradesQuery = supabase
         .from('grades')
         .select('*')
         .eq('class_id', selectedClass)
         .eq('term', selectedTerm)
         .eq('exam_type', selectedExamType)
         .eq('school_id', schoolId);
+
+      // For teachers, only fetch grades for subjects they teach
+      if (isTeacher && userId && subjects.length > 0) {
+        const subjectIds = subjects.map(s => s.id);
+        gradesQuery = gradesQuery.in('subject_id', subjectIds);
+      }
+      
+      const { data, error } = await gradesQuery;
       
       if (error) throw error;
       
-      // Process grades
       const newGrades: Record<string, Record<string, GradeValue>> = {};
       if (data && data.length > 0) {
         for (const grade of data) {
@@ -244,7 +282,6 @@ export const useBulkGradingDataLoader = ({
         }
       }
 
-      // Cache the results
       gradesCache.current.set(cacheKey, {
         data: data || [],
         grades: newGrades
@@ -265,9 +302,8 @@ export const useBulkGradingDataLoader = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedClass, selectedTerm, selectedExamType, schoolId, updatePermissions, toast]);
+  }, [selectedClass, selectedTerm, selectedExamType, schoolId, updatePermissions, toast, isTeacher, userId, subjects]);
 
-  // Effects with optimized dependencies
   useEffect(() => {
     fetchInitialData();
   }, [fetchInitialData]);
@@ -279,7 +315,7 @@ export const useBulkGradingDataLoader = ({
   }, [fetchClassData]);
 
   useEffect(() => {
-    if (selectedClass && selectedTerm && selectedExamType) {
+    if (selectedClass && selectedTerm && selectedExamType && subjects.length >= 0) {
       fetchExistingGrades();
     }
   }, [fetchExistingGrades]);
