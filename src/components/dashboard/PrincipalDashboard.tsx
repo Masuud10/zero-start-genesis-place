@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -8,13 +7,13 @@ import AddTeacherModal from '../modals/AddTeacherModal';
 import AddParentModal from '../modals/AddParentModal';
 import AddClassModal from '../modals/AddClassModal';
 import AddSubjectModal from '../modals/AddSubjectModal';
-import PrincipalStatsCards from "./principal/PrincipalStatsCards";
 import PrincipalDashboardLoading from "./PrincipalDashboardLoading";
 import PrincipalDashboardErrorCard from "./PrincipalDashboardErrorCard";
 import RoleGuard from '@/components/common/RoleGuard';
 import QuickActionsCard from './principal/QuickActionsCard';
 import RecentActivitiesPanel from './principal/RecentActivitiesPanel';
 import PrincipalAnalyticsCharts from './principal/PrincipalAnalyticsCharts';
+import EnhancedKeyMetrics from './principal/EnhancedKeyMetrics';
 import GradeApprovalDashboard from '@/components/grading/GradeApprovalDashboard';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
@@ -26,6 +25,7 @@ import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Award, FileText, TrendingUp, Users, BookOpen, Calendar, BarChart3 } from 'lucide-react';
+import { usePrincipalAnalyticsData } from '@/hooks/usePrincipalAnalyticsData';
 
 const PrincipalDashboard = () => {
   const { user } = useAuth();
@@ -43,6 +43,8 @@ const PrincipalDashboard = () => {
     schoolId,
     fetchSchoolData,
   } = usePrincipalDashboardData(reloadKey);
+
+  const { data: analyticsData } = usePrincipalAnalyticsData();
 
   const {
     classList,
@@ -78,40 +80,12 @@ const PrincipalDashboard = () => {
 
   return (
     <RoleGuard allowedRoles={['principal']} requireSchoolAssignment>
-      <div className="space-y-8 p-6">
-        {/* Statistics Cards */}
-        <PrincipalStatsCards stats={stats} />
+      <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
+        {/* Enhanced Key Performance Metrics */}
+        <EnhancedKeyMetrics stats={stats} analyticsData={analyticsData} />
 
-        {/* Quick Actions and Key Metrics Section */}
+        {/* Quick Actions and School Overview Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Key Performance Metrics */}
-          <Card className="lg:col-span-1">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
-                Key Metrics
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-600">Active Teachers</span>
-                <span className="text-lg font-bold text-green-600">{stats.totalTeachers}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-600">Total Classes</span>
-                <span className="text-lg font-bold text-blue-600">{stats.totalClasses}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-600">Subjects Offered</span>
-                <span className="text-lg font-bold text-purple-600">{stats.totalSubjects}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm font-medium text-gray-600">Parent Contacts</span>
-                <span className="text-lg font-bold text-orange-600">{stats.totalParents}</span>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Quick Actions */}
           <div className="lg:col-span-2">
             <QuickActionsCard
@@ -121,71 +95,70 @@ const PrincipalDashboard = () => {
               onAddSubject={() => setAddSubjectOpen(true)}
             />
           </div>
-        </div>
 
-        {/* Bulk Grading Quick Action */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
-          
           {/* School Overview Card */}
-          <Card>
-            <CardHeader>
+          <Card className="shadow-lg border-0 rounded-2xl">
+            <CardHeader className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-t-2xl">
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-green-600" />
+                <BarChart3 className="h-5 w-5" />
                 School Overview
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Student Enrollment</span>
-                  <span className="font-semibold">{stats.totalStudents} Students</span>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-600">Student Enrollment</span>
+                  <span className="font-bold text-indigo-600">{stats.totalStudents} Students</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Faculty Strength</span>
-                  <span className="font-semibold">{stats.totalTeachers} Teachers</span>
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-600">Faculty Strength</span>
+                  <span className="font-bold text-green-600">{stats.totalTeachers} Teachers</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Academic Programs</span>
-                  <span className="font-semibold">{stats.totalSubjects} Subjects</span>
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm font-medium text-gray-600">Academic Programs</span>
+                  <span className="font-bold text-purple-600">{stats.totalSubjects} Subjects</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Class Divisions</span>
-                  <span className="font-semibold">{stats.totalClasses} Classes</span>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm font-medium text-gray-600">Class Divisions</span>
+                  <span className="font-bold text-orange-600">{stats.totalClasses} Classes</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Analytics and Activities Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PrincipalAnalyticsCharts />
-          <RecentActivitiesPanel recentActivities={recentActivities} />
-        </div>
+        {/* Bulk Grading Quick Action */}
+        <BulkGradingQuickAction onOpenBulkGrade={() => setBulkGradingOpen(true)} />
 
-        {/* Operational Overview */}
+        {/* Analytics Charts Section */}
+        <PrincipalAnalyticsCharts />
+
+        {/* Activities and Operational Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PrincipalAttendanceCard />
-          <FinancialOverviewReadOnly />
+          <RecentActivitiesPanel recentActivities={recentActivities} />
+          <div className="space-y-6">
+            <PrincipalAttendanceCard />
+            <FinancialOverviewReadOnly />
+          </div>
         </div>
 
         {/* Quick Navigation Hub */}
-        <Card>
-          <CardHeader>
+        <Card className="shadow-lg border-0 rounded-2xl">
+          <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-t-2xl">
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600" />
+              <Building2 className="h-5 w-5" />
               School Management Hub
             </CardTitle>
+            <p className="text-gray-300 text-sm mt-1">Quick access to key management areas</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Button 
                 variant="outline" 
-                className="h-20 flex-col gap-2 hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                className="h-24 flex-col gap-3 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 group"
                 onClick={() => setActiveSection('school-management')}
               >
-                <Users className="h-6 w-6 text-blue-600" />
+                <Users className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
                 <div className="text-center">
                   <div className="font-medium text-sm">Manage Staff</div>
                   <div className="text-xs text-muted-foreground">Teachers & Assignments</div>
@@ -194,10 +167,10 @@ const PrincipalDashboard = () => {
               
               <Button 
                 variant="outline" 
-                className="h-20 flex-col gap-2 hover:bg-green-50 hover:border-green-200 transition-colors"
+                className="h-24 flex-col gap-3 hover:bg-green-50 hover:border-green-200 transition-all duration-200 group"
                 onClick={() => setActiveSection('timetable')}
               >
-                <Calendar className="h-6 w-6 text-green-600" />
+                <Calendar className="h-6 w-6 text-green-600 group-hover:scale-110 transition-transform" />
                 <div className="text-center">
                   <div className="font-medium text-sm">Timetable</div>
                   <div className="text-xs text-muted-foreground">Schedule Management</div>
@@ -206,10 +179,10 @@ const PrincipalDashboard = () => {
               
               <Button 
                 variant="outline" 
-                className="h-20 flex-col gap-2 hover:bg-purple-50 hover:border-purple-200 transition-colors"
+                className="h-24 flex-col gap-3 hover:bg-purple-50 hover:border-purple-200 transition-all duration-200 group"
                 onClick={() => setActiveSection('grades')}
               >
-                <Award className="h-6 w-6 text-purple-600" />
+                <Award className="h-6 w-6 text-purple-600 group-hover:scale-110 transition-transform" />
                 <div className="text-center">
                   <div className="font-medium text-sm">Grades</div>
                   <div className="text-xs text-muted-foreground">Academic Performance</div>
@@ -218,10 +191,10 @@ const PrincipalDashboard = () => {
               
               <Button 
                 variant="outline" 
-                className="h-20 flex-col gap-2 hover:bg-orange-50 hover:border-orange-200 transition-colors"
+                className="h-24 flex-col gap-3 hover:bg-orange-50 hover:border-orange-200 transition-all duration-200 group"
                 onClick={() => setActiveSection('reports')}
               >
-                <FileText className="h-6 w-6 text-orange-600" />
+                <FileText className="h-6 w-6 text-orange-600 group-hover:scale-110 transition-transform" />
                 <div className="text-center">
                   <div className="font-medium text-sm">Reports</div>
                   <div className="text-xs text-muted-foreground">Academic & Financial</div>
