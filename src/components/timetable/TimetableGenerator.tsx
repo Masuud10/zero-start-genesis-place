@@ -79,32 +79,62 @@ const TimetableGenerator = () => {
 
     setLoading(true);
     try {
-      const [classesRes, subjectsRes, teachersRes] = await Promise.all([
-        supabase
-          .from('classes')
-          .select('id, name')
-          .eq('school_id', schoolId)
-          .order('name'),
-        supabase
-          .from('subjects')
-          .select('id, name, code, teacher_id')
-          .eq('school_id', schoolId)
-          .order('name'),
-        supabase
-          .from('profiles')
-          .select('id, name')
-          .eq('school_id', schoolId)
-          .eq('role', 'teacher')
-          .order('name')
-      ]);
+      console.log('Fetching timetable data for school:', schoolId);
 
-      if (classesRes.error) throw classesRes.error;
-      if (subjectsRes.error) throw subjectsRes.error;
-      if (teachersRes.error) throw teachersRes.error;
+      // Fetch classes
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('school_id', schoolId)
+        .order('name');
 
-      setClasses(classesRes.data || []);
-      setSubjects(subjectsRes.data || []);
-      setTeachers(teachersRes.data || []);
+      if (classesError) {
+        console.error('Classes fetch error:', classesError);
+        throw classesError;
+      }
+
+      // Fetch subjects - get all subjects for the school
+      const { data: subjectsData, error: subjectsError } = await supabase
+        .from('subjects')
+        .select('id, name, code, teacher_id')
+        .eq('school_id', schoolId)
+        .order('name');
+
+      if (subjectsError) {
+        console.error('Subjects fetch error:', subjectsError);
+        throw subjectsError;
+      }
+
+      // Fetch teachers
+      const { data: teachersData, error: teachersError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('school_id', schoolId)
+        .eq('role', 'teacher')
+        .order('name');
+
+      if (teachersError) {
+        console.error('Teachers fetch error:', teachersError);
+        throw teachersError;
+      }
+
+      console.log('Fetched data:', {
+        classes: classesData?.length || 0,
+        subjects: subjectsData?.length || 0,
+        teachers: teachersData?.length || 0
+      });
+
+      setClasses(classesData || []);
+      setSubjects(subjectsData || []);
+      setTeachers(teachersData || []);
+
+      if (!subjectsData || subjectsData.length === 0) {
+        toast({
+          title: "No Subjects Found",
+          description: "Please create subjects first before generating timetables.",
+          variant: "destructive"
+        });
+      }
 
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -163,7 +193,7 @@ const TimetableGenerator = () => {
     if (subjects.length === 0) {
       toast({
         title: "Error",
-        description: "No subjects found for this school",
+        description: "No subjects found for this school. Please create subjects first.",
         variant: "destructive"
       });
       return;
@@ -263,7 +293,6 @@ const TimetableGenerator = () => {
         start_time: slot.startTime,
         end_time: slot.endTime,
         room: slot.room,
-        created_by_principal_id: '', // This should be set properly
         is_published: true
       }));
 
@@ -352,7 +381,7 @@ const TimetableGenerator = () => {
             </div>
             <Button
               onClick={generateTimetable}
-              disabled={!selectedClassId || generating}
+              disabled={!selectedClassId || generating || subjects.length === 0}
             >
               {generating ? (
                 <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
@@ -374,6 +403,14 @@ const TimetableGenerator = () => {
               Save
             </Button>
           </div>
+          
+          {subjects.length === 0 && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-800 text-sm">
+                <strong>No subjects found.</strong> Please create subjects first before generating timetables.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -40,9 +40,14 @@ const GradeApprovalDashboard = () => {
   const [processing, setProcessing] = useState<string | null>(null);
 
   const fetchSubmissions = async () => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      setLoading(false);
+      return;
+    }
 
     try {
+      console.log('Fetching grade submissions for school:', schoolId);
+      
       const { data, error } = await supabase
         .from('grades')
         .select(`
@@ -51,28 +56,37 @@ const GradeApprovalDashboard = () => {
           exam_type,
           submitted_at,
           status,
-          classes!inner(name),
+          subject_id,
+          class_id,
+          submitted_by,
           subjects!inner(name),
+          classes!inner(name),
           profiles!grades_submitted_by_fkey(name)
         `)
         .eq('school_id', schoolId)
-        .eq('status', 'submitted')
+        .in('status', ['submitted', 'approved'])
+        .not('submitted_at', 'is', null)
         .order('submitted_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching grade submissions:', error);
+        throw error;
+      }
 
-      // Group by submission batch
+      console.log('Raw grade submissions data:', data);
+
+      // Group by submission batch (class + subject + term + exam_type + teacher)
       const grouped = data?.reduce((acc: any, grade: any) => {
-        const key = `${grade.classes.name}-${grade.subjects.name}-${grade.term}-${grade.exam_type}-${grade.profiles.name}`;
+        const key = `${grade.classes?.name || 'Unknown'}-${grade.subjects?.name || 'Unknown'}-${grade.term}-${grade.exam_type}-${grade.profiles?.name || 'Unknown'}`;
         
         if (!acc[key]) {
           acc[key] = {
             id: grade.id,
-            class_name: grade.classes.name,
-            subject_name: grade.subjects.name,
-            teacher_name: grade.profiles.name,
-            term: grade.term,
-            exam_type: grade.exam_type,
+            class_name: grade.classes?.name || 'Unknown Class',
+            subject_name: grade.subjects?.name || 'Unknown Subject',
+            teacher_name: grade.profiles?.name || 'Unknown Teacher',
+            term: grade.term || 'Unknown Term',
+            exam_type: grade.exam_type || 'Unknown Exam',
             submitted_at: grade.submitted_at,
             status: grade.status,
             total_students: 0,
@@ -84,12 +98,14 @@ const GradeApprovalDashboard = () => {
         return acc;
       }, {});
 
-      setSubmissions(Object.values(grouped || {}));
+      const submissionsList = Object.values(grouped || {}) as GradeSubmission[];
+      console.log('Processed submissions:', submissionsList);
+      setSubmissions(submissionsList);
     } catch (error: any) {
       console.error('Error fetching submissions:', error);
       toast({
         title: "Error",
-        description: "Failed to load grade submissions",
+        description: error.message || "Failed to load grade submissions",
         variant: "destructive"
       });
     } finally {
@@ -100,11 +116,15 @@ const GradeApprovalDashboard = () => {
   const handleApprove = async (submissionId: string) => {
     setProcessing(submissionId);
     try {
-      const { error } = await supabase.rpc('update_grade_status', {
-        grade_ids: [submissionId],
-        new_status: 'approved',
-        user_id: user?.id
-      });
+      const { error } = await supabase
+        .from('grades')
+        .update({ 
+          status: 'approved',
+          approved_by_principal: true,
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', submissionId);
 
       if (error) throw error;
 
@@ -129,11 +149,13 @@ const GradeApprovalDashboard = () => {
   const handleReject = async (submissionId: string) => {
     setProcessing(submissionId);
     try {
-      const { error } = await supabase.rpc('update_grade_status', {
-        grade_ids: [submissionId],
-        new_status: 'rejected',
-        user_id: user?.id
-      });
+      const { error } = await supabase
+        .from('grades')
+        .update({ 
+          status: 'rejected',
+          approved_by_principal: false
+        })
+        .eq('id', submissionId);
 
       if (error) throw error;
 
@@ -158,11 +180,16 @@ const GradeApprovalDashboard = () => {
   const handleRelease = async (submissionId: string) => {
     setProcessing(submissionId);
     try {
-      const { error } = await supabase.rpc('update_grade_status', {
-        grade_ids: [submissionId],
-        new_status: 'released',
-        user_id: user?.id
-      });
+      const { error } = await supabase
+        .from('grades')
+        .update({ 
+          status: 'released',
+          released_to_parents: true,
+          released_by: user?.id,
+          released_at: new Date().toISOString()
+        })
+        .eq('id', submissionId)
+        .eq('approved_by_principal', true);
 
       if (error) throw error;
 
@@ -185,7 +212,9 @@ const GradeApprovalDashboard = () => {
   };
 
   useEffect(() => {
-    fetchSubmissions();
+    if (schoolId) {
+      fetchSubmissions();
+    }
   }, [schoolId]);
 
   const getStatusBadge = (status: string) => {
