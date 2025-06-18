@@ -7,12 +7,20 @@ import { supabase } from '@/integrations/supabase/client';
 interface Fee {
   id: string;
   school_id: string;
-  fee_name: string;
   amount: number;
-  term_id?: string;
-  class_id?: string;
   due_date: string;
-  description?: string;
+  term: string;
+  category?: string;
+  academic_year: string;
+  student_id: string;
+  status: 'pending' | 'paid' | 'partial' | 'overdue';
+  paid_amount: number;
+  paid_date?: string;
+  payment_method?: string;
+  mpesa_code?: string;
+  discount_amount: number;
+  late_fee_amount: number;
+  installment_number: number;
   created_at: string;
   updated_at: string;
 }
@@ -27,7 +35,14 @@ interface StudentFee {
   due_date: string;
   created_at: string;
   updated_at: string;
-  fee?: Fee;
+  fee?: {
+    id: string;
+    amount: number;
+    category?: string;
+    term: string;
+    due_date: string;
+    academic_year: string;
+  };
   student?: {
     id: string;
     name: string;
@@ -53,7 +68,7 @@ export const useFees = () => {
     setError(null);
 
     try {
-      let query = supabase.from('fees').select('id, school_id, fee_name, amount, term_id, class_id, due_date, description, created_at, updated_at');
+      let query = supabase.from('fees').select('*');
 
       if (!isSystemAdmin && schoolId) {
         query = query.eq('school_id', schoolId);
@@ -82,12 +97,12 @@ export const useFees = () => {
   }, [isSystemAdmin, schoolId, toast]);
 
   const createFee = async (feeData: {
-    fee_name: string;
     amount: number;
-    term_id?: string;
-    class_id?: string;
+    term: string;
+    category?: string;
     due_date: string;
-    description?: string;
+    student_id: string;
+    academic_year?: string;
   }) => {
     try {
       const { data, error } = await supabase
@@ -95,6 +110,12 @@ export const useFees = () => {
         .insert({
           ...feeData,
           school_id: schoolId,
+          academic_year: feeData.academic_year || new Date().getFullYear().toString(),
+          status: 'pending',
+          paid_amount: 0,
+          discount_amount: 0,
+          late_fee_amount: 0,
+          installment_number: 1,
         })
         .select()
         .single();
@@ -103,7 +124,7 @@ export const useFees = () => {
 
       toast({
         title: "Fee Created",
-        description: `Fee ${feeData.fee_name} has been created and assigned to students.`,
+        description: `Fee has been created successfully.`,
       });
 
       fetchFees();
@@ -212,7 +233,7 @@ export const useStudentFees = (studentId?: string) => {
         .from('student_fees')
         .select(`
           *,
-          fee:fees(id, fee_name, amount, due_date, description),
+          fee:fees(id, amount, category, term, due_date, academic_year),
           student:students(id, name, admission_number)
         `);
 
@@ -234,10 +255,17 @@ export const useStudentFees = (studentId?: string) => {
       const typedData = (data || []).map(item => ({
         ...item,
         status: item.status as 'paid' | 'unpaid' | 'partial',
-        fee: item.fee && typeof item.fee === 'object' && 'fee_name' in item.fee 
-          ? item.fee as Fee 
+        fee: item.fee && typeof item.fee === 'object' && item.fee !== null && 'amount' in item.fee 
+          ? item.fee as {
+              id: string;
+              amount: number;
+              category?: string;
+              term: string;
+              due_date: string;
+              academic_year: string;
+            }
           : undefined,
-        student: item.student && typeof item.student === 'object' && 'name' in item.student
+        student: item.student && typeof item.student === 'object' && item.student !== null && 'name' in item.student
           ? item.student as { id: string; name: string; admission_number: string }
           : undefined
       }));

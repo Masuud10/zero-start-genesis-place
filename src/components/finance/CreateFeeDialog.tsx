@@ -4,56 +4,63 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { useFees } from '@/hooks/useFees';
 import { useEnhancedClasses } from '@/hooks/useEnhancedClasses';
-import { useAcademicTerms } from '@/hooks/useAcademicTerms';
+import { useStudents } from '@/hooks/useStudents';
 
 interface CreateFeeDialogProps {
   onSuccess?: () => void;
 }
 
+const feeCategories = [
+  'tuition',
+  'transport',
+  'meals',
+  'activities',
+  'other'
+];
+
 const CreateFeeDialog: React.FC<CreateFeeDialogProps> = ({ onSuccess }) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
-    fee_name: '',
     amount: '',
-    term_id: '',
-    class_id: '',
+    term: '',
+    category: '',
     due_date: '',
-    description: '',
+    student_id: '',
+    academic_year: new Date().getFullYear().toString(),
   });
 
   const { createFee, loading } = useFees();
   const { classes } = useEnhancedClasses();
-  const { academicTerms } = useAcademicTerms();
+  const { students } = useStudents();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fee_name || !formData.amount || !formData.class_id || !formData.due_date) {
+    if (!formData.amount || !formData.term || !formData.due_date || !formData.student_id) {
       return;
     }
 
     const result = await createFee({
-      fee_name: formData.fee_name,
       amount: parseFloat(formData.amount),
-      term_id: formData.term_id || undefined,
-      class_id: formData.class_id,
+      term: formData.term,
+      category: formData.category || undefined,
       due_date: formData.due_date,
-      description: formData.description || undefined,
+      student_id: formData.student_id,
+      academic_year: formData.academic_year,
     });
 
     if (result.data) {
       setFormData({
-        fee_name: '',
         amount: '',
-        term_id: '',
-        class_id: '',
+        term: '',
+        category: '',
         due_date: '',
-        description: '',
+        student_id: '',
+        academic_year: new Date().getFullYear().toString(),
       });
       setOpen(false);
       onSuccess?.();
@@ -74,17 +81,6 @@ const CreateFeeDialog: React.FC<CreateFeeDialogProps> = ({ onSuccess }) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="fee_name">Fee Name *</Label>
-            <Input
-              id="fee_name"
-              value={formData.fee_name}
-              onChange={(e) => setFormData({ ...formData, fee_name: e.target.value })}
-              placeholder="e.g., Tuition, Library, Sports"
-              required
-            />
-          </div>
-
-          <div>
             <Label htmlFor="amount">Amount (KES) *</Label>
             <Input
               id="amount"
@@ -99,15 +95,15 @@ const CreateFeeDialog: React.FC<CreateFeeDialogProps> = ({ onSuccess }) => {
           </div>
 
           <div>
-            <Label htmlFor="class_id">Class *</Label>
-            <Select value={formData.class_id} onValueChange={(value) => setFormData({ ...formData, class_id: value })}>
+            <Label htmlFor="student_id">Student *</Label>
+            <Select value={formData.student_id} onValueChange={(value) => setFormData({ ...formData, student_id: value })}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a class" />
+                <SelectValue placeholder="Select a student" />
               </SelectTrigger>
               <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
+                {students.map((student) => (
+                  <SelectItem key={student.id} value={student.id}>
+                    {student.name} ({student.admission_number})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -115,17 +111,31 @@ const CreateFeeDialog: React.FC<CreateFeeDialogProps> = ({ onSuccess }) => {
           </div>
 
           <div>
-            <Label htmlFor="term_id">Academic Term (Optional)</Label>
-            <Select value={formData.term_id} onValueChange={(value) => setFormData({ ...formData, term_id: value })}>
+            <Label htmlFor="category">Category</Label>
+            <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {feeCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="term">Term *</Label>
+            <Select value={formData.term} onValueChange={(value) => setFormData({ ...formData, term: value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a term" />
               </SelectTrigger>
               <SelectContent>
-                {academicTerms.map((term) => (
-                  <SelectItem key={term.id} value={term.id}>
-                    {term.term_name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="term-1">Term 1</SelectItem>
+                <SelectItem value="term-2">Term 2</SelectItem>
+                <SelectItem value="term-3">Term 3</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -142,13 +152,13 @@ const CreateFeeDialog: React.FC<CreateFeeDialogProps> = ({ onSuccess }) => {
           </div>
 
           <div>
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Optional description"
-              rows={3}
+            <Label htmlFor="academic_year">Academic Year</Label>
+            <Input
+              id="academic_year"
+              type="text"
+              value={formData.academic_year}
+              onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
+              placeholder="2024"
             />
           </div>
 

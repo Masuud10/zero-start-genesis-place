@@ -87,7 +87,8 @@ const ParentFeeView: React.FC<ParentFeeViewProps> = ({ studentId }) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fee Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Term</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Paid</TableHead>
                   <TableHead>Outstanding</TableHead>
@@ -104,9 +105,10 @@ const ParentFeeView: React.FC<ParentFeeViewProps> = ({ studentId }) => {
                   return (
                     <TableRow key={studentFee.id} className={isOverdue ? 'bg-red-50' : ''}>
                       <TableCell className="font-medium">
-                        {studentFee.fee?.fee_name}
+                        {studentFee.fee?.category || 'General'}
                         {isOverdue && <span className="text-red-600 text-sm ml-2">(Overdue)</span>}
                       </TableCell>
+                      <TableCell>{studentFee.fee?.term}</TableCell>
                       <TableCell>{formatCurrency(feeAmount)}</TableCell>
                       <TableCell>{formatCurrency(studentFee.amount_paid)}</TableCell>
                       <TableCell>{formatCurrency(outstanding)}</TableCell>
