@@ -13,6 +13,15 @@ interface PaymentData {
   bankReference?: string;
 }
 
+interface PaymentResponse {
+  success?: boolean;
+  error?: string;
+  transaction_id?: string;
+  new_status?: string;
+  total_paid?: number;
+  remaining_amount?: number;
+}
+
 export const useFeePayments = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,18 +79,21 @@ export const useFeePayments = () => {
         throw new Error(`Failed to record payment: ${paymentError.message}`);
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
+      // Type cast the response to handle JSON structure
+      const response = data as PaymentResponse;
+
+      if (response?.error) {
+        throw new Error(response.error);
       }
 
-      console.log('Payment recorded successfully:', data);
+      console.log('Payment recorded successfully:', response);
       
       toast({
         title: "Payment Recorded",
         description: `Payment of KES ${paymentData.amount.toLocaleString()} recorded successfully`,
       });
 
-      return { data, error: null };
+      return { data: response, error: null };
     } catch (err: any) {
       const message = err?.message || 'Failed to record payment';
       console.error('Payment recording error:', err);

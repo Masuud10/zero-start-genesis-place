@@ -14,6 +14,17 @@ interface ReportFilters {
   dateTo?: string;
 }
 
+interface ReportResponse {
+  success?: boolean;
+  error?: string;
+  school?: any;
+  report_type?: string;
+  generated_at?: string;
+  academic_year?: string;
+  term?: string;
+  data?: any;
+}
+
 export const useFinanceReports = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,18 +63,21 @@ export const useFinanceReports = () => {
         throw new Error(`Failed to generate report: ${reportError.message}`);
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
+      // Type cast the response to handle JSON structure
+      const response = data as ReportResponse;
+
+      if (response?.error) {
+        throw new Error(response.error);
       }
 
-      console.log('Generated report:', data);
+      console.log('Generated report:', response);
       
       toast({
         title: "Success",
         description: "Financial report generated successfully",
       });
 
-      return { data, error: null };
+      return { data: response, error: null };
     } catch (err: any) {
       const message = err?.message || 'Failed to generate report';
       console.error('Report generation error:', err);
