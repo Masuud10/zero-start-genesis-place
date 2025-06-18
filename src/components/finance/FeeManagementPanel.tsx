@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Edit, Trash2, Eye } from 'lucide-react';
 import { useFees, useStudentFees } from '@/hooks/useFees';
+import FeeAssignmentDialog from './FeeAssignmentDialog';
 import CreateFeeDialog from './CreateFeeDialog';
 import { format } from 'date-fns';
 
@@ -38,7 +38,10 @@ const FeeManagementPanel: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Fee Management</h2>
-        <CreateFeeDialog onSuccess={refetchFees} />
+        <div className="flex space-x-2">
+          <FeeAssignmentDialog onSuccess={refetchFees} />
+          <CreateFeeDialog onSuccess={refetchFees} />
+        </div>
       </div>
 
       <Tabs defaultValue="fees" className="space-y-4">
