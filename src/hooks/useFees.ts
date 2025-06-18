@@ -80,7 +80,13 @@ export const useFees = () => {
 
       if (fetchError) throw fetchError;
 
-      setFees(data || []);
+      // Type the data properly with status casting
+      const typedData = (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'paid' | 'partial' | 'overdue'
+      }));
+
+      setFees(typedData);
       setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch fees';

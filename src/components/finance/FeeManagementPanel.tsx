@@ -64,10 +64,11 @@ const FeeManagementPanel: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fee Name</TableHead>
+                      <TableHead>Category</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Term</TableHead>
                       <TableHead>Due Date</TableHead>
-                      <TableHead>Description</TableHead>
+                      <TableHead>Academic Year</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -75,10 +76,11 @@ const FeeManagementPanel: React.FC = () => {
                   <TableBody>
                     {fees.map((fee) => (
                       <TableRow key={fee.id}>
-                        <TableCell className="font-medium">{fee.fee_name}</TableCell>
+                        <TableCell className="font-medium">{fee.category || 'General'}</TableCell>
                         <TableCell>{formatCurrency(fee.amount)}</TableCell>
+                        <TableCell>{fee.term}</TableCell>
                         <TableCell>{format(new Date(fee.due_date), 'MMM dd, yyyy')}</TableCell>
-                        <TableCell>{fee.description || '-'}</TableCell>
+                        <TableCell>{fee.academic_year}</TableCell>
                         <TableCell>{format(new Date(fee.created_at), 'MMM dd, yyyy')}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
@@ -119,7 +121,7 @@ const FeeManagementPanel: React.FC = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Student</TableHead>
-                      <TableHead>Fee</TableHead>
+                      <TableHead>Fee Category</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Paid</TableHead>
                       <TableHead>Status</TableHead>
@@ -135,7 +137,7 @@ const FeeManagementPanel: React.FC = () => {
                             <div className="text-sm text-gray-500">{studentFee.student?.admission_number}</div>
                           </div>
                         </TableCell>
-                        <TableCell>{studentFee.fee?.fee_name}</TableCell>
+                        <TableCell>{studentFee.fee?.category || 'General'}</TableCell>
                         <TableCell>{formatCurrency(studentFee.fee?.amount || 0)}</TableCell>
                         <TableCell>{formatCurrency(studentFee.amount_paid)}</TableCell>
                         <TableCell>

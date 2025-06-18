@@ -59,18 +59,18 @@ const FinanceReportsPanel: React.FC = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  // Group fees by type
-  const feesByType = studentFees.reduce((acc, studentFee) => {
-    const feeName = studentFee.fee?.fee_name || 'Unknown';
-    if (!acc[feeName]) {
-      acc[feeName] = { total: 0, paid: 0, unpaid: 0 };
+  // Group fees by category
+  const feesByCategory = studentFees.reduce((acc, studentFee) => {
+    const category = studentFee.fee?.category || 'General';
+    if (!acc[category]) {
+      acc[category] = { total: 0, paid: 0, unpaid: 0 };
     }
     const feeAmount = studentFee.fee?.amount || 0;
-    acc[feeName].total += feeAmount;
+    acc[category].total += feeAmount;
     if (studentFee.status === 'paid') {
-      acc[feeName].paid += studentFee.amount_paid;
+      acc[category].paid += studentFee.amount_paid;
     } else {
-      acc[feeName].unpaid += feeAmount - studentFee.amount_paid;
+      acc[category].unpaid += feeAmount - studentFee.amount_paid;
     }
     return acc;
   }, {} as Record<string, { total: number; paid: number; unpaid: number }>);
@@ -208,13 +208,13 @@ const FinanceReportsPanel: React.FC = () => {
         <TabsContent value="income">
           <Card>
             <CardHeader>
-              <CardTitle>Income Breakdown by Fee Type</CardTitle>
+              <CardTitle>Income Breakdown by Fee Category</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fee Type</TableHead>
+                    <TableHead>Fee Category</TableHead>
                     <TableHead>Total Expected</TableHead>
                     <TableHead>Collected</TableHead>
                     <TableHead>Outstanding</TableHead>
@@ -222,11 +222,11 @@ const FinanceReportsPanel: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(feesByType).map(([feeType, data]) => {
+                  {Object.entries(feesByCategory).map(([category, data]) => {
                     const collectionRate = data.total > 0 ? (data.paid / data.total * 100) : 0;
                     return (
-                      <TableRow key={feeType}>
-                        <TableCell className="font-medium">{feeType}</TableCell>
+                      <TableRow key={category}>
+                        <TableCell className="font-medium">{category}</TableCell>
                         <TableCell>{formatCurrency(data.total)}</TableCell>
                         <TableCell>{formatCurrency(data.paid)}</TableCell>
                         <TableCell>{formatCurrency(data.unpaid)}</TableCell>
