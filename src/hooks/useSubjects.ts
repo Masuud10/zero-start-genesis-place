@@ -15,15 +15,6 @@ interface Subject {
   created_at: string;
 }
 
-function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out')), ms)
-    )
-  ]);
-}
-
 export const useSubjects = (classId?: string) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,11 +52,22 @@ export const useSubjects = (classId?: string) => {
 
       query = query.order('name');
       
-      // Execute the query with timeout - convert the query builder to a Promise
-      const result = await useTimeoutPromise(
-        query, // This is now properly typed as a Promise when executed
-        7000
-      );
+      // Execute the query with proper timeout handling
+      const queryPromise = new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+
+        query.then((result) => {
+          clearTimeout(timeoutId);
+          resolve(result);
+        }).catch((error) => {
+          clearTimeout(timeoutId);
+          reject(error);
+        });
+      });
+
+      const result = await queryPromise as any;
       
       if (result.error) {
         console.error('Subjects fetch error:', result.error);
