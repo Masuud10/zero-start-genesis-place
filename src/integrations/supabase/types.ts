@@ -1673,6 +1673,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          approved_by_principal: boolean | null
           cbc_performance_level: string | null
           class_id: string | null
           comments: string | null
@@ -1683,10 +1684,13 @@ export type Database = {
           is_released: boolean | null
           letter_grade: string | null
           max_score: number | null
+          overridden_grade: number | null
           percentage: number | null
           position: number | null
+          principal_notes: string | null
           released_at: string | null
           released_by: string | null
+          released_to_parents: boolean | null
           reviewed_at: string | null
           reviewed_by: string | null
           school_id: string
@@ -1702,6 +1706,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          approved_by_principal?: boolean | null
           cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
@@ -1712,10 +1717,13 @@ export type Database = {
           is_released?: boolean | null
           letter_grade?: string | null
           max_score?: number | null
+          overridden_grade?: number | null
           percentage?: number | null
           position?: number | null
+          principal_notes?: string | null
           released_at?: string | null
           released_by?: string | null
+          released_to_parents?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           school_id: string
@@ -1731,6 +1739,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          approved_by_principal?: boolean | null
           cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
@@ -1741,10 +1750,13 @@ export type Database = {
           is_released?: boolean | null
           letter_grade?: string | null
           max_score?: number | null
+          overridden_grade?: number | null
           percentage?: number | null
           position?: number | null
+          principal_notes?: string | null
           released_at?: string | null
           released_by?: string | null
+          released_to_parents?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           school_id?: string
@@ -3085,6 +3097,102 @@ export type Database = {
           },
         ]
       }
+      subject_teacher_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          class_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          school_id: string
+          subject_id: string
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          class_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          school_id: string
+          subject_id: string
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          class_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          school_id?: string
+          subject_id?: string
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_teacher_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subjects: {
         Row: {
           class_id: string | null
@@ -3683,6 +3791,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_timetables_created_by_principal"
+            columns: ["created_by_principal_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "timetables_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
@@ -3865,6 +3980,10 @@ export type Database = {
           owner_email?: string
           owner_name?: string
         }
+        Returns: Json
+      }
+      generate_timetable: {
+        Args: { p_school_id: string; p_class_id: string; p_created_by: string }
         Returns: Json
       }
       get_class_report_data: {
