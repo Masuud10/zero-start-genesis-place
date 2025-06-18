@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +12,8 @@ interface Fee {
   term: string;
   category?: string;
   academic_year: string;
-  student_id: string;
+  student_id?: string;
+  class_id?: string;
   status: 'pending' | 'paid' | 'partial' | 'overdue';
   paid_amount: number;
   paid_date?: string;
@@ -234,6 +236,68 @@ export const useFees = () => {
     }
   };
 
+  const assignFeeToClass = async (feeData: {
+    amount: number;
+    term: string;
+    category?: string;
+    due_date: string;
+    academic_year?: string;
+    class_id: string;
+  }) => {
+    try {
+      console.log('Starting class fee assignment with data:', feeData);
+
+      if (!schoolId) {
+        throw new Error('School ID is required');
+      }
+
+      // Create a single fee record for the class
+      const { data: createdFee, error: feeError } = await supabase
+        .from('fees')
+        .insert({
+          school_id: schoolId,
+          class_id: feeData.class_id,
+          amount: feeData.amount,
+          term: feeData.term,
+          category: feeData.category || 'General',
+          due_date: feeData.due_date,
+          academic_year: feeData.academic_year || new Date().getFullYear().toString(),
+          status: 'pending',
+          paid_amount: 0,
+          discount_amount: 0,
+          late_fee_amount: 0,
+          installment_number: 1,
+        })
+        .select()
+        .single();
+
+      if (feeError) {
+        console.error('Error creating class fee:', feeError);
+        throw feeError;
+      }
+
+      console.log('Successfully created class fee:', createdFee);
+
+      // The database trigger will automatically assign this fee to all students in the class
+      toast({
+        title: "Class Fee Assigned Successfully",
+        description: `Fee assigned to all students in the selected class.`,
+      });
+
+      fetchFees();
+      return { data: createdFee, error: null };
+    } catch (err: any) {
+      console.error('Class fee assignment error:', err);
+      const message = err?.message || 'Failed to assign fee to class';
+      toast({
+        title: "Class Assignment Error",
+        description: message,
+        variant: "destructive",
+      });
+      return { data: null, error: message };
+    }
+  };
+
   const updateFee = async (id: string, updates: Partial<Fee>) => {
     try {
       const { data, error } = await supabase
@@ -300,6 +364,7 @@ export const useFees = () => {
     error,
     createFee,
     assignFeeToStudents,
+    assignFeeToClass,
     updateFee,
     deleteFee,
     refetch: fetchFees

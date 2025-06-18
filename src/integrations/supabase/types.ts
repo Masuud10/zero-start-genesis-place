@@ -1393,6 +1393,7 @@ export type Database = {
           academic_year: string | null
           amount: number
           category: string | null
+          class_id: string | null
           created_at: string | null
           discount_amount: number | null
           due_date: string
@@ -1413,6 +1414,7 @@ export type Database = {
           academic_year?: string | null
           amount: number
           category?: string | null
+          class_id?: string | null
           created_at?: string | null
           discount_amount?: number | null
           due_date: string
@@ -1433,6 +1435,7 @@ export type Database = {
           academic_year?: string | null
           amount?: number
           category?: string | null
+          class_id?: string | null
           created_at?: string | null
           discount_amount?: number | null
           due_date?: string
@@ -1450,6 +1453,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fees_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fees_school_id_fkey"
             columns: ["school_id"]

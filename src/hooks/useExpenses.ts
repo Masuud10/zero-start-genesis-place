@@ -12,6 +12,7 @@ interface Expense {
   category: string;
   expense_date: string;
   description?: string;
+  approved_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -40,7 +41,7 @@ export const useExpenses = () => {
         query = query.eq('school_id', schoolId);
       }
 
-      query = query.order('expense_date', { ascending: false });
+      query = query.order('created_at', { ascending: false });
 
       const { data, error: fetchError } = await query;
 
@@ -74,7 +75,6 @@ export const useExpenses = () => {
         .from('expenses')
         .insert({
           ...expenseData,
-          date: expenseData.expense_date, // Map expense_date to date for database
           school_id: schoolId,
         })
         .select()
@@ -83,8 +83,8 @@ export const useExpenses = () => {
       if (error) throw error;
 
       toast({
-        title: "Expense Added",
-        description: `Expense ${expenseData.title} has been recorded successfully.`,
+        title: "Expense Created",
+        description: "Expense has been recorded successfully.",
       });
 
       fetchExpenses();

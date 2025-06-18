@@ -38,7 +38,7 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ onSuccess }) 
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
-  const { assignFeeToStudents, loading } = useFees();
+  const { assignFeeToStudents, assignFeeToClass, loading } = useFees();
   const { students } = useStudents();
   const { classes } = useSchoolClasses();
   const { toast } = useToast();
@@ -96,54 +96,54 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ onSuccess }) 
     }
 
     try {
-      let studentsToAssign: string[] = [];
+      let result;
 
       if (activeTab === 'class') {
-        // Get all students in the selected class
-        studentsToAssign = students
-          .filter(student => student.class_id === selectedClassId)
-          .map(student => student.id);
-        
-        console.log('Students in class:', studentsToAssign);
-      } else {
-        // Use selected individual students
-        studentsToAssign = selectedStudentIds;
-        console.log('Individual students selected:', studentsToAssign);
-      }
-
-      if (studentsToAssign.length === 0) {
-        toast({
-          title: "No Students Found",
-          description: activeTab === 'class' 
-            ? "No students found in the selected class"
-            : "No students selected",
-          variant: "destructive",
+        // Use the new assignFeeToClass method
+        console.log('Calling assignFeeToClass with:', {
+          amount: parseFloat(formData.amount),
+          term: formData.term,
+          category: formData.category || 'General',
+          due_date: formData.due_date,
+          academic_year: formData.academic_year,
+          class_id: selectedClassId,
         });
-        return;
+
+        result = await assignFeeToClass({
+          amount: parseFloat(formData.amount),
+          term: formData.term,
+          category: formData.category || 'General',
+          due_date: formData.due_date,
+          academic_year: formData.academic_year,
+          class_id: selectedClassId,
+        });
+      } else {
+        // Use individual student assignment
+        console.log('Calling assignFeeToStudents with:', {
+          amount: parseFloat(formData.amount),
+          term: formData.term,
+          category: formData.category || 'General',
+          due_date: formData.due_date,
+          academic_year: formData.academic_year,
+          student_ids: selectedStudentIds,
+        });
+
+        result = await assignFeeToStudents({
+          amount: parseFloat(formData.amount),
+          term: formData.term,
+          category: formData.category || 'General',
+          due_date: formData.due_date,
+          academic_year: formData.academic_year,
+          student_ids: selectedStudentIds,
+        });
       }
-
-      console.log('Calling assignFeeToStudents with:', {
-        amount: parseFloat(formData.amount),
-        term: formData.term,
-        category: formData.category || 'General',
-        due_date: formData.due_date,
-        academic_year: formData.academic_year,
-        student_ids: studentsToAssign,
-      });
-
-      const result = await assignFeeToStudents({
-        amount: parseFloat(formData.amount),
-        term: formData.term,
-        category: formData.category || 'General',
-        due_date: formData.due_date,
-        academic_year: formData.academic_year,
-        student_ids: studentsToAssign,
-      });
 
       if (result.data) {
         toast({
           title: "Fees Assigned Successfully",
-          description: `Fees assigned to ${studentsToAssign.length} student(s)`,
+          description: activeTab === 'class' 
+            ? `Fee assigned to all students in the selected class`
+            : `Fees assigned to ${selectedStudentIds.length} student(s)`,
         });
 
         // Reset form

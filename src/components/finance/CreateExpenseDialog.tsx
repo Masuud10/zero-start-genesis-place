@@ -4,35 +4,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useExpenses } from '@/hooks/useExpenses';
 
-interface CreateExpenseDialogProps {
-  onSuccess?: () => void;
-}
-
 const expenseCategories = [
-  'Salaries',
-  'Utilities',
-  'Maintenance',
-  'Supplies',
-  'Equipment',
-  'Transportation',
-  'Marketing',
-  'Professional Services',
-  'Insurance',
-  'Other'
+  'utilities',
+  'supplies',
+  'maintenance',
+  'staff',
+  'transport',
+  'other'
 ];
 
-const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) => {
+const CreateExpenseDialog: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
     category: '',
-    expense_date: '',
+    expense_date: new Date().toISOString().split('T')[0],
     description: '',
   });
 
@@ -41,7 +33,7 @@ const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.amount || !formData.category || !formData.expense_date) {
+    if (!formData.title || !formData.amount || !formData.category) {
       return;
     }
 
@@ -50,7 +42,7 @@ const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) 
       amount: parseFloat(formData.amount),
       category: formData.category,
       expense_date: formData.expense_date,
-      description: formData.description || undefined,
+      description: formData.description,
     });
 
     if (result.data) {
@@ -58,11 +50,10 @@ const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) 
         title: '',
         amount: '',
         category: '',
-        expense_date: '',
+        expense_date: new Date().toISOString().split('T')[0],
         description: '',
       });
       setOpen(false);
-      onSuccess?.();
     }
   };
 
@@ -71,21 +62,21 @@ const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) 
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Expense
+          Record Expense
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Expense</DialogTitle>
+          <DialogTitle>Record New Expense</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="title">Expense Title *</Label>
+            <Label htmlFor="title">Title *</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g., Office Supplies, Electricity Bill"
+              placeholder="Enter expense title"
               required
             />
           </div>
@@ -113,7 +104,7 @@ const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) 
               <SelectContent>
                 {expenseCategories.map((category) => (
                   <SelectItem key={category} value={category}>
-                    {category}
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -132,12 +123,12 @@ const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) 
           </div>
 
           <div>
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Optional description"
+              placeholder="Enter expense description"
               rows={3}
             />
           </div>
@@ -147,7 +138,7 @@ const CreateExpenseDialog: React.FC<CreateExpenseDialogProps> = ({ onSuccess }) 
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Expense'}
+              {loading ? 'Recording...' : 'Record Expense'}
             </Button>
           </div>
         </form>
