@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +28,7 @@ const ParentFeeOverview: React.FC = () => {
             id,
             name,
             admission_number,
-            class_id,
-            classes:class_id(name)
+            class_id
           )
         `)
         .eq('parent_id', user.id);
@@ -39,6 +37,19 @@ const ParentFeeOverview: React.FC = () => {
 
       const studentIds = parentStudents?.map(ps => ps.student_id) || [];
       if (studentIds.length === 0) return [];
+
+      // Get class information for students
+      const { data: studentsWithClasses, error: studentsError } = await supabase
+        .from('students')
+        .select(`
+          id,
+          name,
+          admission_number,
+          classes:class_id(name)
+        `)
+        .in('id', studentIds);
+
+      if (studentsError) throw studentsError;
 
       // Get fees for these students
       const { data: fees, error: feesError } = await supabase
@@ -52,12 +63,6 @@ const ParentFeeOverview: React.FC = () => {
             term,
             academic_year,
             due_date
-          ),
-          student:student_id(
-            id,
-            name,
-            admission_number,
-            classes:class_id(name)
           )
         `)
         .in('student_id', studentIds)
@@ -65,7 +70,11 @@ const ParentFeeOverview: React.FC = () => {
 
       if (feesError) throw feesError;
 
-      return fees || [];
+      // Combine student info with fees
+      return fees?.map(fee => ({
+        ...fee,
+        student: studentsWithClasses?.find(s => s.id === fee.student_id)
+      })) || [];
     },
     enabled: !!user?.id
   });

@@ -110,7 +110,7 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
 
     case 'principal':
       console.log('📊 DashboardRoleBasedContent: Rendering PrincipalDashboard for principal');
-      return <PrincipalDashboard />;
+      return <PrincipalDashboard user={user} onModalOpen={onModalOpen} />;
 
     case 'teacher':
       console.log('📊 DashboardRoleBasedContent: Rendering TeacherDashboard for teacher');

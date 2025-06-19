@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -126,9 +125,9 @@ const FinancialOverviewReadOnly: React.FC = () => {
             <div className="bg-purple-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600">Active Students</p>
+                  <p className="text-sm font-medium text-purple-600">Defaulters</p>
                   <p className="text-2xl font-bold text-purple-700">
-                    {keyMetrics.activeStudents || 0}
+                    {keyMetrics.defaulterCount || 0}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-purple-600" />
