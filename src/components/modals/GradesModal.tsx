@@ -265,7 +265,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         )
       };
 
-      await gradeSubmissionMutation(gradeData);
+      await gradeSubmissionMutation.mutateAsync(gradeData);
 
       toast({
         title: "Success",

@@ -1,5 +1,5 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from './useSchoolScopedData';
@@ -50,5 +50,39 @@ export const useOptimizedGradeQuery = ({ enabled = true }: UseOptimizedGradeQuer
       return data || [];
     },
     enabled: enabled && !!user?.id && !!schoolId
+  });
+};
+
+export const useGradeSubmissionMutation = () => {
+  const { user } = useAuth();
+  const { schoolId } = useSchoolScopedData();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (gradeData: any) => {
+      if (!user?.id || !schoolId) {
+        throw new Error('User ID and School ID are required');
+      }
+
+      const completeGradeData = {
+        ...gradeData,
+        school_id: schoolId,
+        submitted_by: user.id,
+        submitted_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('grades')
+        .insert(completeGradeData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch grades
+      queryClient.invalidateQueries({ queryKey: ['grades'] });
+    },
   });
 };
