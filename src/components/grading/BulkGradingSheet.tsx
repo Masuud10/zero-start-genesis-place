@@ -24,6 +24,16 @@ type GradeValue = {
   percentage?: number | null;
 };
 
+interface StudentTotal {
+  studentId: string;
+  totalScore: number;
+  totalPossible: number;
+  percentage: number;
+  averageScore: number;
+  subjectCount: number;
+  position: number;
+}
+
 interface BulkGradingSheetProps {
   students: Student[];
   subjects: Subject[];
@@ -65,7 +75,7 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
   };
 
   // Calculate student totals and positions
-  const studentTotals = useMemo(() => {
+  const studentTotals = useMemo((): StudentTotal[] => {
     const totals = students.map(student => {
       const studentGrades = grades[student.id] || {};
       let totalScore = 0;
@@ -90,7 +100,8 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
         totalPossible,
         percentage,
         averageScore,
-        subjectCount
+        subjectCount,
+        position: 0 // Will be set below
       };
     });
 

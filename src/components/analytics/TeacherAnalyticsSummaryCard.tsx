@@ -102,6 +102,7 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
         ? `${summary.gradesSubmitted}/${summary.gradesExpected}`
         : "—",
       trend: {
+        icon: CheckCircle,
         label: `${Math.round(completionRate * 100)}% Complete`,
         color: completionRate > 0.8 ? "text-green-600" : completionRate > 0.5 ? "text-yellow-600" : "text-red-600"
       },
@@ -113,6 +114,7 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
       label: "Attendance Rate",
       value: summary.attendanceRate !== null ? `${summary.attendanceRate.toFixed(1)}%` : "—",
       trend: {
+        icon: Users,
         label: summary.attendanceRate !== null
           ? summary.attendanceRate > 90 ? "Excellent" 
             : summary.attendanceRate > 80 ? "Good" 
