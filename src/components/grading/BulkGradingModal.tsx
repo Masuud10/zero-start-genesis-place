@@ -114,7 +114,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col">
+      <DialogContent className="max-w-[98vw] h-[98vh] flex flex-col">
         <BulkGradingHeader
           isTeacher={isTeacher}
           isPrincipal={isPrincipal}
@@ -205,14 +205,14 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                  {isTeacher ? 'Submitting...' : 'Saving...'}
+                  {isTeacher ? 'Submitting for Approval...' : 'Saving...'}
                 </>
               ) : (
                 <>
                   {isTeacher ? (
                     <>
                       <Send className="mr-2 h-4 w-4" />
-                      Submit for Approval
+                      Submit for Principal Approval
                     </>
                   ) : (
                     <>

@@ -9,6 +9,7 @@ import TeacherStatsCards from './teacher/TeacherStatsCards';
 import TeacherActions from './teacher/TeacherActions';
 import MyClasses from './teacher/MyClasses';
 import CompactTeacherTimetable from './teacher/CompactTeacherTimetable';
+import TeacherGradesManager from './teacher/TeacherGradesManager';
 import BulkGradingModal from '@/components/grading/BulkGradingModal';
 import AttendanceModal from '@/components/modals/AttendanceModal';
 import GradesModal from '@/components/modals/GradesModal';
@@ -89,6 +90,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
         {/* Teacher Analytics Overview */}
         <TeacherAnalyticsSummaryCard />
+
+        {/* Grade Management */}
+        <TeacherGradesManager />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <MyClasses />
