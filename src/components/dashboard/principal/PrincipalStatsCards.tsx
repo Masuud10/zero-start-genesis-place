@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, GraduationCap, BookOpen, School } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, School, Loader2, AlertCircle } from 'lucide-react';
 
 interface PrincipalStatsCardsProps {
   stats: {
@@ -10,9 +10,47 @@ interface PrincipalStatsCardsProps {
     totalSubjects: number;
     totalClasses: number;
   };
+  loading?: boolean;
+  error?: string | null;
 }
 
-const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats }) => {
+const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loading, error }) => {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="text-red-600 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Error Loading Stats
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-600">{error}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <Card>

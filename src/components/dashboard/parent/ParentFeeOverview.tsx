@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,18 +39,33 @@ const ParentFeeOverview: React.FC = () => {
       const studentIds = parentStudents?.map(ps => ps.student_id) || [];
       if (studentIds.length === 0) return [];
 
-      // Get class information for students
+      // Get class information separately to avoid ambiguity
       const { data: studentsWithClasses, error: studentsError } = await supabase
         .from('students')
         .select(`
           id,
           name,
           admission_number,
-          classes:class_id(name)
+          class_id
         `)
         .in('id', studentIds);
 
       if (studentsError) throw studentsError;
+
+      // Get class names
+      const classIds = [...new Set(studentsWithClasses?.map(s => s.class_id).filter(Boolean))];
+      const { data: classes, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name')
+        .in('id', classIds);
+
+      if (classesError) throw classesError;
+
+      // Create a map of class names
+      const classMap = classes?.reduce((acc, cls) => {
+        acc[cls.id] = cls.name;
+        return acc;
+      }, {} as Record<string, string>) || {};
 
       // Get fees for these students
       const { data: fees, error: feesError } = await supabase
@@ -70,11 +86,17 @@ const ParentFeeOverview: React.FC = () => {
 
       if (feesError) throw feesError;
 
-      // Combine student info with fees
-      return fees?.map(fee => ({
-        ...fee,
-        student: studentsWithClasses?.find(s => s.id === fee.student_id)
-      })) || [];
+      // Combine student info with fees and class names
+      return fees?.map(fee => {
+        const student = studentsWithClasses?.find(s => s.id === fee.student_id);
+        return {
+          ...fee,
+          student: student ? {
+            ...student,
+            class_name: student.class_id ? classMap[student.class_id] || 'Unknown Class' : 'No Class'
+          } : null
+        };
+      }) || [];
     },
     enabled: !!user?.id
   });
@@ -239,7 +261,7 @@ const ParentFeeOverview: React.FC = () => {
                               <div>
                                 <p className="font-medium">{sf.student?.name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {sf.student?.admission_number} - {sf.student?.classes?.name}
+                                  {sf.student?.admission_number} - {sf.student?.class_name}
                                 </p>
                               </div>
                             </TableCell>
@@ -281,7 +303,7 @@ const ParentFeeOverview: React.FC = () => {
                   <div>
                     <p className="font-medium">{sf.student?.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {sf.fee?.category} - {sf.fee?.term} | {sf.student?.classes?.name}
+                      {sf.fee?.category} - {sf.fee?.term} | {sf.student?.class_name}
                     </p>
                     {isOverdue && (
                       <p className="text-sm text-red-600 font-medium">Overdue</p>
