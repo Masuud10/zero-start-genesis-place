@@ -7,6 +7,7 @@ import PrincipalActionButtons from './principal/PrincipalActionButtons';
 import PrincipalGradesManager from './principal/PrincipalGradesManager';
 import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
+import CertificateGenerator from '@/components/certificates/CertificateGenerator';
 import { useToast } from '@/hooks/use-toast';
 
 interface PrincipalDashboardProps {
@@ -30,10 +31,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     }
   };
 
-  const handleModalClose =
-
-
-() => {
+  const handleModalClose = () => {
     console.log('PrincipalDashboard: Closing modal:', activeModal);
     setActiveModal(null);
   };
@@ -47,17 +45,19 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     setActiveModal(null);
   };
 
+  const handleCertificateGenerated = () => {
+    console.log('Certificate generated successfully');
+    toast({
+      title: "Success",
+      description: "Certificate has been generated successfully.",
+    });
+    setActiveModal(null);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white p-6 rounded-lg">
-        <h1 className="text-2xl font-bold mb-2">Principal Dashboard</h1>
-        <p className="text-green-100">Leading your school to excellence, {user.name}!</p>
-      </div>
-
       {/* Stats Overview */}
       <PrincipalStatsCards stats={stats} loading={loading} error={error} />
-      
       
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -81,6 +81,15 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         onClose={handleModalClose}
         onSubjectCreated={handleSubjectCreated}
       />
+
+      {/* Certificate Generator Modal */}
+      {activeModal === 'generate-certificate' && (
+        <CertificateGenerator
+          open={activeModal === 'generate-certificate'}
+          onClose={handleModalClose}
+          onCertificateGenerated={handleCertificateGenerated}
+        />
+      )}
     </div>
   );
 };

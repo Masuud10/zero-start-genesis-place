@@ -104,12 +104,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   return (
     <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
       <div className="space-y-6">
-        {/* Welcome Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg">
-          <h1 className="text-2xl font-bold mb-2">Welcome back, {user.name}!</h1>
-          <p className="text-blue-100">Ready to inspire and educate your students today?</p>
-        </div>
-
         {/* Stats Overview */}
         <TeacherStatsCards stats={stats} loading={loading} />
 
