@@ -5,7 +5,8 @@ import ReportsGenerator from '@/components/reports/ReportsGenerator';
 import RoleGuard from '@/components/common/RoleGuard';
 
 const ReportsModule = () => {
-  const { user } = useAuth();
+  const { user } = use
+();
 
   return (
     <RoleGuard allowedRoles={['principal', 'edufam_admin']} requireSchoolAssignment>
