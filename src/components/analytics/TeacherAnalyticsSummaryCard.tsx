@@ -99,7 +99,10 @@ const TeacherAnalyticsSummaryCard: React.FC = () => {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold">Class Analytics Overview</CardTitle>
-          <RoleReportDownloadButton />
+          <RoleReportDownloadButton 
+            type="comprehensive"
+            label="Download Class Report"
+          />
         </div>
         <p className="text-xs text-muted-foreground">
           Performance summary for your assigned classes
