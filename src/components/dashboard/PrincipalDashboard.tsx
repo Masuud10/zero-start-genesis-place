@@ -59,20 +59,20 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
       {/* Stats Overview */}
       <PrincipalStatsCards stats={stats} loading={loading} error={error} />
       
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Grade Management */}
-        <div className="lg:col-span-1">
+      {/* Main Content - Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
           <PrincipalGradesManager />
         </div>
 
-        {/* Right Column - Financial Overview */}
-        <div className="lg:col-span-2">
+        {/* Right Column */}
+        <div className="space-y-6">
           <FinancialOverviewReadOnly />
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Full Width */}
       <PrincipalActionButtons onModalOpen={handleModalOpen} />
       
       {/* Add Subject Modal */}

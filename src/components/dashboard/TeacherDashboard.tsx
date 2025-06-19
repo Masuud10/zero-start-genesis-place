@@ -107,26 +107,24 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
         {/* Stats Overview */}
         <TeacherStatsCards stats={stats} loading={loading} />
 
-        {/* Teacher Analytics Overview */}
+        {/* Analytics Summary */}
         <TeacherAnalyticsSummaryCard />
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Grade Management */}
-          <div className="lg:col-span-1">
+        {/* Main Content - Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-6">
             <TeacherGradesManager />
+            <MyClasses />
           </div>
 
-          {/* Right Column - Classes and Timetable */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <MyClasses />
-              <CompactTeacherTimetable />
-            </div>
+          {/* Right Column */}
+          <div className="space-y-6">
+            <CompactTeacherTimetable />
           </div>
         </div>
 
-        {/* Teaching Tools Section */}
+        {/* Teaching Tools Section - Full Width */}
         <TeacherActions user={user} onModalOpen={handleModalOpen} />
 
         {/* Local Modals - Teacher specific */}
