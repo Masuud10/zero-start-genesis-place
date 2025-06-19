@@ -52,7 +52,8 @@ export const useBulkGradingSubmissionHandler = ({
         for (const subjectId in grades[studentId]) {
           const grade = grades[studentId][subjectId];
           
-          if (grade.score !== undefined && grade.score !== null && grade.score.toString() !== '') {
+          // Only submit grades that have actual scores
+          if (grade.score !== undefined && grade.score !== null && grade.score > 0) {
             gradesToUpsert.push({
               school_id: schoolId,
               student_id: studentId,
@@ -62,12 +63,12 @@ export const useBulkGradingSubmissionHandler = ({
               exam_type: selectedExamType,
               score: Number(grade.score),
               max_score: 100, // Default max score
-              percentage: grade.percentage,
+              percentage: grade.percentage || (Number(grade.score) / 100) * 100,
               letter_grade: grade.letter_grade || null,
               cbc_performance_level: grade.cbc_performance_level || null,
               submitted_by: userId,
-              status: isTeacher ? 'submitted' : 'draft',
-              submitted_at: isTeacher ? new Date().toISOString() : null,
+              status: isTeacher ? 'submitted' : 'approved', // Teachers submit for approval, principals approve directly
+              submitted_at: new Date().toISOString(),
             });
             validGradeCount++;
           }
@@ -85,38 +86,48 @@ export const useBulkGradingSubmissionHandler = ({
 
       console.log('Submitting grades:', gradesToUpsert.length, 'records');
 
+      // Use upsert to handle duplicate entries
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToUpsert, {
           onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type',
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Grade submission error:', error);
+        throw error;
+      }
 
       // Calculate positions after successful submission
       if (selectedClass && selectedTerm && selectedExamType) {
-        await supabase.rpc('calculate_class_positions', {
-          p_class_id: selectedClass,
-          p_term: selectedTerm,
-          p_exam_type: selectedExamType
-        });
+        try {
+          await supabase.rpc('calculate_class_positions', {
+            p_class_id: selectedClass,
+            p_term: selectedTerm,
+            p_exam_type: selectedExamType
+          });
+        } catch (positionError) {
+          console.warn('Position calculation failed:', positionError);
+          // Don't fail the entire submission for position calculation errors
+        }
       }
 
       const statusMessage = isTeacher 
         ? 'submitted for principal approval' 
-        : 'saved successfully';
+        : 'saved and approved successfully';
 
       toast({ 
         title: "Success", 
         description: `${validGradeCount} grades ${statusMessage}.`
       });
+      
       onClose();
       
     } catch (error: any) {
       console.error('Error submitting grades:', error);
       toast({ 
-        title: "Error", 
-        description: error.message || "Failed to submit grades.", 
+        title: "Submission Failed", 
+        description: error.message || "Failed to submit grades. Please try again.", 
         variant: "destructive"
       });
     } finally {

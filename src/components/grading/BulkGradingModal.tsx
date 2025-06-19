@@ -10,8 +10,9 @@ import BulkGradingHeader from './BulkGradingHeader';
 import { useBulkGradingPermissions } from './BulkGradingPermissions';
 import { useBulkGradingDataLoader } from './BulkGradingDataLoader';
 import { useBulkGradingSubmissionHandler } from './BulkGradingSubmissionHandler';
-import { Loader2, Send, CheckCircle } from 'lucide-react';
+import { Loader2, Send, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 interface BulkGradingModalProps {
   open: boolean;
@@ -30,6 +31,7 @@ type GradeValue = {
 const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, classList, subjectList }) => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
+  const { toast } = useToast();
 
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
@@ -89,7 +91,14 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
   }, [academicTerms, selectedTerm]);
 
   const handleGradeChange = (studentId: string, subjectId: string, value: GradeValue) => {
-    if (isReadOnly) return;
+    if (isReadOnly) {
+      toast({
+        title: "Read Only Mode",
+        description: "These grades have been submitted and cannot be modified.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setGrades(prev => ({
       ...prev,
@@ -100,8 +109,39 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
     }));
   };
 
+  const handleGradeSubmission = async () => {
+    try {
+      await handleSubmit(grades);
+      toast({
+        title: "Grades Submitted Successfully",
+        description: isTeacher 
+          ? "Your grades have been submitted for principal approval." 
+          : "Grades have been saved successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: error.message || "Failed to submit grades. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const canProceed = selectedClass && selectedTerm && selectedExamType;
   const hasData = Array.isArray(students) && students.length > 0 && Array.isArray(subjects) && subjects.length > 0;
+
+  // Count grades entered
+  const gradesEntered = React.useMemo(() => {
+    let count = 0;
+    Object.values(grades).forEach(studentGrades => {
+      Object.values(studentGrades).forEach(grade => {
+        if (grade.score && grade.score > 0) count++;
+      });
+    });
+    return count;
+  }, [grades]);
+
+  const totalPossibleGrades = students.length * subjects.length;
 
   console.log('Render state:', { 
     canProceed, 
@@ -109,7 +149,9 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
     studentsLength: students?.length || 0, 
     subjectsLength: subjects?.length || 0,
     loading,
-    initialLoading 
+    initialLoading,
+    gradesEntered,
+    totalPossibleGrades
   });
 
   return (
@@ -125,7 +167,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
         {initialLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading...</span>
+            <span className="ml-2">Loading grading interface...</span>
           </div>
         ) : (
           <>
@@ -150,6 +192,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
             {!canProceed && !initialLoading && (
               <div className="flex-grow flex items-center justify-center">
                 <Alert className="max-w-md">
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
                     Please select a class, term, and exam type to load the grading interface.
                   </AlertDescription>
@@ -158,24 +201,47 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
             )}
             
             {canProceed && !loading && hasData && (
-              <div className="flex-grow overflow-hidden">
-                <BulkGradingSheet
-                  students={students}
-                  subjects={subjects}
-                  grades={grades}
-                  onGradeChange={handleGradeChange}
-                  curriculumType={curriculumType}
-                  isReadOnly={isReadOnly}
-                  selectedClass={selectedClass}
-                  selectedTerm={selectedTerm}
-                  selectedExamType={selectedExamType}
-                />
-              </div>
+              <>
+                {/* Progress Indicator */}
+                <div className="px-4 py-2 bg-blue-50 border-b">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-blue-700 font-medium">
+                      Progress: {gradesEntered} of {totalPossibleGrades} grades entered
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${totalPossibleGrades > 0 ? (gradesEntered / totalPossibleGrades) * 100 : 0}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-blue-600 font-semibold">
+                        {totalPossibleGrades > 0 ? Math.round((gradesEntered / totalPossibleGrades) * 100) : 0}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-grow overflow-hidden">
+                  <BulkGradingSheet
+                    students={students}
+                    subjects={subjects}
+                    grades={grades}
+                    onGradeChange={handleGradeChange}
+                    curriculumType={curriculumType}
+                    isReadOnly={isReadOnly}
+                    selectedClass={selectedClass}
+                    selectedTerm={selectedTerm}
+                    selectedExamType={selectedExamType}
+                  />
+                </div>
+              </>
             )}
 
             {canProceed && !loading && !hasData && (
               <div className="flex-grow flex items-center justify-center">
                 <Alert variant="default" className="max-w-lg">
+                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
                     {(!students || students.length === 0) && (!subjects || subjects.length === 0)
                       ? "No students or subjects found for the selected class. Please ensure the class has students enrolled and subjects assigned."
@@ -192,38 +258,56 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
           </>
         )}
 
-        <DialogFooter className="border-t pt-4">
-          <Button variant="outline" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          {canProceed && hasData && !isReadOnly && (
-            <Button 
-              onClick={() => handleSubmit(grades)} 
-              disabled={submitting}
-              className={isTeacher ? "bg-blue-600 hover:bg-blue-700" : ""}
-            >
-              {submitting ? (
+        <DialogFooter className="border-t pt-4 bg-gray-50">
+          <div className="flex items-center justify-between w-full">
+            <div className="text-sm text-gray-600">
+              {canProceed && hasData && (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                  {isTeacher ? 'Submitting for Approval...' : 'Saving...'}
-                </>
-              ) : (
-                <>
-                  {isTeacher ? (
-                    <>
-                      <Send className="mr-2 h-4 w-4" />
-                      Submit for Principal Approval
-                    </>
+                  {isReadOnly ? (
+                    <span className="text-orange-600 font-medium">✓ Grades submitted - Read only mode</span>
                   ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Save Grades
-                    </>
+                    <span>
+                      {gradesEntered > 0 ? `${gradesEntered} grades entered` : 'No grades entered yet'}
+                    </span>
                   )}
                 </>
               )}
-            </Button>
-          )}
+            </div>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} disabled={submitting}>
+                Cancel
+              </Button>
+              {canProceed && hasData && !isReadOnly && gradesEntered > 0 && (
+                <Button 
+                  onClick={handleGradeSubmission} 
+                  disabled={submitting}
+                  className={isTeacher ? "bg-blue-600 hover:bg-blue-700" : ""}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                      {isTeacher ? 'Submitting for Approval...' : 'Saving...'}
+                    </>
+                  ) : (
+                    <>
+                      {isTeacher ? (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Submit for Principal Approval
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Save Grades
+                        </>
+                      )}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

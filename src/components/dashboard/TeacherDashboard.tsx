@@ -13,6 +13,7 @@ import TeacherGradesManager from './teacher/TeacherGradesManager';
 import BulkGradingModal from '@/components/grading/BulkGradingModal';
 import AttendanceModal from '@/components/modals/AttendanceModal';
 import GradesModal from '@/components/modals/GradesModal';
+import { useToast } from '@/hooks/use-toast';
 
 interface TeacherDashboardProps {
   user: AuthUser;
@@ -22,6 +23,7 @@ interface TeacherDashboardProps {
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }) => {
   const { isReady } = useSchoolScopedData();
   const { stats, loading } = useTeacherDashboardStats(user);
+  const { toast } = useToast();
   
   // Modal states - managed locally for better control
   const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
@@ -51,6 +53,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
         break;
       default:
         console.warn('Unknown modal type:', modalType);
+        // Try to delegate to parent
         onModalOpen(modalType);
     }
   };
@@ -71,13 +74,28 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
     }
   };
 
+  const handleModalSuccess = (modalType: string, message?: string) => {
+    handleModalClose(modalType);
+    if (message) {
+      toast({
+        title: "Success",
+        description: message,
+      });
+    }
+  };
+
   // Prevent any render before role/school_id are ready
   if (!isReady) {
     return (
       <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
-        <div className="animate-pulse">
+        <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gray-300 rounded mb-2"></div>
           <div className="h-4 bg-gray-300 rounded"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-24 bg-gray-300 rounded"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -86,19 +104,35 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   return (
     <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
       <div className="space-y-6">
+        {/* Welcome Header */}
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg">
+          <h1 className="text-2xl font-bold mb-2">Welcome back, {user.name}!</h1>
+          <p className="text-blue-100">Ready to inspire and educate your students today?</p>
+        </div>
+
+        {/* Stats Overview */}
         <TeacherStatsCards stats={stats} loading={loading} />
 
         {/* Teacher Analytics Overview */}
         <TeacherAnalyticsSummaryCard />
 
-        {/* Grade Management */}
-        <TeacherGradesManager />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Grade Management */}
+          <div className="lg:col-span-1">
+            <TeacherGradesManager />
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          <MyClasses />
-          <CompactTeacherTimetable />
+          {/* Right Column - Classes and Timetable */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <MyClasses />
+              <CompactTeacherTimetable />
+            </div>
+          </div>
         </div>
 
+        {/* Teaching Tools Section */}
         <TeacherActions user={user} onModalOpen={handleModalOpen} />
 
         {/* Local Modals - Teacher specific */}
