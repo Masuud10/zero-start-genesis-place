@@ -1,7 +1,6 @@
 
 import React, { useRef } from 'react';
 import { Certificate } from '@/types/certificate';
-import { School } from '@/types/school';
 import { Button } from '@/components/ui/button';
 import { Download, Printer } from 'lucide-react';
 import CertificateTemplate from './CertificateTemplate';
@@ -10,10 +9,9 @@ import jsPDF from 'jspdf';
 
 interface CertificateViewerProps {
   certificate: Certificate;
-  school: School;
 }
 
-const CertificateViewer: React.FC<CertificateViewerProps> = ({ certificate, school }) => {
+const CertificateViewer: React.FC<CertificateViewerProps> = ({ certificate }) => {
   const certificateRef = useRef<HTMLDivElement>(null);
 
   const handleDownloadPDF = async () => {
@@ -99,7 +97,6 @@ const CertificateViewer: React.FC<CertificateViewerProps> = ({ certificate, scho
       <CertificateTemplate
         ref={certificateRef}
         certificate={certificate}
-        school={school}
         className="shadow-lg"
       />
     </div>
