@@ -101,8 +101,11 @@ export const useCertificates = (filters?: CertificateFilters) => {
 
         console.log('✅ Performance data fetched successfully:', performanceData);
 
+        // Cast the performance data to the expected type
+        const typedPerformanceData = performanceData as CertificatePerformance;
+
         // Validate that we have the required performance data structure
-        if (!performanceData.student || !performanceData.school) {
+        if (!typedPerformanceData.student || !typedPerformanceData.school) {
           console.error('❌ Invalid performance data structure:', performanceData);
           throw new Error('Invalid performance data structure - missing student or school data');
         }
@@ -112,8 +115,8 @@ export const useCertificates = (filters?: CertificateFilters) => {
           student_id: request.student_id,
           class_id: request.class_id,
           academic_year: request.academic_year,
-          performance: performanceData,
-          school_id: user.role === 'edufam_admin' ? performanceData.student.school_id : user.school_id,
+          performance: typedPerformanceData,
+          school_id: user.role === 'edufam_admin' ? typedPerformanceData.student.school_id : user.school_id,
           generated_by: user.id,
           generated_at: new Date().toISOString()
         };
