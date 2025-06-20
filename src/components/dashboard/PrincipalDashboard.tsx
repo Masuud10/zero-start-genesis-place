@@ -10,6 +10,7 @@ import CertificatesList from '@/components/certificates/CertificatesList';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
 import SubjectAssignmentModal from '@/components/modals/SubjectAssignmentModal';
 import CertificateGenerator from '@/components/certificates/CertificateGenerator';
+import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
 import { useToast } from '@/hooks/use-toast';
 
 interface PrincipalDashboardProps {
@@ -66,44 +67,51 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
-      <PrincipalStatsCards stats={stats} loading={loading} error={error} />
+    <div className="space-y-6 p-2 md:p-4">
+      {/* Stats Overview - Full Width */}
+      <div className="w-full">
+        <PrincipalStatsCards stats={stats} loading={loading} error={error} />
+      </div>
       
-      {/* Main Content - Three Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Grade Management */}
-        <div className="lg:col-span-1">
+      {/* Main Content Grid - Responsive Layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* Left Column - Management Tools */}
+        <div className="xl:col-span-8 space-y-6">
+          {/* Quick Actions */}
+          <PrincipalActionButtons onModalOpen={handleModalOpen} />
+          
+          {/* Grade Management */}
           <PrincipalGradesManager />
+          
+          {/* Timetable Management */}
+          <PrincipalTimetableCard />
         </div>
 
-        {/* Right Column - Financial Overview */}
-        <div className="lg:col-span-2">
+        {/* Right Column - Analytics & Financial */}
+        <div className="xl:col-span-4 space-y-6">
+          {/* Financial Overview */}
           <FinancialOverviewReadOnly />
         </div>
       </div>
 
-      {/* Action Buttons - Full Width */}
-      <PrincipalActionButtons onModalOpen={handleModalOpen} />
-
-      {/* Certificates Section - Full Width */}
-      <CertificatesList />
+      {/* Bottom Section - Certificates */}
+      <div className="w-full">
+        <CertificatesList />
+      </div>
       
-      {/* Add Subject Modal */}
+      {/* Modals */}
       <AddSubjectModal
         open={activeModal === 'add-subject'}
         onClose={handleModalClose}
         onSubjectCreated={handleSubjectCreated}
       />
 
-      {/* Subject Assignment Modal */}
       <SubjectAssignmentModal
         open={activeModal === 'assign-subject'}
         onClose={handleModalClose}
         onAssignmentCreated={handleAssignmentCreated}
       />
 
-      {/* Certificate Generator Modal */}
       <CertificateGenerator
         open={activeModal === 'generate-certificate'}
         onClose={handleModalClose}

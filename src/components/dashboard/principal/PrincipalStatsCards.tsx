@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, GraduationCap, BookOpen, School, Loader2, AlertCircle } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, School, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
 
 interface PrincipalStatsCardsProps {
   stats: {
@@ -9,6 +9,7 @@ interface PrincipalStatsCardsProps {
     totalTeachers: number;
     totalSubjects: number;
     totalClasses: number;
+    totalParents?: number;
   };
   loading?: boolean;
   error?: string | null;
@@ -17,17 +18,17 @@ interface PrincipalStatsCardsProps {
 const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loading, error }) => {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
+          <Card key={i} className="animate-pulse">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading...
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                <div className="h-4 bg-gray-200 rounded w-20"></div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-8 bg-gray-200 rounded w-16"></div>
             </CardContent>
           </Card>
         ))}
@@ -41,77 +42,94 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
         <CardHeader>
           <CardTitle className="text-red-600 flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            Error Loading Stats
+            Error Loading Statistics
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600 text-sm">{error}</p>
         </CardContent>
       </Card>
     );
   }
 
+  const statCards = [
+    {
+      title: 'Total Students',
+      value: stats.totalStudents,
+      icon: Users,
+      color: 'blue',
+      bgGradient: 'bg-gradient-to-br from-blue-50 to-blue-100',
+      borderColor: 'border-blue-200',
+      textColor: 'text-blue-700',
+      valueColor: 'text-blue-900',
+      iconColor: 'text-blue-600',
+      emptyMessage: 'No students enrolled'
+    },
+    {
+      title: 'Total Teachers',
+      value: stats.totalTeachers,
+      icon: GraduationCap,
+      color: 'green',
+      bgGradient: 'bg-gradient-to-br from-green-50 to-green-100',
+      borderColor: 'border-green-200',
+      textColor: 'text-green-700',
+      valueColor: 'text-green-900',
+      iconColor: 'text-green-600',
+      emptyMessage: 'No teachers assigned'
+    },
+    {
+      title: 'Total Subjects',
+      value: stats.totalSubjects,
+      icon: BookOpen,
+      color: 'purple',
+      bgGradient: 'bg-gradient-to-br from-purple-50 to-purple-100',
+      borderColor: 'border-purple-200',
+      textColor: 'text-purple-700',
+      valueColor: 'text-purple-900',
+      iconColor: 'text-purple-600',
+      emptyMessage: 'No subjects created'
+    },
+    {
+      title: 'Total Classes',
+      value: stats.totalClasses,
+      icon: School,
+      color: 'orange',
+      bgGradient: 'bg-gradient-to-br from-orange-50 to-orange-100',
+      borderColor: 'border-orange-200',
+      textColor: 'text-orange-700',
+      valueColor: 'text-orange-900',
+      iconColor: 'text-orange-600',
+      emptyMessage: 'No classes created'
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Total Students
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{stats.totalStudents}</div>
-          <p className="text-xs text-muted-foreground">
-            {stats.totalStudents === 0 ? "No students enrolled" : "Enrolled students"}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <GraduationCap className="h-4 w-4" />
-            Total Teachers
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">{stats.totalTeachers}</div>
-          <p className="text-xs text-muted-foreground">
-            {stats.totalTeachers === 0 ? "No teachers assigned" : "Teaching staff"}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Total Subjects
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-purple-600">{stats.totalSubjects}</div>
-          <p className="text-xs text-muted-foreground">
-            {stats.totalSubjects === 0 ? "No subjects created" : "Available subjects"}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <School className="h-4 w-4" />
-            Total Classes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-orange-600">{stats.totalClasses}</div>
-          <p className="text-xs text-muted-foreground">
-            {stats.totalClasses === 0 ? "No classes created" : "Active classes"}
-          </p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {statCards.map((card) => (
+        <Card key={card.title} className={`${card.bgGradient} ${card.borderColor}`}>
+          <CardHeader className="pb-2">
+            <CardTitle className={`text-sm font-medium flex items-center gap-2 ${card.textColor}`}>
+              <card.icon className={`h-4 w-4 ${card.iconColor}`} />
+              {card.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-2xl font-bold ${card.valueColor}`}>
+                  {card.value || 0}
+                </div>
+                <p className={`text-xs ${card.textColor} opacity-80 mt-1`}>
+                  {card.value === 0 ? card.emptyMessage : `Active ${card.title.toLowerCase()}`}
+                </p>
+              </div>
+              {card.value > 0 && (
+                <TrendingUp className={`h-4 w-4 ${card.iconColor} opacity-60`} />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

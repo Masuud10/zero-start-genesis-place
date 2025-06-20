@@ -58,6 +58,12 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
       return false;
     }
 
+    // Validate code format (letters and numbers only)
+    if (!/^[A-Z0-9]+$/.test(formData.code)) {
+      setError("Subject code must contain only uppercase letters and numbers");
+      return false;
+    }
+
     return true;
   };
 
@@ -66,6 +72,8 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     setError(null);
     
     if (!validateForm()) return;
+
+    console.log('Submitting subject creation:', formData);
 
     const result = await createSubject(formData);
 
@@ -90,9 +98,15 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     onClose();
   };
 
+  const handleCodeChange = (value: string) => {
+    const upperValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    setFormData({ ...formData, code: upperValue });
+    setError(null);
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
@@ -108,7 +122,8 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">
                 Subject Name <span className="text-red-500">*</span>
@@ -132,19 +147,18 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
               </Label>
               <Input
                 id="code"
-                placeholder="e.g., MATH"
+                placeholder="e.g., MATH101"
                 value={formData.code}
-                onChange={(e) => {
-                  setFormData({ ...formData, code: e.target.value.toUpperCase() });
-                  setError(null);
-                }}
+                onChange={(e) => handleCodeChange(e.target.value)}
                 required
                 disabled={loading}
+                maxLength={10}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Classification */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Category</Label>
               <Select 
@@ -156,29 +170,39 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="core">Core</SelectItem>
+                  <SelectItem value="core">Core Subject</SelectItem>
                   <SelectItem value="science">Science</SelectItem>
-                  <SelectItem value="arts">Arts</SelectItem>
+                  <SelectItem value="arts">Arts & Humanities</SelectItem>
                   <SelectItem value="languages">Languages</SelectItem>
-                  <SelectItem value="technical">Technical</SelectItem>
+                  <SelectItem value="technical">Technical/Vocational</SelectItem>
+                  <SelectItem value="sports">Physical Education</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label>Credit Hours</Label>
-              <Input
-                type="number"
-                min="1"
-                max="10"
-                value={formData.credit_hours}
-                onChange={(e) => setFormData({ ...formData, credit_hours: parseInt(e.target.value) || 1 })}
+              <Select 
+                value={formData.credit_hours?.toString()} 
+                onValueChange={(value) => setFormData({ ...formData, credit_hours: parseInt(value) || 1 })}
                 disabled={loading}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6].map((hours) => (
+                    <SelectItem key={hours} value={hours.toString()}>
+                      {hours} {hours === 1 ? 'Hour' : 'Hours'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Assignment Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Class (Optional)</Label>
               <Select 
@@ -187,7 +211,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
                 disabled={loading || loadingEntities}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
+                  <SelectValue placeholder="Select specific class or leave for all" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Classes</SelectItem>
@@ -208,7 +232,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
                 disabled={loading || loadingEntities}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select teacher" />
+                  <SelectValue placeholder="Assign teacher later" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">No teacher assigned</SelectItem>
@@ -222,8 +246,9 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             </div>
           </div>
 
+          {/* Curriculum */}
           <div className="space-y-2">
-            <Label>Curriculum</Label>
+            <Label>Curriculum System</Label>
             <Select 
               value={formData.curriculum} 
               onValueChange={(value) => setFormData({ ...formData, curriculum: value })}
@@ -236,11 +261,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
                 <SelectItem value="cbc">CBC (Competency Based Curriculum)</SelectItem>
                 <SelectItem value="8-4-4">8-4-4 System</SelectItem>
                 <SelectItem value="igcse">IGCSE</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="ib">International Baccalaureate</SelectItem>
+                <SelectItem value="other">Other System</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
             <Label>Description (Optional)</Label>
             <Input
@@ -251,11 +278,15 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             />
           </div>
 
+          {/* Actions */}
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !formData.name.trim() || !formData.code.trim()}>
+            <Button 
+              type="submit" 
+              disabled={loading || !formData.name.trim() || !formData.code.trim()}
+            >
               {loading ? "Creating..." : "Create Subject"}
             </Button>
           </div>

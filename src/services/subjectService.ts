@@ -4,6 +4,8 @@ import { Subject, SubjectCreationData, SubjectAssignment, CreateAssignmentData }
 
 export class SubjectService {
   static async createSubject(data: SubjectCreationData, schoolId: string): Promise<Subject> {
+    console.log('SubjectService.createSubject called with:', { data, schoolId });
+
     // Validate required fields
     if (!data.name?.trim()) {
       throw new Error('Subject name is required');
@@ -13,26 +15,46 @@ export class SubjectService {
       throw new Error('Subject code is required');
     }
 
-    // Check for duplicate code
-    const { data: existing } = await supabase
+    if (!schoolId) {
+      throw new Error('School ID is required');
+    }
+
+    // Format and validate the code
+    const formattedCode = data.code.trim().toUpperCase();
+    if (!/^[A-Z0-9]+$/.test(formattedCode)) {
+      throw new Error('Subject code must contain only uppercase letters and numbers');
+    }
+
+    // Check for duplicate code within the school
+    const { data: existing, error: checkError } = await supabase
       .from('subjects')
       .select('id')
       .eq('school_id', schoolId)
-      .eq('code', data.code.toUpperCase())
+      .eq('code', formattedCode)
       .maybeSingle();
 
+    if (checkError) {
+      console.error('Error checking for duplicate subject code:', checkError);
+      throw new Error('Failed to validate subject code');
+    }
+
     if (existing) {
-      throw new Error(`Subject with code "${data.code}" already exists`);
+      throw new Error(`Subject with code "${formattedCode}" already exists in your school`);
     }
 
     // Validate class and teacher if provided
     if (data.class_id) {
-      const { data: classData } = await supabase
+      const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('id')
         .eq('id', data.class_id)
         .eq('school_id', schoolId)
         .maybeSingle();
+
+      if (classError) {
+        console.error('Error validating class:', classError);
+        throw new Error('Failed to validate class');
+      }
 
       if (!classData) {
         throw new Error('Selected class does not exist or does not belong to your school');
@@ -40,7 +62,7 @@ export class SubjectService {
     }
 
     if (data.teacher_id) {
-      const { data: teacherData } = await supabase
+      const { data: teacherData, error: teacherError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', data.teacher_id)
@@ -48,14 +70,20 @@ export class SubjectService {
         .eq('role', 'teacher')
         .maybeSingle();
 
+      if (teacherError) {
+        console.error('Error validating teacher:', teacherError);
+        throw new Error('Failed to validate teacher');
+      }
+
       if (!teacherData) {
         throw new Error('Selected teacher does not exist or does not belong to your school');
       }
     }
 
+    // Prepare the payload
     const payload = {
       name: data.name.trim(),
-      code: data.code.trim().toUpperCase(),
+      code: formattedCode,
       class_id: data.class_id || null,
       teacher_id: data.teacher_id || null,
       curriculum: data.curriculum || 'cbc',
@@ -66,6 +94,8 @@ export class SubjectService {
       is_active: true
     };
 
+    console.log('Creating subject with payload:', payload);
+
     const { data: subject, error } = await supabase
       .from('subjects')
       .insert(payload)
@@ -74,13 +104,23 @@ export class SubjectService {
 
     if (error) {
       console.error('Subject creation error:', error);
+      if (error.code === '23505') {
+        throw new Error('A subject with this code already exists');
+      }
       throw new Error(error.message || 'Failed to create subject');
     }
 
+    console.log('Subject created successfully:', subject);
     return subject;
   }
 
   static async getSubjects(schoolId: string, classId?: string): Promise<Subject[]> {
+    console.log('SubjectService.getSubjects called with:', { schoolId, classId });
+
+    if (!schoolId) {
+      throw new Error('School ID is required');
+    }
+
     let query = supabase
       .from('subjects')
       .select('*')
@@ -98,12 +138,24 @@ export class SubjectService {
       throw new Error(error.message || 'Failed to fetch subjects');
     }
 
+    console.log('Subjects fetched successfully:', data?.length || 0);
     return data || [];
   }
 
   static async createAssignment(data: CreateAssignmentData, schoolId: string): Promise<SubjectAssignment> {
+    console.log('SubjectService.createAssignment called with:', { data, schoolId });
+
+    if (!schoolId) {
+      throw new Error('School ID is required');
+    }
+
+    // Validate required fields
+    if (!data.subject_id || !data.teacher_id || !data.class_id) {
+      throw new Error('Subject, teacher, and class are all required');
+    }
+
     // Check for existing assignment
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('subject_teacher_assignments')
       .select('id')
       .eq('school_id', schoolId)
@@ -112,6 +164,11 @@ export class SubjectService {
       .eq('class_id', data.class_id)
       .eq('is_active', true)
       .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking for existing assignment:', checkError);
+      throw new Error('Failed to validate assignment');
+    }
 
     if (existing) {
       throw new Error('This teacher is already assigned to this subject for this class');
@@ -122,6 +179,8 @@ export class SubjectService {
       school_id: schoolId,
       is_active: true
     };
+
+    console.log('Creating assignment with payload:', payload);
 
     const { data: assignment, error } = await supabase
       .from('subject_teacher_assignments')
@@ -139,21 +198,34 @@ export class SubjectService {
     }
 
     // Fetch teacher data separately
-    const { data: teacher } = await supabase
+    const { data: teacher, error: teacherError } = await supabase
       .from('profiles')
       .select('id, name, email')
       .eq('id', data.teacher_id)
       .single();
 
-    return {
+    if (teacherError) {
+      console.error('Error fetching teacher data:', teacherError);
+    }
+
+    const result = {
       ...assignment,
       subject: assignment.subjects,
       class: assignment.classes,
       teacher: teacher || undefined
     };
+
+    console.log('Assignment created successfully:', result);
+    return result;
   }
 
   static async getAssignments(schoolId: string, classId?: string): Promise<SubjectAssignment[]> {
+    console.log('SubjectService.getAssignments called with:', { schoolId, classId });
+
+    if (!schoolId) {
+      throw new Error('School ID is required');
+    }
+
     let query = supabase
       .from('subject_teacher_assignments')
       .select(`
@@ -184,15 +256,24 @@ export class SubjectService {
       .select('id, name, email')
       .in('id', teacherIds);
 
-    return assignments.map(assignment => ({
+    const result = assignments.map(assignment => ({
       ...assignment,
       subject: assignment.subjects,
       class: assignment.classes,
       teacher: teachers?.find(t => t.id === assignment.teacher_id)
     }));
+
+    console.log('Assignments fetched successfully:', result.length);
+    return result;
   }
 
   static async removeAssignment(assignmentId: string): Promise<void> {
+    console.log('SubjectService.removeAssignment called with:', assignmentId);
+
+    if (!assignmentId) {
+      throw new Error('Assignment ID is required');
+    }
+
     const { error } = await supabase
       .from('subject_teacher_assignments')
       .update({ is_active: false })
@@ -202,5 +283,7 @@ export class SubjectService {
       console.error('Error removing assignment:', error);
       throw new Error(error.message || 'Failed to remove assignment');
     }
+
+    console.log('Assignment removed successfully');
   }
 }
