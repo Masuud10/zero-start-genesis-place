@@ -238,7 +238,6 @@ const CertificatesList = () => {
             <div className="p-4">
               <CertificateViewer 
                 certificate={selectedCertificate}
-                school={selectedCertificate.performance?.school}
               />
             </div>
           </div>
