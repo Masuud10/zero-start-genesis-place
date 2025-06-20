@@ -8,6 +8,7 @@ import PrincipalGradesManager from './principal/PrincipalGradesManager';
 import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
 import CertificatesList from '@/components/certificates/CertificatesList';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
+import SubjectAssignmentModal from '@/components/modals/SubjectAssignmentModal';
 import CertificateGenerator from '@/components/certificates/CertificateGenerator';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,6 +43,15 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     toast({
       title: "Success",
       description: "Subject has been created successfully.",
+    });
+    setActiveModal(null);
+  };
+
+  const handleAssignmentCreated = () => {
+    console.log('Assignment created successfully');
+    toast({
+      title: "Success",
+      description: "Teacher assignment has been created successfully.",
     });
     setActiveModal(null);
   };
@@ -84,6 +94,13 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         open={activeModal === 'add-subject'}
         onClose={handleModalClose}
         onSubjectCreated={handleSubjectCreated}
+      />
+
+      {/* Subject Assignment Modal */}
+      <SubjectAssignmentModal
+        open={activeModal === 'assign-subject'}
+        onClose={handleModalClose}
+        onAssignmentCreated={handleAssignmentCreated}
       />
 
       {/* Certificate Generator Modal */}

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import SubjectCreationForm from '@/components/subjects/SubjectCreationForm';
+import CreateSubjectForm from '@/components/subjects/CreateSubjectForm';
 
 interface AddSubjectModalProps {
   open: boolean;
@@ -9,7 +9,7 @@ interface AddSubjectModalProps {
 }
 
 const AddSubjectModal: React.FC<AddSubjectModalProps> = (props) => {
-  return <SubjectCreationForm {...props} />;
+  return <CreateSubjectForm {...props} onSuccess={props.onSubjectCreated} />;
 };
 
 export default AddSubjectModal;

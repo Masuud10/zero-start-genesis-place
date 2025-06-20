@@ -1,6 +1,6 @@
 
 import React from 'react';
-import TeacherAssignmentForm from '@/components/subjects/TeacherAssignmentForm';
+import AssignTeacherForm from '@/components/subjects/AssignTeacherForm';
 
 interface SubjectAssignmentModalProps {
   open: boolean;
@@ -9,7 +9,7 @@ interface SubjectAssignmentModalProps {
 }
 
 const SubjectAssignmentModal: React.FC<SubjectAssignmentModalProps> = (props) => {
-  return <TeacherAssignmentForm {...props} />;
+  return <AssignTeacherForm {...props} onSuccess={props.onAssignmentCreated} />;
 };
 
 export default SubjectAssignmentModal;

@@ -2,18 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Subject {
-  id: string;
-  name: string;
-  code: string;
-  school_id: string;
-  class_id?: string;
-  teacher_id?: string;
-  curriculum?: string;
-  created_at: string;
-}
+import { SubjectService } from '@/services/subjectService';
+import { Subject } from '@/types/subject';
 
 export const useSubjects = (classId?: string) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -23,49 +13,27 @@ export const useSubjects = (classId?: string) => {
   const { toast } = useToast();
 
   const fetchSubjects = useCallback(async () => {
+    if (!schoolId && !isSystemAdmin) {
+      setSubjects([]);
+      setLoading(false);
+      return;
+    }
+
+    if (!schoolId) {
+      setError('No school context found');
+      setSubjects([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
     try {
       console.log('Fetching subjects with params:', { classId, isSystemAdmin, schoolId });
       
-      let query = supabase.from('subjects').select(`
-        id,
-        name,
-        code,
-        school_id,
-        class_id,
-        teacher_id,
-        curriculum,
-        created_at
-      `);
-
-      // Multi-tenancy is now enforced by RLS policies, but we still filter for performance
-      if (!isSystemAdmin && schoolId) {
-        query = query.eq('school_id', schoolId);
-      }
+      const data = await SubjectService.getSubjects(schoolId, classId);
       
-      // Only filter by class if classId is provided and not 'all'
-      if (classId && classId !== 'all') {
-        query = query.eq('class_id', classId);
-      }
-
-      query = query.order('name');
-      
-      // Execute the query with proper timeout handling
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Request timed out')), 7000);
-      });
-
-      const queryPromise = query;
-      
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
-      
-      if (error) {
-        console.error('Subjects fetch error:', error);
-        throw error;
-      }
-
       console.log('Fetched subjects:', data?.length || 0);
       setSubjects(data || []);
       setError(null);
@@ -86,7 +54,6 @@ export const useSubjects = (classId?: string) => {
   }, [classId, isSystemAdmin, schoolId, toast]);
 
   useEffect(() => {
-    // Only fetch if we have school context or user is system admin
     if (schoolId !== null || isSystemAdmin) {
       fetchSubjects();
     } else {

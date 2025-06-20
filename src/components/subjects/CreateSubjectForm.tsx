@@ -1,130 +1,60 @@
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { useSubjectService } from '@/hooks/useSubjectService';
+import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
+import { AlertCircle, BookOpen } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SubjectCreationData } from '@/types/subject';
 
 interface CreateSubjectFormProps {
-  onSuccess?: () => void;
-  onCancel?: () => void;
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-interface Class {
-  id: string;
-  name: string;
-}
-
-interface Teacher {
-  id: string;
-  name: string;
-}
-
-const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({ onSuccess, onCancel }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  
-  const [loading, setLoading] = useState(false);
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  
-  const [formData, setFormData] = useState({
+const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
+  open,
+  onClose,
+  onSuccess
+}) => {
+  const [formData, setFormData] = useState<SubjectCreationData>({
     name: '',
     code: '',
-    class_id: '',
-    teacher_id: '',
-    curriculum: 'cbc'
+    class_id: undefined,
+    teacher_id: undefined,
+    curriculum: 'cbc',
+    category: 'core',
+    credit_hours: 1,
+    description: ''
   });
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch classes and teachers on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user?.school_id) {
-        toast({
-          title: "Error",
-          description: "No school assigned to your account",
-          variant: "destructive"
-        });
-        return;
-      }
+  const { createSubject, loading } = useSubjectService();
+  const { classList, teacherList, loadingEntities } = usePrincipalEntityLists(0);
 
-      try {
-        setLoadingData(true);
-        
-        // Fetch classes for the current school
-        const { data: classesData, error: classesError } = await supabase
-          .from('classes')
-          .select('id, name')
-          .eq('school_id', user.school_id)
-          .order('name');
-
-        if (classesError) {
-          console.error('Classes fetch error:', classesError);
-          throw new Error('Failed to fetch classes');
-        }
-
-        // Fetch teachers for the current school
-        const { data: teachersData, error: teachersError } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .eq('school_id', user.school_id)
-          .eq('role', 'teacher')
-          .order('name');
-
-        if (teachersError) {
-          console.error('Teachers fetch error:', teachersError);
-          throw new Error('Failed to fetch teachers');
-        }
-
-        setClasses(classesData || []);
-        setTeachers(teachersData || []);
-        
-      } catch (error: any) {
-        console.error('Data fetch error:', error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to load form data",
-          variant: "destructive"
-        });
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    fetchData();
-  }, [user?.school_id, toast]);
-
-  const validateFormInputs = () => {
-    if (!formData.name?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Subject name is required",
-        variant: "destructive"
-      });
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      setError("Subject name is required");
+      return false;
+    }
+    
+    if (!formData.code.trim()) {
+      setError("Subject code is required");
       return false;
     }
 
-    if (!formData.code?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Subject code is required",
-        variant: "destructive"
-      });
+    if (formData.name.length < 2) {
+      setError("Subject name must be at least 2 characters");
       return false;
     }
 
-    if (!user?.school_id) {
-      toast({
-        title: "Error",
-        description: "No school assignment found",
-        variant: "destructive"
-      });
+    if (formData.code.length < 2) {
+      setError("Subject code must be at least 2 characters");
       return false;
     }
 
@@ -133,191 +63,135 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({ onSuccess, onCanc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
-    if (!validateFormInputs()) {
-      return;
-    }
+    if (!validateForm()) return;
 
-    try {
-      setLoading(true);
-      
-      console.log('Creating subject with data:', {
-        name: formData.name.trim(),
-        code: formData.code.trim().toUpperCase(),
-        class_id: formData.class_id || null,
-        teacher_id: formData.teacher_id || null,
-        curriculum: formData.curriculum,
-        school_id: user!.school_id
-      });
+    const result = await createSubject(formData);
 
-      // Check for duplicate subject code in the same school
-      const { data: existingSubject, error: checkError } = await supabase
-        .from('subjects')
-        .select('id, code')
-        .eq('school_id', user!.school_id)
-        .eq('code', formData.code.trim().toUpperCase())
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking for duplicate subject:', checkError);
-        throw new Error(`Failed to validate subject code: ${checkError.message}`);
-      }
-
-      if (existingSubject) {
-        toast({
-          title: "Duplicate Subject",
-          description: `A subject with code "${formData.code.trim().toUpperCase()}" already exists`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Validate class and teacher exist and belong to the correct school
-      if (formData.class_id) {
-        const { data: classData, error: classError } = await supabase
-          .from('classes')
-          .select('id')
-          .eq('id', formData.class_id)
-          .eq('school_id', user!.school_id)
-          .maybeSingle();
-
-        if (classError || !classData) {
-          throw new Error('Invalid class selected');
-        }
-      }
-
-      if (formData.teacher_id) {
-        const { data: teacherData, error: teacherError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', formData.teacher_id)
-          .eq('school_id', user!.school_id)
-          .eq('role', 'teacher')
-          .maybeSingle();
-
-        if (teacherError || !teacherData) {
-          throw new Error('Invalid teacher selected');
-        }
-      }
-
-      // Create subject with proper school_id and foreign keys
-      const { data, error } = await supabase
-        .from('subjects')
-        .insert({
-          name: formData.name.trim(),
-          code: formData.code.trim().toUpperCase(),
-          class_id: formData.class_id || null,
-          teacher_id: formData.teacher_id || null,
-          curriculum: formData.curriculum,
-          school_id: user!.school_id
-        })
-        .select();
-
-      if (error) {
-        console.error('Subject creation error:', error);
-        
-        if (error.code === '23505') {
-          throw new Error('A subject with this code already exists');
-        } else if (error.code === '23503') {
-          throw new Error('Invalid class or teacher selected');
-        } else if (error.message.includes('row-level security')) {
-          throw new Error('You don\'t have permission to create subjects');
-        } else {
-          throw new Error(error.message || 'Failed to create subject');
-        }
-      }
-
-      console.log('Subject created successfully:', data);
-
-      toast({
-        title: "Success",
-        description: "Subject created successfully",
-        variant: "default"
-      });
-
-      // Reset form
-      setFormData({
-        name: '',
-        code: '',
-        class_id: '',
-        teacher_id: '',
-        curriculum: 'cbc'
-      });
-
-      if (onSuccess) {
-        onSuccess();
-      }
-
-    } catch (error: any) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create subject",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+    if (result) {
+      handleClose();
+      onSuccess();
     }
   };
 
-  if (loadingData) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-8">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          Loading form data...
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleClose = () => {
+    setFormData({
+      name: '',
+      code: '',
+      class_id: undefined,
+      teacher_id: undefined,
+      curriculum: 'cbc',
+      category: 'core',
+      credit_hours: 1,
+      description: ''
+    });
+    setError(null);
+    onClose();
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create New Subject</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Subject Name *</Label>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Create New Subject
+          </DialogTitle>
+        </DialogHeader>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                Subject Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Mathematics"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  setError(null);
+                }}
                 required
                 disabled={loading}
               />
             </div>
-            
-            <div>
-              <Label htmlFor="code">Subject Code *</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="code">
+                Subject Code <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="code"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 placeholder="e.g., MATH"
+                value={formData.code}
+                onChange={(e) => {
+                  setFormData({ ...formData, code: e.target.value.toUpperCase() });
+                  setError(null);
+                }}
                 required
                 disabled={loading}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="class_id">Class (Optional)</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Category</Label>
               <Select 
-                value={formData.class_id} 
-                onValueChange={(value) => setFormData({ ...formData, class_id: value })}
+                value={formData.category} 
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
                 disabled={loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a class" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="core">Core</SelectItem>
+                  <SelectItem value="science">Science</SelectItem>
+                  <SelectItem value="arts">Arts</SelectItem>
+                  <SelectItem value="languages">Languages</SelectItem>
+                  <SelectItem value="technical">Technical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Credit Hours</Label>
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={formData.credit_hours}
+                onChange={(e) => setFormData({ ...formData, credit_hours: parseInt(e.target.value) || 1 })}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Class (Optional)</Label>
+              <Select 
+                value={formData.class_id || ''} 
+                onValueChange={(value) => setFormData({ ...formData, class_id: value || undefined })}
+                disabled={loading || loadingEntities}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Classes</SelectItem>
-                  {classes.map((cls) => (
+                  {classList.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name}
                     </SelectItem>
@@ -326,19 +200,19 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({ onSuccess, onCanc
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="teacher_id">Teacher (Optional)</Label>
+            <div className="space-y-2">
+              <Label>Teacher (Optional)</Label>
               <Select 
-                value={formData.teacher_id} 
-                onValueChange={(value) => setFormData({ ...formData, teacher_id: value })}
-                disabled={loading}
+                value={formData.teacher_id || ''} 
+                onValueChange={(value) => setFormData({ ...formData, teacher_id: value || undefined })}
+                disabled={loading || loadingEntities}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a teacher" />
+                  <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">No teacher assigned</SelectItem>
-                  {teachers.map((teacher) => (
+                  {teacherList.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.id}>
                       {teacher.name}
                     </SelectItem>
@@ -348,8 +222,8 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({ onSuccess, onCanc
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="curriculum">Curriculum</Label>
+          <div className="space-y-2">
+            <Label>Curriculum</Label>
             <Select 
               value={formData.curriculum} 
               onValueChange={(value) => setFormData({ ...formData, curriculum: value })}
@@ -367,20 +241,27 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({ onSuccess, onCanc
             </Select>
           </div>
 
-          <div className="flex gap-4 justify-end">
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-                Cancel
-              </Button>
-            )}
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Create Subject
+          <div className="space-y-2">
+            <Label>Description (Optional)</Label>
+            <Input
+              placeholder="Brief description of the subject"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading || !formData.name.trim() || !formData.code.trim()}>
+              {loading ? "Creating..." : "Create Subject"}
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
 
