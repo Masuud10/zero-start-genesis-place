@@ -16,7 +16,7 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
       label: 'Add Student',
       description: 'Register new student',
       variant: 'default' as const,
-      color: 'bg-blue-500 hover:bg-blue-600'
+      color: 'bg-blue-500 hover:bg-blue-600 text-white'
     },
     {
       id: 'teacherAdmission',
@@ -24,7 +24,7 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
       label: 'Add Teacher',
       description: 'Register new teacher',
       variant: 'default' as const,
-      color: 'bg-green-500 hover:bg-green-600'
+      color: 'bg-green-500 hover:bg-green-600 text-white'
     },
     {
       id: 'add-subject',
@@ -32,7 +32,7 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
       label: 'Add Subject',
       description: 'Create new subject',
       variant: 'default' as const,
-      color: 'bg-purple-500 hover:bg-purple-600'
+      color: 'bg-purple-500 hover:bg-purple-600 text-white'
     },
     {
       id: 'assign-subject',
@@ -61,22 +61,18 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
   ];
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
+    <div className="p-6">
+      <CardHeader className="px-0 pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900">Quick Actions</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <CardContent className="px-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {actionButtons.map((action) => (
             <Button
               key={action.id}
               variant={action.variant}
               size="sm"
-              className={`h-auto flex flex-col items-center gap-2 p-4 text-center ${
-                action.variant === 'default' 
-                  ? `text-white ${action.color}` 
-                  : `${action.color}`
-              }`}
+              className={`h-auto flex flex-col items-center gap-2 p-4 text-center transition-all duration-200 ${action.color}`}
               onClick={() => onModalOpen(action.id)}
             >
               <action.icon className="h-5 w-5" />
@@ -88,7 +84,7 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
           ))}
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 };
 

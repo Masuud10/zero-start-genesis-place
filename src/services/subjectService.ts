@@ -80,7 +80,7 @@ export class SubjectService {
       }
     }
 
-    // Prepare the payload
+    // Prepare the payload with proper validation
     const payload = {
       name: data.name.trim(),
       code: formattedCode,

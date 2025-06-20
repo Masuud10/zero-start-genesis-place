@@ -98,8 +98,16 @@ export const useCertificates = () => {
         throw new Error('No performance data found for certificate generation');
       }
 
-      // Type assertion for the performance data
-      const typedPerformanceData = performanceData as unknown as CertificatePerformance;
+      // Properly type the performance data
+      const typedPerformanceData = performanceData as CertificatePerformance;
+
+      // Validate the data structure
+      if (!typedPerformanceData.student || !typedPerformanceData.school) {
+        throw new Error('Invalid certificate data structure received');
+      }
+
+      // Convert to JSON-compatible format for database storage
+      const jsonCompatibleData = JSON.parse(JSON.stringify(typedPerformanceData));
 
       // Save certificate record
       const { data: certificate, error: saveError } = await supabase
@@ -108,7 +116,7 @@ export const useCertificates = () => {
           student_id: studentId,
           class_id: classId,
           academic_year: academicYear,
-          performance: typedPerformanceData as any, // Convert to Json type for database
+          performance: jsonCompatibleData,
           school_id: schoolId,
           generated_by: (await supabase.auth.getUser()).data.user?.id || '',
           generated_at: new Date().toISOString()

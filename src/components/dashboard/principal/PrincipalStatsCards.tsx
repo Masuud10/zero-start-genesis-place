@@ -20,7 +20,7 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="animate-pulse">
+          <Card key={i} className="animate-pulse border-gray-200 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -38,7 +38,7 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50">
+      <Card className="border-red-200 bg-red-50 shadow-sm">
         <CardHeader>
           <CardTitle className="text-red-600 flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
@@ -58,7 +58,7 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
       value: stats.totalStudents,
       icon: Users,
       color: 'blue',
-      bgGradient: 'bg-gradient-to-br from-blue-50 to-blue-100',
+      bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200',
       textColor: 'text-blue-700',
       valueColor: 'text-blue-900',
@@ -70,7 +70,7 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
       value: stats.totalTeachers,
       icon: GraduationCap,
       color: 'green',
-      bgGradient: 'bg-gradient-to-br from-green-50 to-green-100',
+      bgColor: 'bg-green-50',
       borderColor: 'border-green-200',
       textColor: 'text-green-700',
       valueColor: 'text-green-900',
@@ -82,7 +82,7 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
       value: stats.totalSubjects,
       icon: BookOpen,
       color: 'purple',
-      bgGradient: 'bg-gradient-to-br from-purple-50 to-purple-100',
+      bgColor: 'bg-purple-50',
       borderColor: 'border-purple-200',
       textColor: 'text-purple-700',
       valueColor: 'text-purple-900',
@@ -94,7 +94,7 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
       value: stats.totalClasses,
       icon: School,
       color: 'orange',
-      bgGradient: 'bg-gradient-to-br from-orange-50 to-orange-100',
+      bgColor: 'bg-orange-50',
       borderColor: 'border-orange-200',
       textColor: 'text-orange-700',
       valueColor: 'text-orange-900',
@@ -106,7 +106,7 @@ const PrincipalStatsCards: React.FC<PrincipalStatsCardsProps> = ({ stats, loadin
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {statCards.map((card) => (
-        <Card key={card.title} className={`${card.bgGradient} ${card.borderColor}`}>
+        <Card key={card.title} className={`${card.bgColor} ${card.borderColor} shadow-sm transition-all duration-200 hover:shadow-md`}>
           <CardHeader className="pb-2">
             <CardTitle className={`text-sm font-medium flex items-center gap-2 ${card.textColor}`}>
               <card.icon className={`h-4 w-4 ${card.iconColor}`} />

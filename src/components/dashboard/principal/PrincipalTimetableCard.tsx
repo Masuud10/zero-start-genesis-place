@@ -81,109 +81,58 @@ const PrincipalTimetableCard = () => {
       const todaySchedule = (timetableRecords || [])
         .filter(record => record.day_of_week === todayName)
         .map(record => ({
-          id: record.id,
-          className: record.classes?.name || 'Unknown Class',
-          subjectName: record.subjects?.name || 'Unknown Subject',
-          teacherName: record.profiles?.name || 'Unknown Teacher',
-          startTime: record.start_time,
-          endTime: record.end_time,
-          room: record.room || 'TBA'
-        }))
-        .sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-      // Simple conflict detection (same time slot, different subjects)
-      const timeSlots = new Map();
-      let conflictsCount = 0;
-      
-      timetableRecords?.forEach(record => {
-        const key = `${record.day_of_week}-${record.start_time}`;
-        if (timeSlots.has(key)) {
-          conflictsCount++;
-        } else {
-          timeSlots.set(key, record);
-        }
-      });
-
-      setTimetableData({
-        totalSchedules,
-        publishedSchedules,
-        conflictsCount,
-        todaySchedule
-      });
-
-    } catch (error) {
-      console.error('Error fetching timetable data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load timetable data",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          id: recor<div className="p-6">
+        <CardHeader className="px-0 pb-4">
+          <CardTitle className="flex items-center gap-2 text-gray-900">
             <Calendar className="h-5 w-5" />
             Timetable Management
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          </div>
+        <CardContent className="px-0 space-y-6">
+          {loading ? (
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          ) : (
+            <>
+              {/* Timetable Statistics */}
+              <TimetableStats 
+                totalSchedules={timetableData.totalSchedules}
+                publishedSchedules={timetableData.publishedSchedules}
+                conflictsCount={timetableData.conflictsCount}
+              />
+
+              {/* Today's Schedule */}
+              <TodaySchedule schedule={timetableData.todaySchedule} />
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setShowGenerator(true)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Manage Timetables
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  View Full Schedule
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Timetable Management
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Timetable Statistics */}
-          <TimetableStats 
-            totalSchedules={timetableData.totalSchedules}
-            publishedSchedules={timetableData.publishedSchedules}
-            conflictsCount={timetableData.conflictsCount}
-          />
-
-          {/* Today's Schedule */}
-          <TodaySchedule schedule={timetableData.todaySchedule} />
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button 
-              onClick={() => setShowGenerator(true)}
-              className="flex-1"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Manage Timetables
-            </Button>
-            <Button variant="outline" className="flex-1">
-              <Clock className="h-4 w-4 mr-2" />
-              View Full Schedule
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Timetable Generator Dialog */}
       <Dialog open={showGenerator} onOpenChange={setShowGenerator}>
-        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto bg-white">
           <DialogHeader>
-            <DialogTitle>Timetable Generator</DialogTitle>
+            <DialogTitle className="text-gray-900">Timetable Generator</DialogTitle>
           </DialogHeader>
           <TimetableGenerator />
         </DialogContent>

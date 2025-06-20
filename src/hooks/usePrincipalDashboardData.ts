@@ -55,9 +55,9 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         throw new Error('Access denied to school data');
       }
 
-      console.log('📊 Fetching dashboard data for school:', targetSchoolId);
+      console.log('📊 Fetching principal dashboard data for school:', targetSchoolId);
 
-      // Batch all queries together to reduce API calls
+      // Batch all queries together to reduce API calls with proper error handling
       const [
         studentsResult,
         teachersResult,
@@ -66,12 +66,32 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         parentsResult,
         auditLogsResult
       ] = await Promise.allSettled([
-        supabase.from('students').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true),
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'teacher'),
-        supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId),
-        supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId),
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent'),
-        supabase.from('security_audit_logs')
+        supabase
+          .from('students')
+          .select('id', { count: 'exact' })
+          .eq('school_id', targetSchoolId)
+          .eq('is_active', true),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact' })
+          .eq('school_id', targetSchoolId)
+          .eq('role', 'teacher'),
+        supabase
+          .from('subjects')
+          .select('id', { count: 'exact' })
+          .eq('school_id', targetSchoolId)
+          .eq('is_active', true),
+        supabase
+          .from('classes')
+          .select('id', { count: 'exact' })
+          .eq('school_id', targetSchoolId),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact' })
+          .eq('school_id', targetSchoolId)
+          .eq('role', 'parent'),
+        supabase
+          .from('security_audit_logs')
           .select('id, created_at, action, resource, metadata, user_id')
           .eq('school_id', targetSchoolId)
           .eq('success', true)
@@ -80,7 +100,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
           .limit(5)
       ]);
 
-      // Process results safely
+      // Process results safely with proper error handling
       const statsData = {
         totalStudents: studentsResult.status === 'fulfilled' ? (studentsResult.value.count || 0) : 0,
         totalTeachers: teachersResult.status === 'fulfilled' ? (teachersResult.value.count || 0) : 0,
@@ -91,12 +111,12 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
       setStats(statsData);
 
-      // Process recent activities
+      // Process recent activities with improved error handling
       let activities: any[] = [];
       if (auditLogsResult.status === 'fulfilled' && auditLogsResult.value.data) {
         const rawAuditLogs = auditLogsResult.value.data;
         
-        // Get user names for activities
+        // Get user names for activities with proper validation
         const userIds = [...new Set(rawAuditLogs.map(log => log.user_id).filter(Boolean))];
         let userNames: Record<string, string> = {};
         
@@ -108,7 +128,9 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
           if (profilesData) {
             profilesData.forEach(p => {
-              userNames[p.id] = p.name;
+              if (p.id && p.name) {
+                userNames[p.id] = p.name;
+              }
             });
           }
         }
@@ -116,7 +138,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         activities = rawAuditLogs.map((log: any) => {
           const userName = log.user_id ? userNames[log.user_id] || 'A user' : 'A user';
           const actionVerb = log.action === 'create' ? 'created' : 'updated';
-          const resourceName = log.resource.replace(/_/g, ' ');
+          const resourceName = log.resource ? log.resource.replace(/_/g, ' ') : 'resource';
           
           return {
             id: log.id,
@@ -138,7 +160,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
     } catch (err: any) {
       const detailedError = err.message || 'An unknown error occurred.';
       setError(`Failed to fetch school data. Reason: ${detailedError}`);
-      console.error('📊 Dashboard data fetch error:', err);
+      console.error('📊 Principal dashboard data fetch error:', err);
     } finally {
       setLoading(false);
     }

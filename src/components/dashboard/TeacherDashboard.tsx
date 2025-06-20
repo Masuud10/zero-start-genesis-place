@@ -87,14 +87,16 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   // Prevent any render before role/school_id are ready
   if (!isReady) {
     return (
-      <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-300 rounded mb-2"></div>
-          <div className="h-4 bg-gray-300 rounded"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-24 bg-gray-300 rounded"></div>
-            ))}
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm max-w-md w-full">
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-gray-300 rounded mb-2"></div>
+            <div className="h-4 bg-gray-300 rounded"></div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-24 bg-gray-300 rounded"></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -103,29 +105,47 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
   return (
     <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
-      <div className="space-y-6">
-        {/* Stats Overview */}
-        <TeacherStatsCards stats={stats} loading={loading} />
-
-        {/* Analytics Summary */}
-        <TeacherAnalyticsSummaryCard />
-
-        {/* Main Content - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-6">
-            <TeacherGradesManager />
-            <MyClasses />
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          {/* Stats Overview - Enhanced design */}
+          <div className="w-full">
+            <TeacherStatsCards stats={stats} loading={loading} />
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            <CompactTeacherTimetable />
+          {/* Analytics Summary - Consistent card styling */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <TeacherAnalyticsSummaryCard />
+          </div>
+
+          {/* Main Content - Improved responsive layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Grade Management - Refined card design */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <TeacherGradesManager />
+              </div>
+              
+              {/* Classes - Consistent styling */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <MyClasses />
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Timetable - Improved integration */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <CompactTeacherTimetable />
+              </div>
+            </div>
+          </div>
+
+          {/* Teaching Tools Section - Enhanced layout */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <TeacherActions user={user} onModalOpen={handleModalOpen} />
           </div>
         </div>
-
-        {/* Teaching Tools Section - Full Width */}
-        <TeacherActions user={user} onModalOpen={handleModalOpen} />
 
         {/* Local Modals - Teacher specific */}
         {bulkGradingOpen && (

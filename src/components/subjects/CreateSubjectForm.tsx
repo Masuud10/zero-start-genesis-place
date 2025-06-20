@@ -106,18 +106,18 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
             <BookOpen className="h-5 w-5" />
             Create New Subject
           </DialogTitle>
         </DialogHeader>
         
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="text-red-700">{error}</AlertDescription>
           </Alert>
         )}
 
@@ -125,7 +125,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">
+              <Label htmlFor="name" className="text-gray-700">
                 Subject Name <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -138,11 +138,12 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
                 }}
                 required
                 disabled={loading}
+                className="border-gray-300 focus:border-blue-500"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="code">
+              <Label htmlFor="code" className="text-gray-700">
                 Subject Code <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -153,6 +154,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
                 required
                 disabled={loading}
                 maxLength={10}
+                className="border-gray-300 focus:border-blue-500"
               />
             </div>
           </div>
@@ -160,16 +162,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
           {/* Classification */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label className="text-gray-700">Category</Label>
               <Select 
                 value={formData.category} 
                 onValueChange={(value) => setFormData({ ...formData, category: value })}
                 disabled={loading}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-gray-300 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="core">Core Subject</SelectItem>
                   <SelectItem value="science">Science</SelectItem>
                   <SelectItem value="arts">Arts & Humanities</SelectItem>
@@ -181,16 +183,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Credit Hours</Label>
+              <Label className="text-gray-700">Credit Hours</Label>
               <Select 
                 value={formData.credit_hours?.toString()} 
                 onValueChange={(value) => setFormData({ ...formData, credit_hours: parseInt(value) || 1 })}
                 disabled={loading}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-gray-300 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   {[1, 2, 3, 4, 5, 6].map((hours) => (
                     <SelectItem key={hours} value={hours.toString()}>
                       {hours} {hours === 1 ? 'Hour' : 'Hours'}
@@ -204,16 +206,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
           {/* Assignment Options */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Class (Optional)</Label>
+              <Label className="text-gray-700">Class (Optional)</Label>
               <Select 
                 value={formData.class_id || ''} 
                 onValueChange={(value) => setFormData({ ...formData, class_id: value || undefined })}
                 disabled={loading || loadingEntities}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-gray-300 focus:border-blue-500">
                   <SelectValue placeholder="Select specific class or leave for all" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="">All Classes</SelectItem>
                   {classList.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
@@ -225,16 +227,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Teacher (Optional)</Label>
+              <Label className="text-gray-700">Teacher (Optional)</Label>
               <Select 
                 value={formData.teacher_id || ''} 
                 onValueChange={(value) => setFormData({ ...formData, teacher_id: value || undefined })}
                 disabled={loading || loadingEntities}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-gray-300 focus:border-blue-500">
                   <SelectValue placeholder="Assign teacher later" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="">No teacher assigned</SelectItem>
                   {teacherList.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.id}>
@@ -248,16 +250,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
 
           {/* Curriculum */}
           <div className="space-y-2">
-            <Label>Curriculum System</Label>
+            <Label className="text-gray-700">Curriculum System</Label>
             <Select 
               value={formData.curriculum} 
               onValueChange={(value) => setFormData({ ...formData, curriculum: value })}
               disabled={loading}
             >
-              <SelectTrigger>
+              <SelectTrigger className="border-gray-300 focus:border-blue-500">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 <SelectItem value="cbc">CBC (Competency Based Curriculum)</SelectItem>
                 <SelectItem value="8-4-4">8-4-4 System</SelectItem>
                 <SelectItem value="igcse">IGCSE</SelectItem>
@@ -269,23 +271,31 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
 
           {/* Description */}
           <div className="space-y-2">
-            <Label>Description (Optional)</Label>
+            <Label className="text-gray-700">Description (Optional)</Label>
             <Input
               placeholder="Brief description of the subject"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               disabled={loading}
+              className="border-gray-300 focus:border-blue-500"
             />
           </div>
 
           {/* Actions */}
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleClose} 
+              disabled={loading}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={loading || !formData.name.trim() || !formData.code.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {loading ? "Creating..." : "Create Subject"}
             </Button>

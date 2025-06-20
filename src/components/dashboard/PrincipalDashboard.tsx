@@ -67,39 +67,49 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
   };
 
   return (
-    <div className="space-y-6 p-2 md:p-4">
-      {/* Stats Overview - Full Width */}
-      <div className="w-full">
-        <PrincipalStatsCards stats={stats} loading={loading} error={error} />
-      </div>
-      
-      {/* Main Content Grid - Responsive Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* Left Column - Management Tools */}
-        <div className="xl:col-span-8 space-y-6">
-          {/* Quick Actions */}
-          <PrincipalActionButtons onModalOpen={handleModalOpen} />
-          
-          {/* Grade Management */}
-          <PrincipalGradesManager />
-          
-          {/* Timetable Management */}
-          <PrincipalTimetableCard />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Stats Overview - Enhanced with better spacing */}
+        <div className="w-full">
+          <PrincipalStatsCards stats={stats} loading={loading} error={error} />
+        </div>
+        
+        {/* Main Content Grid - Improved responsive layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Left Column - Management Tools */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Quick Actions - Refined card design */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <PrincipalActionButtons onModalOpen={handleModalOpen} />
+            </div>
+            
+            {/* Grade Management - Consistent card styling */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <PrincipalGradesManager />
+            </div>
+            
+            {/* Timetable Management - Improved integration */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <PrincipalTimetableCard />
+            </div>
+          </div>
+
+          {/* Right Column - Analytics & Financial */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Financial Overview - Consistent styling */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <FinancialOverviewReadOnly />
+            </div>
+          </div>
         </div>
 
-        {/* Right Column - Analytics & Financial */}
-        <div className="xl:col-span-4 space-y-6">
-          {/* Financial Overview */}
-          <FinancialOverviewReadOnly />
+        {/* Bottom Section - Certificates with improved layout */}
+        <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm">
+          <CertificatesList />
         </div>
       </div>
-
-      {/* Bottom Section - Certificates */}
-      <div className="w-full">
-        <CertificatesList />
-      </div>
       
-      {/* Modals */}
+      {/* Modals - Fixed modal integration */}
       <AddSubjectModal
         open={activeModal === 'add-subject'}
         onClose={handleModalClose}
