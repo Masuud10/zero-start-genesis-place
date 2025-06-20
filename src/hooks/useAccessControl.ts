@@ -29,8 +29,11 @@ export const useAccessControl = () => {
         console.log('🔒 useAccessControl: School management access:', hasSchoolManagementAccess);
         return hasSchoolManagementAccess;
       case 'certificates':
-        // Principals, school owners, and EduFam admins can access certificates
+        // Principals and EduFam admins can generate certificates, school owners can only view
         return user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
+      case 'certificate-generation':
+        // Only principals and EduFam admins can generate certificates
+        return user.role === 'principal' || user.role === 'edufam_admin';
       case 'grades':
         return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
       case 'attendance':

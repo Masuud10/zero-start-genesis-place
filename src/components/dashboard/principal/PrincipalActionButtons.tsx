@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, FileText, Users, BookOpen } from 'lucide-react';
+import { Plus, FileText, Users, BookOpen, Award } from 'lucide-react';
 
 interface PrincipalActionButtonsProps {
   onModalOpen: (modalType: string) => void;
@@ -15,7 +15,7 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
         <CardTitle>Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Button 
             variant="outline" 
             className="h-24 flex flex-col items-center gap-2"
@@ -41,6 +41,15 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
           >
             <BookOpen className="h-6 w-6" />
             <span className="text-sm">Add Subject</span>
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="h-24 flex flex-col items-center gap-2"
+            onClick={() => onModalOpen('generate-certificate')}
+          >
+            <Award className="h-6 w-6" />
+            <span className="text-sm">Generate Certificate</span>
           </Button>
           
           <Button 

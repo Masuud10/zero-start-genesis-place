@@ -20,6 +20,20 @@ export interface CertificatePerformance {
     roll_number: string;
     school_id: string;
   };
+  school: {
+    id: string;
+    name: string;
+    location?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    logo_url?: string;
+    website_url?: string;
+    motto?: string;
+    slogan?: string;
+    principal_name?: string;
+    principal_contact?: string;
+  };
   performance: {
     total_marks: number;
     possible_marks: number;
@@ -59,19 +73,4 @@ export interface CertificateGenerationRequest {
   student_id: string;
   class_id: string;
   academic_year: string;
-}
-
-export interface School {
-  id: string;
-  name: string;
-  location?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  logo_url?: string;
-  website_url?: string;
-  motto?: string;
-  slogan?: string;
-  principal_name?: string;
-  principal_contact?: string;
 }

@@ -6,6 +6,7 @@ import PrincipalStatsCards from './principal/PrincipalStatsCards';
 import PrincipalActionButtons from './principal/PrincipalActionButtons';
 import PrincipalGradesManager from './principal/PrincipalGradesManager';
 import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
+import CertificatesList from '@/components/certificates/CertificatesList';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
 import CertificateGenerator from '@/components/certificates/CertificateGenerator';
 import { useToast } from '@/hooks/use-toast';
@@ -59,21 +60,24 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
       {/* Stats Overview */}
       <PrincipalStatsCards stats={stats} loading={loading} error={error} />
       
-      {/* Main Content - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
+      {/* Main Content - Three Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Grade Management */}
+        <div className="lg:col-span-1">
           <PrincipalGradesManager />
         </div>
 
-        {/* Right Column */}
-        <div className="space-y-6">
+        {/* Right Column - Financial Overview */}
+        <div className="lg:col-span-2">
           <FinancialOverviewReadOnly />
         </div>
       </div>
 
       {/* Action Buttons - Full Width */}
       <PrincipalActionButtons onModalOpen={handleModalOpen} />
+
+      {/* Certificates Section - Full Width */}
+      <CertificatesList />
       
       {/* Add Subject Modal */}
       <AddSubjectModal
@@ -83,13 +87,11 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
       />
 
       {/* Certificate Generator Modal */}
-      {activeModal === 'generate-certificate' && (
-        <CertificateGenerator
-          open={activeModal === 'generate-certificate'}
-          onClose={handleModalClose}
-          onCertificateGenerated={handleCertificateGenerated}
-        />
-      )}
+      <CertificateGenerator
+        open={activeModal === 'generate-certificate'}
+        onClose={handleModalClose}
+        onCertificateGenerated={handleCertificateGenerated}
+      />
     </div>
   );
 };
