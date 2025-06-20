@@ -101,8 +101,8 @@ export const useCertificates = (filters?: CertificateFilters) => {
 
         console.log('✅ Performance data fetched successfully:', performanceData);
 
-        // Cast the performance data to the expected type
-        const typedPerformanceData = performanceData as CertificatePerformance;
+        // Cast the performance data to the expected type through unknown
+        const typedPerformanceData = performanceData as unknown as CertificatePerformance;
 
         // Validate that we have the required performance data structure
         if (!typedPerformanceData.student || !typedPerformanceData.school) {
@@ -115,7 +115,7 @@ export const useCertificates = (filters?: CertificateFilters) => {
           student_id: request.student_id,
           class_id: request.class_id,
           academic_year: request.academic_year,
-          performance: typedPerformanceData,
+          performance: performanceData, // Use the raw data from Supabase (already Json compatible)
           school_id: user.role === 'edufam_admin' ? typedPerformanceData.student.school_id : user.school_id,
           generated_by: user.id,
           generated_at: new Date().toISOString()
