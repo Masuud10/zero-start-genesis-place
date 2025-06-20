@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Download, FileText, Award, AlertTriangle } from 'lucide-react';
+import { Download, FileText, Award, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CertificateGeneratorProps {
@@ -48,6 +48,7 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationSuccess, setValidationSuccess] = useState<string | null>(null);
 
   // Access control check
   const canGenerateCertificates = user?.role === 'principal' || user?.role === 'edufam_admin';
@@ -64,17 +65,30 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
     }
   }, [selectedClass]);
 
+  // Reset validation when selections change
+  useEffect(() => {
+    setValidationError(null);
+    setValidationSuccess(null);
+  }, [selectedClass, selectedStudent, selectedTerm, selectedYear]);
+
   const loadClasses = async () => {
     try {
+      console.log('🔍 Loading classes for school:', schoolId);
+      
       const { data, error } = await supabase
         .from('classes')
         .select('id, name, level, stream')
         .eq('school_id', schoolId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error loading classes:', error);
+        throw error;
+      }
+      
+      console.log('✅ Classes loaded:', data?.length || 0);
       setClasses(data || []);
     } catch (error) {
-      console.error('Error loading classes:', error);
+      console.error('💥 Failed to load classes:', error);
       toast({
         title: "Error",
         description: "Failed to load classes.",
@@ -85,16 +99,23 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
 
   const loadStudents = async () => {
     try {
+      console.log('🔍 Loading students for class:', selectedClass);
+      
       const { data, error } = await supabase
         .from('students')
         .select('id, name, admission_number, class_id')
         .eq('class_id', selectedClass)
         .eq('is_active', true);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error loading students:', error);
+        throw error;
+      }
+      
+      console.log('✅ Students loaded:', data?.length || 0);
       setStudents(data || []);
     } catch (error) {
-      console.error('Error loading students:', error);
+      console.error('💥 Failed to load students:', error);
       toast({
         title: "Error",
         description: "Failed to load students.",
@@ -104,45 +125,90 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
   };
 
   const validateCertificateData = async () => {
+    console.log('🔍 Validating certificate data...');
+    
     if (!selectedStudent || !selectedTerm || !selectedYear) {
-      setValidationError("Please select student, term, and year.");
+      const error = "Please select student, term, and year.";
+      console.log('❌ Validation failed: Missing selections');
+      setValidationError(error);
       return false;
     }
 
     try {
       // Check if student has grades for the selected term and year
+      console.log('🔍 Checking grades for student:', selectedStudent);
+      
       const { data: grades, error: gradesError } = await supabase
         .from('grades')
-        .select('id')
+        .select('id, score, subject_id, status')
         .eq('student_id', selectedStudent)
         .eq('term', selectedTerm)
-        .eq('status', 'released')
         .eq('school_id', schoolId);
 
-      if (gradesError) throw gradesError;
+      if (gradesError) {
+        console.error('❌ Error checking grades:', gradesError);
+        throw gradesError;
+      }
+
+      console.log('📊 Grades found:', grades?.length || 0);
 
       if (!grades || grades.length === 0) {
-        setValidationError("No released grades found for this student in the selected term. Please ensure grades are finalized and released.");
+        const error = "No grades found for this student in the selected term. Please ensure grades are recorded.";
+        setValidationError(error);
+        return false;
+      }
+
+      // Check if grades are released
+      const releasedGrades = grades.filter(grade => grade.status === 'released');
+      if (releasedGrades.length === 0) {
+        const error = "No released grades found for this student in the selected term. Please ensure grades are finalized and released.";
+        setValidationError(error);
         return false;
       }
 
       // Check if student has attendance data
+      console.log('🔍 Checking attendance for student:', selectedStudent);
+      
       const { data: attendance, error: attendanceError } = await supabase
         .from('attendance')
         .select('id')
         .eq('student_id', selectedStudent)
         .eq('academic_year', selectedYear);
 
-      if (attendanceError) throw attendanceError;
+      if (attendanceError) {
+        console.error('❌ Error checking attendance:', attendanceError);
+        // Don't fail for attendance errors, just warn
+        console.warn('⚠️ No attendance data found, proceeding anyway');
+      }
 
-      if (!attendance || attendance.length === 0) {
-        console.warn('No attendance data found for student, proceeding with certificate generation');
+      // Check if certificate already exists
+      console.log('🔍 Checking for existing certificate...');
+      
+      const { data: existingCert, error: certError } = await supabase
+        .from('certificates')
+        .select('id')
+        .eq('student_id', selectedStudent)
+        .eq('academic_year', selectedYear)
+        .eq('class_id', selectedClass);
+
+      if (certError) {
+        console.error('❌ Error checking existing certificates:', certError);
+        // Don't fail for this error, just warn
+      }
+
+      if (existingCert && existingCert.length > 0) {
+        const error = "A certificate already exists for this student and academic year.";
+        setValidationError(error);
+        return false;
       }
 
       setValidationError(null);
+      setValidationSuccess(`✅ Validation passed: ${releasedGrades.length} released grades found`);
+      console.log('✅ Validation successful');
       return true;
-    } catch (error) {
-      console.error('Error validating certificate data:', error);
+      
+    } catch (error: any) {
+      console.error('💥 Error validating certificate data:', error);
       setValidationError("Error validating data. Please try again.");
       return false;
     }
@@ -158,11 +224,25 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
       return;
     }
 
+    console.log('🚀 Starting certificate generation process...');
+
     const isValid = await validateCertificateData();
-    if (!isValid) return;
+    if (!isValid) {
+      console.log('❌ Validation failed, stopping generation');
+      return;
+    }
 
     setLoading(true);
     try {
+      console.log('📤 Generating certificate with data:', {
+        student_id: selectedStudent,
+        class_id: selectedClass,
+        academic_year: selectedYear,
+        term: selectedTerm,
+        school_id: schoolId,
+        user_id: user?.id
+      });
+
       // Generate certificate using the stored procedure
       const { data: certificateData, error: certificateError } = await supabase
         .rpc('get_student_certificate_data', {
@@ -171,11 +251,17 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
           p_class_id: selectedClass
         });
 
-      if (certificateError) throw certificateError;
+      if (certificateError) {
+        console.error('❌ Error fetching certificate data:', certificateError);
+        throw new Error(`Failed to fetch certificate data: ${certificateError.message}`);
+      }
 
       if (!certificateData) {
+        console.error('❌ No certificate data returned');
         throw new Error("No data available to generate certificate");
       }
+
+      console.log('✅ Certificate data fetched, creating certificate record...');
 
       // Create certificate record
       const { data: certificate, error: insertError } = await supabase
@@ -191,10 +277,25 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('❌ Error inserting certificate:', insertError);
+        
+        // Provide specific error messages
+        if (insertError.code === '23503') {
+          throw new Error('Invalid reference data - please check student, class, or school information');
+        } else if (insertError.code === '42501') {
+          throw new Error('Permission denied - you may not have access to generate certificates');
+        } else if (insertError.code === '23505') {
+          throw new Error('Certificate already exists for this student and academic year');
+        } else {
+          throw new Error(`Database error: ${insertError.message}`);
+        }
+      }
 
       // Get student name for success message
       const student = students.find(s => s.id === selectedStudent);
+      
+      console.log('🎉 Certificate generated successfully:', certificate.id);
       
       toast({
         title: "Success",
@@ -207,12 +308,13 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
       setSelectedTerm('');
       setSelectedYear('');
       setValidationError(null);
+      setValidationSuccess(null);
 
       if (onCertificateGenerated) {
         onCertificateGenerated();
       }
     } catch (error: any) {
-      console.error('Error generating certificate:', error);
+      console.error('💥 Certificate generation failed:', error);
       toast({
         title: "Error",
         description: error.message || "Error generating certificate. Please check data completeness.",
@@ -260,6 +362,13 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{validationError}</AlertDescription>
+            </Alert>
+          )}
+
+          {validationSuccess && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>{validationSuccess}</AlertDescription>
             </Alert>
           )}
 
@@ -313,23 +422,34 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
             </Select>
           </div>
 
-          <Button 
-            onClick={handleGenerateCertificate} 
-            disabled={loading || !selectedClass || !selectedStudent || !selectedTerm || !selectedYear}
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Generating...
-              </>
-            ) : (
-              <>
-                Generate Certificate
-                <FileText className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={validateCertificateData}
+              variant="outline"
+              disabled={loading || !selectedClass || !selectedStudent || !selectedTerm || !selectedYear}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Validate Data
+            </Button>
+
+            <Button 
+              onClick={handleGenerateCertificate} 
+              disabled={loading || !selectedClass || !selectedStudent || !selectedTerm || !selectedYear}
+              className="flex-1"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  Generate Certificate
+                  <FileText className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -351,6 +471,13 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{validationError}</AlertDescription>
+            </Alert>
+          )}
+
+          {validationSuccess && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>{validationSuccess}</AlertDescription>
             </Alert>
           )}
 
@@ -402,23 +529,34 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
             </SelectContent>
           </Select>
 
-          <Button 
-            onClick={handleGenerateCertificate} 
-            disabled={loading || !selectedClass || !selectedStudent || !selectedTerm || !selectedYear}
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Generating...
-              </>
-            ) : (
-              <>
-                Generate Certificate
-                <FileText className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={validateCertificateData}
+              variant="outline"
+              disabled={loading || !selectedClass || !selectedStudent || !selectedTerm || !selectedYear}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Validate
+            </Button>
+
+            <Button 
+              onClick={handleGenerateCertificate} 
+              disabled={loading || !selectedClass || !selectedStudent || !selectedTerm || !selectedYear}
+              className="flex-1"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  Generate Certificate
+                  <FileText className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
