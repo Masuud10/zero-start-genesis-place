@@ -66,15 +66,24 @@ export const useFeeStructures = () => {
     }
   };
 
-  const createFeeStructure = async (structureData: Partial<FeeStructure> & { items?: Omit<FeeStructureItem, 'id' | 'fee_structure_id' | 'created_at' | 'updated_at'>[] }) => {
+  const createFeeStructure = async (structureData: {
+    name: string;
+    academic_year: string;
+    term: string;
+    is_active?: boolean;
+    items?: Omit<FeeStructureItem, 'id' | 'fee_structure_id' | 'created_at' | 'updated_at'>[];
+  }) => {
     if (!user?.school_id) return { error: 'No school associated with user' };
 
     try {
       const { data: structure, error: structureError } = await supabase
         .from('fee_structures')
         .insert({
-          ...structureData,
+          name: structureData.name,
+          academic_year: structureData.academic_year,
+          term: structureData.term,
           school_id: user.school_id,
+          is_active: structureData.is_active || false,
         })
         .select()
         .single();

@@ -43,8 +43,10 @@ export const useFinanceReports = () => {
 
       if (error) throw error;
 
-      if (data.error) {
-        throw new Error(data.error);
+      // Handle the response data properly
+      const result = data as any;
+      if (result?.error) {
+        throw new Error(result.error);
       }
 
       toast({
@@ -52,7 +54,7 @@ export const useFinanceReports = () => {
         description: "Report generated successfully",
       });
 
-      return { data, error: null };
+      return { data: result, error: null };
     } catch (err: any) {
       toast({
         title: "Error",
@@ -133,35 +135,32 @@ export const useFinanceReports = () => {
       const { data, error } = await supabase
         .from('student_fees')
         .select('amount, amount_paid, status')
-        .eq('school_id', user.school_id)
-        .then(({ data, error }) => {
-          if (error) throw error;
-          
-          const summary = data?.reduce((acc, fee) => {
-            acc.totalFees += fee.amount;
-            acc.totalCollected += fee.amount_paid;
-            acc.outstanding += (fee.amount - fee.amount_paid);
-            
-            if (fee.status === 'paid') acc.paidCount++;
-            else if (fee.status === 'partial') acc.partialCount++;
-            else if (fee.status === 'unpaid') acc.unpaidCount++;
-            else if (fee.status === 'overdue') acc.overdue++;
-            
-            return acc;
-          }, {
-            totalFees: 0,
-            totalCollected: 0,
-            outstanding: 0,
-            paidCount: 0,
-            partialCount: 0,
-            unpaidCount: 0,
-            overdue: 0,
-          });
-          
-          return { data: summary, error: null };
-        });
+        .eq('school_id', user.school_id);
 
-      return { data, error };
+      if (error) throw error;
+      
+      const summary = data?.reduce((acc, fee) => {
+        acc.totalFees += fee.amount || 0;
+        acc.totalCollected += fee.amount_paid || 0;
+        acc.outstanding += (fee.amount || 0) - (fee.amount_paid || 0);
+        
+        if (fee.status === 'paid') acc.paidCount++;
+        else if (fee.status === 'partial') acc.partialCount++;
+        else if (fee.status === 'unpaid') acc.unpaidCount++;
+        else if (fee.status === 'overdue') acc.overdue++;
+        
+        return acc;
+      }, {
+        totalFees: 0,
+        totalCollected: 0,
+        outstanding: 0,
+        paidCount: 0,
+        partialCount: 0,
+        unpaidCount: 0,
+        overdue: 0,
+      });
+      
+      return { data: summary, error: null };
     } catch (err: any) {
       return { error: err.message };
     }

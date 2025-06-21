@@ -122,17 +122,19 @@ export const useStudentFees = () => {
 
       if (error) throw error;
 
-      if (data.error) {
-        throw new Error(data.error);
+      // Handle the response data properly
+      const result = data as any;
+      if (result?.error) {
+        throw new Error(result.error);
       }
 
       toast({
         title: "Payment Recorded",
-        description: `Payment of ${paymentData.amount} recorded successfully. Receipt: ${data.transaction_id}`,
+        description: `Payment of ${paymentData.amount} recorded successfully. Receipt: ${result?.transaction_id || 'Generated'}`,
       });
 
       fetchStudentFees(); // Refresh data
-      return { data, error: null };
+      return { data: result, error: null };
     } catch (err: any) {
       toast({
         title: "Payment Error",
