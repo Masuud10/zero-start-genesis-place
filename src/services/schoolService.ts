@@ -93,7 +93,7 @@ export class SchoolService {
 
       // Handle the response
       if (data && typeof data === 'object' && data !== null) {
-        const result = data as Record<string, any>;
+        const result = data as any;
         
         if ('error' in result && typeof result.error === 'string') {
           console.error('🏫 SchoolService: Function returned error:', result.error);
@@ -108,7 +108,7 @@ export class SchoolService {
           
           // Update additional fields that aren't handled by the basic create_school function
           if (result.school_id) {
-            const updateData: Record<string, any> = {};
+            const updateData: any = {};
             
             if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
             if (schoolData.website_url) updateData.website_url = schoolData.website_url;

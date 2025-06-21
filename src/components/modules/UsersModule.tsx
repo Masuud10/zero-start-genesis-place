@@ -24,6 +24,7 @@ interface User {
   created_at: string;
   updated_at: string;
   school_id?: string;
+  phone?: string;
   school?: {
     name: string;
   };
@@ -34,6 +35,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -104,6 +106,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
           created_at: profile.created_at || '',
           updated_at: profile.updated_at || '',
           school_id: profile.school_id || undefined,
+          phone: profile.phone || '',
           school: schoolInfo
         };
       });
@@ -139,7 +142,8 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchesStatus = statusFilter === 'all'; // Since we don't have status field yet
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   // Check if user can add users
@@ -218,6 +222,8 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
         onSearchChange={setSearchTerm}
         roleFilter={roleFilter}
         onRoleFilterChange={setRoleFilter}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
       />
 
       <UsersTable 
@@ -225,6 +231,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
         loading={loading} 
         error={error}
         onRetry={fetchUsers}
+        onUserUpdated={fetchUsers}
       />
     </div>
   );

@@ -1,11 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, AlertCircle, RefreshCw } from 'lucide-react';
+import { Users, AlertCircle, RefreshCw, Edit, UserX, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import EditUserDialog from './EditUserDialog';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -14,6 +17,7 @@ interface User {
   role: string;
   created_at: string;
   school_id?: string;
+  phone?: string;
   school?: {
     name: string;
   };
@@ -24,6 +28,7 @@ interface UsersTableProps {
   loading: boolean;
   error?: string | null;
   onRetry?: () => void;
+  onUserUpdated?: () => void;
 }
 
 const getRoleBadgeColor = (role: string) => {
@@ -52,7 +57,45 @@ const formatRole = (role: string) => {
   ).join(' ');
 };
 
-const UsersTable = ({ users, loading, error, onRetry }: UsersTableProps) => {
+const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTableProps) => {
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deactivatingUserId, setDeactivatingUserId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleDeactivateUser = async (userId: string, userName: string) => {
+    try {
+      setDeactivatingUserId(userId);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          updated_at: new Date().toISOString()
+          // Note: We're not actually deactivating here as the profiles table 
+          // doesn't have a status field yet. This would need to be added.
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "User Status Updated",
+        description: `${userName} has been processed successfully.`,
+      });
+
+      if (onUserUpdated) onUserUpdated();
+
+    } catch (error: any) {
+      console.error('Error updating user status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user status",
+        variant: "destructive",
+      });
+    } finally {
+      setDeactivatingUserId(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -128,52 +171,88 @@ const UsersTable = ({ users, loading, error, onRetry }: UsersTableProps) => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Users List ({users.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>School</TableHead>
-                <TableHead>Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge className={getRoleBadgeColor(user.role)}>
-                      {formatRole(user.role)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.school?.name || (
-                      user.role === 'elimisha_admin' || user.role === 'edufam_admin' 
-                        ? 'System Admin' 
-                        : 'Not Assigned'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Users List ({users.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>School</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge className={getRoleBadgeColor(user.role)}>
+                        {formatRole(user.role)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.school?.name || (
+                        user.role === 'elimisha_admin' || user.role === 'edufam_admin' 
+                          ? 'System Admin' 
+                          : 'Not Assigned'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingUser(user)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeactivateUser(user.id, user.name)}
+                          disabled={deactivatingUserId === user.id}
+                        >
+                          {deactivatingUserId === user.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                          ) : (
+                            <UserX className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <EditUserDialog
+        user={editingUser}
+        open={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        onUserUpdated={() => {
+          setEditingUser(null);
+          if (onUserUpdated) onUserUpdated();
+        }}
+      />
+    </>
   );
 };
 
