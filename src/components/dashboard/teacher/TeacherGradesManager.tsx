@@ -6,21 +6,71 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useOptimizedGradeQuery } from '@/hooks/useOptimizedGradeQuery';
-import { EnhancedBulkGradingModal } from '@/components/grading/EnhancedBulkGradingModal';
+import { EnhancedGradeSheet } from '@/components/grading/EnhancedGradeSheet';
 import GradesModal from '@/components/modals/GradesModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileSpreadsheet, Plus, CheckCircle, Clock, AlertTriangle, Users, BookOpen, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
+
+interface ClassOption {
+  id: string;
+  name: string;
+}
 
 const TeacherGradesManager: React.FC = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
-  const [showBulkModal, setShowBulkModal] = useState(false);
   const [showGradesModal, setShowGradesModal] = useState(false);
+  const [showEnhancedSheet, setShowEnhancedSheet] = useState(false);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedExamType, setSelectedExamType] = useState('');
+  const [classes, setClasses] = useState<ClassOption[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const { data: grades, isLoading, refetch } = useOptimizedGradeQuery({
     enabled: !!user?.id && !!schoolId
   });
+
+  useEffect(() => {
+    loadTeacherClasses();
+  }, [user?.id, schoolId]);
+
+  const loadTeacherClasses = async () => {
+    if (!user?.id || !schoolId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('subject_teacher_assignments')
+        .select(`
+          class_id,
+          classes(id, name)
+        `)
+        .eq('teacher_id', user.id)
+        .eq('school_id', schoolId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      const uniqueClasses = data
+        ?.filter((item: any) => item.classes)
+        .map((item: any) => ({
+          id: item.classes.id,
+          name: item.classes.name
+        }))
+        .filter((cls, index, self) => 
+          index === self.findIndex(c => c.id === cls.id)
+        ) || [];
+
+      setClasses(uniqueClasses);
+    } catch (error) {
+      console.error('Error loading teacher classes:', error);
+    }
+  };
 
   // Handle cases where approval_workflow_stage might not exist, fallback to status
   const getWorkflowStage = (grade: any) => grade.approval_workflow_stage || grade.status || 'draft';
@@ -32,8 +82,16 @@ const TeacherGradesManager: React.FC = () => {
   const releasedGrades = grades?.filter(grade => getWorkflowStage(grade) === 'released') || [];
 
   const handleEnhancedGrading = () => {
+    if (!selectedClass || !selectedTerm || !selectedExamType) {
+      toast({
+        title: "Missing Information",
+        description: "Please select class, term, and exam type to continue",
+        variant: "default"
+      });
+      return;
+    }
     console.log('Opening enhanced bulk grading modal for teacher');
-    setShowBulkModal(true);
+    setShowEnhancedSheet(true);
   };
 
   const handleSingleGrade = () => {
@@ -42,10 +100,18 @@ const TeacherGradesManager: React.FC = () => {
   };
 
   const handleModalClose = () => {
-    setShowBulkModal(false);
     setShowGradesModal(false);
+    setShowEnhancedSheet(false);
     // Refresh grades data
     refetch();
+  };
+
+  const handleSubmissionSuccess = () => {
+    toast({
+      title: "Grades Submitted Successfully",
+      description: "Your grades have been submitted for principal approval",
+    });
+    handleModalClose();
   };
 
   return (
@@ -78,6 +144,56 @@ const TeacherGradesManager: React.FC = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Class and Term Selection for Enhanced Grading */}
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <h4 className="font-medium text-blue-900 mb-3">Grade Sheet Configuration</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Class</label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger className="h-9 bg-white">
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map(cls => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Term</label>
+                <Select value={selectedTerm} onValueChange={setSelectedTerm}>
+                  <SelectTrigger className="h-9 bg-white">
+                    <SelectValue placeholder="Select term" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Term 1">Term 1</SelectItem>
+                    <SelectItem value="Term 2">Term 2</SelectItem>
+                    <SelectItem value="Term 3">Term 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-blue-800">Exam Type</label>
+                <Select value={selectedExamType} onValueChange={setSelectedExamType}>
+                  <SelectTrigger className="h-9 bg-white">
+                    <SelectValue placeholder="Select exam" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OPENER">Opener</SelectItem>
+                    <SelectItem value="MID_TERM">Mid Term</SelectItem>
+                    <SelectItem value="END_TERM">End Term</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {isLoading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -153,6 +269,7 @@ const TeacherGradesManager: React.FC = () => {
                   variant="default" 
                   className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white h-12"
                   onClick={handleEnhancedGrading}
+                  disabled={!selectedClass || !selectedTerm || !selectedExamType}
                 >
                   <FileSpreadsheet className="h-5 w-5 mr-3" />
                   <div className="text-left">
@@ -177,73 +294,30 @@ const TeacherGradesManager: React.FC = () => {
                 </Button>
               </div>
             </div>
-
-            {/* Enhanced Teacher Instructions */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <BookOpen className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h5 className="font-medium text-blue-900 mb-2">Enhanced Grading Features</h5>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• <strong>Multi-Curriculum:</strong> Supports CBC competency-based, IGCSE, and standard grading</li>
-                    <li>• <strong>Smart Calculations:</strong> Automatic positioning, grade boundaries, and competency levels</li>
-                    <li>• <strong>Workflow Management:</strong> Draft → Submit → Principal Review → Release</li>
-                    <li>• <strong>Audit Trail:</strong> Complete history of changes and approvals</li>
-                    <li>• <strong>Batch Processing:</strong> Grade entire classes efficiently</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Workflow Status Messages */}
-            {draftGrades.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  <span className="text-sm text-yellow-800">
-                    You have {draftGrades.length} draft grades ready for submission.
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {submittedGrades.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-blue-800">
-                    {submittedGrades.length} grades submitted and awaiting principal review.
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {rejectedGrades.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <span className="text-sm text-red-800">
-                    {rejectedGrades.length} grades were rejected and need revision.
-                  </span>
-                </div>
-              </div>
-            )}
           </>
         )}
       </CardContent>
 
-      {/* Enhanced Modals */}
-      {showBulkModal && (
-        <EnhancedBulkGradingModal 
-          open={showBulkModal}
-          onClose={handleModalClose}
-        />
-      )}
+      {/* Enhanced Grade Sheet Dialog */}
+      <Dialog open={showEnhancedSheet} onOpenChange={setShowEnhancedSheet}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Enhanced Grade Sheet</DialogTitle>
+          </DialogHeader>
+          <EnhancedGradeSheet
+            classId={selectedClass}
+            term={selectedTerm}
+            examType={selectedExamType}
+            onSubmissionSuccess={handleSubmissionSuccess}
+          />
+        </DialogContent>
+      </Dialog>
 
+      {/* Single Grade Modal */}
       {showGradesModal && (
         <GradesModal 
-          onClose={handleModalClose} 
-          userRole={user?.role || 'teacher'} 
+          onClose={() => setShowGradesModal(false)} 
+          userRole={user.role} 
         />
       )}
     </Card>

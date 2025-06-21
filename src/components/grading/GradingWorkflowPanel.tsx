@@ -96,7 +96,7 @@ export const GradingWorkflowPanel: React.FC<GradingWorkflowPanelProps> = ({
 
       if (error) throw error;
       
-      // Process the data to handle potential null profiles with proper null safety
+      // Process the data with proper null safety
       const processedData = (data || []).map(approval => ({
         ...approval,
         profiles: approval.profiles && typeof approval.profiles === 'object' && 'name' in approval.profiles 

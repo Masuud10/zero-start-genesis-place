@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useOptimizedGradeQuery } from '@/hooks/useOptimizedGradeQuery';
+import { PrincipalGradeApprovalInterface } from '@/components/grading/PrincipalGradeApprovalInterface';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, XCircle, Eye, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Clock, AlertTriangle, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -16,6 +18,7 @@ const PrincipalGradesManager: React.FC = () => {
   const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
+  const [showApprovalInterface, setShowApprovalInterface] = useState(false);
 
   const { data: grades, isLoading, refetch } = useOptimizedGradeQuery({
     enabled: !!user?.id && !!schoolId
@@ -116,6 +119,10 @@ const PrincipalGradesManager: React.FC = () => {
     }
   };
 
+  const openApprovalInterface = () => {
+    setShowApprovalInterface(true);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -135,10 +142,20 @@ const PrincipalGradesManager: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="h-5 w-5" />
-          Grade Approvals
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            Grade Approvals
+          </CardTitle>
+          <Button
+            size="sm"
+            onClick={openApprovalInterface}
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Advanced Review
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -238,6 +255,16 @@ const PrincipalGradesManager: React.FC = () => {
                     </>
                   )}
                 </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={openApprovalInterface}
+                  className="ml-2"
+                >
+                  <Settings className="h-4 w-4 mr-1" />
+                  Detailed Review
+                </Button>
               </div>
             </div>
           )}
@@ -281,10 +308,29 @@ const PrincipalGradesManager: React.FC = () => {
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
               <h3 className="font-medium text-gray-900">All Caught Up!</h3>
               <p className="text-gray-500">No grades pending approval at this time.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openApprovalInterface}
+                className="mt-3"
+              >
+                <Settings className="h-4 w-4 mr-1" />
+                View All Grade Management
+              </Button>
             </div>
           )}
         </div>
       </CardContent>
+
+      {/* Advanced Approval Interface Dialog */}
+      <Dialog open={showApprovalInterface} onOpenChange={setShowApprovalInterface}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Advanced Grade Review & Approval</DialogTitle>
+          </DialogHeader>
+          <PrincipalGradeApprovalInterface />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
