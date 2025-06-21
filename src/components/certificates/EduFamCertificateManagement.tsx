@@ -2,425 +2,387 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Award, Download, Eye, Building2, AlertTriangle, RefreshCw, Search, Filter } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Award, 
+  Download, 
+  Eye, 
+  Filter, 
+  School, 
+  Users, 
+  Calendar,
+  FileText,
+  Search,
+  RefreshCw
+} from 'lucide-react';
 
 const EduFamCertificateManagement = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const [schoolFilter, setSchoolFilter] = useState('');
+  const [academicYearFilter, setAcademicYearFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSchool, setSelectedSchool] = useState('all');
-  const [selectedYear, setSelectedYear] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  // Fetch schools for filter dropdown
-  const { data: schools } = useQuery({
-    queryKey: ['schools-for-filter'],
+  // Fetch certificates with school and student information
+  const { data: certificates, isLoading, refetch } = useQuery({
+    queryKey: ['edufam-certificates', schoolFilter, academicYearFilter, searchTerm],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('schools')
-        .select('id, name')
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: user?.role === 'edufam_admin',
-  });
-
-  // Fetch certificates with filters
-  const { data: certificates, isLoading, error, refetch } = useQuery({
-    queryKey: ['edufam-certificates', searchTerm, selectedSchool, selectedYear, currentPage],
-    queryFn: async () => {
-      console.log('📜 Fetching filtered certificates for EduFam Admin');
+      console.log('🏆 Fetching EduFam certificates');
       
       let query = supabase
         .from('certificates')
         .select(`
           *,
-          student:students(name, admission_number),
-          class:classes(name, level, stream),
-          school:schools(name, location),
-          generated_by_profile:profiles!certificates_generated_by_fkey(name, role)
+          student:students(
+            name,
+            admission_number,
+            roll_number
+          ),
+          school:schools(
+            name,
+            location,
+            logo_url
+          ),
+          class:classes(
+            name,
+            level
+          ),
+          generated_by:profiles!certificates_generated_by_fkey(
+            name,
+            email
+          )
         `)
         .order('generated_at', { ascending: false });
 
-      // Apply filters
-      if (selectedSchool !== 'all') {
-        query = query.eq('school_id', selectedSchool);
+      if (schoolFilter) {
+        query = query.eq('school_id', schoolFilter);
       }
 
-      if (selectedYear !== 'all') {
-        query = query.eq('academic_year', selectedYear);
+      if (academicYearFilter) {
+        query = query.eq('academic_year', academicYearFilter);
       }
 
       if (searchTerm) {
-        query = query.or(`
-          student.name.ilike.%${searchTerm}%,
-          student.admission_number.ilike.%${searchTerm}%,
-          school.name.ilike.%${searchTerm}%
-        `);
+        query = query.or(`student.name.ilike.%${searchTerm}%,student.admission_number.ilike.%${searchTerm}%`);
       }
 
-      // Apply pagination
-      const from = (currentPage - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-
+      const { data, error } = await query.limit(100);
+      
       if (error) {
         console.error('Error fetching certificates:', error);
         throw error;
       }
 
-      console.log('📜 Certificates fetched:', data?.length || 0);
-      return { certificates: data || [], totalCount: count || 0 };
-    },
-    enabled: user?.role === 'edufam_admin',
-    staleTime: 2 * 60 * 1000, // 2 minutes
+      console.log('✅ Certificates fetched:', data?.length || 0);
+      return data || [];
+    }
   });
 
-  // Get unique academic years for filter
-  const { data: academicYears } = useQuery({
-    queryKey: ['academic-years-filter'],
+  // Fetch schools for filter dropdown
+  const { data: schools } = useQuery({
+    queryKey: ['schools-for-certificates'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('certificates')
-        .select('academic_year')
-        .order('academic_year', { ascending: false });
+        .from('schools')
+        .select('id, name, location')
+        .order('name');
       
       if (error) throw error;
-      const uniqueYears = [...new Set(data?.map(cert => cert.academic_year) || [])];
-      return uniqueYears;
-    },
-    enabled: user?.role === 'edufam_admin',
+      return data || [];
+    }
   });
 
-  const handleView = (certificate: any) => {
-    toast({
-      title: "Certificate Viewer",
-      description: `Viewing certificate for ${certificate.student?.name}`,
-    });
-    // TODO: Implement certificate viewer modal
+  const handleViewCertificate = (certificate: any) => {
+    console.log('👁️ Viewing certificate:', certificate.id);
+    // Certificate viewing logic would go here
   };
 
-  const handleDownload = (certificate: any) => {
-    toast({
-      title: "Download Certificate",
-      description: `Downloading certificate for ${certificate.student?.name}`,
-    });
-    // TODO: Implement certificate download functionality
+  const handleDownloadCertificate = (certificate: any) => {
+    console.log('📥 Downloading certificate:', certificate.id);
+    // Certificate download logic would go here
   };
 
-  const handleBulkAction = (action: string) => {
-    toast({
-      title: "Bulk Action",
-      description: `Performing ${action} on selected certificates`,
-    });
+  const getPerformanceSummary = (performance: any) => {
+    if (!performance || typeof performance !== 'object') return 'N/A';
+    
+    if (performance.average_score) {
+      return `${performance.average_score.toFixed(1)}% Average`;
+    }
+    
+    if (performance.total_marks && performance.possible_marks) {
+      const percentage = (performance.total_marks / performance.possible_marks) * 100;
+      return `${percentage.toFixed(1)}%`;
+    }
+    
+    return 'Performance data available';
   };
 
-  // Calculate pagination
-  const totalPages = Math.ceil((certificates?.totalCount || 0) / itemsPerPage);
-
-  // Access control check
-  if (user?.role !== 'edufam_admin') {
-    return (
-      <div className="p-6">
-        <Alert className="bg-red-50 border-red-200">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-600">Access Denied</AlertTitle>
-          <AlertDescription className="text-red-700">
-            Only EduFam Admins can access certificate management.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const getGradeFromPerformance = (performance: any) => {
+    if (!performance || typeof performance !== 'object') return 'N/A';
+    
+    if (performance.overall_grade) return performance.overall_grade;
+    if (performance.grade_letter) return performance.grade_letter;
+    
+    if (performance.average_score) {
+      const score = performance.average_score;
+      if (score >= 90) return 'A+';
+      if (score >= 80) return 'A';
+      if (score >= 70) return 'B+';
+      if (score >= 60) return 'B';
+      if (score >= 50) return 'C+';
+      if (score >= 40) return 'C';
+      return 'D';
+    }
+    
+    return 'N/A';
+  };
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-            <p className="text-gray-600">Loading certificates...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <Alert className="bg-red-50 border-red-200">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-600">Error Loading Certificates</AlertTitle>
-          <AlertDescription className="text-red-700 mb-4">
-            Failed to load certificates data. Please try again.
-          </AlertDescription>
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            className="border-red-300 text-red-700 hover:bg-red-50"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </Alert>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-20 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-2xl text-gray-900">
-          <Award className="h-6 w-6 text-purple-600" />
-          Certificate Management
-          <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-            {certificates?.totalCount || 0} Total
-          </Badge>
-        </CardTitle>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button
-            onClick={() => handleBulkAction('export')}
-            variant="outline"
-            size="sm"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export All
-          </Button>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Certificate Management</h2>
+          <p className="text-muted-foreground">
+            View and manage certificates generated across all schools
+          </p>
         </div>
+        <Button onClick={() => refetch()} variant="outline">
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Certificates</p>
+                <p className="text-3xl font-bold">{certificates?.length || 0}</p>
+              </div>
+              <Award className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Schools Involved</p>
+                <p className="text-3xl font-bold">
+                  {new Set(certificates?.map(c => c.school_id)).size || 0}
+                </p>
+              </div>
+              <School className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">This Month</p>
+                <p className="text-3xl font-bold">
+                  {certificates?.filter(c => 
+                    new Date(c.generated_at).getMonth() === new Date().getMonth()
+                  ).length || 0}
+                </p>
+              </div>
+              <Calendar className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Students</p>
+                <p className="text-3xl font-bold">
+                  {new Set(certificates?.map(c => c.student_id)).size || 0}
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="schoolFilter">School</Label>
+              <Select value={schoolFilter} onValueChange={setSchoolFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All schools" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Schools</SelectItem>
+                  {schools?.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name} - {school.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="academicYear">Academic Year</Label>
+              <Select value={academicYearFilter} onValueChange={setAcademicYearFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Years</SelectItem>
+                  <SelectItem value="2024">2024</SelectItem>
+                  <SelectItem value="2023">2023</SelectItem>
+                  <SelectItem value="2022">2022</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="search">Search Student</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by student name, admission number, or school..."
+                  id="search"
+                  placeholder="Student name or admission number"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white"
+                  className="pl-10"
                 />
               </div>
             </div>
-            <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-              <SelectTrigger className="w-48 bg-white">
-                <SelectValue placeholder="Filter by School" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Schools</SelectItem>
-                {schools?.map((school) => (
-                  <SelectItem key={school.id} value={school.id}>
-                    {school.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-48 bg-white">
-                <SelectValue placeholder="Filter by Year" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
-                {academicYears?.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSchoolFilter('');
+                  setAcademicYearFilter('');
+                  setSearchTerm('');
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Certificates Table */}
+      {/* Certificates List */}
       <Card>
-        <CardContent className="p-0">
-          {!certificates?.certificates || certificates.certificates.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <Award className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-xl font-medium text-gray-800 mb-2">No certificates found</h3>
-              <p className="text-gray-600">
-                {searchTerm || selectedSchool !== 'all' || selectedYear !== 'all'
-                  ? 'Try adjusting your filters'
-                  : 'No certificates have been generated yet'
-                }
-              </p>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Generated Certificates ({certificates?.length || 0})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {certificates && certificates.length > 0 ? (
+            <div className="space-y-4">
+              {certificates.map((certificate) => (
+                <div key={certificate.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4">
+                        <Award className="h-8 w-8 text-yellow-600" />
+                        <div>
+                          <h3 className="font-semibold">
+                            {certificate.student?.name || 'Unknown Student'}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {certificate.student?.admission_number && (
+                              <span>Admission: {certificate.student.admission_number} • </span>
+                            )}
+                            {certificate.school?.name || 'Unknown School'} • 
+                            {certificate.class?.name && ` ${certificate.class.name} • `}
+                            Academic Year: {certificate.academic_year}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Generated: {new Date(certificate.generated_at).toLocaleDateString()} by{' '}
+                            {certificate.generated_by?.name || 'Unknown'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <Badge variant="secondary">
+                          Grade: {getGradeFromPerformance(certificate.performance)}
+                        </Badge>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {getPerformanceSummary(certificate.performance)}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewCertificate(certificate)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleDownloadCertificate(certificate)}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    <TableHead className="font-medium text-gray-700">School</TableHead>
-                    <TableHead className="font-medium text-gray-700">Student</TableHead>
-                    <TableHead className="font-medium text-gray-700">Class</TableHead>
-                    <TableHead className="font-medium text-gray-700">Academic Year</TableHead>
-                    <TableHead className="font-medium text-gray-700">Generated By</TableHead>
-                    <TableHead className="font-medium text-gray-700">Date</TableHead>
-                    <TableHead className="font-medium text-gray-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {certificates.certificates.map((certificate) => (
-                    <TableRow key={certificate.id} className="hover:bg-gray-50">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {certificate.school?.name || 'Unknown School'}
-                            </div>
-                            {certificate.school?.location && (
-                              <div className="text-sm text-gray-500">
-                                {certificate.school.location}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {certificate.student?.name || 'Unknown Student'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Adm: {certificate.student?.admission_number || 'N/A'}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">
-                            {certificate.class?.name || 'Unknown Class'}
-                          </div>
-                          {certificate.class?.stream && (
-                            <div className="text-gray-500">{certificate.class.stream}</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-purple-300 text-purple-700">
-                          {certificate.academic_year}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="text-gray-900">
-                            {certificate.generated_by_profile?.name || 'Unknown'}
-                          </div>
-                          <div className="text-gray-500">
-                            {certificate.generated_by_profile?.role || 'N/A'}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-700">
-                        {new Date(certificate.generated_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleView(certificate)}
-                            className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDownload(certificate)}
-                            className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            PDF
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="text-center py-8">
+              <Award className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No certificates found</h3>
+              <p className="text-gray-500">
+                {schoolFilter || academicYearFilter || searchTerm 
+                  ? 'Try adjusting your filters to see more results.'
+                  : 'No certificates have been generated yet.'
+                }
+              </p>
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-700">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
-            {Math.min(currentPage * itemsPerPage, certificates?.totalCount || 0)} of{' '}
-            {certificates?.totalCount || 0} results
-          </p>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              variant="outline"
-              size="sm"
-            >
-              Previous
-            </Button>
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
-                return (
-                  <Button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    variant={currentPage === pageNum ? "default" : "outline"}
-                    size="sm"
-                    className="w-10"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-            <Button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              variant="outline"
-              size="sm"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
