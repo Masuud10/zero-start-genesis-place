@@ -1,57 +1,31 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Activity, Server, Database, Wifi, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
-
-interface SystemMetric {
-  id: string;
-  metric_name: string;
-  metric_value: number;
-  metric_type: string;
-  recorded_at: string;
-  metadata?: any;
-}
+import { Button } from '@/components/ui/button';
+import { useSystemHealth, useSystemMetrics } from '@/hooks/useSystemHealth';
+import { Activity, Server, Database, Wifi, AlertTriangle, CheckCircle, Clock, Zap, RefreshCw, Loader2 } from 'lucide-react';
 
 const SystemHealthModule = () => {
-  const [metrics, setMetrics] = useState<SystemMetric[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { 
+    data: healthData, 
+    isLoading: healthLoading, 
+    error: healthError,
+    refetch: refetchHealth 
+  } = useSystemHealth();
 
-  useEffect(() => {
-    fetchSystemMetrics();
-    const interval = setInterval(fetchSystemMetrics, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+  const { 
+    data: metrics, 
+    isLoading: metricsLoading, 
+    error: metricsError,
+    refetch: refetchMetrics 
+  } = useSystemMetrics();
 
-  const fetchSystemMetrics = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('system_metrics')
-        .select('*')
-        .order('recorded_at', { ascending: false });
-
-      if (error) throw error;
-
-      setMetrics(data || []);
-    } catch (error) {
-      console.error('Error fetching system metrics:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch system metrics",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getLatestMetric = (metricName: string) => {
-    return metrics.find(m => m.metric_name === metricName);
+  const handleRefresh = () => {
+    refetchHealth();
+    refetchMetrics();
   };
 
   const getHealthStatus = (value: number, type: string) => {
@@ -73,25 +47,52 @@ const SystemHealthModule = () => {
     }
   };
 
-  const uptime = getLatestMetric('System Uptime');
-  const responseTime = getLatestMetric('Average Response Time');
-  const errorRate = getLatestMetric('Error Rate');
-  const userCount = getLatestMetric('Total Active Users');
+  if (healthError || metricsError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">System Health</h2>
+            <p className="text-muted-foreground">Monitor system performance and infrastructure health</p>
+          </div>
+        </div>
 
-  const alerts = [
-    {
-      type: 'info',
-      title: 'System Update Scheduled',
-      description: 'Maintenance window scheduled for Saturday 2:00 AM - 4:00 AM UTC',
-      time: '2 hours ago'
-    },
-    {
-      type: 'warning',
-      title: 'High Memory Usage',
-      description: 'Database server memory usage at 85%. Consider scaling.',
-      time: '15 minutes ago'
-    }
-  ];
+        <Alert className="bg-red-50 border-red-200">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-600">System Health Error</AlertTitle>
+          <AlertDescription className="text-red-700 mb-4">
+            Failed to load system health data. Please try again.
+          </AlertDescription>
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (healthLoading || metricsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">System Health</h2>
+            <p className="text-muted-foreground">Monitor system performance and infrastructure health</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mr-4" />
+          <p className="text-gray-600">Loading system health data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -100,10 +101,16 @@ const SystemHealthModule = () => {
           <h2 className="text-3xl font-bold tracking-tight">System Health</h2>
           <p className="text-muted-foreground">Monitor system performance and infrastructure health</p>
         </div>
-        <Badge variant="outline" className="flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-green-600" />
-          All Systems Operational
-        </Badge>
+        <div className="flex items-center gap-4">
+          <Badge variant="outline" className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-600" />
+            {healthData?.api_status === 'operational' ? 'All Systems Operational' : 'System Issues Detected'}
+          </Badge>
+          <Button onClick={handleRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -114,10 +121,10 @@ const SystemHealthModule = () => {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getHealthStatus(uptime?.metric_value || 0, 'uptime').color}`}>
-              {uptime?.metric_value.toFixed(2)}%
+            <div className={`text-2xl font-bold ${getHealthStatus(healthData?.uptime_percent || 0, 'uptime').color}`}>
+              {healthData?.uptime_percent?.toFixed(2)}%
             </div>
-            <Progress value={uptime?.metric_value || 0} className="mt-2" />
+            <Progress value={healthData?.uptime_percent || 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-2">Last 30 days</p>
           </CardContent>
         </Card>
@@ -128,8 +135,8 @@ const SystemHealthModule = () => {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getHealthStatus(responseTime?.metric_value || 0, 'response_time').color}`}>
-              {responseTime?.metric_value}ms
+            <div className={`text-2xl font-bold ${getHealthStatus(healthData?.response_time_ms || 0, 'response_time').color}`}>
+              {Math.round(healthData?.response_time_ms || 0)}ms
             </div>
             <p className="text-xs text-muted-foreground">Average API response</p>
           </CardContent>
@@ -141,8 +148,8 @@ const SystemHealthModule = () => {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getHealthStatus(errorRate?.metric_value || 0, 'error_rate').color}`}>
-              {errorRate?.metric_value}%
+            <div className={`text-2xl font-bold ${getHealthStatus(healthData?.error_rate || 0, 'error_rate').color}`}>
+              {healthData?.error_rate?.toFixed(2)}%
             </div>
             <p className="text-xs text-muted-foreground">Last 24 hours</p>
           </CardContent>
@@ -155,7 +162,7 @@ const SystemHealthModule = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {userCount?.metric_value.toLocaleString()}
+              {healthData?.active_users?.toLocaleString() || 0}
             </div>
             <p className="text-xs text-muted-foreground">Currently online</p>
           </CardContent>
@@ -177,14 +184,18 @@ const SystemHealthModule = () => {
                 <Database className="w-4 h-4" />
                 <span>Database</span>
               </div>
-              <Badge variant="default">Healthy</Badge>
+              <Badge variant={healthData?.database_status === 'healthy' ? 'default' : 'destructive'}>
+                {healthData?.database_status || 'Unknown'}
+              </Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Server className="w-4 h-4" />
                 <span>API Servers</span>
               </div>
-              <Badge variant="default">Healthy</Badge>
+              <Badge variant={healthData?.api_status === 'operational' ? 'default' : 'destructive'}>
+                {healthData?.api_status || 'Unknown'}
+              </Badge>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -207,33 +218,37 @@ const SystemHealthModule = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
-              Recent Alerts
+              System Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {alerts.map((alert, index) => (
-              <Alert key={index}>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{alert.title}</AlertTitle>
-                <AlertDescription className="mt-2">
-                  {alert.description}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                    <Clock className="w-3 h-3" />
-                    {alert.time}
-                  </div>
-                </AlertDescription>
-              </Alert>
-            ))}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Last Health Check</span>
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {healthData?.last_updated ? new Date(healthData.last_updated).toLocaleString() : 'Never'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">System Metrics</span>
+              <span className="text-sm text-muted-foreground">
+                {metrics?.length || 0} recorded
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Monitoring Status</span>
+              <Badge variant="default">Active</Badge>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Performance Metrics */}
+      {/* Performance Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Performance Metrics</CardTitle>
+          <CardTitle>Performance Overview</CardTitle>
           <CardDescription>
-            Detailed system performance indicators
+            Real-time system performance indicators
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -254,17 +269,17 @@ const SystemHealthModule = () => {
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Disk I/O</span>
+                <span className="text-sm font-medium">Database Connections</span>
                 <span className="text-sm text-muted-foreground">32%</span>
               </div>
               <Progress value={32} />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Network Throughput</span>
-                <span className="text-sm text-muted-foreground">78%</span>
+                <span className="text-sm font-medium">API Response Time</span>
+                <span className="text-sm text-muted-foreground">{Math.round(healthData?.response_time_ms || 0)}ms</span>
               </div>
-              <Progress value={78} />
+              <Progress value={Math.min((healthData?.response_time_ms || 0) / 500 * 100, 100)} />
             </div>
           </div>
         </CardContent>
