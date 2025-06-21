@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -158,7 +157,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
             subject_id: grade.subject_id,
             score: grade.score,
             comments: grade.comments,
-            status: grade.status || 'draft'
+            status: (grade.status || 'draft') as 'draft' | 'submitted' | 'approved' | 'released'
           };
         });
       }
@@ -206,7 +205,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
           subject_id: subjectId,
           score: numericScore,
           comments: comments || prev[studentId]?.[subjectId]?.comments,
-          status: 'draft' as const
+          status: 'draft' as 'draft' | 'submitted' | 'approved' | 'released'
         }
       }
     }));
@@ -233,7 +232,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
               comments: grade.comments,
               submitted_by: user.id,
               school_id: schoolId,
-              status: 'draft' as const
+              status: 'draft' as 'draft' | 'submitted' | 'approved' | 'released'
             });
           }
         });
@@ -295,7 +294,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         academic_year: new Date().getFullYear().toString(),
         total_students: students.length,
         grades_entered: Object.keys(grades).length,
-        status: 'submitted' as const
+        status: 'submitted' as 'draft' | 'submitted' | 'approved' | 'released'
       };
 
       const { data: batch, error: batchError } = await supabase
@@ -310,7 +309,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
       const { error: updateError } = await supabase
         .from('grades')
         .update({
-          status: 'submitted' as const,
+          status: 'submitted' as 'draft' | 'submitted' | 'approved' | 'released',
           submission_batch_id: batch.id,
           submitted_at: new Date().toISOString()
         })
@@ -453,7 +452,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
               disabled={submitting || enteredGrades === 0}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {submitting ?<Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? 'Submitting...' : 'Submit for Approval'}
             </Button>
           </div>
