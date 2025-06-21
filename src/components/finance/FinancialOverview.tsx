@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, AlertCircle, FileText, CreditCard, RefreshCw } from 'lucide-react';
@@ -161,9 +160,9 @@ const FinancialOverview: React.FC = () => {
                   {classFeesSummary.slice(0, 5).map((classData, index) => (
                     <tr key={index} className="border-b">
                       <td className="p-2 font-medium">{classData.class_name}</td>
-                      <td className="p-2 text-right">{formatCurrency(classData.total_fees || 0)}</td>
-                      <td className="p-2 text-right text-green-600">{formatCurrency(classData.collected || 0)}</td>
-                      <td className="p-2 text-right text-red-600">{formatCurrency(classData.outstanding || 0)}</td>
+                      <td className="p-2 text-right">{formatCurrency(classData.total_amount || 0)}</td>
+                      <td className="p-2 text-right text-green-600">{formatCurrency(classData.paid_amount || 0)}</td>
+                      <td className="p-2 text-right text-red-600">{formatCurrency(classData.balance || 0)}</td>
                       <td className="p-2 text-right">{classData.student_count}</td>
                     </tr>
                   ))}

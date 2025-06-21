@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,6 +47,10 @@ interface ClassSummary {
   paid_amount: number;
   balance: number;
   student_count: number;
+  // Legacy aliases for backward compatibility
+  total_fees?: number;
+  collected?: number;
+  outstanding?: number;
 }
 
 interface FeeStructure {
@@ -93,10 +96,24 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
       
-      // Transform the data to match our interface
-      const transformedData = (data || []).map(fee => ({
-        ...fee,
-        status: fee.status as 'pending' | 'partial' | 'paid' | 'overdue'
+      // Transform the data to match our interface with proper type safety
+      const transformedData: FeeRecord[] = (data || []).map(fee => ({
+        id: fee.id,
+        student_id: fee.student_id || '',
+        class_id: fee.class_id || '',
+        amount: fee.amount || 0,
+        paid_amount: fee.paid_amount || 0,
+        status: (fee.status as 'pending' | 'partial' | 'paid' | 'overdue') || 'pending',
+        due_date: fee.due_date || '',
+        academic_year: fee.academic_year || '',
+        term: fee.term || '',
+        category: fee.category || '',
+        student: fee.student && typeof fee.student === 'object' && 'name' in fee.student
+          ? { name: fee.student.name || '', admission_number: fee.student.admission_number || '' }
+          : undefined,
+        class: fee.class && typeof fee.class === 'object' && 'name' in fee.class
+          ? { name: fee.class.name || '' }
+          : undefined
       }));
       
       setFees(transformedData);
@@ -122,14 +139,20 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
       
-      // Transform the data to handle potential errors in joins
-      const transformedData = (data || []).map(transaction => ({
-        ...transaction,
+      // Transform the data with proper type safety
+      const transformedData: MPESATransaction[] = (data || []).map(transaction => ({
+        id: transaction.id,
+        transaction_id: transaction.transaction_id || '',
+        mpesa_receipt_number: transaction.mpesa_receipt_number || '',
+        phone_number: transaction.phone_number || '',
+        amount_paid: transaction.amount_paid || 0,
+        transaction_date: transaction.transaction_date || '',
+        transaction_status: transaction.transaction_status || '',
         student: transaction.student && typeof transaction.student === 'object' && 'name' in transaction.student 
-          ? transaction.student 
+          ? { name: transaction.student.name || '', admission_number: transaction.student.admission_number || '' }
           : undefined,
         class: transaction.class && typeof transaction.class === 'object' && 'name' in transaction.class 
-          ? transaction.class 
+          ? { name: transaction.class.name || '' }
           : undefined
       }));
       
@@ -164,15 +187,22 @@ export const useFeeManagement = () => {
         const totalAmount = feeData?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
         const paidAmount = feeData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
         const studentCount = new Set(feeData?.map(fee => fee.student_id)).size;
+        const balance = totalAmount - paidAmount;
 
-        summaries.push({
+        const summary: ClassSummary = {
           class_id: cls.id,
           class_name: cls.name,
           total_amount: totalAmount,
           paid_amount: paidAmount,
-          balance: totalAmount - paidAmount,
-          student_count: studentCount
-        });
+          balance: balance,
+          student_count: studentCount,
+          // Add legacy aliases for backward compatibility
+          total_fees: totalAmount,
+          collected: paidAmount,
+          outstanding: balance
+        };
+
+        summaries.push(summary);
       }
 
       setClassSummaries(summaries);
@@ -251,15 +281,15 @@ export const useFeeManagement = () => {
 
       const result = data as { success?: boolean; message?: string; error?: string };
       
-      if (result?.success) {
+      if (result && typeof result === 'object' && 'success' in result && result.success) {
         toast({
           title: "Success",
-          description: result.message || "Fee assigned successfully",
+          description: (result.message as string) || "Fee assigned successfully",
         });
         await fetchFees();
         await fetchClassSummaries();
       } else {
-        throw new Error(result?.error || 'Failed to assign fee');
+        throw new Error((result?.error as string) || 'Failed to assign fee');
       }
     } catch (err: any) {
       toast({
@@ -331,7 +361,7 @@ export const useFeeManagement = () => {
 
       const result = data as { success?: boolean; error?: string };
 
-      if (result?.success) {
+      if (result && typeof result === 'object' && 'success' in result && result.success) {
         toast({
           title: "Success",
           description: "Payment recorded successfully",
@@ -340,7 +370,7 @@ export const useFeeManagement = () => {
         await fetchMPESATransactions();
         await fetchClassSummaries();
       } else {
-        throw new Error(result?.error || 'Failed to record payment');
+        throw new Error((result?.error as string) || 'Failed to record payment');
       }
     } catch (err: any) {
       toast({

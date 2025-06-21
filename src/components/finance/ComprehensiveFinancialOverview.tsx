@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -213,15 +212,15 @@ const ComprehensiveFinancialOverview: React.FC = () => {
                     </thead>
                     <tbody>
                       {classFeesSummary.map((classData, index) => {
-                        const collectionRate = classData.total_fees > 0 
-                          ? ((classData.collected / classData.total_fees) * 100).toFixed(1)
+                        const collectionRate = classData.total_amount > 0 
+                          ? ((classData.paid_amount / classData.total_amount) * 100).toFixed(1)
                           : '0';
                         return (
                           <tr key={index} className="border-b">
                             <td className="p-2 font-medium">{classData.class_name}</td>
-                            <td className="p-2 text-right">{formatCurrency(classData.total_fees || 0)}</td>
-                            <td className="p-2 text-right text-green-600">{formatCurrency(classData.collected || 0)}</td>
-                            <td className="p-2 text-right text-red-600">{formatCurrency(classData.outstanding || 0)}</td>
+                            <td className="p-2 text-right">{formatCurrency(classData.total_amount || 0)}</td>
+                            <td className="p-2 text-right text-green-600">{formatCurrency(classData.paid_amount || 0)}</td>
+                            <td className="p-2 text-right text-red-600">{formatCurrency(classData.balance || 0)}</td>
                             <td className="p-2 text-right">{classData.student_count}</td>
                             <td className="p-2 text-right">
                               <span className={`font-medium ${parseFloat(collectionRate) >= 80 ? 'text-green-600' : parseFloat(collectionRate) >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
