@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -46,6 +45,7 @@ export const EnhancedBulkGradingModal: React.FC<EnhancedBulkGradingModalProps> =
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [approvals, setApprovals] = useState<any[]>([]);
 
   // Load classes on component mount
   useEffect(() => {
@@ -154,13 +154,33 @@ export const EnhancedBulkGradingModal: React.FC<EnhancedBulkGradingModalProps> =
         setBatchId(batch.id);
         setBatchStatus(batch.status);
         loadExistingGrades(batch.id);
+        loadBatchApprovals(batch.id);
       } else {
         setBatchId(null);
         setBatchStatus('draft');
         setGrades({});
+        setApprovals([]);
       }
     } catch (error) {
       console.error('Error checking existing batch:', error);
+    }
+  };
+
+  const loadBatchApprovals = async (batchId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('grade_approvals')
+        .select(`
+          *,
+          profiles!inner(name, role)
+        `)
+        .eq('batch_id', batchId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setApprovals(data || []);
+    } catch (error) {
+      console.error('Error loading batch approvals:', error);
     }
   };
 
@@ -463,11 +483,10 @@ export const EnhancedBulkGradingModal: React.FC<EnhancedBulkGradingModalProps> =
               
               <TabsContent value="workflow" className="h-full mt-4 px-6">
                 <GradingWorkflowPanel
-                  batchId={batchId}
-                  batchStatus={batchStatus}
-                  selectedClass={selectedClass}
-                  selectedTerm={selectedTerm}
-                  selectedExamType={selectedExamType}
+                  gradeId={batchId || ''}
+                  currentStatus={batchStatus as 'draft' | 'submitted' | 'approved' | 'released'}
+                  approvals={approvals}
+                  userRole={user?.role || 'teacher'}
                 />
               </TabsContent>
             </Tabs>
