@@ -98,12 +98,20 @@ export const useCertificates = () => {
         throw new Error('No performance data found for certificate generation');
       }
 
-      // Properly type the performance data
-      const typedPerformanceData = performanceData as CertificatePerformance;
-
-      // Validate the data structure
-      if (!typedPerformanceData.student || !typedPerformanceData.school) {
+      // Safely convert the Json response to our TypeScript interface
+      // First convert to unknown, then to our expected type after validation
+      const rawData = performanceData as unknown;
+      
+      // Basic validation to ensure we have the expected structure
+      if (typeof rawData !== 'object' || rawData === null) {
         throw new Error('Invalid certificate data structure received');
+      }
+
+      const typedPerformanceData = rawData as CertificatePerformance;
+
+      // Validate the data structure has required properties
+      if (!typedPerformanceData.student || !typedPerformanceData.school) {
+        throw new Error('Invalid certificate data structure - missing required fields');
       }
 
       // Convert to JSON-compatible format for database storage
