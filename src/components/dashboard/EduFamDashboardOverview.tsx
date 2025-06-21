@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -60,7 +61,7 @@ const EduFamDashboardOverview = () => {
         .from('financial_transactions')
         .select('amount, created_at, transaction_type');
 
-      const totalRevenue = financialData?.reduce((sum, trans) => sum + parseFloat(trans.amount || '0'), 0) || 0;
+      const totalRevenue = financialData?.reduce((sum, trans) => sum + parseFloat(String(trans.amount || 0)), 0) || 0;
 
       // Get grades distribution
       const { data: gradesData } = await supabase
@@ -130,7 +131,7 @@ const EduFamDashboardOverview = () => {
       if (!acc[month]) {
         acc[month] = { month, revenue: 0, transactions: 0 };
       }
-      acc[month].revenue += parseFloat(trans.amount || '0');
+      acc[month].revenue += parseFloat(String(trans.amount || 0));
       acc[month].transactions++;
       return acc;
     }, {});
