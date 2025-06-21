@@ -81,7 +81,37 @@ const PrincipalTimetableCard = () => {
       const todaySchedule = (timetableRecords || [])
         .filter(record => record.day_of_week === todayName)
         .map(record => ({
-          id: recor<div className="p-6">
+          id: record.id,
+          className: record.classes?.name || 'Unknown Class',
+          subjectName: record.subjects?.name || 'Unknown Subject',
+          teacherName: record.profiles?.name || 'Unknown Teacher',
+          startTime: record.start_time,
+          endTime: record.end_time,
+          room: record.room || 'TBA'
+        }));
+
+      setTimetableData({
+        totalSchedules,
+        publishedSchedules,
+        conflictsCount: 0, // TODO: Implement conflict detection
+        todaySchedule
+      });
+
+    } catch (error: any) {
+      console.error('Error fetching timetable data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load timetable data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="p-6">
         <CardHeader className="px-0 pb-4">
           <CardTitle className="flex items-center gap-2 text-gray-900">
             <Calendar className="h-5 w-5" />
