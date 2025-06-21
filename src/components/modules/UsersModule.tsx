@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +37,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isSystemAdmin, schoolId, validateSchoolAccess } = useSchoolScopedData();
+  const { isSystemAdmin, schoolId } = useSchoolScopedData();
 
   console.log('🔍 UsersModule: Current user state:', {
     user: user,
@@ -116,16 +117,10 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
       console.log('🔍 UsersModule: Final filtered users:', finalUsers);
       setUsers(finalUsers);
 
-      if (onDataChanged) onDataChanged(); // Notify parent dashboard after fetch/refresh
+      if (onDataChanged) onDataChanged();
 
     } catch (error: any) {
-      console.error('🔍 UsersModule: Error in fetchUsers:', {
-        error,
-        message: error?.message,
-        stack: error?.stack,
-        name: error?.name,
-        cause: error?.cause
-      });
+      console.error('🔍 UsersModule: Error in fetchUsers:', error);
       
       const errorMessage = error?.message || 'Unknown error occurred while fetching users';
       setError(errorMessage);
@@ -147,7 +142,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
     return matchesSearch && matchesRole;
   });
 
-  // Check if user can add users - simplified logic
+  // Check if user can add users
   const canAddUsers = user && (
     user.role === 'elimisha_admin' || 
     user.role === 'edufam_admin' || 

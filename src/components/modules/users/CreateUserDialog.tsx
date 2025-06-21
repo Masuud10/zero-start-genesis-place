@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -262,7 +263,7 @@ const CreateUserDialog = ({ onUserCreated, children }: CreateUserDialogProps) =>
 
   const availableRoles = getAvailableRoles();
 
-  // Check if current user can create users - Elimisha and EduFam admins should be able to
+  // Check if current user can create users
   const canCreateUsers = user && (
     user.role === 'elimisha_admin' || 
     user.role === 'edufam_admin' || 

@@ -93,7 +93,7 @@ export class SchoolService {
 
       // Handle the response
       if (data && typeof data === 'object' && data !== null) {
-        const result = data as any;
+        const result = data as Record<string, any>;
         
         if ('error' in result && typeof result.error === 'string') {
           console.error('🏫 SchoolService: Function returned error:', result.error);
