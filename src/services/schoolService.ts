@@ -5,6 +5,15 @@ export interface CreateSchoolRequest {
   email: string;
   phone: string;
   address: string;
+  logo_url?: string;
+  website_url?: string;
+  motto?: string;
+  slogan?: string;
+  school_type?: 'primary' | 'secondary' | 'college';
+  registration_number?: string;
+  year_established?: number;
+  term_structure?: '3-term' | '2-semester' | 'other';
+  owner_information?: string;
   ownerEmail?: string;
   ownerName?: string;
   curriculumType?: 'cbc' | 'igcse';
@@ -24,12 +33,20 @@ export class SchoolService {
       console.log('🏫 SchoolService: Creating school via database function', schoolData);
 
       // Use the create_school database function (only elimisha_admin can call this)
-      // Cast to 'any' to avoid TS2353 until Supabase types are regenerated/updated
-      const { data, error } = await supabase.rpc('create_school', {
+      const { data, error } = await supabase.rpc('create_enhanced_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
         school_phone: schoolData.phone,
         school_address: schoolData.address,
+        school_logo_url: schoolData.logo_url || null,
+        school_website_url: schoolData.website_url || null,
+        school_motto: schoolData.motto || null,
+        school_slogan: schoolData.slogan || null,
+        school_type: schoolData.school_type || 'primary',
+        registration_number: schoolData.registration_number || null,
+        year_established: schoolData.year_established || null,
+        term_structure: schoolData.term_structure || '3-term',
+        owner_information: schoolData.owner_information || null,
         owner_email: schoolData.ownerEmail || null,
         owner_name: schoolData.ownerName || null,
         curriculum_type: schoolData.curriculumType || 'cbc'
@@ -88,6 +105,14 @@ export class SchoolService {
           phone,
           address,
           logo_url,
+          website_url,
+          motto,
+          slogan,
+          school_type,
+          registration_number,
+          year_established,
+          term_structure,
+          owner_information,
           created_at,
           updated_at,
           owner_id,
@@ -118,6 +143,14 @@ export class SchoolService {
           phone,
           address,
           logo_url,
+          website_url,
+          motto,
+          slogan,
+          school_type,
+          registration_number,
+          year_established,
+          term_structure,
+          owner_information,
           created_at,
           updated_at,
           owner_id,
