@@ -18,6 +18,7 @@ type GradeValue = {
   letter_grade?: string | null;
   cbc_performance_level?: string | null;
   percentage?: number | null;
+  isAbsent?: boolean;
 };
 
 export const useBulkGradingSubmissionHandler = ({
@@ -52,8 +53,8 @@ export const useBulkGradingSubmissionHandler = ({
         for (const subjectId in grades[studentId]) {
           const grade = grades[studentId][subjectId];
           
-          // Only submit grades that have actual scores
-          if (grade.score !== undefined && grade.score !== null && grade.score > 0) {
+          // Submit grades that have scores or are marked as absent
+          if ((grade.score !== undefined && grade.score !== null && grade.score >= 0) || grade.isAbsent) {
             gradesToUpsert.push({
               school_id: schoolId,
               student_id: studentId,
@@ -61,14 +62,15 @@ export const useBulkGradingSubmissionHandler = ({
               subject_id: subjectId,
               term: selectedTerm,
               exam_type: selectedExamType,
-              score: Number(grade.score),
+              score: grade.isAbsent ? null : Number(grade.score),
               max_score: 100, // Default max score
-              percentage: grade.percentage || (Number(grade.score) / 100) * 100,
-              letter_grade: grade.letter_grade || null,
+              percentage: grade.isAbsent ? null : (grade.percentage || (Number(grade.score || 0) / 100) * 100),
+              letter_grade: grade.isAbsent ? null : (grade.letter_grade || null),
               cbc_performance_level: grade.cbc_performance_level || null,
               submitted_by: userId,
               status: isTeacher ? 'submitted' : 'approved', // Teachers submit for approval, principals approve directly
               submitted_at: new Date().toISOString(),
+              comments: grade.isAbsent ? 'Student was absent' : null,
             });
             validGradeCount++;
           }
@@ -78,7 +80,7 @@ export const useBulkGradingSubmissionHandler = ({
       if (gradesToUpsert.length === 0) {
         toast({ 
           title: "No Grades to Submit", 
-          description: "Please enter at least one grade score.", 
+          description: "Please enter at least one grade or mark students as absent.", 
           variant: "default"
         });
         return;
