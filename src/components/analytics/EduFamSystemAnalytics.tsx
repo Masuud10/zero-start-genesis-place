@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEduFamSystemAnalytics } from '@/hooks/useEduFamSystemAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, G , CalendarCheck, DollarSign, Building2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, GraduationCap, CalendarCheck, DollarSign, Building2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 

@@ -112,12 +112,12 @@ export const useFeeManagement = () => {
         category: fee.category || '',
         student: (fee.student && fee.student !== null && typeof fee.student === 'object' && 'name' in fee.student)
           ? { 
-              name: String(fee.student.name || ''), 
-              admission_number: String(fee.student.admission_number || '') 
+              name: String((fee.student as any).name || ''), 
+              admission_number: String((fee.student as any).admission_number || '') 
             }
           : undefined,
         class: (fee.class && fee.class !== null && typeof fee.class === 'object' && 'name' in fee.class)
-          ? { name: String(fee.class.name || '') }
+          ? { name: String((fee.class as any).name || '') }
           : undefined
       }));
       
@@ -155,12 +155,12 @@ export const useFeeManagement = () => {
         transaction_status: transaction.transaction_status || '',
         student: (transaction.student && transaction.student !== null && typeof transaction.student === 'object' && 'name' in transaction.student)
           ? { 
-              name: String(transaction.student.name || ''), 
-              admission_number: String(transaction.student.admission_number || '') 
+              name: String((transaction.student as any).name || ''), 
+              admission_number: String((transaction.student as any).admission_number || '') 
             }
           : undefined,
         class: (transaction.class && transaction.class !== null && typeof transaction.class === 'object' && 'name' in transaction.class)
-          ? { name: String(transaction.class.name || '') }
+          ? { name: String((transaction.class as any).name || '') }
           : undefined
       }));
       
