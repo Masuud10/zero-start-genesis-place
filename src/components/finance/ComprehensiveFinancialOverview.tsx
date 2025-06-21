@@ -44,7 +44,7 @@ const ComprehensiveFinancialOverview: React.FC = () => {
 
     const totalExpenses = expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
     const totalRevenue = analyticsData.keyMetrics.totalCollected || 0;
-    const pendingFees = analyticsData.keyMetrics.totalPending || 0;
+    const pendingFees = analyticsData.keyMetrics.outstanding || 0;
     const netIncome = totalRevenue - totalExpenses;
 
     return {
