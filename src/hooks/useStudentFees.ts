@@ -68,37 +68,43 @@ export const useStudentFees = () => {
       if (error) throw error;
       
       // Map the fees data to match StudentFee interface
-      const mappedData = (data || []).map(item => ({
-        id: item.id,
-        student_id: item.student_id || '',
-        school_id: item.school_id || '',
-        fee_structure_id: undefined,
-        class_id: item.class_id,
-        amount: item.amount || 0,
-        amount_paid: item.paid_amount || 0,
-        status: item.status === 'paid' ? 'paid' : 
-               item.status === 'partial' ? 'partial' : 
-               item.status === 'overdue' ? 'overdue' : 'unpaid',
-        due_date: item.due_date || '',
-        academic_year: item.academic_year || '',
-        term: item.term || '',
-        installment_plan: {},
-        discount_amount: item.discount_amount || 0,
-        discount_type: 'none' as const,
-        late_fee_applied: item.late_fee_amount || 0,
-        payment_method: item.payment_method,
-        payment_date: item.paid_date,
-        receipt_number: undefined,
-        notes: undefined,
-        created_at: item.created_at || '',
-        updated_at: item.updated_at || '',
-        student: item.student && typeof item.student === 'object' && item.student !== null && 'name' in item.student 
-          ? { name: item.student.name, admission_number: item.student.admission_number }
-          : undefined,
-        class: item.class && typeof item.class === 'object' && item.class !== null && 'name' in item.class
-          ? { name: item.class.name }
-          : undefined
-      })) as StudentFee[];
+      const mappedData = (data || []).map(item => {
+        const studentData = item.student && typeof item.student === 'object' && item.student !== null && 'name' in item.student
+          ? { name: (item.student as any).name, admission_number: (item.student as any).admission_number }
+          : undefined;
+          
+        const classData = item.class && typeof item.class === 'object' && item.class !== null && 'name' in item.class
+          ? { name: (item.class as any).name }
+          : undefined;
+          
+        return {
+          id: item.id,
+          student_id: item.student_id || '',
+          school_id: item.school_id || '',
+          fee_structure_id: undefined,
+          class_id: item.class_id,
+          amount: item.amount || 0,
+          amount_paid: item.paid_amount || 0,
+          status: item.status === 'paid' ? 'paid' : 
+                 item.status === 'partial' ? 'partial' : 
+                 item.status === 'overdue' ? 'overdue' : 'unpaid',
+          due_date: item.due_date || '',
+          academic_year: item.academic_year || '',
+          term: item.term || '',
+          installment_plan: {},
+          discount_amount: item.discount_amount || 0,
+          discount_type: 'none' as const,
+          late_fee_applied: item.late_fee_amount || 0,
+          payment_method: item.payment_method,
+          payment_date: item.paid_date,
+          receipt_number: undefined,
+          notes: undefined,
+          created_at: item.created_at || '',
+          updated_at: item.updated_at || '',
+          student: studentData,
+          class: classData
+        };
+      }) as StudentFee[];
       
       setStudentFees(mappedData);
     } catch (err: any) {

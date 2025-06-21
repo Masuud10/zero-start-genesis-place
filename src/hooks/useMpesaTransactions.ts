@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,15 +65,21 @@ export const useMpesaTransactions = () => {
 
       if (error) throw error;
       
-      const mappedData = (data || []).map(item => ({
-        ...item,
-        student: item.student && typeof item.student === 'object' && item.student !== null && 'name' in item.student 
-          ? { name: item.student.name, admission_number: item.student.admission_number }
-          : undefined,
-        class: item.class && typeof item.class === 'object' && item.class !== null && 'name' in item.class
-          ? { name: item.class.name }
-          : undefined
-      })) as MpesaTransaction[];
+      const mappedData = (data || []).map(item => {
+        const studentData = item.student && typeof item.student === 'object' && item.student !== null && 'name' in item.student
+          ? { name: (item.student as any).name, admission_number: (item.student as any).admission_number }
+          : undefined;
+          
+        const classData = item.class && typeof item.class === 'object' && item.class !== null && 'name' in item.class
+          ? { name: (item.class as any).name }
+          : undefined;
+          
+        return {
+          ...item,
+          student: studentData,
+          class: classData
+        };
+      }) as MpesaTransaction[];
       
       setTransactions(mappedData);
     } catch (err: any) {
