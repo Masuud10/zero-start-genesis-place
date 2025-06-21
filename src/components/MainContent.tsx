@@ -36,18 +36,27 @@ const MainContent: React.FC = () => {
 
   console.log('🎯 MainContent: Rendering section:', activeSection, 'for user role:', user?.role);
 
+  const handleModalOpen = (modalType: string) => {
+    console.log('MainContent: Modal open requested:', modalType);
+    // Handle modal opening logic here if needed
+  };
+
   const renderDashboard = () => {
-    switch (user?.role) {
+    if (!user) {
+      return <div>Loading user data...</div>;
+    }
+
+    switch (user.role) {
       case 'edufam_admin':
-        return <EduFamAdminDashboard />;
+        return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
       case 'principal':
-        return <PrincipalDashboard />;
+        return <PrincipalDashboard user={user} onModalOpen={handleModalOpen} />;
       case 'teacher':
-        return <TeacherDashboard />;
+        return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
       case 'parent':
-        return <ParentDashboard />;
+        return <ParentDashboard user={user} onModalOpen={handleModalOpen} />;
       case 'finance_officer':
-        return <FinanceOfficerDashboard />;
+        return <FinanceOfficerDashboard user={user} />;
       case 'school_owner':
         return <SchoolOwnerDashboard />;
       default:
