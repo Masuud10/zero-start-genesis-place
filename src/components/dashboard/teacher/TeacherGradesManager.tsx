@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useOptimizedGradeQuery } from '@/hooks/useOptimizedGradeQuery';
-import { EnhancedGradeSheet } from '@/components/grading/EnhancedGradeSheet';
+import { ImprovedGradeSheet } from '@/components/grading/ImprovedGradeSheet';
 import GradesModal from '@/components/modals/GradesModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,7 +25,7 @@ const TeacherGradesManager: React.FC = () => {
   const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
   const [showGradesModal, setShowGradesModal] = useState(false);
-  const [showEnhancedSheet, setShowEnhancedSheet] = useState(false);
+  const [showImprovedSheet, setShowImprovedSheet] = useState(false);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
   const [selectedExamType, setSelectedExamType] = useState('');
@@ -44,17 +44,22 @@ const TeacherGradesManager: React.FC = () => {
     if (!user?.id || !schoolId) return;
 
     try {
+      console.log('Loading teacher classes for:', user.id, schoolId);
+
       const { data, error } = await supabase
         .from('subject_teacher_assignments')
         .select(`
           class_id,
-          classes(id, name)
+          classes!inner(id, name)
         `)
         .eq('teacher_id', user.id)
         .eq('school_id', schoolId)
         .eq('is_active', true);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading teacher classes:', error);
+        throw error;
+      }
 
       const uniqueClasses = data
         ?.filter((item: any) => item.classes)
@@ -66,9 +71,24 @@ const TeacherGradesManager: React.FC = () => {
           index === self.findIndex(c => c.id === cls.id)
         ) || [];
 
+      console.log('Loaded classes:', uniqueClasses);
       setClasses(uniqueClasses);
+
+      if (uniqueClasses.length === 0) {
+        toast({
+          title: "No Classes Assigned",
+          description: "You are not assigned to any classes. Please contact your administrator.",
+          variant: "default"
+        });
+      }
+
     } catch (error) {
       console.error('Error loading teacher classes:', error);
+      toast({
+        title: "Error Loading Classes",
+        description: "Failed to load your assigned classes. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -81,7 +101,7 @@ const TeacherGradesManager: React.FC = () => {
   const rejectedGrades = grades?.filter(grade => getWorkflowStage(grade) === 'rejected') || [];
   const releasedGrades = grades?.filter(grade => getWorkflowStage(grade) === 'released') || [];
 
-  const handleEnhancedGrading = () => {
+  const handleImprovedGrading = () => {
     if (!selectedClass || !selectedTerm || !selectedExamType) {
       toast({
         title: "Missing Information",
@@ -90,8 +110,8 @@ const TeacherGradesManager: React.FC = () => {
       });
       return;
     }
-    console.log('Opening enhanced bulk grading modal for teacher');
-    setShowEnhancedSheet(true);
+    console.log('Opening improved grading sheet for teacher');
+    setShowImprovedSheet(true);
   };
 
   const handleSingleGrade = () => {
@@ -101,7 +121,7 @@ const TeacherGradesManager: React.FC = () => {
 
   const handleModalClose = () => {
     setShowGradesModal(false);
-    setShowEnhancedSheet(false);
+    setShowImprovedSheet(false);
     // Refresh grades data
     refetch();
   };
@@ -120,7 +140,7 @@ const TeacherGradesManager: React.FC = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Enhanced Grade Management
+            Grade Management System
           </CardTitle>
           <div className="flex gap-2">
             <Button 
@@ -134,17 +154,17 @@ const TeacherGradesManager: React.FC = () => {
             </Button>
             <Button 
               size="sm"
-              onClick={handleEnhancedGrading}
+              onClick={handleImprovedGrading}
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
             >
               <FileSpreadsheet className="h-4 w-4" />
-              Enhanced Grade Sheet
+              Grade Sheet
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Class and Term Selection for Enhanced Grading */}
+        {/* Class and Term Selection */}
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <h4 className="font-medium text-blue-900 mb-3">Grade Sheet Configuration</h4>
@@ -201,7 +221,7 @@ const TeacherGradesManager: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Enhanced Status Overview Cards */}
+            {/* Status Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="flex items-center justify-between p-3 border rounded-lg bg-yellow-25 border-yellow-200">
                 <div>
@@ -255,10 +275,10 @@ const TeacherGradesManager: React.FC = () => {
               )}
             </div>
 
-            {/* Enhanced Quick Actions */}
+            {/* Quick Actions */}
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-900">Enhanced Grading Tools</h4>
+                <h4 className="font-medium text-gray-900">Grading Tools</h4>
                 <Badge variant="outline" className="text-xs">
                   Multi-Curriculum Support
                 </Badge>
@@ -268,13 +288,17 @@ const TeacherGradesManager: React.FC = () => {
                 <Button 
                   variant="default" 
                   className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white h-12"
-                  onClick={handleEnhancedGrading}
+                  onClick={handleImprovedGrading}
                   disabled={!selectedClass || !selectedTerm || !selectedExamType}
                 >
                   <FileSpreadsheet className="h-5 w-5 mr-3" />
                   <div className="text-left">
-                    <div className="font-medium">Enhanced Grade Sheet</div>
-                    <div className="text-xs opacity-90">CBC, IGCSE & Standard curriculum support</div>
+                    <div className="font-medium">Open Grade Sheet</div>
+                    <div className="text-xs opacity-90">
+                      {selectedClass && selectedTerm && selectedExamType 
+                        ? `${selectedTerm} - ${selectedExamType}` 
+                        : 'Select class, term & exam type'}
+                    </div>
                   </div>
                   <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-800">
                     Recommended
@@ -298,18 +322,20 @@ const TeacherGradesManager: React.FC = () => {
         )}
       </CardContent>
 
-      {/* Enhanced Grade Sheet Dialog */}
-      <Dialog open={showEnhancedSheet} onOpenChange={setShowEnhancedSheet}>
+      {/* Improved Grade Sheet Dialog */}
+      <Dialog open={showImprovedSheet} onOpenChange={setShowImprovedSheet}>
         <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Enhanced Grade Sheet</DialogTitle>
+            <DialogTitle>Grade Sheet - {classes.find(c => c.id === selectedClass)?.name}</DialogTitle>
           </DialogHeader>
-          <EnhancedGradeSheet
-            classId={selectedClass}
-            term={selectedTerm}
-            examType={selectedExamType}
-            onSubmissionSuccess={handleSubmissionSuccess}
-          />
+          {showImprovedSheet && (
+            <ImprovedGradeSheet
+              classId={selectedClass}
+              term={selectedTerm}
+              examType={selectedExamType}
+              onSubmissionSuccess={handleSubmissionSuccess}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
