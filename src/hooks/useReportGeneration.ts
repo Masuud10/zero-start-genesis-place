@@ -300,7 +300,7 @@ export const useReportGeneration = () => {
               created_at,
               school:schools(name, location)
             `)
-            .order('last_login_at', { ascending: false, nullsLast: true });
+            .order('last_login_at', { ascending: false });
           break;
 
         default:

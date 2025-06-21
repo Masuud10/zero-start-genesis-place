@@ -59,6 +59,10 @@ const ElimshaLayout = () => {
     }
   };
 
+  const handleModalOpen = (modalType: string) => {
+    console.log('🎭 ElimshaLayout: Modal open requested:', modalType);
+  };
+
   const transformedSchool = currentSchool ? {
     id: currentSchool.id,
     name: currentSchool.name,
@@ -88,7 +92,10 @@ const ElimshaLayout = () => {
             showHeader={true}
             showGreetings={activeSection === 'dashboard'}
           >
-            <ContentRenderer />
+            <ContentRenderer 
+              activeSection={activeSection}
+              onModalOpen={handleModalOpen}
+            />
           </DashboardContainer>
         </SidebarInset>
       </div>

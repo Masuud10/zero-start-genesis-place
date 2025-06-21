@@ -47,6 +47,14 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection, onModa
 
   console.log('🎯 ContentRenderer: Rendering section:', activeSection, 'for role:', user?.role);
 
+  // Default analytics filters
+  const defaultFilters = {
+    term: new Date().getFullYear().toString(),
+    class: '',
+    subject: '',
+    dateRange: 'current_term'
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       // Dashboard sections
@@ -55,15 +63,15 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection, onModa
           case 'edufam_admin':
             return <EduFamAdminDashboard onModalOpen={onModalOpen} />;
           case 'principal':
-            return <PrincipalDashboard onModalOpen={onModalOpen} />;
+            return <PrincipalDashboard user={user} onModalOpen={onModalOpen} />;
           case 'teacher':
-            return <TeacherDashboard onModalOpen={onModalOpen} />;
+            return <TeacherDashboard user={user} onModalOpen={onModalOpen} />;
           case 'parent':
-            return <ParentDashboard onModalOpen={onModalOpen} />;
+            return <ParentDashboard user={user} onModalOpen={onModalOpen} />;
           case 'finance_officer':
-            return <FinanceOfficerDashboard onModalOpen={onModalOpen} />;
+            return <FinanceOfficerDashboard />;
           case 'school_owner':
-            return <SchoolOwnerDashboard onModalOpen={onModalOpen} />;
+            return <SchoolOwnerDashboard />;
           default:
             return <div>Dashboard not configured for this role</div>;
         }
@@ -76,13 +84,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection, onModa
           case 'principal':
             return <PrincipalAnalytics />;
           case 'teacher':
-            return <TeacherAnalytics />;
+            return <TeacherAnalytics filters={defaultFilters} />;
           case 'parent':
-            return <ParentAnalytics />;
+            return <ParentAnalytics filters={defaultFilters} />;
           case 'finance_officer':
-            return <FinanceOfficerAnalytics />;
+            return <FinanceOfficerAnalytics filters={defaultFilters} />;
           case 'school_owner':
-            return <SchoolOwnerAnalytics />;
+            return <SchoolOwnerAnalytics filters={defaultFilters} />;
           default:
             return <div>Analytics not available for this role</div>;
         }
