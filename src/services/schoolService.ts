@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CreateSchoolRequest {
@@ -32,25 +33,15 @@ export class SchoolService {
     try {
       console.log('🏫 SchoolService: Creating school via database function', schoolData);
 
-      // Use the create_school database function (only elimisha_admin can call this)
-      const { data, error } = await supabase.rpc('create_enhanced_school', {
+      // Use the existing create_school database function with owner details
+      const { data, error } = await supabase.rpc('create_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
         school_phone: schoolData.phone,
         school_address: schoolData.address,
-        school_logo_url: schoolData.logo_url || null,
-        school_website_url: schoolData.website_url || null,
-        school_motto: schoolData.motto || null,
-        school_slogan: schoolData.slogan || null,
-        school_type: schoolData.school_type || 'primary',
-        registration_number: schoolData.registration_number || null,
-        year_established: schoolData.year_established || null,
-        term_structure: schoolData.term_structure || '3-term',
-        owner_information: schoolData.owner_information || null,
         owner_email: schoolData.ownerEmail || null,
-        owner_name: schoolData.ownerName || null,
-        curriculum_type: schoolData.curriculumType || 'cbc'
-      } as any);
+        owner_name: schoolData.ownerName || null
+      });
 
       if (error) {
         console.error('🏫 SchoolService: Database function error:', error);
@@ -71,6 +62,36 @@ export class SchoolService {
 
         if ('success' in result && result.success === true) {
           console.log('🏫 SchoolService: School created successfully:', result);
+          
+          // Update additional fields that aren't handled by the basic create_school function
+          if (result.school_id) {
+            const updateData: any = {};
+            
+            if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
+            if (schoolData.website_url) updateData.website_url = schoolData.website_url;
+            if (schoolData.motto) updateData.motto = schoolData.motto;
+            if (schoolData.slogan) updateData.slogan = schoolData.slogan;
+            if (schoolData.school_type) updateData.school_type = schoolData.school_type;
+            if (schoolData.registration_number) updateData.registration_number = schoolData.registration_number;
+            if (schoolData.year_established) updateData.year_established = schoolData.year_established;
+            if (schoolData.term_structure) updateData.term_structure = schoolData.term_structure;
+            if (schoolData.owner_information) updateData.owner_information = schoolData.owner_information;
+            if (schoolData.curriculumType) updateData.curriculum_type = schoolData.curriculumType;
+            
+            // Update the school with additional fields if any exist
+            if (Object.keys(updateData).length > 0) {
+              const { error: updateError } = await supabase
+                .from('schools')
+                .update(updateData)
+                .eq('id', result.school_id);
+                
+              if (updateError) {
+                console.warn('🏫 SchoolService: Failed to update additional fields:', updateError);
+                // Don't fail the entire operation for this
+              }
+            }
+          }
+          
           return {
             success: true,
             school_id: typeof result.school_id === 'string' ? result.school_id : undefined,

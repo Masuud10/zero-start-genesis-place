@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -16,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { EnhancedGradingSheet } from './EnhancedGradingSheet';
 import { CBCGradingSheet } from './CBCGradingSheet';
 import { IGCSEGradingSheet } from './IGCSEGradingSheet';
-import { GradingWorkflowPanel } from './GradingWorkflowPanel';
+import GradingWorkflowPanel from './GradingWorkflowPanel';
 import { AlertTriangle, FileSpreadsheet, Save, Send, X } from 'lucide-react';
 
 interface EnhancedBulkGradingModalProps {
