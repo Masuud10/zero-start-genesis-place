@@ -68,50 +68,61 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Stats Overview */}
-        <div className="w-full">
-          <PrincipalStatsCards stats={stats} loading={loading} error={error} />
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
         
-        {/* Main Content Grid - Reorganized layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Left Section - Primary Management Tools */}
-          <div className="xl:col-span-3 space-y-6">
-            {/* Quick Actions - Top priority for daily operations */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <PrincipalActionButtons onModalOpen={handleModalOpen} />
-            </div>
-            
-            {/* Financial Overview - Moved below Quick Actions */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <FinancialOverviewReadOnly />
-            </div>
-            
-            {/* Management Grid - Organized by frequency of use */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Grade Management */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <PrincipalGradesManager />
-              </div>
-              
-              {/* Timetable Management */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <PrincipalTimetableCard />
-              </div>
-            </div>
-            
-            {/* Certificates Section - Full width for better presentation */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <CertificatesList />
-            </div>
-          </div>
-
-          {/* Right Sidebar - Empty space for future content */}
-          <div className="xl:col-span-1 space-y-6">
-            {/* Reserved for future sidebar content */}
-          </div>
+        {/* Welcome Header */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome, {user.name || user.email?.split('@')[0]}
+          </h1>
+          <p className="text-gray-600">Principal Dashboard - Manage your school effectively</p>
         </div>
+
+        {/* Key Statistics Overview */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">School Overview</h2>
+          <PrincipalStatsCards stats={stats} loading={loading} error={error} />
+        </section>
+        
+        {/* Quick Actions Section */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <PrincipalActionButtons onModalOpen={handleModalOpen} />
+          </div>
+        </section>
+
+        {/* Academic Management Grid */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Academic Management</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Grade Management */}
+            <div className="bg-white rounded-lg border shadow-sm">
+              <PrincipalGradesManager />
+            </div>
+            
+            {/* Timetable Management */}
+            <div className="bg-white rounded-lg border shadow-sm">
+              <PrincipalTimetableCard />
+            </div>
+          </div>
+        </section>
+
+        {/* Financial Overview Section */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Financial Summary</h2>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <FinancialOverviewReadOnly />
+          </div>
+        </section>
+        
+        {/* Certificates Section */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Certificates & Documents</h2>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <CertificatesList />
+          </div>
+        </section>
       </div>
       
       {/* Modals */}

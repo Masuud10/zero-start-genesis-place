@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,13 +110,13 @@ export const useFeeManagement = () => {
         academic_year: fee.academic_year || '',
         term: fee.term || '',
         category: fee.category || '',
-        student: (fee.student && typeof fee.student === 'object' && 'name' in fee.student && fee.student.name)
+        student: (fee.student && fee.student !== null && typeof fee.student === 'object' && 'name' in fee.student)
           ? { 
               name: String(fee.student.name || ''), 
               admission_number: String(fee.student.admission_number || '') 
             }
           : undefined,
-        class: (fee.class && typeof fee.class === 'object' && 'name' in fee.class && fee.class.name)
+        class: (fee.class && fee.class !== null && typeof fee.class === 'object' && 'name' in fee.class)
           ? { name: String(fee.class.name || '') }
           : undefined
       }));
@@ -154,13 +153,13 @@ export const useFeeManagement = () => {
         amount_paid: transaction.amount_paid || 0,
         transaction_date: transaction.transaction_date || '',
         transaction_status: transaction.transaction_status || '',
-        student: (transaction.student && typeof transaction.student === 'object' && 'name' in transaction.student && transaction.student.name)
+        student: (transaction.student && transaction.student !== null && typeof transaction.student === 'object' && 'name' in transaction.student)
           ? { 
               name: String(transaction.student.name || ''), 
               admission_number: String(transaction.student.admission_number || '') 
             }
           : undefined,
-        class: (transaction.class && typeof transaction.class === 'object' && 'name' in transaction.class && transaction.class.name)
+        class: (transaction.class && transaction.class !== null && typeof transaction.class === 'object' && 'name' in transaction.class)
           ? { name: String(transaction.class.name || '') }
           : undefined
       }));
