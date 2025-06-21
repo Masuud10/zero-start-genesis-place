@@ -24,6 +24,8 @@ interface StudentFee {
   payment_date?: string;
   receipt_number?: string;
   notes?: string;
+  created_at: string;
+  updated_at: string;
   student?: {
     name: string;
     admission_number: string;
@@ -64,7 +66,19 @@ export const useStudentFees = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setStudentFees(data || []);
+      
+      // Map data to match StudentFee interface
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        student: item.student && typeof item.student === 'object' && 'name' in item.student 
+          ? { name: item.student.name, admission_number: item.student.admission_number }
+          : undefined,
+        class: item.class && typeof item.class === 'object' && 'name' in item.class
+          ? { name: item.class.name }
+          : undefined
+      })) as StudentFee[];
+      
+      setStudentFees(mappedData);
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -174,7 +188,17 @@ export const useStudentFees = () => {
         student_id: student.id,
         class_id: classId,
         school_id: user.school_id,
-        ...feeData,
+        amount: feeData.amount,
+        amount_paid: 0,
+        status: 'unpaid' as const,
+        due_date: feeData.due_date,
+        academic_year: feeData.academic_year,
+        term: feeData.term,
+        fee_structure_id: feeData.fee_structure_id,
+        installment_plan: {},
+        discount_amount: 0,
+        discount_type: 'none' as const,
+        late_fee_applied: 0,
       }));
 
       const { error: insertError } = await supabase
@@ -231,15 +255,13 @@ export const useStudentFees = () => {
     amount: number
   }) => {
     try {
-      const updates = studentFeeIds.map(id => ({
-        id,
-        discount_type: discount.type,
-        discount_amount: discount.amount
-      }));
-
       const { error } = await supabase
         .from('student_fees')
-        .upsert(updates);
+        .update({
+          discount_type: discount.type,
+          discount_amount: discount.amount
+        })
+        .in('id', studentFeeIds);
 
       if (error) throw error;
 
