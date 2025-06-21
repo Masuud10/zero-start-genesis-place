@@ -6,6 +6,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import FinanceAdminSummary from './FinanceAdminSummary';
 import FinanceOfficerDashboard from '../dashboard/FinanceOfficerDashboard';
 import ParentFinanceView from '../finance/ParentFinanceView';
+import ComprehensiveFinancialOverview from '../finance/ComprehensiveFinancialOverview';
 
 const FinanceModule: React.FC = () => {
   const { user } = useAuth();
@@ -135,6 +136,8 @@ const FinanceModule: React.FC = () => {
       return renderForSummaryRole();
     case 'school_owner':
     case 'principal':
+      // For school owners and principals, show comprehensive overview instead of just dashboard
+      return <ComprehensiveFinancialOverview />;
     case 'finance_officer':
       return <FinanceOfficerDashboard user={user} />;
     case 'parent':

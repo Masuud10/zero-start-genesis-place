@@ -15,6 +15,7 @@ import ClassCollectionProgress from '@/components/analytics/finance/ClassCollect
 import FeeManagementPanel from '@/components/finance/FeeManagementPanel';
 import FinanceReportsPanel from '@/components/finance/FinanceReportsPanel';
 import CreateExpenseDialog from '@/components/finance/CreateExpenseDialog';
+import ComprehensiveFinancialOverview from '@/components/finance/ComprehensiveFinancialOverview';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -66,33 +67,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
     );
   }
 
-  if (!data) {
-    return (
-      <div className="space-y-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Financial Data</AlertTitle>
-          <AlertDescription>
-            No financial data is available to display. This might be because:
-            <ul className="list-disc ml-6 mt-2">
-              <li>No fees have been assigned to students yet</li>
-              <li>No expenses have been recorded</li>
-              <li>You don't have permission to view this school's financial data</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-        <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const { keyMetrics, feeCollectionData, dailyTransactions, expenseBreakdown, defaultersList } = data;
-
   return (
     <div className="space-y-6" key={refreshKey}>
       <div className="flex justify-between items-center">
@@ -101,7 +75,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
           <p className="text-muted-foreground">Manage fees, expenses, and financial analytics with integrated payment methods</p>
         </div>
         <div className="flex gap-2">
-          {activeTab === 'overview' && <CreateExpenseDialog />}
           <Button onClick={handleRefresh} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -118,19 +91,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <FinanceKeyMetrics keyMetrics={keyMetrics} />
-          
-          <FeeCollectionChart data={feeCollectionData} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DailyTransactionsChart data={dailyTransactions} />
-            <ExpenseBreakdownChart data={expenseBreakdown} />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TopDefaultersList data={defaultersList} />
-            <ClassCollectionProgress data={feeCollectionData} />
-          </div>
+          <ComprehensiveFinancialOverview />
         </TabsContent>
 
         <TabsContent value="fees">
@@ -142,14 +103,18 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <FinanceKeyMetrics keyMetrics={keyMetrics} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DailyTransactionsChart data={dailyTransactions} />
-            <ExpenseBreakdownChart data={expenseBreakdown} />
-          </div>
+          {data && (
+            <>
+              <FinanceKeyMetrics keyMetrics={data.keyMetrics} />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DailyTransactionsChart data={data.dailyTransactions} />
+                <ExpenseBreakdownChart data={data.expenseBreakdown} />
+              </div>
 
-          <TopDefaultersList data={defaultersList} />
+              <TopDefaultersList data={data.defaultersList} />
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
