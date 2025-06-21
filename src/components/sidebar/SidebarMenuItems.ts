@@ -21,7 +21,8 @@ import {
   Receipt,
   Calculator,
   Coins,
-  Award
+  Award,
+  Globe
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -37,12 +38,13 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
   ];
 
-  // System admin specific items - updated to remove specified features
+  // System admin specific items - updated to include Company Management
   if (userRole === 'edufam_admin') {
     return [
       ...baseItems,
       { id: 'analytics', label: 'Schools Analytics', icon: BarChart3, roles: ['edufam_admin'] },
       { id: 'schools', label: 'Schools Management', icon: Building2, roles: ['edufam_admin'] },
+      { id: 'company-management', label: 'Company Management', icon: Globe, roles: ['edufam_admin'] },
       { id: 'users', label: 'User Management', icon: UserCheck, roles: ['edufam_admin'] },
       { id: 'certificates', label: 'Certificate Management', icon: Award, roles: ['edufam_admin'] },
       { id: 'announcements', label: 'All Announcements', icon: Megaphone, roles: ['edufam_admin'] },

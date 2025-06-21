@@ -73,6 +73,13 @@ export type Database = {
             foreignKeyName: "academic_terms_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "academic_terms_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -144,6 +151,13 @@ export type Database = {
             foreignKeyName: "academic_years_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "academic_years_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -202,6 +216,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "analytics_events_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
           {
             foreignKeyName: "analytics_events_school_id_fkey"
             columns: ["school_id"]
@@ -397,6 +418,13 @@ export type Database = {
             foreignKeyName: "announcements_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "announcements_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -481,6 +509,13 @@ export type Database = {
             foreignKeyName: "attendance_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "attendance_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -525,6 +560,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_attendance_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_attendance_school_id"
@@ -625,6 +667,13 @@ export type Database = {
             foreignKeyName: "attendance_summary_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "attendance_summary_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -699,6 +748,13 @@ export type Database = {
           transaction_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
           {
             foreignKeyName: "billing_transactions_school_id_fkey"
             columns: ["school_id"]
@@ -860,6 +916,13 @@ export type Database = {
             foreignKeyName: "cbc_competencies_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "cbc_competencies_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -944,6 +1007,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "certificates_school_id_fkey"
@@ -1055,6 +1125,13 @@ export type Database = {
             foreignKeyName: "class_analytics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "class_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -1132,6 +1209,13 @@ export type Database = {
             foreignKeyName: "classes_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "classes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -1167,6 +1251,13 @@ export type Database = {
             foreignKeyName: "fk_classes_school"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_classes_school"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -1190,6 +1281,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_classes_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_classes_school_id"
@@ -1227,6 +1325,161 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      company_announcements: {
+        Row: {
+          announcement_type: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          priority: string | null
+          target_roles: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          announcement_type?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string | null
+          target_roles?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          announcement_type?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string | null
+          target_roles?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_details: {
+        Row: {
+          company_logo_url: string | null
+          company_motto: string | null
+          company_name: string
+          company_slogan: string | null
+          company_type: string | null
+          contact_phone: string | null
+          created_at: string | null
+          headquarters_address: string | null
+          id: string
+          incorporation_details: string | null
+          management_team: Json | null
+          registration_number: string | null
+          subscription_plans: Json | null
+          support_email: string | null
+          updated_at: string | null
+          website_url: string | null
+          year_established: number | null
+        }
+        Insert: {
+          company_logo_url?: string | null
+          company_motto?: string | null
+          company_name?: string
+          company_slogan?: string | null
+          company_type?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          headquarters_address?: string | null
+          id?: string
+          incorporation_details?: string | null
+          management_team?: Json | null
+          registration_number?: string | null
+          subscription_plans?: Json | null
+          support_email?: string | null
+          updated_at?: string | null
+          website_url?: string | null
+          year_established?: number | null
+        }
+        Update: {
+          company_logo_url?: string | null
+          company_motto?: string | null
+          company_name?: string
+          company_slogan?: string | null
+          company_type?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          headquarters_address?: string | null
+          id?: string
+          incorporation_details?: string | null
+          management_team?: Json | null
+          registration_number?: string | null
+          subscription_plans?: Json | null
+          support_email?: string | null
+          updated_at?: string | null
+          website_url?: string | null
+          year_established?: number | null
+        }
+        Relationships: []
+      }
+      company_metrics: {
+        Row: {
+          active_schools: number | null
+          active_users: number | null
+          api_calls_count: number | null
+          created_at: string | null
+          id: string
+          metric_date: string
+          monthly_revenue: number | null
+          system_uptime_percentage: number | null
+          total_revenue: number | null
+          total_schools: number | null
+          total_users: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_schools?: number | null
+          active_users?: number | null
+          api_calls_count?: number | null
+          created_at?: string | null
+          id?: string
+          metric_date?: string
+          monthly_revenue?: number | null
+          system_uptime_percentage?: number | null
+          total_revenue?: number | null
+          total_schools?: number | null
+          total_users?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_schools?: number | null
+          active_users?: number | null
+          api_calls_count?: number | null
+          created_at?: string | null
+          id?: string
+          metric_date?: string
+          monthly_revenue?: number | null
+          system_uptime_percentage?: number | null
+          total_revenue?: number | null
+          total_schools?: number | null
+          total_users?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       competencies: {
         Row: {
@@ -1344,6 +1597,13 @@ export type Database = {
             foreignKeyName: "expenses_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "expenses_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -1443,6 +1703,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fee_structures_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
           {
             foreignKeyName: "fee_structures_school_id_fkey"
             columns: ["school_id"]
@@ -1549,6 +1816,13 @@ export type Database = {
             foreignKeyName: "fees_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fees_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -1579,6 +1853,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_fees_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_fees_school_id"
@@ -1694,6 +1975,13 @@ export type Database = {
             foreignKeyName: "financial_transactions_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "financial_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -1786,6 +2074,13 @@ export type Database = {
             foreignKeyName: "grade_approvals_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_approvals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -1872,6 +2167,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grades"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "grade_audit_logs_school_id_fkey"
@@ -1979,6 +2281,13 @@ export type Database = {
             foreignKeyName: "grade_submission_batches_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_submission_batches_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -2065,6 +2374,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_summary_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "grade_summary_school_id_fkey"
@@ -2252,6 +2568,13 @@ export type Database = {
             foreignKeyName: "fk_grades_school_id"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_grades_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -2408,6 +2731,13 @@ export type Database = {
             foreignKeyName: "grading_configurations_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grading_configurations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -2539,6 +2869,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "messages_school_id_fkey"
@@ -2676,6 +3013,13 @@ export type Database = {
             foreignKeyName: "fk_parent_students_school_id"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_parent_students_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -2788,6 +3132,13 @@ export type Database = {
             foreignKeyName: "fk_profiles_school"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_profiles_school"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -2811,6 +3162,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "profiles_school_id_fkey"
@@ -2921,6 +3279,13 @@ export type Database = {
             foreignKeyName: "reports_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "reports_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -3010,6 +3375,13 @@ export type Database = {
             foreignKeyName: "school_analytics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -3068,6 +3440,13 @@ export type Database = {
           user_activities?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "school_analytics_summary_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
           {
             foreignKeyName: "school_analytics_summary_school_id_fkey"
             columns: ["school_id"]
@@ -3266,6 +3645,13 @@ export type Database = {
             foreignKeyName: "fk_security_audit_logs_school_id"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_security_audit_logs_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -3359,6 +3745,13 @@ export type Database = {
             foreignKeyName: "student_analytics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "student_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -3424,6 +3817,13 @@ export type Database = {
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_student_classes_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
           {
             foreignKeyName: "fk_student_classes_school_id"
             columns: ["school_id"]
@@ -3509,6 +3909,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fees_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "student_fees_school_id_fkey"
@@ -3651,6 +4058,13 @@ export type Database = {
             foreignKeyName: "fk_students_school"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_students_school"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -3674,6 +4088,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_students_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_students_school_id"
@@ -3716,6 +4137,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "students_school_id_fkey"
@@ -3828,6 +4256,13 @@ export type Database = {
             foreignKeyName: "fk_subject_teacher_assignments_school_id"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_subject_teacher_assignments_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -3865,6 +4300,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subject_teacher_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "subject_teacher_assignments_school_id_fkey"
@@ -3974,6 +4416,13 @@ export type Database = {
             foreignKeyName: "fk_subjects_school"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_subjects_school"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -3997,6 +4446,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_subjects_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "fk_subjects_school_id"
@@ -4039,6 +4495,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subjects_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "subjects_school_id_fkey"
@@ -4155,6 +4618,13 @@ export type Database = {
             foreignKeyName: "subscriptions_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "school_attendance_summary"
             referencedColumns: ["school_id"]
           },
@@ -4238,6 +4708,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
           },
           {
             foreignKeyName: "support_tickets_school_id_fkey"
@@ -4391,6 +4868,13 @@ export type Database = {
           teacher_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_teacher_classes_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
           {
             foreignKeyName: "fk_teacher_classes_school_id"
             columns: ["school_id"]
@@ -4647,6 +5131,24 @@ export type Database = {
       }
     }
     Views: {
+      comprehensive_report_data: {
+        Row: {
+          attendance_rate: number | null
+          average_grade: number | null
+          location: string | null
+          outstanding_amount: number | null
+          school_created_at: string | null
+          school_id: string | null
+          school_name: string | null
+          total_attendance_records: number | null
+          total_collected: number | null
+          total_fees: number | null
+          total_grades: number | null
+          total_students: number | null
+          total_teachers: number | null
+        }
+        Relationships: []
+      }
       school_attendance_summary: {
         Row: {
           attendance_count: number | null
@@ -4818,6 +5320,10 @@ export type Database = {
       requires_mfa: {
         Args: { user_role: string }
         Returns: boolean
+      }
+      update_company_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_grade_status: {
         Args: { grade_ids: string[]; new_status: string; user_id: string }

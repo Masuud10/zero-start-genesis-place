@@ -1,6 +1,24 @@
 
 import React from 'react';
-import Dashboard from '@/components/Dashboard';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Dashboard Components
+import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
+import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
+import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
+import ParentDashboard from '@/components/dashboard/ParentDashboard';
+import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
+import SchoolOwnerDashboard from '@/components/dashboard/SchoolOwnerDashboard';
+
+// Analytics Components
+import EduFamAdminAnalytics from '@/components/analytics/EduFamAdminAnalytics';
+import PrincipalAnalytics from '@/components/analytics/PrincipalAnalytics';
+import TeacherAnalytics from '@/components/analytics/TeacherAnalytics';
+import ParentAnalytics from '@/components/analytics/ParentAnalytics';
+import FinanceOfficerAnalytics from '@/components/analytics/FinanceOfficerAnalytics';
+import SchoolOwnerAnalytics from '@/components/analytics/SchoolOwnerAnalytics';
+
+// Module Components
 import GradesModule from '@/components/modules/GradesModule';
 import AttendanceModule from '@/components/modules/AttendanceModule';
 import StudentsModule from '@/components/modules/StudentsModule';
@@ -10,81 +28,137 @@ import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
 import MessagesModule from '@/components/modules/MessagesModule';
 import ReportsModule from '@/components/modules/ReportsModule';
 import SupportModule from '@/components/modules/SupportModule';
-import SettingsModule from '@/components/modules/SettingsModule';
 import SecurityModule from '@/components/modules/SecurityModule';
-import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import SettingsModule from '@/components/modules/SettingsModule';
 import SchoolsModule from '@/components/modules/SchoolsModule';
 import UsersModule from '@/components/modules/UsersModule';
 import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
-import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
-import SchoolRegistrationDetails from '@/components/school/SchoolRegistrationDetails';
-import UserProfileManagement from '@/components/user/UserProfileManagement';
-import { useNavigation } from '@/contexts/NavigationContext';
-import { useAuth } from '@/contexts/AuthContext';
-import ProcessPaymentsModule from '@/components/modules/ProcessPaymentsModule';
-import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
-import FinanceReportsModule from '@/components/modules/FinanceReportsModule';
-import FeeManagementModule from '@/components/modules/FeeManagementModule';
-import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
-import FinanceSupportModule from '@/components/modules/FinanceSupportModule';
+import CertificatesModule from '@/components/modules/CertificatesModule';
+import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
 
-const ContentRenderer: React.FC = () => {
-  const { activeSection } = useNavigation();
+interface ContentRendererProps {
+  activeSection: string;
+  onModalOpen: (modalType: string) => void;
+}
+
+const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection, onModalOpen }) => {
   const { user } = useAuth();
 
-  console.log('🎯 ContentRenderer: Rendering section:', activeSection, 'for user role:', user?.role);
+  console.log('🎯 ContentRenderer: Rendering section:', activeSection, 'for role:', user?.role);
 
-  switch (activeSection) {
-    case 'dashboard': 
-      console.log('🎯 ContentRenderer: Rendering Dashboard');
-      return <Dashboard />;
-    case 'school-management': 
-      console.log('🎯 ContentRenderer: Rendering SchoolManagementDashboard');
-      return <SchoolManagementDashboard />;
-    case 'school-registration':
-      return <SchoolRegistrationDetails />;
-    case 'profile':
-      return <UserProfileManagement />;
-    case 'analytics': 
-      console.log('🎯 ContentRenderer: Rendering AnalyticsDashboard');
-      return <AnalyticsDashboard />;
-    case 'grades': return <GradesModule />;
-    case 'attendance': return <AttendanceModule />;
-    case 'students': return <StudentsModule />;
-    case 'finance':
-      return <FinanceModule />;
-    case 'payments': return <ProcessPaymentsModule />;
-    case 'student-accounts': return <StudentAccountsModule />;
-    case 'fee-management': return <FeeManagementModule />;
-    case 'certificates': 
-      return React.createElement(
-        React.lazy(() => import('@/components/modules/CertificatesModule'))
-      );
-    case 'timetable': return <TimetableModule />;
-    case 'announcements': return <AnnouncementsModule />;
-    case 'messages': return <MessagesModule />;
-    case 'reports':
-      return <ReportsModule />;
-    case 'support':
-        if (user?.role === 'edufam_admin') {
-            return <SupportModule />;
+  const renderContent = () => {
+    switch (activeSection) {
+      // Dashboard sections
+      case 'dashboard':
+        switch (user?.role) {
+          case 'edufam_admin':
+            return <EduFamAdminDashboard onModalOpen={onModalOpen} />;
+          case 'principal':
+            return <PrincipalDashboard onModalOpen={onModalOpen} />;
+          case 'teacher':
+            return <TeacherDashboard onModalOpen={onModalOpen} />;
+          case 'parent':
+            return <ParentDashboard onModalOpen={onModalOpen} />;
+          case 'finance_officer':
+            return <FinanceOfficerDashboard onModalOpen={onModalOpen} />;
+          case 'school_owner':
+            return <SchoolOwnerDashboard onModalOpen={onModalOpen} />;
+          default:
+            return <div>Dashboard not configured for this role</div>;
         }
-        if (['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(user?.role || '')) {
-            return <FinanceSupportModule />;
+
+      // Analytics sections
+      case 'analytics':
+        switch (user?.role) {
+          case 'edufam_admin':
+            return <EduFamAdminAnalytics />;
+          case 'principal':
+            return <PrincipalAnalytics />;
+          case 'teacher':
+            return <TeacherAnalytics />;
+          case 'parent':
+            return <ParentAnalytics />;
+          case 'finance_officer':
+            return <FinanceOfficerAnalytics />;
+          case 'school_owner':
+            return <SchoolOwnerAnalytics />;
+          default:
+            return <div>Analytics not available for this role</div>;
         }
-        return <Dashboard />;
-    case 'settings': return <SettingsModule />;
-    case 'finance-settings': return <FinanceSettingsModule />;
-    case 'security': return <SecurityModule />;
-    case 'schools': return <SchoolsModule />;
-    case 'users': return <UsersModule />;
-    case 'billing': return <BillingModule />;
-    case 'system-health': return <SystemHealthModule />;
-    default:
-      console.log('🎯 ContentRenderer: Unknown section, defaulting to Dashboard');
-      return <Dashboard />;
-  }
+
+      // Management modules
+      case 'schools':
+        return <SchoolsModule />;
+      
+      case 'company-management':
+        return <CompanyManagementModule />;
+      
+      case 'users':
+        return <UsersModule />;
+      
+      case 'grades':
+        return <GradesModule />;
+      
+      case 'attendance':
+        return <AttendanceModule />;
+      
+      case 'students':
+        return <StudentsModule />;
+      
+      case 'finance':
+        return <FinanceModule />;
+      
+      case 'timetable':
+        return <TimetableModule />;
+      
+      case 'announcements':
+        return <AnnouncementsModule />;
+      
+      case 'messages':
+        return <MessagesModule />;
+      
+      case 'reports':
+        return <ReportsModule />;
+      
+      case 'certificates':
+        return <CertificatesModule />;
+      
+      case 'billing':
+        return <BillingModule />;
+      
+      case 'system-health':
+        return <SystemHealthModule />;
+      
+      case 'support':
+        return <SupportModule />;
+      
+      case 'security':
+        return <SecurityModule />;
+      
+      case 'settings':
+        return <SettingsModule />;
+
+      default:
+        console.warn('🚨 ContentRenderer: Unknown section:', activeSection);
+        return (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900">Section Not Found</h3>
+              <p className="text-gray-500 mt-2">The requested section "{activeSection}" is not available.</p>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="flex-1 overflow-auto">
+      <div className="container mx-auto px-6 py-8">
+        {renderContent()}
+      </div>
+    </div>
+  );
 };
 
 export default ContentRenderer;
