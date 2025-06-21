@@ -5,17 +5,11 @@ import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics';
-import FeeCollectionChart from '@/components/analytics/finance/FeeCollectionChart';
 import DailyTransactionsChart from '@/components/analytics/finance/DailyTransactionsChart';
 import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
 import TopDefaultersList from '@/components/analytics/finance/TopDefaultersList';
-import ClassCollectionProgress from '@/components/analytics/finance/ClassCollectionProgress';
-import FeeManagementPanel from '@/components/finance/FeeManagementPanel';
-import FinanceReportsPanel from '@/components/finance/FinanceReportsPanel';
-import CreateExpenseDialog from '@/components/finance/CreateExpenseDialog';
-import ComprehensiveFinancialOverview from '@/components/finance/ComprehensiveFinancialOverview';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -24,7 +18,6 @@ interface FinanceOfficerDashboardProps {
 const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user }) => {
   console.log('💰 FinanceOfficerDashboard: Rendering for finance officer:', user.email);
   
-  const [activeTab, setActiveTab] = useState('overview');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const filters = { term: 'current', class: 'all' };
@@ -68,55 +61,74 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
   }
 
   return (
-    <div className="space-y-6" key={refreshKey}>
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Financial Management Center</h2>
-          <p className="text-muted-foreground">Manage fees, expenses, and financial analytics with integrated payment methods</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
+    <div className="space-y-8" key={refreshKey}>
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-6 border border-blue-100">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+              Welcome back, {user.email?.split('@')[0]}!
+            </h1>
+            <p className="text-lg text-muted-foreground mt-2">
+              Here's your financial overview for today
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Manage school finances, track payments, and analyze financial data
+            </p>
+          </div>
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="bg-white">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
         </div>
       </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Financial Overview</TabsTrigger>
-          <TabsTrigger value="fees">Fee Management</TabsTrigger>
-          <TabsTrigger value="reports">Financial Reports</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <ComprehensiveFinancialOverview />
-        </TabsContent>
+      {/* Financial Analytics Dashboard */}
+      {data && (
+        <div className="space-y-6">
+          {/* Key Metrics */}
+          <FinanceKeyMetrics keyMetrics={data.keyMetrics} />
+          
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DailyTransactionsChart data={data.dailyTransactions} />
+            <ExpenseBreakdownChart data={data.expenseBreakdown} />
+          </div>
 
-        <TabsContent value="fees">
-          <FeeManagementPanel />
-        </TabsContent>
+          {/* Defaulters List */}
+          <TopDefaultersList data={data.defaultersList} />
 
-        <TabsContent value="reports">
-          <FinanceReportsPanel />
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
-          {data && (
-            <>
-              <FinanceKeyMetrics keyMetrics={data.keyMetrics} />
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DailyTransactionsChart data={data.dailyTransactions} />
-                <ExpenseBreakdownChart data={data.expenseBreakdown} />
+          {/* Quick Actions Card */}
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-800">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-blue-700 mb-4">
+                Use the sidebar navigation to access detailed financial management features:
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="bg-white p-3 rounded-lg border border-blue-200">
+                  <p className="font-medium text-blue-800">Fee Management</p>
+                  <p className="text-blue-600 text-xs">Manage fee structures</p>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-blue-200">
+                  <p className="font-medium text-blue-800">MPESA Payments</p>
+                  <p className="text-blue-600 text-xs">Track mobile payments</p>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-blue-200">
+                  <p className="font-medium text-blue-800">Financial Reports</p>
+                  <p className="text-blue-600 text-xs">Generate reports</p>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-blue-200">
+                  <p className="font-medium text-blue-800">Analytics</p>
+                  <p className="text-blue-600 text-xs">Detailed insights</p>
+                </div>
               </div>
-
-              <TopDefaultersList data={data.defaultersList} />
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
