@@ -69,13 +69,25 @@ export const useStudentFees = () => {
       
       // Map the fees data to match StudentFee interface
       const mappedData = (data || []).map(item => {
-        const studentData = item.student && typeof item.student === 'object' && item.student !== null && 'name' in item.student
-          ? { name: (item.student as any).name, admission_number: (item.student as any).admission_number }
-          : undefined;
-          
-        const classData = item.class && typeof item.class === 'object' && item.class !== null && 'name' in item.class
-          ? { name: (item.class as any).name }
-          : undefined;
+        let studentData = undefined;
+        let classData = undefined;
+        
+        if (item.student && typeof item.student === 'object' && item.student !== null) {
+          const student = item.student as any;
+          if ('name' in student) {
+            studentData = { 
+              name: student.name, 
+              admission_number: student.admission_number 
+            };
+          }
+        }
+        
+        if (item.class && typeof item.class === 'object' && item.class !== null) {
+          const classObj = item.class as any;
+          if ('name' in classObj) {
+            classData = { name: classObj.name };
+          }
+        }
           
         return {
           id: item.id,
