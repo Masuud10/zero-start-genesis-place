@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useOptimizedGradeQuery } from '@/hooks/useOptimizedGradeQuery';
-import BulkGradingModal from '@/components/grading/BulkGradingModal';
+import { EnhancedBulkGradingModal } from '@/components/grading/EnhancedBulkGradingModal';
 import GradesModal from '@/components/modals/GradesModal';
-import { FileSpreadsheet, Plus, CheckCircle, Clock, AlertTriangle, Users, BookOpen } from 'lucide-react';
+import { FileSpreadsheet, Plus, CheckCircle, Clock, AlertTriangle, Users, BookOpen, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const TeacherGradesManager: React.FC = () => {
@@ -22,13 +22,14 @@ const TeacherGradesManager: React.FC = () => {
     enabled: !!user?.id && !!schoolId
   });
 
-  const pendingGrades = grades?.filter(grade => grade.status === 'draft') || [];
-  const submittedGrades = grades?.filter(grade => grade.status === 'submitted') || [];
-  const approvedGrades = grades?.filter(grade => grade.status === 'approved') || [];
-  const rejectedGrades = grades?.filter(grade => grade.status === 'rejected') || [];
+  const draftGrades = grades?.filter(grade => grade.approval_workflow_stage === 'draft') || [];
+  const submittedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'submitted') || [];
+  const approvedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'approved') || [];
+  const rejectedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'rejected') || [];
+  const releasedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'released') || [];
 
-  const handleBulkGrading = () => {
-    console.log('Opening bulk grading modal for teacher');
+  const handleEnhancedGrading = () => {
+    console.log('Opening enhanced bulk grading modal for teacher');
     setShowBulkModal(true);
   };
 
@@ -49,8 +50,8 @@ const TeacherGradesManager: React.FC = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" />
-            Grade Management
+            <TrendingUp className="h-5 w-5" />
+            Enhanced Grade Management
           </CardTitle>
           <div className="flex gap-2">
             <Button 
@@ -64,11 +65,11 @@ const TeacherGradesManager: React.FC = () => {
             </Button>
             <Button 
               size="sm"
-              onClick={handleBulkGrading}
+              onClick={handleEnhancedGrading}
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
             >
               <FileSpreadsheet className="h-4 w-4" />
-              Grade Sheet
+              Enhanced Grade Sheet
             </Button>
           </div>
         </div>
@@ -81,22 +82,22 @@ const TeacherGradesManager: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Status Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg bg-orange-25 border-orange-200">
+            {/* Enhanced Status Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="flex items-center justify-between p-3 border rounded-lg bg-yellow-25 border-yellow-200">
                 <div>
-                  <p className="text-sm font-medium text-orange-800">Draft Grades</p>
-                  <p className="text-2xl font-bold text-orange-600">{pendingGrades.length}</p>
-                  <p className="text-xs text-orange-600">Need submission</p>
+                  <p className="text-sm font-medium text-yellow-800">Draft Grades</p>
+                  <p className="text-2xl font-bold text-yellow-600">{draftGrades.length}</p>
+                  <p className="text-xs text-yellow-600">Need submission</p>
                 </div>
-                <Clock className="h-8 w-8 text-orange-500" />
+                <Clock className="h-8 w-8 text-yellow-500" />
               </div>
               
               <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-25 border-blue-200">
                 <div>
                   <p className="text-sm font-medium text-blue-800">Submitted</p>
                   <p className="text-2xl font-bold text-blue-600">{submittedGrades.length}</p>
-                  <p className="text-xs text-blue-600">Awaiting approval</p>
+                  <p className="text-xs text-blue-600">Under review</p>
                 </div>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                   Pending
@@ -122,68 +123,82 @@ const TeacherGradesManager: React.FC = () => {
                   <AlertTriangle className="h-8 w-8 text-red-500" />
                 </div>
               )}
+
+              {releasedGrades.length > 0 && (
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-purple-25 border-purple-200">
+                  <div>
+                    <p className="text-sm font-medium text-purple-800">Released</p>
+                    <p className="text-2xl font-bold text-purple-600">{releasedGrades.length}</p>
+                    <p className="text-xs text-purple-600">Available to parents</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-purple-500" />
+                </div>
+              )}
             </div>
 
-            {/* Quick Actions */}
+            {/* Enhanced Quick Actions */}
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-900">Grading Tools</h4>
+                <h4 className="font-medium text-gray-900">Enhanced Grading Tools</h4>
                 <Badge variant="outline" className="text-xs">
-                  Teacher Dashboard
+                  Multi-Curriculum Support
                 </Badge>
               </div>
               
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-3">
                 <Button 
                   variant="default" 
-                  className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={handleBulkGrading}
+                  className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white h-12"
+                  onClick={handleEnhancedGrading}
                 >
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Open Grade Sheet (Recommended)
+                  <FileSpreadsheet className="h-5 w-5 mr-3" />
+                  <div className="text-left">
+                    <div className="font-medium">Enhanced Grade Sheet</div>
+                    <div className="text-xs opacity-90">CBC, IGCSE & Standard curriculum support</div>
+                  </div>
                   <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-800">
-                    Bulk Entry
+                    Recommended
                   </Badge>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  className="w-full justify-start h-10"
                   onClick={handleSingleGrade}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Single Grade
+                  Add Individual Grade
                   <Badge variant="secondary" className="ml-auto">
-                    Individual
+                    Single Entry
                   </Badge>
                 </Button>
               </div>
             </div>
 
-            {/* Teacher Instructions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            {/* Enhanced Teacher Instructions */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Users className="h-5 w-5 text-blue-600 mt-0.5" />
+                <BookOpen className="h-5 w-5 text-blue-600 mt-0.5" />
                 <div>
-                  <h5 className="font-medium text-blue-900 mb-1">How to Enter Grades</h5>
+                  <h5 className="font-medium text-blue-900 mb-2">Enhanced Grading Features</h5>
                   <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Use <strong>Grade Sheet</strong> for entering multiple student grades at once</li>
-                    <li>• Students are listed in rows, subjects in columns</li>
-                    <li>• Mark students as absent if they missed the exam</li>
-                    <li>• Grades are automatically calculated and positioned</li>
-                    <li>• Submit grades to principal for approval</li>
+                    <li>• <strong>Multi-Curriculum:</strong> Supports CBC competency-based, IGCSE, and standard grading</li>
+                    <li>• <strong>Smart Calculations:</strong> Automatic positioning, grade boundaries, and competency levels</li>
+                    <li>• <strong>Workflow Management:</strong> Draft → Submit → Principal Review → Release</li>
+                    <li>• <strong>Audit Trail:</strong> Complete history of changes and approvals</li>
+                    <li>• <strong>Batch Processing:</strong> Grade entire classes efficiently</li>
                   </ul>
                 </div>
               </div>
             </div>
 
-            {/* Status Messages */}
-            {pendingGrades.length > 0 && (
+            {/* Workflow Status Messages */}
+            {draftGrades.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-yellow-600" />
                   <span className="text-sm text-yellow-800">
-                    You have {pendingGrades.length} draft grades ready for submission.
+                    You have {draftGrades.length} draft grades ready for submission.
                   </span>
                 </div>
               </div>
@@ -194,7 +209,18 @@ const TeacherGradesManager: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600" />
                   <span className="text-sm text-blue-800">
-                    {submittedGrades.length} grades submitted and awaiting principal approval.
+                    {submittedGrades.length} grades submitted and awaiting principal review.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {rejectedGrades.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <span className="text-sm text-red-800">
+                    {rejectedGrades.length} grades were rejected and need revision.
                   </span>
                 </div>
               </div>
@@ -203,13 +229,11 @@ const TeacherGradesManager: React.FC = () => {
         )}
       </CardContent>
 
-      {/* Modals */}
+      {/* Enhanced Modals */}
       {showBulkModal && (
-        <BulkGradingModal 
+        <EnhancedBulkGradingModal 
           open={showBulkModal}
           onClose={handleModalClose}
-          classList={[]}
-          subjectList={[]}
         />
       )}
 

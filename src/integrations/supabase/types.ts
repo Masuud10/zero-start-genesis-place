@@ -808,6 +808,91 @@ export type Database = {
           },
         ]
       }
+      cbc_competencies: {
+        Row: {
+          class_id: string | null
+          competency_code: string
+          competency_name: string
+          created_at: string | null
+          description: string | null
+          id: string
+          school_id: string
+          strands: Json | null
+          subject_id: string | null
+          updated_at: string | null
+          weighting: number | null
+        }
+        Insert: {
+          class_id?: string | null
+          competency_code: string
+          competency_name: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          school_id: string
+          strands?: Json | null
+          subject_id?: string | null
+          updated_at?: string | null
+          weighting?: number | null
+        }
+        Update: {
+          class_id?: string | null
+          competency_code?: string
+          competency_name?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          school_id?: string
+          strands?: Json | null
+          subject_id?: string | null
+          updated_at?: string | null
+          weighting?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cbc_competencies_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cbc_competencies_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "cbc_competencies_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "cbc_competencies_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "cbc_competencies_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cbc_competencies_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           academic_year: string
@@ -1642,6 +1727,291 @@ export type Database = {
           },
         ]
       }
+      grade_approvals: {
+        Row: {
+          action: string
+          approver_id: string
+          approver_role: string
+          batch_id: string | null
+          created_at: string | null
+          grade_id: string | null
+          id: string
+          new_value: Json | null
+          notes: string | null
+          previous_value: Json | null
+          school_id: string
+        }
+        Insert: {
+          action: string
+          approver_id: string
+          approver_role: string
+          batch_id?: string | null
+          created_at?: string | null
+          grade_id?: string | null
+          id?: string
+          new_value?: Json | null
+          notes?: string | null
+          previous_value?: Json | null
+          school_id: string
+        }
+        Update: {
+          action?: string
+          approver_id?: string
+          approver_role?: string
+          batch_id?: string | null
+          created_at?: string | null
+          grade_id?: string | null
+          id?: string
+          new_value?: Json | null
+          notes?: string | null
+          previous_value?: Json | null
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_approvals_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "grade_submission_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_approvals_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_approvals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_approvals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_approvals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_approvals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grade_audit_logs: {
+        Row: {
+          action: string
+          batch_id: string | null
+          created_at: string | null
+          grade_id: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          school_id: string
+          user_agent: string | null
+          user_id: string
+          user_role: string
+        }
+        Insert: {
+          action: string
+          batch_id?: string | null
+          created_at?: string | null
+          grade_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          school_id: string
+          user_agent?: string | null
+          user_id: string
+          user_role: string
+        }
+        Update: {
+          action?: string
+          batch_id?: string | null
+          created_at?: string | null
+          grade_id?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          school_id?: string
+          user_agent?: string | null
+          user_id?: string
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_audit_logs_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "grade_submission_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_audit_logs_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grade_submission_batches: {
+        Row: {
+          academic_year: string
+          batch_name: string
+          class_id: string
+          created_at: string | null
+          curriculum_type: string
+          exam_type: string
+          grades_entered: number | null
+          id: string
+          principal_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string
+          status: string | null
+          subject_id: string | null
+          submitted_at: string | null
+          submitted_by: string
+          term: string
+          total_students: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year: string
+          batch_name: string
+          class_id: string
+          created_at?: string | null
+          curriculum_type: string
+          exam_type: string
+          grades_entered?: number | null
+          id?: string
+          principal_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id: string
+          status?: string | null
+          subject_id?: string | null
+          submitted_at?: string | null
+          submitted_by: string
+          term: string
+          total_students?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          batch_name?: string
+          class_id?: string
+          created_at?: string | null
+          curriculum_type?: string
+          exam_type?: string
+          grades_entered?: number | null
+          id?: string
+          principal_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string
+          status?: string | null
+          subject_id?: string | null
+          submitted_at?: string | null
+          submitted_by?: string
+          term?: string
+          total_students?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_submission_batches_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_submission_batches_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_submission_batches_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_submission_batches_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grade_submission_batches_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grade_submission_batches_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grade_summary: {
         Row: {
           academic_year: string
@@ -1735,14 +2105,21 @@ export type Database = {
       }
       grades: {
         Row: {
+          approval_workflow_stage: string | null
           approved_at: string | null
           approved_by: string | null
           approved_by_principal: boolean | null
           cbc_performance_level: string | null
           class_id: string | null
           comments: string | null
+          competency_id: string | null
+          competency_level: string | null
+          coursework_score: number | null
           created_at: string | null
+          curriculum_type: string | null
+          exam_score: number | null
           exam_type: string | null
+          grade_boundary_applied: boolean | null
           id: string
           is_immutable: boolean | null
           is_released: boolean | null
@@ -1752,6 +2129,7 @@ export type Database = {
           percentage: number | null
           position: number | null
           principal_notes: string | null
+          raw_score: number | null
           released_at: string | null
           released_by: string | null
           released_to_parents: boolean | null
@@ -1760,22 +2138,31 @@ export type Database = {
           school_id: string
           score: number | null
           status: string | null
+          strand_scores: Json | null
           student_id: string | null
           subject_id: string | null
+          submission_batch_id: string | null
           submitted_at: string | null
           submitted_by: string | null
           term: string
           updated_at: string | null
         }
         Insert: {
+          approval_workflow_stage?: string | null
           approved_at?: string | null
           approved_by?: string | null
           approved_by_principal?: boolean | null
           cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
+          competency_id?: string | null
+          competency_level?: string | null
+          coursework_score?: number | null
           created_at?: string | null
+          curriculum_type?: string | null
+          exam_score?: number | null
           exam_type?: string | null
+          grade_boundary_applied?: boolean | null
           id?: string
           is_immutable?: boolean | null
           is_released?: boolean | null
@@ -1785,6 +2172,7 @@ export type Database = {
           percentage?: number | null
           position?: number | null
           principal_notes?: string | null
+          raw_score?: number | null
           released_at?: string | null
           released_by?: string | null
           released_to_parents?: boolean | null
@@ -1793,22 +2181,31 @@ export type Database = {
           school_id: string
           score?: number | null
           status?: string | null
+          strand_scores?: Json | null
           student_id?: string | null
           subject_id?: string | null
+          submission_batch_id?: string | null
           submitted_at?: string | null
           submitted_by?: string | null
           term: string
           updated_at?: string | null
         }
         Update: {
+          approval_workflow_stage?: string | null
           approved_at?: string | null
           approved_by?: string | null
           approved_by_principal?: boolean | null
           cbc_performance_level?: string | null
           class_id?: string | null
           comments?: string | null
+          competency_id?: string | null
+          competency_level?: string | null
+          coursework_score?: number | null
           created_at?: string | null
+          curriculum_type?: string | null
+          exam_score?: number | null
           exam_type?: string | null
+          grade_boundary_applied?: boolean | null
           id?: string
           is_immutable?: boolean | null
           is_released?: boolean | null
@@ -1818,6 +2215,7 @@ export type Database = {
           percentage?: number | null
           position?: number | null
           principal_notes?: string | null
+          raw_score?: number | null
           released_at?: string | null
           released_by?: string | null
           released_to_parents?: boolean | null
@@ -1826,8 +2224,10 @@ export type Database = {
           school_id?: string
           score?: number | null
           status?: string | null
+          strand_scores?: Json | null
           student_id?: string | null
           subject_id?: string | null
+          submission_batch_id?: string | null
           submitted_at?: string | null
           submitted_by?: string | null
           term?: string
@@ -1905,6 +2305,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "grades_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "cbc_competencies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "grades_reviewed_by_fkey"
             columns: ["reviewed_by"]
             isOneToOne: false
@@ -1930,6 +2337,106 @@ export type Database = {
             columns: ["submitted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grading_configurations: {
+        Row: {
+          class_id: string | null
+          competency_areas: Json | null
+          coursework_percentage: number | null
+          created_at: string | null
+          created_by: string | null
+          curriculum_type: string
+          exam_percentage: number | null
+          grade_boundaries: Json | null
+          grading_scale: Json | null
+          id: string
+          max_score: number | null
+          pass_mark: number | null
+          school_id: string
+          strand_weightings: Json | null
+          subject_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          class_id?: string | null
+          competency_areas?: Json | null
+          coursework_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          curriculum_type: string
+          exam_percentage?: number | null
+          grade_boundaries?: Json | null
+          grading_scale?: Json | null
+          id?: string
+          max_score?: number | null
+          pass_mark?: number | null
+          school_id: string
+          strand_weightings?: Json | null
+          subject_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          class_id?: string | null
+          competency_areas?: Json | null
+          coursework_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          curriculum_type?: string
+          exam_percentage?: number | null
+          grade_boundaries?: Json | null
+          grading_scale?: Json | null
+          id?: string
+          max_score?: number | null
+          pass_mark?: number | null
+          school_id?: string
+          strand_weightings?: Json | null
+          subject_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grading_configurations_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grading_configurations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grading_configurations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grading_configurations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "grading_configurations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grading_configurations_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -4171,9 +4678,23 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      calculate_cbc_competency_level: {
+        Args: { strand_scores: Json; competency_weightings: Json }
+        Returns: string
+      }
       calculate_class_positions: {
         Args: { p_class_id: string; p_term: string; p_exam_type: string }
         Returns: undefined
+      }
+      calculate_igcse_grade: {
+        Args: {
+          coursework_score: number
+          exam_score: number
+          coursework_weight: number
+          exam_weight: number
+          grade_boundaries: Json
+        }
+        Returns: string
       }
       check_rate_limit: {
         Args: {
