@@ -144,7 +144,7 @@ const SchoolAnalyticsDashboard = () => {
         <ErrorState
           title="Failed to Load School Analytics"
           description="There was an error fetching school analytics data."
-          error={error}
+          error={error instanceof Error ? error.message : 'Unknown error occurred'}
           onRetry={() => window.location.reload()}
         />
       </div>

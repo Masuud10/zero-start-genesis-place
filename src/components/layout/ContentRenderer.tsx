@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Dashboard from '@/components/Dashboard';
@@ -7,27 +8,26 @@ import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
 import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 import ParentDashboard from '@/components/dashboard/ParentDashboard';
-import FinanceDashboard from '@/components/dashboard/FinanceDashboard';
-import SchoolManagementDashboard from '@/components/dashboard/SchoolManagementDashboard';
-import GradesDashboard from '@/components/grades/GradesDashboard';
-import AttendanceDashboard from '@/components/attendance/AttendanceDashboard';
-import StudentsDashboard from '@/components/students/StudentsDashboard';
-import FinanceOverviewDashboard from '@/components/finance/FinanceOverviewDashboard';
-import PaymentsDashboard from '@/components/payments/PaymentsDashboard';
-import StudentAccountsDashboard from '@/components/finance/StudentAccountsDashboard';
-import FeeManagementDashboard from '@/components/finance/FeeManagementDashboard';
-import TimetableDashboard from '@/components/timetable/TimetableDashboard';
-import AnnouncementsDashboard from '@/components/announcements/AnnouncementsDashboard';
-import MessagesDashboard from '@/components/messages/MessagesDashboard';
-import ReportsDashboard from '@/components/reports/ReportsDashboard';
-import SupportDashboard from '@/components/support/SupportDashboard';
-import SettingsDashboard from '@/components/settings/SettingsDashboard';
-import FinanceSettingsDashboard from '@/components/finance/FinanceSettingsDashboard';
-import SecurityDashboard from '@/components/security/SecurityDashboard';
-import SchoolsDashboard from '@/components/schools/SchoolsDashboard';
-import UsersDashboard from '@/components/users/UsersDashboard';
-import BillingDashboard from '@/components/billing/BillingDashboard';
-import SystemHealthDashboard from '@/components/system-health/SystemHealthDashboard';
+import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
+import GradesModule from '@/components/modules/GradesModule';
+import AttendanceModule from '@/components/modules/AttendanceModule';
+import StudentsModule from '@/components/modules/StudentsModule';
+import FinanceModule from '@/components/modules/FinanceModule';
+import ProcessPaymentsModule from '@/components/modules/ProcessPaymentsModule';
+import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
+import FeeManagementModule from '@/components/modules/FeeManagementModule';
+import TimetableModule from '@/components/modules/TimetableModule';
+import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
+import MessagesModule from '@/components/modules/MessagesModule';
+import ReportsModule from '@/components/modules/ReportsModule';
+import SupportModule from '@/components/modules/SupportModule';
+import SettingsModule from '@/components/modules/SettingsModule';
+import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
+import SecurityModule from '@/components/modules/SecurityModule';
+import SchoolsModule from '@/components/modules/SchoolsModule';
+import UsersModule from '@/components/modules/UsersModule';
+import BillingModule from '@/components/modules/BillingModule';
+import SystemHealthModule from '@/components/modules/SystemHealthModule';
 
 interface ContentRendererProps {
   activeSection: string;
@@ -57,61 +57,61 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
         return <SchoolManagementDashboard />;
 
       case 'grades':
-        return <GradesDashboard />;
+        return <GradesModule />;
 
       case 'attendance':
-        return <AttendanceDashboard />;
+        return <AttendanceModule />;
 
       case 'students':
-        return <StudentsDashboard />;
+        return <StudentsModule />;
 
       case 'finance':
-        return <FinanceOverviewDashboard />;
+        return <FinanceModule />;
 
       case 'payments':
-        return <PaymentsDashboard />;
+        return <ProcessPaymentsModule />;
 
       case 'student-accounts':
-        return <StudentAccountsDashboard />;
+        return <StudentAccountsModule />;
 
       case 'fee-management':
-        return <FeeManagementDashboard />;
+        return <FeeManagementModule />;
 
       case 'timetable':
-        return <TimetableDashboard />;
+        return <TimetableModule />;
 
       case 'announcements':
-        return <AnnouncementsDashboard />;
+        return <AnnouncementsModule />;
 
       case 'messages':
-        return <MessagesDashboard />;
+        return <MessagesModule />;
 
       case 'reports':
-        return <ReportsDashboard />;
+        return <ReportsModule />;
 
       case 'support':
-        return <SupportDashboard />;
+        return <SupportModule />;
 
       case 'settings':
-        return <SettingsDashboard />;
+        return <SettingsModule />;
 
       case 'finance-settings':
-        return <FinanceSettingsDashboard />;
+        return <FinanceSettingsModule />;
 
       case 'security':
-        return <SecurityDashboard />;
+        return <SecurityModule />;
 
       case 'schools':
-        return <SchoolsDashboard />;
+        return <SchoolsModule />;
 
       case 'users':
-        return <UsersDashboard />;
+        return <UsersModule />;
 
       case 'billing':
-        return <BillingDashboard />;
+        return <BillingModule />;
 
       case 'system-health':
-        return <SystemHealthDashboard />;
+        return <SystemHealthModule />;
 
       default:
         return (
