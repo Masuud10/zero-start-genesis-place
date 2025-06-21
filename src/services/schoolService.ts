@@ -29,8 +29,30 @@ export interface CreateSchoolResponse {
   error?: string;
 }
 
-// Simplified type for RPC response to avoid deep recursion
-interface CreateSchoolRpcResponse {
+// Simplified interface for school data to avoid deep type inference
+interface SchoolData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  logo_url?: string;
+  website_url?: string;
+  motto?: string;
+  slogan?: string;
+  registration_number?: string;
+  year_established?: number;
+  term_structure?: string;
+  owner_information?: string;
+  curriculum_type?: string;
+  created_at: string;
+  updated_at: string;
+  owner_id?: string;
+  principal_id?: string;
+}
+
+// Simple interface for RPC response
+interface CreateSchoolRpcResult {
   success?: boolean;
   school_id?: string;
   owner_id?: string;
@@ -71,7 +93,7 @@ export class SchoolService {
 
       // Check if registration number is unique
       if (schoolData.registration_number) {
-        const { data: existingSchool } = await supabase
+        const { data: existingSchool }: { data: any } = await supabase
           .from('schools')
           .select('id')
           .eq('registration_number', schoolData.registration_number)
@@ -93,15 +115,14 @@ export class SchoolService {
         school_address: schoolData.address,
         owner_email: schoolData.ownerEmail || null,
         owner_name: schoolData.ownerName || null
-      });
+      }) as { data: CreateSchoolRpcResult; error: any };
 
       if (rpcError) {
         console.error('🏫 SchoolService: Database function error:', rpcError);
         throw rpcError;
       }
 
-      // Cast to our simplified response type
-      const responseData = rpcData as CreateSchoolRpcResponse;
+      const responseData = rpcData as CreateSchoolRpcResult;
       
       if (responseData?.error) {
         console.error('🏫 SchoolService: Function returned error:', responseData.error);
@@ -122,7 +143,6 @@ export class SchoolService {
           if (schoolData.website_url) updateData.website_url = schoolData.website_url;
           if (schoolData.motto) updateData.motto = schoolData.motto;
           if (schoolData.slogan) updateData.slogan = schoolData.slogan;
-          if (schoolData.school_type) updateData.school_type = schoolData.school_type;
           if (schoolData.registration_number) updateData.registration_number = schoolData.registration_number;
           if (schoolData.year_established) updateData.year_established = schoolData.year_established;
           if (schoolData.term_structure) updateData.term_structure = schoolData.term_structure;
@@ -166,8 +186,9 @@ export class SchoolService {
     }
   }
 
-  static async getAllSchools() {
+  static async getAllSchools(): Promise<{ data: SchoolData[] | null; error: any }> {
     try {
+      // Query only columns that exist in the schools table
       const { data, error } = await supabase
         .from('schools')
         .select(`
@@ -180,7 +201,6 @@ export class SchoolService {
           website_url,
           motto,
           slogan,
-          school_type,
           registration_number,
           year_established,
           term_structure,
@@ -191,11 +211,11 @@ export class SchoolService {
           owner_id,
           principal_id
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: SchoolData[] | null; error: any };
 
       if (error) {
         console.error('🏫 SchoolService: Error fetching schools:', error);
-        throw error;
+        return { data: null, error };
       }
 
       return { data: data || [], error: null };
@@ -205,7 +225,7 @@ export class SchoolService {
     }
   }
 
-  static async getSchoolById(schoolId: string) {
+  static async getSchoolById(schoolId: string): Promise<{ data: SchoolData | null; error: any }> {
     try {
       const { data, error } = await supabase
         .from('schools')
@@ -219,7 +239,6 @@ export class SchoolService {
           website_url,
           motto,
           slogan,
-          school_type,
           registration_number,
           year_established,
           term_structure,
@@ -231,11 +250,11 @@ export class SchoolService {
           principal_id
         `)
         .eq('id', schoolId)
-        .single();
+        .single() as { data: SchoolData | null; error: any };
 
       if (error) {
         console.error('🏫 SchoolService: Error fetching school:', error);
-        throw error;
+        return { data: null, error };
       }
 
       return { data, error: null };
