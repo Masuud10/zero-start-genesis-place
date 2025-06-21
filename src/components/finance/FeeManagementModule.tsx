@@ -12,6 +12,10 @@ const FeeManagementModule: React.FC = () => {
 
   const formatCurrency = (amount: number) => `KES ${amount.toLocaleString()}`;
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -28,7 +32,7 @@ const FeeManagementModule: React.FC = () => {
       <Alert variant="destructive" className="my-8">
         <AlertDescription>
           Failed to load fee management data: {error}
-          <Button onClick={refetch} variant="outline" size="sm" className="ml-4">
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="ml-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
           </Button>
@@ -44,9 +48,9 @@ const FeeManagementModule: React.FC = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
             Fee Management
           </h1>
-          <p className="text-muted-foreground">Manage fee structures and class assignments</p>
+          <p className="text-muted-foreground">Financial Management Center: Comprehensive school finance overview and management</p>
         </div>
-        <Button onClick={refetch} variant="outline" size="sm">
+        <Button onClick={handleRefresh} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh Data
         </Button>

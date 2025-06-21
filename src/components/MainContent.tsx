@@ -1,29 +1,34 @@
+
 import React from 'react';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { useAuth } from '@/contexts/AuthContext';
-import Dashboard from '@/components/dashboard/Dashboard';
 import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
-import GradesDashboard from '@/components/grades/GradesDashboard';
-import AttendanceDashboard from '@/components/attendance/AttendanceDashboard';
-import StudentsDashboard from '@/components/students/StudentsDashboard';
-import FinanceModule from '@/components/modules/FinanceModule';
-import TimetableDashboard from '@/components/timetable/TimetableDashboard';
-import AnnouncementsDashboard from '@/components/announcements/AnnouncementsDashboard';
-import MessagesDashboard from '@/components/messages/MessagesDashboard';
-import ReportsDashboard from '@/components/reports/ReportsDashboard';
-import SupportDashboard from '@/components/support/SupportDashboard';
-import SettingsDashboard from '@/components/settings/SettingsDashboard';
-import SecurityDashboard from '@/components/security/SecurityDashboard';
-import SchoolsDashboard from '@/components/schools/SchoolsDashboard';
-import UsersDashboard from '@/components/users/UsersDashboard';
-import BillingDashboard from '@/components/billing/BillingDashboard';
-import SystemHealthDashboard from '@/components/system-health/SystemHealthDashboard';
 import FinancialOverview from '@/components/finance/FinancialOverview';
 import FeeManagementModule from '@/components/finance/FeeManagementModule';
 import MpesaPaymentsModule from '@/components/finance/MpesaPaymentsModule';
 import FinancialReportsModule from '@/components/finance/FinancialReportsModule';
 import FinancialAnalyticsModule from '@/components/finance/FinancialAnalyticsModule';
+import GradesModule from '@/components/modules/GradesModule';
+import AttendanceModule from '@/components/modules/AttendanceModule';
+import StudentsModule from '@/components/modules/StudentsModule';
+import TimetableModule from '@/components/modules/TimetableModule';
+import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
+import MessagesModule from '@/components/modules/MessagesModule';
+import ReportsModule from '@/components/modules/ReportsModule';
+import SupportModule from '@/components/modules/SupportModule';
+import SettingsModule from '@/components/modules/SettingsModule';
+import SecurityModule from '@/components/modules/SecurityModule';
+import SchoolsModule from '@/components/modules/SchoolsModule';
+import UsersModule from '@/components/modules/UsersModule';
+import BillingModule from '@/components/modules/BillingModule';
+import SystemHealthModule from '@/components/modules/SystemHealthModule';
+import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
+import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
+import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
+import ParentDashboard from '@/components/dashboard/ParentDashboard';
+import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
+import SchoolOwnerDashboard from '@/components/dashboard/SchoolOwnerDashboard';
 
 const MainContent: React.FC = () => {
   const { activeSection } = useNavigation();
@@ -31,44 +36,63 @@ const MainContent: React.FC = () => {
 
   console.log('🎯 MainContent: Rendering section:', activeSection, 'for user role:', user?.role);
 
+  const renderDashboard = () => {
+    switch (user?.role) {
+      case 'edufam_admin':
+        return <EduFamAdminDashboard />;
+      case 'principal':
+        return <PrincipalDashboard />;
+      case 'teacher':
+        return <TeacherDashboard />;
+      case 'parent':
+        return <ParentDashboard />;
+      case 'finance_officer':
+        return <FinanceOfficerDashboard />;
+      case 'school_owner':
+        return <SchoolOwnerDashboard />;
+      default:
+        return <div>Welcome to Edufam</div>;
+    }
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <Dashboard />;
+        return renderDashboard();
       case 'school-management':
         return <SchoolManagementDashboard />;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'grades':
-        return <GradesDashboard />;
+        return <GradesModule />;
       case 'attendance':
-        return <AttendanceDashboard />;
+        return <AttendanceModule />;
       case 'students':
-        return <StudentsDashboard />;
+        return <StudentsModule />;
       case 'finance':
         return <FinancialOverview />;
       case 'timetable':
-        return <TimetableDashboard />;
+        return <TimetableModule />;
       case 'announcements':
-        return <AnnouncementsDashboard />;
+        return <AnnouncementsModule />;
       case 'messages':
-        return <MessagesDashboard />;
+        return <MessagesModule />;
       case 'reports':
-        return <ReportsDashboard />;
+        return <ReportsModule />;
       case 'support':
-        return <SupportDashboard />;
+        return <SupportModule />;
       case 'settings':
-        return <SettingsDashboard />;
+        return <SettingsModule />;
       case 'security':
-        return <SecurityDashboard />;
+        return <SecurityModule />;
       case 'schools':
-        return <SchoolsDashboard />;
+        return <SchoolsModule />;
       case 'users':
-        return <UsersDashboard />;
+        return <UsersModule />;
       case 'billing':
-        return <BillingDashboard />;
+        return <BillingModule />;
       case 'system-health':
-        return <SystemHealthDashboard />;
+        return <SystemHealthModule />;
       case 'fee-management':
         return <FeeManagementModule />;
       case 'mpesa-payments':

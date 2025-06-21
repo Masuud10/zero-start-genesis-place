@@ -12,7 +12,11 @@ import TopDefaultersList from '@/components/analytics/finance/TopDefaultersList'
 
 const FinancialAnalyticsModule: React.FC = () => {
   const filters = { term: 'current', class: 'all' };
-  const { data, isLoading, error, refetch } = useFinanceOfficerAnalytics(filters);
+  const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   if (isLoading) {
     return (
@@ -37,7 +41,7 @@ const FinancialAnalyticsModule: React.FC = () => {
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
-          <Button onClick={() => refetch()} variant="outline">
+          <Button onClick={handleRefresh} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry Loading
           </Button>
@@ -53,9 +57,9 @@ const FinancialAnalyticsModule: React.FC = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
             Financial Analytics
           </h1>
-          <p className="text-muted-foreground">Advanced financial insights and performance metrics</p>
+          <p className="text-muted-foreground">Financial Management Center: Comprehensive school finance overview and management</p>
         </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm">
+        <Button onClick={handleRefresh} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
