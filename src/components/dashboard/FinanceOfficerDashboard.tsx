@@ -21,10 +21,13 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
   const [refreshKey, setRefreshKey] = useState(0);
 
   const filters = { term: 'current', class: 'all' };
-  const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
+  const { data, isLoading, error, refetch } = useFinanceOfficerAnalytics(filters);
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
+    if (refetch) {
+      refetch();
+    }
   };
 
   if (isLoading) {
@@ -62,18 +65,15 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
 
   return (
     <div className="space-y-8" key={refreshKey}>
-      {/* Welcome Header */}
+      {/* Single Welcome Header */}
       <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-6 border border-blue-100">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-              Welcome back, {user.email?.split('@')[0]}!
+              Welcome back, {user.name || user.email?.split('@')[0]}!
             </h1>
             <p className="text-lg text-muted-foreground mt-2">
               Here's your financial overview for today
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Manage school finances, track payments, and analyze financial data
             </p>
           </div>
           <Button onClick={handleRefresh} variant="outline" size="sm" className="bg-white">
@@ -84,7 +84,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
       </div>
 
       {/* Financial Analytics Dashboard */}
-      {data && (
+      {data ? (
         <div className="space-y-6">
           {/* Key Metrics */}
           <FinanceKeyMetrics keyMetrics={data.keyMetrics} />
@@ -97,36 +97,25 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
 
           {/* Defaulters List */}
           <TopDefaultersList data={data.defaultersList} />
-
-          {/* Quick Actions Card */}
-          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-blue-800">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-blue-700 mb-4">
-                Use the sidebar navigation to access detailed financial management features:
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div className="bg-white p-3 rounded-lg border border-blue-200">
-                  <p className="font-medium text-blue-800">Fee Management</p>
-                  <p className="text-blue-600 text-xs">Manage fee structures</p>
-                </div>
-                <div className="bg-white p-3 rounded-lg border border-blue-200">
-                  <p className="font-medium text-blue-800">MPESA Payments</p>
-                  <p className="text-blue-600 text-xs">Track mobile payments</p>
-                </div>
-                <div className="bg-white p-3 rounded-lg border border-blue-200">
-                  <p className="font-medium text-blue-800">Financial Reports</p>
-                  <p className="text-blue-600 text-xs">Generate reports</p>
-                </div>
-                <div className="bg-white p-3 rounded-lg border border-blue-200">
-                  <p className="font-medium text-blue-800">Analytics</p>
-                  <p className="text-blue-600 text-xs">Detailed insights</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="bg-white rounded-lg shadow-sm border p-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Data Available</h3>
+            <p className="text-gray-500 mb-4">
+              There's no financial data to display at the moment. This could be because:
+            </p>
+            <ul className="text-sm text-gray-500 text-left max-w-md mx-auto space-y-1">
+              <li>• No fee structures have been set up</li>
+              <li>• No student fee records exist</li>
+              <li>• No expenses have been recorded</li>
+              <li>• Data is still being processed</li>
+            </ul>
+            <Button onClick={handleRefresh} className="mt-4" variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
         </div>
       )}
     </div>
