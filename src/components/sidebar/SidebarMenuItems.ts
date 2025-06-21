@@ -1,4 +1,3 @@
-
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -38,19 +37,14 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
   ];
 
-  // System admin specific items - full system access
+  // System admin specific items - updated to remove specified features
   if (userRole === 'edufam_admin') {
     return [
       ...baseItems,
       { id: 'analytics', label: 'Schools Analytics', icon: BarChart3, roles: ['edufam_admin'] },
       { id: 'schools', label: 'Schools Management', icon: Building2, roles: ['edufam_admin'] },
       { id: 'users', label: 'User Management', icon: UserCheck, roles: ['edufam_admin'] },
-      { id: 'grades', label: 'All Grades', icon: GraduationCap, roles: ['edufam_admin'] },
-      { id: 'attendance', label: 'All Attendance', icon: CalendarCheck, roles: ['edufam_admin'] },
-      { id: 'students', label: 'All Students', icon: Users, roles: ['edufam_admin'] },
-      { id: 'finance', label: 'All Finance', icon: DollarSign, roles: ['edufam_admin'] },
       { id: 'certificates', label: 'Certificate Management', icon: Award, roles: ['edufam_admin'] },
-      { id: 'timetable', label: 'All Timetables', icon: Calendar, roles: ['edufam_admin'] },
       { id: 'announcements', label: 'All Announcements', icon: Megaphone, roles: ['edufam_admin'] },
       { id: 'messages', label: 'All Messages', icon: MessageSquare, roles: ['edufam_admin'] },
       { id: 'reports', label: 'System Reports', icon: FileText, roles: ['edufam_admin'] },

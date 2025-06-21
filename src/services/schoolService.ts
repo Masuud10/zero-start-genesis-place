@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CreateSchoolRequest {
@@ -28,14 +29,14 @@ export interface CreateSchoolResponse {
   error?: string;
 }
 
-// Simple type for RPC response to avoid type recursion
-type RpcResponse = {
+// Simplified type for RPC response to avoid deep recursion
+interface CreateSchoolRpcResponse {
   success?: boolean;
   school_id?: string;
   owner_id?: string;
   message?: string;
   error?: string;
-};
+}
 
 export class SchoolService {
   static async createSchool(schoolData: CreateSchoolRequest): Promise<CreateSchoolResponse> {
@@ -84,8 +85,8 @@ export class SchoolService {
         }
       }
 
-      // Use the existing create_school database function - simplified typing
-      const rpcResult = await supabase.rpc('create_school', {
+      // Use the create_school database function with explicit typing
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
         school_phone: schoolData.phone,
@@ -94,13 +95,13 @@ export class SchoolService {
         owner_name: schoolData.ownerName || null
       });
 
-      if (rpcResult.error) {
-        console.error('🏫 SchoolService: Database function error:', rpcResult.error);
-        throw rpcResult.error;
+      if (rpcError) {
+        console.error('🏫 SchoolService: Database function error:', rpcError);
+        throw rpcError;
       }
 
-      // Handle the response with simple type casting
-      const responseData = rpcResult.data as RpcResponse;
+      // Cast to our simplified response type
+      const responseData = rpcData as CreateSchoolRpcResponse;
       
       if (responseData?.error) {
         console.error('🏫 SchoolService: Function returned error:', responseData.error);
@@ -115,7 +116,7 @@ export class SchoolService {
         
         // Update additional fields that aren't handled by the basic create_school function
         if (responseData.school_id) {
-          const updateData: Record<string, string | number> = {};
+          const updateData: Record<string, any> = {};
           
           if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
           if (schoolData.website_url) updateData.website_url = schoolData.website_url;
@@ -155,8 +156,8 @@ export class SchoolService {
         error: 'Unexpected response from server'
       };
 
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create school';
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to create school';
       console.error('🏫 SchoolService: Service error:', error);
       return {
         success: false,
@@ -197,7 +198,7 @@ export class SchoolService {
         throw error;
       }
 
-      return { data, error: null };
+      return { data: data || [], error: null };
     } catch (error) {
       console.error('🏫 SchoolService: Service error:', error);
       return { data: null, error };
@@ -263,8 +264,8 @@ export class SchoolService {
         .getPublicUrl(fileName);
 
       return { url: publicUrl };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload logo';
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to upload logo';
       console.error('Logo upload service error:', error);
       return { error: errorMessage };
     }

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Building2, MapPin, Calendar, Phone, Mail, Globe, User, GraduationCap, Hash, FileText, Search } from 'lucide-react';
+import { Plus, Building2, MapPin, Calendar, Phone, Mail, Globe, User, GraduationCap, Hash, FileText, Search, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SchoolService } from '@/services/schoolService';
 import EnhancedSchoolRegistrationDialog from './schools/EnhancedSchoolRegistrationDialog';
@@ -35,22 +35,35 @@ const SchoolsModule: React.FC = () => {
   const { toast } = useToast();
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   const loadSchools = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
+      console.log('🏫 SchoolsModule: Loading schools...');
       const result = await SchoolService.getAllSchools();
+      
       if (result.error) {
-        throw new Error('Failed to load schools');
+        console.error('🏫 SchoolsModule: Error from service:', result.error);
+        throw new Error(result.error.message || 'Failed to load schools');
       }
-      setSchools(result.data || []);
-    } catch (error) {
-      console.error('Error loading schools:', error);
+      
+      const schoolsData = result.data || [];
+      console.log('🏫 SchoolsModule: Loaded schools:', schoolsData.length);
+      setSchools(schoolsData);
+      
+    } catch (error: any) {
+      console.error('🏫 SchoolsModule: Error loading schools:', error);
+      const errorMessage = error?.message || 'Failed to fetch school data';
+      setError(errorMessage);
+      
       toast({
-        title: "Error",
-        description: "Failed to load schools",
+        title: "Error Loading Schools",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -123,6 +136,27 @@ const SchoolsModule: React.FC = () => {
             ))}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Error Loading Schools
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={loadSchools} variant="outline">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -347,7 +381,7 @@ const SchoolsModule: React.FC = () => {
         </Card>
       )}
 
-      {schools.length === 0 && !loading && (
+      {schools.length === 0 && !loading && !error && (
         <Card className="text-center py-16">
           <CardContent>
             <div className="max-w-md mx-auto">
