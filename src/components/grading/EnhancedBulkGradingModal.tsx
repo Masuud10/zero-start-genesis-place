@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -356,7 +355,7 @@ export const EnhancedBulkGradingModal: React.FC<EnhancedBulkGradingModalProps> =
               <DialogTitle>Enhanced Grade Sheet</DialogTitle>
               <Badge variant={batchStatus === 'draft' ? 'secondary' : 
                            batchStatus === 'submitted' ? 'default' : 
-                           batchStatus === 'approved' ? 'success' : 'destructive'}>
+                           batchStatus === 'approved' ? 'default' : 'destructive'}>
                 {batchStatus}
               </Badge>
             </div>

@@ -37,7 +37,7 @@ interface ApprovalHistory {
   created_at: string;
   profiles: {
     name: string;
-  };
+  } | null;
 }
 
 export const GradingWorkflowPanel: React.FC<GradingWorkflowPanelProps> = ({
@@ -96,7 +96,16 @@ export const GradingWorkflowPanel: React.FC<GradingWorkflowPanelProps> = ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setApprovalHistory(data || []);
+      
+      // Process the data to handle potential null profiles
+      const processedData = (data || []).map(approval => ({
+        ...approval,
+        profiles: approval.profiles && typeof approval.profiles === 'object' && 'name' in approval.profiles 
+          ? approval.profiles 
+          : { name: 'Unknown User' }
+      })) as ApprovalHistory[];
+      
+      setApprovalHistory(processedData);
     } catch (error) {
       console.error('Error loading approval history:', error);
     }

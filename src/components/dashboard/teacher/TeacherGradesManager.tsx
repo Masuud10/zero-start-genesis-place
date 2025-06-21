@@ -22,11 +22,12 @@ const TeacherGradesManager: React.FC = () => {
     enabled: !!user?.id && !!schoolId
   });
 
-  const draftGrades = grades?.filter(grade => grade.approval_workflow_stage === 'draft') || [];
-  const submittedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'submitted') || [];
-  const approvedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'approved') || [];
-  const rejectedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'rejected') || [];
-  const releasedGrades = grades?.filter(grade => grade.approval_workflow_stage === 'released') || [];
+  // Handle cases where approval_workflow_stage might not exist
+  const draftGrades = grades?.filter(grade => (grade.approval_workflow_stage || grade.status) === 'draft') || [];
+  const submittedGrades = grades?.filter(grade => (grade.approval_workflow_stage || grade.status) === 'submitted') || [];
+  const approvedGrades = grades?.filter(grade => (grade.approval_workflow_stage || grade.status) === 'approved') || [];
+  const rejectedGrades = grades?.filter(grade => (grade.approval_workflow_stage || grade.status) === 'rejected') || [];
+  const releasedGrades = grades?.filter(grade => (grade.approval_workflow_stage || grade.status) === 'released') || [];
 
   const handleEnhancedGrading = () => {
     console.log('Opening enhanced bulk grading modal for teacher');
