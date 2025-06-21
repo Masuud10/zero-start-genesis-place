@@ -69,47 +69,49 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Stats Overview - Enhanced with better spacing */}
+        {/* Stats Overview */}
         <div className="w-full">
           <PrincipalStatsCards stats={stats} loading={loading} error={error} />
         </div>
         
-        {/* Main Content Grid - Improved responsive layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Left Column - Management Tools */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Quick Actions - Refined card design */}
+        {/* Main Content Grid - Reorganized for better hierarchy */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Left Section - Primary Management Tools */}
+          <div className="xl:col-span-3 space-y-6">
+            {/* Quick Actions - Top priority for daily operations */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
               <PrincipalActionButtons onModalOpen={handleModalOpen} />
             </div>
             
-            {/* Grade Management - Consistent card styling */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <PrincipalGradesManager />
+            {/* Management Grid - Organized by frequency of use */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Grade Management */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <PrincipalGradesManager />
+              </div>
+              
+              {/* Timetable Management */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <PrincipalTimetableCard />
+              </div>
             </div>
             
-            {/* Timetable Management - Improved integration */}
+            {/* Certificates Section - Full width for better presentation */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <PrincipalTimetableCard />
+              <CertificatesList />
             </div>
           </div>
 
-          {/* Right Column - Analytics & Financial */}
+          {/* Right Sidebar - Financial Overview */}
           <div className="xl:col-span-1 space-y-6">
-            {/* Financial Overview - Consistent styling */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
               <FinancialOverviewReadOnly />
             </div>
           </div>
         </div>
-
-        {/* Bottom Section - Certificates with improved layout */}
-        <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm">
-          <CertificatesList />
-        </div>
       </div>
       
-      {/* Modals - Fixed modal integration */}
+      {/* Modals */}
       <AddSubjectModal
         open={activeModal === 'add-subject'}
         onClose={handleModalClose}

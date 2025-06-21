@@ -107,43 +107,43 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
     <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          {/* Stats Overview - Enhanced design */}
+          {/* Stats Overview */}
           <div className="w-full">
             <TeacherStatsCards stats={stats} loading={loading} />
           </div>
 
-          {/* Analytics Summary - Consistent card styling */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <TeacherAnalyticsSummaryCard />
-          </div>
-
-          {/* Main Content - Improved responsive layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-6">
-              {/* Grade Management - Refined card design */}
+          {/* Main Content Grid - Reorganized for cleaner layout */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Left Column - Primary Teaching Tools */}
+            <div className="xl:col-span-2 space-y-6">
+              {/* Teaching Actions - Most important section first */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <TeacherActions user={user} onModalOpen={handleModalOpen} />
+              </div>
+              
+              {/* Grade Management */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <TeacherGradesManager />
               </div>
               
-              {/* Classes - Consistent styling */}
+              {/* Analytics Summary */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <TeacherAnalyticsSummaryCard />
+              </div>
+            </div>
+
+            {/* Right Column - Schedule & Classes */}
+            <div className="xl:col-span-1 space-y-6">
+              {/* Timetable - Quick reference */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <CompactTeacherTimetable />
+              </div>
+              
+              {/* My Classes */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <MyClasses />
               </div>
             </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Timetable - Improved integration */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <CompactTeacherTimetable />
-              </div>
-            </div>
-          </div>
-
-          {/* Teaching Tools Section - Enhanced layout */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <TeacherActions user={user} onModalOpen={handleModalOpen} />
           </div>
         </div>
 
