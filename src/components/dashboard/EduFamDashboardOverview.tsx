@@ -201,6 +201,17 @@ const EduFamDashboardOverview = () => {
   if (statsLoading) {
     return (
       <div className="space-y-6">
+        {/* Loading State for Greetings */}
+        <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-xl">
+          <CardHeader>
+            <div className="animate-pulse">
+              <div className="h-8 bg-white/20 rounded mb-2"></div>
+              <div className="h-4 bg-white/20 rounded w-2/3"></div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Loading State for Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -216,7 +227,24 @@ const EduFamDashboardOverview = () => {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Stats Cards */}
+      {/* Greetings Container */}
+      <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <Building2 className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">EduFam System Overview</h1>
+              <p className="text-blue-100 text-base font-normal mt-1">
+                Real-time insights and analytics across all educational institutions
+              </p>
+            </div>
+          </CardTitle>
+        </CardHeader>
+      </Card>
+
+      {/* Stats Icon Section - Positioned below Greetings Container */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((card) => (
           <Card key={card.title} className={`${card.bgColor} ${card.borderColor} shadow-lg hover:shadow-xl transition-all duration-300`}>
