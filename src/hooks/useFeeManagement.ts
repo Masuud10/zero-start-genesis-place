@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -96,23 +97,28 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
       
-      // Transform the data to match our interface with proper type safety
+      // Transform the data to match our interface with proper null safety
       const transformedData: FeeRecord[] = (data || []).map(fee => ({
         id: fee.id,
         student_id: fee.student_id || '',
         class_id: fee.class_id || '',
         amount: fee.amount || 0,
         paid_amount: fee.paid_amount || 0,
-        status: (fee.status as 'pending' | 'partial' | 'paid' | 'overdue') || 'pending',
+        status: (['pending', 'partial', 'paid', 'overdue'].includes(fee.status) 
+          ? fee.status 
+          : 'pending') as 'pending' | 'partial' | 'paid' | 'overdue',
         due_date: fee.due_date || '',
         academic_year: fee.academic_year || '',
         term: fee.term || '',
         category: fee.category || '',
-        student: fee.student && typeof fee.student === 'object' && 'name' in fee.student
-          ? { name: fee.student.name || '', admission_number: fee.student.admission_number || '' }
+        student: (fee.student && typeof fee.student === 'object' && 'name' in fee.student && fee.student.name)
+          ? { 
+              name: String(fee.student.name || ''), 
+              admission_number: String(fee.student.admission_number || '') 
+            }
           : undefined,
-        class: fee.class && typeof fee.class === 'object' && 'name' in fee.class
-          ? { name: fee.class.name || '' }
+        class: (fee.class && typeof fee.class === 'object' && 'name' in fee.class && fee.class.name)
+          ? { name: String(fee.class.name || '') }
           : undefined
       }));
       
@@ -139,7 +145,7 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
       
-      // Transform the data with proper type safety
+      // Transform the data with proper null safety
       const transformedData: MPESATransaction[] = (data || []).map(transaction => ({
         id: transaction.id,
         transaction_id: transaction.transaction_id || '',
@@ -148,11 +154,14 @@ export const useFeeManagement = () => {
         amount_paid: transaction.amount_paid || 0,
         transaction_date: transaction.transaction_date || '',
         transaction_status: transaction.transaction_status || '',
-        student: transaction.student && typeof transaction.student === 'object' && 'name' in transaction.student 
-          ? { name: transaction.student.name || '', admission_number: transaction.student.admission_number || '' }
+        student: (transaction.student && typeof transaction.student === 'object' && 'name' in transaction.student && transaction.student.name)
+          ? { 
+              name: String(transaction.student.name || ''), 
+              admission_number: String(transaction.student.admission_number || '') 
+            }
           : undefined,
-        class: transaction.class && typeof transaction.class === 'object' && 'name' in transaction.class 
-          ? { name: transaction.class.name || '' }
+        class: (transaction.class && typeof transaction.class === 'object' && 'name' in transaction.class && transaction.class.name)
+          ? { name: String(transaction.class.name || '') }
           : undefined
       }));
       
@@ -184,9 +193,9 @@ export const useFeeManagement = () => {
 
         if (feeError) continue;
 
-        const totalAmount = feeData?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
+        const totalAmount = feeData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
         const paidAmount = feeData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-        const studentCount = new Set(feeData?.map(fee => fee.student_id)).size;
+        const studentCount = new Set(feeData?.map(fee => fee.student_id).filter(Boolean)).size;
         const balance = totalAmount - paidAmount;
 
         const summary: ClassSummary = {
@@ -279,17 +288,21 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
 
-      const result = data as { success?: boolean; message?: string; error?: string };
-      
-      if (result && typeof result === 'object' && 'success' in result && result.success) {
+      // Handle the response safely
+      if (data && typeof data === 'object' && 'success' in data && data.success) {
         toast({
           title: "Success",
-          description: (result.message as string) || "Fee assigned successfully",
+          description: (typeof data === 'object' && 'message' in data && typeof data.message === 'string') 
+            ? data.message 
+            : "Fee assigned successfully",
         });
         await fetchFees();
         await fetchClassSummaries();
       } else {
-        throw new Error((result?.error as string) || 'Failed to assign fee');
+        const errorMessage = (typeof data === 'object' && 'error' in data && typeof data.error === 'string') 
+          ? data.error 
+          : 'Failed to assign fee';
+        throw new Error(errorMessage);
       }
     } catch (err: any) {
       toast({
@@ -359,9 +372,8 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
 
-      const result = data as { success?: boolean; error?: string };
-
-      if (result && typeof result === 'object' && 'success' in result && result.success) {
+      // Handle the response safely
+      if (data && typeof data === 'object' && 'success' in data && data.success) {
         toast({
           title: "Success",
           description: "Payment recorded successfully",
@@ -370,7 +382,10 @@ export const useFeeManagement = () => {
         await fetchMPESATransactions();
         await fetchClassSummaries();
       } else {
-        throw new Error((result?.error as string) || 'Failed to record payment');
+        const errorMessage = (typeof data === 'object' && 'error' in data && typeof data.error === 'string') 
+          ? data.error 
+          : 'Failed to record payment';
+        throw new Error(errorMessage);
       }
     } catch (err: any) {
       toast({
