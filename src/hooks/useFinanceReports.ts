@@ -1,93 +1,65 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useSchoolScopedData } from './useSchoolScopedData';
 
 interface ReportFilters {
-  reportType: 'individual_student' | 'class_financial' | 'school_financial';
-  studentId?: string;
-  classId?: string;
+  reportType: 'school_financial' | 'class_financial' | 'individual_student';
   academicYear?: string;
   term?: string;
+  classId?: string;
+  studentId?: string;
   dateFrom?: string;
   dateTo?: string;
 }
 
-interface ReportResponse {
-  success?: boolean;
-  error?: string;
-  school?: any;
-  report_type?: string;
-  generated_at?: string;
-  academic_year?: string;
-  term?: string;
-  data?: any;
-}
-
 export const useFinanceReports = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
   const { toast } = useToast();
-  const { schoolId, isSystemAdmin } = useSchoolScopedData();
 
   const generateReport = async (filters: ReportFilters) => {
-    if (!schoolId && !isSystemAdmin) {
-      const message = 'School ID is required to generate reports';
-      setError(message);
+    if (!user?.school_id) {
       toast({
         title: "Error",
-        description: message,
+        description: "No school associated with user",
         variant: "destructive",
       });
-      return { data: null, error: message };
+      return { error: 'No school associated with user' };
     }
 
-    setLoading(true);
-    setError(null);
-
     try {
-      console.log('Generating finance report with filters:', filters);
-
-      const { data, error: reportError } = await supabase.rpc('generate_finance_report', {
+      setLoading(true);
+      
+      const { data, error } = await supabase.rpc('generate_finance_report', {
         p_report_type: filters.reportType,
-        p_school_id: isSystemAdmin ? null : schoolId,
+        p_school_id: user.school_id,
         p_class_id: filters.classId || null,
         p_student_id: filters.studentId || null,
         p_academic_year: filters.academicYear || null,
-        p_term: filters.term || null
+        p_term: filters.term || null,
       });
 
-      if (reportError) {
-        console.error('Report generation error:', reportError);
-        throw new Error(`Failed to generate report: ${reportError.message}`);
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      // Type cast the response to handle JSON structure
-      const response = data as ReportResponse;
-
-      if (response?.error) {
-        throw new Error(response.error);
-      }
-
-      console.log('Generated report:', response);
-      
       toast({
         title: "Success",
-        description: "Financial report generated successfully",
+        description: "Report generated successfully",
       });
 
-      return { data: response, error: null };
+      return { data, error: null };
     } catch (err: any) {
-      const message = err?.message || 'Failed to generate report';
-      console.error('Report generation error:', err);
-      setError(message);
       toast({
-        title: "Error Generating Report",
-        description: message,
+        title: "Error",
+        description: `Failed to generate report: ${err.message}`,
         variant: "destructive",
       });
-      return { data: null, error: message };
+      return { error: err.message };
     } finally {
       setLoading(false);
     }
@@ -95,36 +67,110 @@ export const useFinanceReports = () => {
 
   const downloadReport = async (reportData: any, filename: string) => {
     try {
-      const blob = new Blob([JSON.stringify(reportData, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
+      // Convert JSON data to CSV format
+      const csvContent = convertToCSV(reportData);
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filename}_${new Date().toISOString().split('T')[0]}.json`;
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
 
       toast({
         title: "Success",
         description: "Report downloaded successfully",
       });
-    } catch (err) {
-      console.error('Download error:', err);
+    } catch (err: any) {
       toast({
-        title: "Download Error",
-        description: "Failed to download report",
+        title: "Error",
+        description: `Failed to download report: ${err.message}`,
         variant: "destructive",
       });
+    }
+  };
+
+  const convertToCSV = (reportData: any): string => {
+    let csvContent = '';
+    
+    if (reportData.report_type === 'school_financial') {
+      csvContent = 'School Financial Report\n';
+      csvContent += `Generated: ${new Date(reportData.generated_at).toLocaleDateString()}\n`;
+      csvContent += `School: ${reportData.school?.name}\n`;
+      csvContent += `Academic Year: ${reportData.academic_year}\n`;
+      csvContent += `Term: ${reportData.term || 'All Terms'}\n\n`;
+      
+      csvContent += 'Summary\n';
+      csvContent += 'Metric,Amount (KES)\n';
+      csvContent += `Total Fees,${reportData.summary?.total_fees || 0}\n`;
+      csvContent += `Total Collected,${reportData.summary?.total_collected || 0}\n`;
+      csvContent += `Outstanding,${reportData.summary?.outstanding || 0}\n`;
+      csvContent += `Collection Rate,${reportData.summary?.collection_rate || 0}%\n`;
+      csvContent += `Total Expenses,${reportData.expenses?.total_expenses || 0}\n`;
+    } else if (reportData.report_type === 'class_financial') {
+      csvContent = 'Class Financial Report\n';
+      csvContent += `Generated: ${new Date(reportData.generated_at).toLocaleDateString()}\n\n`;
+      
+      csvContent += 'Class,Total Fees,Collected,Outstanding,Students\n';
+      reportData.class_breakdown?.forEach((classData: any) => {
+        csvContent += `${classData.class_name},${classData.total_fees},${classData.collected},${classData.outstanding},${classData.student_count}\n`;
+      });
+    }
+    
+    return csvContent;
+  };
+
+  const getFinancialSummary = async (filters?: { academicYear?: string; term?: string }) => {
+    if (!user?.school_id) return { error: 'No school associated with user' };
+
+    try {
+      const { data, error } = await supabase
+        .from('student_fees')
+        .select('amount, amount_paid, status')
+        .eq('school_id', user.school_id)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          
+          const summary = data?.reduce((acc, fee) => {
+            acc.totalFees += fee.amount;
+            acc.totalCollected += fee.amount_paid;
+            acc.outstanding += (fee.amount - fee.amount_paid);
+            
+            if (fee.status === 'paid') acc.paidCount++;
+            else if (fee.status === 'partial') acc.partialCount++;
+            else if (fee.status === 'unpaid') acc.unpaidCount++;
+            else if (fee.status === 'overdue') acc.overdue++;
+            
+            return acc;
+          }, {
+            totalFees: 0,
+            totalCollected: 0,
+            outstanding: 0,
+            paidCount: 0,
+            partialCount: 0,
+            unpaidCount: 0,
+            overdue: 0,
+          });
+          
+          return { data: summary, error: null };
+        });
+
+      return { data, error };
+    } catch (err: any) {
+      return { error: err.message };
     }
   };
 
   return {
     generateReport,
     downloadReport,
+    getFinancialSummary,
     loading,
-    error
   };
 };

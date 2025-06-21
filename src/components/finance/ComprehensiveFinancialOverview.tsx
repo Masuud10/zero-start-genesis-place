@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useStudentFees } from '@/hooks/useStudentFees';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -13,7 +14,9 @@ import {
   BarChart3,
   FileText,
   AlertCircle,
-  Loader2
+  Loader2,
+  Users,
+  Receipt
 } from 'lucide-react';
 import {
   BarChart,
@@ -32,28 +35,41 @@ import {
 import CreateExpenseDialog from './CreateExpenseDialog';
 import FeeStructureManager from './FeeStructureManager';
 import FinancialReportsGenerator from './FinancialReportsGenerator';
+import FeeAssignmentDialog from './FeeAssignmentDialog';
+import PaymentRecordDialog from './PaymentRecordDialog';
 
 const ComprehensiveFinancialOverview: React.FC = () => {
   const filters = { term: 'current', class: 'all' };
   const { data: analyticsData, isLoading: analyticsLoading, error: analyticsError } = useFinanceOfficerAnalytics(filters);
   const { expenses, loading: expensesLoading } = useExpenses();
+  const { studentFees, loading: feesLoading } = useStudentFees();
 
   // Calculate comprehensive financial data
   const financialSummary = React.useMemo(() => {
-    if (!analyticsData?.keyMetrics) return null;
+    if (!analyticsData?.keyMetrics && !studentFees?.length) return null;
 
     const totalExpenses = expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
-    const totalRevenue = analyticsData.keyMetrics.totalCollected || 0;
-    const pendingFees = analyticsData.keyMetrics.outstanding || 0;
+    
+    // Calculate from student fees data
+    const feesSummary = studentFees?.reduce((acc, fee) => {
+      acc.totalFees += fee.amount;
+      acc.totalCollected += fee.amount_paid;
+      acc.outstanding += (fee.amount - fee.amount_paid);
+      return acc;
+    }, { totalFees: 0, totalCollected: 0, outstanding: 0 });
+
+    const totalRevenue = feesSummary?.totalCollected || analyticsData?.keyMetrics?.totalCollected || 0;
+    const pendingFees = feesSummary?.outstanding || analyticsData?.keyMetrics?.outstanding || 0;
     const netIncome = totalRevenue - totalExpenses;
 
     return {
       totalRevenue,
       pendingFees,
       totalExpenses,
-      netIncome
+      netIncome,
+      totalFees: feesSummary?.totalFees || 0,
     };
-  }, [analyticsData, expenses]);
+  }, [analyticsData, expenses, studentFees]);
 
   // Process expense data for charts
   const expenseChartData = React.useMemo(() => {
@@ -71,12 +87,30 @@ const ComprehensiveFinancialOverview: React.FC = () => {
     }));
   }, [expenses]);
 
+  // Process fee status data for charts
+  const feeStatusData = React.useMemo(() => {
+    if (!studentFees?.length) return [];
+
+    const statusCounts = studentFees.reduce((acc: any, fee) => {
+      acc[fee.status] = (acc[fee.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(statusCounts).map(([status, count]) => ({
+      status: status.charAt(0).toUpperCase() + status.slice(1),
+      count: Number(count),
+      value: Number(count)
+    }));
+  }, [studentFees]);
+
   // Monthly revenue trend data
   const monthlyTrendData = React.useMemo(() => {
-    if (!analyticsData?.dailyTransactions) return [];
+    if (!analyticsData?.dailyTransactions && !studentFees?.length) return [];
 
+    const currentData = analyticsData?.dailyTransactions || [];
+    
     // Group transactions by month
-    const monthlyData = analyticsData.dailyTransactions.reduce((acc: any, transaction) => {
+    const monthlyData = currentData.reduce((acc: any, transaction) => {
       const date = new Date(transaction.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -110,7 +144,7 @@ const ComprehensiveFinancialOverview: React.FC = () => {
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
-  if (analyticsLoading || expensesLoading) {
+  if (analyticsLoading || expensesLoading || feesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -232,6 +266,7 @@ const ComprehensiveFinancialOverview: React.FC = () => {
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-4">
+        <FeeAssignmentDialog />
         <CreateExpenseDialog />
         <Button variant="outline">
           <FileText className="h-4 w-4 mr-2" />
@@ -242,6 +277,69 @@ const ComprehensiveFinancialOverview: React.FC = () => {
           View Analytics
         </Button>
       </div>
+
+      {/* Recent Student Fees Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-600" />
+            Recent Student Fees
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Student</th>
+                  <th className="text-left p-2">Class</th>
+                  <th className="text-left p-2">Amount</th>
+                  <th className="text-left p-2">Paid</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Due Date</th>
+                  <th className="text-left p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {studentFees?.slice(0, 10).map((fee) => (
+                  <tr key={fee.id} className="border-b hover:bg-gray-50">
+                    <td className="p-2">
+                      <div>
+                        <div className="font-medium">{fee.student?.name}</div>
+                        <div className="text-xs text-gray-500">{fee.student?.admission_number}</div>
+                      </div>
+                    </td>
+                    <td className="p-2">{fee.class?.name}</td>
+                    <td className="p-2">KES {fee.amount.toLocaleString()}</td>
+                    <td className="p-2">KES {fee.amount_paid.toLocaleString()}</td>
+                    <td className="p-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        fee.status === 'paid' ? 'bg-green-100 text-green-800' :
+                        fee.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                        fee.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {fee.status.charAt(0).toUpperCase() + fee.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="p-2">{new Date(fee.due_date).toLocaleDateString()}</td>
+                    <td className="p-2">
+                      <PaymentRecordDialog studentFee={fee} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {studentFees?.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p>No student fees found</p>
+                <p className="text-sm">Assign fees to students to get started</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -272,36 +370,36 @@ const ComprehensiveFinancialOverview: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Expense Distribution */}
+        {/* Fee Status Distribution */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PieChart className="h-5 w-5 text-purple-600" />
-              Expense Distribution
+              Fee Status Distribution
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <RechartsPieChart>
                 <Pie
-                  data={expenseChartData}
+                  data={feeStatusData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ category, value }: any) => {
-                    const total = expenseChartData.reduce((sum, item) => sum + item.amount, 0);
-                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-                    return `${category}: ${percentage}%`;
+                  label={({ status, count }: any) => {
+                    const total = feeStatusData.reduce((sum, item) => sum + item.count, 0);
+                    const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+                    return `${status}: ${percentage}%`;
                   }}
                   outerRadius={100}
                   fill="#8884d8"
-                  dataKey="amount"
+                  dataKey="count"
                 >
-                  {expenseChartData.map((entry, index) => (
+                  {feeStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: any) => [`KES ${Number(value).toLocaleString()}`, 'Amount']} />
+                <Tooltip formatter={(value: any) => [`${value} students`, 'Count']} />
               </RechartsPieChart>
             </ResponsiveContainer>
           </CardContent>

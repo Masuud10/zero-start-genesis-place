@@ -1898,6 +1898,45 @@ export type Database = {
           },
         ]
       }
+      financial_audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          school_id: string
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          school_id: string
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          school_id?: string
+          table_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_transactions: {
         Row: {
           academic_year: string | null
@@ -3059,6 +3098,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_receipts: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_amount: number
+          payment_date: string
+          payment_method: string
+          processed_by: string | null
+          receipt_data: Json | null
+          receipt_number: string
+          school_id: string
+          student_fee_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_amount: number
+          payment_date: string
+          payment_method: string
+          processed_by?: string | null
+          receipt_data?: Json | null
+          receipt_number: string
+          school_id: string
+          student_fee_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_amount?: number
+          payment_date?: string
+          payment_method?: string
+          processed_by?: string | null
+          receipt_data?: Json | null
+          receipt_number?: string
+          school_id?: string
+          student_fee_id?: string
+          student_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
