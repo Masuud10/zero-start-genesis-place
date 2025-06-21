@@ -69,7 +69,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection, onModa
           case 'parent':
             return <ParentDashboard user={user} onModalOpen={onModalOpen} />;
           case 'finance_officer':
-            return <FinanceOfficerDashboard />;
+            return <FinanceOfficerDashboard user={user} />;
           case 'school_owner':
             return <SchoolOwnerDashboard />;
           default:
