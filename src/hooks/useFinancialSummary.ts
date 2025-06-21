@@ -41,25 +41,61 @@ export const useFinancialSummary = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch financial summary using the database function
-      const { data: summaryData, error: summaryError } = await supabase.rpc('get_financial_summary', {
-        p_school_id: user.school_id
-      });
+      // Fetch fees data to calculate summary
+      const { data: feesData, error: feesError } = await supabase
+        .from('fees')
+        .select('amount, paid_amount')
+        .eq('school_id', user.school_id);
 
-      if (summaryError) throw summaryError;
-      setSummary(summaryData);
+      if (feesError) throw feesError;
 
-      // Fetch expense breakdown
+      // Calculate totals from fees
+      const totalFees = feesData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+      const totalCollected = feesData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+      const outstandingBalance = totalFees - totalCollected;
+
+      // Fetch expenses data
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
-        .select('category, amount')
+        .select('amount')
         .eq('school_id', user.school_id);
 
       if (expensesError) throw expensesError;
 
+      const totalExpenses = expensesData?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0;
+
+      // Fetch MPESA transactions count
+      const { data: mpesaData, error: mpesaError } = await supabase
+        .from('mpesa_transactions')
+        .select('id')
+        .eq('school_id', user.school_id)
+        .eq('transaction_status', 'Success');
+
+      if (mpesaError) throw mpesaError;
+
+      const mpesaTransactionsCount = mpesaData?.length || 0;
+
+      // Set summary
+      setSummary({
+        total_fees: totalFees,
+        total_collected: totalCollected,
+        outstanding_balance: outstandingBalance,
+        total_expenses: totalExpenses,
+        net_income: totalCollected - totalExpenses,
+        mpesa_transactions_count: mpesaTransactionsCount
+      });
+
+      // Fetch expense breakdown
+      const { data: expenseBreakdownData, error: expenseBreakdownError } = await supabase
+        .from('expenses')
+        .select('category, amount')
+        .eq('school_id', user.school_id);
+
+      if (expenseBreakdownError) throw expenseBreakdownError;
+
       // Group expenses by category
       const expenseMap = new Map<string, { amount: number; count: number }>();
-      expensesData?.forEach(expense => {
+      expenseBreakdownData?.forEach(expense => {
         const existing = expenseMap.get(expense.category) || { amount: 0, count: 0 };
         expenseMap.set(expense.category, {
           amount: existing.amount + expense.amount,

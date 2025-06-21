@@ -74,17 +74,45 @@ export const useFeeManagement = () => {
         items: structure.fee_structure_items || []
       })) || []);
 
-      // Fetch class fees summary using the database function
-      const { data: classData, error: classError } = await supabase.rpc('generate_finance_report', {
-        p_report_type: 'class_financial',
-        p_school_id: user.school_id
-      });
+      // Fetch class fees summary by calculating from fees and classes tables
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('school_id', user.school_id);
 
-      if (classError) throw classError;
+      if (classesError) throw classesError;
 
-      if (classData?.class_breakdown) {
-        setClassFeesSummary(classData.class_breakdown);
+      // For each class, calculate fee summary
+      const classSummaries: ClassFeeSummary[] = [];
+      
+      for (const classItem of classesData || []) {
+        const { data: feesData, error: feesError } = await supabase
+          .from('fees')
+          .select('amount, paid_amount, student_id')
+          .eq('class_id', classItem.id)
+          .eq('school_id', user.school_id);
+
+        if (feesError) {
+          console.error('Error fetching fees for class:', classItem.id, feesError);
+          continue;
+        }
+
+        const totalFees = feesData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+        const collected = feesData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+        const outstanding = totalFees - collected;
+        const studentCount = new Set(feesData?.map(fee => fee.student_id)).size;
+
+        classSummaries.push({
+          class_id: classItem.id,
+          class_name: classItem.name,
+          total_fees: totalFees,
+          collected: collected,
+          outstanding: outstanding,
+          student_count: studentCount
+        });
       }
+
+      setClassFeesSummary(classSummaries);
 
     } catch (err: any) {
       console.error('Error fetching fee management data:', err);
