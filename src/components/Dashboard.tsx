@@ -89,6 +89,17 @@ const Dashboard = () => {
     }
   };
 
+  const handleDataChanged = () => {
+    try {
+      console.log('📊 Dashboard: Data changed, refreshing...');
+      // This could trigger data refetch or cache invalidation
+      // For now, we'll just close the modal
+      setActiveModal(null);
+    } catch (error) {
+      console.error('📊 Dashboard: Error handling data change:', error);
+    }
+  };
+
   console.log('📊 Dashboard: Rendering role-based content for role:', user.role);
 
   return (
@@ -106,6 +117,7 @@ const Dashboard = () => {
           activeModal={activeModal}
           onClose={handleModalClose}
           user={user}
+          onDataChanged={handleDataChanged}
         />
       </div>
     </RoleGuard>
