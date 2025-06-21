@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CreateSchoolRequest {
@@ -29,14 +28,14 @@ export interface CreateSchoolResponse {
   error?: string;
 }
 
-// Define explicit response type for create_school RPC function
-interface CreateSchoolRpcResponse {
+// Simple type for RPC response to avoid type recursion
+type RpcResponse = {
   success?: boolean;
   school_id?: string;
   owner_id?: string;
   message?: string;
   error?: string;
-}
+};
 
 export class SchoolService {
   static async createSchool(schoolData: CreateSchoolRequest): Promise<CreateSchoolResponse> {
@@ -85,70 +84,70 @@ export class SchoolService {
         }
       }
 
-      // Use the existing create_school database function with explicit typing
-      const { data, error } = await supabase.rpc('create_school', {
+      // Use the existing create_school database function - simplified typing
+      const rpcResult = await supabase.rpc('create_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
         school_phone: schoolData.phone,
         school_address: schoolData.address,
         owner_email: schoolData.ownerEmail || null,
         owner_name: schoolData.ownerName || null
-      }) as { data: CreateSchoolRpcResponse | null; error: any };
+      });
 
-      if (error) {
-        console.error('🏫 SchoolService: Database function error:', error);
-        throw error;
+      if (rpcResult.error) {
+        console.error('🏫 SchoolService: Database function error:', rpcResult.error);
+        throw rpcResult.error;
       }
 
-      // Handle the response with explicit typing
-      if (data) {
-        if (data.error) {
-          console.error('🏫 SchoolService: Function returned error:', data.error);
-          return {
-            success: false,
-            error: data.error
-          };
-        }
+      // Handle the response with simple type casting
+      const responseData = rpcResult.data as RpcResponse;
+      
+      if (responseData?.error) {
+        console.error('🏫 SchoolService: Function returned error:', responseData.error);
+        return {
+          success: false,
+          error: responseData.error
+        };
+      }
 
-        if (data.success === true) {
-          console.log('🏫 SchoolService: School created successfully:', data);
+      if (responseData?.success === true) {
+        console.log('🏫 SchoolService: School created successfully:', responseData);
+        
+        // Update additional fields that aren't handled by the basic create_school function
+        if (responseData.school_id) {
+          const updateData: Record<string, string | number> = {};
           
-          // Update additional fields that aren't handled by the basic create_school function
-          if (data.school_id) {
-            const updateData: Record<string, string | number> = {};
-            
-            if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
-            if (schoolData.website_url) updateData.website_url = schoolData.website_url;
-            if (schoolData.motto) updateData.motto = schoolData.motto;
-            if (schoolData.slogan) updateData.slogan = schoolData.slogan;
-            if (schoolData.school_type) updateData.school_type = schoolData.school_type;
-            if (schoolData.registration_number) updateData.registration_number = schoolData.registration_number;
-            if (schoolData.year_established) updateData.year_established = schoolData.year_established;
-            if (schoolData.term_structure) updateData.term_structure = schoolData.term_structure;
-            if (schoolData.owner_information) updateData.owner_information = schoolData.owner_information;
-            if (schoolData.curriculumType) updateData.curriculum_type = schoolData.curriculumType;
-            
-            // Update the school with additional fields if any exist
-            if (Object.keys(updateData).length > 0) {
-              const { error: updateError } = await supabase
-                .from('schools')
-                .update(updateData)
-                .eq('id', data.school_id);
-                
-              if (updateError) {
-                console.warn('🏫 SchoolService: Failed to update additional fields:', updateError);
-                // Don't fail the entire operation for this
-              }
+          if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
+          if (schoolData.website_url) updateData.website_url = schoolData.website_url;
+          if (schoolData.motto) updateData.motto = schoolData.motto;
+          if (schoolData.slogan) updateData.slogan = schoolData.slogan;
+          if (schoolData.school_type) updateData.school_type = schoolData.school_type;
+          if (schoolData.registration_number) updateData.registration_number = schoolData.registration_number;
+          if (schoolData.year_established) updateData.year_established = schoolData.year_established;
+          if (schoolData.term_structure) updateData.term_structure = schoolData.term_structure;
+          if (schoolData.owner_information) updateData.owner_information = schoolData.owner_information;
+          if (schoolData.curriculumType) updateData.curriculum_type = schoolData.curriculumType;
+          
+          // Update the school with additional fields if any exist
+          if (Object.keys(updateData).length > 0) {
+            const { error: updateError } = await supabase
+              .from('schools')
+              .update(updateData)
+              .eq('id', responseData.school_id);
+              
+            if (updateError) {
+              console.warn('🏫 SchoolService: Failed to update additional fields:', updateError);
+              // Don't fail the entire operation for this
             }
           }
-          
-          return {
-            success: true,
-            school_id: data.school_id,
-            owner_id: data.owner_id,
-            message: data.message || 'School created successfully'
-          };
         }
+        
+        return {
+          success: true,
+          school_id: responseData.school_id,
+          owner_id: responseData.owner_id,
+          message: responseData.message || 'School created successfully'
+        };
       }
 
       return {
