@@ -113,7 +113,7 @@ const DashboardModals = ({ activeModal, onClose, user, onDataChanged }: Dashboar
                 </div>
                 <div className="flex justify-between items-center p-3 bg-green-50 rounded">
                   <span>API Response Time</span>
-                  <span className="text-green-600 font-semibold">< 200ms</span>
+                  <span className="text-green-600 font-semibold">Less than 200ms</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-green-50 rounded">
                   <span>System Uptime</span>
