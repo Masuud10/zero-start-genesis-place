@@ -22,7 +22,9 @@ import {
   Calculator,
   Coins,
   Award,
-  Globe
+  Globe,
+  PieChart,
+  Banknote
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -66,7 +68,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'grades', label: 'School Grades', icon: GraduationCap, roles: ['school_owner'] },
       { id: 'attendance', label: 'School Attendance', icon: CalendarCheck, roles: ['school_owner'] },
       { id: 'students', label: 'Student Management', icon: Users, roles: ['school_owner'] },
-      { id: 'finance', label: 'Financial Management', icon: DollarSign, roles: ['school_owner'] },
+      { id: 'finance', label: 'Financial Overview', icon: DollarSign, roles: ['school_owner'] },
       { id: 'certificates', label: 'View Certificates', icon: Award, roles: ['school_owner'] },
       { id: 'timetable', label: 'School Timetables', icon: Calendar, roles: ['school_owner'] },
       { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['school_owner'] },
@@ -85,7 +87,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'grades', label: 'Grades Management', icon: GraduationCap, roles: ['principal'] },
       { id: 'attendance', label: 'Attendance Management', icon: CalendarCheck, roles: ['principal'] },
       { id: 'students', label: 'Student Management', icon: Users, roles: ['principal'] },
-      { id: 'finance', label: 'Financial Management', icon: DollarSign, roles: ['principal'] },
+      { id: 'finance', label: 'Financial Overview', icon: DollarSign, roles: ['principal'] },
       { id: 'certificates', label: 'Certificate Generation', icon: Award, roles: ['principal'] },
       { id: 'timetable', label: 'Timetable Management', icon: Calendar, roles: ['principal'] },
       { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['principal'] },
@@ -111,20 +113,20 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // Finance Officer - financial operations and related features
+  // Finance Officer - financial operations and related features with separate sections
   if (userRole === 'finance_officer') {
     return [
       ...baseItems,
-      { id: 'analytics', label: 'Financial Analytics', icon: BarChart3, roles: ['finance_officer'] },
-      { id: 'finance', label: 'Fee Management', icon: DollarSign, roles: ['finance_officer'] },
-      { id: 'payments', label: 'Process Payments', icon: CreditCard, roles: ['finance_officer'] },
+      { id: 'finance', label: 'Financial Overview', icon: DollarSign, roles: ['finance_officer'] },
+      { id: 'fee-management', label: 'Fee Management', icon: Coins, roles: ['finance_officer'] },
+      { id: 'mpesa-payments', label: 'MPESA Payments', icon: CreditCard, roles: ['finance_officer'] },
+      { id: 'financial-reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
+      { id: 'financial-analytics', label: 'Financial Analytics', icon: PieChart, roles: ['finance_officer'] },
       { id: 'student-accounts', label: 'Student Accounts', icon: Users, roles: ['finance_officer'] },
-      { id: 'fee-management', label: 'Fee Assignment', icon: Coins, roles: ['finance_officer'] },
-      { id: 'reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
-      { id: 'finance-settings', label: 'Finance Settings', icon: Settings, roles: ['finance_officer'] },
-      { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
       { id: 'attendance', label: 'Student Attendance', icon: CalendarCheck, roles: ['finance_officer'] },
       { id: 'timetable', label: 'School Timetable', icon: Calendar, roles: ['finance_officer'] },
+      { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
+      { id: 'finance-settings', label: 'Finance Settings', icon: Settings, roles: ['finance_officer'] },
       { id: 'security', label: 'Security', icon: Shield, roles: ['finance_officer'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['finance_officer'] },
     ];
