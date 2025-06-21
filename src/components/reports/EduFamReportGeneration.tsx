@@ -2,474 +2,460 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/contexts/AuthContext';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useReportGeneration } from '@/hooks/useReportGeneration';
 import { 
   FileText, 
   Download, 
-  BarChart3, 
-  Users, 
+  Filter, 
+  School, 
+  GraduationCap, 
   DollarSign, 
-  GraduationCap,
+  Users, 
+  BarChart3,
+  TrendingUp,
   Building2,
-  Calendar,
   RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Clock
+  FileSpreadsheet,
+  Eye,
+  AlertCircle
 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-interface ReportRequest {
-  reportType: 'comprehensive' | 'academic' | 'financial' | 'attendance';
-  schoolId?: string;
-  academicYear: string;
-  term?: string;
-  includeCharts: boolean;
-  customNote?: string;
-}
 
 const EduFamReportGeneration = () => {
-  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('school-reports');
+  const [selectedReportType, setSelectedReportType] = useState('');
+  const [selectedSchool, setSelectedSchool] = useState('');
+  const [academicYear, setAcademicYear] = useState('2024');
+  const [term, setTerm] = useState('');
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const [reportRequest, setReportRequest] = useState<ReportRequest>({
-    reportType: 'comprehensive',
-    academicYear: new Date().getFullYear().toString(),
-    includeCharts: true,
-  });
 
-  // Fetch schools for report generation
-  const { data: schools } = useQuery({
-    queryKey: ['schools-for-reports'],
+  const {
+    isGenerating,
+    reportData,
+    generateSchoolReport,
+    generateCompanyReport,
+    exportToCSV,
+    clearReportData
+  } = useReportGeneration();
+
+  // Fetch schools for filtering
+  const { data: schools, isLoading: schoolsLoading } = useQuery({
+    queryKey: ['admin-schools'],
     queryFn: async () => {
+      console.log('🏫 Fetching schools for report filtering');
       const { data, error } = await supabase
         .from('schools')
-        .select('id, name, location')
+        .select('id, name, location, created_at')
         .order('name');
       
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: user?.role === 'edufam_admin',
+      if (error) {
+        console.error('Error fetching schools:', error);
+        throw error;
+      }
+      console.log('✅ Fetched schools:', data?.length || 0);
+      return data;
+    }
   });
 
-  // Fetch recent reports
-  const { data: recentReports, isLoading: reportsLoading } = useQuery({
-    queryKey: ['edufam-recent-reports'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reports')
-        .select(`
-          *,
-          school:schools(name, location),
-          generated_by_profile:profiles!reports_generated_by_fkey(name)
-        `)
-        .order('generated_at', { ascending: false })
-        .limit(10);
-      
-      if (error) throw error;
-      return data || [];
+  const schoolReportTypes = [
+    {
+      category: 'Academic Reports',
+      icon: GraduationCap,
+      color: 'blue',
+      reports: [
+        { value: 'grade_distribution', label: 'Grade Distribution Report', description: 'Performance across all subjects and classes' },
+        { value: 'class_performance', label: 'Class Performance Summary', description: 'Overall class performance metrics' },
+        { value: 'subject_analysis', label: 'Subject Performance Analysis', description: 'Top and low performing subjects' }
+      ]
     },
-    enabled: user?.role === 'edufam_admin',
-  });
-
-  // Generate report mutation
-  const generateReportMutation = useMutation({
-    mutationFn: async (request: ReportRequest) => {
-      console.log('📊 Generating EduFam Admin report:', request);
-      
-      // Fetch comprehensive data based on report type
-      let reportData: any = {};
-      
-      if (request.reportType === 'comprehensive' || request.reportType === 'academic') {
-        // Fetch academic data
-        const { data: gradesData, error: gradesError } = await supabase
-          .from('grades')
-          .select(`
-            *,
-            student:students(name, admission_number),
-            subject:subjects(name, code),
-            class:classes(name, level),
-            school:schools(name, location)
-          `)
-          .eq('school_id', request.schoolId || '')
-          .eq('status', 'released')
-          .gte('created_at', `${request.academicYear}-01-01`)
-          .lt('created_at', `${parseInt(request.academicYear) + 1}-01-01`);
-
-        if (gradesError) throw gradesError;
-        reportData.academic = gradesData;
-      }
-
-      if (request.reportType === 'comprehensive' || request.reportType === 'attendance') {
-        // Fetch attendance data
-        const { data: attendanceData, error: attendanceError } = await supabase
-          .from('attendance')
-          .select(`
-            *,
-            student:students(name, admission_number),
-            class:classes(name, level),
-            school:schools(name, location)
-          `)
-          .eq('school_id', request.schoolId || '')
-          .eq('academic_year', request.academicYear);
-
-        if (attendanceError) throw attendanceError;
-        reportData.attendance = attendanceData;
-      }
-
-      if (request.reportType === 'comprehensive' || request.reportType === 'financial') {
-        // Fetch financial data
-        const { data: financialData, error: financialError } = await supabase
-          .from('financial_transactions')
-          .select(`
-            *,
-            student:students(name, admission_number),
-            school:schools(name, location)
-          `)
-          .eq('school_id', request.schoolId || '')
-          .eq('academic_year', request.academicYear);
-
-        if (financialError) throw financialError;
-        reportData.financial = financialData;
-
-        // Also fetch fees data
-        const { data: feesData, error: feesError } = await supabase
-          .from('fees')
-          .select(`
-            *,
-            student:students(name, admission_number),
-            school:schools(name, location)
-          `)
-          .eq('school_id', request.schoolId || '')
-          .eq('academic_year', request.academicYear);
-
-        if (feesError) throw feesError;
-        reportData.fees = feesData;
-      }
-
-      // Calculate summary statistics
-      const summary = {
-        totalStudents: reportData.academic?.length || 0,
-        averageGrade: reportData.academic?.reduce((sum: number, grade: any) => sum + (grade.percentage || 0), 0) / (reportData.academic?.length || 1),
-        attendanceRate: reportData.attendance?.filter((a: any) => a.status === 'present').length / (reportData.attendance?.length || 1) * 100,
-        totalRevenue: reportData.financial?.reduce((sum: number, trans: any) => sum + parseFloat(trans.amount || 0), 0) || 0,
-        outstandingFees: reportData.fees?.reduce((sum: number, fee: any) => sum + (parseFloat(fee.amount || 0) - parseFloat(fee.paid_amount || 0)), 0) || 0,
-      };
-
-      // Store the report
-      const { data: savedReport, error: saveError } = await supabase
-        .from('reports')
-        .insert({
-          school_id: request.schoolId,
-          generated_by: user?.id,
-          report_type: request.reportType,
-          report_data: { ...reportData, summary, metadata: request },
-          filters: {
-            academic_year: request.academicYear,
-            term: request.term,
-            report_type: request.reportType,
-            include_charts: request.includeCharts
-          }
-        })
-        .select()
-        .single();
-
-      if (saveError) throw saveError;
-      
-      return { report: savedReport, data: reportData, summary };
+    {
+      category: 'Attendance Reports',
+      icon: Users,
+      color: 'green',
+      reports: [
+        { value: 'attendance_summary', label: 'Attendance Summary', description: 'Overall attendance statistics' },
+        { value: 'absenteeism_trends', label: 'Absenteeism Trends', description: 'Attendance patterns and trends' }
+      ]
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['edufam-recent-reports'] });
+    {
+      category: 'Finance Reports',
+      icon: DollarSign,
+      color: 'orange',
+      reports: [
+        { value: 'fees_collection', label: 'Fees Collection Report', description: 'Fee payment status and collections' },
+        { value: 'outstanding_balances', label: 'Outstanding Balances', description: 'Unpaid fees and defaulters' }
+      ]
+    }
+  ];
+
+  const companyReportTypes = [
+    {
+      category: 'School Management',
+      icon: School,
+      color: 'indigo',
+      reports: [
+        { value: 'schools_overview', label: 'Schools Overview', description: 'All registered schools summary' },
+        { value: 'active_schools', label: 'Active vs Inactive Schools', description: 'School status breakdown' }
+      ]
+    },
+    {
+      category: 'Business Analytics',
+      icon: TrendingUp,
+      color: 'emerald',
+      reports: [
+        { value: 'revenue_analytics', label: 'Revenue Analytics', description: 'Subscription and revenue tracking' },
+        { value: 'feature_usage', label: 'Feature Usage Analytics', description: 'Most and least used features' }
+      ]
+    }
+  ];
+
+  const handleGenerateReport = async () => {
+    if (!selectedReportType) {
       toast({
-        title: "Report Generated Successfully",
-        description: `${result.report.report_type} report has been generated and saved.`,
-      });
-    },
-    onError: (error: any) => {
-      console.error('Report generation error:', error);
-      toast({
-        title: "Report Generation Failed",
-        description: error.message || "Failed to generate report. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleGenerateReport = () => {
-    if (!reportRequest.schoolId && reportRequest.reportType !== 'comprehensive') {
-      toast({
-        title: "School Selection Required",
-        description: "Please select a school for this report type.",
+        title: "Report Type Required",
+        description: "Please select a report type to generate.",
         variant: "destructive",
       });
       return;
     }
 
-    generateReportMutation.mutate(reportRequest);
-  };
+    const filters = {
+      reportType: selectedReportType,
+      school: selectedSchool,
+      academicYear,
+      term
+    };
 
-  const handleDownloadReport = (reportId: string) => {
-    toast({
-      title: "Download Report",
-      description: "Report download functionality will be implemented next.",
-    });
-    // TODO: Implement report download
-  };
+    console.log('🔄 Generating report with filters:', filters);
 
-  const getReportTypeIcon = (type: string) => {
-    switch (type) {
-      case 'academic':
-        return <GraduationCap className="h-4 w-4" />;
-      case 'financial':
-        return <DollarSign className="h-4 w-4" />;
-      case 'attendance':
-        return <Users className="h-4 w-4" />;
-      default:
-        return <BarChart3 className="h-4 w-4" />;
+    let result;
+    if (activeTab === 'school-reports') {
+      result = await generateSchoolReport(filters);
+    } else {
+      result = await generateCompanyReport(filters);
+    }
+
+    if (result) {
+      toast({
+        title: "Report Generated",
+        description: `${result.title} generated successfully with ${result.data.length} records.`,
+      });
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
-      case 'processing':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />Processing</Badge>;
-      default:
-        return <Badge variant="secondary">Unknown</Badge>;
-    }
-  };
-
-  // Access control check
-  if (user?.role !== 'edufam_admin') {
-    return (
-      <div className="p-6">
-        <Alert className="bg-red-50 border-red-200">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-600">Access Denied</AlertTitle>
-          <AlertDescription className="text-red-700">
-            Only EduFam Admins can access report generation.
-          </AlertDescription>
-        </Alert>
-      </div>
+  const handleExportCSV = () => {
+    if (!reportData) return;
+    
+    exportToCSV(
+      reportData.data,
+      reportData.title.replace(/\s+/g, '_')
     );
-  }
+
+    toast({
+      title: "Excel Downloaded",
+      description: "Report has been exported to CSV successfully.",
+    });
+  };
+
+  const renderReportCategories = (categories: any[]) => (
+    <div className="space-y-4">
+      {categories.map((category) => (
+        <Card key={category.category} className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <category.icon className={`w-5 h-5 text-${category.color}-600`} />
+              <h3 className="text-lg font-semibold">{category.category}</h3>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3">
+              {category.reports.map((report: any) => (
+                <div
+                  key={report.value}
+                  className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                    selectedReportType === report.value
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedReportType(report.value)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-medium">{report.label}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {report.description}
+                      </p>
+                    </div>
+                    {selectedReportType === report.value && (
+                      <Badge variant="default" className="bg-blue-600">
+                        Selected
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderSummaryCard = () => {
+    if (!reportData?.summary?.aggregateData) return null;
+
+    const { aggregateData } = reportData.summary;
+
+    return (
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            Report Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.entries(aggregateData).map(([key, value]) => (
+              <div key={key} className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">
+                  {typeof value === 'number' ? 
+                    (key.includes('Rate') || key.includes('Percentage') ? 
+                      `${value.toFixed(1)}%` : value.toLocaleString()
+                    ) : 
+                    JSON.stringify(value).length > 50 ? 
+                      'Multiple' : String(value)
+                  }
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-2xl text-gray-900">
-          <FileText className="h-6 w-6 text-blue-600" />
-          Report Generation
-        </CardTitle>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Report Generation Form */}
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              <BarChart3 className="h-5 w-5" />
-              Generate New Report
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Report Type
-              </label>
-              <Select
-                value={reportRequest.reportType}
-                onValueChange={(value: any) => setReportRequest(prev => ({ ...prev, reportType: value }))}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="comprehensive">Comprehensive Report</SelectItem>
-                  <SelectItem value="academic">Academic Performance</SelectItem>
-                  <SelectItem value="financial">Financial Analysis</SelectItem>
-                  <SelectItem value="attendance">Attendance Summary</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target School
-              </label>
-              <Select
-                value={reportRequest.schoolId || 'all'}
-                onValueChange={(value) => setReportRequest(prev => ({ 
-                  ...prev, 
-                  schoolId: value === 'all' ? undefined : value 
-                }))}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Select School" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Schools</SelectItem>
-                  {schools?.map((school) => (
-                    <SelectItem key={school.id} value={school.id}>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        {school.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Academic Year
-              </label>
-              <Select
-                value={reportRequest.academicYear}
-                onValueChange={(value) => setReportRequest(prev => ({ ...prev, academicYear: value }))}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 5 }, (_, i) => {
-                    const year = new Date().getFullYear() - i;
-                    return (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Term (Optional)
-              </label>
-              <Select
-                value={reportRequest.term || 'all'}
-                onValueChange={(value) => setReportRequest(prev => ({ 
-                  ...prev, 
-                  term: value === 'all' ? undefined : value 
-                }))}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Select Term" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Terms</SelectItem>
-                  <SelectItem value="term1">Term 1</SelectItem>
-                  <SelectItem value="term2">Term 2</SelectItem>
-                  <SelectItem value="term3">Term 3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Custom Notes (Optional)
-              </label>
-              <Textarea
-                placeholder="Add any specific notes or requirements for this report..."
-                value={reportRequest.customNote || ''}
-                onChange={(e) => setReportRequest(prev => ({ ...prev, customNote: e.target.value }))}
-                className="bg-white"
-                rows={3}
-              />
-            </div>
-
-            <Button
-              onClick={handleGenerateReport}
-              disabled={generateReportMutation.isPending}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              {generateReportMutation.isPending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Report...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate Report
-                </>
-              )}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Report Generation</h2>
+          <p className="text-muted-foreground">Generate comprehensive reports with real-time data</p>
+        </div>
+        <div className="flex gap-2">
+          {reportData && (
+            <Button variant="outline" onClick={clearReportData}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Clear Results
             </Button>
-          </CardContent>
-        </Card>
-
-        {/* Recent Reports */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-900">
-              <Clock className="h-5 w-5" />
-              Recent Reports
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {reportsLoading ? (
-              <div className="text-center py-8">
-                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-gray-400" />
-                <p className="text-gray-600">Loading recent reports...</p>
-              </div>
-            ) : !recentReports || recentReports.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-gray-600">No reports generated yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentReports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        {getReportTypeIcon(report.report_type)}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900 capitalize">
-                          {report.report_type.replace('_', ' ')} Report
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center gap-2">
-                          <Building2 className="h-3 w-3" />
-                          {report.school?.name || 'All Schools'}
-                          <Calendar className="h-3 w-3 ml-2" />
-                          {new Date(report.generated_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge('completed')}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDownloadReport(report.id)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="school-reports" className="flex items-center gap-2">
+            <School className="w-4 h-4" />
+            School Reports
+          </TabsTrigger>
+          <TabsTrigger value="company-reports" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            Company Reports
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="school-reports" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="w-5 h-5" />
+                Report Filters
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="school">School (Optional)</Label>
+                <Select value={selectedSchool} onValueChange={setSelectedSchool} disabled={schoolsLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={schoolsLoading ? "Loading schools..." : "All Schools"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Schools</SelectItem>
+                    {schools?.map((school) => (
+                      <SelectItem key={school.id} value={school.id}>
+                        {school.name} {school.location && `(${school.location})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="academic-year">Academic Year</Label>
+                <Input
+                  value={academicYear}
+                  onChange={(e) => setAcademicYear(e.target.value)}
+                  placeholder="2024"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="term">Term (Optional)</Label>
+                <Select value={term} onValueChange={setTerm}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Terms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Terms</SelectItem>
+                    <SelectItem value="term-1">Term 1</SelectItem>
+                    <SelectItem value="term-2">Term 2</SelectItem>
+                    <SelectItem value="term-3">Term 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button onClick={handleGenerateReport} disabled={isGenerating} className="w-full">
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Generate Report
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {renderReportCategories(schoolReportTypes)}
+        </TabsContent>
+
+        <TabsContent value="company-reports" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Company-Wide Analytics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Generate comprehensive reports across all schools and analyze platform performance.
+              </p>
+              <Button onClick={handleGenerateReport} disabled={isGenerating}>
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Generate Company Report
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {renderReportCategories(companyReportTypes)}
+        </TabsContent>
+      </Tabs>
+
+      {/* Report Results */}
+      {reportData && (
+        <>
+          {renderSummaryCard()}
+          
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="w-5 h-5" />
+                    {reportData.title}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Generated on {new Date(reportData.generatedAt).toLocaleString()} • {reportData.data.length} records
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleExportCSV}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Export Excel
+                  </Button>
+                  <Button variant="outline" onClick={() => window.print()}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Print Report
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {reportData.data.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {Object.keys(reportData.data[0]).map((key) => (
+                          <TableHead key={key} className="font-semibold">
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.slice(0, 100).map((row: any, index: number) => (
+                        <TableRow key={index}>
+                          {Object.entries(row).map(([key, value]: [string, any]) => (
+                            <TableCell key={key} className="max-w-xs">
+                              <div className="truncate" title={String(value)}>
+                                {typeof value === 'object' && value !== null ? 
+                                  JSON.stringify(value) : 
+                                  String(value || '-')
+                                }
+                              </div>
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {reportData.data.length > 100 && (
+                    <div className="text-center mt-4 text-sm text-muted-foreground">
+                      Showing first 100 of {reportData.data.length} records. Export to view all data.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Data Found</h3>
+                  <p className="text-muted-foreground">
+                    No data found for the selected filters. Try adjusting your search criteria.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 };
