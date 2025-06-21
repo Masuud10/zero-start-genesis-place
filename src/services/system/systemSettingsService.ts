@@ -1,23 +1,19 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export interface SystemSetting {
-  id: string;
-  setting_key: string;
-  setting_value: any;
-  setting_type: string;
-  description?: string;
-  category: string;
-  is_public: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface UserManagementStats {
   total_users: number;
   active_users: number;
   users_by_role: Record<string, number>;
   recent_signups: number;
+}
+
+export interface SecuritySettings {
+  recent_audit_logs: any[];
+  active_rate_limits: any[];
+  total_audit_events: number;
+  security_incidents: number;
+  failed_login_attempts: number;
 }
 
 export class SystemSettingsService {
@@ -73,24 +69,44 @@ export class SystemSettingsService {
     }
   }
 
-  static async getSecuritySettings(): Promise<{ data: any | null; error: any }> {
+  static async getSecuritySettings(): Promise<{ data: SecuritySettings | null; error: any }> {
     try {
       console.log('⚙️ SystemSettingsService: Fetching security settings');
 
-      // Get security-related data
-      const [auditLogsResult, rateLimitsResult] = await Promise.allSettled([
-        supabase.from('security_audit_logs').select('*').limit(100),
-        supabase.from('rate_limits').select('*').limit(50)
-      ]);
+      // Get security audit logs
+      const { data: auditLogs, error: auditError } = await supabase
+        .from('security_audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-      const auditLogs = auditLogsResult.status === 'fulfilled' ? auditLogsResult.value.data : [];
-      const rateLimits = rateLimitsResult.status === 'fulfilled' ? rateLimitsResult.value.data : [];
+      // Get rate limits
+      const { data: rateLimits, error: rateLimitError } = await supabase
+        .from('rate_limits')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      const securityData = {
+      // Get failed login attempts from profiles
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('failed_login_attempts')
+        .gt('failed_login_attempts', 0);
+
+      if (auditError || rateLimitError || profileError) {
+        console.error('Error fetching security data:', { auditError, rateLimitError, profileError });
+      }
+
+      const failedLoginAttempts = profiles?.reduce((sum, p) => sum + (p.failed_login_attempts || 0), 0) || 0;
+
+      const securityData: SecuritySettings = {
         recent_audit_logs: auditLogs?.slice(0, 10) || [],
-        active_rate_limits: rateLimits?.filter(limit => limit.blocked_until && new Date(limit.blocked_until) > new Date()) || [],
+        active_rate_limits: rateLimits?.filter(limit => 
+          limit.blocked_until && new Date(limit.blocked_until) > new Date()
+        ) || [],
         total_audit_events: auditLogs?.length || 0,
-        security_incidents: auditLogs?.filter(log => !log.success).length || 0
+        security_incidents: auditLogs?.filter(log => !log.success).length || 0,
+        failed_login_attempts: failedLoginAttempts
       };
 
       console.log('⚙️ SystemSettingsService: Security settings fetched');
@@ -127,9 +143,17 @@ export class SystemSettingsService {
           return { success: true, message: 'Rate limits reset successfully' };
 
         case 'optimize_database':
-          // This would typically run VACUUM or similar operations
-          // For now, just return success as DB optimization needs special permissions
-          return { success: true, message: 'Database optimization completed' };
+          // Log the optimization request in analytics
+          const { error: logError } = await supabase
+            .from('analytics_events')
+            .insert({
+              event_type: 'database_optimization',
+              event_category: 'system_maintenance',
+              metadata: { action: 'optimize_database', timestamp: new Date().toISOString() }
+            });
+
+          if (logError) console.error('Error logging optimization:', logError);
+          return { success: true, message: 'Database optimization request logged' };
 
         default:
           return { success: false, message: 'Unknown maintenance action' };

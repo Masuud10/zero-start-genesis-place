@@ -5,16 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Badge, BadgeProps } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useBillingSubscriptions, useBillingTransactions } from '@/hooks/useBillingData';
-import { CreditCard, DollarSign, TrendingUp, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { useSchoolBillingData, useBillingTransactions, useFinancialSummary } from '@/hooks/useBillingData';
+import { CreditCard, DollarSign, TrendingUp, AlertCircle, RefreshCw, Loader2, Building2 } from 'lucide-react';
 
 const BillingModule = () => {
   const { 
-    data: subscriptions, 
-    isLoading: subscriptionsLoading, 
-    error: subscriptionsError,
-    refetch: refetchSubscriptions 
-  } = useBillingSubscriptions();
+    data: schoolBillingData, 
+    isLoading: schoolBillingLoading, 
+    error: schoolBillingError,
+    refetch: refetchSchoolBilling 
+  } = useSchoolBillingData();
 
   const { 
     data: transactions, 
@@ -23,43 +23,36 @@ const BillingModule = () => {
     refetch: refetchTransactions 
   } = useBillingTransactions();
 
-  const handleRefresh = () => {
-    refetchSubscriptions();
-    refetchTransactions();
-  };
+  const {
+    data: financialSummary,
+    isLoading: summaryLoading,
+    error: summaryError,
+    refetch: refetchSummary
+  } = useFinancialSummary();
 
-  const calculateRevenue = () => {
-    if (!subscriptions) return 0;
-    
-    return subscriptions
-      .filter(s => s.status === 'active')
-      .reduce((sum, s) => {
-        const monthlyAmount = s.billing_cycle === 'yearly' ? s.amount / 12 : 
-                             s.billing_cycle === 'quarterly' ? s.amount / 3 : s.amount;
-        return sum + monthlyAmount;
-      }, 0);
+  const handleRefresh = () => {
+    refetchSchoolBilling();
+    refetchTransactions();
+    refetchSummary();
   };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, BadgeProps['variant']> = {
-      active: 'default',
-      inactive: 'secondary',
-      suspended: 'destructive',
-      cancelled: 'outline',
       pending: 'secondary',
       completed: 'default',
-      failed: 'destructive'
+      failed: 'destructive',
+      processing: 'secondary'
     };
     return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
   };
 
-  if (subscriptionsError || transactionsError) {
+  if (schoolBillingError || transactionsError || summaryError) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Billing Management</h2>
-            <p className="text-muted-foreground">Manage subscriptions and billing for all schools</p>
+            <p className="text-muted-foreground">Manage billing and financial data across all schools</p>
           </div>
         </div>
 
@@ -82,13 +75,13 @@ const BillingModule = () => {
     );
   }
 
-  if (subscriptionsLoading || transactionsLoading) {
+  if (schoolBillingLoading || transactionsLoading || summaryLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Billing Management</h2>
-            <p className="text-muted-foreground">Manage subscriptions and billing for all schools</p>
+            <p className="text-muted-foreground">Manage billing and financial data across all schools</p>
           </div>
         </div>
 
@@ -105,7 +98,7 @@ const BillingModule = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Billing Management</h2>
-          <p className="text-muted-foreground">Manage subscriptions and billing for all schools</p>
+          <p className="text-muted-foreground">Manage billing and financial data across all schools</p>
         </div>
         <Button onClick={handleRefresh}>
           <RefreshCw className="w-4 h-4 mr-2" />
@@ -113,106 +106,104 @@ const BillingModule = () => {
         </Button>
       </div>
 
-      {/* Revenue Stats */}
+      {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${calculateRevenue().toLocaleString()}
+              ${financialSummary?.total_revenue?.toLocaleString() || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Active subscriptions</p>
+            <p className="text-xs text-muted-foreground">From all schools</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {subscriptions?.filter(s => s.status === 'active').length || 0}
+              {financialSummary?.collection_rate?.toFixed(1) || 0}%
             </div>
             <p className="text-xs text-muted-foreground">
-              Out of {subscriptions?.length || 0} total
+              ${financialSummary?.total_paid?.toLocaleString() || 0} collected
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+            <CardTitle className="text-sm font-medium">Outstanding Amount</CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {transactions?.filter(t => t.status === 'pending').length || 0}
+              ${financialSummary?.outstanding_amount?.toLocaleString() || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Requires attention</p>
+            <p className="text-xs text-muted-foreground">Pending collection</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Schools</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${transactions?.reduce((sum, t) => sum + (t.status === 'completed' ? t.amount : 0), 0).toLocaleString() || 0}
+              {schoolBillingData?.length || 0}
             </div>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <p className="text-xs text-muted-foreground">Schools in network</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Subscriptions Table */}
+      {/* School Billing Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>School Subscriptions</CardTitle>
+          <CardTitle>Schools Financial Overview</CardTitle>
           <CardDescription>
-            Manage all school subscription plans and billing
+            Financial performance and billing status for all schools
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!subscriptions || subscriptions.length === 0 ? (
+          {!schoolBillingData || schoolBillingData.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No subscriptions found</p>
+              <p className="text-gray-500">No school billing data found</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>School</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Billing Cycle</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>End Date</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Total Transactions</TableHead>
+                  <TableHead>Total Amount</TableHead>
+                  <TableHead>Last Transaction</TableHead>
+                  <TableHead>Joined</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {subscriptions.map((subscription) => (
-                  <TableRow key={subscription.id}>
+                {schoolBillingData.map((school) => (
+                  <TableRow key={school.id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{subscription.school?.name || 'Unknown School'}</div>
-                        <div className="text-sm text-muted-foreground">{subscription.school?.email}</div>
-                      </div>
+                      <div className="font-medium">{school.name}</div>
                     </TableCell>
+                    <TableCell>{school.location || 'N/A'}</TableCell>
+                    <TableCell>{school.total_transactions}</TableCell>
+                    <TableCell>${school.total_amount.toLocaleString()}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{subscription.plan_type}</Badge>
+                      {school.recent_transaction 
+                        ? new Date(school.recent_transaction).toLocaleDateString()
+                        : 'No transactions'
+                      }
                     </TableCell>
-                    <TableCell>{getStatusBadge(subscription.status)}</TableCell>
-                    <TableCell>${subscription.amount}</TableCell>
-                    <TableCell className="capitalize">{subscription.billing_cycle}</TableCell>
-                    <TableCell>{new Date(subscription.start_date).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(subscription.end_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(school.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -226,7 +217,7 @@ const BillingModule = () => {
         <CardHeader>
           <CardTitle>Recent Transactions</CardTitle>
           <CardDescription>
-            Latest billing transactions across all schools
+            Latest financial transactions across all schools
           </CardDescription>
         </CardHeader>
         <CardContent>

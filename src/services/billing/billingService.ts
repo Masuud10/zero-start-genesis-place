@@ -1,29 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export interface BillingSubscription {
-  id: string;
-  school_id: string;
-  plan_type: string;
-  status: string;
-  amount: number;
-  currency: string;
-  billing_cycle: string;
-  start_date: string;
-  end_date: string;
-  created_at: string;
-  updated_at: string;
-  school?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
 export interface BillingTransaction {
   id: string;
   school_id: string;
-  subscription_id?: string;
   amount: number;
   currency: string;
   transaction_type: string;
@@ -38,29 +18,66 @@ export interface BillingTransaction {
   };
 }
 
-export class BillingService {
-  static async getSubscriptions(): Promise<{ data: BillingSubscription[] | null; error: any }> {
-    try {
-      console.log('📊 BillingService: Fetching subscriptions');
+export interface SchoolBillingData {
+  id: string;
+  name: string;
+  location?: string;
+  created_at: string;
+  total_transactions: number;
+  total_amount: number;
+  recent_transaction?: string;
+}
 
-      const { data, error } = await supabase
-        .from('subscriptions')
+export class BillingService {
+  static async getSchoolBillingData(): Promise<{ data: SchoolBillingData[] | null; error: any }> {
+    try {
+      console.log('📊 BillingService: Fetching school billing data');
+
+      const { data: schools, error: schoolsError } = await supabase
+        .from('schools')
         .select(`
-          *,
-          school:schools(id, name, email)
+          id,
+          name,
+          location,
+          created_at
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching subscriptions:', error);
-        throw error;
+      if (schoolsError) {
+        console.error('Error fetching schools:', schoolsError);
+        throw schoolsError;
       }
 
-      console.log('📊 BillingService: Subscriptions fetched successfully');
-      return { data: data || [], error: null };
+      // Get transaction summaries for each school
+      const schoolBillingData = await Promise.all(
+        (schools || []).map(async (school) => {
+          const { data: transactions, error: transError } = await supabase
+            .from('billing_transactions')
+            .select('amount, created_at')
+            .eq('school_id', school.id);
+
+          const totalAmount = transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+          const recentTransaction = transactions?.length > 0 
+            ? new Date(Math.max(...transactions.map(t => new Date(t.created_at).getTime()))).toISOString()
+            : undefined;
+
+          return {
+            id: school.id,
+            name: school.name,
+            location: school.location,
+            created_at: school.created_at,
+            total_transactions: transactions?.length || 0,
+            total_amount: totalAmount,
+            recent_transaction: recentTransaction
+          };
+        })
+      );
+
+      console.log('📊 BillingService: School billing data fetched successfully');
+      return { data: schoolBillingData, error: null };
 
     } catch (error: any) {
-      console.error('📊 BillingService: Error fetching subscriptions:', error);
+      console.error('📊 BillingService: Error fetching school billing data:', error);
       return { data: null, error };
     }
   }
@@ -91,29 +108,78 @@ export class BillingService {
     }
   }
 
-  static async updateSubscriptionStatus(subscriptionId: string, status: string): Promise<{ success: boolean; error?: any }> {
+  static async updateTransactionStatus(transactionId: string, status: string): Promise<{ success: boolean; error?: any }> {
     try {
-      console.log('📊 BillingService: Updating subscription status:', subscriptionId, status);
+      console.log('📊 BillingService: Updating transaction status:', transactionId, status);
 
       const { error } = await supabase
-        .from('subscriptions')
+        .from('billing_transactions')
         .update({ 
           status, 
-          updated_at: new Date().toISOString() 
+          processed_at: new Date().toISOString() 
         })
-        .eq('id', subscriptionId);
+        .eq('id', transactionId);
 
       if (error) {
-        console.error('Error updating subscription:', error);
+        console.error('Error updating transaction:', error);
         throw error;
       }
 
-      console.log('📊 BillingService: Subscription updated successfully');
+      console.log('📊 BillingService: Transaction updated successfully');
       return { success: true };
 
     } catch (error: any) {
-      console.error('📊 BillingService: Error updating subscription:', error);
+      console.error('📊 BillingService: Error updating transaction:', error);
       return { success: false, error };
+    }
+  }
+
+  static async getSchoolFinancialSummary(): Promise<{ data: any | null; error: any }> {
+    try {
+      console.log('📊 BillingService: Fetching financial summary');
+
+      // Get total fees and payments from financial_transactions
+      const { data: transactions, error: transError } = await supabase
+        .from('financial_transactions')
+        .select('amount, transaction_type, school_id, schools(name)')
+        .in('transaction_type', ['fee_payment', 'fee_collection']);
+
+      if (transError) {
+        console.error('Error fetching financial transactions:', transError);
+        throw transError;
+      }
+
+      // Get fees data
+      const { data: fees, error: feesError } = await supabase
+        .from('fees')
+        .select('amount, paid_amount, status, school_id');
+
+      if (feesError) {
+        console.error('Error fetching fees:', feesError);
+        throw feesError;
+      }
+
+      // Calculate summary
+      const totalRevenue = transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+      const totalFees = fees?.reduce((sum, f) => sum + Number(f.amount), 0) || 0;
+      const totalPaid = fees?.reduce((sum, f) => sum + Number(f.paid_amount || 0), 0) || 0;
+      const pendingFees = fees?.filter(f => f.status === 'pending').length || 0;
+
+      const summary = {
+        total_revenue: totalRevenue,
+        total_fees: totalFees,
+        total_paid: totalPaid,
+        outstanding_amount: totalFees - totalPaid,
+        pending_transactions: pendingFees,
+        collection_rate: totalFees > 0 ? (totalPaid / totalFees) * 100 : 0
+      };
+
+      console.log('📊 BillingService: Financial summary calculated');
+      return { data: summary, error: null };
+
+    } catch (error: any) {
+      console.error('📊 BillingService: Error fetching financial summary:', error);
+      return { data: null, error };
     }
   }
 }

@@ -3,12 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { BillingService } from '@/services/billing/billingService';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const useBillingSubscriptions = () => {
+export const useSchoolBillingData = () => {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['billing-subscriptions'],
-    queryFn: () => BillingService.getSubscriptions(),
+    queryKey: ['school-billing-data'],
+    queryFn: () => BillingService.getSchoolBillingData(),
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // 10 minutes
@@ -22,6 +22,19 @@ export const useBillingTransactions = () => {
   return useQuery({
     queryKey: ['billing-transactions'],
     queryFn: () => BillingService.getTransactions(),
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 10 * 60 * 1000, // 10 minutes
+    select: (response) => response.data,
+  });
+};
+
+export const useFinancialSummary = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['financial-summary'],
+    queryFn: () => BillingService.getSchoolFinancialSummary(),
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // 10 minutes
