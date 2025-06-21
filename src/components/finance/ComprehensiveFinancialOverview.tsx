@@ -75,12 +75,38 @@ const ComprehensiveFinancialOverview: React.FC = () => {
   const monthlyTrendData = React.useMemo(() => {
     if (!analyticsData?.dailyTransactions) return [];
 
-    return analyticsData.dailyTransactions.map(transaction => ({
-      month: new Date(transaction.date).toLocaleDateString('en-US', { month: 'short' }),
-      revenue: transaction.amount,
-      expenses: Math.random() * transaction.amount * 0.7 // This should come from actual expense data grouped by month
-    }));
-  }, [analyticsData]);
+    // Group transactions by month
+    const monthlyData = analyticsData.dailyTransactions.reduce((acc: any, transaction) => {
+      const date = new Date(transaction.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          month: monthName,
+          revenue: 0,
+          expenses: 0
+        };
+      }
+      
+      acc[monthKey].revenue += transaction.amount || 0;
+      return acc;
+    }, {});
+
+    // Add expense data by month
+    if (expenses?.length) {
+      expenses.forEach(expense => {
+        const date = new Date(expense.expense_date || expense.date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (monthlyData[monthKey]) {
+          monthlyData[monthKey].expenses += Number(expense.amount) || 0;
+        }
+      });
+    }
+
+    return Object.values(monthlyData).slice(-6); // Last 6 months
+  }, [analyticsData, expenses]);
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
@@ -125,7 +151,7 @@ const ComprehensiveFinancialOverview: React.FC = () => {
                 </p>
                 <div className="flex items-center mt-2">
                   <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                  <span className="text-sm text-green-600">+12% this month</span>
+                  <span className="text-sm text-green-600">Revenue collected</span>
                 </div>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
@@ -144,8 +170,8 @@ const ComprehensiveFinancialOverview: React.FC = () => {
                   KES {financialSummary.pendingFees.toLocaleString()}
                 </p>
                 <div className="flex items-center mt-2">
-                  <TrendingDown className="h-4 w-4 text-orange-500 mr-1" />
-                  <span className="text-sm text-orange-600">-5% from last month</span>
+                  <AlertCircle className="h-4 w-4 text-orange-500 mr-1" />
+                  <span className="text-sm text-orange-600">Outstanding amount</span>
                 </div>
               </div>
               <div className="p-3 bg-orange-100 rounded-lg">
@@ -164,8 +190,8 @@ const ComprehensiveFinancialOverview: React.FC = () => {
                   KES {financialSummary.totalExpenses.toLocaleString()}
                 </p>
                 <div className="flex items-center mt-2">
-                  <TrendingUp className="h-4 w-4 text-red-500 mr-1" />
-                  <span className="text-sm text-red-600">+8% this month</span>
+                  <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
+                  <span className="text-sm text-red-600">Total spent</span>
                 </div>
               </div>
               <div className="p-3 bg-red-100 rounded-lg">
@@ -262,7 +288,11 @@ const ComprehensiveFinancialOverview: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ category, percentage }: any) => `${category}: ${percentage}%`}
+                  label={({ category, value }: any) => {
+                    const total = expenseChartData.reduce((sum, item) => sum + item.amount, 0);
+                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+                    return `${category}: ${percentage}%`;
+                  }}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="amount"
