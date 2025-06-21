@@ -15,48 +15,42 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
       icon: Users,
       label: 'Add Student',
       description: 'Register new student',
-      variant: 'default' as const,
-      color: 'bg-blue-500 hover:bg-blue-600 text-white'
+      variant: 'outline' as const
     },
     {
       id: 'teacherAdmission',
       icon: UserPlus,
       label: 'Add Teacher',
       description: 'Register new teacher',
-      variant: 'default' as const,
-      color: 'bg-green-500 hover:bg-green-600 text-white'
+      variant: 'outline' as const
     },
     {
       id: 'add-subject',
       icon: BookOpen,
       label: 'Add Subject',
       description: 'Create new subject',
-      variant: 'default' as const,
-      color: 'bg-purple-500 hover:bg-purple-600 text-white'
+      variant: 'outline' as const
     },
     {
       id: 'assign-subject',
       icon: Plus,
       label: 'Assign Teacher',
       description: 'Assign teacher to subject',
-      variant: 'outline' as const,
-      color: 'border-orange-500 text-orange-600 hover:bg-orange-50'
+      variant: 'outline' as const
     },
     {
       id: 'generate-certificate',
       icon: Award,
       label: 'Generate Certificate',
       description: 'Create student certificate',
-      variant: 'outline' as const,
-      color: 'border-amber-500 text-amber-600 hover:bg-amber-50'
+      variant: 'outline' as const
     },
     {
       id: 'reports',
       icon: FileText,
       label: 'Generate Reports',
       description: 'Create academic reports',
-      variant: 'outline' as const,
-      color: 'border-gray-500 text-gray-600 hover:bg-gray-50'
+      variant: 'outline' as const
     }
   ];
 
@@ -72,13 +66,13 @@ const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModal
               key={action.id}
               variant={action.variant}
               size="sm"
-              className={`h-auto flex flex-col items-center gap-2 p-4 text-center transition-all duration-200 ${action.color}`}
+              className="h-auto flex flex-col items-center gap-2 p-4 text-center transition-all duration-200 border-gray-300 text-gray-700 hover:bg-gray-50"
               onClick={() => onModalOpen(action.id)}
             >
               <action.icon className="h-5 w-5" />
               <div>
                 <div className="text-xs font-medium">{action.label}</div>
-                <div className="text-xs opacity-80 mt-1">{action.description}</div>
+                <div className="text-xs opacity-70 mt-1">{action.description}</div>
               </div>
             </Button>
           ))}

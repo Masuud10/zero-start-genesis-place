@@ -74,13 +74,18 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
           <PrincipalStatsCards stats={stats} loading={loading} error={error} />
         </div>
         
-        {/* Main Content Grid - Reorganized for better hierarchy */}
+        {/* Main Content Grid - Reorganized layout */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Left Section - Primary Management Tools */}
           <div className="xl:col-span-3 space-y-6">
             {/* Quick Actions - Top priority for daily operations */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
               <PrincipalActionButtons onModalOpen={handleModalOpen} />
+            </div>
+            
+            {/* Financial Overview - Moved below Quick Actions */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <FinancialOverviewReadOnly />
             </div>
             
             {/* Management Grid - Organized by frequency of use */}
@@ -102,11 +107,9 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
             </div>
           </div>
 
-          {/* Right Sidebar - Financial Overview */}
+          {/* Right Sidebar - Empty space for future content */}
           <div className="xl:col-span-1 space-y-6">
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <FinancialOverviewReadOnly />
-            </div>
+            {/* Reserved for future sidebar content */}
           </div>
         </div>
       </div>
