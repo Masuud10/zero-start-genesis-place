@@ -67,7 +67,7 @@ export const useStudentFees = () => {
 
       if (error) throw error;
       
-      // Map data to match StudentFee interface
+      // Map data to match StudentFee interface with proper null checks
       const mappedData = (data || []).map(item => ({
         ...item,
         student: item.student && typeof item.student === 'object' && 'name' in item.student 
@@ -76,7 +76,7 @@ export const useStudentFees = () => {
         class: item.class && typeof item.class === 'object' && 'name' in item.class
           ? { name: item.class.name }
           : undefined
-      })) as StudentFee[];
+      }));
       
       setStudentFees(mappedData);
     } catch (err: any) {
