@@ -76,7 +76,7 @@ export const useStudentFees = () => {
         class: item.class && typeof item.class === 'object' && 'name' in item.class
           ? { name: item.class.name }
           : undefined
-      }));
+      })) as StudentFee[];
       
       setStudentFees(mappedData);
     } catch (err: any) {

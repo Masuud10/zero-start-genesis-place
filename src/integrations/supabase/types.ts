@@ -2986,6 +2986,93 @@ export type Database = {
         }
         Relationships: []
       }
+      mpesa_api_credentials: {
+        Row: {
+          consumer_key: string
+          consumer_secret: string
+          created_at: string | null
+          id: string
+          passkey: string
+          paybill_number: string
+          school_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          consumer_key: string
+          consumer_secret: string
+          created_at?: string | null
+          id?: string
+          passkey: string
+          paybill_number: string
+          school_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          consumer_key?: string
+          consumer_secret?: string
+          created_at?: string | null
+          id?: string
+          passkey?: string
+          paybill_number?: string
+          school_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      mpesa_transactions: {
+        Row: {
+          amount_paid: number
+          class_id: string | null
+          created_at: string | null
+          fee_id: string | null
+          id: string
+          mpesa_receipt_number: string | null
+          paybill_number: string | null
+          payment_type: string | null
+          phone_number: string
+          school_id: string
+          student_id: string | null
+          transaction_date: string | null
+          transaction_id: string | null
+          transaction_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_paid: number
+          class_id?: string | null
+          created_at?: string | null
+          fee_id?: string | null
+          id?: string
+          mpesa_receipt_number?: string | null
+          paybill_number?: string | null
+          payment_type?: string | null
+          phone_number: string
+          school_id: string
+          student_id?: string | null
+          transaction_date?: string | null
+          transaction_id?: string | null
+          transaction_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          class_id?: string | null
+          created_at?: string | null
+          fee_id?: string | null
+          id?: string
+          mpesa_receipt_number?: string | null
+          paybill_number?: string | null
+          payment_type?: string | null
+          phone_number?: string
+          school_id?: string
+          student_id?: string | null
+          transaction_date?: string | null
+          transaction_id?: string | null
+          transaction_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       parent_engagements: {
         Row: {
           competencies_addressed: string[] | null
@@ -5372,6 +5459,14 @@ export type Database = {
         Args: { user_email: string; success?: boolean }
         Returns: Json
       }
+      initiate_mpesa_payment: {
+        Args: {
+          p_phone_number: string
+          p_amount: number
+          p_student_fee_id: string
+        }
+        Returns: Json
+      }
       is_grade_in_user_school: {
         Args: { grade_student_id: string }
         Returns: boolean
@@ -5408,6 +5503,14 @@ export type Database = {
       }
       update_grade_status: {
         Args: { grade_ids: string[]; new_status: string; user_id: string }
+        Returns: Json
+      }
+      update_mpesa_transaction: {
+        Args: {
+          p_transaction_id: string
+          p_mpesa_receipt_number: string
+          p_status: string
+        }
         Returns: Json
       }
       update_user_role: {
