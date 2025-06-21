@@ -1,109 +1,27 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
-export interface CreateSchoolRequest {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  logo_url?: string;
-  website_url?: string;
-  motto?: string;
-  slogan?: string;
-  school_type?: 'primary' | 'secondary' | 'college';
-  registration_number?: string;
-  year_established?: number;
-  term_structure?: '3-term' | '2-semester' | 'other';
-  owner_information?: string;
-  ownerEmail?: string;
-  ownerName?: string;
-  ownerPhone?: string;
-  curriculumType?: 'cbc' | 'igcse';
-}
-
-export interface CreateSchoolResponse {
-  success: boolean;
-  school_id?: string;
-  owner_id?: string;
-  message?: string;
-  error?: string;
-}
-
-// Explicit interface for school data
-export interface SchoolData {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  logo_url?: string;
-  website_url?: string;
-  motto?: string;
-  slogan?: string;
-  registration_number?: string;
-  year_established?: number;
-  term_structure?: string;
-  owner_information?: string;
-  curriculum_type?: string;
-  created_at: string;
-  updated_at: string;
-  owner_id?: string;
-  principal_id?: string;
-}
-
-// Simplified RPC response interface
-interface CreateSchoolRpcResult {
-  success?: boolean;
-  school_id?: string;
-  owner_id?: string;
-  message?: string;
-  error?: string;
-}
+import { CreateSchoolRequest, CreateSchoolResponse, SchoolData } from '@/types/schoolTypes';
+import { SchoolValidationService } from './school/schoolValidationService';
+import { SchoolDbService } from './school/schoolDbService';
+import { SchoolStorageService } from './school/schoolStorageService';
 
 export class SchoolService {
   static async createSchool(schoolData: CreateSchoolRequest): Promise<CreateSchoolResponse> {
     try {
       console.log('🏫 SchoolService: Creating school with enhanced data', schoolData);
 
-      // Validate required fields
-      if (!schoolData.name || !schoolData.email || !schoolData.phone || !schoolData.address) {
+      // Validate school data
+      const validationResult = SchoolValidationService.validateSchoolData(schoolData);
+      if (!validationResult.isValid) {
         return {
           success: false,
-          error: 'Missing required fields: name, email, phone, and address are required'
-        };
-      }
-
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(schoolData.email)) {
-        return {
-          success: false,
-          error: 'Invalid email format'
-        };
-      }
-
-      // Validate year of establishment
-      const currentYear = new Date().getFullYear();
-      if (schoolData.year_established && (schoolData.year_established < 1800 || schoolData.year_established > currentYear)) {
-        return {
-          success: false,
-          error: 'Year of establishment must be between 1800 and current year'
+          error: validationResult.error
         };
       }
 
       // Check if registration number is unique
       if (schoolData.registration_number) {
-        const { data: existingSchool, error: checkError } = await supabase
-          .from('schools')
-          .select('id')
-          .eq('registration_number', schoolData.registration_number)
-          .maybeSingle();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-          throw checkError;
-        }
-
-        if (existingSchool) {
+        const isUnique = await SchoolDbService.checkRegistrationNumberUnique(schoolData.registration_number);
+        if (!isUnique) {
           return {
             success: false,
             error: 'Registration number already exists'
@@ -111,22 +29,8 @@ export class SchoolService {
         }
       }
 
-      // Use the create_school database function
-      const { data: rpcData, error: rpcError } = await supabase.rpc('create_school', {
-        school_name: schoolData.name,
-        school_email: schoolData.email,
-        school_phone: schoolData.phone,
-        school_address: schoolData.address,
-        owner_email: schoolData.ownerEmail || null,
-        owner_name: schoolData.ownerName || null
-      });
-
-      if (rpcError) {
-        console.error('🏫 SchoolService: Database function error:', rpcError);
-        throw rpcError;
-      }
-
-      const responseData = rpcData as CreateSchoolRpcResult;
+      // Create school using database function
+      const responseData = await SchoolDbService.createSchoolWithRpc(schoolData);
       
       if (responseData?.error) {
         console.error('🏫 SchoolService: Function returned error:', responseData.error);
@@ -139,32 +43,9 @@ export class SchoolService {
       if (responseData?.success === true) {
         console.log('🏫 SchoolService: School created successfully:', responseData);
         
-        // Update additional fields that aren't handled by the basic create_school function
+        // Update additional fields if school was created successfully
         if (responseData.school_id) {
-          const updateData: Record<string, any> = {};
-          
-          if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
-          if (schoolData.website_url) updateData.website_url = schoolData.website_url;
-          if (schoolData.motto) updateData.motto = schoolData.motto;
-          if (schoolData.slogan) updateData.slogan = schoolData.slogan;
-          if (schoolData.registration_number) updateData.registration_number = schoolData.registration_number;
-          if (schoolData.year_established) updateData.year_established = schoolData.year_established;
-          if (schoolData.term_structure) updateData.term_structure = schoolData.term_structure;
-          if (schoolData.owner_information) updateData.owner_information = schoolData.owner_information;
-          if (schoolData.curriculumType) updateData.curriculum_type = schoolData.curriculumType;
-          
-          // Update the school with additional fields if any exist
-          if (Object.keys(updateData).length > 0) {
-            const { error: updateError } = await supabase
-              .from('schools')
-              .update(updateData)
-              .eq('id', responseData.school_id);
-              
-            if (updateError) {
-              console.warn('🏫 SchoolService: Failed to update additional fields:', updateError);
-              // Don't fail the entire operation for this
-            }
-          }
+          await SchoolDbService.updateSchoolAdditionalFields(responseData.school_id, schoolData);
         }
         
         return {
@@ -191,109 +72,17 @@ export class SchoolService {
   }
 
   static async getAllSchools(): Promise<{ data: SchoolData[] | null; error: any }> {
-    try {
-      const { data, error } = await supabase
-        .from('schools')
-        .select(`
-          id,
-          name,
-          email,
-          phone,
-          address,
-          logo_url,
-          website_url,
-          motto,
-          slogan,
-          registration_number,
-          year_established,
-          term_structure,
-          owner_information,
-          curriculum_type,
-          created_at,
-          updated_at,
-          owner_id,
-          principal_id
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('🏫 SchoolService: Error fetching schools:', error);
-        return { data: null, error };
-      }
-
-      // Cast to our explicit interface
-      const schoolsData = (data || []) as SchoolData[];
-      return { data: schoolsData, error: null };
-    } catch (error) {
-      console.error('🏫 SchoolService: Service error:', error);
-      return { data: null, error };
-    }
+    return SchoolDbService.getAllSchools();
   }
 
   static async getSchoolById(schoolId: string): Promise<{ data: SchoolData | null; error: any }> {
-    try {
-      const { data, error } = await supabase
-        .from('schools')
-        .select(`
-          id,
-          name,
-          email,
-          phone,
-          address,
-          logo_url,
-          website_url,
-          motto,
-          slogan,
-          registration_number,
-          year_established,
-          term_structure,
-          owner_information,
-          curriculum_type,
-          created_at,
-          updated_at,
-          owner_id,
-          principal_id
-        `)
-        .eq('id', schoolId)
-        .single();
-
-      if (error) {
-        console.error('🏫 SchoolService: Error fetching school:', error);
-        return { data: null, error };
-      }
-
-      // Cast to our explicit interface
-      const schoolData = data as SchoolData;
-      return { data: schoolData, error: null };
-    } catch (error) {
-      console.error('🏫 SchoolService: Service error:', error);
-      return { data: null, error };
-    }
+    return SchoolDbService.getSchoolById(schoolId);
   }
 
   static async uploadSchoolLogo(file: File, schoolId: string): Promise<{ url?: string; error?: string }> {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `school-logos/${schoolId}-${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('school-assets')
-        .upload(fileName, file);
-
-      if (uploadError) {
-        console.error('Logo upload error:', uploadError);
-        return { error: 'Failed to upload logo' };
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('school-assets')
-        .getPublicUrl(fileName);
-
-      return { url: publicUrl };
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to upload logo';
-      console.error('Logo upload service error:', error);
-      return { error: errorMessage };
-    }
+    return SchoolStorageService.uploadSchoolLogo(file, schoolId);
   }
 }
+
+// Re-export types for backward compatibility
+export type { CreateSchoolRequest, CreateSchoolResponse, SchoolData };

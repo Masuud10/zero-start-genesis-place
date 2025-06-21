@@ -143,24 +143,32 @@ export class AdminAnalyticsService {
     try {
       console.log('📊 AdminAnalyticsService: Fetching schools summary');
 
+      // Fix the Supabase query by selecting schools with students and profiles separately
       const { data: schoolsData, error: schoolsError } = await supabase
         .from('schools')
-        .select(`
-          id,
-          name,
-          students!inner(id),
-          profiles!inner(id, role)
-        `);
+        .select('id, name');
 
       if (schoolsError) {
         console.error('Error fetching schools summary:', schoolsError);
         return { data: null, error: schoolsError };
       }
 
-      // Get attendance and finance data for each school
       const schoolsSummary: SchoolSummary[] = [];
 
       for (const school of schoolsData || []) {
+        // Get students count for this school
+        const { data: studentsData } = await supabase
+          .from('students')
+          .select('id')
+          .eq('school_id', school.id);
+
+        // Get teachers count for this school
+        const { data: teachersData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('school_id', school.id)
+          .eq('role', 'teacher');
+
         // Get attendance rate for this school
         const { data: attendanceData } = await supabase
           .from('attendance')
@@ -184,8 +192,8 @@ export class AdminAnalyticsService {
         schoolsSummary.push({
           id: school.id,
           name: school.name,
-          total_students: school.students?.length || 0,
-          total_teachers: school.profiles?.filter((p: any) => p.role === 'teacher').length || 0,
+          total_students: studentsData?.length || 0,
+          total_teachers: teachersData?.length || 0,
           avg_attendance_rate: attendanceRate,
           total_fees_collected: totalCollected,
           outstanding_fees: outstandingFees
