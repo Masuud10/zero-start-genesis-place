@@ -18,7 +18,6 @@ import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
 import FeeManagementModule from '@/components/modules/FeeManagementModule';
 import TimetableModule from '@/components/modules/TimetableModule';
 import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
-import MessagesModule from '@/components/modules/MessagesModule';
 import ReportsModule from '@/components/modules/ReportsModule';
 import SupportModule from '@/components/modules/SupportModule';
 import SettingsModule from '@/components/modules/SettingsModule';
@@ -82,9 +81,6 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       case 'announcements':
         return <AnnouncementsModule />;
-
-      case 'messages':
-        return <MessagesModule />;
 
       case 'reports':
         return <ReportsModule />;

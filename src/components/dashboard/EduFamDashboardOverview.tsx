@@ -32,6 +32,7 @@ import {
 } from 'recharts';
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
+import AdminAnalyticsOverview from '@/components/analytics/AdminAnalyticsOverview';
 
 const EduFamDashboardOverview = () => {
   
@@ -261,10 +262,7 @@ const EduFamDashboardOverview = () => {
         </CardHeader>
       </Card>
 
-      {/* Download Buttons Container - Positioned below Greetings Container */}
-      {renderReportDownloads()}
-
-      {/* Stats Icon Section - Positioned below Download Buttons */}
+      {/* Stats Icon Section - Positioned below Greetings Container */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((card) => (
           <Card key={card.title} className={`${card.bgColor} ${card.borderColor} shadow-lg hover:shadow-xl transition-all duration-300`}>
@@ -297,7 +295,13 @@ const EduFamDashboardOverview = () => {
         ))}
       </div>
 
-      {/* System Health Status Card - Positioned below Stats Icons */}
+      {/* Analytics Overview Section - Positioned below Stats Icons */}
+      <AdminAnalyticsOverview />
+
+      {/* Download Buttons Container - Positioned below Analytics Overview */}
+      {renderReportDownloads()}
+
+      {/* System Health Status Card - Positioned below Download Buttons */}
       <SystemHealthStatusCard />
 
       {/* Charts Section */}

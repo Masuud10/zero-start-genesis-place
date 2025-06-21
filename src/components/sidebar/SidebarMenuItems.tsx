@@ -1,3 +1,4 @@
+
 import {
   BarChart3,
   BookOpen,
@@ -7,7 +8,6 @@ import {
   GraduationCap,
   HelpCircle,
   Home,
-  MessageSquare,
   Settings,
   Shield,
   Users,
@@ -25,7 +25,8 @@ import {
   Receipt,
   Banknote,
   Coins,
-  PieChart
+  PieChart,
+  Award
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -120,12 +121,6 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Announcements',
       icon: Megaphone,
       roles: ['edufam_admin', 'principal', 'teacher', 'school_owner']
-    },
-    {
-      id: 'messages',
-      label: 'Messages',
-      icon: MessageSquare,
-      roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
     },
     {
       id: 'reports',
