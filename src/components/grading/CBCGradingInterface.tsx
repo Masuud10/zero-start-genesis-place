@@ -134,6 +134,16 @@ export const CBCGradingInterface: React.FC<CBCGradingInterfaceProps> = ({
     return CBC_LEVELS.find(l => l.value === level) || CBC_LEVELS[3];
   };
 
+  const getStrandDisplayName = (strand: string | { name?: string }, index: number): string => {
+    if (typeof strand === 'string') {
+      return strand;
+    }
+    if (strand && typeof strand === 'object' && 'name' in strand && strand.name) {
+      return strand.name;
+    }
+    return `Strand ${index + 1}`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -201,15 +211,16 @@ export const CBCGradingInterface: React.FC<CBCGradingInterfaceProps> = ({
                   {competency.strands.map((strand, index) => {
                     const strandKey = `${competency.id}_${strand}`;
                     const currentScore = value.strand_scores?.[strandKey] || 0;
+                    const strandDisplayName = getStrandDisplayName(strand, index);
                     
                     return (
                       <div key={`${strand}_${index}`} className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
-                          {typeof strand === 'string' ? strand : strand.name || `Strand ${index + 1}`}
+                          {strandDisplayName}
                         </label>
                         <Select
                           value={currentScore.toString()}
-                          onValueChange={(val) => handleStrandScoreChange(competency.id, strand, parseInt(val))}
+                          onValueChange={(val) => handleStrandScoreChange(competency.id, String(strand), parseInt(val))}
                           disabled={isReadOnly}
                         >
                           <SelectTrigger className="h-10">

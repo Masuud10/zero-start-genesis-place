@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -133,7 +132,8 @@ export const IGCSEGradingInterface: React.FC<IGCSEGradingInterfaceProps> = ({
     const boundaries = gradingConfig?.grade_boundaries || DEFAULT_GRADE_BOUNDARIES;
     
     for (const [grade, threshold] of Object.entries(boundaries)) {
-      if (percentage >= threshold) {
+      // Type assertion to ensure threshold is treated as number
+      if (percentage >= (threshold as number)) {
         return grade;
       }
     }
@@ -330,7 +330,7 @@ export const IGCSEGradingInterface: React.FC<IGCSEGradingInterfaceProps> = ({
                       }`}
                     >
                       <span>{grade}:</span>
-                      <span>{threshold}%+</span>
+                      <span>{String(threshold)}%+</span>
                     </div>
                   ))
                 }
