@@ -99,7 +99,7 @@ const MpesaTransactionsPanel: React.FC = () => {
         <div className="flex gap-2">
           <MpesaCredentialsDialog />
           <Button onClick={refetch} variant="outline" size="sm">
-            <RefreshCW className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
         </div>

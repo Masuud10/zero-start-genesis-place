@@ -106,7 +106,7 @@ export const useMpesaTransactions = () => {
     }
   };
 
-  const saveCredentials = async (credData: Omit<MpesaCredentials, 'id' | 'created_at' | 'updated_at'>) => {
+  const saveCredentials = async (credData: Omit<MpesaCredentials, 'id' | 'school_id' | 'created_at' | 'updated_at'>) => {
     if (!user?.school_id) return { error: 'No school associated with user' };
 
     try {

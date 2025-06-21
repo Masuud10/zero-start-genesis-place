@@ -34,6 +34,7 @@ const MpesaCredentialsDialog: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
+    // saveCredentials automatically includes school_id from the hook
     const result = await saveCredentials(formData);
 
     if (!result.error) {

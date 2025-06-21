@@ -132,21 +132,22 @@ export const useFinanceReports = () => {
     if (!user?.school_id) return { error: 'No school associated with user' };
 
     try {
+      // Query the fees table instead of student_fees
       const { data, error } = await supabase
-        .from('student_fees')
-        .select('amount, amount_paid, status')
+        .from('fees')
+        .select('amount, paid_amount, status')
         .eq('school_id', user.school_id);
 
       if (error) throw error;
       
       const summary = data?.reduce((acc, fee) => {
         acc.totalFees += fee.amount || 0;
-        acc.totalCollected += fee.amount_paid || 0;
-        acc.outstanding += (fee.amount || 0) - (fee.amount_paid || 0);
+        acc.totalCollected += fee.paid_amount || 0;
+        acc.outstanding += (fee.amount || 0) - (fee.paid_amount || 0);
         
         if (fee.status === 'paid') acc.paidCount++;
         else if (fee.status === 'partial') acc.partialCount++;
-        else if (fee.status === 'unpaid') acc.unpaidCount++;
+        else if (fee.status === 'pending') acc.unpaidCount++;
         else if (fee.status === 'overdue') acc.overdue++;
         
         return acc;

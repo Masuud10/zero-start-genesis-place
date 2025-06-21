@@ -55,8 +55,9 @@ export const useStudentFees = () => {
 
     try {
       setLoading(true);
+      // Query the fees table which exists in the database
       const { data, error } = await supabase
-        .from('student_fees')
+        .from('fees')
         .select(`
           *,
           student:students(name, admission_number),
@@ -67,9 +68,31 @@ export const useStudentFees = () => {
 
       if (error) throw error;
       
-      // Map data to match StudentFee interface with proper null checks
+      // Map the fees data to match StudentFee interface
       const mappedData = (data || []).map(item => ({
-        ...item,
+        id: item.id,
+        student_id: item.student_id || '',
+        school_id: item.school_id || '',
+        fee_structure_id: undefined,
+        class_id: item.class_id,
+        amount: item.amount || 0,
+        amount_paid: item.paid_amount || 0,
+        status: item.status === 'paid' ? 'paid' : 
+               item.status === 'partial' ? 'partial' : 
+               item.status === 'overdue' ? 'overdue' : 'unpaid',
+        due_date: item.due_date || '',
+        academic_year: item.academic_year || '',
+        term: item.term || '',
+        installment_plan: {},
+        discount_amount: item.discount_amount || 0,
+        discount_type: 'none' as const,
+        late_fee_applied: item.late_fee_amount || 0,
+        payment_method: item.payment_method,
+        payment_date: item.paid_date,
+        receipt_number: undefined,
+        notes: undefined,
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || '',
         student: item.student && typeof item.student === 'object' && 'name' in item.student 
           ? { name: item.student.name, admission_number: item.student.admission_number }
           : undefined,
@@ -95,11 +118,25 @@ export const useStudentFees = () => {
     if (!user?.school_id) return { error: 'No school associated with user' };
 
     try {
+      // Map StudentFee data to fees table structure
       const { data, error } = await supabase
-        .from('student_fees')
+        .from('fees')
         .insert({
-          ...feeData,
+          student_id: feeData.student_id,
           school_id: user.school_id,
+          class_id: feeData.class_id,
+          amount: feeData.amount,
+          paid_amount: feeData.amount_paid || 0,
+          status: feeData.status === 'paid' ? 'paid' : 
+                 feeData.status === 'partial' ? 'partial' : 'pending',
+          due_date: feeData.due_date,
+          academic_year: feeData.academic_year,
+          term: feeData.term,
+          discount_amount: feeData.discount_amount || 0,
+          late_fee_amount: feeData.late_fee_applied || 0,
+          payment_method: feeData.payment_method,
+          paid_date: feeData.payment_date,
+          category: 'Tuition', // Default category
         })
         .select()
         .single();
@@ -183,27 +220,25 @@ export const useStudentFees = () => {
         throw new Error('No active students found in this class');
       }
 
-      // Create student fee records for all students
-      const studentFeeRecords = students.map(student => ({
+      // Create fee records for all students using fees table
+      const feeRecords = students.map(student => ({
         student_id: student.id,
         class_id: classId,
         school_id: user.school_id,
         amount: feeData.amount,
-        amount_paid: 0,
-        status: 'unpaid' as const,
+        paid_amount: 0,
+        status: 'pending',
         due_date: feeData.due_date,
         academic_year: feeData.academic_year,
         term: feeData.term,
-        fee_structure_id: feeData.fee_structure_id,
-        installment_plan: {},
+        category: 'Tuition',
         discount_amount: 0,
-        discount_type: 'none' as const,
-        late_fee_applied: 0,
+        late_fee_amount: 0,
       }));
 
       const { error: insertError } = await supabase
-        .from('student_fees')
-        .insert(studentFeeRecords);
+        .from('fees')
+        .insert(feeRecords);
 
       if (insertError) throw insertError;
 
@@ -226,9 +261,22 @@ export const useStudentFees = () => {
 
   const updateStudentFee = async (id: string, updates: Partial<StudentFee>) => {
     try {
+      // Map updates to fees table structure
+      const updateData: any = {};
+      
+      if (updates.amount !== undefined) updateData.amount = updates.amount;
+      if (updates.amount_paid !== undefined) updateData.paid_amount = updates.amount_paid;
+      if (updates.status !== undefined) {
+        updateData.status = updates.status === 'paid' ? 'paid' : 
+                           updates.status === 'partial' ? 'partial' : 'pending';
+      }
+      if (updates.due_date !== undefined) updateData.due_date = updates.due_date;
+      if (updates.payment_method !== undefined) updateData.payment_method = updates.payment_method;
+      if (updates.payment_date !== undefined) updateData.paid_date = updates.payment_date;
+
       const { error } = await supabase
-        .from('student_fees')
-        .update(updates)
+        .from('fees')
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
@@ -256,9 +304,8 @@ export const useStudentFees = () => {
   }) => {
     try {
       const { error } = await supabase
-        .from('student_fees')
+        .from('fees')
         .update({
-          discount_type: discount.type,
           discount_amount: discount.amount
         })
         .in('id', studentFeeIds);
