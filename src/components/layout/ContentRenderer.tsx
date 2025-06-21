@@ -1,159 +1,128 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-
-// Dashboard Components
+import Dashboard from '@/components/Dashboard';
+import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import SchoolAnalyticsDashboard from '@/components/analytics/SchoolAnalyticsDashboard';
 import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
 import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 import ParentDashboard from '@/components/dashboard/ParentDashboard';
-import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
-import SchoolOwnerDashboard from '@/components/dashboard/SchoolOwnerDashboard';
-
-// Analytics Components
-import EduFamAdminAnalytics from '@/components/analytics/EduFamAdminAnalytics';
-import PrincipalAnalytics from '@/components/analytics/PrincipalAnalytics';
-import TeacherAnalytics from '@/components/analytics/TeacherAnalytics';
-import ParentAnalytics from '@/components/analytics/ParentAnalytics';
-import FinanceOfficerAnalytics from '@/components/analytics/FinanceOfficerAnalytics';
-import SchoolOwnerAnalytics from '@/components/analytics/SchoolOwnerAnalytics';
-
-// Module Components
-import GradesModule from '@/components/modules/GradesModule';
-import AttendanceModule from '@/components/modules/AttendanceModule';
-import StudentsModule from '@/components/modules/StudentsModule';
-import FinanceModule from '@/components/modules/FinanceModule';
-import TimetableModule from '@/components/modules/TimetableModule';
-import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
-import MessagesModule from '@/components/modules/MessagesModule';
-import ReportsModule from '@/components/modules/ReportsModule';
-import SupportModule from '@/components/modules/SupportModule';
-import SecurityModule from '@/components/modules/SecurityModule';
-import SettingsModule from '@/components/modules/SettingsModule';
-import SchoolsModule from '@/components/modules/SchoolsModule';
-import UsersModule from '@/components/modules/UsersModule';
-import BillingModule from '@/components/modules/BillingModule';
-import SystemHealthModule from '@/components/modules/SystemHealthModule';
-import CertificatesModule from '@/components/modules/CertificatesModule';
-import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
+import FinanceDashboard from '@/components/dashboard/FinanceDashboard';
+import SchoolManagementDashboard from '@/components/dashboard/SchoolManagementDashboard';
+import GradesDashboard from '@/components/grades/GradesDashboard';
+import AttendanceDashboard from '@/components/attendance/AttendanceDashboard';
+import StudentsDashboard from '@/components/students/StudentsDashboard';
+import FinanceOverviewDashboard from '@/components/finance/FinanceOverviewDashboard';
+import PaymentsDashboard from '@/components/payments/PaymentsDashboard';
+import StudentAccountsDashboard from '@/components/finance/StudentAccountsDashboard';
+import FeeManagementDashboard from '@/components/finance/FeeManagementDashboard';
+import TimetableDashboard from '@/components/timetable/TimetableDashboard';
+import AnnouncementsDashboard from '@/components/announcements/AnnouncementsDashboard';
+import MessagesDashboard from '@/components/messages/MessagesDashboard';
+import ReportsDashboard from '@/components/reports/ReportsDashboard';
+import SupportDashboard from '@/components/support/SupportDashboard';
+import SettingsDashboard from '@/components/settings/SettingsDashboard';
+import FinanceSettingsDashboard from '@/components/finance/FinanceSettingsDashboard';
+import SecurityDashboard from '@/components/security/SecurityDashboard';
+import SchoolsDashboard from '@/components/schools/SchoolsDashboard';
+import UsersDashboard from '@/components/users/UsersDashboard';
+import BillingDashboard from '@/components/billing/BillingDashboard';
+import SystemHealthDashboard from '@/components/system-health/SystemHealthDashboard';
 
 interface ContentRendererProps {
   activeSection: string;
   onModalOpen: (modalType: string) => void;
 }
 
-const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection, onModalOpen }) => {
+const ContentRenderer: React.FC<ContentRendererProps> = ({ 
+  activeSection, 
+  onModalOpen 
+}) => {
   const { user } = useAuth();
 
-  console.log('🎯 ContentRenderer: Rendering section:', activeSection, 'for role:', user?.role);
-
-  // Default analytics filters
-  const defaultFilters = {
-    term: new Date().getFullYear().toString(),
-    class: '',
-    subject: '',
-    dateRange: 'current_term'
-  };
+  console.log('🎬 ContentRenderer: Rendering section:', activeSection, 'for user role:', user?.role);
 
   const renderContent = () => {
     switch (activeSection) {
-      // Dashboard sections
       case 'dashboard':
-        switch (user?.role) {
-          case 'edufam_admin':
-            return <EduFamAdminDashboard onModalOpen={onModalOpen} />;
-          case 'principal':
-            return <PrincipalDashboard user={user} onModalOpen={onModalOpen} />;
-          case 'teacher':
-            return <TeacherDashboard user={user} onModalOpen={onModalOpen} />;
-          case 'parent':
-            return <ParentDashboard user={user} onModalOpen={onModalOpen} />;
-          case 'finance_officer':
-            return <FinanceOfficerDashboard user={user} />;
-          case 'school_owner':
-            return <SchoolOwnerDashboard />;
-          default:
-            return <div>Dashboard not configured for this role</div>;
-        }
-
-      // Analytics sections
+        return <Dashboard />;
+      
       case 'analytics':
-        switch (user?.role) {
-          case 'edufam_admin':
-            return <EduFamAdminAnalytics />;
-          case 'principal':
-            return <PrincipalAnalytics />;
-          case 'teacher':
-            return <TeacherAnalytics filters={defaultFilters} />;
-          case 'parent':
-            return <ParentAnalytics filters={defaultFilters} />;
-          case 'finance_officer':
-            return <FinanceOfficerAnalytics filters={defaultFilters} />;
-          case 'school_owner':
-            return <SchoolOwnerAnalytics filters={defaultFilters} />;
-          default:
-            return <div>Analytics not available for this role</div>;
-        }
+        return <AnalyticsDashboard />;
+      
+      case 'school-analytics':
+        return <SchoolAnalyticsDashboard />;
+      
+      case 'school-management':
+        return <SchoolManagementDashboard />;
 
-      // Management modules
-      case 'schools':
-        return <SchoolsModule />;
-      
-      case 'company-management':
-        return <CompanyManagementModule />;
-      
-      case 'users':
-        return <UsersModule />;
-      
       case 'grades':
-        return <GradesModule />;
-      
+        return <GradesDashboard />;
+
       case 'attendance':
-        return <AttendanceModule />;
-      
+        return <AttendanceDashboard />;
+
       case 'students':
-        return <StudentsModule />;
-      
+        return <StudentsDashboard />;
+
       case 'finance':
-        return <FinanceModule />;
-      
+        return <FinanceOverviewDashboard />;
+
+      case 'payments':
+        return <PaymentsDashboard />;
+
+      case 'student-accounts':
+        return <StudentAccountsDashboard />;
+
+      case 'fee-management':
+        return <FeeManagementDashboard />;
+
       case 'timetable':
-        return <TimetableModule />;
-      
+        return <TimetableDashboard />;
+
       case 'announcements':
-        return <AnnouncementsModule />;
-      
+        return <AnnouncementsDashboard />;
+
       case 'messages':
-        return <MessagesModule />;
-      
+        return <MessagesDashboard />;
+
       case 'reports':
-        return <ReportsModule />;
-      
-      case 'certificates':
-        return <CertificatesModule />;
-      
-      case 'billing':
-        return <BillingModule />;
-      
-      case 'system-health':
-        return <SystemHealthModule />;
-      
+        return <ReportsDashboard />;
+
       case 'support':
-        return <SupportModule />;
-      
-      case 'security':
-        return <SecurityModule />;
-      
+        return <SupportDashboard />;
+
       case 'settings':
-        return <SettingsModule />;
+        return <SettingsDashboard />;
+
+      case 'finance-settings':
+        return <FinanceSettingsDashboard />;
+
+      case 'security':
+        return <SecurityDashboard />;
+
+      case 'schools':
+        return <SchoolsDashboard />;
+
+      case 'users':
+        return <UsersDashboard />;
+
+      case 'billing':
+        return <BillingDashboard />;
+
+      case 'system-health':
+        return <SystemHealthDashboard />;
 
       default:
-        console.warn('🚨 ContentRenderer: Unknown section:', activeSection);
         return (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900">Section Not Found</h3>
-              <p className="text-gray-500 mt-2">The requested section "{activeSection}" is not available.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Feature Coming Soon
+              </h3>
+              <p className="text-gray-500">
+                The "{activeSection}" feature is being implemented.
+              </p>
             </div>
           </div>
         );
@@ -161,10 +130,8 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection, onModa
   };
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="container mx-auto px-6 py-8">
-        {renderContent()}
-      </div>
+    <div className="flex-1 space-y-6">
+      {renderContent()}
     </div>
   );
 };

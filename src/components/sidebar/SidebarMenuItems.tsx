@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   BookOpen,
@@ -26,7 +25,7 @@ import {
   Receipt,
   Banknote,
   Coins,
-  Award
+  PieChart
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -55,6 +54,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Analytics',
       icon: BarChart3,
       roles: ['edufam_admin', 'principal', 'school_owner']
+    },
+    {
+      id: 'school-analytics',
+      label: 'School Analytics',
+      icon: PieChart,
+      roles: ['edufam_admin']
     },
     {
       id: 'grades',

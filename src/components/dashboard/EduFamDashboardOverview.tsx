@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +30,8 @@ import {
   Area,
   AreaChart
 } from 'recharts';
+import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
+import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 
 const EduFamDashboardOverview = () => {
   
@@ -198,6 +199,22 @@ const EduFamDashboardOverview = () => {
     }
   ];
 
+  // Report download buttons component
+  const renderReportDownloads = () => (
+    <div className="mb-4 flex flex-col md:flex-row items-start md:items-center gap-2">
+      <RoleReportDownloadButton
+        type="grades"
+        term={"" + (new Date().getFullYear())}
+        label="Download All School Grades (Excel)"
+      />
+      <RoleReportDownloadButton
+        type="attendance"
+        term={"" + (new Date().getFullYear())}
+        label="Download All School Attendance (Excel)"
+      />
+    </div>
+  );
+
   if (statsLoading) {
     return (
       <div className="space-y-6">
@@ -244,7 +261,10 @@ const EduFamDashboardOverview = () => {
         </CardHeader>
       </Card>
 
-      {/* Stats Icon Section - Positioned below Greetings Container */}
+      {/* Download Buttons Container - Positioned below Greetings Container */}
+      {renderReportDownloads()}
+
+      {/* Stats Icon Section - Positioned below Download Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((card) => (
           <Card key={card.title} className={`${card.bgColor} ${card.borderColor} shadow-lg hover:shadow-xl transition-all duration-300`}>
@@ -276,6 +296,9 @@ const EduFamDashboardOverview = () => {
           </Card>
         ))}
       </div>
+
+      {/* System Health Status Card - Positioned below Stats Icons */}
+      <SystemHealthStatusCard />
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
