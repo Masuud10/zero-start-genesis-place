@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { SchoolService, CreateSchoolRequest } from '@/services/schoolService';
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2, Upload, X, Image } from 'lucide-react';
 
 interface EnhancedCreateSchoolDialogProps {
   open: boolean;
@@ -28,6 +28,10 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  
   const [formData, setFormData] = useState<CreateSchoolRequest>({
     name: '',
     email: '',
@@ -44,6 +48,7 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
     owner_information: '',
     ownerEmail: '',
     ownerName: '',
+    ownerPhone: '',
     curriculumType: 'cbc'
   });
 
@@ -72,6 +77,12 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
     }
     if (!formData.year_established || formData.year_established < 1800 || formData.year_established > new Date().getFullYear()) {
       newErrors.year_established = 'Please enter a valid year of establishment';
+    }
+    if (!formData.school_type) {
+      newErrors.school_type = 'School type is required';
+    }
+    if (!formData.term_structure) {
+      newErrors.term_structure = 'Term structure is required';
     }
 
     // Optional owner email validation
@@ -111,6 +122,40 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
     }
   };
 
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please select an image file",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please select an image smaller than 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setLogoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -127,7 +172,27 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
     try {
       console.log('Creating school with data:', formData);
       
-      const result = await SchoolService.createSchool(formData);
+      let schoolData = { ...formData };
+
+      // Upload logo if provided
+      if (logoFile) {
+        const tempSchoolId = `temp-${Date.now()}`;
+        const logoResult = await SchoolService.uploadSchoolLogo(logoFile, tempSchoolId);
+        
+        if (logoResult.error) {
+          toast({
+            title: "Logo Upload Failed",
+            description: logoResult.error,
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+        
+        schoolData.logo_url = logoResult.url;
+      }
+
+      const result = await SchoolService.createSchool(schoolData);
       
       if (result.success) {
         toast({
@@ -153,8 +218,12 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
           owner_information: '',
           ownerEmail: '',
           ownerName: '',
+          ownerPhone: '',
           curriculumType: 'cbc'
         });
+        setLogoFile(null);
+        setLogoPreview('');
+        setErrors({});
       } else {
         toast({
           title: "Error",
@@ -176,22 +245,68 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold">Create New School</DialogTitle>
+            <DialogTitle className="text-2xl font-semibold text-gray-900">
+              Register New School
+            </DialogTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
+          <p className="text-sm text-gray-600 mt-2">
+            Fill out the form below to register a new school in the EduFam network
+          </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* School Logo Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">School Branding</h3>
+            
+            <div className="flex items-start gap-6">
+              <div className="flex-1">
+                <Label htmlFor="logo-upload">School Logo</Label>
+                <div className="mt-2">
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain rounded-lg" />
+                      ) : (
+                        <Image className="h-8 w-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mb-2"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Choose Logo
+                      </Button>
+                      <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                    </div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="name">School Name *</Label>
                 <Input
@@ -210,19 +325,20 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
                   value={formData.school_type} 
                   onValueChange={(value) => handleInputChange('school_type', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.school_type ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select school type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="primary">Primary</SelectItem>
-                    <SelectItem value="secondary">Secondary</SelectItem>
+                    <SelectItem value="primary">Primary School</SelectItem>
+                    <SelectItem value="secondary">Secondary School</SelectItem>
                     <SelectItem value="college">College</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.school_type && <p className="text-sm text-red-500">{errors.school_type}</p>}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="motto">School Motto</Label>
                 <Input
@@ -249,7 +365,7 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Contact Information</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="email">School Email Address *</Label>
                 <Input
@@ -304,16 +420,16 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
 
           {/* Registration Details */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Registration Details</h3>
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Registration & Academic Details</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="registration_number">Registration Number *</Label>
                 <Input
                   id="registration_number"
                   value={formData.registration_number}
                   onChange={(e) => handleInputChange('registration_number', e.target.value)}
-                  placeholder="Enter registration number"
+                  placeholder="Enter unique registration number"
                   className={errors.registration_number ? 'border-red-500' : ''}
                 />
                 {errors.registration_number && <p className="text-sm text-red-500">{errors.registration_number}</p>}
@@ -334,14 +450,14 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="term_structure">Term Structure</Label>
+                <Label htmlFor="term_structure">Term Structure *</Label>
                 <Select 
                   value={formData.term_structure} 
                   onValueChange={(value) => handleInputChange('term_structure', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.term_structure ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select term structure" />
                   </SelectTrigger>
                   <SelectContent>
@@ -350,6 +466,7 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.term_structure && <p className="text-sm text-red-500">{errors.term_structure}</p>}
               </div>
 
               <div className="space-y-2">
@@ -370,11 +487,11 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
             </div>
           </div>
 
-          {/* School Owner Information (Optional) */}
+          {/* School Owner Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">School Owner Information (Optional)</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="ownerName">Owner Name</Label>
                 <Input
@@ -386,17 +503,27 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ownerEmail">Owner Email</Label>
+                <Label htmlFor="ownerPhone">Owner Phone</Label>
                 <Input
-                  id="ownerEmail"
-                  type="email"
-                  value={formData.ownerEmail}
-                  onChange={(e) => handleInputChange('ownerEmail', e.target.value)}
-                  placeholder="owner@example.com"
-                  className={errors.ownerEmail ? 'border-red-500' : ''}
+                  id="ownerPhone"
+                  value={formData.ownerPhone}
+                  onChange={(e) => handleInputChange('ownerPhone', e.target.value)}
+                  placeholder="+254 700 000 000"
                 />
-                {errors.ownerEmail && <p className="text-sm text-red-500">{errors.ownerEmail}</p>}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ownerEmail">Owner Email</Label>
+              <Input
+                id="ownerEmail"
+                type="email"
+                value={formData.ownerEmail}
+                onChange={(e) => handleInputChange('ownerEmail', e.target.value)}
+                placeholder="owner@example.com"
+                className={errors.ownerEmail ? 'border-red-500' : ''}
+              />
+              {errors.ownerEmail && <p className="text-sm text-red-500">{errors.ownerEmail}</p>}
             </div>
 
             <div className="space-y-2">
@@ -411,25 +538,8 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
             </div>
           </div>
 
-          {/* School Logo Upload (Placeholder) */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">School Logo</h3>
-            <div className="space-y-2">
-              <Label htmlFor="logo_url">Logo URL</Label>
-              <Input
-                id="logo_url"
-                value={formData.logo_url}
-                onChange={(e) => handleInputChange('logo_url', e.target.value)}
-                placeholder="https://example.com/logo.png"
-              />
-              <p className="text-sm text-gray-500">
-                Enter the URL of your school logo image
-              </p>
-            </div>
-          </div>
-
           {/* Form Actions */}
-          <div className="flex justify-end space-x-4 pt-6 border-t">
+          <div className="flex justify-end space-x-4 pt-6 border-t bg-gray-50 -mx-6 px-6 py-4">
             <Button
               type="button"
               variant="outline"
@@ -441,7 +551,7 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 px-8"
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {loading ? 'Creating School...' : 'Create School'}

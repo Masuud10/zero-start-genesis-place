@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AuthUser } from '@/types/auth';
 import SchoolsModule from '@/components/modules/SchoolsModule';
@@ -58,7 +59,7 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
 
   switch (activeModal) {
     case 'schools':
-      modalContent = <SchoolsModule onDataChanged={handleDataChanged} />;
+      modalContent = <SchoolsModule />;
       title = "Manage Schools";
       break;
     case 'users':

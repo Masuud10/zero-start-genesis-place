@@ -17,6 +17,7 @@ export interface CreateSchoolRequest {
   owner_information?: string;
   ownerEmail?: string;
   ownerName?: string;
+  ownerPhone?: string;
   curriculumType?: 'cbc' | 'igcse';
 }
 
@@ -31,9 +32,51 @@ export interface CreateSchoolResponse {
 export class SchoolService {
   static async createSchool(schoolData: CreateSchoolRequest): Promise<CreateSchoolResponse> {
     try {
-      console.log('🏫 SchoolService: Creating school via database function', schoolData);
+      console.log('🏫 SchoolService: Creating school with enhanced data', schoolData);
 
-      // Use the existing create_school database function with owner details
+      // Validate required fields
+      if (!schoolData.name || !schoolData.email || !schoolData.phone || !schoolData.address) {
+        return {
+          success: false,
+          error: 'Missing required fields: name, email, phone, and address are required'
+        };
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(schoolData.email)) {
+        return {
+          success: false,
+          error: 'Invalid email format'
+        };
+      }
+
+      // Validate year of establishment
+      const currentYear = new Date().getFullYear();
+      if (schoolData.year_established && (schoolData.year_established < 1800 || schoolData.year_established > currentYear)) {
+        return {
+          success: false,
+          error: 'Year of establishment must be between 1800 and current year'
+        };
+      }
+
+      // Check if registration number is unique
+      if (schoolData.registration_number) {
+        const { data: existingSchool } = await supabase
+          .from('schools')
+          .select('id')
+          .eq('registration_number', schoolData.registration_number)
+          .single();
+
+        if (existingSchool) {
+          return {
+            success: false,
+            error: 'Registration number already exists'
+          };
+        }
+      }
+
+      // Use the existing create_school database function with basic details
       const { data, error } = await supabase.rpc('create_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
@@ -134,6 +177,7 @@ export class SchoolService {
           year_established,
           term_structure,
           owner_information,
+          curriculum_type,
           created_at,
           updated_at,
           owner_id,
@@ -172,6 +216,7 @@ export class SchoolService {
           year_established,
           term_structure,
           owner_information,
+          curriculum_type,
           created_at,
           updated_at,
           owner_id,
@@ -189,6 +234,31 @@ export class SchoolService {
     } catch (error) {
       console.error('🏫 SchoolService: Service error:', error);
       return { data: null, error };
+    }
+  }
+
+  static async uploadSchoolLogo(file: File, schoolId: string): Promise<{ url?: string; error?: string }> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `school-logos/${schoolId}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('school-assets')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Logo upload error:', uploadError);
+        return { error: 'Failed to upload logo' };
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('school-assets')
+        .getPublicUrl(fileName);
+
+      return { url: publicUrl };
+    } catch (error: any) {
+      console.error('Logo upload service error:', error);
+      return { error: error.message || 'Failed to upload logo' };
     }
   }
 }
