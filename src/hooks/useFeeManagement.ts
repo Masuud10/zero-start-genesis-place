@@ -4,271 +4,327 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-interface FeeStructure {
+interface FeeRecord {
   id: string;
-  name: string;
+  student_id: string;
+  class_id: string;
+  amount: number;
+  paid_amount: number;
+  status: 'pending' | 'partial' | 'paid' | 'overdue';
+  due_date: string;
   academic_year: string;
   term: string;
-  is_active: boolean;
-  created_at: string;
-  items?: FeeStructureItem[];
-}
-
-interface FeeStructureItem {
-  id: string;
-  name: string;
   category: string;
-  amount: number;
-  description?: string;
+  student?: {
+    name: string;
+    admission_number: string;
+  };
+  class?: {
+    name: string;
+  };
 }
 
-interface ClassFeeSummary {
+interface MPESATransaction {
+  id: string;
+  transaction_id: string;
+  mpesa_receipt_number: string;
+  phone_number: string;
+  amount_paid: number;
+  transaction_date: string;
+  transaction_status: string;
+  student?: {
+    name: string;
+    admission_number: string;
+  };
+  class?: {
+    name: string;
+  };
+}
+
+interface ClassSummary {
   class_id: string;
   class_name: string;
-  total_fees: number;
-  collected: number;
-  outstanding: number;
+  total_amount: number;
+  paid_amount: number;
+  balance: number;
   student_count: number;
 }
 
 export const useFeeManagement = () => {
-  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
-  const [classFeesSummary, setClassFeesSummary] = useState<ClassFeeSummary[]>([]);
+  const [fees, setFees] = useState<FeeRecord[]>([]);
+  const [mpesaTransactions, setMpesaTransactions] = useState<MPESATransaction[]>([]);
+  const [classSummaries, setClassSummaries] = useState<ClassSummary[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchFeeStructures = async () => {
+  const fetchFees = async () => {
     if (!user?.school_id) return;
 
     try {
-      setLoading(true);
-      setError(null);
-
-      // Fetch fee structures
-      const { data: structures, error: structuresError } = await supabase
-        .from('fee_structures')
+      const { data, error } = await supabase
+        .from('fees')
         .select(`
-          id,
-          name,
-          academic_year,
-          term,
-          is_active,
-          created_at,
-          fee_structure_items (
-            id,
-            name,
-            category,
-            amount,
-            description
-          )
+          *,
+          student:students(name, admission_number),
+          class:classes(name)
         `)
         .eq('school_id', user.school_id)
         .order('created_at', { ascending: false });
 
-      if (structuresError) throw structuresError;
+      if (error) throw error;
+      setFees(data || []);
+    } catch (err: any) {
+      console.error('Error fetching fees:', err);
+      setError(err.message);
+    }
+  };
 
-      setFeeStructures(structures?.map(structure => ({
-        ...structure,
-        items: structure.fee_structure_items || []
-      })) || []);
+  const fetchMPESATransactions = async () => {
+    if (!user?.school_id) return;
 
-      // Fetch class fees summary by calculating from fees and classes tables
-      const { data: classesData, error: classesError } = await supabase
+    try {
+      const { data, error } = await supabase
+        .from('mpesa_transactions')
+        .select(`
+          *,
+          student:students(name, admission_number),
+          class:classes(name)
+        `)
+        .eq('school_id', user.school_id)
+        .order('transaction_date', { ascending: false });
+
+      if (error) throw error;
+      setMpesaTransactions(data || []);
+    } catch (err: any) {
+      console.error('Error fetching MPESA transactions:', err);
+    }
+  };
+
+  const fetchClassSummaries = async () => {
+    if (!user?.school_id) return;
+
+    try {
+      const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('id, name')
         .eq('school_id', user.school_id);
 
-      if (classesError) throw classesError;
+      if (classError) throw classError;
 
-      // For each class, calculate fee summary
-      const classSummaries: ClassFeeSummary[] = [];
+      const summaries: ClassSummary[] = [];
       
-      for (const classItem of classesData || []) {
-        const { data: feesData, error: feesError } = await supabase
+      for (const cls of classData || []) {
+        const { data: feeData, error: feeError } = await supabase
           .from('fees')
           .select('amount, paid_amount, student_id')
-          .eq('class_id', classItem.id)
+          .eq('class_id', cls.id)
           .eq('school_id', user.school_id);
 
-        if (feesError) {
-          console.error('Error fetching fees for class:', classItem.id, feesError);
-          continue;
-        }
+        if (feeError) continue;
 
-        const totalFees = feesData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
-        const collected = feesData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-        const outstanding = totalFees - collected;
-        const studentCount = new Set(feesData?.map(fee => fee.student_id)).size;
+        const totalAmount = feeData?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
+        const paidAmount = feeData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+        const studentCount = new Set(feeData?.map(fee => fee.student_id)).size;
 
-        classSummaries.push({
-          class_id: classItem.id,
-          class_name: classItem.name,
-          total_fees: totalFees,
-          collected: collected,
-          outstanding: outstanding,
+        summaries.push({
+          class_id: cls.id,
+          class_name: cls.name,
+          total_amount: totalAmount,
+          paid_amount: paidAmount,
+          balance: totalAmount - paidAmount,
           student_count: studentCount
         });
       }
 
-      setClassFeesSummary(classSummaries);
-
+      setClassSummaries(summaries);
     } catch (err: any) {
-      console.error('Error fetching fee management data:', err);
-      setError(err.message);
-      toast({
-        title: "Error",
-        description: "Failed to fetch fee management data",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error fetching class summaries:', err);
     }
   };
 
-  const createFeeStructure = async (structureData: {
-    name: string;
-    academic_year: string;
-    term: string;
-    items: Omit<FeeStructureItem, 'id'>[];
-  }) => {
-    if (!user?.school_id) return { error: 'No school associated with user' };
+  const fetchClasses = async () => {
+    if (!user?.school_id) return;
 
     try {
-      // Create fee structure
-      const { data: structure, error: structureError } = await supabase
-        .from('fee_structures')
-        .insert({
-          name: structureData.name,
-          academic_year: structureData.academic_year,
-          term: structureData.term,
-          school_id: user.school_id,
-          is_active: true
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('school_id', user.school_id);
 
-      if (structureError) throw structureError;
-
-      // Create fee structure items
-      if (structureData.items.length > 0) {
-        const items = structureData.items.map(item => ({
-          ...item,
-          fee_structure_id: structure.id
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('fee_structure_items')
-          .insert(items);
-
-        if (itemsError) throw itemsError;
-      }
-
-      toast({
-        title: "Success",
-        description: "Fee structure created successfully",
-      });
-
-      fetchFeeStructures(); // Refresh data
-      return { data: structure, error: null };
+      if (error) throw error;
+      setClasses(data || []);
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: `Failed to create fee structure: ${err.message}`,
-        variant: "destructive",
-      });
-      return { error: err.message };
+      console.error('Error fetching classes:', err);
     }
   };
 
-  const assignFeesToClass = async (classId: string, feeStructureId: string) => {
-    if (!user?.school_id) return { error: 'No school associated with user' };
+  const fetchStudents = async () => {
+    if (!user?.school_id) return;
 
     try {
-      // Get students in the class
-      const { data: students, error: studentsError } = await supabase
+      const { data, error } = await supabase
         .from('students')
-        .select('id')
-        .eq('class_id', classId)
+        .select('*, class:classes(name)')
         .eq('school_id', user.school_id)
         .eq('is_active', true);
 
-      if (studentsError) throw studentsError;
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (err: any) {
+      console.error('Error fetching students:', err);
+    }
+  };
 
-      if (!students?.length) {
-        throw new Error('No active students found in this class');
-      }
-
-      // Get fee structure items
-      const { data: feeItems, error: feeItemsError } = await supabase
-        .from('fee_structure_items')
-        .select('*')
-        .eq('fee_structure_id', feeStructureId);
-
-      if (feeItemsError) throw feeItemsError;
-
-      // Get fee structure details
-      const { data: feeStructure, error: feeStructureError } = await supabase
-        .from('fee_structures')
-        .select('academic_year, term')
-        .eq('id', feeStructureId)
-        .single();
-
-      if (feeStructureError) throw feeStructureError;
-
-      // Create fee records for all students
-      const feeRecords = students.flatMap(student =>
-        feeItems?.map(item => ({
-          student_id: student.id,
-          class_id: classId,
-          school_id: user.school_id,
-          amount: item.amount,
-          paid_amount: 0,
-          status: 'pending',
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-          academic_year: feeStructure.academic_year,
-          term: feeStructure.term,
-          category: item.category,
-        })) || []
-      );
-
-      const { error: insertError } = await supabase
-        .from('fees')
-        .insert(feeRecords);
-
-      if (insertError) throw insertError;
-
-      toast({
-        title: "Success",
-        description: `Fees assigned to ${students.length} students in the class`,
+  const assignFeeToClass = async (classId: string, feeData: {
+    amount: number;
+    due_date: string;
+    academic_year: string;
+    term: string;
+    category: string;
+  }) => {
+    try {
+      const { data, error } = await supabase.rpc('assign_fee_to_class', {
+        p_class_id: classId,
+        p_fee_data: feeData
       });
 
-      fetchFeeStructures(); // Refresh data
-      return { error: null };
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Success",
+          description: data.message,
+        });
+        await fetchFees();
+        await fetchClassSummaries();
+      } else {
+        throw new Error(data?.error || 'Failed to assign fee');
+      }
     } catch (err: any) {
       toast({
         title: "Error",
-        description: `Failed to assign fees to class: ${err.message}`,
+        description: err.message,
         variant: "destructive",
       });
-      return { error: err.message };
+    }
+  };
+
+  const assignFeeToStudent = async (studentId: string, feeData: {
+    amount: number;
+    due_date: string;
+    academic_year: string;
+    term: string;
+    category: string;
+  }) => {
+    try {
+      const student = students.find(s => s.id === studentId);
+      if (!student) throw new Error('Student not found');
+
+      const { error } = await supabase
+        .from('fees')
+        .insert({
+          school_id: user?.school_id,
+          student_id: studentId,
+          class_id: student.class_id,
+          amount: feeData.amount,
+          due_date: feeData.due_date,
+          academic_year: feeData.academic_year,
+          term: feeData.term,
+          category: feeData.category,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Fee assigned to student successfully",
+      });
+      await fetchFees();
+      await fetchClassSummaries();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const recordPayment = async (feeId: string, paymentData: {
+    amount: number;
+    payment_method: string;
+    mpesa_code?: string;
+    reference_number?: string;
+  }) => {
+    try {
+      const { data, error } = await supabase.rpc('record_fee_payment', {
+        p_student_fee_id: feeId,
+        p_amount: paymentData.amount,
+        p_payment_method: paymentData.payment_method,
+        p_mpesa_code: paymentData.mpesa_code,
+        p_reference_number: paymentData.reference_number
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Success",
+          description: "Payment recorded successfully",
+        });
+        await fetchFees();
+        await fetchMPESATransactions();
+        await fetchClassSummaries();
+      } else {
+        throw new Error(data?.error || 'Failed to record payment');
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
     }
   };
 
   useEffect(() => {
-    if (user?.school_id) {
-      fetchFeeStructures();
-    }
+    const fetchAllData = async () => {
+      if (user?.school_id) {
+        setLoading(true);
+        await Promise.all([
+          fetchFees(),
+          fetchMPESATransactions(),
+          fetchClassSummaries(),
+          fetchClasses(),
+          fetchStudents()
+        ]);
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
   }, [user?.school_id]);
 
   return {
-    feeStructures,
-    classFeesSummary,
+    fees,
+    mpesaTransactions,
+    classSummaries,
+    classes,
+    students,
     loading,
     error,
-    refetch: fetchFeeStructures,
-    createFeeStructure,
-    assignFeesToClass,
+    assignFeeToClass,
+    assignFeeToStudent,
+    recordPayment,
+    refetch: () => {
+      fetchFees();
+      fetchMPESATransactions();
+      fetchClassSummaries();
+    }
   };
 };

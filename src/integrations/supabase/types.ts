@@ -5348,6 +5348,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_fee_to_class: {
+        Args: { p_class_id: string; p_fee_data: Json }
+        Returns: Json
+      }
       assign_fee_to_class_students: {
         Args: { p_fee_id: string }
         Returns: number

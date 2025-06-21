@@ -5,7 +5,6 @@ import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics';
 import DailyTransactionsChart from '@/components/analytics/finance/DailyTransactionsChart';
 import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
