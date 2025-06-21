@@ -91,9 +91,9 @@ export class SchoolService {
         throw error;
       }
 
-      // Handle the JSONB response
+      // Handle the response
       if (data && typeof data === 'object' && data !== null) {
-        const result = data as Record<string, any>;
+        const result = data as any;
         
         if ('error' in result && typeof result.error === 'string') {
           console.error('🏫 SchoolService: Function returned error:', result.error);
@@ -108,7 +108,7 @@ export class SchoolService {
           
           // Update additional fields that aren't handled by the basic create_school function
           if (result.school_id) {
-            const updateData: any = {};
+            const updateData: Record<string, any> = {};
             
             if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
             if (schoolData.website_url) updateData.website_url = schoolData.website_url;
@@ -137,9 +137,9 @@ export class SchoolService {
           
           return {
             success: true,
-            school_id: typeof result.school_id === 'string' ? result.school_id : undefined,
-            owner_id: typeof result.owner_id === 'string' ? result.owner_id : undefined,
-            message: typeof result.message === 'string' ? result.message : 'School created successfully'
+            school_id: result.school_id || undefined,
+            owner_id: result.owner_id || undefined,
+            message: result.message || 'School created successfully'
           };
         }
       }
