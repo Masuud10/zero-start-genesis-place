@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEduFamSystemAnalytics } from '@/hooks/useEduFamSystemAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, GraduationCap, CalendarCheck, DollarSign, Building2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, G , CalendarCheck, DollarSign, Building2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +12,7 @@ const EduFamSystemAnalytics = () => {
   const { data: analytics, isLoading, error, refetch } = useEduFamSystemAnalytics();
 
   // Permission check
-  if (user?.role !== 'edufam_admin') {
+  if (!user || user.role !== 'edufam_admin') {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Alert className="bg-red-50 border-red-200 max-w-md">
@@ -49,7 +49,7 @@ const EduFamSystemAnalytics = () => {
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-600">Analytics Error</AlertTitle>
           <AlertDescription className="text-red-700 mb-4">
-            Failed to load system analytics data.
+            Failed to load system analytics data. Please try again.
           </AlertDescription>
           <Button
             onClick={() => refetch()}
@@ -64,16 +64,43 @@ const EduFamSystemAnalytics = () => {
     );
   }
 
+  // Safe defaults for analytics data
+  const safeAnalytics = {
+    schools: {
+      total_schools: 0,
+      active_schools: 0,
+      ...analytics?.schools
+    },
+    grades: {
+      total_grades: 0,
+      average_grade: 0,
+      schools_with_grades: 0,
+      ...analytics?.grades
+    },
+    attendance: {
+      total_records: 0,
+      average_attendance_rate: 0,
+      schools_with_attendance: 0,
+      ...analytics?.attendance
+    },
+    finance: {
+      total_collected: 0,
+      total_outstanding: 0,
+      schools_with_finance: 0,
+      ...analytics?.finance
+    }
+  };
+
   const formatNumber = (value: number) => {
-    return value.toLocaleString();
+    return (value || 0).toLocaleString();
   };
 
   const formatCurrency = (value: number) => {
-    return `KES ${value.toLocaleString()}`;
+    return `KES ${(value || 0).toLocaleString()}`;
   };
 
   const formatPercentage = (value: number) => {
-    return `${Math.round(value)}%`;
+    return `${Math.round(value || 0)}%`;
   };
 
   return (
@@ -105,7 +132,7 @@ const EduFamSystemAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900">
-              {formatNumber(analytics?.schools.total_schools || 0)}
+              {formatNumber(safeAnalytics.schools.total_schools)}
             </div>
             <p className="text-xs text-gray-600 mt-1">
               Active schools in network
@@ -122,7 +149,7 @@ const EduFamSystemAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900">
-              {formatNumber(analytics?.schools.active_schools || 0)}
+              {formatNumber(safeAnalytics.schools.active_schools)}
             </div>
             <p className="text-xs text-gray-600 mt-1">
               Currently operational
@@ -144,18 +171,18 @@ const EduFamSystemAnalytics = () => {
           <CardContent className="space-y-3">
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {formatNumber(analytics?.grades.total_grades || 0)}
+                {formatNumber(safeAnalytics.grades.total_grades)}
               </div>
               <p className="text-xs text-gray-600">Total Grades Recorded</p>
             </div>
             <div className="space-y-1">
               <div className="text-lg font-semibold text-blue-600">
-                {Math.round(analytics?.grades.average_grade || 0)}%
+                {Math.round(safeAnalytics.grades.average_grade)}%
               </div>
               <p className="text-xs text-gray-600">Network Average</p>
             </div>
             <div className="text-sm text-gray-500">
-              {analytics?.grades.schools_with_grades || 0} schools with data
+              {safeAnalytics.grades.schools_with_grades} schools with data
             </div>
           </CardContent>
         </Card>
@@ -171,18 +198,18 @@ const EduFamSystemAnalytics = () => {
           <CardContent className="space-y-3">
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {formatNumber(analytics?.attendance.total_records || 0)}
+                {formatNumber(safeAnalytics.attendance.total_records)}
               </div>
               <p className="text-xs text-gray-600">Attendance Records</p>
             </div>
             <div className="space-y-1">
               <div className="text-lg font-semibold text-green-600">
-                {formatPercentage(analytics?.attendance.average_attendance_rate || 0)}
+                {formatPercentage(safeAnalytics.attendance.average_attendance_rate)}
               </div>
               <p className="text-xs text-gray-600">Network Attendance Rate</p>
             </div>
             <div className="text-sm text-gray-500">
-              {analytics?.attendance.schools_with_attendance || 0} schools with data
+              {safeAnalytics.attendance.schools_with_attendance} schools with data
             </div>
           </CardContent>
         </Card>
@@ -198,28 +225,28 @@ const EduFamSystemAnalytics = () => {
           <CardContent className="space-y-3">
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {formatCurrency(analytics?.finance.total_collected || 0)}
+                {formatCurrency(safeAnalytics.finance.total_collected)}
               </div>
               <p className="text-xs text-gray-600">Total Collected</p>
             </div>
             <div className="space-y-1">
               <div className="text-lg font-semibold text-orange-600">
-                {formatCurrency(analytics?.finance.total_outstanding || 0)}
+                {formatCurrency(safeAnalytics.finance.total_outstanding)}
               </div>
               <p className="text-xs text-gray-600">Outstanding Balance</p>
             </div>
             <div className="text-sm text-gray-500">
-              {analytics?.finance.schools_with_finance || 0} schools with data
+              {safeAnalytics.finance.schools_with_finance} schools with data
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* No Data State */}
-      {analytics && (
-        analytics.grades.total_grades === 0 && 
-        analytics.attendance.total_records === 0 && 
-        analytics.finance.total_collected === 0
+      {(
+        safeAnalytics.grades.total_grades === 0 && 
+        safeAnalytics.attendance.total_records === 0 && 
+        safeAnalytics.finance.total_collected === 0
       ) && (
         <Card className="text-center py-12">
           <CardContent>

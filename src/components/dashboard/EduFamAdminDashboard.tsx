@@ -11,6 +11,10 @@ import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import DashboardModals from './DashboardModals';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EduFamAdminDashboardProps {
   onModalOpen: (modalType: string) => void;
@@ -19,6 +23,21 @@ interface EduFamAdminDashboardProps {
 const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Permission check - only edufam_admin should access this dashboard
+  if (!user || user.role !== 'edufam_admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Alert className="max-w-md bg-red-50 border-red-200">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            Access denied. Only EduFam Administrators can access this dashboard.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const {
     data: schoolsData = [],
@@ -70,7 +89,17 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     refetchSchools();
   };
 
-  const userStats = React.useMemo(() => calculateUserStats(usersData), [usersData]);
+  const userStats = React.useMemo(() => {
+    if (!Array.isArray(usersData) || usersData.length === 0) {
+      return {
+        totalUsers: 0,
+        usersWithSchools: 0,
+        usersWithoutSchools: 0,
+        roleBreakdown: []
+      };
+    }
+    return calculateUserStats(usersData);
+  }, [usersData]);
 
   // Place report download buttons at the top for Admins
   const renderReportDownloads = () => (
@@ -91,7 +120,14 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   // Critical error state: both queries failed
   if (schoolsError && usersError) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">EduFam Admin Dashboard</h1>
+          <Button onClick={handleRetryAll} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry All
+          </Button>
+        </div>
         <ErrorDisplay
           schoolsError={schoolsError}
           usersError={usersError}
@@ -100,6 +136,10 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       </div>
     );
   }
+
+  // Ensure we have valid arrays for calculations
+  const validSchoolsData = Array.isArray(schoolsData) ? schoolsData : [];
+  const validUsersData = Array.isArray(usersData) ? usersData : [];
 
   return (
     <div className="space-y-6">
@@ -111,7 +151,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
       {/* System Overview Cards */}
       <SystemOverviewCards
-        schoolsCount={Array.isArray(schoolsData) ? schoolsData.length : 0}
+        schoolsCount={validSchoolsData.length}
         totalUsers={userStats.totalUsers}
         usersWithSchools={userStats.usersWithSchools}
         usersWithoutSchools={userStats.usersWithoutSchools}
@@ -132,14 +172,14 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         <DashboardModals
           activeModal={activeModal}
           onClose={handleModalClose}
-          user={null}
+          user={user}
           onDataChanged={handleDataChangedInModal}
         />
       )}
 
       {/* Recent Schools Section */}
       <RecentSchoolsSection
-        schoolsData={schoolsData}
+        schoolsData={validSchoolsData}
         schoolsLoading={schoolsLoading}
         schoolsError={schoolsError}
         onModalOpen={handleModalOpen}
