@@ -50,10 +50,26 @@ interface ClassSummary {
   student_count: number;
 }
 
+interface FeeStructure {
+  id: string;
+  name: string;
+  academic_year: string;
+  term: string;
+  is_active: boolean;
+  created_at: string;
+  items?: {
+    id: string;
+    name: string;
+    amount: number;
+    category: string;
+  }[];
+}
+
 export const useFeeManagement = () => {
   const [fees, setFees] = useState<FeeRecord[]>([]);
   const [mpesaTransactions, setMpesaTransactions] = useState<MPESATransaction[]>([]);
   const [classSummaries, setClassSummaries] = useState<ClassSummary[]>([]);
+  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +92,14 @@ export const useFeeManagement = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setFees(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData = (data || []).map(fee => ({
+        ...fee,
+        status: fee.status as 'pending' | 'partial' | 'paid' | 'overdue'
+      }));
+      
+      setFees(transformedData);
     } catch (err: any) {
       console.error('Error fetching fees:', err);
       setError(err.message);
@@ -98,7 +121,19 @@ export const useFeeManagement = () => {
         .order('transaction_date', { ascending: false });
 
       if (error) throw error;
-      setMpesaTransactions(data || []);
+      
+      // Transform the data to handle potential errors in joins
+      const transformedData = (data || []).map(transaction => ({
+        ...transaction,
+        student: transaction.student && typeof transaction.student === 'object' && 'name' in transaction.student 
+          ? transaction.student 
+          : undefined,
+        class: transaction.class && typeof transaction.class === 'object' && 'name' in transaction.class 
+          ? transaction.class 
+          : undefined
+      }));
+      
+      setMpesaTransactions(transformedData);
     } catch (err: any) {
       console.error('Error fetching MPESA transactions:', err);
     }
@@ -143,6 +178,26 @@ export const useFeeManagement = () => {
       setClassSummaries(summaries);
     } catch (err: any) {
       console.error('Error fetching class summaries:', err);
+    }
+  };
+
+  const fetchFeeStructures = async () => {
+    if (!user?.school_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('fee_structures')
+        .select(`
+          *,
+          items:fee_structure_items(*)
+        `)
+        .eq('school_id', user.school_id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setFeeStructures(data || []);
+    } catch (err: any) {
+      console.error('Error fetching fee structures:', err);
     }
   };
 
@@ -194,15 +249,17 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
 
-      if (data?.success) {
+      const result = data as { success?: boolean; message?: string; error?: string };
+      
+      if (result?.success) {
         toast({
           title: "Success",
-          description: data.message,
+          description: result.message || "Fee assigned successfully",
         });
         await fetchFees();
         await fetchClassSummaries();
       } else {
-        throw new Error(data?.error || 'Failed to assign fee');
+        throw new Error(result?.error || 'Failed to assign fee');
       }
     } catch (err: any) {
       toast({
@@ -272,7 +329,9 @@ export const useFeeManagement = () => {
 
       if (error) throw error;
 
-      if (data?.success) {
+      const result = data as { success?: boolean; error?: string };
+
+      if (result?.success) {
         toast({
           title: "Success",
           description: "Payment recorded successfully",
@@ -281,7 +340,7 @@ export const useFeeManagement = () => {
         await fetchMPESATransactions();
         await fetchClassSummaries();
       } else {
-        throw new Error(data?.error || 'Failed to record payment');
+        throw new Error(result?.error || 'Failed to record payment');
       }
     } catch (err: any) {
       toast({
@@ -300,6 +359,7 @@ export const useFeeManagement = () => {
           fetchFees(),
           fetchMPESATransactions(),
           fetchClassSummaries(),
+          fetchFeeStructures(),
           fetchClasses(),
           fetchStudents()
         ]);
@@ -314,6 +374,8 @@ export const useFeeManagement = () => {
     fees,
     mpesaTransactions,
     classSummaries,
+    feeStructures,
+    classFeesSummary: classSummaries, // Alias for backward compatibility
     classes,
     students,
     loading,
@@ -325,6 +387,7 @@ export const useFeeManagement = () => {
       fetchFees();
       fetchMPESATransactions();
       fetchClassSummaries();
+      fetchFeeStructures();
     }
   };
 };

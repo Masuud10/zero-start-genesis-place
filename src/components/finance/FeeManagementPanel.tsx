@@ -497,7 +497,7 @@ const FeeManagementPanel: React.FC = () => {
                 />
               </div>
 
-              <Button onClick={handleRecor} className="w-full">
+              <Button onClick={handleRecordPayment} className="w-full">
                 Record Payment
               </Button>
             </div>
