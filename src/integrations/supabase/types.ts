@@ -5411,7 +5411,7 @@ export type Database = {
       generate_finance_report: {
         Args: {
           p_report_type: string
-          p_school_id?: string
+          p_school_id: string
           p_class_id?: string
           p_student_id?: string
           p_academic_year?: string

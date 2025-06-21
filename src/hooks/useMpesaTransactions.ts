@@ -46,14 +46,19 @@ export const useMpesaTransactions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const { toast } = useToast();
+  const {toast } = useToast();
 
   const fetchTransactions = async () => {
-    if (!user?.school_id) return;
+    if (!user?.school_id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
         .from('mpesa_transactions')
         .select(`
           *,
@@ -63,7 +68,10 @@ export const useMpesaTransactions = () => {
         .eq('school_id', user.school_id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Error fetching MPESA transactions:', fetchError);
+        throw fetchError;
+      }
       
       const mappedData = (data || []).map(item => {
         let studentData = undefined;
@@ -95,6 +103,7 @@ export const useMpesaTransactions = () => {
       
       setTransactions(mappedData);
     } catch (err: any) {
+      console.error('Error in fetchTransactions:', err);
       setError(err.message);
       toast({
         title: "Error",
@@ -114,13 +123,17 @@ export const useMpesaTransactions = () => {
         .from('mpesa_api_credentials')
         .select('*')
         .eq('school_id', user.school_id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching MPESA credentials:', error);
+        throw error;
+      }
       
       setCredentials(data);
     } catch (err: any) {
       console.error('Error fetching MPESA credentials:', err);
+      // Don't show toast for credentials error as it's not critical
     }
   };
 
@@ -168,14 +181,14 @@ export const useMpesaTransactions = () => {
 
       if (error) throw error;
 
-      if (data.success) {
+      if (data?.success) {
         toast({
           title: "Payment Initiated",
           description: "STK push sent to your phone. Please complete the payment.",
         });
         fetchTransactions(); // Refresh transactions
       } else {
-        throw new Error(data.error || 'Failed to initiate payment');
+        throw new Error(data?.error || 'Failed to initiate payment');
       }
 
       return { data, error: null };
