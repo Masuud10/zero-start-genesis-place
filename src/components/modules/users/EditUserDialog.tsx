@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { UserEdit, Save, X } from 'lucide-react';
+import { Edit, Save, X } from 'lucide-react';
 
 interface EditUserDialogProps {
   user: {
@@ -180,7 +179,7 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserEdit className="w-5 h-5" />
+            <Edit className="w-5 h-5" />
             Edit User
           </DialogTitle>
           <DialogDescription>

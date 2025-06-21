@@ -91,11 +91,11 @@ export class SchoolService {
         throw error;
       }
 
-      // Handle the response
+      // Handle the response - use any type to avoid recursive type issues
       if (data && typeof data === 'object' && data !== null) {
         const result = data as any;
         
-        if ('error' in result && typeof result.error === 'string') {
+        if (result.error && typeof result.error === 'string') {
           console.error('🏫 SchoolService: Function returned error:', result.error);
           return {
             success: false,
@@ -103,12 +103,12 @@ export class SchoolService {
           };
         }
 
-        if ('success' in result && result.success === true) {
+        if (result.success === true) {
           console.log('🏫 SchoolService: School created successfully:', result);
           
           // Update additional fields that aren't handled by the basic create_school function
           if (result.school_id) {
-            const updateData: any = {};
+            const updateData: Record<string, any> = {};
             
             if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
             if (schoolData.website_url) updateData.website_url = schoolData.website_url;
