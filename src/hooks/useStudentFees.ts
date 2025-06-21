@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,10 +92,10 @@ export const useStudentFees = () => {
         notes: undefined,
         created_at: item.created_at || '',
         updated_at: item.updated_at || '',
-        student: item.student && typeof item.student === 'object' && 'name' in item.student 
+        student: item.student && typeof item.student === 'object' && item.student !== null && 'name' in item.student 
           ? { name: item.student.name, admission_number: item.student.admission_number }
           : undefined,
-        class: item.class && typeof item.class === 'object' && 'name' in item.class
+        class: item.class && typeof item.class === 'object' && item.class !== null && 'name' in item.class
           ? { name: item.class.name }
           : undefined
       })) as StudentFee[];
