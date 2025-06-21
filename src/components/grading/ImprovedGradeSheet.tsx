@@ -206,7 +206,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
           subject_id: subjectId,
           score: numericScore,
           comments: comments || prev[studentId]?.[subjectId]?.comments,
-          status: 'draft'
+          status: 'draft' as const
         }
       }
     }));
@@ -233,7 +233,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
               comments: grade.comments,
               submitted_by: user.id,
               school_id: schoolId,
-              status: 'draft'
+              status: 'draft' as const
             });
           }
         });
@@ -295,7 +295,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         academic_year: new Date().getFullYear().toString(),
         total_students: students.length,
         grades_entered: Object.keys(grades).length,
-        status: 'submitted'
+        status: 'submitted' as const
       };
 
       const { data: batch, error: batchError } = await supabase
@@ -310,7 +310,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
       const { error: updateError } = await supabase
         .from('grades')
         .update({
-          status: 'submitted',
+          status: 'submitted' as const,
           submission_batch_id: batch.id,
           submitted_at: new Date().toISOString()
         })
