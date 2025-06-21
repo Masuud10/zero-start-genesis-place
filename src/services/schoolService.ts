@@ -29,8 +29,8 @@ export interface CreateSchoolResponse {
   error?: string;
 }
 
-// Simplified interface for school data to avoid deep type inference
-interface SchoolData {
+// Explicit interface for school data
+export interface SchoolData {
   id: string;
   name: string;
   email: string;
@@ -51,7 +51,7 @@ interface SchoolData {
   principal_id?: string;
 }
 
-// Simple interface for RPC response
+// Simplified RPC response interface
 interface CreateSchoolRpcResult {
   success?: boolean;
   school_id?: string;
@@ -93,11 +93,15 @@ export class SchoolService {
 
       // Check if registration number is unique
       if (schoolData.registration_number) {
-        const { data: existingSchool }: { data: any } = await supabase
+        const { data: existingSchool, error: checkError } = await supabase
           .from('schools')
           .select('id')
           .eq('registration_number', schoolData.registration_number)
-          .single();
+          .maybeSingle();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
 
         if (existingSchool) {
           return {
@@ -107,7 +111,7 @@ export class SchoolService {
         }
       }
 
-      // Use the create_school database function with explicit typing
+      // Use the create_school database function
       const { data: rpcData, error: rpcError } = await supabase.rpc('create_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
@@ -115,7 +119,7 @@ export class SchoolService {
         school_address: schoolData.address,
         owner_email: schoolData.ownerEmail || null,
         owner_name: schoolData.ownerName || null
-      }) as { data: CreateSchoolRpcResult; error: any };
+      });
 
       if (rpcError) {
         console.error('🏫 SchoolService: Database function error:', rpcError);
@@ -188,7 +192,6 @@ export class SchoolService {
 
   static async getAllSchools(): Promise<{ data: SchoolData[] | null; error: any }> {
     try {
-      // Query only columns that exist in the schools table
       const { data, error } = await supabase
         .from('schools')
         .select(`
@@ -211,14 +214,16 @@ export class SchoolService {
           owner_id,
           principal_id
         `)
-        .order('created_at', { ascending: false }) as { data: SchoolData[] | null; error: any };
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('🏫 SchoolService: Error fetching schools:', error);
         return { data: null, error };
       }
 
-      return { data: data || [], error: null };
+      // Cast to our explicit interface
+      const schoolsData = (data || []) as SchoolData[];
+      return { data: schoolsData, error: null };
     } catch (error) {
       console.error('🏫 SchoolService: Service error:', error);
       return { data: null, error };
@@ -250,14 +255,16 @@ export class SchoolService {
           principal_id
         `)
         .eq('id', schoolId)
-        .single() as { data: SchoolData | null; error: any };
+        .single();
 
       if (error) {
         console.error('🏫 SchoolService: Error fetching school:', error);
         return { data: null, error };
       }
 
-      return { data, error: null };
+      // Cast to our explicit interface
+      const schoolData = data as SchoolData;
+      return { data: schoolData, error: null };
     } catch (error) {
       console.error('🏫 SchoolService: Service error:', error);
       return { data: null, error };

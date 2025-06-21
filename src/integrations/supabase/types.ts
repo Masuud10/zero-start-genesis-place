@@ -3143,13 +3143,17 @@ export type Database = {
           motto: string | null
           name: string
           owner_id: string | null
+          owner_information: string | null
           phone: string | null
           principal_contact: string | null
           principal_id: string | null
           principal_name: string | null
+          registration_number: string | null
           slogan: string | null
+          term_structure: string | null
           updated_at: string | null
           website_url: string | null
+          year_established: number | null
         }
         Insert: {
           address?: string | null
@@ -3162,13 +3166,17 @@ export type Database = {
           motto?: string | null
           name: string
           owner_id?: string | null
+          owner_information?: string | null
           phone?: string | null
           principal_contact?: string | null
           principal_id?: string | null
           principal_name?: string | null
+          registration_number?: string | null
           slogan?: string | null
+          term_structure?: string | null
           updated_at?: string | null
           website_url?: string | null
+          year_established?: number | null
         }
         Update: {
           address?: string | null
@@ -3181,13 +3189,17 @@ export type Database = {
           motto?: string | null
           name?: string
           owner_id?: string | null
+          owner_information?: string | null
           phone?: string | null
           principal_contact?: string | null
           principal_id?: string | null
           principal_name?: string | null
+          registration_number?: string | null
           slogan?: string | null
+          term_structure?: string | null
           updated_at?: string | null
           website_url?: string | null
+          year_established?: number | null
         }
         Relationships: [
           {

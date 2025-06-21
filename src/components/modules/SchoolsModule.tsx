@@ -5,35 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Building2, MapPin, Calendar, Phone, Mail, Globe, User, GraduationCap, Hash, FileText, Search, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { SchoolService } from '@/services/schoolService';
+import { SchoolService, SchoolData } from '@/services/schoolService';
 import EnhancedSchoolRegistrationDialog from './schools/EnhancedSchoolRegistrationDialog';
 import { Input } from '@/components/ui/input';
 
-interface School {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  logo_url?: string;
-  website_url?: string;
-  motto?: string;
-  slogan?: string;
-  school_type?: string;
-  registration_number?: string;
-  year_established?: number;
-  term_structure?: string;
-  owner_information?: string;
-  curriculum_type?: string;
-  created_at: string;
-  updated_at: string;
-  owner_id?: string;
-  principal_id?: string;
-}
-
 const SchoolsModule: React.FC = () => {
   const { toast } = useToast();
-  const [schools, setSchools] = useState<School[]>([]);
+  const [schools, setSchools] = useState<SchoolData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -79,24 +57,6 @@ const SchoolsModule: React.FC = () => {
     loadSchools();
   };
 
-  const getSchoolTypeColor = (type?: string) => {
-    switch (type) {
-      case 'primary':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'secondary':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'college':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const formatSchoolType = (type?: string) => {
-    if (!type) return 'Not specified';
-    return type.charAt(0).toUpperCase() + type.slice(1);
-  };
-
   const formatTermStructure = (structure?: string) => {
     switch (structure) {
       case '3-term':
@@ -121,8 +81,7 @@ const SchoolsModule: React.FC = () => {
 
   const filteredSchools = schools.filter(school =>
     school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    school.registration_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    school.school_type?.toLowerCase().includes(searchTerm.toLowerCase())
+    school.registration_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -189,7 +148,7 @@ const SchoolsModule: React.FC = () => {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search schools by name, registration, or type..."
+              placeholder="Search schools by name or registration..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -213,9 +172,9 @@ const SchoolsModule: React.FC = () => {
               <div className="flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Primary</p>
+                  <p className="text-sm text-gray-600">CBC Schools</p>
                   <p className="text-2xl font-bold">
-                    {schools.filter(s => s.school_type === 'primary').length}
+                    {schools.filter(s => s.curriculum_type === 'cbc').length}
                   </p>
                 </div>
               </div>
@@ -226,9 +185,9 @@ const SchoolsModule: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-purple-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Secondary</p>
+                  <p className="text-sm text-gray-600">IGCSE Schools</p>
                   <p className="text-2xl font-bold">
-                    {schools.filter(s => s.school_type === 'secondary').length}
+                    {schools.filter(s => s.curriculum_type === 'igcse').length}
                   </p>
                 </div>
               </div>
@@ -266,9 +225,6 @@ const SchoolsModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Badge className={getSchoolTypeColor(school.school_type)}>
-                    {formatSchoolType(school.school_type)}
-                  </Badge>
                   {school.curriculum_type && (
                     <Badge variant="outline" className="text-xs">
                       {formatCurriculumType(school.curriculum_type)}
@@ -359,6 +315,7 @@ const SchoolsModule: React.FC = () => {
         ))}
       </div>
 
+      {/* Empty states */}
       {filteredSchools.length === 0 && searchTerm && (
         <Card className="text-center py-16">
           <CardContent>
