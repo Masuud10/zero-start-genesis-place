@@ -29,6 +29,15 @@ export interface CreateSchoolResponse {
   error?: string;
 }
 
+// Define explicit response type for create_school RPC function
+interface CreateSchoolRpcResponse {
+  success?: boolean;
+  school_id?: string;
+  owner_id?: string;
+  message?: string;
+  error?: string;
+}
+
 export class SchoolService {
   static async createSchool(schoolData: CreateSchoolRequest): Promise<CreateSchoolResponse> {
     try {
@@ -76,7 +85,7 @@ export class SchoolService {
         }
       }
 
-      // Use the existing create_school database function with basic details
+      // Use the existing create_school database function with explicit typing
       const { data, error } = await supabase.rpc('create_school', {
         school_name: schoolData.name,
         school_email: schoolData.email,
@@ -84,31 +93,29 @@ export class SchoolService {
         school_address: schoolData.address,
         owner_email: schoolData.ownerEmail || null,
         owner_name: schoolData.ownerName || null
-      });
+      }) as { data: CreateSchoolRpcResponse | null; error: any };
 
       if (error) {
         console.error('🏫 SchoolService: Database function error:', error);
         throw error;
       }
 
-      // Handle the response - use any type to avoid recursive type issues
-      if (data && typeof data === 'object' && data !== null) {
-        const result = data as any;
-        
-        if (result.error && typeof result.error === 'string') {
-          console.error('🏫 SchoolService: Function returned error:', result.error);
+      // Handle the response with explicit typing
+      if (data) {
+        if (data.error) {
+          console.error('🏫 SchoolService: Function returned error:', data.error);
           return {
             success: false,
-            error: result.error
+            error: data.error
           };
         }
 
-        if (result.success === true) {
-          console.log('🏫 SchoolService: School created successfully:', result);
+        if (data.success === true) {
+          console.log('🏫 SchoolService: School created successfully:', data);
           
           // Update additional fields that aren't handled by the basic create_school function
-          if (result.school_id) {
-            const updateData: Record<string, any> = {};
+          if (data.school_id) {
+            const updateData: Record<string, string | number> = {};
             
             if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
             if (schoolData.website_url) updateData.website_url = schoolData.website_url;
@@ -126,7 +133,7 @@ export class SchoolService {
               const { error: updateError } = await supabase
                 .from('schools')
                 .update(updateData)
-                .eq('id', result.school_id);
+                .eq('id', data.school_id);
                 
               if (updateError) {
                 console.warn('🏫 SchoolService: Failed to update additional fields:', updateError);
@@ -137,9 +144,9 @@ export class SchoolService {
           
           return {
             success: true,
-            school_id: result.school_id || undefined,
-            owner_id: result.owner_id || undefined,
-            message: result.message || 'School created successfully'
+            school_id: data.school_id,
+            owner_id: data.owner_id,
+            message: data.message || 'School created successfully'
           };
         }
       }
@@ -149,11 +156,12 @@ export class SchoolService {
         error: 'Unexpected response from server'
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create school';
       console.error('🏫 SchoolService: Service error:', error);
       return {
         success: false,
-        error: error.message || 'Failed to create school'
+        error: errorMessage
       };
     }
   }
@@ -256,9 +264,10 @@ export class SchoolService {
         .getPublicUrl(fileName);
 
       return { url: publicUrl };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload logo';
       console.error('Logo upload service error:', error);
-      return { error: error.message || 'Failed to upload logo' };
+      return { error: errorMessage };
     }
   }
 }
