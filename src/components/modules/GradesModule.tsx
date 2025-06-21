@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,6 +6,7 @@ import { usePermissions } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
 import GradesAdminSummary from './GradesAdminSummary';
 import ParentGradesView from '../grades/ParentGradesView';
+import TeacherGradesModule from './TeacherGradesModule';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import BulkGradingModal from '../grading/BulkGradingModal';
 import NoGradebookPermission from '../grades/NoGradebookPermission';
@@ -209,38 +211,18 @@ const GradesModule: React.FC = () => {
             </div>
         );
     case 'teacher':
-      return (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Grade Management
-              </h1>
-              <p className="text-muted-foreground">
-                Enter and manage student grades for your classes.
-              </p>
-            </div>
-          </div>
-          
-          <BulkGradingQuickAction onOpenBulkGrade={() => setShowBulkModal(true)} />
-
-          {showBulkModal && (
-            <BulkGradingModal 
-              open={showBulkModal}
-              onClose={() => setShowBulkModal(false)}
-              classList={[]}
-              subjectList={[]}
-            />
-          )}
-        </div>
-      );
+      return <TeacherGradesModule />;
     case 'parent':
       return <ParentGradesView />;
     default:
       return (
         <div className="p-8">
-          <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
-          <p className="text-gray-500">Your role ({user.role}) does not have access to the grades module.</p>
+          <Alert>
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+              You don't have permission to access the grades module.
+            </AlertDescription>
+          </Alert>
         </div>
       );
   }

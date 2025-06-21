@@ -75,6 +75,11 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
     try {
       console.log('Loading grading data for:', { classId, schoolId, userId: user?.id, term, examType });
 
+      // Validate required fields
+      if (!classId || !schoolId || !user?.id || !term || !examType) {
+        throw new Error('Missing required parameters for loading grading data');
+      }
+
       // Load students for the class
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
@@ -212,7 +217,14 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
   };
 
   const saveGrades = async () => {
-    if (!user?.id || !schoolId) return;
+    if (!user?.id || !schoolId) {
+      toast({
+        title: "Authentication Error", 
+        description: "User not authenticated or school not identified",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -221,6 +233,12 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
       Object.values(grades).forEach(studentGrades => {
         Object.values(studentGrades).forEach(grade => {
           if (grade.score !== null || grade.comments) {
+            // Validate required fields
+            if (!grade.student_id || !grade.subject_id || !classId || !term || !examType) {
+              console.error('Missing required fields for grade:', grade);
+              return;
+            }
+
             gradesToSave.push({
               student_id: grade.student_id,
               subject_id: grade.subject_id,
@@ -247,7 +265,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         return;
       }
 
-      console.log('Saving grades:', gradesToSave.length);
+      console.log('Saving grades:', gradesToSave.length, gradesToSave);
 
       const { error } = await supabase
         .from('grades')
@@ -255,7 +273,10 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
           onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving grades:', error);
+        throw error;
+      }
 
       toast({
         title: "Grades Saved",
@@ -266,7 +287,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
       console.error('Error saving grades:', error);
       toast({
         title: "Save Failed",
-        description: "Failed to save grades. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save grades. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -275,12 +296,25 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
   };
 
   const submitForApproval = async () => {
-    if (!user?.id || !schoolId) return;
+    if (!user?.id || !schoolId) {
+      toast({
+        title: "Authentication Error",
+        description: "User not authenticated or school not identified",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
       // First save all grades
       await saveGrades();
+
+      // Validate that we have grades to submit
+      const totalGrades = Object.keys(grades).length;
+      if (totalGrades === 0) {
+        throw new Error('No grades to submit. Please enter some grades first.');
+      }
 
       // Create submission batch
       const batchData = {
@@ -297,13 +331,20 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         status: 'submitted' as 'draft' | 'submitted' | 'approved' | 'released'
       };
 
+      console.log('Creating submission batch:', batchData);
+
       const { data: batch, error: batchError } = await supabase
         .from('grade_submission_batches')
         .insert(batchData)
         .select('id')
         .single();
 
-      if (batchError) throw batchError;
+      if (batchError) {
+        console.error('Error creating batch:', batchError);
+        throw new Error(`Failed to create submission batch: ${batchError.message}`);
+      }
+
+      console.log('Batch created successfully:', batch);
 
       // Update grades status to submitted
       const { error: updateError } = await supabase
@@ -316,9 +357,13 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         .eq('class_id', classId)
         .eq('term', term)
         .eq('exam_type', examType)
-        .eq('submitted_by', user.id);
+        .eq('submitted_by', user.id)
+        .eq('school_id', schoolId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating grade status:', updateError);
+        throw new Error(`Failed to update grade status: ${updateError.message}`);
+      }
 
       toast({
         title: "Grades Submitted",
@@ -331,7 +376,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
       console.error('Error submitting grades:', error);
       toast({
         title: "Submission Failed",
-        description: "Failed to submit grades for approval",
+        description: error instanceof Error ? error.message : "Failed to submit grades for approval",
         variant: "destructive"
       });
     } finally {
@@ -452,7 +497,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
               disabled={submitting || enteredGrades === 0}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
             >
-              {submitting ?<Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? 'Submitting...' : 'Submit for Approval'}
             </Button>
           </div>
