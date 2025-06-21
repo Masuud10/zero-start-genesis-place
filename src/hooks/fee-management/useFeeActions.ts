@@ -24,9 +24,18 @@ export const useFeeActions = () => {
 
   const assignFeeToClass = async (classId: string, feeData: FeeData) => {
     try {
+      // Convert FeeData to a plain JSON object for RPC call
+      const feeDataJson = {
+        amount: feeData.amount,
+        due_date: feeData.due_date,
+        academic_year: feeData.academic_year,
+        term: feeData.term,
+        category: feeData.category
+      };
+
       const { data, error } = await supabase.rpc('assign_fee_to_class', {
         p_class_id: classId,
-        p_fee_data: feeData
+        p_fee_data: feeDataJson
       });
 
       if (error) throw error;

@@ -52,12 +52,12 @@ export const useMpesaTransactions = () => {
         transaction_status: transaction.transaction_status || '',
         student: (transaction.student && typeof transaction.student === 'object' && transaction.student !== null && 'name' in transaction.student)
           ? { 
-              name: String((transaction.student as any).name || ''), 
-              admission_number: String((transaction.student as any).admission_number || '') 
+              name: String(transaction.student.name || ''), 
+              admission_number: String(transaction.student.admission_number || '') 
             }
           : undefined,
         class: (transaction.class && typeof transaction.class === 'object' && transaction.class !== null && 'name' in transaction.class)
-          ? { name: String((transaction.class as any).name || '') }
+          ? { name: String(transaction.class.name || '') }
           : undefined
       }));
       

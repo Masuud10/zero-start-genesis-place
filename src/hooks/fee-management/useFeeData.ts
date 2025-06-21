@@ -60,12 +60,12 @@ export const useFeeData = () => {
         category: fee.category || '',
         student: (fee.student && typeof fee.student === 'object' && fee.student !== null && 'name' in fee.student)
           ? { 
-              name: String((fee.student as any).name || ''), 
-              admission_number: String((fee.student as any).admission_number || '') 
+              name: String(fee.student.name || ''), 
+              admission_number: String(fee.student.admission_number || '') 
             }
           : undefined,
         class: (fee.class && typeof fee.class === 'object' && fee.class !== null && 'name' in fee.class)
-          ? { name: String((fee.class as any).name || '') }
+          ? { name: String(fee.class.name || '') }
           : undefined
       }));
       
