@@ -34,10 +34,10 @@ export const useBulkGradingSubmissionHandler = ({
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (grades: Record<string, Record<string, GradeValue>>) => {
-    if (!selectedClass || !selectedTerm || !selectedExamType || !schoolId) {
+    if (!selectedClass || !selectedTerm || !selectedExamType || !schoolId || !userId) {
       toast({ 
         title: "Missing Information", 
-        description: "Please select a class, term, and exam type.", 
+        description: "Please ensure all required fields are filled and you are authenticated.", 
         variant: "destructive"
       });
       return;
@@ -53,8 +53,12 @@ export const useBulkGradingSubmissionHandler = ({
         for (const subjectId in grades[studentId]) {
           const grade = grades[studentId][subjectId];
           
-          // Submit grades that have scores or are marked as absent
+          // Submit grades that have valid scores or are marked as absent
           if ((grade.score !== undefined && grade.score !== null && grade.score >= 0) || grade.isAbsent) {
+            const maxScore = 100; // Default max score
+            const percentage = grade.isAbsent ? null : 
+              (grade.percentage || (grade.score !== null ? (Number(grade.score) / maxScore) * 100 : null));
+
             gradesToUpsert.push({
               school_id: schoolId,
               student_id: studentId,
@@ -63,12 +67,12 @@ export const useBulkGradingSubmissionHandler = ({
               term: selectedTerm,
               exam_type: selectedExamType,
               score: grade.isAbsent ? null : Number(grade.score),
-              max_score: 100, // Default max score
-              percentage: grade.isAbsent ? null : (grade.percentage || (Number(grade.score || 0) / 100) * 100),
-              letter_grade: grade.isAbsent ? null : (grade.letter_grade || null),
+              max_score: maxScore,
+              percentage: percentage,
+              letter_grade: grade.isAbsent ? null : grade.letter_grade,
               cbc_performance_level: grade.cbc_performance_level || null,
               submitted_by: userId,
-              status: isTeacher ? 'submitted' : 'approved', // Teachers submit for approval, principals approve directly
+              status: isTeacher ? 'submitted' : 'approved',
               submitted_at: new Date().toISOString(),
               comments: grade.isAbsent ? 'Student was absent' : null,
             });
@@ -92,12 +96,38 @@ export const useBulkGradingSubmissionHandler = ({
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToUpsert, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type',
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type'
         });
 
       if (error) {
         console.error('Grade submission error:', error);
-        throw error;
+        throw new Error(`Failed to submit grades: ${error.message}`);
+      }
+
+      // Create submission batch for tracking
+      if (isTeacher) {
+        const batchData = {
+          class_id: selectedClass,
+          term: selectedTerm,
+          exam_type: selectedExamType,
+          school_id: schoolId,
+          submitted_by: userId,
+          batch_name: `${selectedTerm} - ${selectedExamType} - ${new Date().toLocaleDateString()}`,
+          curriculum_type: 'standard',
+          academic_year: new Date().getFullYear().toString(),
+          total_students: Object.keys(grades).length,
+          grades_entered: validGradeCount,
+          status: 'submitted'
+        };
+
+        const { error: batchError } = await supabase
+          .from('grade_submission_batches')
+          .insert(batchData);
+
+        if (batchError) {
+          console.warn('Failed to create submission batch:', batchError);
+          // Don't fail the entire submission for batch creation errors
+        }
       }
 
       // Calculate positions after successful submission

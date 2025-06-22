@@ -61,7 +61,12 @@ export const useGradeSubmissionMutation = () => {
   return useMutation({
     mutationFn: async (gradeData: any) => {
       if (!user?.id || !schoolId) {
-        throw new Error('User ID and School ID are required');
+        throw new Error('User ID and School ID are require');
+      }
+
+      // Ensure all required fields are present
+      if (!gradeData.student_id || !gradeData.subject_id || !gradeData.class_id || !gradeData.term || !gradeData.exam_type) {
+        throw new Error('Missing required grade data fields');
       }
 
       const completeGradeData = {
@@ -69,20 +74,32 @@ export const useGradeSubmissionMutation = () => {
         school_id: schoolId,
         submitted_by: user.id,
         submitted_at: new Date().toISOString(),
+        status: gradeData.status || 'draft'
       };
+
+      console.log('Submitting grade:', completeGradeData);
 
       const { data, error } = await supabase
         .from('grades')
-        .insert(completeGradeData)
+        .upsert(completeGradeData, {
+          onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
+        })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Grade submission error:', error);
+        throw new Error(`Failed to submit grade: ${error.message}`);
+      }
+      
       return data;
     },
     onSuccess: () => {
       // Invalidate and refetch grades
       queryClient.invalidateQueries({ queryKey: ['grades'] });
     },
+    onError: (error) => {
+      console.error('Grade submission mutation error:', error);
+    }
   });
 };

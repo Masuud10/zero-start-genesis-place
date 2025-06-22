@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -239,6 +240,9 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
               return;
             }
 
+            const subjectMaxScore = subjects.find(s => s.id === grade.subject_id)?.max_score || 100;
+            const percentage = grade.score !== null ? (grade.score / subjectMaxScore) * 100 : null;
+
             gradesToSave.push({
               student_id: grade.student_id,
               subject_id: grade.subject_id,
@@ -246,11 +250,13 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
               term,
               exam_type: examType,
               score: grade.score,
-              max_score: subjects.find(s => s.id === grade.subject_id)?.max_score || 100,
+              max_score: subjectMaxScore,
+              percentage: percentage,
               comments: grade.comments,
               submitted_by: user.id,
               school_id: schoolId,
-              status: 'draft' as 'draft' | 'submitted' | 'approved' | 'released'
+              status: 'draft',
+              submitted_at: new Date().toISOString()
             });
           }
         });
@@ -277,6 +283,18 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         console.error('Error saving grades:', error);
         throw error;
       }
+
+      // Update local state to reflect saved grades
+      const updatedGrades = { ...grades };
+      gradesToSave.forEach(savedGrade => {
+        if (updatedGrades[savedGrade.student_id]) {
+          updatedGrades[savedGrade.student_id][savedGrade.subject_id] = {
+            ...updatedGrades[savedGrade.student_id][savedGrade.subject_id],
+            status: 'draft'
+          };
+        }
+      });
+      setGrades(updatedGrades);
 
       toast({
         title: "Grades Saved",
@@ -307,16 +325,58 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
 
     setSubmitting(true);
     try {
-      // First save all grades
+      // First save all grades as draft
       await saveGrades();
 
-      // Validate that we have grades to submit
-      const totalGrades = Object.keys(grades).length;
-      if (totalGrades === 0) {
-        throw new Error('No grades to submit. Please enter some grades first.');
+      // Get all grades that have scores entered
+      const gradesToSubmit: any[] = [];
+      
+      Object.values(grades).forEach(studentGrades => {
+        Object.values(studentGrades).forEach(grade => {
+          if (grade.score !== null && grade.score >= 0) {
+            gradesToSubmit.push({
+              student_id: grade.student_id,
+              subject_id: grade.subject_id,
+              class_id: classId,
+              term,
+              exam_type: examType,
+              score: grade.score,
+              max_score: subjects.find(s => s.id === grade.subject_id)?.max_score || 100,
+              percentage: ((grade.score / (subjects.find(s => s.id === grade.subject_id)?.max_score || 100)) * 100),
+              comments: grade.comments,
+              submitted_by: user.id,
+              school_id: schoolId,
+              status: 'submitted',
+              submitted_at: new Date().toISOString()
+            });
+          }
+        });
+      });
+
+      if (gradesToSubmit.length === 0) {
+        toast({
+          title: "No Grades to Submit",
+          description: "Please enter at least one grade before submitting for approval",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // Create submission batch
+      console.log('Submitting grades for approval:', gradesToSubmit.length);
+
+      // Update grades status to submitted
+      const { error: updateError } = await supabase
+        .from('grades')
+        .upsert(gradesToSubmit, {
+          onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
+        });
+
+      if (updateError) {
+        console.error('Error updating grade status:', updateError);
+        throw new Error(`Failed to submit grades: ${updateError.message}`);
+      }
+
+      // Create submission batch record for tracking
       const batchData = {
         class_id: classId,
         term,
@@ -327,47 +387,34 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         curriculum_type: 'standard',
         academic_year: new Date().getFullYear().toString(),
         total_students: students.length,
-        grades_entered: Object.keys(grades).length,
-        status: 'submitted' as 'draft' | 'submitted' | 'approved' | 'released'
+        grades_entered: gradesToSubmit.length,
+        status: 'submitted'
       };
 
-      console.log('Creating submission batch:', batchData);
-
-      const { data: batch, error: batchError } = await supabase
+      const { error: batchError } = await supabase
         .from('grade_submission_batches')
-        .insert(batchData)
-        .select('id')
-        .single();
+        .insert(batchData);
 
       if (batchError) {
-        console.error('Error creating batch:', batchError);
-        throw new Error(`Failed to create submission batch: ${batchError.message}`);
+        console.warn('Failed to create submission batch:', batchError);
+        // Don't fail the entire submission for batch creation errors
       }
 
-      console.log('Batch created successfully:', batch);
-
-      // Update grades status to submitted
-      const { error: updateError } = await supabase
-        .from('grades')
-        .update({
-          status: 'submitted' as 'draft' | 'submitted' | 'approved' | 'released',
-          submission_batch_id: batch.id,
-          submitted_at: new Date().toISOString()
-        })
-        .eq('class_id', classId)
-        .eq('term', term)
-        .eq('exam_type', examType)
-        .eq('submitted_by', user.id)
-        .eq('school_id', schoolId);
-
-      if (updateError) {
-        console.error('Error updating grade status:', updateError);
-        throw new Error(`Failed to update grade status: ${updateError.message}`);
-      }
+      // Update local state to reflect submitted grades
+      const updatedGrades = { ...grades };
+      gradesToSubmit.forEach(submittedGrade => {
+        if (updatedGrades[submittedGrade.student_id]) {
+          updatedGrades[submittedGrade.student_id][submittedGrade.subject_id] = {
+            ...updatedGrades[submittedGrade.student_id][submittedGrade.subject_id],
+            status: 'submitted'
+          };
+        }
+      });
+      setGrades(updatedGrades);
 
       toast({
-        title: "Grades Submitted",
-        description: "Grades have been submitted for principal approval",
+        title: "Grades Submitted Successfully",
+        description: `${gradesToSubmit.length} grades have been submitted for principal approval`,
       });
 
       onSubmissionSuccess?.();
@@ -391,7 +438,7 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
     students.forEach(student => {
       subjects.forEach(subject => {
         totalGrades++;
-        if (grades[student.id]?.[subject.id]?.score !== null) {
+        if (grades[student.id]?.[subject.id]?.score !== null && grades[student.id]?.[subject.id]?.score !== undefined) {
           enteredGrades++;
         }
       });
@@ -481,90 +528,67 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Button
-              onClick={saveGrades}
-              disabled={saving}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? 'Saving...' : 'Save Draft'}
-            </Button>
-            <Button
-              onClick={submitForApproval}
-              disabled={submitting || enteredGrades === 0}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {submitting ? 'Submitting...' : 'Submit for Approval'}
-            </Button>
-          </div>
-        </CardContent>
       </Card>
 
-      {/* Grade Sheet */}
+      {/* Grade Entry Table */}
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="p-4 text-left font-medium text-gray-900 min-w-[250px] border-r">
-                    Student Information
-                  </th>
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left p-3 font-medium">Student</th>
+                  <th className="text-left p-3 font-medium">Admission No.</th>
                   {subjects.map(subject => (
-                    <th key={subject.id} className="p-4 text-center font-medium text-gray-900 min-w-[150px] border-r">
-                      <div>
-                        <div className="font-semibold">{subject.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {subject.code} (/{subject.max_score})
-                        </div>
+                    <th key={subject.id} className="text-center p-3 font-medium min-w-[120px]">
+                      {subject.name}
+                      <div className="text-xs text-gray-500 font-normal">
+                        /{subject.max_score}
                       </div>
                     </th>
                   ))}
+                  <th className="text-left p-3 font-medium">Comments</th>
                 </tr>
               </thead>
               <tbody>
-                {students.map((student, index) => (
-                  <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}>
-                    <td className="p-4 border-r border-b">
-                      <div>
-                        <div className="font-medium text-gray-900">{student.name}</div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          Adm: {student.admission_number} | Roll: {student.roll_number}
-                        </div>
-                      </div>
-                    </td>
+                {students.map(student => (
+                  <tr key={student.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3 font-medium">{student.name}</td>
+                    <td className="p-3 text-gray-600">{student.admission_number}</td>
                     {subjects.map(subject => (
-                      <td key={subject.id} className="p-3 text-center border-r border-b">
-                        <div className="space-y-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            max={subject.max_score}
-                            step="0.5"
-                            value={grades[student.id]?.[subject.id]?.score ?? ''}
-                            onChange={(e) => updateGrade(student.id, subject.id, e.target.value)}
-                            className="text-center h-12 text-lg font-medium border-2 focus:border-blue-500"
-                            placeholder="--"
-                          />
-                          <Textarea
-                            value={grades[student.id]?.[subject.id]?.comments ?? ''}
-                            onChange={(e) => updateGrade(
-                              student.id, 
-                              subject.id, 
-                              grades[student.id]?.[subject.id]?.score?.toString() ?? '', 
-                              e.target.value
-                            )}
-                            placeholder="Comments..."
-                            className="text-xs h-16 resize-none"
-                            rows={2}
-                          />
-                        </div>
+                      <td key={subject.id} className="p-3">
+                        <Input
+                          type="number"
+                          min="0"
+                          max={subject.max_score}
+                          value={grades[student.id]?.[subject.id]?.score || ''}
+                          onChange={(e) => updateGrade(student.id, subject.id, e.target.value)}
+                          className="w-full text-center"
+                          placeholder="0"
+                        />
                       </td>
                     ))}
+                    <td className="p-3">
+                      <Textarea
+                        value={grades[student.id] ? 
+                          Object.values(grades[student.id])[0]?.comments || '' : ''
+                        }
+                        onChange={(e) => {
+                          // Update comments for all subjects of this student
+                          subjects.forEach(subject => {
+                            if (grades[student.id]?.[subject.id]) {
+                              updateGrade(student.id, subject.id, 
+                                grades[student.id][subject.id].score?.toString() || '', 
+                                e.target.value
+                              );
+                            }
+                          });
+                        }}
+                        placeholder="Optional comments..."
+                        className="w-full min-w-[200px]"
+                        rows={2}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -573,18 +597,61 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         </CardContent>
       </Card>
 
-      {enteredGrades < totalGrades && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-600" />
-              <span className="text-orange-800">
-                {totalGrades - enteredGrades} grades remaining to complete the grade sheet
-              </span>
+      {/* Action Buttons */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              {enteredGrades > 0 ? (
+                <span className="text-green-700 font-medium">
+                  ✓ {enteredGrades} grades entered out of {totalGrades}
+                </span>
+              ) : (
+                <span>No grades entered yet</span>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            
+            <div className="flex gap-3">
+              <Button 
+                variant="outline"
+                onClick={saveGrades} 
+                disabled={saving || enteredGrades === 0}
+                className="flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Save Draft
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={submitForApproval} 
+                disabled={submitting || enteredGrades === 0}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Submit for Principal Approval
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -156,6 +156,7 @@ const TeacherGradesManager: React.FC = () => {
               size="sm"
               onClick={handleImprovedGrading}
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
+              disabled={!selectedClass || !selectedTerm || !selectedExamType}
             >
               <FileSpreadsheet className="h-4 w-4" />
               Grade Sheet
@@ -343,7 +344,7 @@ const TeacherGradesManager: React.FC = () => {
       {showGradesModal && (
         <GradesModal 
           onClose={() => setShowGradesModal(false)} 
-          userRole={user.role} 
+          userRole={user?.role || 'teacher'} 
         />
       )}
     </Card>
