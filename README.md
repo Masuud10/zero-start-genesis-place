@@ -1,73 +1,143 @@
-# Welcome to your Lovable project
+Edufam – Comprehensive School Management System
+Overview
+Edufam is a modern, full-stack, multi-tenant School Management Platform designed to simplify, automate, and enhance school operations in Kenya and beyond. The platform serves various user roles including Edufam Admins, Principals, Teachers, Parents, Finance Officers, and Students, offering tailored dashboards and workflows for each role.
 
-## Project info
+🚀 Key Features
+🎓 School Management
+School registration & profile management
 
-**URL**: https://lovable.dev/projects/466b1838-b192-459b-9e9e-b55f8abd65dc
+Academic calendar setup
 
-## How can I edit this code?
+Class & subject management
 
-There are several ways of editing your application.
+Teacher, student & parent onboarding
 
-**Use Lovable**
+📝 Grading Module (CBC & IGCSE)
+Grade entry, editing & approval workflows
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/466b1838-b192-459b-9e9e-b55f8abd65dc) and start prompting.
+Term & yearly report cards
 
-Changes made via Lovable will be committed automatically to this repo.
+Automated performance analytics
 
-**Use your preferred IDE**
+📅 Timetable Generator (AI-Powered)
+Automated class scheduling
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Clash detection & conflict resolution
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Teacher & room assignment
 
-Follow these steps:
+💰 Finance Management
+Fee assignment to classes & students
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+MPESA integration via Safaricom Daraja API
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+MPESA transactions & reconciliation
 
-# Step 3: Install the necessary dependencies.
-npm i
+Financial overview, reports & analytics
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Fee balance visibility for parents
+
+📊 Advanced Analytics
+Real-time grade, attendance & finance summaries
+
+Customizable data visualizations (charts, graphs)
+
+Individual school & multi-school analytics for Edufam Admins
+
+🎟️ Support Tickets
+Role-based support system
+
+All users can raise tickets; Edufam Admins view all
+
+🎓 Certificate & Report Generation
+Auto-generated academic & completion certificates
+
+Dynamic PDF report generation for schools & Edufam Company
+
+⚙️ System Settings
+Maintenance mode toggle
+
+User account deactivation & management
+
+🏗️ Tech Stack
+Frontend: React.js + TypeScript + Tailwind CSS
+
+Backend: Supabase (PostgreSQL)
+
+State Management: React Query / Zustand
+
+Authentication: Supabase Auth
+
+Payments: MPESA Daraja API
+
+Deployment: Vercel
+
+🗄️ Database Structure (Supabase)
+Schools
+
+Classes
+
+Subjects
+
+Users (Multi-role support)
+
+Grades
+
+Attendance
+
+Finance (Fees, MPESA Transactions, Expenses)
+
+Certificates
+
+Reports
+
+System Settings
+
+🔧 Setup Instructions
+Clone the repository:
+
+bash
+Copy
+Edit
+git clone https://github.com/your-username/edufam.git
+cd edufam
+Install dependencies:
+
+bash
+Copy
+Edit
+npm install
+Create a .env file with your Supabase keys and MPESA credentials:
+
+bash
+Copy
+Edit
+VITE_SUPABASE_URL=your_url
+VITE_SUPABASE_ANON_KEY=your_key
+VITE_MPESA_CONSUMER_KEY=your_consumer_key
+VITE_MPESA_CONSUMER_SECRET=your_consumer_secret
+VITE_MPESA_PAYBILL=your_paybill_number
+Run the application:
+
+bash
+Copy
+Edit
 npm run dev
-```
+✅ To-Do / Roadmap
+Multi-tenant school support
 
-**Edit a file directly in GitHub**
+MPESA payment integration
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+AI-powered Timetable Generator (in progress)
 
-**Use GitHub Codespaces**
+Dynamic Notification system
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Mobile App (Flutter)
 
-## What technologies are used for this project?
+🛡️ License
+This project is licensed under the MIT License.
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/466b1838-b192-459b-9e9e-b55f8abd65dc) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+📞 Contact
+Edufam Team
+Email: info@edufam.org
+Website: https://edufam.org
