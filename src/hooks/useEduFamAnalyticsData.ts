@@ -34,7 +34,7 @@ export const useEduFamAnalyticsData = () => {
         .limit(1000);
 
       // Process monthly revenue trends
-      const monthlyRevenue = revenueData?.reduce((acc: any, transaction: any) => {
+      const monthlyRevenue = revenueData?.reduce((acc: Record<string, { month: string; revenue: number; transactions: number }>, transaction: any) => {
         const month = new Date(transaction.created_at).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         if (!acc[month]) {
           acc[month] = { month, revenue: 0, transactions: 0 };
@@ -47,7 +47,7 @@ export const useEduFamAnalyticsData = () => {
       const revenueChartData = Object.values(monthlyRevenue).slice(-6);
 
       // Process grade distribution
-      const gradeDistribution = gradesData?.reduce((acc: any, grade: any) => {
+      const gradeDistribution = gradesData?.reduce((acc: Record<string, number>, grade: any) => {
         const letter = grade.letter_grade || 'Unknown';
         acc[letter] = (acc[letter] || 0) + 1;
         return acc;
@@ -55,12 +55,12 @@ export const useEduFamAnalyticsData = () => {
 
       const gradesChartData = Object.entries(gradeDistribution).map(([grade, count]) => ({
         grade,
-        count,
+        count: count as number,
         color: getGradeColor(grade)
       }));
 
       // Process attendance trends (last 6 days)
-      const dailyAttendance = attendanceData?.reduce((acc: any, record: any) => {
+      const dailyAttendance = attendanceData?.reduce((acc: Record<string, { day: string; present: number; absent: number; total: number }>, record: any) => {
         const day = new Date(record.date).toLocaleDateString('en-US', { weekday: 'short' });
         if (!acc[day]) {
           acc[day] = { day, present: 0, absent: 0, total: 0 };
@@ -74,7 +74,7 @@ export const useEduFamAnalyticsData = () => {
         return acc;
       }, {}) || {};
 
-      const attendanceChartData = Object.values(dailyAttendance).map((data: any) => ({
+      const attendanceChartData = Object.values(dailyAttendance).map((data) => ({
         ...data,
         rate: data.total > 0 ? Math.round((data.present / data.total) * 100) : 0
       })).slice(-6);
