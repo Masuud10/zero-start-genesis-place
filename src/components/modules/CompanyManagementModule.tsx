@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Building2, Save, AlertTriangle, Loader2 } from 'lucide-react';
+import { Building2, Save, AlertTriangle, Loader2, Globe, Mail, Phone, MapPin, Calendar, FileText } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CompanyDetails {
@@ -65,16 +65,20 @@ const CompanyManagementModule = () => {
   const fetchCompanyDetails = async () => {
     try {
       setLoading(true);
+      console.log('Fetching company details...');
+      
       const { data, error } = await supabase
         .from('company_details')
         .select('*')
         .single();
 
       if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching company details:', error);
         throw error;
       }
 
       if (data) {
+        console.log('Company details fetched:', data);
         setCompanyDetails({
           id: data.id,
           company_name: data.company_name || 'EduFam',
@@ -90,12 +94,14 @@ const CompanyManagementModule = () => {
           year_established: data.year_established || 2024,
           company_type: data.company_type || 'EdTech SaaS'
         });
+      } else {
+        console.log('No company details found, using defaults');
       }
     } catch (error: any) {
       console.error('Error fetching company details:', error);
       toast({
         title: "Error",
-        description: "Failed to load company details",
+        description: "Failed to load company details: " + error.message,
         variant: "destructive",
       });
     } finally {
@@ -106,15 +112,28 @@ const CompanyManagementModule = () => {
   const saveCompanyDetails = async () => {
     try {
       setSaving(true);
+      console.log('Saving company details...', companyDetails);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('company_details')
         .upsert({
           ...companyDetails,
           updated_at: new Date().toISOString()
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving company details:', error);
+        throw error;
+      }
+
+      console.log('Company details saved successfully:', data);
+      
+      // Update state with returned data
+      if (data) {
+        setCompanyDetails(prev => ({ ...prev, id: data.id }));
+      }
 
       toast({
         title: "Success",
@@ -124,7 +143,7 @@ const CompanyManagementModule = () => {
       console.error('Error saving company details:', error);
       toast({
         title: "Error",
-        description: "Failed to save company details",
+        description: "Failed to save company details: " + error.message,
         variant: "destructive",
       });
     } finally {
@@ -140,6 +159,33 @@ const CompanyManagementModule = () => {
     setCompanyDetails(prev => ({ ...prev, [field]: value }));
   };
 
+  const validateForm = () => {
+    if (!companyDetails.company_name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Company name is required",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!companyDetails.support_email.trim() || !companyDetails.support_email.includes('@')) {
+      toast({
+        title: "Validation Error", 
+        description: "Valid support email is required",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+    await saveCompanyDetails();
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -153,7 +199,7 @@ const CompanyManagementModule = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-          <Building2 className="h-6 w-6" />
+          <Building2 className="h-6 w-6 text-blue-600" />
           Company Management
         </h2>
         <p className="text-muted-foreground">
@@ -164,16 +210,20 @@ const CompanyManagementModule = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Basic Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="company_name">Company Name</Label>
+              <Label htmlFor="company_name">Company Name *</Label>
               <Input
                 id="company_name"
                 value={companyDetails.company_name}
                 onChange={(e) => handleInputChange('company_name', e.target.value)}
                 placeholder="Enter company name"
+                required
               />
             </div>
             
@@ -183,7 +233,7 @@ const CompanyManagementModule = () => {
                 id="company_type"
                 value={companyDetails.company_type}
                 onChange={(e) => handleInputChange('company_type', e.target.value)}
-                placeholder="Enter company type"
+                placeholder="e.g., EdTech SaaS, Educational Technology"
               />
             </div>
 
@@ -192,6 +242,8 @@ const CompanyManagementModule = () => {
               <Input
                 id="year_established"
                 type="number"
+                min="1990"
+                max={new Date().getFullYear()}
                 value={companyDetails.year_established}
                 onChange={(e) => handleInputChange('year_established', parseInt(e.target.value) || 2024)}
                 placeholder="Enter establishment year"
@@ -222,17 +274,21 @@ const CompanyManagementModule = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Contact Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="support_email">Support Email</Label>
+              <Label htmlFor="support_email">Support Email *</Label>
               <Input
                 id="support_email"
                 type="email"
                 value={companyDetails.support_email}
                 onChange={(e) => handleInputChange('support_email', e.target.value)}
                 placeholder="Enter support email"
+                required
               />
             </div>
 
@@ -240,9 +296,10 @@ const CompanyManagementModule = () => {
               <Label htmlFor="contact_phone">Contact Phone</Label>
               <Input
                 id="contact_phone"
+                type="tel"
                 value={companyDetails.contact_phone}
                 onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                placeholder="Enter contact phone"
+                placeholder="Enter contact phone number"
               />
             </div>
 
@@ -253,7 +310,7 @@ const CompanyManagementModule = () => {
                 type="url"
                 value={companyDetails.website_url}
                 onChange={(e) => handleInputChange('website_url', e.target.value)}
-                placeholder="Enter website URL"
+                placeholder="https://example.com"
               />
             </div>
 
@@ -272,11 +329,14 @@ const CompanyManagementModule = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Legal Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Legal Information
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="registration_number">Registration Number</Label>
+              <Label htmlFor="registration_number">Company Registration Number</Label>
               <Input
                 id="registration_number"
                 value={companyDetails.registration_number}
@@ -291,7 +351,7 @@ const CompanyManagementModule = () => {
                 id="incorporation_details"
                 value={companyDetails.incorporation_details}
                 onChange={(e) => handleInputChange('incorporation_details', e.target.value)}
-                placeholder="Enter incorporation details"
+                placeholder="Enter incorporation details, registration location, etc."
                 rows={4}
               />
             </div>
@@ -300,7 +360,10 @@ const CompanyManagementModule = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Branding</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Branding
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -310,21 +373,23 @@ const CompanyManagementModule = () => {
                 type="url"
                 value={companyDetails.company_logo_url}
                 onChange={(e) => handleInputChange('company_logo_url', e.target.value)}
-                placeholder="Enter logo URL"
+                placeholder="https://example.com/logo.png"
               />
             </div>
             
             {companyDetails.company_logo_url && (
               <div className="mt-2">
                 <Label>Logo Preview</Label>
-                <div className="border rounded-lg p-4 bg-gray-50">
+                <div className="border rounded-lg p-4 bg-gray-50 flex items-center justify-center">
                   <img 
                     src={companyDetails.company_logo_url} 
-                    alt="Company Logo" 
-                    className="h-16 w-auto object-contain"
+                    alt="Company Logo Preview" 
+                    className="h-16 w-auto object-contain max-w-full"
                     onError={(e) => {
+                      console.error('Logo failed to load');
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
+                    onLoad={() => console.log('Logo loaded successfully')}
                   />
                 </div>
               </div>
@@ -333,9 +398,18 @@ const CompanyManagementModule = () => {
         </Card>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-4">
         <Button 
-          onClick={saveCompanyDetails} 
+          variant="outline"
+          onClick={fetchCompanyDetails}
+          disabled={loading || saving}
+        >
+          <Loader2 className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+        
+        <Button 
+          onClick={handleSave} 
           disabled={saving}
           size="lg"
         >
