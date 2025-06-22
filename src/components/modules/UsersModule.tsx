@@ -21,6 +21,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  status: string;
   created_at: string;
   updated_at: string;
   school_id?: string;
@@ -103,6 +104,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
           name: profile.name || '',
           email: profile.email || '',
           role: profile.role || '',
+          status: profile.status || 'active',
           created_at: profile.created_at || '',
           updated_at: profile.updated_at || '',
           school_id: profile.school_id || undefined,
@@ -142,7 +144,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all'; // Since we don't have status field yet
+    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 

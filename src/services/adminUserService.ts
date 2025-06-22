@@ -61,7 +61,7 @@ export const AdminUserService = {
 
   getUsersForSchool: async () => {
     try {
-      // Use correct join for school (avoid ambiguous embed error)
+      // Use correct join for school (avoid ambiguous embed error) and include status
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -69,6 +69,7 @@ export const AdminUserService = {
           name,
           email,
           role,
+          status,
           school_id,
           created_at,
           updated_at,

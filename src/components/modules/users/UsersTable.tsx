@@ -4,17 +4,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, AlertCircle, RefreshCw, Edit, UserX, UserCheck } from 'lucide-react';
+import { Users, AlertCircle, RefreshCw, Edit } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import EditUserDialog from './EditUserDialog';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import UserActivationToggle from './UserActivationToggle';
 
 interface User {
   id: string;
   name: string;
   email: string;
   role: string;
+  status: string;
   created_at: string;
   school_id?: string;
   phone?: string;
@@ -51,6 +51,17 @@ const getRoleBadgeColor = (role: string) => {
   }
 };
 
+const getStatusBadgeColor = (status: string) => {
+  switch (status) {
+    case 'active':
+      return 'bg-green-100 text-green-800';
+    case 'inactive':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
 const formatRole = (role: string) => {
   return role.split('_').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1)
@@ -59,42 +70,6 @@ const formatRole = (role: string) => {
 
 const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTableProps) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deactivatingUserId, setDeactivatingUserId] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const handleDeactivateUser = async (userId: string, userName: string) => {
-    try {
-      setDeactivatingUserId(userId);
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          updated_at: new Date().toISOString()
-          // Note: We're not actually deactivating here as the profiles table 
-          // doesn't have a status field yet. This would need to be added.
-        })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "User Status Updated",
-        description: `${userName} has been processed successfully.`,
-      });
-
-      if (onUserUpdated) onUserUpdated();
-
-    } catch (error: any) {
-      console.error('Error updating user status:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update user status",
-        variant: "destructive",
-      });
-    } finally {
-      setDeactivatingUserId(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -187,6 +162,7 @@ const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTabl
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>School</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
@@ -203,6 +179,11 @@ const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTabl
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      <Badge className={getStatusBadgeColor(user.status)}>
+                        {user.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       {user.school?.name || (
                         user.role === 'elimisha_admin' || user.role === 'edufam_admin' 
                           ? 'System Admin' 
@@ -213,7 +194,7 @@ const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTabl
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-4">
                         <Button
                           variant="outline"
                           size="sm"
@@ -221,18 +202,13 @@ const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTabl
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeactivateUser(user.id, user.name)}
-                          disabled={deactivatingUserId === user.id}
-                        >
-                          {deactivatingUserId === user.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
-                          ) : (
-                            <UserX className="w-4 h-4" />
-                          )}
-                        </Button>
+                        <UserActivationToggle
+                          userId={user.id}
+                          userName={user.name}
+                          currentStatus={user.status}
+                          userRole={user.role}
+                          onStatusChanged={onUserUpdated}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>
