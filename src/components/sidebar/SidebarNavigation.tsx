@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getMenuItems } from './SidebarMenuItems';
 import {
   SidebarContent,
   SidebarGroup,
@@ -9,74 +11,100 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { useAuth } from '@/contexts/AuthContext';
-import { getMenuItems } from './SidebarMenuItems';
-import { useAccessControl } from '@/hooks/useAccessControl';
 
 interface SidebarNavigationProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+  activeSection: string;
+  onSectionChange: (section: string) => void;
 }
 
-const SidebarNavigation: React.FC<SidebarNavigationProps> = ({ 
-  activeSection, 
-  onSectionChange 
+const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
+  activeSection,
+  onSectionChange,
 }) => {
   const { user } = useAuth();
-  const { checkAccess } = useAccessControl();
   
-  console.log('🧭 SidebarNavigation: Rendering for user role:', user?.role);
-  console.log('🧭 SidebarNavigation: Active section:', activeSection);
+  console.log('🔧 SidebarNavigation: Rendering with user role:', user?.role);
   
   const menuItems = getMenuItems(user?.role);
-  console.log('🧭 SidebarNavigation: All menu items for role:', user?.role, menuItems.map(item => item.id));
+  const filteredItems = menuItems.filter(item => 
+    item.roles.includes(user?.role || '')
+  );
+
+  console.log('📋 SidebarNavigation: Filtered menu items:', filteredItems.map(item => item.id));
+
+  // Group items by category for better organization
+  const systemItems = filteredItems.filter(item => 
+    ['dashboard', 'analytics', 'school-analytics', 'schools', 'users', 'company-management', 'billing', 'system-health'].includes(item.id)
+  );
   
-  const filteredItems = menuItems.filter(item => {
-    const hasAccess = checkAccess(item.id);
-    console.log('🧭 SidebarNavigation: Item', item.id, 'access check result:', hasAccess);
-    return hasAccess;
-  });
+  const schoolItems = filteredItems.filter(item => 
+    ['school-management', 'grades', 'attendance', 'students', 'certificates', 'timetable'].includes(item.id)
+  );
+  
+  const financeItems = filteredItems.filter(item => 
+    ['finance', 'payments', 'student-accounts', 'fee-management', 'mpesa-payments', 'financial-reports', 'financial-analytics'].includes(item.id)
+  );
+  
+  const communicationItems = filteredItems.filter(item => 
+    ['announcements', 'messages'].includes(item.id)
+  );
+  
+  const otherItems = filteredItems.filter(item => 
+    !systemItems.includes(item) && !schoolItems.includes(item) && 
+    !financeItems.includes(item) && !communicationItems.includes(item)
+  );
 
-  console.log('🧭 SidebarNavigation: Filtered items for role', user?.role, ':', filteredItems.map(item => item.id));
-
-  const handleSectionChange = (section: string) => {
-    console.log('🧭 SidebarNavigation: Section change requested:', section);
-    onSectionChange?.(section);
-  };
-
-  if (!user) {
-    console.log('🧭 SidebarNavigation: No user found');
-    return null;
-  }
-
-  return (
-    <SidebarContent>
-      <SidebarGroup>
-        <SidebarGroupLabel>
-          {user.role === 'edufam_admin' 
-            ? 'System Administration' 
-            : user.role === 'principal'
-            ? 'School Administration'
-            : 'Main Navigation'
-          }
-        </SidebarGroupLabel>
+  const renderMenuGroup = (items: typeof filteredItems, groupLabel?: string) => {
+    if (items.length === 0) return null;
+    
+    return (
+      <SidebarGroup key={groupLabel || 'default'}>
+        {groupLabel && <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>}
         <SidebarGroupContent>
           <SidebarMenu>
-            {filteredItems.map((item) => (
-              <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
-                  onClick={() => handleSectionChange(item.id)}
-                  isActive={activeSection === item.id}
-                  className="w-full transition-all duration-200 hover:bg-accent"
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {items.map((item) => {
+              const IconComponent = item.icon;
+              const isActive = activeSection === item.id;
+              
+              return (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    onClick={() => onSectionChange(item.id)}
+                    isActive={isActive}
+                    className="w-full justify-start"
+                  >
+                    <IconComponent className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+    );
+  };
+
+  return (
+    <SidebarContent>
+      {user?.role === 'edufam_admin' ? (
+        <>
+          {renderMenuGroup(systemItems.filter(item => ['dashboard'].includes(item.id)))}
+          {renderMenuGroup(systemItems.filter(item => ['analytics', 'school-analytics'].includes(item.id)), 'Analytics')}
+          {renderMenuGroup(systemItems.filter(item => ['schools', 'users', 'company-management'].includes(item.id)), 'Management')}
+          {renderMenuGroup(systemItems.filter(item => ['billing', 'system-health'].includes(item.id)), 'System')}
+          {renderMenuGroup(communicationItems, 'Communication')}
+          {renderMenuGroup(otherItems.filter(item => ['reports', 'support', 'settings', 'security'].includes(item.id)), 'Tools')}
+        </>
+      ) : (
+        <>
+          {renderMenuGroup(systemItems.filter(item => ['dashboard'].includes(item.id)))}
+          {schoolItems.length > 0 && renderMenuGroup(schoolItems, 'Academic')}
+          {financeItems.length > 0 && renderMenuGroup(financeItems, 'Finance')}
+          {communicationItems.length > 0 && renderMenuGroup(communicationItems, 'Communication')}
+          {otherItems.length > 0 && renderMenuGroup(otherItems, 'Tools')}
+        </>
+      )}
     </SidebarContent>
   );
 };

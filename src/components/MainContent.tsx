@@ -1,138 +1,115 @@
 
 import React from 'react';
-import { useNavigation } from '@/contexts/NavigationContext';
 import { useAuth } from '@/contexts/AuthContext';
-import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
-import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
-import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
-import FinancialOverview from '@/components/finance/FinancialOverview';
-import FeeManagementModule from '@/components/finance/FeeManagementModule';
-import MpesaPaymentsModule from '@/components/finance/MpesaPaymentsModule';
-import FinancialReportsModule from '@/components/finance/FinancialReportsModule';
-import FinancialAnalyticsModule from '@/components/finance/FinancialAnalyticsModule';
-import GradesModule from '@/components/modules/GradesModule';
-import AttendanceModule from '@/components/modules/AttendanceModule';
-import StudentsModule from '@/components/modules/StudentsModule';
-import TimetableModule from '@/components/modules/TimetableModule';
-import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
-import MessagesModule from '@/components/modules/MessagesModule';
-import ReportsModule from '@/components/modules/ReportsModule';
-import SupportModule from '@/components/modules/SupportModule';
-import SettingsModule from '@/components/modules/SettingsModule';
-import SecurityModule from '@/components/modules/SecurityModule';
-import SchoolsModule from '@/components/modules/SchoolsModule';
-import UsersModule from '@/components/modules/UsersModule';
-import BillingModule from '@/components/modules/BillingModule';
-import SystemHealthModule from '@/components/modules/SystemHealthModule';
-import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
-import EduFamCertificateManagement from '@/components/certificates/EduFamCertificateManagement';
-import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
-import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
-import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
-import ParentDashboard from '@/components/dashboard/ParentDashboard';
-import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
-import SchoolOwnerDashboard from '@/components/dashboard/SchoolOwnerDashboard';
+import Dashboard from './Dashboard';
+import AnalyticsDashboard from './analytics/AnalyticsDashboard';
+import EduFamAdminAnalytics from './analytics/EduFamAdminAnalytics';
+import SchoolAnalyticsList from './analytics/SchoolAnalyticsList';
+import CompanyManagementModule from './modules/CompanyManagementModule';
+import EduFamReportGeneration from './reports/EduFamReportGeneration';
 
-const MainContent: React.FC = () => {
-  const { activeSection } = useNavigation();
+interface MainContentProps {
+  activeSection: string;
+}
+
+const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
   const { user } = useAuth();
-
+  
   console.log('🎯 MainContent: Rendering section:', activeSection, 'for user role:', user?.role);
-
-  const handleModalOpen = (modalType: string) => {
-    console.log('MainContent: Modal open requested:', modalType);
-    // Handle modal opening logic here if needed
-  };
-
-  const renderDashboard = () => {
-    if (!user) {
-      return <div>Loading user data...</div>;
-    }
-
-    switch (user.role) {
-      case 'edufam_admin':
-        return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
-      case 'principal':
-        return <PrincipalDashboard user={user} onModalOpen={handleModalOpen} />;
-      case 'teacher':
-        return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
-      case 'parent':
-        return <ParentDashboard user={user} onModalOpen={handleModalOpen} />;
-      case 'finance_officer':
-        return <FinanceOfficerDashboard user={user} />;
-      case 'school_owner':
-        return <SchoolOwnerDashboard />;
-      default:
-        return <div>Welcome to Edufam</div>;
-    }
-  };
 
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
-        return renderDashboard();
-      case 'school-management':
-        return <SchoolManagementDashboard />;
+        return <Dashboard />;
+        
       case 'analytics':
+        if (user?.role === 'edufam_admin') {
+          return <EduFamAdminAnalytics />;
+        }
         return <AnalyticsDashboard />;
+        
       case 'school-analytics':
         if (user?.role === 'edufam_admin') {
           return <SchoolAnalyticsList />;
         }
         return <AnalyticsDashboard />;
-      case 'grades':
-        return <GradesModule />;
-      case 'attendance':
-        return <AttendanceModule />;
-      case 'students':
-        return <StudentsModule />;
-      case 'finance':
-        return <FinancialOverview />;
-      case 'timetable':
-        return <TimetableModule />;
-      case 'certificates':
-        if (user?.role === 'edufam_admin') {
-          return <EduFamCertificateManagement />;
-        }
-        return <div>Certificate management for school users</div>;
-      case 'announcements':
-        return <AnnouncementsModule />;
-      case 'messages':
-        return <MessagesModule />;
-      case 'reports':
-        return <ReportsModule />;
-      case 'support':
-        return <SupportModule />;
-      case 'settings':
-        return <SettingsModule />;
-      case 'security':
-        return <SecurityModule />;
-      case 'schools':
-        return <SchoolsModule />;
-      case 'users':
-        return <UsersModule />;
-      case 'billing':
-        return <BillingModule />;
+        
       case 'company-management':
-        return <CompanyManagementModule />;
+        if (user?.role === 'edufam_admin') {
+          return <CompanyManagementModule />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Insufficient permissions</div>;
+        
+      case 'reports':
+        if (user?.role === 'edufam_admin') {
+          return <EduFamReportGeneration />;
+        }
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Reports</h2>
+          <p className="text-muted-foreground">Report generation feature coming soon for your role.</p>
+        </div>;
+        
+      case 'schools':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Schools Management</h2>
+          <p className="text-muted-foreground">Schools management feature coming soon.</p>
+        </div>;
+        
+      case 'users':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">User Management</h2>
+          <p className="text-muted-foreground">User management feature coming soon.</p>
+        </div>;
+        
+      case 'billing':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Billing Management</h2>
+          <p className="text-muted-foreground">Billing management feature coming soon.</p>
+        </div>;
+        
       case 'system-health':
-        return <SystemHealthModule />;
-      case 'fee-management':
-        return <FeeManagementModule />;
-      case 'mpesa-payments':
-        return <MpesaPaymentsModule />;
-      case 'financial-reports':
-        return <FinancialReportsModule />;
-      case 'financial-analytics':
-        return <FinancialAnalyticsModule />;
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">System Health</h2>
+          <p className="text-muted-foreground">System health monitoring feature coming soon.</p>
+        </div>;
+        
+      case 'announcements':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">
+            {user?.role === 'edufam_admin' ? 'Communication Center' : 'Announcements'}
+          </h2>
+          <p className="text-muted-foreground">Communication features coming soon.</p>
+        </div>;
+        
+      case 'support':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Support Center</h2>
+          <p className="text-muted-foreground">Support center coming soon.</p>
+        </div>;
+        
+      case 'settings':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Settings</h2>
+          <p className="text-muted-foreground">Settings page coming soon.</p>
+        </div>;
+        
+      case 'security':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Security</h2>
+          <p className="text-muted-foreground">Security management coming soon.</p>
+        </div>;
+        
       default:
-        return <div>Content for {activeSection}</div>;
+        console.warn('⚠️ MainContent: Unknown section:', activeSection);
+        return <Dashboard />;
     }
   };
 
   return (
-    <div className="flex-1 p-4">
-      {renderContent()}
+    <div className="flex-1 overflow-y-auto">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        {renderContent()}
+      </div>
     </div>
   );
 };

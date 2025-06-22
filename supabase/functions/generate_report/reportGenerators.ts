@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 
 export async function generatePlatformOverviewReport(supabase: any, filters: any) {
@@ -30,20 +29,52 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
   }).sort((a, b) => b.userCount - a.userCount);
 
   return [
+    { text: 'EDUFAM PLATFORM OVERVIEW REPORT', style: 'title' },
+    { text: '\n' },
+    
+    // Company Header Section
+    { text: 'Company Information', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['*', '*'],
+        body: [
+          ['Company Name:', companyInfo?.company_name || 'EduFam Technologies'],
+          ['Company Type:', companyInfo?.company_type || 'Educational Technology Platform'],
+          ['Year Established:', companyInfo?.year_established || '2024'],
+          ['Website:', companyInfo?.website_url || 'https://edufam.com'],
+          ['Support Email:', companyInfo?.support_email || 'support@edufam.com'],
+          ['Contact Phone:', companyInfo?.contact_phone || 'Not Set'],
+          ['Registration Number:', companyInfo?.registration_number || 'Not Set']
+        ]
+      },
+      layout: 'noBorders'
+    },
+    { text: '\n' },
+    
     { text: 'Executive Summary', style: 'header' },
-    { text: `Company: ${companyInfo?.company_name || 'EduFam Technologies'}`, style: 'normalBold' },
-    { text: `Website: ${companyInfo?.website_url || 'https://edufam.com'}` },
-    { text: `Support Email: ${companyInfo?.support_email || 'support@edufam.com'}` },
     { text: `Report Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}` },
+    { text: `Reporting Period: All Time Data` },
     { text: '\n' },
     
     { text: 'Platform Statistics', style: 'header' },
-    { text: `Total Schools: ${schools.length}`, style: 'normalBold' },
-    { text: `Total Users: ${profiles.length}`, style: 'normalBold' },
-    { text: `Total Certificates Generated: ${certificates.length}`, style: 'normalBold' },
-    { text: `Total Financial Transactions: ${transactions.length}`, style: 'normalBold' },
-    { text: `Total Platform Revenue: KES ${totalRevenue.toLocaleString()}`, style: 'normalBold' },
-    { text: `System Uptime: ${latestMetrics?.system_uptime_percentage || 100}%`, style: 'normalBold' },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Metric', 'Value'],
+          ['Total Schools Registered', schools.length.toString()],
+          ['Total Platform Users', profiles.length.toString()],
+          ['Total Certificates Generated', certificates.length.toString()],
+          ['Total Financial Transactions', transactions.length.toString()],
+          ['Total Platform Revenue', `KES ${totalRevenue.toLocaleString()}`],
+          ['System Uptime', `${latestMetrics?.system_uptime_percentage || 100}%`],
+          ['Active Schools (Last 30 Days)', (latestMetrics?.active_schools || 0).toString()],
+          ['Active Users (Last 7 Days)', (latestMetrics?.active_users || 0).toString()]
+        ]
+      }
+    },
     { text: '\n' },
 
     { text: 'User Distribution by Role', style: 'subheader' },
@@ -79,11 +110,33 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
           ])
         ]
       }
+    },
+    { text: '\n' },
+
+    { text: 'Platform Performance Metrics', style: 'subheader' },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Performance Indicator', 'Status'],
+          ['System Health', latestMetrics?.system_uptime_percentage >= 99 ? 'Excellent' : latestMetrics?.system_uptime_percentage >= 95 ? 'Good' : 'Needs Attention'],
+          ['Monthly Revenue Growth', latestMetrics?.monthly_revenue ? `KES ${latestMetrics.monthly_revenue.toLocaleString()}` : 'Data Pending'],
+          ['School Adoption Rate', `${((latestMetrics?.active_schools || 0) / Math.max(schools.length, 1) * 100).toFixed(1)}%`],
+          ['User Engagement Rate', `${((latestMetrics?.active_users || 0) / Math.max(profiles.length, 1) * 100).toFixed(1)}%`]
+        ]
+      }
     }
   ];
 }
 
 export async function generateSchoolsSummaryReport(supabase: any, filters: any) {
+  // Get company details for header
+  const { data: companyData } = await supabase
+    .from('company_details')
+    .select('*')
+    .single();
+
   const { data: schoolsData, error: schoolsError } = await supabase
     .from('schools')
     .select(`*, profiles!school_id(count)`);
@@ -109,11 +162,28 @@ export async function generateSchoolsSummaryReport(supabase: any, filters: any) 
   }));
 
   return [
-    { text: 'Comprehensive Schools Summary', style: 'header' },
-    { text: `Total Schools Registered: ${schoolsData?.length || 0}`, style: 'normalBold' },
-    { text: `Report Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}` },
+    { text: 'EDUFAM SCHOOLS SUMMARY REPORT', style: 'title' },
     { text: '\n' },
     
+    // Company Header
+    { text: 'Report Information', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['*', '*'],
+        body: [
+          ['Generated By:', companyData?.company_name || 'EduFam Technologies'],
+          ['Report Date:', new Date().toLocaleDateString()],
+          ['Report Time:', new Date().toLocaleTimeString()],
+          ['Total Schools:', (schoolsData?.length || 0).toString()],
+          ['Support Contact:', companyData?.support_email || 'support@edufam.com']
+        ]
+      },
+      layout: 'noBorders'
+    },
+    { text: '\n' },
+    
+    { text: 'Schools Overview', style: 'header' },
     {
       table: {
         headerRows: 1,
@@ -133,15 +203,32 @@ export async function generateSchoolsSummaryReport(supabase: any, filters: any) 
     },
     { text: '\n' },
 
-    { text: 'School Statistics Summary', style: 'subheader' },
-    { text: `Total Students Across All Schools: ${schoolsWithStats.reduce((sum, school) => sum + school.studentCount, 0)}` },
-    { text: `Total Grades Recorded: ${schoolsWithStats.reduce((sum, school) => sum + school.gradeCount, 0)}` },
-    { text: `Total Attendance Records: ${schoolsWithStats.reduce((sum, school) => sum + school.attendanceCount, 0)}` },
-    { text: `Average Students per School: ${(schoolsWithStats.reduce((sum, school) => sum + school.studentCount, 0) / Math.max(schoolsWithStats.length, 1)).toFixed(1)}` }
+    { text: 'Schools Statistics Summary', style: 'subheader' },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Metric', 'Value'],
+          ['Total Students Across All Schools', schoolsWithStats.reduce((sum, school) => sum + school.studentCount, 0).toString()],
+          ['Total Grades Recorded', schoolsWithStats.reduce((sum, school) => sum + school.gradeCount, 0).toString()],
+          ['Total Attendance Records', schoolsWithStats.reduce((sum, school) => sum + school.attendanceCount, 0).toString()],
+          ['Average Students per School', (schoolsWithStats.reduce((sum, school) => sum + school.studentCount, 0) / Math.max(schoolsWithStats.length, 1)).toFixed(1)],
+          ['Schools with Active Students', schoolsWithStats.filter(school => school.studentCount > 0).length.toString()],
+          ['Schools Registration This Year', schoolsWithStats.filter(school => new Date(school.created_at).getFullYear() === new Date().getFullYear()).length.toString()]
+        ]
+      }
+    }
   ];
 }
 
 export async function generateUsersAnalyticsReport(supabase: any, filters: any) {
+  // Get company details for header
+  const { data: companyData } = await supabase
+    .from('company_details')
+    .select('*')
+    .single();
+
   const { data: usersData, error: usersError } = await supabase
     .from('profiles')
     .select('*');
@@ -168,12 +255,27 @@ export async function generateUsersAnalyticsReport(supabase: any, filters: any) 
     .slice(0, 10);
 
   return [
-    { text: 'User Analytics Overview', style: 'header' },
-    { text: `Total Platform Users: ${usersData?.length || 0}`, style: 'normalBold' },
-    { text: `Analysis Date: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}` },
+    { text: 'EDUFAM USER ANALYTICS REPORT', style: 'title' },
     { text: '\n' },
     
-    { text: 'User Distribution by Role', style: 'subheader' },
+    // Company Header
+    { text: 'Report Information', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['*', '*'],
+        body: [
+          ['Generated By:', companyData?.company_name || 'EduFam Technologies'],
+          ['Analysis Date:', new Date().toLocaleDateString()],
+          ['Total Platform Users:', (usersData?.length || 0).toString()],
+          ['Support Contact:', companyData?.support_email || 'support@edufam.com']
+        ]
+      },
+      layout: 'noBorders'
+    },
+    { text: '\n' },
+    
+    { text: 'User Distribution by Role', style: 'header' },
     {
       table: {
         headerRows: 1,
@@ -191,10 +293,19 @@ export async function generateUsersAnalyticsReport(supabase: any, filters: any) 
     { text: '\n' },
     
     { text: 'School Distribution Statistics', style: 'subheader' },
-    { text: `Schools with Users: ${Object.keys(schoolStats).length}` },
-    { text: `Users with School Assignment: ${Object.values(schoolStats).reduce((sum: number, count) => sum + (count as number), 0)}` },
-    { text: `Users without School Assignment: ${(usersData?.length || 0) - Object.values(schoolStats).reduce((sum: number, count) => sum + (count as number), 0)}` },
-    { text: `Average Users per School: ${((usersData?.length || 0) / Math.max(Object.keys(schoolStats).length, 1)).toFixed(1)}` },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Metric', 'Value'],
+          ['Schools with Users', Object.keys(schoolStats).length.toString()],
+          ['Users with School Assignment', Object.values(schoolStats).reduce((sum: number, count) => sum + (count as number), 0).toString()],
+          ['Users without School Assignment', ((usersData?.length || 0) - Object.values(schoolStats).reduce((sum: number, count) => sum + (count as number), 0)).toString()],
+          ['Average Users per School', ((usersData?.length || 0) / Math.max(Object.keys(schoolStats).length, 1)).toFixed(1)]
+        ]
+      }
+    },
     { text: '\n' },
 
     { text: 'Recent User Registrations (Last 10)', style: 'subheader' },
@@ -217,6 +328,12 @@ export async function generateUsersAnalyticsReport(supabase: any, filters: any) 
 }
 
 export async function generateFinancialOverviewReport(supabase: any, filters: any) {
+  // Get company details for header
+  const { data: companyData } = await supabase
+    .from('company_details')
+    .select('*')
+    .single();
+
   const { data: finData, error: finError } = await supabase
     .from('financial_transactions')
     .select('*');
@@ -243,16 +360,42 @@ export async function generateFinancialOverviewReport(supabase: any, filters: an
   }, {});
 
   return [
-    { text: 'Financial Performance Report', style: 'header' },
-    { text: `Reporting Period: All Time`, style: 'normalBold' },
-    { text: `Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}` },
+    { text: 'EDUFAM FINANCIAL OVERVIEW REPORT', style: 'title' },
     { text: '\n' },
     
-    { text: 'Key Financial Metrics', style: 'subheader' },
-    { text: `Total Transactions: ${totalTransactions.toLocaleString()}`, style: 'normalBold' },
-    { text: `Total Revenue: KES ${totalAmount.toLocaleString()}`, style: 'normalBold' },
-    { text: `Average Transaction: KES ${avgTransaction.toFixed(2)}`, style: 'normalBold' },
-    { text: `Largest Transaction: KES ${Math.max(...(finData || []).map(t => Number(t.amount) || 0)).toLocaleString()}` },
+    // Company Header
+    { text: 'Report Information', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['*', '*'],
+        body: [
+          ['Generated By:', companyData?.company_name || 'EduFam Technologies'],
+          ['Reporting Period:', 'All Time'],
+          ['Report Generated:', new Date().toLocaleDateString()],
+          ['Support Contact:', companyData?.support_email || 'support@edufam.com']
+        ]
+      },
+      layout: 'noBorders'
+    },
+    { text: '\n' },
+    
+    { text: 'Key Financial Metrics', style: 'header' },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Metric', 'Value'],
+          ['Total Transactions', totalTransactions.toLocaleString()],
+          ['Total Revenue', `KES ${totalAmount.toLocaleString()}`],
+          ['Average Transaction Value', `KES ${avgTransaction.toFixed(2)}`],
+          ['Largest Single Transaction', `KES ${Math.max(...(finData || []).map(t => Number(t.amount) || 0)).toLocaleString()}`],
+          ['Transaction Success Rate', '100%'], // Assuming all recorded transactions are successful
+          ['Active Payment Methods', Object.keys(paymentMethods).length.toString()]
+        ]
+      }
+    },
     { text: '\n' },
 
     { text: 'Payment Methods Distribution', style: 'subheader' },
@@ -269,11 +412,36 @@ export async function generateFinancialOverviewReport(supabase: any, filters: an
           ])
         ]
       }
+    },
+    { text: '\n' },
+
+    { text: 'Monthly Revenue Summary (Recent)', style: 'subheader' },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Month', 'Revenue (KES)'],
+          ...Object.entries(monthlyData)
+            .sort(([a], [b]) => b.localeCompare(a))
+            .slice(0, 6)
+            .map(([month, amount]) => [
+              new Date(month + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+              (amount as number).toLocaleString()
+            ])
+        ]
+      }
     }
   ];
 }
 
 export async function generateSystemHealthReport(supabase: any, filters: any) {
+  // Get company details for header
+  const { data: companyData } = await supabase
+    .from('company_details')
+    .select('*')
+    .single();
+
   const { data: metricsData, error: metricsError } = await supabase
     .from('company_metrics')
     .select('*')
@@ -295,27 +463,77 @@ export async function generateSystemHealthReport(supabase: any, filters: any) {
     : 0;
 
   return [
-    { text: 'System Health Status Report', style: 'header' },
-    { text: `Report Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}` },
-    { text: `Data Period: Last 30 Records` },
+    { text: 'EDUFAM SYSTEM HEALTH REPORT', style: 'title' },
     { text: '\n' },
     
-    { text: 'Current System Status', style: 'subheader' },
-    { text: `System Uptime: ${latestMetric?.system_uptime_percentage || 100}%`, style: 'normalBold' },
-    { text: `Active Schools: ${latestMetric?.active_schools || 0}`, style: 'normalBold' },
-    { text: `Total Schools: ${latestMetric?.total_schools || 0}`, style: 'normalBold' },
-    { text: `Active Users: ${latestMetric?.active_users || 0}`, style: 'normalBold' },
-    { text: `Total Users: ${latestMetric?.total_users || 0}`, style: 'normalBold' },
-    { text: `API Calls (Recent): ${latestMetric?.api_calls_count || 0}`, style: 'normalBold' },
-    { text: `Monthly Revenue: KES ${(latestMetric?.monthly_revenue || 0).toLocaleString()}`, style: 'normalBold' },
-    { text: `Total Revenue: KES ${(latestMetric?.total_revenue || 0).toLocaleString()}`, style: 'normalBold' },
+    // Company Header
+    { text: 'Report Information', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['*', '*'],
+        body: [
+          ['System Owner:', companyData?.company_name || 'EduFam Technologies'],
+          ['Report Generated:', new Date().toLocaleDateString()],
+          ['Data Period:', 'Last 30 Records'],
+          ['Support Contact:', companyData?.support_email || 'support@edufam.com']
+        ]
+      },
+      layout: 'noBorders'
+    },
+    { text: '\n' },
+    
+    { text: 'Current System Status', style: 'header' },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Metric', 'Current Value'],
+          ['System Uptime', `${latestMetric?.system_uptime_percentage || 100}%`],
+          ['Active Schools', (latestMetric?.active_schools || 0).toString()],
+          ['Total Schools', (latestMetric?.total_schools || 0).toString()],
+          ['Active Users', (latestMetric?.active_users || 0).toString()],
+          ['Total Users', (latestMetric?.total_users || 0).toString()],
+          ['API Calls (Recent)', (latestMetric?.api_calls_count || 0).toString()],
+          ['Monthly Revenue', `KES ${(latestMetric?.monthly_revenue || 0).toLocaleString()}`],
+          ['Total Revenue', `KES ${(latestMetric?.total_revenue || 0).toLocaleString()}`]
+        ]
+      }
+    },
     { text: '\n' },
 
     { text: '30-Day Performance Average', style: 'subheader' },
-    { text: `Average Uptime: ${avgUptime.toFixed(2)}%`, style: 'normalBold' },
-    { text: `Average API Calls: ${avgApiCalls.toFixed(0)}`, style: 'normalBold' },
-    { text: `Total Metrics Recorded: ${metricsData?.length || 0}` },
-    { text: `System Status: ${avgUptime >= 99 ? 'Excellent' : avgUptime >= 95 ? 'Good' : 'Needs Attention'}`, style: 'normalBold' }
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', '*'],
+        body: [
+          ['Performance Indicator', 'Value'],
+          ['Average Uptime', `${avgUptime.toFixed(2)}%`],
+          ['Average API Calls', avgApiCalls.toFixed(0)],
+          ['Total Metrics Recorded', (metricsData?.length || 0).toString()],
+          ['System Health Status', avgUptime >= 99 ? 'Excellent' : avgUptime >= 95 ? 'Good' : 'Needs Attention'],
+          ['Data Collection Status', metricsData?.length > 0 ? 'Active' : 'Inactive']
+        ]
+      }
+    },
+    { text: '\n' },
+
+    { text: 'System Performance Summary', style: 'subheader' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['40%', '60%'],
+        body: [
+          ['Overall System Health:', avgUptime >= 99 ? '🟢 Excellent' : avgUptime >= 95 ? '🟡 Good' : '🔴 Needs Attention'],
+          ['Monitoring Status:', 'Active and Operational'],
+          ['Last Health Check:', latestMetric ? new Date(latestMetric.created_at).toLocaleDateString() : 'No Data'],
+          ['Recommended Action:', avgUptime >= 99 ? 'Continue monitoring' : 'Review system performance']
+        ]
+      },
+      layout: 'noBorders'
+    }
   ];
 }
 
@@ -325,38 +543,96 @@ export async function generateCompanyProfileReport(supabase: any, filters: any) 
     .select('*')
     .single();
 
+  const { data: metricsData } = await supabase
+    .from('company_metrics')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
   if (companyError && companyError.code !== 'PGRST116') {
     console.error('Company data error:', companyError);
     throw companyError;
   }
 
   return [
-    { text: 'Company Profile Information', style: 'header' },
-    { text: `Report Date: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}` },
+    { text: 'COMPANY PROFILE REPORT', style: 'title' },
     { text: '\n' },
     
-    { text: 'Basic Company Information', style: 'subheader' },
-    { text: `Company Name: ${companyData?.company_name || 'EduFam Technologies Ltd'}`, style: 'normalBold' },
-    { text: `Company Type: ${companyData?.company_type || 'Educational Technology Platform'}`, style: 'normalBold' },
-    { text: `Year Established: ${companyData?.year_established || '2024'}`, style: 'normalBold' },
-    { text: `Registration Number: ${companyData?.registration_number || 'Not Set'}` },
+    { text: 'Basic Company Information', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['40%', '60%'],
+        body: [
+          ['Company Name:', companyData?.company_name || 'EduFam Technologies Ltd'],
+          ['Company Type:', companyData?.company_type || 'Educational Technology Platform'],
+          ['Year Established:', (companyData?.year_established || '2024').toString()],
+          ['Registration Number:', companyData?.registration_number || 'Not Set'],
+          ['Company Slogan:', companyData?.company_slogan || 'Not Set'],
+          ['Company Motto:', companyData?.company_motto || 'Not Set']
+        ]
+      }
+    },
     { text: '\n' },
 
-    { text: 'Contact Information', style: 'subheader' },
-    { text: `Website: ${companyData?.website_url || 'https://edufam.com'}`, style: 'normalBold' },
-    { text: `Support Email: ${companyData?.support_email || 'support@edufam.com'}`, style: 'normalBold' },
-    { text: `Contact Phone: ${companyData?.contact_phone || 'Not Set'}` },
-    { text: `Headquarters Address: ${companyData?.headquarters_address || 'Not Set'}` },
+    { text: 'Contact Information', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['40%', '60%'],
+        body: [
+          ['Website URL:', companyData?.website_url || 'https://edufam.com'],
+          ['Support Email:', companyData?.support_email || 'support@edufam.com'],
+          ['Contact Phone:', companyData?.contact_phone || 'Not Set'],
+          ['Headquarters Address:', companyData?.headquarters_address || 'Not Set']
+        ]
+      }
+    },
     { text: '\n' },
 
-    { text: 'Company Branding', style: 'subheader' },
-    { text: `Company Slogan: ${companyData?.company_slogan || 'Not Set'}` },
-    { text: `Company Motto: ${companyData?.company_motto || 'Not Set'}` },
-    { text: `Logo URL: ${companyData?.company_logo_url || 'Not Set'}` },
+    { text: 'Legal & Registration Details', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['40%', '60%'],
+        body: [
+          ['Incorporation Details:', companyData?.incorporation_details || 'Not Set'],
+          ['Registration Status:', companyData?.registration_number ? 'Registered' : 'Pending'],
+          ['Last Profile Update:', companyData?.updated_at ? new Date(companyData.updated_at).toLocaleDateString() : 'Not Available']
+        ]
+      }
+    },
     { text: '\n' },
 
-    { text: 'Legal Information', style: 'subheader' },
-    { text: `Incorporation Details: ${companyData?.incorporation_details || 'Not Set'}` },
-    { text: `Last Updated: ${companyData?.updated_at ? new Date(companyData.updated_at).toLocaleDateString() : 'Not Available'}` }
+    { text: 'Current Platform Metrics', style: 'header' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['40%', '60%'],
+        body: [
+          ['Total Schools:', (metricsData?.total_schools || 0).toString()],
+          ['Active Schools:', (metricsData?.active_schools || 0).toString()],
+          ['Total Users:', (metricsData?.total_users || 0).toString()],
+          ['Active Users:', (metricsData?.active_users || 0).toString()],
+          ['Monthly Revenue:', `KES ${(metricsData?.monthly_revenue || 0).toLocaleString()}`],
+          ['Total Revenue:', `KES ${(metricsData?.total_revenue || 0).toLocaleString()}`],
+          ['System Uptime:', `${metricsData?.system_uptime_percentage || 100}%`]
+        ]
+      }
+    },
+    { text: '\n' },
+
+    { text: 'Branding Information', style: 'subheader' },
+    {
+      table: {
+        headerRows: 0,
+        widths: ['40%', '60%'],
+        body: [
+          ['Company Logo URL:', companyData?.company_logo_url || 'Not Set'],
+          ['Logo Status:', companyData?.company_logo_url ? 'Available' : 'Not Uploaded']
+        ]
+      }
+    }
   ];
 }
