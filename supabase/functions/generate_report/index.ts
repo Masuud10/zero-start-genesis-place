@@ -81,6 +81,8 @@ serve(async (req) => {
         throw new Error('Invalid report type: ' + reportType);
     }
 
+    console.log('Report content generated, creating PDF...');
+
     // Generate PDF with enhanced styling
     const docDefinition = {
       content: [
@@ -144,7 +146,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error',
-        details: error.stack 
+        details: error.stack,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500, 
