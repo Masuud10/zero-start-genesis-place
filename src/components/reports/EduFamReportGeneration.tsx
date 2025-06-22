@@ -86,11 +86,9 @@ const EduFamReportGeneration = () => {
         throw new Error('No data returned from function');
       }
 
-      // Handle the PDF data - it should be a Uint8Array from the edge function
-      const pdfBlob = new Blob([data], { type: 'application/pdf' });
-
-      // Create download link
-      const url = window.URL.createObjectURL(pdfBlob);
+      // Create download link for PDF
+      const blob = new Blob([data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `edufam_${selectedReportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;

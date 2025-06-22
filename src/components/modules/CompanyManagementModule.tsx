@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -130,7 +129,6 @@ const CompanyManagementModule = () => {
 
       console.log('Company details saved successfully:', data);
       
-      // Update state with returned data
       if (data) {
         setCompanyDetails(prev => ({ ...prev, id: data.id }));
       }
