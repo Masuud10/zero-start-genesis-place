@@ -45,8 +45,13 @@ const AdminAnalyticsOverview = () => {
         count
       }));
 
-      // Active vs Inactive schools
-      const activeSchools = schools?.filter(school => school.is_active !== false).length || 0;
+      // Active vs Inactive schools - using created_at to determine if school is recent (active)
+      const currentDate = new Date();
+      const sixMonthsAgo = new Date(currentDate.getTime() - (6 * 30 * 24 * 60 * 60 * 1000));
+      
+      const activeSchools = schools?.filter(school => 
+        new Date(school.created_at) >= sixMonthsAgo
+      ).length || 0;
       const inactiveSchools = (schools?.length || 0) - activeSchools;
       
       const statusData = [
