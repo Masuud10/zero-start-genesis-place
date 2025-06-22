@@ -19,6 +19,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     role: '',
     phone: ''
   });
@@ -40,7 +41,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
       });
 
       setOpen(false);
-      setFormData({ name: '', email: '', role: '', phone: '' });
+      setFormData({ name: '', email: '', password: '', role: '', phone: '' });
       onUserCreated();
     } catch (error: any) {
       toast({
@@ -81,6 +82,19 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
               required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password">Password *</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              required
+              minLength={6}
+              placeholder="Minimum 6 characters"
             />
           </div>
 
