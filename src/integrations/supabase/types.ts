@@ -3101,6 +3101,181 @@ export type Database = {
           },
         ]
       }
+      igcse_grade_batches: {
+        Row: {
+          academic_year: string
+          batch_name: string
+          class_id: string
+          created_at: string | null
+          grades_entered: number | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string
+          status: string | null
+          subject_id: string | null
+          submitted_at: string | null
+          teacher_id: string
+          term: string
+          total_students: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year: string
+          batch_name: string
+          class_id: string
+          created_at?: string | null
+          grades_entered?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id: string
+          status?: string | null
+          subject_id?: string | null
+          submitted_at?: string | null
+          teacher_id: string
+          term: string
+          total_students?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          batch_name?: string
+          class_id?: string
+          created_at?: string | null
+          grades_entered?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string
+          status?: string | null
+          subject_id?: string | null
+          submitted_at?: string | null
+          teacher_id?: string
+          term?: string
+          total_students?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "igcse_grade_batches_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "igcse_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      igcse_grades: {
+        Row: {
+          academic_year: string
+          approved_at: string | null
+          approved_by: string | null
+          assessment_date: string | null
+          class_id: string
+          component: string | null
+          created_at: string | null
+          id: string
+          letter_grade: string
+          marks: number | null
+          school_id: string
+          status: string | null
+          student_id: string
+          subject_id: string | null
+          submitted_at: string | null
+          teacher_id: string
+          teacher_remarks: string | null
+          term: string
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_date?: string | null
+          class_id: string
+          component?: string | null
+          created_at?: string | null
+          id?: string
+          letter_grade: string
+          marks?: number | null
+          school_id: string
+          status?: string | null
+          student_id: string
+          subject_id?: string | null
+          submitted_at?: string | null
+          teacher_id: string
+          teacher_remarks?: string | null
+          term: string
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_date?: string | null
+          class_id?: string
+          component?: string | null
+          created_at?: string | null
+          id?: string
+          letter_grade?: string
+          marks?: number | null
+          school_id?: string
+          status?: string | null
+          student_id?: string
+          subject_id?: string | null
+          submitted_at?: string | null
+          teacher_id?: string
+          teacher_remarks?: string | null
+          term?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "igcse_grades_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "igcse_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      igcse_subjects: {
+        Row: {
+          components: Json
+          created_at: string | null
+          grade_boundaries: Json | null
+          id: string
+          school_id: string
+          subject_code: string
+          subject_name: string
+          subject_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          components?: Json
+          created_at?: string | null
+          grade_boundaries?: Json | null
+          id?: string
+          school_id: string
+          subject_code: string
+          subject_name: string
+          subject_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          components?: Json
+          created_at?: string | null
+          grade_boundaries?: Json | null
+          id?: string
+          school_id?: string
+          subject_code?: string
+          subject_name?: string
+          subject_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       learner_portfolios: {
         Row: {
           competency_id: string | null

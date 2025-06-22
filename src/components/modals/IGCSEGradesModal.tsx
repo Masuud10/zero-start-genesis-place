@@ -1,191 +1,169 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSchool } from "@/contexts/SchoolContext";
-import IGCSEGradesForm from "./IGCSEGradesForm";
-import IGCSEGradeActionButtons from "./IGCSEGradeActionButtons";
-import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { IGCSEGradeEntry } from '@/components/igcse/IGCSEGradeEntry';
+import { Loader2 } from 'lucide-react';
 
 interface IGCSEGradesModalProps {
   onClose: () => void;
   userRole: string;
 }
 
-const IGCSE_LETTER_GRADES = ["A*", "A", "B", "C", "D", "E", "F", "G", "U"];
-
-const IGCSEGradesModal = ({ onClose, userRole }: IGCSEGradesModalProps) => {
+export const IGCSEGradesModal: React.FC<IGCSEGradesModalProps> = ({ onClose, userRole }) => {
   const { user } = useAuth();
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState("");
-  const [subjects, setSubjects] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [gradeChoice, setGradeChoice] = useState("");
-  const [customGrade, setCustomGrade] = useState("");
-  const [freeformSubject, setFreeformSubject] = useState("");
-  const [useCustomSubject, setUseCustomSubject] = useState(false);
-  const [loading, setLoading] = useState(false);
-
+  const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
-  const { currentSchool } = useSchool();
-  const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(
-    user?.school_id
-  );
+
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showGradeEntry, setShowGradeEntry] = useState(false);
 
   useEffect(() => {
-    if (!user?.school_id) return;
-    supabase
-      .from("classes")
-      .select("*")
-      .eq("school_id", user.school_id)
-      .then(({ data }) => setClasses(data || []));
-  }, [user?.school_id]);
+    loadClasses();
+  }, [schoolId, user?.id]);
 
-  useEffect(() => {
-    if (!selectedClass || !user?.school_id) {
-      setSubjects([]);
-      return;
-    }
-    supabase
-      .from("subjects")
-      .select("*")
-      .eq("class_id", selectedClass)
-      .eq("school_id", user.school_id)
-      .then(({ data }) => setSubjects(data || []));
-  }, [selectedClass, user?.school_id]);
-
-  useEffect(() => {
-    if (!selectedClass || !user?.school_id) return;
-    supabase
-      .from("students")
-      .select("*")
-      .eq("class_id", selectedClass)
-      .eq("school_id", user.school_id)
-      .then(({ data }) => setStudents(data || []));
-  }, [selectedClass, user?.school_id]);
-
-  const handleSubmit = async () => {
-    if (
-      !selectedClass ||
-      (!selectedSubject && !freeformSubject) ||
-      !selectedStudent ||
-      (!gradeChoice && !customGrade)
-    ) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!academicInfo.term) {
-      toast({
-        title: "Error",
-        description: "Current academic term is not set. Cannot submit grade.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    const gradeToInsert = customGrade || gradeChoice;
-    const subjectToInsert = useCustomSubject ? null : selectedSubject;
-
-    if (!user?.school_id) {
-      toast({
-        title: "Error",
-        description: "Your school is not identified. Cannot submit grade.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
+  const loadClasses = async () => {
+    if (!schoolId || !user?.id) return;
 
     try {
-      const { error } = await supabase.from("grades").insert({
-        school_id: user.school_id,
-        student_id: selectedStudent,
-        class_id: selectedClass,
-        subject_id: subjectToInsert,
-        score: null,
-        max_score: null,
-        letter_grade: gradeToInsert,
-        comments: useCustomSubject
-          ? `Custom Subject: ${freeformSubject}`
-          : undefined,
-        submitted_by: user?.id,
-        status: "submitted",
-        term: academicInfo.term,
-      });
-      if (error) {
-        throw error;
+      setLoading(true);
+      let query = supabase
+        .from('classes')
+        .select('*')
+        .eq('school_id', schoolId);
+
+      // For teachers, only show classes they're assigned to
+      if (user.role === 'teacher') {
+        query = query.eq('teacher_id', user.id);
       }
-      toast({
-        title: "Success",
-        description: "IGCSE grade submitted successfully.",
-      });
-      onClose();
-    } catch (error) {
+
+      const { data, error } = await query.order('name');
+      
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error: any) {
+      console.error('Error loading classes:', error);
       toast({
         title: "Error",
-        description: "Failed to submit IGCSE grade.",
-        variant: "destructive",
+        description: "Failed to load classes",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleProceed = () => {
+    if (!selectedClass || !selectedTerm) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both class and term",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowGradeEntry(true);
+  };
+
+  const handleSubmissionSuccess = () => {
+    toast({
+      title: "Success",
+      description: "IGCSE grades submitted successfully",
+    });
+    onClose();
+  };
+
+  if (loading) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span>Loading IGCSE grading options...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (showGradeEntry) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>IGCSE Grade Entry</DialogTitle>
+          </DialogHeader>
+          <IGCSEGradeEntry
+            classId={selectedClass}
+            term={selectedTerm}
+            onSubmissionSuccess={handleSubmissionSuccess}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Enter IGCSE Grade</DialogTitle>
+          <DialogTitle>IGCSE Grade Entry Setup</DialogTitle>
         </DialogHeader>
-        {!academicInfo.term && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              Academic term information is not available. Please contact your administrator.
-            </AlertDescription>
-          </Alert>
-        )}
-        <IGCSEGradesForm
-          classes={classes}
-          selectedClass={selectedClass}
-          setSelectedClass={setSelectedClass}
-          subjects={subjects}
-          selectedSubject={selectedSubject}
-          setSelectedSubject={setSelectedSubject}
-          useCustomSubject={useCustomSubject}
-          setUseCustomSubject={setUseCustomSubject}
-          freeformSubject={freeformSubject}
-          setFreeformSubject={setFreeformSubject}
-          students={students}
-          selectedStudent={selectedStudent}
-          setSelectedStudent={setSelectedStudent}
-          gradeChoice={gradeChoice}
-          setGradeChoice={setGradeChoice}
-          customGrade={customGrade}
-          setCustomGrade={setCustomGrade}
-          IGCSE_LETTER_GRADES={IGCSE_LETTER_GRADES}
-        />
+        
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="class" className="text-right">Class</Label>
+            <Select onValueChange={setSelectedClass} value={selectedClass}>
+              <SelectTrigger id="class" className="col-span-3">
+                <SelectValue placeholder="Select Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="term" className="text-right">Term</Label>
+            <Select onValueChange={setSelectedTerm} value={selectedTerm}>
+              <SelectTrigger id="term" className="col-span-3">
+                <SelectValue placeholder="Select Term" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="term1">Term 1</SelectItem>
+                <SelectItem value="term2">Term 2</SelectItem>
+                <SelectItem value="term3">Term 3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <DialogFooter>
-          <IGCSEGradeActionButtons
-            loading={loading || academicInfoLoading}
-            onCancel={onClose}
-            onSubmit={handleSubmit}
-          />
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleProceed} disabled={!selectedClass || !selectedTerm}>
+            Proceed to Grade Entry
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
