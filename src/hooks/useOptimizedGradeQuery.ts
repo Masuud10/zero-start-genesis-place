@@ -74,7 +74,8 @@ export const useGradeSubmissionMutation = () => {
         school_id: schoolId,
         submitted_by: user.id,
         submitted_at: new Date().toISOString(),
-        status: gradeData.status || 'draft'
+        status: gradeData.status || 'draft',
+        exam_type: gradeData.exam_type.toUpperCase() // Ensure uppercase format
       };
 
       console.log('Submitting grade:', completeGradeData);
@@ -82,7 +83,8 @@ export const useGradeSubmissionMutation = () => {
       const { data, error } = await supabase
         .from('grades')
         .upsert(completeGradeData, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
+          ignoreDuplicates: false
         })
         .select()
         .single();

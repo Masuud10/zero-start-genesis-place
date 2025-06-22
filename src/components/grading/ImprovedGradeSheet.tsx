@@ -129,13 +129,13 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         throw new Error('No subjects assigned to you for this class. Please contact your administrator.');
       }
 
-      // Load existing grades
+      // Load existing grades (including drafts)
       const { data: existingGrades, error: gradesError } = await supabase
         .from('grades')
         .select('*')
         .eq('class_id', classId)
         .eq('term', term)
-        .eq('exam_type', examType)
+        .eq('exam_type', examType.toUpperCase())
         .eq('submitted_by', user?.id)
         .eq('school_id', schoolId)
         .in('subject_id', subjectsWithDefaults.map(s => s.id));

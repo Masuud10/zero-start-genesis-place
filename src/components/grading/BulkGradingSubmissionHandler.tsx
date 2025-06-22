@@ -65,7 +65,7 @@ export const useBulkGradingSubmissionHandler = ({
               class_id: selectedClass,
               subject_id: subjectId,
               term: selectedTerm,
-              exam_type: selectedExamType,
+              exam_type: selectedExamType.toUpperCase(), // Ensure uppercase format
               score: grade.isAbsent ? null : Number(grade.score),
               max_score: maxScore,
               percentage: percentage,
@@ -96,7 +96,8 @@ export const useBulkGradingSubmissionHandler = ({
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToUpsert, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
+          ignoreDuplicates: false
         });
 
       if (error) {
@@ -109,7 +110,7 @@ export const useBulkGradingSubmissionHandler = ({
         const batchData = {
           class_id: selectedClass,
           term: selectedTerm,
-          exam_type: selectedExamType,
+          exam_type: selectedExamType.toUpperCase(),
           school_id: schoolId,
           submitted_by: userId,
           batch_name: `${selectedTerm} - ${selectedExamType} - ${new Date().toLocaleDateString()}`,
@@ -123,7 +124,8 @@ export const useBulkGradingSubmissionHandler = ({
         const { error: batchError } = await supabase
           .from('grade_submission_batches')
           .upsert(batchData, {
-            onConflict: 'school_id,class_id,term,exam_type,submitted_by'
+            onConflict: 'school_id,class_id,term,exam_type,submitted_by',
+            ignoreDuplicates: false
           });
 
         if (batchError) {
@@ -138,7 +140,7 @@ export const useBulkGradingSubmissionHandler = ({
           await supabase.rpc('calculate_class_positions', {
             p_class_id: selectedClass,
             p_term: selectedTerm,
-            p_exam_type: selectedExamType
+            p_exam_type: selectedExamType.toUpperCase()
           });
         } catch (positionError) {
           console.warn('Position calculation failed:', positionError);

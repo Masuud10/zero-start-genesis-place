@@ -110,7 +110,7 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
               subject_id: subjectId,
               class_id: classId,
               term,
-              exam_type: examType,
+              exam_type: examType.toUpperCase(), // Ensure uppercase format
               score: Number(grade.score),
               max_score: subject?.max_score || 100,
               percentage: percentage,
@@ -124,12 +124,13 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
         });
       });
 
-      console.log('Saving grades as draft:', gradesToSave.length);
+      console.log('Saving grades as draft:', gradesToSave);
 
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToSave, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
+          ignoreDuplicates: false
         });
 
       if (error) {
@@ -192,7 +193,7 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
               subject_id: subjectId,
               class_id: classId,
               term,
-              exam_type: examType,
+              exam_type: examType.toUpperCase(), // Ensure uppercase format
               score: Number(grade.score),
               max_score: subject?.max_score || 100,
               percentage: percentage,
@@ -207,13 +208,14 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
         });
       });
 
-      console.log('Submitting grades for approval:', gradesToSubmit.length);
+      console.log('Submitting grades for approval:', gradesToSubmit);
 
       // Update grades to submitted status
       const { error: submitError } = await supabase
         .from('grades')
         .upsert(gradesToSubmit, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
+          ignoreDuplicates: false
         });
 
       if (submitError) {
@@ -225,7 +227,7 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
       const batchData = {
         class_id: classId,
         term,
-        exam_type: examType,
+        exam_type: examType.toUpperCase(),
         school_id: schoolId,
         submitted_by: user.id,
         batch_name: `${term} - ${examType} - ${new Date().toLocaleDateString()}`,
@@ -239,7 +241,8 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
       const { error: batchError } = await supabase
         .from('grade_submission_batches')
         .upsert(batchData, {
-          onConflict: 'school_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,class_id,term,exam_type,submitted_by',
+          ignoreDuplicates: false
         });
 
       if (batchError) {
@@ -346,6 +349,7 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
             <li>Review all grades for accuracy</li>
             <li>Ensure all scores are within the maximum allowed values</li>
             <li>Add comments where necessary</li>
+            <li>Save as draft to preserve your work before final submission</li>
             <li>Once submitted, grades will require principal approval to modify</li>
           </ul>
         </AlertDescription>
