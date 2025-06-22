@@ -181,7 +181,7 @@ serve(async (req) => {
           
           { text: 'Schools with Most Users', style: 'subheader' },
           { text: `Total Schools with Users: ${Object.keys(schoolStats).length}` },
-          { text: `Average Users per School: ${(usersData?.length || 0) / Math.max(Object.keys(schoolStats).length, 1)}//.toFixed(1)}` }
+          { text: `Average Users per School: ${((usersData?.length || 0) / Math.max(Object.keys(schoolStats).length, 1)).toFixed(1)}` }
         ];
         break;
 

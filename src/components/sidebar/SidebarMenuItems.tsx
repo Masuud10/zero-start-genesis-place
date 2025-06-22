@@ -8,6 +8,7 @@ import {
   GraduationCap,
   HelpCircle,
   Home,
+  MessageSquare,
   Settings,
   Shield,
   Users,
@@ -122,6 +123,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: userRole === 'edufam_admin' ? 'Communication Center' : 'Announcements',
       icon: Megaphone,
       roles: ['edufam_admin', 'principal', 'teacher', 'school_owner']
+    },
+    {
+      id: 'messages',
+      label: 'Messages',
+      icon: MessageSquare,
+      roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
     },
     {
       id: 'reports',

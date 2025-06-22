@@ -86,17 +86,8 @@ const EduFamReportGeneration = () => {
         throw new Error('No data returned from function');
       }
 
-      // Handle the PDF data
-      let pdfBlob;
-      if (data instanceof ArrayBuffer) {
-        pdfBlob = new Blob([data], { type: 'application/pdf' });
-      } else if (data instanceof Uint8Array) {
-        pdfBlob = new Blob([data], { type: 'application/pdf' });
-      } else {
-        // If data is base64 or other format, handle accordingly
-        console.log('Data type:', typeof data);
-        pdfBlob = new Blob([data], { type: 'application/pdf' });
-      }
+      // Handle the PDF data - it should be a Uint8Array from the edge function
+      const pdfBlob = new Blob([data], { type: 'application/pdf' });
 
       // Create download link
       const url = window.URL.createObjectURL(pdfBlob);
