@@ -25,10 +25,12 @@ interface LearningArea {
   description: string;
 }
 
+type CBCPerformanceLevel = 'EM' | 'AP' | 'PR' | 'EX';
+
 interface CBCGrade {
   student_id: string;
   learning_area_id: string;
-  performance_level: 'EM' | 'AP' | 'PR' | 'EX';
+  performance_level: CBCPerformanceLevel;
   teacher_remarks: string;
 }
 
@@ -39,10 +41,10 @@ interface CBCGradeEntryProps {
 }
 
 const CBC_LEVELS = [
-  { value: 'EM', label: 'Emerging', color: 'bg-red-100 text-red-800' },
-  { value: 'AP', label: 'Approaching Proficiency', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'PR', label: 'Proficient', color: 'bg-blue-100 text-blue-800' },
-  { value: 'EX', label: 'Exceeding Expectations', color: 'bg-green-100 text-green-800' }
+  { value: 'EM' as CBCPerformanceLevel, label: 'Emerging', color: 'bg-red-100 text-red-800' },
+  { value: 'AP' as CBCPerformanceLevel, label: 'Approaching Proficiency', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'PR' as CBCPerformanceLevel, label: 'Proficient', color: 'bg-blue-100 text-blue-800' },
+  { value: 'EX' as CBCPerformanceLevel, label: 'Exceeding Expectations', color: 'bg-green-100 text-green-800' }
 ];
 
 export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
@@ -113,7 +115,7 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
         gradesMap[grade.student_id][grade.learning_area_id] = {
           student_id: grade.student_id,
           learning_area_id: grade.learning_area_id,
-          performance_level: grade.performance_level,
+          performance_level: grade.performance_level as CBCPerformanceLevel,
           teacher_remarks: grade.teacher_remarks || ''
         };
       });
