@@ -1,17 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Send, FileSpreadsheet, Users, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { FileSpreadsheet, Users, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { GradeSubmissionWorkflow } from './GradeSubmissionWorkflow';
 
 interface Student {
   id: string;
@@ -58,8 +57,6 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [grades, setGrades] = useState<Record<string, Record<string, GradeEntry>>>({});
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +73,6 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
     try {
       console.log('Loading grading data for:', { classId, schoolId, userId: user?.id, term, examType });
 
-      // Validate required fields
       if (!classId || !schoolId || !user?.id || !term || !examType) {
         throw new Error('Missing required parameters for loading grading data');
       }
@@ -119,7 +115,6 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         throw new Error(`Failed to load subject assignments: ${subjectsError.message}`);
       }
 
-      // Extract subjects with max_score default
       const subjectsWithDefaults = subjectAssignments?.map((assignment: any) => ({
         id: assignment.subjects.id,
         name: assignment.subjects.name,
@@ -147,7 +142,6 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
 
       if (gradesError) {
         console.error('Error loading grades:', gradesError);
-        // Don't throw error for grades as they might not exist yet
       }
 
       // Organize grades by student and subject
@@ -217,238 +211,6 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
     }));
   };
 
-  const saveGrades = async () => {
-    if (!user?.id || !schoolId) {
-      toast({
-        title: "Authentication Error", 
-        description: "User not authenticated or school not identified",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const gradesToSave: any[] = [];
-      
-      Object.values(grades).forEach(studentGrades => {
-        Object.values(studentGrades).forEach(grade => {
-          if (grade.score !== null || grade.comments) {
-            // Validate required fields
-            if (!grade.student_id || !grade.subject_id || !classId || !term || !examType) {
-              console.error('Missing required fields for grade:', grade);
-              return;
-            }
-
-            const subjectMaxScore = subjects.find(s => s.id === grade.subject_id)?.max_score || 100;
-            const percentage = grade.score !== null ? (grade.score / subjectMaxScore) * 100 : null;
-
-            gradesToSave.push({
-              student_id: grade.student_id,
-              subject_id: grade.subject_id,
-              class_id: classId,
-              term,
-              exam_type: examType,
-              score: grade.score,
-              max_score: subjectMaxScore,
-              percentage: percentage,
-              comments: grade.comments,
-              submitted_by: user.id,
-              school_id: schoolId,
-              status: 'draft',
-              submitted_at: new Date().toISOString()
-            });
-          }
-        });
-      });
-
-      if (gradesToSave.length === 0) {
-        toast({
-          title: "No Changes to Save",
-          description: "Please enter some grades before saving",
-          variant: "default"
-        });
-        return;
-      }
-
-      console.log('Saving grades:', gradesToSave.length, gradesToSave);
-
-      const { error } = await supabase
-        .from('grades')
-        .upsert(gradesToSave, {
-          onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
-        });
-
-      if (error) {
-        console.error('Error saving grades:', error);
-        throw error;
-      }
-
-      // Update local state to reflect saved grades
-      const updatedGrades = { ...grades };
-      gradesToSave.forEach(savedGrade => {
-        if (updatedGrades[savedGrade.student_id]) {
-          updatedGrades[savedGrade.student_id][savedGrade.subject_id] = {
-            ...updatedGrades[savedGrade.student_id][savedGrade.subject_id],
-            status: 'draft'
-          };
-        }
-      });
-      setGrades(updatedGrades);
-
-      toast({
-        title: "Grades Saved",
-        description: `${gradesToSave.length} grades saved successfully`,
-      });
-
-    } catch (error) {
-      console.error('Error saving grades:', error);
-      toast({
-        title: "Save Failed",
-        description: error instanceof Error ? error.message : "Failed to save grades. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const submitForApproval = async () => {
-    if (!user?.id || !schoolId) {
-      toast({
-        title: "Authentication Error",
-        description: "User not authenticated or school not identified",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // First save all grades as draft
-      await saveGrades();
-
-      // Get all grades that have scores entered
-      const gradesToSubmit: any[] = [];
-      
-      Object.values(grades).forEach(studentGrades => {
-        Object.values(studentGrades).forEach(grade => {
-          if (grade.score !== null && grade.score >= 0) {
-            gradesToSubmit.push({
-              student_id: grade.student_id,
-              subject_id: grade.subject_id,
-              class_id: classId,
-              term,
-              exam_type: examType,
-              score: grade.score,
-              max_score: subjects.find(s => s.id === grade.subject_id)?.max_score || 100,
-              percentage: ((grade.score / (subjects.find(s => s.id === grade.subject_id)?.max_score || 100)) * 100),
-              comments: grade.comments,
-              submitted_by: user.id,
-              school_id: schoolId,
-              status: 'submitted',
-              submitted_at: new Date().toISOString()
-            });
-          }
-        });
-      });
-
-      if (gradesToSubmit.length === 0) {
-        toast({
-          title: "No Grades to Submit",
-          description: "Please enter at least one grade before submitting for approval",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Submitting grades for approval:', gradesToSubmit.length);
-
-      // Update grades status to submitted
-      const { error: updateError } = await supabase
-        .from('grades')
-        .upsert(gradesToSubmit, {
-          onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
-        });
-
-      if (updateError) {
-        console.error('Error updating grade status:', updateError);
-        throw new Error(`Failed to submit grades: ${updateError.message}`);
-      }
-
-      // Create submission batch record for tracking
-      const batchData = {
-        class_id: classId,
-        term,
-        exam_type: examType,
-        school_id: schoolId,
-        submitted_by: user.id,
-        batch_name: `${term} - ${examType} - ${new Date().toLocaleDateString()}`,
-        curriculum_type: 'standard',
-        academic_year: new Date().getFullYear().toString(),
-        total_students: students.length,
-        grades_entered: gradesToSubmit.length,
-        status: 'submitted'
-      };
-
-      const { error: batchError } = await supabase
-        .from('grade_submission_batches')
-        .insert(batchData);
-
-      if (batchError) {
-        console.warn('Failed to create submission batch:', batchError);
-        // Don't fail the entire submission for batch creation errors
-      }
-
-      // Update local state to reflect submitted grades
-      const updatedGrades = { ...grades };
-      gradesToSubmit.forEach(submittedGrade => {
-        if (updatedGrades[submittedGrade.student_id]) {
-          updatedGrades[submittedGrade.student_id][submittedGrade.subject_id] = {
-            ...updatedGrades[submittedGrade.student_id][submittedGrade.subject_id],
-            status: 'submitted'
-          };
-        }
-      });
-      setGrades(updatedGrades);
-
-      toast({
-        title: "Grades Submitted Successfully",
-        description: `${gradesToSubmit.length} grades have been submitted for principal approval`,
-      });
-
-      onSubmissionSuccess?.();
-
-    } catch (error) {
-      console.error('Error submitting grades:', error);
-      toast({
-        title: "Submission Failed",
-        description: error instanceof Error ? error.message : "Failed to submit grades for approval",
-        variant: "destructive"
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const getGradeStats = () => {
-    let totalGrades = 0;
-    let enteredGrades = 0;
-
-    students.forEach(student => {
-      subjects.forEach(subject => {
-        totalGrades++;
-        if (grades[student.id]?.[subject.id]?.score !== null && grades[student.id]?.[subject.id]?.score !== undefined) {
-          enteredGrades++;
-        }
-      });
-    });
-
-    return { totalGrades, enteredGrades };
-  };
-
-  const { totalGrades, enteredGrades } = getGradeStats();
-
   if (loading) {
     return (
       <Card>
@@ -471,14 +233,12 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
             <AlertDescription>
               {error}
               <br />
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <button 
                 onClick={loadGradingData}
-                className="mt-2"
+                className="mt-2 px-3 py-1 bg-red-100 text-red-800 rounded text-sm hover:bg-red-200"
               >
                 Retry Loading
-              </Button>
+              </button>
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -517,14 +277,8 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
                 {students.length} Students
               </Badge>
               <Badge variant="outline">
-                {enteredGrades}/{totalGrades} Grades
+                {subjects.length} Subjects
               </Badge>
-              {enteredGrades === totalGrades && totalGrades > 0 && (
-                <Badge className="bg-green-100 text-green-800">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Complete
-                </Badge>
-              )}
             </div>
           </div>
         </CardHeader>
@@ -574,7 +328,6 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
                           Object.values(grades[student.id])[0]?.comments || '' : ''
                         }
                         onChange={(e) => {
-                          // Update comments for all subjects of this student
                           subjects.forEach(subject => {
                             if (grades[student.id]?.[subject.id]) {
                               updateGrade(student.id, subject.id, 
@@ -597,61 +350,16 @@ export const ImprovedGradeSheet: React.FC<ImprovedGradeSheetProps> = ({
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              {enteredGrades > 0 ? (
-                <span className="text-green-700 font-medium">
-                  ✓ {enteredGrades} grades entered out of {totalGrades}
-                </span>
-              ) : (
-                <span>No grades entered yet</span>
-              )}
-            </div>
-            
-            <div className="flex gap-3">
-              <Button 
-                variant="outline"
-                onClick={saveGrades} 
-                disabled={saving || enteredGrades === 0}
-                className="flex items-center gap-2"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Save Draft
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={submitForApproval} 
-                disabled={submitting || enteredGrades === 0}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Submit for Principal Approval
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Grade Submission Workflow */}
+      <GradeSubmissionWorkflow
+        grades={grades}
+        classId={classId}
+        term={term}
+        examType={examType}
+        subjects={subjects}
+        students={students}
+        onSubmissionSuccess={onSubmissionSuccess || (() => {})}
+      />
     </div>
   );
 };
