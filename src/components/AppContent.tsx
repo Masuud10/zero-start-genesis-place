@@ -13,7 +13,7 @@ const AppContent: React.FC = () => {
 
   console.log('🎯 AppContent: Render start');
 
-  // Step 1: Always try to get auth state safely
+  // Always try to get auth state safely
   let authState;
   try {
     authState = useAuth();
@@ -31,7 +31,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Defensive: in case useAuth returns null or malformatted value
+  // Defensive check for auth state
   if (!authState || typeof authState !== "object") {
     console.error('🎯 AppContent: Invalid auth state');
     return (
@@ -55,13 +55,13 @@ const AppContent: React.FC = () => {
     email: user?.email 
   });
 
-  // Step 2: Loading
+  // Loading state
   if (authLoading) {
     console.log('🎯 AppContent: Loading auth...');
     return <LoadingScreen />;
   }
 
-  // Step 3: Error in auth
+  // Error state
   if (authError) {
     console.log('🎯 AppContent: Auth error:', authError);
     return (
@@ -76,14 +76,14 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Step 4: No user authenticated
+  // No user authenticated
   if (!user) {
     console.log('🎯 AppContent: No user - LandingPage or LoginForm');
     if (showLogin) return <LoginForm />;
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
-  // Step 5: User is authenticated but missing role
+  // User authenticated but missing role
   if (!user.role) {
     console.error('🎯 AppContent: User missing role', user.email);
     return (
@@ -98,7 +98,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Step 6: Authenticated user with role => show main app
+  // Authenticated user with role => show main app
   console.log('🎯 AppContent: Authenticated. Render ElimshaLayout.', { role: user.role });
   return (
     <NavigationProvider>

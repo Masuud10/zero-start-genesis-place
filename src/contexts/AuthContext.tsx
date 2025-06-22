@@ -1,13 +1,11 @@
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { AuthContextType } from '@/types/auth';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthActions } from '@/hooks/useAuthActions';
 
-// Create the auth context as before
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Safe hook for context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -17,33 +15,26 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // 1. ALL hooks at the top level
   const authState = useAuthState();
   const authActions = useAuthActions();
 
-  // 2. Get values from hooks immediately
-  const { user, isLoading, error } = authState;
-  const { signIn, signUp, signOut } = authActions;
-
-  // 3. Prepare memoized value
-  const value = useMemo<AuthContextType>(() => ({
-    user,
-    isLoading,
-    error,
-    signIn,
-    signUp,
-    signOut
-  }), [user, isLoading, error, signIn, signUp, signOut]);
+  const value: AuthContextType = {
+    user: authState.user,
+    isLoading: authState.isLoading,
+    error: authState.error,
+    signIn: authActions.signIn,
+    signUp: authActions.signUp,
+    signOut: authActions.signOut
+  };
 
   console.log('🔐 AuthProvider: State update', {
-    hasUser: !!user,
-    isLoading,
-    hasError: !!error,
-    userRole: user?.role,
-    userEmail: user?.email
+    hasUser: !!value.user,
+    isLoading: value.isLoading,
+    hasError: !!value.error,
+    userRole: value.user?.role,
+    userEmail: value.user?.email
   });
 
-  // 4. NEVER put hooks after any conditional or return
   return (
     <AuthContext.Provider value={value}>
       {children}
