@@ -2,23 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface MPESATransaction {
-  id: string;
-  transaction_id: string;
-  mpesa_receipt_number: string;
-  phone_number: string;
-  amount_paid: number;
-  transaction_date: string;
-  transaction_status: string;
-  student?: {
-    name: string;
-    admission_number: string;
-  };
-  class?: {
-    name: string;
-  };
-}
+import { MPESATransaction } from './types';
+import { transformMPESATransaction } from './utils/dataTransformers';
 
 export const useMpesaTransactions = () => {
   const [mpesaTransactions, setMpesaTransactions] = useState<MPESATransaction[]>([]);
@@ -42,44 +27,7 @@ export const useMpesaTransactions = () => {
 
       if (error) throw error;
       
-      const transformedData: MPESATransaction[] = (data || []).map(transaction => {
-        // Safe student data extraction
-        let studentData: { name: string; admission_number: string } | undefined;
-        if (transaction.student && 
-            typeof transaction.student === 'object' && 
-            transaction.student !== null &&
-            'name' in transaction.student) {
-          const student = transaction.student as any;
-          studentData = {
-            name: String(student.name || ''),
-            admission_number: String(student.admission_number || '')
-          };
-        }
-
-        // Safe class data extraction
-        let classData: { name: string } | undefined;
-        if (transaction.class && 
-            typeof transaction.class === 'object' && 
-            transaction.class !== null &&
-            'name' in transaction.class) {
-          const classObj = transaction.class as any;
-          classData = {
-            name: String(classObj.name || '')
-          };
-        }
-
-        return {
-          id: transaction.id,
-          transaction_id: transaction.transaction_id || '',
-          mpesa_receipt_number: transaction.mpesa_receipt_number || '',
-          phone_number: transaction.phone_number || '',
-          amount_paid: transaction.amount_paid || 0,
-          transaction_date: transaction.transaction_date || '',
-          transaction_status: transaction.transaction_status || '',
-          student: studentData,
-          class: classData
-        };
-      });
+      const transformedData: MPESATransaction[] = (data || []).map(transformMPESATransaction);
       
       setMpesaTransactions(transformedData);
       setError(null);

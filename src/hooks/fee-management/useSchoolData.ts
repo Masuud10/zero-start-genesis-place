@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { SchoolData } from './types';
 
 export const useSchoolData = () => {
   const [classes, setClasses] = useState<any[]>([]);

@@ -2,21 +2,7 @@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface FeeData {
-  amount: number;
-  due_date: string;
-  academic_year: string;
-  term: string;
-  category: string;
-}
-
-interface PaymentData {
-  amount: number;
-  payment_method: string;
-  mpesa_code?: string;
-  reference_number?: string;
-}
+import { FeeData, PaymentData } from './types';
 
 export const useFeeActions = () => {
   const { user } = useAuth();

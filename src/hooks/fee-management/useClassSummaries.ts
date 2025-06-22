@@ -2,19 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface ClassSummary {
-  class_id: string;
-  class_name: string;
-  total_amount: number;
-  paid_amount: number;
-  balance: number;
-  student_count: number;
-  // Legacy aliases for backward compatibility
-  total_fees?: number;
-  collected?: number;
-  outstanding?: number;
-}
+import { ClassSummary } from './types';
 
 export const useClassSummaries = () => {
   const [classSummaries, setClassSummaries] = useState<ClassSummary[]>([]);
