@@ -41,36 +41,58 @@ serve(async (req) => {
       case 'platform-overview':
         reportTitle = "EduFam Platform Overview Report";
         
-        // Fetch comprehensive platform data
-        const [schoolsData, usersData, transactionsData, certificatesData] = await Promise.all([
+        // Fetch real data from multiple tables
+        const [schoolsResult, profilesResult, financialResult, certificatesResult, companyResult] = await Promise.all([
           supabase.from('schools').select('*'),
           supabase.from('profiles').select('*'),
           supabase.from('financial_transactions').select('*'),
-          supabase.from('certificates').select('*')
+          supabase.from('certificates').select('*'),
+          supabase.from('company_details').select('*').single()
         ]);
 
-        const totalSchools = schoolsData.data?.length || 0;
-        const totalUsers = usersData.data?.length || 0;
-        const totalRevenue = transactionsData.data?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
-        const totalCertificates = certificatesData.data?.length || 0;
+        const schools = schoolsResult.data || [];
+        const profiles = profilesResult.data || [];
+        const transactions = financialResult.data || [];
+        const certificates = certificatesResult.data || [];
+        const companyInfo = companyResult.data;
+
+        const totalRevenue = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const usersByRole = profiles.reduce((acc: any, user) => {
+          acc[user.role] = (acc[user.role] || 0) + 1;
+          return acc;
+        }, {});
 
         reportContent = [
-          { text: 'Platform Statistics', style: 'header' },
-          { text: `Total Schools: ${totalSchools}` },
-          { text: `Total Users: ${totalUsers}` },
-          { text: `Total Revenue: KES ${totalRevenue.toLocaleString()}` },
-          { text: `Certificates Generated: ${totalCertificates}` },
+          { text: 'Executive Summary', style: 'header' },
+          { text: `Company: ${companyInfo?.company_name || 'EduFam'}` },
+          { text: `Report Generated: ${new Date().toLocaleDateString()}` },
           { text: '\n' },
-          { text: 'School Distribution', style: 'subheader' },
+          
+          { text: 'Platform Statistics', style: 'header' },
+          { text: `Total Schools: ${schools.length}` },
+          { text: `Total Users: ${profiles.length}` },
+          { text: `Total Certificates: ${certificates.length}` },
+          { text: `Total Revenue: KES ${totalRevenue.toLocaleString()}` },
+          { text: `Total Transactions: ${transactions.length}` },
+          { text: '\n' },
+
+          { text: 'User Distribution by Role', style: 'subheader' },
+          ...Object.entries(usersByRole).map(([role, count]) => 
+            ({ text: `${role}: ${count}` })
+          ),
+          { text: '\n' },
+
+          { text: 'Top 10 Schools by Registration Date', style: 'subheader' },
           {
             table: {
+              headerRows: 1,
               body: [
-                ['School Name', 'Location', 'Users', 'Status'],
-                ...(schoolsData.data || []).slice(0, 10).map(school => [
+                ['School Name', 'Location', 'Email', 'Registration Date'],
+                ...schools.slice(0, 10).map(school => [
                   school.name || 'N/A',
-                  school.location || 'N/A',
-                  usersData.data?.filter(u => u.school_id === school.id).length || 0,
-                  'Active'
+                  school.location || school.address || 'N/A',
+                  school.email || 'N/A',
+                  new Date(school.created_at).toLocaleDateString()
                 ])
               ]
             }
@@ -81,25 +103,31 @@ serve(async (req) => {
       case 'schools-summary':
         reportTitle = "Schools Summary Report";
         
-        const { data: schoolsSummary, error: schoolsError } = await supabase
+        const { data: schoolsData, error: schoolsError } = await supabase
           .from('schools')
           .select(`
             *,
-            profiles:profiles(count)
+            profiles!school_id(count)
           `);
 
         if (schoolsError) throw schoolsError;
 
         reportContent = [
-          { text: 'Registered Schools Summary', style: 'header' },
+          { text: 'Comprehensive Schools Summary', style: 'header' },
+          { text: `Total Schools Registered: ${schoolsData?.length || 0}` },
+          { text: `Report Date: ${new Date().toLocaleDateString()}` },
+          { text: '\n' },
+          
           {
             table: {
+              headerRows: 1,
+              widths: ['*', '*', '*', '*'],
               body: [
-                ['School Name', 'Location', 'Email', 'Created Date'],
-                ...(schoolsSummary || []).map(school => [
+                ['School Name', 'Location', 'Contact', 'Registration Date'],
+                ...(schoolsData || []).map(school => [
                   school.name || 'N/A',
-                  school.location || 'N/A',
-                  school.email || 'N/A',
+                  school.location || school.address || 'N/A',
+                  school.email || school.phone || 'N/A',
                   new Date(school.created_at).toLocaleDateString()
                 ])
               ]
@@ -111,73 +139,142 @@ serve(async (req) => {
       case 'users-analytics':
         reportTitle = "Users Analytics Report";
         
-        const { data: usersAnalytics, error: usersError } = await supabase
+        const { data: usersData, error: usersError } = await supabase
           .from('profiles')
           .select('*');
 
         if (usersError) throw usersError;
 
-        const roleDistribution = (usersAnalytics || []).reduce((acc: any, user) => {
+        const roleStats = (usersData || []).reduce((acc: any, user) => {
           acc[user.role] = (acc[user.role] || 0) + 1;
           return acc;
         }, {});
 
+        const schoolStats = (usersData || []).reduce((acc: any, user) => {
+          if (user.school_id) {
+            acc[user.school_id] = (acc[user.school_id] || 0) + 1;
+          }
+          return acc;
+        }, {});
+
         reportContent = [
-          { text: 'User Analytics', style: 'header' },
-          { text: `Total Users: ${usersAnalytics?.length || 0}` },
-          { text: '\nRole Distribution:', style: 'subheader' },
-          ...Object.entries(roleDistribution).map(([role, count]) => 
-            ({ text: `${role}: ${count}` })
-          )
+          { text: 'User Analytics Overview', style: 'header' },
+          { text: `Total Platform Users: ${usersData?.length || 0}` },
+          { text: `Analysis Date: ${new Date().toLocaleDateString()}` },
+          { text: '\n' },
+          
+          { text: 'User Distribution by Role', style: 'subheader' },
+          {
+            table: {
+              headerRows: 1,
+              body: [
+                ['Role', 'Count', 'Percentage'],
+                ...Object.entries(roleStats).map(([role, count]) => [
+                  role,
+                  count.toString(),
+                  `${((count as number / (usersData?.length || 1)) * 100).toFixed(1)}%`
+                ])
+              ]
+            }
+          },
+          { text: '\n' },
+          
+          { text: 'Schools with Most Users', style: 'subheader' },
+          { text: `Total Schools with Users: ${Object.keys(schoolStats).length}` },
+          { text: `Average Users per School: ${(usersData?.length || 0) / Math.max(Object.keys(schoolStats).length, 1)}//.toFixed(1)}` }
         ];
         break;
 
       case 'financial-overview':
         reportTitle = "Financial Overview Report";
         
-        const { data: financialData, error: financialError } = await supabase
+        const { data: finData, error: finError } = await supabase
           .from('financial_transactions')
           .select('*');
 
-        if (financialError) throw financialError;
+        if (finError) throw finError;
 
-        const totalTransactions = financialData?.length || 0;
-        const totalAmount = financialData?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
+        const totalTransactions = finData?.length || 0;
+        const totalAmount = finData?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
+        const avgTransaction = totalTransactions > 0 ? totalAmount / totalTransactions : 0;
+
+        const monthlyData = (finData || []).reduce((acc: any, transaction) => {
+          const month = new Date(transaction.created_at).toISOString().slice(0, 7);
+          acc[month] = (acc[month] || 0) + (Number(transaction.amount) || 0);
+          return acc;
+        }, {});
 
         reportContent = [
-          { text: 'Financial Overview', style: 'header' },
-          { text: `Total Transactions: ${totalTransactions}` },
-          { text: `Total Amount: KES ${totalAmount.toLocaleString()}` },
-          { text: `Average Transaction: KES ${totalTransactions > 0 ? (totalAmount / totalTransactions).toFixed(2) : '0'}` }
+          { text: 'Financial Performance Report', style: 'header' },
+          { text: `Reporting Period: All Time` },
+          { text: `Generated: ${new Date().toLocaleDateString()}` },
+          { text: '\n' },
+          
+          { text: 'Key Financial Metrics', style: 'subheader' },
+          { text: `Total Transactions: ${totalTransactions.toLocaleString()}` },
+          { text: `Total Revenue: KES ${totalAmount.toLocaleString()}` },
+          { text: `Average Transaction: KES ${avgTransaction.toFixed(2)}` },
+          { text: '\n' },
+
+          { text: 'Monthly Revenue Breakdown', style: 'subheader' },
+          {
+            table: {
+              headerRows: 1,
+              body: [
+                ['Month', 'Revenue (KES)'],
+                ...Object.entries(monthlyData)
+                  .sort(([a], [b]) => b.localeCompare(a))
+                  .slice(0, 12)
+                  .map(([month, amount]) => [
+                    new Date(month + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+                    (amount as number).toLocaleString()
+                  ])
+              ]
+            }
+          }
         ];
         break;
 
       case 'system-health':
         reportTitle = "System Health Report";
         
-        const { data: systemMetrics, error: metricsError } = await supabase
+        const { data: metricsData, error: metricsError } = await supabase
           .from('company_metrics')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(30);
 
         if (metricsError) throw metricsError;
 
-        const latestMetrics = systemMetrics?.[0];
+        const latestMetric = metricsData?.[0];
+        const avgUptime = metricsData?.length > 0 
+          ? metricsData.reduce((sum, m) => sum + (m.system_uptime_percentage || 100), 0) / metricsData.length
+          : 100;
 
         reportContent = [
-          { text: 'System Health Status', style: 'header' },
-          { text: `System Uptime: ${latestMetrics?.system_uptime_percentage || 100}%` },
-          { text: `API Calls Today: ${latestMetrics?.api_calls_count || 0}` },
-          { text: `Active Schools: ${latestMetrics?.active_schools || 0}` },
-          { text: `Active Users: ${latestMetrics?.active_users || 0}` }
+          { text: 'System Health Status Report', style: 'header' },
+          { text: `Report Generated: ${new Date().toLocaleDateString()}` },
+          { text: `Data Period: Last 30 Records` },
+          { text: '\n' },
+          
+          { text: 'Current System Status', style: 'subheader' },
+          { text: `System Uptime: ${latestMetric?.system_uptime_percentage || 100}%` },
+          { text: `Active Schools: ${latestMetric?.active_schools || 0}` },
+          { text: `Active Users: ${latestMetric?.active_users || 0}` },
+          { text: `API Calls (Recent): ${latestMetric?.api_calls_count || 0}` },
+          { text: '\n' },
+
+          { text: '30-Day Performance Average', style: 'subheader' },
+          { text: `Average Uptime: ${avgUptime.toFixed(2)}%` },
+          { text: `Total Metrics Recorded: ${metricsData?.length || 0}` },
+          { text: `System Status: ${avgUptime >= 99 ? 'Excellent' : avgUptime >= 95 ? 'Good' : 'Needs Attention'}` }
         ];
         break;
 
       case 'company-profile':
         reportTitle = "EduFam Company Profile Report";
         
-        const { data: companyDetails, error: companyError } = await supabase
+        const { data: companyData, error: companyError } = await supabase
           .from('company_details')
           .select('*')
           .single();
@@ -185,14 +282,31 @@ serve(async (req) => {
         if (companyError && companyError.code !== 'PGRST116') throw companyError;
 
         reportContent = [
-          { text: 'Company Information', style: 'header' },
-          { text: `Company Name: ${companyDetails?.company_name || 'EduFam'}` },
-          { text: `Website: ${companyDetails?.website_url || 'https://edufam.com'}` },
-          { text: `Email: ${companyDetails?.support_email || 'support@edufam.com'}` },
-          { text: `Phone: ${companyDetails?.contact_phone || 'N/A'}` },
-          { text: `Address: ${companyDetails?.headquarters_address || 'N/A'}` },
-          { text: `Year Established: ${companyDetails?.year_established || 2024}` },
-          { text: `Registration Number: ${companyDetails?.registration_number || 'N/A'}` }
+          { text: 'Company Profile Information', style: 'header' },
+          { text: `Report Date: ${new Date().toLocaleDateString()}` },
+          { text: '\n' },
+          
+          { text: 'Basic Company Information', style: 'subheader' },
+          { text: `Company Name: ${companyData?.company_name || 'EduFam Technologies Ltd'}` },
+          { text: `Company Type: ${companyData?.company_type || 'Educational Technology'}` },
+          { text: `Year Established: ${companyData?.year_established || '2024'}` },
+          { text: `Registration Number: ${companyData?.registration_number || 'Not Set'}` },
+          { text: '\n' },
+
+          { text: 'Contact Information', style: 'subheader' },
+          { text: `Website: ${companyData?.website_url || 'https://edufam.com'}` },
+          { text: `Support Email: ${companyData?.support_email || 'support@edufam.com'}` },
+          { text: `Contact Phone: ${companyData?.contact_phone || 'Not Set'}` },
+          { text: `Address: ${companyData?.headquarters_address || 'Not Set'}` },
+          { text: '\n' },
+
+          { text: 'Company Branding', style: 'subheader' },
+          { text: `Slogan: ${companyData?.company_slogan || 'Not Set'}` },
+          { text: `Motto: ${companyData?.company_motto || 'Not Set'}` },
+          { text: '\n' },
+
+          { text: 'Legal Information', style: 'subheader' },
+          { text: `Incorporation Details: ${companyData?.incorporation_details || 'Not Set'}` }
         ];
         break;
 
@@ -200,7 +314,7 @@ serve(async (req) => {
         throw new Error('Invalid report type');
     }
 
-    // Generate PDF
+    // Generate PDF with proper styling
     const docDefinition = {
       content: [
         {
@@ -217,20 +331,52 @@ serve(async (req) => {
         },
         ...reportContent,
         {
-          text: '\n\nPowered by EduFam - Education Management System',
+          text: '\n\n--- End of Report ---',
           style: 'footer',
           alignment: 'center',
           margin: [0, 20, 0, 0]
+        },
+        {
+          text: 'Powered by EduFam - Education Management System',
+          style: 'footer',
+          alignment: 'center',
+          margin: [0, 10, 0, 0]
         }
       ],
       styles: {
-        title: { fontSize: 20, bold: true, color: '#1976D2' },
-        header: { fontSize: 16, bold: true, margin: [0, 10, 0, 10] },
-        subheader: { fontSize: 14, bold: true, margin: [0, 8, 0, 8] },
-        date: { fontSize: 10, italics: true },
-        footer: { fontSize: 10, italics: true, color: '#666' }
+        title: { 
+          fontSize: 20, 
+          bold: true, 
+          color: '#1976D2',
+          margin: [0, 0, 0, 10]
+        },
+        header: { 
+          fontSize: 16, 
+          bold: true, 
+          margin: [0, 10, 0, 10],
+          color: '#333'
+        },
+        subheader: { 
+          fontSize: 14, 
+          bold: true, 
+          margin: [0, 10, 0, 5],
+          color: '#555'
+        },
+        date: { 
+          fontSize: 10, 
+          italics: true,
+          color: '#666'
+        },
+        footer: { 
+          fontSize: 10, 
+          italics: true, 
+          color: '#666'
+        }
       },
-      defaultStyle: { fontSize: 12 }
+      defaultStyle: { 
+        fontSize: 12,
+        lineHeight: 1.3
+      }
     };
 
     const pdfDocGenerator = pdfmake.createPdf(docDefinition);

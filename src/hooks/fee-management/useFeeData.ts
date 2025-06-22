@@ -45,29 +45,49 @@ export const useFeeData = () => {
 
       if (error) throw error;
       
-      const transformedData: FeeRecord[] = (data || []).map(fee => ({
-        id: fee.id,
-        student_id: fee.student_id || '',
-        class_id: fee.class_id || '',
-        amount: fee.amount || 0,
-        paid_amount: fee.paid_amount || 0,
-        status: (['pending', 'partial', 'paid', 'overdue'].includes(fee.status) 
-          ? fee.status 
-          : 'pending') as 'pending' | 'partial' | 'paid' | 'overdue',
-        due_date: fee.due_date || '',
-        academic_year: fee.academic_year || '',
-        term: fee.term || '',
-        category: fee.category || '',
-        student: fee.student && fee.student !== null && typeof fee.student === 'object' && 'name' in fee.student && fee.student.name !== null
-          ? { 
-              name: String(fee.student.name || ''), 
-              admission_number: String(fee.student.admission_number || '') 
-            }
-          : undefined,
-        class: fee.class && fee.class !== null && typeof fee.class === 'object' && 'name' in fee.class && fee.class.name !== null
-          ? { name: String(fee.class.name || '') }
-          : undefined
-      }));
+      const transformedData: FeeRecord[] = (data || []).map(fee => {
+        // Safe student data extraction
+        let studentData: { name: string; admission_number: string } | undefined;
+        if (fee.student && 
+            typeof fee.student === 'object' && 
+            fee.student !== null &&
+            'name' in fee.student) {
+          const student = fee.student as any;
+          studentData = {
+            name: String(student.name || ''),
+            admission_number: String(student.admission_number || '')
+          };
+        }
+
+        // Safe class data extraction
+        let classData: { name: string } | undefined;
+        if (fee.class && 
+            typeof fee.class === 'object' && 
+            fee.class !== null &&
+            'name' in fee.class) {
+          const classObj = fee.class as any;
+          classData = {
+            name: String(classObj.name || '')
+          };
+        }
+
+        return {
+          id: fee.id,
+          student_id: fee.student_id || '',
+          class_id: fee.class_id || '',
+          amount: fee.amount || 0,
+          paid_amount: fee.paid_amount || 0,
+          status: (['pending', 'partial', 'paid', 'overdue'].includes(fee.status) 
+            ? fee.status 
+            : 'pending') as 'pending' | 'partial' | 'paid' | 'overdue',
+          due_date: fee.due_date || '',
+          academic_year: fee.academic_year || '',
+          term: fee.term || '',
+          category: fee.category || '',
+          student: studentData,
+          class: classData
+        };
+      });
       
       setFees(transformedData);
       setError(null);
