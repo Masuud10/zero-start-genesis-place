@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Dashboard from '@/components/Dashboard';
@@ -28,6 +29,7 @@ import UsersModule from '@/components/modules/UsersModule';
 import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
+import EduFamCertificateManagement from '@/components/certificates/EduFamCertificateManagement';
 
 interface ContentRendererProps {
   activeSection: string;
@@ -84,6 +86,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
       case 'timetable':
         return <TimetableModule />;
 
+      case 'certificates':
+        // Show EduFam certificate management for admins, regular for others
+        if (user?.role === 'edufam_admin') {
+          return <EduFamCertificateManagement />;
+        }
+        return <div>Certificate management for school users</div>;
+
       case 'announcements':
         return <AnnouncementsModule />;
 
@@ -108,14 +117,14 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
       case 'users':
         return <UsersModule />;
 
+      case 'company-management':
+        return <CompanyManagementModule />;
+
       case 'billing':
         return <BillingModule />;
 
       case 'system-health':
         return <SystemHealthModule />;
-
-      case 'company-management':
-        return <CompanyManagementModule />;
 
       default:
         return (

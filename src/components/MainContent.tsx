@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
 import FinancialOverview from '@/components/finance/FinancialOverview';
 import FeeManagementModule from '@/components/finance/FeeManagementModule';
 import MpesaPaymentsModule from '@/components/finance/MpesaPaymentsModule';
@@ -22,13 +24,14 @@ import SchoolsModule from '@/components/modules/SchoolsModule';
 import UsersModule from '@/components/modules/UsersModule';
 import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
+import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
+import EduFamCertificateManagement from '@/components/certificates/EduFamCertificateManagement';
 import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
 import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
 import SchoolOwnerDashboard from '@/components/dashboard/SchoolOwnerDashboard';
-import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
 
 const MainContent: React.FC = () => {
   const { activeSection } = useNavigation();
@@ -72,6 +75,11 @@ const MainContent: React.FC = () => {
         return <SchoolManagementDashboard />;
       case 'analytics':
         return <AnalyticsDashboard />;
+      case 'school-analytics':
+        if (user?.role === 'edufam_admin') {
+          return <SchoolAnalyticsList />;
+        }
+        return <AnalyticsDashboard />;
       case 'grades':
         return <GradesModule />;
       case 'attendance':
@@ -82,6 +90,11 @@ const MainContent: React.FC = () => {
         return <FinancialOverview />;
       case 'timetable':
         return <TimetableModule />;
+      case 'certificates':
+        if (user?.role === 'edufam_admin') {
+          return <EduFamCertificateManagement />;
+        }
+        return <div>Certificate management for school users</div>;
       case 'announcements':
         return <AnnouncementsModule />;
       case 'messages':
@@ -100,6 +113,8 @@ const MainContent: React.FC = () => {
         return <UsersModule />;
       case 'billing':
         return <BillingModule />;
+      case 'company-management':
+        return <CompanyManagementModule />;
       case 'system-health':
         return <SystemHealthModule />;
       case 'fee-management':
@@ -110,8 +125,6 @@ const MainContent: React.FC = () => {
         return <FinancialReportsModule />;
       case 'financial-analytics':
         return <FinancialAnalyticsModule />;
-      case 'company-management':
-        return <CompanyManagementModule />;
       default:
         return <div>Content for {activeSection}</div>;
     }
