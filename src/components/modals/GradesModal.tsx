@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -23,6 +24,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 import IGCSEGradesModal from './IGCSEGradesModal';
+import { CBCGradesModal } from './CBCGradesModal';
 import { getGradingPermissions } from '@/utils/grading-permissions';
 import { UserRole } from '@/types/user';
 import GradesForm from './GradesForm';
@@ -316,6 +318,11 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const canApprove = permissions.canApproveGrades && isPrincipal;
   const canSubmit = isTeacher && permissions.canSubmitGrades;
   const canInput = isTeacher ? permissions.canCreateGrades : permissions.canEditGrades || permissions.canCreateGrades;
+
+  // Modal switching: CBC custom flow
+  if (curriculumType === 'cbc') {
+    return <CBCGradesModal onClose={onClose} />;
+  }
 
   // Modal switching: IGCSE custom flow
   if (curriculumType === 'igcse') {

@@ -956,6 +956,216 @@ export type Database = {
           },
         ]
       }
+      cbc_grade_batches: {
+        Row: {
+          academic_year: string
+          batch_name: string
+          class_id: string
+          created_at: string | null
+          grades_entered: number | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string
+          status: string | null
+          submitted_at: string | null
+          teacher_id: string
+          term: string
+          total_students: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year: string
+          batch_name: string
+          class_id: string
+          created_at?: string | null
+          grades_entered?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id: string
+          status?: string | null
+          submitted_at?: string | null
+          teacher_id: string
+          term: string
+          total_students?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          batch_name?: string
+          class_id?: string
+          created_at?: string | null
+          grades_entered?: number | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string
+          status?: string | null
+          submitted_at?: string | null
+          teacher_id?: string
+          term?: string
+          total_students?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      cbc_grades: {
+        Row: {
+          academic_year: string
+          approved_at: string | null
+          approved_by: string | null
+          assessment_date: string | null
+          class_id: string
+          created_at: string | null
+          id: string
+          learning_area_id: string | null
+          performance_descriptor: string | null
+          performance_level: string
+          school_id: string
+          status: string | null
+          student_id: string
+          submitted_at: string | null
+          teacher_id: string
+          teacher_remarks: string | null
+          term: string
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_date?: string | null
+          class_id: string
+          created_at?: string | null
+          id?: string
+          learning_area_id?: string | null
+          performance_descriptor?: string | null
+          performance_level: string
+          school_id: string
+          status?: string | null
+          student_id: string
+          submitted_at?: string | null
+          teacher_id: string
+          teacher_remarks?: string | null
+          term: string
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_date?: string | null
+          class_id?: string
+          created_at?: string | null
+          id?: string
+          learning_area_id?: string | null
+          performance_descriptor?: string | null
+          performance_level?: string
+          school_id?: string
+          status?: string | null
+          student_id?: string
+          submitted_at?: string | null
+          teacher_id?: string
+          teacher_remarks?: string | null
+          term?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cbc_grades_learning_area_id_fkey"
+            columns: ["learning_area_id"]
+            isOneToOne: false
+            referencedRelation: "cbc_learning_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cbc_learning_areas: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          grade_level: string
+          id: string
+          learning_area_code: string
+          learning_area_name: string
+          school_id: string
+          subject_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          grade_level: string
+          id?: string
+          learning_area_code: string
+          learning_area_name: string
+          school_id: string
+          subject_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          grade_level?: string
+          id?: string
+          learning_area_code?: string
+          learning_area_name?: string
+          school_id?: string
+          subject_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cbc_learning_areas_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cbc_performance_descriptors: {
+        Row: {
+          created_at: string | null
+          descriptor_text: string
+          id: string
+          is_default: boolean | null
+          learning_area_id: string | null
+          performance_level: string
+          school_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descriptor_text: string
+          id?: string
+          is_default?: boolean | null
+          learning_area_id?: string | null
+          performance_level: string
+          school_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descriptor_text?: string
+          id?: string
+          is_default?: boolean | null
+          learning_area_id?: string | null
+          performance_level?: string
+          school_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cbc_performance_descriptors_learning_area_id_fkey"
+            columns: ["learning_area_id"]
+            isOneToOne: false
+            referencedRelation: "cbc_learning_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           academic_year: string
