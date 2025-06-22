@@ -4,169 +4,155 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Smartphone, CreditCard, Loader2 } from 'lucide-react';
-import { useMpesaTransactions } from '@/hooks/useMpesaTransactions';
+import { Smartphone } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MpesaPaymentDialogProps {
-  studentFee: {
-    id: string;
-    amount: number;
-    amount_paid: number;
-    student?: { name: string; admission_number: string };
-  };
-  trigger?: React.ReactNode;
+  studentFee: any;
+  onPaymentProcessed?: () => void;
 }
 
-const MpesaPaymentDialog: React.FC<MpesaPaymentDialogProps> = ({ studentFee, trigger }) => {
+const MpesaPaymentDialog: React.FC<MpesaPaymentDialogProps> = ({
+  studentFee,
+  onPaymentProcessed
+}) => {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [amount, setAmount] = useState(Math.max(0, studentFee.amount - studentFee.amount_paid));
-
-  const { initiateStkPush } = useMpesaTransactions();
-  const remainingAmount = studentFee.amount - studentFee.amount_paid;
-
-  const formatPhoneNumber = (value: string) => {
-    // Remove any non-numeric characters
-    const cleaned = value.replace(/\D/g, '');
-    
-    // Format as Kenya phone number
-    if (cleaned.startsWith('0')) {
-      return '+254' + cleaned.substring(1);
-    } else if (cleaned.startsWith('254')) {
-      return '+' + cleaned;
-    } else if (!cleaned.startsWith('+254')) {
-      return value.startsWith('+') ? value : '+254' + cleaned;
-    }
-    return value;
-  };
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const { toast } = useToast();
+  const remainingBalance = studentFee.amount - studentFee.amount_paid;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!phoneNumber || !amount || amount <= 0) {
+    if (!phoneNumber || !amount) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const paymentAmount = parseFloat(amount);
+    if (paymentAmount <= 0 || paymentAmount > remainingBalance) {
+      toast({
+        title: "Error",
+        description: `Payment amount must be between 1 and ${remainingBalance}`,
+        variant: "destructive",
+      });
       return;
     }
 
     setLoading(true);
 
-    const result = await initiateStkPush(phoneNumber, amount, studentFee.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('mpesa-stk-push', {
+        body: {
+          phone_number: phoneNumber,
+          amount: paymentAmount,
+          student_fee_id: studentFee.id
+        }
+      });
 
-    if (!result.error) {
-      setOpen(false);
-      setPhoneNumber('');
-      setAmount(remainingAmount);
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "STK Push Sent",
+          description: "Please check your phone and enter your M-PESA PIN",
+        });
+        setOpen(false);
+        setPhoneNumber('');
+        setAmount('');
+        onPaymentProcessed?.();
+      } else {
+        throw new Error(data.error || 'Failed to initiate M-PESA payment');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initiate M-PESA payment",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || (
-          <Button size="sm" className="bg-green-600 hover:bg-green-700 gap-2">
-            <Smartphone className="h-4 w-4" />
-            Pay with M-PESA
-          </Button>
-        )}
+        <Button variant="outline" size="sm" className="text-green-600">
+          <Smartphone className="w-4 h-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5 text-green-600" />
+            <Smartphone className="w-5 h-5 text-green-600" />
             M-PESA Payment
           </DialogTitle>
         </DialogHeader>
+        
+        <div className="mb-4 p-3 bg-green-50 rounded-lg">
+          <h4 className="font-medium">{studentFee.student?.name}</h4>
+          <p className="text-sm text-gray-600">Outstanding: KES {remainingBalance.toLocaleString()}</p>
+        </div>
 
-        <div className="space-y-4">
-          {/* Student Info */}
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <div className="font-medium">{studentFee.student?.name}</div>
-            <div className="text-sm text-gray-600">
-              Admission: {studentFee.student?.admission_number}
-            </div>
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-sm">Amount Due:</span>
-              <Badge variant={remainingAmount > 0 ? 'destructive' : 'secondary'}>
-                KES {remainingAmount.toFixed(2)}
-              </Badge>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="phoneNumber">Phone Number *</Label>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="e.g., 0712345678"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the M-PESA registered phone number
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="phone">M-PESA Phone Number *</Label>
-              <Input
-                id="phone"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
-                placeholder="+254700000000"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Enter the phone number registered with M-PESA
-              </p>
-            </div>
+          <div>
+            <Label htmlFor="amount">Payment Amount *</Label>
+            <Input
+              id="amount"
+              type="number"
+              step="0.01"
+              max={remainingBalance}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              required
+            />
+          </div>
 
-            <div>
-              <Label htmlFor="amount">Payment Amount (KES) *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="1"
-                max={remainingAmount}
-                value={amount}
-                onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                required
-              />
-              {amount > remainingAmount && (
-                <p className="text-sm text-orange-600 mt-1">
-                  ⚠️ Amount exceeds remaining balance
-                </p>
-              )}
-            </div>
+          <div className="bg-blue-50 p-3 rounded-lg text-sm">
+            <p className="text-blue-800">
+              <strong>How it works:</strong>
+            </p>
+            <ul className="list-disc list-inside text-blue-700 mt-1 space-y-1">
+              <li>You'll receive an STK push on your phone</li>
+              <li>Enter your M-PESA PIN to complete payment</li>
+              <li>Payment will be processed automatically</li>
+            </ul>
+          </div>
 
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                How it works:
-              </h4>
-              <ol className="text-sm text-green-700 space-y-1">
-                <li>1. Click "Initiate Payment" below</li>
-                <li>2. Check your phone for M-PESA prompt</li>
-                <li>3. Enter your M-PESA PIN to complete</li>
-                <li>4. Payment will be recorded automatically</li>
-              </ol>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={loading || !phoneNumber || !amount}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Smartphone className="h-4 w-4 mr-2" />
-                    Initiate Payment
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700">
+              {loading ? 'Processing...' : 'Send STK Push'}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

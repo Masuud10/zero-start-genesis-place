@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Settings, Receipt } from 'lucide-react';
 import { useStudentFees } from '@/hooks/useStudentFees';
 import { useMpesaTransactions } from '@/hooks/useMpesaTransactions';
 import FeeAssignmentDialog from './FeeAssignmentDialog';
@@ -11,6 +9,7 @@ import FeeManagementSummaryCards from './FeeManagementSummaryCards';
 import FeeCollectionsTable from './FeeCollectionsTable';
 import OutstandingBalancesTable from './OutstandingBalancesTable';
 import MpesaTransactionsSection from './MpesaTransactionsSection';
+import FeeStructureList from './FeeStructureList';
 
 const EnhancedFeeManagementPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('structures');
@@ -32,10 +31,13 @@ const EnhancedFeeManagementPanel: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Enhanced Fee Management</h2>
+          <h2 className="text-2xl font-bold">Fee Management</h2>
           <p className="text-muted-foreground">Comprehensive fee management with M-PESA integration</p>
         </div>
-        <FeeAssignmentDialog mode="class" onAssignmentComplete={handleAssignmentComplete} />
+        <FeeAssignmentDialog 
+          mode="class" 
+          onAssignmentComplete={handleAssignmentComplete}
+        />
       </div>
 
       <FeeManagementSummaryCards
@@ -54,6 +56,16 @@ const EnhancedFeeManagementPanel: React.FC = () => {
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="structures" className="space-y-4">
+          <FeeStructureList 
+            refreshTrigger={refreshTrigger}
+            onEdit={(structure) => {
+              // Handle edit functionality
+              console.log('Edit structure:', structure);
+            }}
+          />
+        </TabsContent>
+
         <TabsContent value="collections" className="space-y-4">
           <FeeCollectionsTable
             studentFees={studentFees}
@@ -70,39 +82,10 @@ const EnhancedFeeManagementPanel: React.FC = () => {
           <MpesaTransactionsPanel />
         </TabsContent>
 
-        <TabsContent value="structures" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Fee Structures
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">Fee structures management coming soon</p>
-                <FeeAssignmentDialog mode="student" onAssignmentComplete={handleAssignmentComplete} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="reports" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5" />
-                Financial Reports
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Advanced reporting features coming soon</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center py-8">
+            <p className="text-gray-500">Financial reports are available in the main Financial Reports section</p>
+          </div>
         </TabsContent>
       </Tabs>
 

@@ -5,28 +5,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserPlus, Users } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface FeeAssignmentDialogProps {
   mode: 'class' | 'student';
-  onAssignmentComplete: () => void;
+  onAssignmentComplete?: () => void;
 }
 
-const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ mode, onAssignmentComplete }) => {
+const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({
+  mode,
+  onAssignmentComplete
+}) => {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
-  const [feeStructures, setFeeStructures] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
-    feeStructureId: '',
-    classId: '',
-    studentId: '',
     amount: '',
-    dueDate: ''
+    category: '',
+    term: '',
+    academic_year: new Date().getFullYear().toString(),
+    due_date: '',
+    target_id: '' // class_id or student_id
   });
 
   const { user } = useAuth();
@@ -39,32 +43,25 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ mode, onAssig
   }, [open, user?.school_id]);
 
   const fetchData = async () => {
-    if (!user?.school_id) return;
-
     try {
-      // Fetch classes
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('id, name, level, stream')
-        .eq('school_id', user.school_id);
-
-      // Fetch students
-      const { data: studentsData } = await supabase
-        .from('students')
-        .select('id, name, admission_number, class_id')
-        .eq('school_id', user.school_id)
-        .eq('is_active', true);
-
-      // Fetch fee structures
-      const { data: feeStructuresData } = await supabase
-        .from('fee_structures')
-        .select('id, name, academic_year, term')
-        .eq('school_id', user.school_id)
-        .eq('is_active', true);
-
-      setClasses(classesData || []);
-      setStudents(studentsData || []);
-      setFeeStructures(feeStructuresData || []);
+      if (mode === 'class') {
+        const { data, error } = await supabase
+          .from('classes')
+          .select('id, name')
+          .eq('school_id', user?.school_id);
+        
+        if (error) throw error;
+        setClasses(data || []);
+      } else {
+        const { data, error } = await supabase
+          .from('students')
+          .select('id, name, admission_number, class_id')
+          .eq('school_id', user?.school_id)
+          .eq('is_active', true);
+        
+        if (error) throw error;
+        setStudents(data || []);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -72,46 +69,75 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ mode, onAssig
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.school_id) return;
+    
+    if (!formData.amount || !formData.category || !formData.term || !formData.due_date || !formData.target_id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
+
     try {
       if (mode === 'class') {
         // Assign fee to all students in the class
-        const classStudents = students.filter(s => s.class_id === formData.classId);
-        
-        const feeAssignments = classStudents.map(student => ({
-          student_id: student.id,
-          school_id: user.school_id,
-          class_id: formData.classId,
-          amount: parseFloat(formData.amount),
-          due_date: formData.dueDate,
-          term: 'Term 1', // You can make this dynamic
-          academic_year: new Date().getFullYear().toString(),
-          status: 'pending'
-        }));
+        const { data: studentsInClass, error: studentsError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('class_id', formData.target_id)
+          .eq('is_active', true);
 
-        const { error } = await supabase
-          .from('fees')
-          .insert(feeAssignments);
+        if (studentsError) throw studentsError;
 
-        if (error) throw error;
+        if (studentsInClass && studentsInClass.length > 0) {
+          const feeRecords = studentsInClass.map(student => ({
+            school_id: user?.school_id,
+            student_id: student.id,
+            class_id: formData.target_id,
+            amount: parseFloat(formData.amount),
+            category: formData.category,
+            term: formData.term,
+            academic_year: formData.academic_year,
+            due_date: formData.due_date,
+            status: 'pending'
+          }));
 
-        toast({
-          title: "Success",
-          description: `Fee assigned to ${classStudents.length} students in the class`,
-        });
+          const { error: insertError } = await supabase
+            .from('fees')
+            .insert(feeRecords);
+
+          if (insertError) throw insertError;
+
+          toast({
+            title: "Success",
+            description: `Fee assigned to ${studentsInClass.length} students in the class`,
+          });
+        } else {
+          toast({
+            title: "Warning",
+            description: "No active students found in the selected class",
+            variant: "destructive",
+          });
+          return;
+        }
       } else {
         // Assign fee to individual student
+        const student = students.find(s => s.id === formData.target_id);
+        
         const { error } = await supabase
           .from('fees')
           .insert({
-            student_id: formData.studentId,
-            school_id: user.school_id,
+            school_id: user?.school_id,
+            student_id: formData.target_id,
+            class_id: student?.class_id,
             amount: parseFloat(formData.amount),
-            due_date: formData.dueDate,
-            term: 'Term 1',
-            academic_year: new Date().getFullYear().toString(),
+            category: formData.category,
+            term: formData.term,
+            academic_year: formData.academic_year,
+            due_date: formData.due_date,
             status: 'pending'
           });
 
@@ -125,17 +151,19 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ mode, onAssig
 
       setOpen(false);
       setFormData({
-        feeStructureId: '',
-        classId: '',
-        studentId: '',
         amount: '',
-        dueDate: ''
+        category: '',
+        term: '',
+        academic_year: new Date().getFullYear().toString(),
+        due_date: '',
+        target_id: ''
       });
-      onAssignmentComplete();
+      onAssignmentComplete?.();
+
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to assign fee",
         variant: "destructive",
       });
     } finally {
@@ -146,9 +174,9 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ mode, onAssig
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          {mode === 'class' ? <Users className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
-          Assign to {mode === 'class' ? 'Class' : 'Student'}
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Assign Fee to {mode === 'class' ? 'Class' : 'Student'}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
@@ -157,60 +185,95 @@ const FeeAssignmentDialog: React.FC<FeeAssignmentDialogProps> = ({ mode, onAssig
             Assign Fee to {mode === 'class' ? 'Class' : 'Student'}
           </DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === 'class' ? (
-            <div>
-              <Label htmlFor="classId">Select Class *</Label>
-              <Select value={formData.classId} onValueChange={(value) => setFormData({...formData, classId: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name} {cls.level} {cls.stream}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div>
-              <Label htmlFor="studentId">Select Student *</Label>
-              <Select value={formData.studentId} onValueChange={(value) => setFormData({...formData, studentId: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a student" />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name} ({student.admission_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div>
+            <Label htmlFor="target">
+              {mode === 'class' ? 'Select Class' : 'Select Student'} *
+            </Label>
+            <Select value={formData.target_id} onValueChange={(value) => setFormData({...formData, target_id: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder={`Select ${mode}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {mode === 'class' 
+                  ? classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))
+                  : students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.name} ({student.admission_number})
+                      </SelectItem>
+                    ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
 
           <div>
-            <Label htmlFor="amount">Amount (KES) *</Label>
+            <Label htmlFor="amount">Fee Amount (KES) *</Label>
             <Input
               id="amount"
               type="number"
               step="0.01"
               value={formData.amount}
               onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              placeholder="Enter amount"
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="dueDate">Due Date *</Label>
+            <Label htmlFor="category">Fee Category *</Label>
+            <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tuition">Tuition Fee</SelectItem>
+                <SelectItem value="transport">Transport Fee</SelectItem>
+                <SelectItem value="meals">Meals Fee</SelectItem>
+                <SelectItem value="activities">Activities Fee</SelectItem>
+                <SelectItem value="exam">Exam Fee</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="term">Term *</Label>
+            <Select value={formData.term} onValueChange={(value) => setFormData({...formData, term: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select term" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Term 1">Term 1</SelectItem>
+                <SelectItem value="Term 2">Term 2</SelectItem>
+                <SelectItem value="Term 3">Term 3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="academic_year">Academic Year *</Label>
             <Input
-              id="dueDate"
+              id="academic_year"
+              type="number"
+              value={formData.academic_year}
+              onChange={(e) => setFormData({...formData, academic_year: e.target.value})}
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="due_date">Due Date *</Label>
+            <Input
+              id="due_date"
               type="date"
-              value={formData.dueDate}
-              onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+              value={formData.due_date}
+              onChange={(e) => setFormData({...formData, due_date: e.target.value})}
               required
             />
           </div>

@@ -52,20 +52,22 @@ const FinanceModule: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const { data: summaryData, error: summaryError } = await supabase
-                .from("school_finance_summary")
-                .select("*")
-                .eq("school_id", effectiveSchoolId)
-                .maybeSingle();
-
-            if (summaryError) throw summaryError;
-            setFinanceSummary(summaryData);
-
-            const { data: outstanding, error: feesError } = await supabase.rpc('get_outstanding_fees', {
-                p_school_id: effectiveSchoolId,
-            });
+            // Fetch fees data for summary
+            const { data: feesData, error: feesError } = await supabase
+                .from("fees")
+                .select("amount, paid_amount")
+                .eq("school_id", effectiveSchoolId);
 
             if (feesError) throw feesError;
+
+            const totalFees = feesData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+            const totalCollected = feesData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+            const outstanding = totalFees - totalCollected;
+
+            setFinanceSummary({
+                total_collected: totalCollected,
+                total_fees: totalFees
+            });
             setOutstandingFees(outstanding);
 
         } catch (err: any) {
@@ -136,7 +138,6 @@ const FinanceModule: React.FC = () => {
       return renderForSummaryRole();
     case 'school_owner':
     case 'principal':
-      // For school owners and principals, show financial overview
       return <FinancialOverview />;
     case 'finance_officer':
       return <FinanceOfficerDashboard user={user} />;
