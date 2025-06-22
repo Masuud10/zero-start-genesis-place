@@ -4989,6 +4989,39 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       system_status: {
         Row: {
           current_status: string
@@ -5442,6 +5475,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_maintenance_message: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_outstanding_fees: {
         Args: { p_school_id: string }
         Returns: number
@@ -5476,6 +5513,10 @@ export type Database = {
       }
       is_grade_in_user_school: {
         Args: { grade_student_id: string }
+        Returns: boolean
+      }
+      is_system_in_maintenance: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       log_security_event: {

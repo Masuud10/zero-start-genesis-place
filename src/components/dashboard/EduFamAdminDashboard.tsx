@@ -9,6 +9,7 @@ import RecentSchoolsSection from './admin/RecentSchoolsSection';
 import UserRoleBreakdown from './admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
+import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import DashboardModals from './DashboardModals';
 import { useAuth } from '@/contexts/AuthContext';
@@ -160,6 +161,9 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         schoolsRefetching={schoolsRefetching}
         usersRefetching={usersRefetching}
       />
+
+      {/* Analytics Overview Section */}
+      <EduFamAnalyticsOverview />
 
       {/* Administrative Hub */}
       <AdministrativeHub
