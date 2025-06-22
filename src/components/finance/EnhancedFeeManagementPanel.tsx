@@ -25,8 +25,13 @@ import { format } from 'date-fns';
 
 const EnhancedFeeManagementPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('structures');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { studentFees, loading } = useStudentFees();
   const { transactions } = useMpesaTransactions();
+
+  const handleAssignmentComplete = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   // Calculate summary statistics
   const totalFees = studentFees.reduce((sum, fee) => sum + fee.amount, 0);
@@ -64,7 +69,7 @@ const EnhancedFeeManagementPanel: React.FC = () => {
           <h2 className="text-2xl font-bold">Enhanced Fee Management</h2>
           <p className="text-muted-foreground">Comprehensive fee management with M-PESA integration</p>
         </div>
-        <FeeAssignmentDialog />
+        <FeeAssignmentDialog mode="class" onAssignmentComplete={handleAssignmentComplete} />
       </div>
 
       {/* Summary Cards */}
@@ -294,7 +299,7 @@ const EnhancedFeeManagementPanel: React.FC = () => {
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500 mb-4">Fee structures management coming soon</p>
-                <FeeAssignmentDialog />
+                <FeeAssignmentDialog mode="student" onAssignmentComplete={handleAssignmentComplete} />
               </div>
             </CardContent>
           </Card>
