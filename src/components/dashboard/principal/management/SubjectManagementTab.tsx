@@ -206,6 +206,7 @@ const SubjectManagementTab = () => {
         school_id: schoolId!, // Ensure school_id is provided
         class_id: formData.class_id || null,
         teacher_id: formData.teacher_id || null,
+        is_active: true
       };
 
       console.log('Submitting subject data:', subjectData);
@@ -221,7 +222,7 @@ const SubjectManagementTab = () => {
           .eq('school_id', schoolId) // Ensure user can only update subjects in their school
           .select();
       } else {
-        // Create new subject - FIXED: Removed .single()
+        // Create new subject
         result = await supabase
           .from('subjects')
           .insert(subjectData)
@@ -483,26 +484,23 @@ const SubjectManagementTab = () => {
       {/* Subjects List */}
       <Card>
         <CardHeader>
-          <CardTitle>Existing Subjects ({subjects.length})</CardTitle>
+          <CardTitle>Existing Subjects</CardTitle>
         </CardHeader>
         <CardContent>
           {subjects.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium">No subjects found</p>
-              <p className="text-sm">Create your first subject using the form above.</p>
+            <div className="text-center py-8 text-gray-500">
+              No subjects found. Create your first subject above.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
+                    <TableHead>Subject Name</TableHead>
                     <TableHead>Code</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Teacher</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -514,25 +512,20 @@ const SubjectManagementTab = () => {
                       </TableCell>
                       <TableCell>{getClassName(subject.class_id)}</TableCell>
                       <TableCell>{getTeacherName(subject.teacher_id)}</TableCell>
-                      <TableCell>
-                        {new Date(subject.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
                           <Button
+                            variant="ghost"
                             size="sm"
-                            variant="outline"
                             onClick={() => handleEdit(subject)}
-                            disabled={creating}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
+                            variant="ghost"
                             size="sm"
-                            variant="outline"
                             onClick={() => handleDelete(subject.id)}
                             className="text-red-600 hover:text-red-700"
-                            disabled={creating}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

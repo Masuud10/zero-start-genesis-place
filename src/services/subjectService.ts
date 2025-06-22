@@ -187,8 +187,8 @@ export class SubjectService {
       .insert(payload)
       .select(`
         *,
-        subjects(id, name, code),
-        classes(id, name)
+        subject:subjects(id, name, code),
+        class:classes(id, name)
       `)
       .single();
 
@@ -210,9 +210,9 @@ export class SubjectService {
 
     const result = {
       ...assignment,
-      subject: assignment.subjects,
-      class: assignment.classes,
-      teacher: teacher || undefined
+      subject: assignment.subject,
+      class: assignment.class,
+      teacher: teacher || { id: data.teacher_id, name: 'Unknown Teacher', email: '' }
     };
 
     console.log('Assignment created successfully:', result);
@@ -230,8 +230,8 @@ export class SubjectService {
       .from('subject_teacher_assignments')
       .select(`
         *,
-        subjects(id, name, code),
-        classes(id, name)
+        subject:subjects(id, name, code),
+        class:classes(id, name)
       `)
       .eq('school_id', schoolId)
       .eq('is_active', true);
@@ -258,9 +258,13 @@ export class SubjectService {
 
     const result = assignments.map(assignment => ({
       ...assignment,
-      subject: assignment.subjects,
-      class: assignment.classes,
-      teacher: teachers?.find(t => t.id === assignment.teacher_id)
+      subject: assignment.subject,
+      class: assignment.class,
+      teacher: teachers?.find(t => t.id === assignment.teacher_id) || { 
+        id: assignment.teacher_id, 
+        name: 'Unknown Teacher', 
+        email: '' 
+      }
     }));
 
     console.log('Assignments fetched successfully:', result.length);

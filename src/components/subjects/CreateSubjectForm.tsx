@@ -59,8 +59,8 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     }
 
     // Validate code format (letters and numbers only)
-    if (!/^[A-Z0-9]+$/.test(formData.code)) {
-      setError("Subject code must contain only uppercase letters and numbers");
+    if (!/^[A-Z0-9]+$/.test(formData.code.toUpperCase())) {
+      setError("Subject code must contain only letters and numbers");
       return false;
     }
 
@@ -75,7 +75,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
 
     console.log('Submitting subject creation:', formData);
 
-    const result = await createSubject(formData);
+    // Ensure code is uppercase
+    const submissionData = {
+      ...formData,
+      code: formData.code.toUpperCase()
+    };
+
+    const result = await createSubject(submissionData);
 
     if (result) {
       handleClose();
