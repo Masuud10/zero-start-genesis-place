@@ -12,76 +12,48 @@ export const useSchoolData = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const fetchClasses = async () => {
+  const fetchSchoolData = async () => {
     if (!user?.school_id) return;
 
     try {
-      const { data, error } = await supabase
+      // Fetch classes
+      const { data: classesData, error: classesError } = await supabase
         .from('classes')
         .select('*')
         .eq('school_id', user.school_id);
 
-      if (error) throw error;
-      setClasses(data || []);
-    } catch (err: any) {
-      console.error('Error fetching classes:', err);
-      setError(err.message);
-    }
-  };
+      if (classesError) throw classesError;
 
-  const fetchStudents = async () => {
-    if (!user?.school_id) return;
-
-    try {
-      const { data, error } = await supabase
+      // Fetch students
+      const { data: studentsData, error: studentsError } = await supabase
         .from('students')
-        .select('*, class:classes(name)')
-        .eq('school_id', user.school_id)
-        .eq('is_active', true);
+        .select('*')
+        .eq('school_id', user.school_id);
 
-      if (error) throw error;
-      setStudents(data || []);
-    } catch (err: any) {
-      console.error('Error fetching students:', err);
-      setError(err.message);
-    }
-  };
+      if (studentsError) throw studentsError;
 
-  const fetchFeeStructures = async () => {
-    if (!user?.school_id) return;
-
-    try {
-      const { data, error } = await supabase
+      // Fetch fee structures
+      const { data: feeStructuresData, error: feeStructuresError } = await supabase
         .from('fee_structures')
-        .select(`
-          *,
-          items:fee_structure_items(*)
-        `)
-        .eq('school_id', user.school_id)
-        .order('created_at', { ascending: false });
+        .select('*')
+        .eq('school_id', user.school_id);
 
-      if (error) throw error;
-      setFeeStructures(data || []);
+      if (feeStructuresError) throw feeStructuresError;
+
+      setClasses(classesData || []);
+      setStudents(studentsData || []);
+      setFeeStructures(feeStructuresData || []);
+      setError(null);
     } catch (err: any) {
-      console.error('Error fetching fee structures:', err);
+      console.error('Error fetching school data:', err);
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchAllData = async () => {
-      if (user?.school_id) {
-        setLoading(true);
-        await Promise.all([
-          fetchClasses(),
-          fetchStudents(),
-          fetchFeeStructures()
-        ]);
-        setLoading(false);
-      }
-    };
-
-    fetchAllData();
+    fetchSchoolData();
   }, [user?.school_id]);
 
   return {
@@ -90,10 +62,6 @@ export const useSchoolData = () => {
     feeStructures,
     loading,
     error,
-    refetch: () => {
-      fetchClasses();
-      fetchStudents();
-      fetchFeeStructures();
-    }
+    refetch: fetchSchoolData
   };
 };

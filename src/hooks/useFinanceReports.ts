@@ -12,6 +12,8 @@ interface ReportFilters {
   term?: string;
   classId?: string;
   studentId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export const useFinanceReports = () => {

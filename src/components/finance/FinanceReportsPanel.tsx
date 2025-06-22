@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 const FinanceReportsPanel: React.FC = () => {
-  const [reportType, setReportType] = useState<'individual_student' | 'class_financial' | 'school_financial' | ''>('');
+  const [reportType, setReportType] = useState<'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions' | ''>('');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [academicYear, setAcademicYear] = useState('');
@@ -36,7 +36,7 @@ const FinanceReportsPanel: React.FC = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!schoolId && reportType === 'individual_student'
+    enabled: !!schoolId && reportType === 'fee_collection'
   });
 
   // Fetch classes for the dropdown
@@ -52,22 +52,22 @@ const FinanceReportsPanel: React.FC = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!schoolId && reportType === 'class_financial'
+    enabled: !!schoolId && reportType === 'fee_collection'
   });
 
   const reportTypes = [
-    { value: 'individual_student', label: 'Individual Student Financial Report' },
-    { value: 'class_financial', label: 'Class Financial Report' },
     { value: 'school_financial', label: 'School Financial Overview Report' },
+    { value: 'fee_collection', label: 'Fee Collection Report' },
+    { value: 'expense_summary', label: 'Expense Summary Report' },
+    { value: 'mpesa_transactions', label: 'M-PESA Transactions Report' },
   ];
 
   const handleGenerateReport = async () => {
     if (!reportType) return;
 
     const filters = {
-      reportType: reportType as 'individual_student' | 'class_financial' | 'school_financial',
-      studentId: reportType === 'individual_student' ? selectedStudent : undefined,
-      classId: reportType === 'class_financial' ? selectedClass : undefined,
+      reportType: reportType as 'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions',
+      classId: reportType === 'fee_collection' ? selectedClass : undefined,
       academicYear: academicYear || undefined,
       term: term || undefined,
     };
@@ -87,8 +87,7 @@ const FinanceReportsPanel: React.FC = () => {
 
   const canGenerateReport = () => {
     if (!reportType) return false;
-    if (reportType === 'individual_student' && !selectedStudent) return false;
-    if (reportType === 'class_financial' && !selectedClass) return false;
+    if (reportType === 'fee_collection' && !selectedClass) return false;
     return true;
   };
 
@@ -125,27 +124,9 @@ const FinanceReportsPanel: React.FC = () => {
                 </Select>
               </div>
 
-              {reportType === 'individual_student' && (
+              {reportType === 'fee_collection' && (
                 <div>
-                  <Label htmlFor="student">Student *</Label>
-                  <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select student" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {students?.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.name} ({student.admission_number})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {reportType === 'class_financial' && (
-                <div>
-                  <Label htmlFor="class">Class *</Label>
+                  <Label htmlFor="class">Class (Optional)</Label>
                   <Select value={selectedClass} onValueChange={setSelectedClass}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select class" />
@@ -226,25 +207,25 @@ const FinanceReportsPanel: React.FC = () => {
                 <div className="space-y-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-semibold mb-2">
-                      {generatedReportData.school?.name} - {reportTypes.find(t => t.value === reportType)?.label}
+                      {reportTypes.find(t => t.value === reportType)?.label}
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Generated on: {new Date(generatedReportData.generated_at).toLocaleString()}
+                      Generated on: {new Date().toLocaleString()}
                     </p>
-                    {generatedReportData.academic_year && (
+                    {academicYear && (
                       <p className="text-sm text-gray-600">
-                        Academic Year: {generatedReportData.academic_year}
+                        Academic Year: {academicYear}
                       </p>
                     )}
-                    {generatedReportData.term && (
+                    {term && (
                       <p className="text-sm text-gray-600">
-                        Term: {generatedReportData.term}
+                        Term: {term}
                       </p>
                     )}
                   </div>
                   
                   <div className="text-xs bg-gray-100 p-3 rounded max-h-64 overflow-y-auto">
-                    <pre>{JSON.stringify(generatedReportData.data, null, 2)}</pre>
+                    <pre>{JSON.stringify(generatedReportData, null, 2)}</pre>
                   </div>
                 </div>
               </CardContent>
@@ -266,7 +247,7 @@ const FinanceReportsPanel: React.FC = () => {
                       <p className="font-medium text-sm">Available Reports</p>
                       <p className="text-xs text-gray-500">Finance officers can generate</p>
                     </div>
-                    <span className="text-lg font-bold text-blue-600">3</span>
+                    <span className="text-lg font-bold text-blue-600">4</span>
                   </div>
                 </div>
                 

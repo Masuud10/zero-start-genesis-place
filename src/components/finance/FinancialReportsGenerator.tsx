@@ -20,7 +20,7 @@ import { useFinanceReports } from '@/hooks/useFinanceReports';
 import { useToast } from '@/hooks/use-toast';
 
 interface ReportFilters {
-  reportType: 'individual_student' | 'class_financial' | 'school_financial';
+  reportType: 'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions';
   dateFrom: string;
   dateTo: string;
   academicYear: string;
@@ -46,16 +46,22 @@ const FinancialReportsGenerator: React.FC = () => {
       icon: BarChart3
     },
     {
-      value: 'class_financial',
-      label: 'Class Financial Report',
+      value: 'fee_collection',
+      label: 'Fee Collection Report',
       description: 'Fee collection and outstanding balances per class',
       icon: Users
     },
     {
-      value: 'individual_student',
-      label: 'Student Financial Report',
-      description: 'Individual student fee statements and payment history',
+      value: 'mpesa_transactions',
+      label: 'M-PESA Transactions Report',
+      description: 'M-PESA payment transactions and reconciliation',
       icon: FileText
+    },
+    {
+      value: 'expense_summary',
+      label: 'Expense Summary Report',
+      description: 'School expenses and expenditure tracking',
+      icon: TrendingUp
     }
   ];
 
@@ -77,7 +83,7 @@ const FinancialReportsGenerator: React.FC = () => {
       name: 'Monthly Collection Summary',
       description: 'Current month fee collection status',
       action: () => generateReport({
-        reportType: 'school_financial',
+        reportType: 'fee_collection',
         dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         dateTo: new Date().toISOString().split('T')[0],
         academicYear: new Date().getFullYear().toString(),
@@ -88,9 +94,11 @@ const FinancialReportsGenerator: React.FC = () => {
       name: 'Outstanding Balances',
       description: 'All pending fee payments',
       action: () => generateReport({
-        reportType: 'class_financial',
+        reportType: 'fee_collection',
         academicYear: new Date().getFullYear().toString(),
-        term: 'current'
+        term: 'current',
+        dateFrom: '',
+        dateTo: ''
       })
     },
     {
@@ -98,7 +106,10 @@ const FinancialReportsGenerator: React.FC = () => {
       description: 'Complete year financial summary',
       action: () => generateReport({
         reportType: 'school_financial',
-        academicYear: new Date().getFullYear().toString()
+        academicYear: new Date().getFullYear().toString(),
+        term: '',
+        dateFrom: '',
+        dateTo: ''
       })
     }
   ];
@@ -141,7 +152,7 @@ const FinancialReportsGenerator: React.FC = () => {
             {/* Report Type Selection */}
             <div>
               <Label>Report Type</Label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                 {reportTypes.map((type) => (
                   <div
                     key={type.value}
