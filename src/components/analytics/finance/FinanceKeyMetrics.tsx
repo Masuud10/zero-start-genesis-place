@@ -1,85 +1,75 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-interface KeyMetrics {
-  totalCollected: number;
-  totalExpenses: number;
-  netProfit: number;
-  collectionRate: number;
-  outstanding: number;
-  defaulterCount: number;
-  mpesaTransactions: number;
-}
+import { DollarSign, TrendingUp, Users, AlertCircle } from 'lucide-react';
 
 interface FinanceKeyMetricsProps {
-  keyMetrics: KeyMetrics;
+  keyMetrics: {
+    totalRevenue: number;
+    totalCollected: number;
+    outstandingAmount: number;
+    collectionRate: number;
+    totalStudents: number;
+    defaultersCount: number;
+  };
 }
 
 const FinanceKeyMetrics: React.FC<FinanceKeyMetricsProps> = ({ keyMetrics }) => {
+  const metrics = [
+    {
+      title: 'Total Revenue',
+      value: `KES ${keyMetrics.totalRevenue.toLocaleString()}`,
+      icon: DollarSign,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      title: 'Amount Collected',
+      value: `KES ${keyMetrics.totalCollected.toLocaleString()}`,
+      icon: TrendingUp,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
+    },
+    {
+      title: 'Outstanding Amount',
+      value: `KES ${keyMetrics.outstandingAmount.toLocaleString()}`,
+      icon: AlertCircle,
+      color: 'text-red-600',
+      bgColor: 'bg-red-100'
+    },
+    {
+      title: 'Collection Rate',
+      value: `${keyMetrics.collectionRate.toFixed(1)}%`,
+      icon: TrendingUp,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100'
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">KES {keyMetrics.totalCollected.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground">This term</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-orange-600">KES {keyMetrics.totalExpenses.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground">This term</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={`text-2xl font-bold ${keyMetrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            KES {keyMetrics.netProfit.toLocaleString()}
-          </div>
-          <p className="text-xs text-muted-foreground">Collected - Expenses</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{keyMetrics.collectionRate.toFixed(1)}%</div>
-          <p className="text-xs text-muted-foreground">Overall</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">KES {keyMetrics.outstanding.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground">{keyMetrics.defaulterCount} defaulters</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">MPESA Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-purple-600">{keyMetrics.mpesaTransactions}</div>
-          <p className="text-xs text-muted-foreground">Overall</p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {metrics.map((metric, index) => (
+        <Card key={index}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              {metric.title}
+            </CardTitle>
+            <div className={`p-2 rounded-full ${metric.bgColor}`}>
+              <metric.icon className={`h-4 w-4 ${metric.color}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${metric.color}`}>
+              {metric.value}
+            </div>
+            {metric.title === 'Collection Rate' && (
+              <p className="text-xs text-gray-500 mt-1">
+                of total fees expected
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

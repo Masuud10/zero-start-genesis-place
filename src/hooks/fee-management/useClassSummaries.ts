@@ -14,46 +14,52 @@ export const useClassSummaries = () => {
     if (!user?.school_id) return;
 
     try {
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('id, name')
+      const { data, error } = await supabase
+        .from('fees')
+        .select(`
+          class_id,
+          amount,
+          paid_amount,
+          class:classes(name)
+        `)
         .eq('school_id', user.school_id);
 
-      if (classError) throw classError;
+      if (error) throw error;
 
-      const summaries: ClassSummary[] = [];
-      
-      for (const cls of classData || []) {
-        const { data: feeData, error: feeError } = await supabase
-          .from('fees')
-          .select('amount, paid_amount, student_id')
-          .eq('class_id', cls.id)
-          .eq('school_id', user.school_id);
+      // Group by class and calculate summaries
+      const summaries = data?.reduce((acc: Record<string, any>, fee) => {
+        const classId = fee.class_id;
+        if (!acc[classId]) {
+          acc[classId] = {
+            class_id: classId,
+            class_name: fee.class?.name || 'Unknown',
+            total_amount: 0,
+            paid_amount: 0,
+            balance: 0,
+            student_count: 0,
+            total_fees: 0,
+            collected: 0,
+            outstanding: 0
+          };
+        }
+        
+        acc[classId].total_amount += fee.amount || 0;
+        acc[classId].paid_amount += fee.paid_amount || 0;
+        acc[classId].student_count += 1;
+        
+        return acc;
+      }, {}) || {};
 
-        if (feeError) continue;
+      // Convert to array and calculate derived values
+      const summaryArray = Object.values(summaries).map((summary: any) => ({
+        ...summary,
+        balance: summary.total_amount - summary.paid_amount,
+        total_fees: summary.total_amount,
+        collected: summary.paid_amount,
+        outstanding: summary.total_amount - summary.paid_amount
+      })) as ClassSummary[];
 
-        const totalAmount = feeData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
-        const paidAmount = feeData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-        const studentCount = new Set(feeData?.map(fee => fee.student_id).filter(Boolean)).size;
-        const balance = totalAmount - paidAmount;
-
-        const summary: ClassSummary = {
-          class_id: cls.id,
-          class_name: cls.name,
-          total_amount: totalAmount,
-          paid_amount: paidAmount,
-          balance: balance,
-          student_count: studentCount,
-          // Add legacy aliases for backward compatibility
-          total_fees: totalAmount,
-          collected: paidAmount,
-          outstanding: balance
-        };
-
-        summaries.push(summary);
-      }
-
-      setClassSummaries(summaries);
+      setClassSummaries(summaryArray);
       setError(null);
     } catch (err: any) {
       console.error('Error fetching class summaries:', err);

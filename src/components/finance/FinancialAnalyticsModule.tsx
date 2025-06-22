@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,6 +8,7 @@ import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics'
 import DailyTransactionsChart from '@/components/analytics/finance/DailyTransactionsChart';
 import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
 import TopDefaultersList from '@/components/analytics/finance/TopDefaultersList';
+import ClassCollectionProgress from '@/components/analytics/finance/ClassCollectionProgress';
 
 const FinancialAnalyticsModule: React.FC = () => {
   const filters = { term: 'current', class: 'all' };
@@ -34,10 +34,9 @@ const FinancialAnalyticsModule: React.FC = () => {
       <div className="space-y-4">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="mt-2">
-            There was a problem loading the financial analytics. Please try refreshing the page.
-            <br />
-            <small className="text-xs mt-2 block">Error: {error.message}</small>
+          <AlertDescription>
+            Failed to load financial analytics. Please try again later. <br />
+            <small>{error.message}</small>
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
@@ -50,33 +49,39 @@ const FinancialAnalyticsModule: React.FC = () => {
     );
   }
 
+  if (!data) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-white rounded-lg shadow-sm border p-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Data Available</h3>
+          <p className="text-gray-500 mb-4">
+            There's no financial data to display at the moment.
+          </p>
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-            Financial Analytics
-          </h1>
-          <p className="text-muted-foreground">Financial Management Center: Comprehensive school finance overview and management</p>
-        </div>
-        <Button onClick={handleRefresh} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+      {/* Key Metrics */}
+      <FinanceKeyMetrics keyMetrics={data.keyMetrics} />
+      
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DailyTransactionsChart data={data.dailyTransactions} />
+        <ExpenseBreakdownChart data={data.expenseBreakdown} />
       </div>
 
-      {data && (
-        <>
-          <FinanceKeyMetrics keyMetrics={data.keyMetrics} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DailyTransactionsChart data={data.dailyTransactions} />
-            <ExpenseBreakdownChart data={data.expenseBreakdown} />
-          </div>
-
-          <TopDefaultersList data={data.defaultersList} />
-        </>
-      )}
+      {/* Additional Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopDefaultersList data={data.defaultersList} />
+        <ClassCollectionProgress data={data.feeCollectionData} />
+      </div>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import { GraduationCap } from 'lucide-react';
 
 interface ClassCollectionProgressProps {
   data: {
@@ -16,27 +16,28 @@ const ClassCollectionProgress: React.FC<ClassCollectionProgressProps> = ({ data 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Class-wise Collection Progress</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <GraduationCap className="h-5 w-5 text-blue-600" />
+          Class Collection Progress
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {data.map((classData) => {
+          {data.map((classData, index) => {
             const percentage = classData.expected > 0 ? (classData.collected / classData.expected) * 100 : 0;
+            
             return (
-              <div key={classData.class} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">{classData.class}</p>
-                  <p className="text-sm text-muted-foreground">
-                    KES {classData.collected.toLocaleString()} / {classData.expected.toLocaleString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-32">
-                    <Progress value={percentage} className="h-2" />
-                  </div>
-                  <Badge variant={percentage >= 90 ? 'default' : percentage >= 75 ? 'secondary' : 'destructive'}>
+              <div key={index} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">{classData.class}</span>
+                  <span className="text-sm text-gray-600">
                     {percentage.toFixed(1)}%
-                  </Badge>
+                  </span>
+                </div>
+                <Progress value={percentage} className="h-2" />
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Collected: KES {classData.collected.toLocaleString()}</span>
+                  <span>Expected: KES {classData.expected.toLocaleString()}</span>
                 </div>
               </div>
             );
