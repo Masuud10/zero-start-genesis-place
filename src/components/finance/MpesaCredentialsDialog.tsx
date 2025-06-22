@@ -22,10 +22,10 @@ const MpesaCredentialsDialog: React.FC = () => {
   useEffect(() => {
     if (credentials) {
       setFormData({
-        consumer_key: credentials.consumer_key,
-        consumer_secret: credentials.consumer_secret,
-        passkey: credentials.passkey,
-        paybill_number: credentials.paybill_number,
+        consumer_key: credentials.consumer_key || '',
+        consumer_secret: credentials.consumer_secret || '',
+        passkey: credentials.passkey || '',
+        paybill_number: credentials.paybill_number || '',
       });
     }
   }, [credentials]);
@@ -34,7 +34,6 @@ const MpesaCredentialsDialog: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
-    // saveCredentials automatically includes school_id from the hook
     const result = await saveCredentials(formData);
 
     if (!result.error) {
@@ -46,7 +45,7 @@ const MpesaCredentialsDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onValueChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Settings className="h-4 w-4" />

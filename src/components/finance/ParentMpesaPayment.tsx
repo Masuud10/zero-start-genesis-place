@@ -26,7 +26,7 @@ const ParentMpesaPayment: React.FC<ParentMpesaPaymentProps> = ({ studentFee }) =
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'failed'>('idle');
   
-  const { initiateStkPush, transactions } = useMpesaTransactions();
+  const { processSTKPush, transactions } = useMpesaTransactions();
   const { toast } = useToast();
 
   const remainingAmount = studentFee.amount - studentFee.amount_paid;
@@ -57,7 +57,7 @@ const ParentMpesaPayment: React.FC<ParentMpesaPaymentProps> = ({ studentFee }) =
     setPaymentStatus('processing');
 
     try {
-      const result = await initiateStkPush(phoneNumber, paymentAmount, studentFee.id);
+      const result = await processSTKPush(phoneNumber, paymentAmount, studentFee.id);
 
       if (result.error) {
         setPaymentStatus('failed');
@@ -73,10 +73,10 @@ const ParentMpesaPayment: React.FC<ParentMpesaPaymentProps> = ({ studentFee }) =
           description: "STK push sent to your phone. Please complete the payment.",
         });
         
-        // Poll for payment status (simplified)
+        // Reset after 30 seconds
         setTimeout(() => {
           setPaymentStatus('idle');
-        }, 30000); // Reset after 30 seconds
+        }, 30000);
       }
     } catch (error) {
       setPaymentStatus('failed');

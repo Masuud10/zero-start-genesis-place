@@ -24,10 +24,18 @@ interface MpesaTransaction {
   };
 }
 
+interface MpesaCredentials {
+  consumer_key: string;
+  consumer_secret: string;
+  passkey: string;
+  paybill_number: string;
+}
+
 export const useMpesaTransactions = () => {
   const [transactions, setTransactions] = useState<MpesaTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<MpesaCredentials | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -48,7 +56,32 @@ export const useMpesaTransactions = () => {
 
       if (error) throw error;
 
-      setTransactions(data || []);
+      // Transform the data to match our interface
+      const transformedData: MpesaTransaction[] = (data || []).map(transaction => ({
+        id: transaction.id,
+        transaction_id: transaction.transaction_id || '',
+        phone_number: transaction.phone_number || '',
+        amount_paid: transaction.amount_paid || 0,
+        transaction_status: transaction.transaction_status || '',
+        mpesa_receipt_number: transaction.mpesa_receipt_number || '',
+        transaction_date: transaction.transaction_date || '',
+        student_id: transaction.student_id || '',
+        fee_id: transaction.fee_id || '',
+        class_id: transaction.class_id || '',
+        student: transaction.student && typeof transaction.student === 'object' && 'name' in transaction.student
+          ? {
+              name: transaction.student.name || '',
+              admission_number: transaction.student.admission_number || ''
+            }
+          : undefined,
+        class: transaction.class && typeof transaction.class === 'object' && 'name' in transaction.class
+          ? {
+              name: transaction.class.name || ''
+            }
+          : undefined
+      }));
+
+      setTransactions(transformedData);
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -58,6 +91,69 @@ export const useMpesaTransactions = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCredentials = async () => {
+    if (!user?.school_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('mpesa_api_credentials')
+        .select('*')
+        .eq('school_id', user.school_id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        setCredentials({
+          consumer_key: data.consumer_key,
+          consumer_secret: data.consumer_secret,
+          passkey: data.passkey,
+          paybill_number: data.paybill_number
+        });
+      }
+    } catch (err: any) {
+      console.error('Error fetching M-PESA credentials:', err);
+    }
+  };
+
+  const saveCredentials = async (credentialsData: MpesaCredentials) => {
+    if (!user?.school_id) {
+      toast({
+        title: "Error",
+        description: "No school ID found",
+        variant: "destructive",
+      });
+      return { error: 'No school ID found' };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('mpesa_api_credentials')
+        .upsert({
+          school_id: user.school_id,
+          ...credentialsData,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      setCredentials(credentialsData);
+      toast({
+        title: "Success",
+        description: "M-PESA credentials saved successfully",
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: "Failed to save M-PESA credentials",
+        variant: "destructive",
+      });
+      return { error: err.message };
     }
   };
 
@@ -92,15 +188,22 @@ export const useMpesaTransactions = () => {
     }
   };
 
+  const initiateStkPush = processSTKPush; // Alias for backward compatibility
+
   useEffect(() => {
     fetchTransactions();
+    fetchCredentials();
   }, [user?.school_id]);
 
   return {
     transactions,
     loading,
     error,
+    credentials,
     refetch: fetchTransactions,
-    processSTKPush
+    fetchCredentials,
+    saveCredentials,
+    processSTKPush,
+    initiateStkPush
   };
 };
