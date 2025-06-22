@@ -58,13 +58,13 @@ export const useFeeData = () => {
         academic_year: fee.academic_year || '',
         term: fee.term || '',
         category: fee.category || '',
-        student: fee.student && fee.student !== null && typeof fee.student === 'object' && 'name' in fee.student
+        student: fee.student && fee.student !== null && typeof fee.student === 'object' && 'name' in fee.student && fee.student.name !== null
           ? { 
               name: String(fee.student.name || ''), 
               admission_number: String(fee.student.admission_number || '') 
             }
           : undefined,
-        class: fee.class && fee.class !== null && typeof fee.class === 'object' && 'name' in fee.class
+        class: fee.class && fee.class !== null && typeof fee.class === 'object' && 'name' in fee.class && fee.class.name !== null
           ? { name: String(fee.class.name || '') }
           : undefined
       }));
