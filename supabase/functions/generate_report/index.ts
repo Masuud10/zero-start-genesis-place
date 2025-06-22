@@ -1,4 +1,4 @@
-// Supabase Edge Function: Universal PDF report generator for EduFam dashboards
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import pdfmake from "npm:pdfmake@0.2.7/build/pdfmake.js";
@@ -12,169 +12,264 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const EDUFAM_LOGO_URL = "https://your-domain.com/lovable-uploads/396bf63d-b84a-4ff0-9036-3d28fd1d0cb7.png"; // If served publicly. Else, embed as base64 when needed.
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // --- Setup Supabase client ---
     const SUPABASE_URL = "https://lmqyizrnuahkmwauonqr.supabase.co";
     const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    if (!SUPABASE_SERVICE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
+    if (!SUPABASE_SERVICE_KEY) {
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
+    }
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // --- Parse request body ---
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const { reportType, filters, userInfo } = body;
-    // userInfo: { role, userName, userSchoolId, etc }
-    if (!reportType) throw new Error("reportType required");
-
-    // --- Fetch school info ---
-    let schoolName = "Unknown School", schoolAddress = "", contact = "", schoolLogo = null;
-    if (filters?.schoolId) {
-      const { data: school, error } = await supabase.from('schools').select('name,address,phone,email,logo_url').eq('id', filters.schoolId).single();
-      if (error) throw error;
-      if (school) {
-        schoolName = school.name || schoolName;
-        schoolAddress = school.address || "";
-        contact = `Tel: ${school.phone || "-"} | Email: ${school.email || "-"}`;
-        schoolLogo = school.logo_url || null;
-      }
+    
+    if (!reportType) {
+      throw new Error("reportType is required");
     }
 
-    // --- Build report title and section ---
-    let reportLabel = "";
+    console.log('Generating report:', reportType);
+
+    let reportContent;
+    let reportTitle = "";
+
     switch (reportType) {
-      case "principal-academic":
-        reportLabel = `Academic Performance Report (${filters.term || ""} ${filters.year || ""})`;
+      case 'platform-overview':
+        reportTitle = "EduFam Platform Overview Report";
+        
+        // Fetch comprehensive platform data
+        const [schoolsData, usersData, transactionsData, certificatesData] = await Promise.all([
+          supabase.from('schools').select('*'),
+          supabase.from('profiles').select('*'),
+          supabase.from('financial_transactions').select('*'),
+          supabase.from('certificates').select('*')
+        ]);
+
+        const totalSchools = schoolsData.data?.length || 0;
+        const totalUsers = usersData.data?.length || 0;
+        const totalRevenue = transactionsData.data?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
+        const totalCertificates = certificatesData.data?.length || 0;
+
+        reportContent = [
+          { text: 'Platform Statistics', style: 'header' },
+          { text: `Total Schools: ${totalSchools}` },
+          { text: `Total Users: ${totalUsers}` },
+          { text: `Total Revenue: KES ${totalRevenue.toLocaleString()}` },
+          { text: `Certificates Generated: ${totalCertificates}` },
+          { text: '\n' },
+          { text: 'School Distribution', style: 'subheader' },
+          {
+            table: {
+              body: [
+                ['School Name', 'Location', 'Users', 'Status'],
+                ...(schoolsData.data || []).slice(0, 10).map(school => [
+                  school.name || 'N/A',
+                  school.location || 'N/A',
+                  usersData.data?.filter(u => u.school_id === school.id).length || 0,
+                  'Active'
+                ])
+              ]
+            }
+          }
+        ];
         break;
-      case "principal-attendance":
-        reportLabel = `Attendance Summary Report (${filters.term || ""} ${filters.year || ""})`;
+
+      case 'schools-summary':
+        reportTitle = "Schools Summary Report";
+        
+        const { data: schoolsSummary, error: schoolsError } = await supabase
+          .from('schools')
+          .select(`
+            *,
+            profiles:profiles(count)
+          `);
+
+        if (schoolsError) throw schoolsError;
+
+        reportContent = [
+          { text: 'Registered Schools Summary', style: 'header' },
+          {
+            table: {
+              body: [
+                ['School Name', 'Location', 'Email', 'Created Date'],
+                ...(schoolsSummary || []).map(school => [
+                  school.name || 'N/A',
+                  school.location || 'N/A',
+                  school.email || 'N/A',
+                  new Date(school.created_at).toLocaleDateString()
+                ])
+              ]
+            }
+          }
+        ];
         break;
-      // ... other report types as needed
+
+      case 'users-analytics':
+        reportTitle = "Users Analytics Report";
+        
+        const { data: usersAnalytics, error: usersError } = await supabase
+          .from('profiles')
+          .select('*');
+
+        if (usersError) throw usersError;
+
+        const roleDistribution = (usersAnalytics || []).reduce((acc: any, user) => {
+          acc[user.role] = (acc[user.role] || 0) + 1;
+          return acc;
+        }, {});
+
+        reportContent = [
+          { text: 'User Analytics', style: 'header' },
+          { text: `Total Users: ${usersAnalytics?.length || 0}` },
+          { text: '\nRole Distribution:', style: 'subheader' },
+          ...Object.entries(roleDistribution).map(([role, count]) => 
+            ({ text: `${role}: ${count}` })
+          )
+        ];
+        break;
+
+      case 'financial-overview':
+        reportTitle = "Financial Overview Report";
+        
+        const { data: financialData, error: financialError } = await supabase
+          .from('financial_transactions')
+          .select('*');
+
+        if (financialError) throw financialError;
+
+        const totalTransactions = financialData?.length || 0;
+        const totalAmount = financialData?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
+
+        reportContent = [
+          { text: 'Financial Overview', style: 'header' },
+          { text: `Total Transactions: ${totalTransactions}` },
+          { text: `Total Amount: KES ${totalAmount.toLocaleString()}` },
+          { text: `Average Transaction: KES ${totalTransactions > 0 ? (totalAmount / totalTransactions).toFixed(2) : '0'}` }
+        ];
+        break;
+
+      case 'system-health':
+        reportTitle = "System Health Report";
+        
+        const { data: systemMetrics, error: metricsError } = await supabase
+          .from('company_metrics')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (metricsError) throw metricsError;
+
+        const latestMetrics = systemMetrics?.[0];
+
+        reportContent = [
+          { text: 'System Health Status', style: 'header' },
+          { text: `System Uptime: ${latestMetrics?.system_uptime_percentage || 100}%` },
+          { text: `API Calls Today: ${latestMetrics?.api_calls_count || 0}` },
+          { text: `Active Schools: ${latestMetrics?.active_schools || 0}` },
+          { text: `Active Users: ${latestMetrics?.active_users || 0}` }
+        ];
+        break;
+
+      case 'company-profile':
+        reportTitle = "EduFam Company Profile Report";
+        
+        const { data: companyDetails, error: companyError } = await supabase
+          .from('company_details')
+          .select('*')
+          .single();
+
+        if (companyError && companyError.code !== 'PGRST116') throw companyError;
+
+        reportContent = [
+          { text: 'Company Information', style: 'header' },
+          { text: `Company Name: ${companyDetails?.company_name || 'EduFam'}` },
+          { text: `Website: ${companyDetails?.website_url || 'https://edufam.com'}` },
+          { text: `Email: ${companyDetails?.support_email || 'support@edufam.com'}` },
+          { text: `Phone: ${companyDetails?.contact_phone || 'N/A'}` },
+          { text: `Address: ${companyDetails?.headquarters_address || 'N/A'}` },
+          { text: `Year Established: ${companyDetails?.year_established || 2024}` },
+          { text: `Registration Number: ${companyDetails?.registration_number || 'N/A'}` }
+        ];
+        break;
+
       default:
-        reportLabel = "Custom Report";
+        throw new Error('Invalid report type');
     }
-    // User label
-    let userLabel = userInfo && userInfo.role ? userInfo.role[0].toUpperCase() + userInfo.role.slice(1) : "User";
 
-    // --- Query report data (EXAMPLE: Academic Performance, extend for other roles!) ---
-    let tableData: any[] = [];
-    if (reportType === "principal-academic") {
-      // Academic grades by class/subject for that school, term, year
-      let gradesQuery = supabase
-        .from("class_analytics")
-        .select("class_id, avg_grade, performance_trend, best_subjects, weakest_subjects, attendance_rate, reporting_period")
-        .eq("school_id", filters.schoolId);
-      if (filters.term) gradesQuery = gradesQuery.eq("term", filters.term);
-      if (filters.year) gradesQuery = gradesQuery.eq("year", filters.year);
-
-      const { data: grades, error } = await gradesQuery;
-      if (error) throw error;
-      tableData = grades.map((row: any) => [
-        row.class_id || "-",
-        row.avg_grade != null ? row.avg_grade.toFixed(1) : "-",
-        row.performance_trend || "-",
-        (row.best_subjects && row.best_subjects.length)
-          ? row.best_subjects.map((s: any) => s.subject_id).join(", ") : "-",
-        (row.weakest_subjects && row.weakest_subjects.length)
-          ? row.weakest_subjects.map((s: any) => s.subject_id).join(", ") : "-",
-        row.attendance_rate != null ? row.attendance_rate.toFixed(1) + "%" : "-",
-        row.reporting_period || "-"
-      ]);
-      // Add table headings row
-      tableData.unshift([
-        "Class ID", "Avg Grade", "Trend", "Top Subjects", "Weakest Subjects", "Attendance", "Period"
-      ]);
-    }
-    // TODO: Handle other report data as needed
-
-    // --- Prepare images (school logo and EduFam logo) ---
-    // Fetch EduFam logo as base64 if not public (skipped here for brevity!)
-    let edufamLogo = EDUFAM_LOGO_URL; // Ideally, use public URL or fetch+convert to base64 here.
-    let schoolLogoImage = schoolLogo || null;
-    // You can optionally fetch and embed as data URL for PDFMake images.
-
-    // --- Compose PDF doc definition ---
-    // Use pdfmake document definition object
+    // Generate PDF
     const docDefinition = {
       content: [
         {
-          columns: [
-            schoolLogoImage ? { image: schoolLogoImage, fit: [64, 64] } : {},
-            {
-              width: "*",
-              stack: [
-                { text: schoolName, style: "header" },
-                { text: schoolAddress, style: "subheader" },
-                { text: contact, style: "subheader" }
-              ],
-              margin: [10, 0, 0, 0]
-            },
-            {
-              stack: [
-                { image: edufamLogo, fit: [48, 48], alignment: "right", margin: [0, 0, 0, 4] },
-                { text: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString(), style: "dateTime", alignment: "right" }
-              ]
-            }
-          ]
+          text: reportTitle,
+          style: 'title',
+          alignment: 'center',
+          margin: [0, 0, 0, 20]
         },
-        { text: " ", margin: [0, 12] },
-        { text: reportLabel, style: "reportTitle" },
-        { text: `Generated by: ${userLabel}`, style: "userRole" },
-        { text: " " },
-        (tableData && tableData.length > 0)
-          ? { table: { body: tableData }, layout: "lightHorizontalLines" }
-          : { text: "No data found for this report and filters.", style: "noData" },
-        { text: " " },
-        { text: "Note: Certificates generation will be coming soon!", style: "footerNote" }
+        {
+          text: `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+          style: 'date',
+          alignment: 'right',
+          margin: [0, 0, 0, 20]
+        },
+        ...reportContent,
+        {
+          text: '\n\nPowered by EduFam - Education Management System',
+          style: 'footer',
+          alignment: 'center',
+          margin: [0, 20, 0, 0]
+        }
       ],
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          { text: "Powered by EduFam", color: "#1976D2", fontSize: 10 },
-          { image: edufamLogo, fit: [24, 24], alignment: "center" },
-          { text: `edufam.ke | Page ${currentPage} of ${pageCount}`, alignment: "right", fontSize: 8 }
-        ],
-        margin: [20, 0]
-      }),
       styles: {
-        header: { fontSize: 20, bold: true },
-        subheader: { fontSize: 12, color: "#555" },
-        dateTime: { fontSize: 10, italics: true },
-        reportTitle: { fontSize: 16, bold: true, margin: [0, 10, 0, 10], color: "#1b1464" },
-        userRole: { fontSize: 12, italics: true },
-        tableHeader: { bold: true, fillColor: "#eee" },
-        noData: { italics: true, color: "#f44336" },
-        footerNote: { italics: true, fontSize: 10, margin: [0, 20, 0, 0] }
+        title: { fontSize: 20, bold: true, color: '#1976D2' },
+        header: { fontSize: 16, bold: true, margin: [0, 10, 0, 10] },
+        subheader: { fontSize: 14, bold: true, margin: [0, 8, 0, 8] },
+        date: { fontSize: 10, italics: true },
+        footer: { fontSize: 10, italics: true, color: '#666' }
       },
-      pageMargins: [28, 48, 28, 65]
+      defaultStyle: { fontSize: 12 }
     };
 
-    // --- Generate PDF Buffer ---
     const pdfDocGenerator = pdfmake.createPdf(docDefinition);
-    // Use a Promise to get the PDF buffer
+    
     const getPdfBuffer = () =>
       new Promise((resolve, reject) => {
-        pdfDocGenerator.getBuffer((buffer: Uint8Array) => resolve(buffer));
+        pdfDocGenerator.getBuffer((buffer: Uint8Array) => {
+          if (buffer) {
+            resolve(buffer);
+          } else {
+            reject(new Error('Failed to generate PDF buffer'));
+          }
+        });
       });
+
     const pdfBuffer = await getPdfBuffer();
 
-    // return PDF as application/pdf
     return new Response(pdfBuffer as Uint8Array, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="edufam_report_${reportType}_${Date.now()}.pdf"`
+        "Content-Disposition": `attachment; filename="edufam_${reportType}_${Date.now()}.pdf"`
       }
     });
-  } catch (e) {
-    console.error("[generate_report] Error:", e);
+
+  } catch (error: any) {
+    console.error('[generate_report] Error:', error);
     return new Response(
-      JSON.stringify({ error: e.message || String(e) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        details: error.stack 
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json" 
+        } 
+      }
     );
   }
 });

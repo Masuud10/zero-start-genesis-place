@@ -64,8 +64,9 @@ const EduFamReportGeneration = () => {
     try {
       setLoading(true);
       
-      // Call the edge function to generate the report
-      const { data, error }  = await supabase.functions.invoke('generate_report', {
+      console.log('Generating report:', selectedReportType);
+      
+      const { data, error } = await supabase.functions.invoke('generate_report', {
         body: {
           reportType: selectedReportType,
           filters: {},
@@ -76,11 +77,29 @@ const EduFamReportGeneration = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Function invocation failed');
+      }
 
-      // Convert the response to a blob and download
-      const blob = new Blob([data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
+      if (!data) {
+        throw new Error('No data returned from function');
+      }
+
+      // Handle the PDF data
+      let pdfBlob;
+      if (data instanceof ArrayBuffer) {
+        pdfBlob = new Blob([data], { type: 'application/pdf' });
+      } else if (data instanceof Uint8Array) {
+        pdfBlob = new Blob([data], { type: 'application/pdf' });
+      } else {
+        // If data is base64 or other format, handle accordingly
+        console.log('Data type:', typeof data);
+        pdfBlob = new Blob([data], { type: 'application/pdf' });
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `edufam_${selectedReportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -93,11 +112,12 @@ const EduFamReportGeneration = () => {
         title: "Success",
         description: "Report generated and downloaded successfully",
       });
+
     } catch (error: any) {
       console.error('Error generating report:', error);
       toast({
         title: "Error",
-        description: "Failed to generate report: " + error.message,
+        description: `Failed to generate report: ${error.message}`,
         variant: "destructive",
       });
     } finally {

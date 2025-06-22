@@ -50,14 +50,14 @@ export const useMpesaTransactions = () => {
         amount_paid: transaction.amount_paid || 0,
         transaction_date: transaction.transaction_date || '',
         transaction_status: transaction.transaction_status || '',
-        student: (transaction.student && typeof transaction.student === 'object' && transaction.student !== null && 'name' in transaction.student)
+        student: transaction.student && transaction.student !== null && typeof transaction.student === 'object' && 'name' in transaction.student
           ? { 
-              name: String(transaction.student?.name || ''), 
-              admission_number: String(transaction.student?.admission_number || '') 
+              name: String(transaction.student.name || ''), 
+              admission_number: String(transaction.student.admission_number || '') 
             }
           : undefined,
-        class: (transaction.class && typeof transaction.class === 'object' && transaction.class !== null && 'name' in transaction.class)
-          ? { name: String(transaction.class?.name || '') }
+        class: transaction.class && transaction.class !== null && typeof transaction.class === 'object' && 'name' in transaction.class
+          ? { name: String(transaction.class.name || '') }
           : undefined
       }));
       
