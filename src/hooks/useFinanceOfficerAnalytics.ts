@@ -30,10 +30,14 @@ export const useFinanceOfficerAnalytics = (filters: FinanceFilters) => {
 
       if (feesError) throw feesError;
 
-      // Fetch MPESA transactions
+      // Fetch MPESA transactions with proper joins
       const { data: mpesaTransactions, error: mpesaError } = await supabase
         .from('mpesa_transactions')
-        .select('*')
+        .select(`
+          *,
+          students!mpesa_transactions_student_id_fkey(name, admission_number),
+          classes!mpesa_transactions_class_id_fkey(name)
+        `)
         .eq('school_id', user.school_id);
 
       if (mpesaError) throw mpesaError;
