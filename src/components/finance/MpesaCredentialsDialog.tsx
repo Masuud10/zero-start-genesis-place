@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Settings, Shield, Key } from 'lucide-react';
-import { useMpesaTransactions } from '@/hooks/useMpesaTransactions';
+import { useMpesaCredentials } from '@/hooks/fee-management/useMpesaCredentials';
 
 const MpesaCredentialsDialog: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -17,7 +17,7 @@ const MpesaCredentialsDialog: React.FC = () => {
     paybill_number: '',
   });
 
-  const { credentials, saveCredentials, fetchCredentials } = useMpesaTransactions();
+  const { credentials, saveCredentials, fetchCredentials } = useMpesaCredentials();
 
   useEffect(() => {
     if (credentials) {

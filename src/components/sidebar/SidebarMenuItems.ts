@@ -113,7 +113,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // Finance Officer - financial operations and related features with separate sections
+  // Finance Officer - ONLY financial operations (removed academic sections)
   if (userRole === 'finance_officer') {
     return [
       ...baseItems,
@@ -123,8 +123,6 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'financial-reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
       { id: 'financial-analytics', label: 'Financial Analytics', icon: PieChart, roles: ['finance_officer'] },
       { id: 'student-accounts', label: 'Student Accounts', icon: Users, roles: ['finance_officer'] },
-      { id: 'attendance', label: 'Student Attendance', icon: CalendarCheck, roles: ['finance_officer'] },
-      { id: 'timetable', label: 'School Timetable', icon: Calendar, roles: ['finance_officer'] },
       { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
       { id: 'finance-settings', label: 'Finance Settings', icon: Settings, roles: ['finance_officer'] },
       { id: 'security', label: 'Security', icon: Shield, roles: ['finance_officer'] },
