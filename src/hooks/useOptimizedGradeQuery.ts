@@ -61,7 +61,7 @@ export const useGradeSubmissionMutation = () => {
   return useMutation({
     mutationFn: async (gradeData: any) => {
       if (!user?.id || !schoolId) {
-        throw new Error('User ID and School ID are require');
+        throw new Error('User ID and School ID are required');
       }
 
       // Ensure all required fields are present
@@ -82,7 +82,7 @@ export const useGradeSubmissionMutation = () => {
       const { data, error } = await supabase
         .from('grades')
         .upsert(completeGradeData, {
-          onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by'
         })
         .select()
         .single();

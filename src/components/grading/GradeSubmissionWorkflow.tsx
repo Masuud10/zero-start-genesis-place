@@ -129,7 +129,7 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToSave, {
-          onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by'
         });
 
       if (error) {
@@ -179,9 +179,6 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
         return;
       }
 
-      // First save as draft, then update to submitted
-      await saveAsDraft();
-
       const gradesToSubmit: any[] = [];
       
       Object.entries(grades).forEach(([studentId, studentGrades]) => {
@@ -216,7 +213,7 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
       const { error: submitError } = await supabase
         .from('grades')
         .upsert(gradesToSubmit, {
-          onConflict: 'student_id,subject_id,class_id,term,exam_type,submitted_by'
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by'
         });
 
       if (submitError) {
@@ -241,7 +238,9 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
 
       const { error: batchError } = await supabase
         .from('grade_submission_batches')
-        .insert(batchData);
+        .upsert(batchData, {
+          onConflict: 'school_id,class_id,term,exam_type,submitted_by'
+        });
 
       if (batchError) {
         console.warn('Failed to create submission batch:', batchError);
