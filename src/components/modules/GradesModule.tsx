@@ -1,19 +1,22 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/utils/permissions';
+import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 import { UserRole } from '@/types/user';
 import GradesAdminSummary from './GradesAdminSummary';
 import ParentGradesView from '../grades/ParentGradesView';
 import TeacherGradesModule from './TeacherGradesModule';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import BulkGradingModal from '../grading/BulkGradingModal';
 import NoGradebookPermission from '../grades/NoGradebookPermission';
 import BulkGradingQuickAction from '../dashboard/principal/BulkGradingQuickAction';
+import { Loader2 } from 'lucide-react';
 
 const GradesModule: React.FC = () => {
   const { user } = useAuth();
+  const { curriculumType, loading: curriculumLoading } = useSchoolCurriculum();
   const [showBulkModal, setShowBulkModal] = useState(false);
   const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
 
@@ -183,19 +186,54 @@ const GradesModule: React.FC = () => {
     );
   };
   
+  // Show loading while detecting curriculum
+  if (curriculumLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        <span>Loading curriculum settings...</span>
+      </div>
+    );
+  }
+  
   if (!user) return <div>Loading...</div>;
 
   if (user.role !== 'parent' && !hasPermission('view_gradebook')) {
       return <NoGradebookPermission role={user.role} hasPermission={false} />;
   }
 
+  const getCurriculumBadgeColor = () => {
+    switch (curriculumType) {
+      case 'cbc':
+        return 'bg-green-100 text-green-800';
+      case 'igcse':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
   switch (user.role) {
     case 'edufam_admin':
     case 'school_owner':
-      return renderForSummaryRole();
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Badge className={`text-xs ${getCurriculumBadgeColor()}`}>
+              {curriculumType.toUpperCase()} Curriculum Active
+            </Badge>
+          </div>
+          {renderForSummaryRole()}
+        </div>
+      );
     case 'principal':
         return (
             <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge className={`text-xs ${getCurriculumBadgeColor()}`}>
+                    {curriculumType.toUpperCase()} Curriculum Active
+                  </Badge>
+                </div>
                 {renderForSummaryRole()}
                 <div className="pt-6 border-t">
                   <BulkGradingQuickAction onOpenBulkGrade={() => setShowBulkModal(true)} />
@@ -211,7 +249,16 @@ const GradesModule: React.FC = () => {
             </div>
         );
     case 'teacher':
-      return <TeacherGradesModule />;
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Badge className={`text-xs ${getCurriculumBadgeColor()}`}>
+              {curriculumType.toUpperCase()} Curriculum Active
+            </Badge>
+          </div>
+          <TeacherGradesModule />
+        </div>
+      );
     case 'parent':
       return <ParentGradesView />;
     default:

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -22,7 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { useSchool } from '@/contexts/SchoolContext';
+import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 import IGCSEGradesModal from './IGCSEGradesModal';
 import { getGradingPermissions } from '@/utils/grading-permissions';
 import { UserRole } from '@/types/user';
@@ -51,6 +50,7 @@ const getValidUserRole = (role: string | undefined): UserRole => {
 
 const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const { user } = useAuth();
+  const { curriculumType, loading: curriculumLoading } = useSchoolCurriculum();
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
@@ -68,13 +68,25 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const { toast } = useToast();
-  const { currentSchool } = useSchool();
 
-  const curriculumType = currentSchool?.curriculum_type || 'cbc';
   const resolvedUserRole = getValidUserRole(user?.role);
   const permissions = getGradingPermissions(resolvedUserRole);
 
   const gradeSubmissionMutation = useGradeSubmissionMutation();
+
+  // Show loading while detecting curriculum
+  if (curriculumLoading) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
+            <span>Loading curriculum settings...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   useEffect(() => {
     const loadClasses = async () => {
@@ -250,6 +262,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         term: selectedTerm,
         exam_type: selectedExamType,
         status: resolvedUserRole === "teacher" ? 'submitted' : status,
+        curriculum_type: curriculumType,
         ...(isCBC
           ? { 
               cbc_performance_level: cbcLevel, 
@@ -269,7 +282,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
 
       toast({
         title: "Success",
-        description: "Grade submitted successfully.",
+        description: `Grade submitted successfully using ${curriculumType.toUpperCase()} curriculum.`,
       });
 
       resetForm();
@@ -314,7 +327,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Enter Grades
+            Enter Grades ({curriculumType.toUpperCase()} Curriculum)
             <span className="ml-2 inline-block align-middle">
               {isTeacher && permissions.canSubmitGrades && (
                 <span className="text-xs text-blue-700 font-semibold">(Teacher: submit for approval)</span>

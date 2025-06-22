@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 import BulkGradingControls from './BulkGradingControls';
 import BulkGradingSheet from './BulkGradingSheet';
 import BulkGradingHeader from './BulkGradingHeader';
@@ -31,6 +31,7 @@ type GradeValue = {
 const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, classList, subjectList }) => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
+  const { curriculumType, loading: curriculumLoading } = useSchoolCurriculum();
   const { toast } = useToast();
 
   const [selectedClass, setSelectedClass] = useState('');
@@ -39,7 +40,6 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
   const [existingGradesStatus, setExistingGradesStatus] = useState<string>('');
   const [isReadOnly, setIsReadOnly] = useState(false);
 
-  const curriculumType = 'standard'; // Default to standard for now
   const isTeacher = user?.role === 'teacher';
   const isPrincipal = user?.role === 'principal';
 
@@ -143,6 +143,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
 
   const totalPossibleGrades = students.length * subjects.length;
 
+  console.log('Curriculum auto-detected:', curriculumType);
   console.log('Render state:', { 
     canProceed, 
     hasData, 
@@ -151,8 +152,22 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
     loading,
     initialLoading,
     gradesEntered,
-    totalPossibleGrades
+    totalPossibleGrades,
+    curriculumType
   });
+
+  if (curriculumLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span>Loading school curriculum settings...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -162,6 +177,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
           isPrincipal={isPrincipal}
           existingGradesStatus={existingGradesStatus}
           isReadOnly={isReadOnly}
+          curriculumType={curriculumType}
         />
         
         {initialLoading ? (
@@ -206,7 +222,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
                 <div className="px-4 py-2 bg-blue-50 border-b">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-blue-700 font-medium">
-                      Progress: {gradesEntered} of {totalPossibleGrades} grades entered
+                      Progress: {gradesEntered} of {totalPossibleGrades} grades entered ({curriculumType.toUpperCase()} curriculum)
                     </span>
                     <div className="flex items-center gap-2">
                       <div className="w-32 bg-gray-200 rounded-full h-2">
@@ -267,7 +283,7 @@ const BulkGradingModal: React.FC<BulkGradingModalProps> = ({ open, onClose, clas
                     <span className="text-orange-600 font-medium">✓ Grades submitted - Read only mode</span>
                   ) : (
                     <span>
-                      {gradesEntered > 0 ? `${gradesEntered} grades entered` : 'No grades entered yet'}
+                      {gradesEntered > 0 ? `${gradesEntered} grades entered (${curriculumType.toUpperCase()})` : `No grades entered yet (${curriculumType.toUpperCase()} curriculum)`}
                     </span>
                   )}
                 </>
