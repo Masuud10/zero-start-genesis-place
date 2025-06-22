@@ -56,7 +56,7 @@ export const useMpesaTransactions = () => {
 
       if (error) throw error;
 
-      // Transform the data to match our interface
+      // Transform the data to match our interface with proper null checks
       const transformedData: MpesaTransaction[] = (data || []).map(transaction => ({
         id: transaction.id,
         transaction_id: transaction.transaction_id || '',
@@ -68,13 +68,13 @@ export const useMpesaTransactions = () => {
         student_id: transaction.student_id || '',
         fee_id: transaction.fee_id || '',
         class_id: transaction.class_id || '',
-        student: transaction.student && typeof transaction.student === 'object' && 'name' in transaction.student
+        student: transaction.student && transaction.student !== null && typeof transaction.student === 'object' && 'name' in transaction.student
           ? {
               name: transaction.student.name || '',
               admission_number: transaction.student.admission_number || ''
             }
           : undefined,
-        class: transaction.class && typeof transaction.class === 'object' && 'name' in transaction.class
+        class: transaction.class && transaction.class !== null && typeof transaction.class === 'object' && 'name' in transaction.class
           ? {
               name: transaction.class.name || ''
             }
