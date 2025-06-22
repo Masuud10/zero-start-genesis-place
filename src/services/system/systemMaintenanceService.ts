@@ -18,8 +18,11 @@ export class SystemMaintenanceService {
 
       if (error) throw error;
 
+      // Safely cast the Json type to MaintenanceSettings
+      const maintenanceSettings = data?.setting_value as unknown as MaintenanceSettings;
+
       return { 
-        data: data?.setting_value as MaintenanceSettings || null, 
+        data: maintenanceSettings || null, 
         error: null 
       };
     } catch (error: any) {
