@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,8 +27,8 @@ const StudentAccountsPanel: React.FC = () => {
           id,
           name,
           admission_number,
-          class:class_id(name),
-          fees:fees(
+          classes!students_class_id_fkey(name),
+          fees:fees!fees_student_id_fkey(
             id,
             amount,
             paid_amount,
@@ -172,7 +173,7 @@ const StudentAccountsPanel: React.FC = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{student.class?.name}</TableCell>
+                    <TableCell>{student.classes?.name}</TableCell>
                     <TableCell className="font-semibold">
                       KES {student.totalFees.toLocaleString()}
                     </TableCell>

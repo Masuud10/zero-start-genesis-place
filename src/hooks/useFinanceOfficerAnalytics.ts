@@ -23,8 +23,8 @@ export const useFinanceOfficerAnalytics = (filters: FinanceFilters) => {
         .from('fees')
         .select(`
           *,
-          student:student_id(name, admission_number),
-          class:class_id(name)
+          students!fees_student_id_fkey(name, admission_number),
+          classes!fees_class_id_fkey(name)
         `)
         .eq('school_id', user.school_id);
 
@@ -71,7 +71,7 @@ export const useFinanceOfficerAnalytics = (filters: FinanceFilters) => {
 
       // Fee collection by class
       const feeCollectionData = fees?.reduce((acc: any[], fee) => {
-        const className = fee.class?.name || 'Unknown';
+        const className = fee.classes?.name || 'Unknown';
         const existing = acc.find(item => item.class === className);
         
         if (existing) {
@@ -128,10 +128,10 @@ export const useFinanceOfficerAnalytics = (filters: FinanceFilters) => {
         (fee.amount || 0) > (fee.paid_amount || 0) && 
         new Date(fee.due_date) < new Date()
       ).map(fee => ({
-        student_name: fee.student?.name || 'Unknown',
-        admission_number: fee.student?.admission_number || 'N/A',
+        student_name: fee.students?.name || 'Unknown',
+        admission_number: fee.students?.admission_number || 'N/A',
         outstanding_amount: (fee.amount || 0) - (fee.paid_amount || 0),
-        class_name: fee.class?.name || 'Unknown',
+        class_name: fee.classes?.name || 'Unknown',
         days_overdue: Math.floor((new Date().getTime() - new Date(fee.due_date).getTime()) / (1000 * 60 * 60 * 24))
       })).sort((a, b) => b.outstanding_amount - a.outstanding_amount) || [];
 
