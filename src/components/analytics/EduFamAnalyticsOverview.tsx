@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -44,7 +43,7 @@ const EduFamAnalyticsOverview = () => {
         if (!acc[month]) {
           acc[month] = { month, revenue: 0, transactions: 0 };
         }
-        acc[month].revenue += parseFloat(transaction.amount || 0);
+        acc[month].revenue += parseFloat(String(transaction.amount || 0));
         acc[month].transactions += 1;
         return acc;
       }, {}) || {};
@@ -105,7 +104,7 @@ const EduFamAnalyticsOverview = () => {
         gradesChartData,
         attendanceChartData,
         schoolsGrowth,
-        totalRevenue: revenueData?.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0) || 0
+        totalRevenue: revenueData?.reduce((sum, t) => sum + parseFloat(String(t.amount || 0)), 0) || 0
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
