@@ -2,8 +2,8 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Filter } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Search } from 'lucide-react';
 
 interface UsersFilterProps {
   searchTerm: string;
@@ -14,26 +14,20 @@ interface UsersFilterProps {
   onStatusFilterChange: (value: string) => void;
 }
 
-const UsersFilter = ({
+const UsersFilter: React.FC<UsersFilterProps> = ({
   searchTerm,
   onSearchChange,
   roleFilter,
   onRoleFilterChange,
   statusFilter,
   onStatusFilterChange
-}: UsersFilterProps) => {
+}) => {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Filter className="w-5 h-5" />
-          Filter Users
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+      <CardContent className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Search by name or email..."
               value={searchTerm}
@@ -43,13 +37,13 @@ const UsersFilter = ({
           </div>
           
           <Select value={roleFilter} onValueChange={onRoleFilterChange}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="edufam_admin">EduFam Admin</SelectItem>
               <SelectItem value="elimisha_admin">Elimisha Admin</SelectItem>
+              <SelectItem value="edufam_admin">EduFam Admin</SelectItem>
               <SelectItem value="school_owner">School Owner</SelectItem>
               <SelectItem value="principal">Principal</SelectItem>
               <SelectItem value="teacher">Teacher</SelectItem>
@@ -59,13 +53,14 @@ const UsersFilter = ({
           </Select>
 
           <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
         </div>

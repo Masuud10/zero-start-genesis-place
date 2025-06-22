@@ -1,13 +1,10 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, AlertCircle, RefreshCw, Edit } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import EditUserDialog from './EditUserDialog';
-import UserActivationToggle from './UserActivationToggle';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface User {
   id: string;
@@ -16,8 +13,6 @@ interface User {
   role: string;
   status: string;
   created_at: string;
-  school_id?: string;
-  phone?: string;
   school?: {
     name: string;
   };
@@ -26,66 +21,55 @@ interface User {
 interface UsersTableProps {
   users: User[];
   loading: boolean;
-  error?: string | null;
-  onRetry?: () => void;
-  onUserUpdated?: () => void;
+  error: string | null;
+  onRetry: () => void;
+  onUserUpdated: () => void;
 }
 
-const getRoleBadgeColor = (role: string) => {
-  switch (role) {
-    case 'elimisha_admin':
-    case 'edufam_admin':
-      return 'bg-red-100 text-red-800';
-    case 'school_owner':
-      return 'bg-purple-100 text-purple-800';
-    case 'principal':
-      return 'bg-blue-100 text-blue-800';
-    case 'teacher':
-      return 'bg-green-100 text-green-800';
-    case 'finance_officer':
-      return 'bg-orange-100 text-orange-800';
-    case 'parent':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
+const UsersTable: React.FC<UsersTableProps> = ({
+  users,
+  loading,
+  error,
+  onRetry,
+  onUserUpdated
+}) => {
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'elimisha_admin':
+      case 'edufam_admin':
+        return 'destructive';
+      case 'school_owner':
+      case 'principal':
+        return 'default';
+      case 'teacher':
+        return 'secondary';
+      case 'finance_officer':
+        return 'outline';
+      default:
+        return 'outline';
+    }
+  };
 
-const getStatusBadgeColor = (status: string) => {
-  switch (status) {
-    case 'active':
-      return 'bg-green-100 text-green-800';
-    case 'inactive':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const formatRole = (role: string) => {
-  return role.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
-};
-
-const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTableProps) => {
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'default';
+      case 'inactive':
+        return 'secondary';
+      case 'suspended':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
 
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Users List
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-sm text-muted-foreground mt-2">Loading users...</p>
-            </div>
+        <CardContent className="p-8">
+          <div className="flex items-center justify-center">
+            <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+            <span>Loading users...</span>
           </div>
         </CardContent>
       </Card>
@@ -94,30 +78,17 @@ const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTabl
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Users List
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <div>
-                <strong>Error loading users:</strong> {error}
-                <br />
-                <span className="text-sm">Please check your connection and try again.</span>
-              </div>
-              {onRetry && (
-                <Button variant="outline" size="sm" onClick={onRetry} className="ml-4">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Retry
-                </Button>
-              )}
-            </AlertDescription>
-          </Alert>
+      <Card className="border-red-200 bg-red-50">
+        <CardContent className="p-8">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Users</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={onRetry} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -126,19 +97,9 @@ const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTabl
   if (users.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Users List
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">No users found</h3>
-            <p className="text-sm text-muted-foreground">
-              No users match your current filters. Try adjusting your search criteria.
-            </p>
+        <CardContent className="p-8">
+          <div className="text-center text-muted-foreground">
+            <p>No users found matching your filters.</p>
           </div>
         </CardContent>
       </Card>
@@ -146,89 +107,46 @@ const UsersTable = ({ users, loading, error, onRetry, onUserUpdated }: UsersTabl
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Users List ({users.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>School</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
+    <Card>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>School</TableHead>
+                <TableHead>Created</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={getRoleBadgeVariant(user.role)}>
+                      {user.role.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusBadgeVariant(user.status)}>
+                      {user.status.toUpperCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{user.school?.name || 'N/A'}</TableCell>
+                  <TableCell>
+                    {new Date(user.created_at).toLocaleDateString()}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge className={getRoleBadgeColor(user.role)}>
-                        {formatRole(user.role)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(user.status)}>
-                        {user.status === 'active' ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {user.school?.name || (
-                        user.role === 'elimisha_admin' || user.role === 'edufam_admin' 
-                          ? 'System Admin' 
-                          : 'Not Assigned'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingUser(user)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <UserActivationToggle
-                          userId={user.id}
-                          userName={user.name}
-                          currentStatus={user.status}
-                          userRole={user.role}
-                          onStatusChanged={onUserUpdated}
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <EditUserDialog
-        user={editingUser}
-        open={!!editingUser}
-        onClose={() => setEditingUser(null)}
-        onUserUpdated={() => {
-          setEditingUser(null);
-          if (onUserUpdated) onUserUpdated();
-        }}
-      />
-    </>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -42,14 +42,6 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
   const { user } = useAuth();
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
 
-  console.log('🔍 UsersModule: Current user state:', {
-    user: user,
-    userRole: user?.role,
-    userEmail: user?.email,
-    isSystemAdmin,
-    schoolId: schoolId
-  });
-
   useEffect(() => {
     if (user) {
       fetchUsers();
@@ -61,8 +53,6 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 UsersModule: Fetching users for role:', user?.role, 'isSystemAdmin:', isSystemAdmin);
-
       // Check if user has permission to view users
       if (!user || !['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role)) {
         throw new Error('You do not have permission to view users');
@@ -72,18 +62,14 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
       const { data, error: fetchError } = await AdminUserService.getUsersForSchool();
 
       if (fetchError) {
-        console.error('🔍 UsersModule: Fetch error:', fetchError);
         throw fetchError;
       }
 
       if (!data) {
-        console.warn('🔍 UsersModule: No data returned from service');
         setUsers([]);
         return;
       }
 
-      console.log('🔍 UsersModule: Raw data from service:', data);
-      
       // Transform the data to match our User interface
       const transformedUsers: User[] = data.map((profile: any) => {
         let schoolInfo: { name: string } | undefined = undefined;
@@ -119,14 +105,11 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
         return userSchoolId && u.school_id === userSchoolId;
       });
       
-      console.log('🔍 UsersModule: Final filtered users:', finalUsers);
       setUsers(finalUsers);
 
       if (onDataChanged) onDataChanged();
 
     } catch (error: any) {
-      console.error('🔍 UsersModule: Error in fetchUsers:', error);
-      
       const errorMessage = error?.message || 'Unknown error occurred while fetching users';
       setError(errorMessage);
       
@@ -155,12 +138,6 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
     user.role === 'school_owner' || 
     user.role === 'principal'
   );
-  
-  console.log('👤 UsersModule: Permission check:', {
-    userRole: user?.role,
-    canAddUsers,
-    userEmail: user?.email
-  });
 
   // Permission check - show error if user doesn't have access
   if (user && !['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role)) {
