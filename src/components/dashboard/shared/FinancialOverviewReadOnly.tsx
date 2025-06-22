@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -103,7 +104,7 @@ const FinancialOverviewReadOnly: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-orange-600">Outstanding</p>
                   <p className="text-2xl font-bold text-orange-700">
-                    KES {keyMetrics.outstanding?.toLocaleString() || 0}
+                    KES {keyMetrics.outstandingAmount?.toLocaleString() || 0}
                   </p>
                 </div>
                 <TrendingDown className="h-8 w-8 text-orange-600" />
@@ -127,7 +128,7 @@ const FinancialOverviewReadOnly: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-purple-600">Defaulters</p>
                   <p className="text-2xl font-bold text-purple-700">
-                    {keyMetrics.defaulterCount || 0}
+                    {keyMetrics.defaultersCount || 0}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-purple-600" />
@@ -180,17 +181,17 @@ const FinancialOverviewReadOnly: React.FC = () => {
                 {defaultersList.slice(0, 5).map((defaulter, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
                     <div>
-                      <p className="font-medium">{defaulter.studentName}</p>
+                      <p className="font-medium">{defaulter.student_name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {defaulter.class} - {defaulter.admissionNumber}
+                        {defaulter.class_name} - {defaulter.admission_number}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-red-600">
-                        KES {defaulter.outstandingAmount?.toLocaleString()}
+                        KES {defaulter.outstanding_amount?.toLocaleString()}
                       </p>
                       <Badge variant="destructive" className="text-xs">
-                        {defaulter.overdueCount} overdue
+                        {defaulter.days_overdue} days overdue
                       </Badge>
                     </div>
                   </div>

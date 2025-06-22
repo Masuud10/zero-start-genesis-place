@@ -217,7 +217,7 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-sm">Outstanding</span>
-                  <span className="text-sm">KES {financeData?.keyMetrics?.outstanding?.toLocaleString() || 0}</span>
+                  <span className="text-sm">KES {financeData?.keyMetrics?.outstandingAmount?.toLocaleString() || 0}</span>
                 </div>
               </div>
             </div>

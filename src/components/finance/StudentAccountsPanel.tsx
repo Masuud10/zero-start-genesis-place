@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ const StudentAccountsPanel: React.FC = () => {
           id,
           name,
           admission_number,
-          class:classes(name),
+          class:class_id(name),
           fees:fees(
             id,
             amount,

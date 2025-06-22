@@ -18,13 +18,13 @@ export const useFinanceOfficerAnalytics = (filters: FinanceFilters) => {
         throw new Error('No school ID available');
       }
 
-      // Fetch fees data
+      // Fetch fees data with explicit relationship hints
       const { data: fees, error: feesError } = await supabase
         .from('fees')
         .select(`
           *,
-          student:students(name, admission_number),
-          class:classes(name)
+          student:student_id(name, admission_number),
+          class:class_id(name)
         `)
         .eq('school_id', user.school_id);
 
