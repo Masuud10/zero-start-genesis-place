@@ -73,6 +73,7 @@ export const AdminUserService = {
           school_id,
           created_at,
           updated_at,
+          phone,
           school:schools!fk_profiles_school(
             id, name
           )
@@ -88,6 +89,29 @@ export const AdminUserService = {
     } catch (error: any) {
       console.error('Unexpected error in getUsersForSchool:', error);
       return { data: null, error };
+    }
+  },
+
+  updateUserStatus: async (userId: string, status: string) => {
+    try {
+      const { data, error } = await supabase.rpc('update_user_status', {
+        target_user_id: userId,
+        new_status: status
+      });
+
+      if (error) {
+        console.error('Error updating user status:', error);
+        return { success: false, error: error.message };
+      }
+
+      if (data?.success) {
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, error: data?.error || 'Failed to update user status' };
+      }
+    } catch (error: any) {
+      console.error('Unexpected error in updateUserStatus:', error);
+      return { success: false, error: error.message || 'Unknown error occurred' };
     }
   },
 

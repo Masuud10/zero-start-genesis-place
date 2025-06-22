@@ -12,6 +12,7 @@ import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCar
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import DashboardModals from './DashboardModals';
+import SystemMaintenanceControl from '@/components/modules/settings/SystemMaintenanceControl';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
@@ -149,6 +150,9 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
       {/* System Health Status */}
       <SystemHealthStatusCard />
+
+      {/* System Maintenance Control */}
+      <SystemMaintenanceControl />
 
       {/* System Overview Cards */}
       <SystemOverviewCards

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +13,10 @@ import {
   Settings,
   Shield,
   Activity,
-  TrendingUp
+  TrendingUp,
+  Plus
 } from 'lucide-react';
+import CreateSchoolDialog from '@/components/school/CreateSchoolDialog';
 
 interface AdministrativeHubProps {
   onModalOpen: (modalType: string) => void;
@@ -42,7 +44,7 @@ const AdministrativeHub = ({ onModalOpen, onUserCreated }: AdministrativeHubProp
       icon: School,
       color: 'green',
       actions: [
-        { label: 'Create New School', action: 'create-school', icon: Building2 },
+        { label: 'Create New School', action: 'create-school', icon: Building2, isSpecial: true },
         { label: 'Assign School Owner', action: 'assign-owner', icon: Users },
         { label: 'School Settings', action: 'school-settings', icon: Settings },
         { label: 'School Analytics', action: 'school-analytics', icon: TrendingUp },
@@ -95,17 +97,31 @@ const AdministrativeHub = ({ onModalOpen, onUserCreated }: AdministrativeHubProp
             <CardContent>
               <div className="grid grid-cols-1 gap-3">
                 {section.actions.map((action) => (
-                  <Button
-                    key={action.action}
-                    variant="outline"
-                    className="justify-start h-auto p-3 hover:bg-gray-50"
-                    onClick={() => handleActionClick(action.action)}
-                  >
-                    <action.icon className="h-4 w-4 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">{action.label}</div>
-                    </div>
-                  </Button>
+                  action.isSpecial ? (
+                    <CreateSchoolDialog key={action.action} onSchoolCreated={onUserCreated}>
+                      <Button
+                        variant="outline"
+                        className="justify-start h-auto p-3 hover:bg-gray-50"
+                      >
+                        <action.icon className="h-4 w-4 mr-3" />
+                        <div className="text-left">
+                          <div className="font-medium">{action.label}</div>
+                        </div>
+                      </Button>
+                    </CreateSchoolDialog>
+                  ) : (
+                    <Button
+                      key={action.action}
+                      variant="outline"
+                      className="justify-start h-auto p-3 hover:bg-gray-50"
+                      onClick={() => handleActionClick(action.action)}
+                    >
+                      <action.icon className="h-4 w-4 mr-3" />
+                      <div className="text-left">
+                        <div className="font-medium">{action.label}</div>
+                      </div>
+                    </Button>
+                  )
                 ))}
               </div>
             </CardContent>

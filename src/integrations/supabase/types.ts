@@ -5756,6 +5756,28 @@ export type Database = {
         }
         Returns: Json
       }
+      create_enhanced_school: {
+        Args: {
+          school_name: string
+          school_email: string
+          school_phone: string
+          school_address: string
+          logo_url?: string
+          website_url?: string
+          motto?: string
+          slogan?: string
+          school_type?: string
+          registration_number?: string
+          year_established?: number
+          term_structure?: string
+          owner_information?: string
+          owner_email?: string
+          owner_name?: string
+          owner_phone?: string
+          curriculum_type?: string
+        }
+        Returns: Json
+      }
       create_school: {
         Args: {
           school_name: string
@@ -5883,6 +5905,10 @@ export type Database = {
       update_user_role: {
         Args: { target_user_id: string; new_role: string }
         Returns: undefined
+      }
+      update_user_status: {
+        Args: { target_user_id: string; new_status: string }
+        Returns: Json
       }
       validate_password_strength: {
         Args: { password: string }
