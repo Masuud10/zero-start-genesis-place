@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +20,19 @@ export const useMaintenanceSettings = () => {
 
       if (error) throw error;
 
-      return data.setting_value as MaintenanceSettings;
+      // Type assertion with proper validation
+      const settingValue = data.setting_value as unknown;
+      
+      if (typeof settingValue === 'object' && settingValue !== null) {
+        return settingValue as MaintenanceSettings;
+      }
+      
+      // Fallback to default settings if parsing fails
+      return {
+        enabled: false,
+        message: 'System is currently under maintenance. Please try again later.',
+        updated_at: new Date().toISOString()
+      };
     },
   });
 };

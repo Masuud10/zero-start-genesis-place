@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +18,14 @@ import { School, Plus } from 'lucide-react';
 interface CreateSchoolDialogProps {
   children: React.ReactNode;
   onSchoolCreated?: () => void;
+}
+
+interface SchoolCreationResponse {
+  success?: boolean;
+  school_id?: string;
+  owner_id?: string;
+  message?: string;
+  error?: string;
 }
 
 const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogProps) => {
@@ -87,10 +94,13 @@ const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogPro
 
       if (error) throw error;
 
-      if (data?.success) {
+      // Type assertion for the response
+      const response = data as SchoolCreationResponse;
+
+      if (response?.success) {
         toast({
           title: "Success",
-          description: data.message || "School created successfully",
+          description: response.message || "School created successfully",
         });
         
         setFormData({
@@ -116,7 +126,7 @@ const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogPro
         setOpen(false);
         if (onSchoolCreated) onSchoolCreated();
       } else {
-        throw new Error(data?.error || 'Failed to create school');
+        throw new Error(response?.error || 'Failed to create school');
       }
     } catch (error: any) {
       console.error('Error creating school:', error);

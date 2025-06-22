@@ -16,6 +16,14 @@ interface CreateUserRpcResponse {
   user_id?: string;
 }
 
+interface UpdateUserStatusResponse {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  user_email?: string;
+  new_status?: string;
+}
+
 export const AdminUserService = {
   createUser: async (params: CreateUserParams) => {
     try {
@@ -104,10 +112,13 @@ export const AdminUserService = {
         return { success: false, error: error.message };
       }
 
-      if (data?.success) {
-        return { success: true, message: data.message };
+      // Type assertion for the response
+      const response = data as UpdateUserStatusResponse;
+
+      if (response?.success) {
+        return { success: true, message: response.message };
       } else {
-        return { success: false, error: data?.error || 'Failed to update user status' };
+        return { success: false, error: response?.error || 'Failed to update user status' };
       }
     } catch (error: any) {
       console.error('Unexpected error in updateUserStatus:', error);
