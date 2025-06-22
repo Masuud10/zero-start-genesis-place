@@ -1,17 +1,17 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface ReportFilters {
-  reportType: 'school_financial' | 'class_financial' | 'individual_student';
+  reportType: 'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions';
   academicYear?: string;
   term?: string;
   classId?: string;
   studentId?: string;
-  dateFrom?: string;
-  dateTo?: string;
 }
 
 export const useFinanceReports = () => {
@@ -23,154 +23,156 @@ export const useFinanceReports = () => {
     if (!user?.school_id) {
       toast({
         title: "Error",
-        description: "No school associated with user",
+        description: "No school associated with your account",
         variant: "destructive",
       });
-      return { error: 'No school associated with user' };
+      return { data: null, error: 'No school ID' };
     }
 
+    setLoading(true);
+    
     try {
-      setLoading(true);
+      let data = null;
       
-      const { data, error } = await supabase.rpc('generate_finance_report', {
-        p_report_type: filters.reportType,
-        p_school_id: user.school_id,
-        p_class_id: filters.classId || null,
-        p_student_id: filters.studentId || null,
-        p_academic_year: filters.academicYear || null,
-        p_term: filters.term || null,
-      });
-
-      if (error) throw error;
-
-      // Handle the response data properly
-      const result = data as any;
-      if (result?.error) {
-        throw new Error(result.error);
+      switch (filters.reportType) {
+        case 'school_financial':
+          data = await generateSchoolFinancialReport(user.school_id, filters);
+          break;
+        case 'fee_collection':
+          data = await generateFeeCollectionReport(user.school_id, filters);
+          break;
+        case 'expense_summary':
+          data = await generateExpenseSummaryReport(user.school_id, filters);
+          break;
+        case 'mpesa_transactions':
+          data = await generateMpesaTransactionsReport(user.school_id, filters);
+          break;
+        default:
+          throw new Error('Invalid report type');
       }
 
-      toast({
-        title: "Success",
-        description: "Report generated successfully",
-      });
-
-      return { data: result, error: null };
-    } catch (err: any) {
+      return { data, error: null };
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to generate report: ${err.message}`,
+        description: error.message || "Failed to generate report",
         variant: "destructive",
       });
-      return { error: err.message };
+      return { data: null, error: error.message };
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadReport = async (reportData: any, filename: string) => {
+  const downloadReport = (reportData: any, filename: string) => {
     try {
-      // Convert JSON data to CSV format
-      const csvContent = convertToCSV(reportData);
+      const doc = new jsPDF();
       
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
+      // Add title
+      doc.setFontSize(16);
+      doc.text('Financial Report', 20, 20);
       
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
+      // Add generated date
+      doc.setFontSize(12);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 30);
       
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
+      // Add report data as a simple table
+      if (reportData && typeof reportData === 'object') {
+        const tableData = Object.entries(reportData).map(([key, value]) => [
+          key.replace(/_/g, ' ').toUpperCase(),
+          String(value)
+        ]);
+        
+        (doc as any).autoTable({
+          head: [['Field', 'Value']],
+          body: tableData,
+          startY: 40,
+        });
+      }
+      
+      doc.save(`${filename}.pdf`);
+      
       toast({
         title: "Success",
         description: "Report downloaded successfully",
       });
-    } catch (err: any) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to download report: ${err.message}`,
+        description: "Failed to download report",
         variant: "destructive",
       });
-    }
-  };
-
-  const convertToCSV = (reportData: any): string => {
-    let csvContent = '';
-    
-    if (reportData.report_type === 'school_financial') {
-      csvContent = 'School Financial Report\n';
-      csvContent += `Generated: ${new Date(reportData.generated_at).toLocaleDateString()}\n`;
-      csvContent += `School: ${reportData.school?.name}\n`;
-      csvContent += `Academic Year: ${reportData.academic_year}\n`;
-      csvContent += `Term: ${reportData.term || 'All Terms'}\n\n`;
-      
-      csvContent += 'Summary\n';
-      csvContent += 'Metric,Amount (KES)\n';
-      csvContent += `Total Fees,${reportData.summary?.total_fees || 0}\n`;
-      csvContent += `Total Collected,${reportData.summary?.total_collected || 0}\n`;
-      csvContent += `Outstanding,${reportData.summary?.outstanding || 0}\n`;
-      csvContent += `Collection Rate,${reportData.summary?.collection_rate || 0}%\n`;
-      csvContent += `Total Expenses,${reportData.expenses?.total_expenses || 0}\n`;
-    } else if (reportData.report_type === 'class_financial') {
-      csvContent = 'Class Financial Report\n';
-      csvContent += `Generated: ${new Date(reportData.generated_at).toLocaleDateString()}\n\n`;
-      
-      csvContent += 'Class,Total Fees,Collected,Outstanding,Students\n';
-      reportData.class_breakdown?.forEach((classData: any) => {
-        csvContent += `${classData.class_name},${classData.total_fees},${classData.collected},${classData.outstanding},${classData.student_count}\n`;
-      });
-    }
-    
-    return csvContent;
-  };
-
-  const getFinancialSummary = async (filters?: { academicYear?: string; term?: string }) => {
-    if (!user?.school_id) return { error: 'No school associated with user' };
-
-    try {
-      // Query the fees table instead of student_fees
-      const { data, error } = await supabase
-        .from('fees')
-        .select('amount, paid_amount, status')
-        .eq('school_id', user.school_id);
-
-      if (error) throw error;
-      
-      const summary = data?.reduce((acc, fee) => {
-        acc.totalFees += fee.amount || 0;
-        acc.totalCollected += fee.paid_amount || 0;
-        acc.outstanding += (fee.amount || 0) - (fee.paid_amount || 0);
-        
-        if (fee.status === 'paid') acc.paidCount++;
-        else if (fee.status === 'partial') acc.partialCount++;
-        else if (fee.status === 'pending') acc.unpaidCount++;
-        else if (fee.status === 'overdue') acc.overdue++;
-        
-        return acc;
-      }, {
-        totalFees: 0,
-        totalCollected: 0,
-        outstanding: 0,
-        paidCount: 0,
-        partialCount: 0,
-        unpaidCount: 0,
-        overdue: 0,
-      });
-      
-      return { data: summary, error: null };
-    } catch (err: any) {
-      return { error: err.message };
     }
   };
 
   return {
     generateReport,
     downloadReport,
-    getFinancialSummary,
-    loading,
+    loading
+  };
+};
+
+// Helper functions for different report types
+const generateSchoolFinancialReport = async (schoolId: string, filters: ReportFilters) => {
+  const { data, error } = await supabase
+    .from('fees')
+    .select('*')
+    .eq('school_id', schoolId);
+  
+  if (error) throw error;
+  
+  const totalFees = data?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+  const totalPaid = data?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+  
+  return {
+    summary: {
+      total_fees: totalFees,
+      total_collected: totalPaid,
+      outstanding: totalFees - totalPaid,
+      collection_rate: totalFees > 0 ? (totalPaid / totalFees) * 100 : 0
+    },
+    details: data
+  };
+};
+
+const generateFeeCollectionReport = async (schoolId: string, filters: ReportFilters) => {
+  const { data, error } = await supabase
+    .from('fees')
+    .select('*, student:students(name, admission_number), class:classes(name)')
+    .eq('school_id', schoolId);
+  
+  if (error) throw error;
+  
+  return {
+    collections: data,
+    total_collected: data?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0
+  };
+};
+
+const generateExpenseSummaryReport = async (schoolId: string, filters: ReportFilters) => {
+  // This would need an expenses table - for now return empty
+  return {
+    message: 'Expense tracking not yet implemented',
+    total_expenses: 0
+  };
+};
+
+const generateMpesaTransactionsReport = async (schoolId: string, filters: ReportFilters) => {
+  const { data, error } = await supabase
+    .from('mpesa_transactions')
+    .select('*')
+    .eq('school_id', schoolId);
+  
+  if (error) throw error;
+  
+  const totalAmount = data?.reduce((sum, txn) => sum + (txn.amount_paid || 0), 0) || 0;
+  
+  return {
+    transactions: data,
+    summary: {
+      total_transactions: data?.length || 0,
+      total_amount: totalAmount,
+      successful_transactions: data?.filter(txn => txn.transaction_status === 'Success').length || 0
+    }
   };
 };

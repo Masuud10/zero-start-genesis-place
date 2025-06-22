@@ -1898,6 +1898,87 @@ export type Database = {
           },
         ]
       }
+      finance_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          late_fee_grace_days: number | null
+          late_fee_percentage: number | null
+          mpesa_consumer_key: string | null
+          mpesa_consumer_secret: string | null
+          mpesa_passkey: string | null
+          mpesa_paybill_number: string | null
+          school_id: string
+          settings_data: Json | null
+          tax_rate: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          late_fee_grace_days?: number | null
+          late_fee_percentage?: number | null
+          mpesa_consumer_key?: string | null
+          mpesa_consumer_secret?: string | null
+          mpesa_passkey?: string | null
+          mpesa_paybill_number?: string | null
+          school_id: string
+          settings_data?: Json | null
+          tax_rate?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          late_fee_grace_days?: number | null
+          late_fee_percentage?: number | null
+          mpesa_consumer_key?: string | null
+          mpesa_consumer_secret?: string | null
+          mpesa_passkey?: string | null
+          mpesa_paybill_number?: string | null
+          school_id?: string
+          settings_data?: Json | null
+          tax_rate?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "finance_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "finance_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "finance_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "finance_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_audit_logs: {
         Row: {
           action: string
@@ -2986,6 +3067,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mpesa_api_config: {
+        Row: {
+          callback_url: string
+          created_at: string | null
+          daraja_consumer_key: string
+          daraja_consumer_secret: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          callback_url: string
+          created_at?: string | null
+          daraja_consumer_key: string
+          daraja_consumer_secret: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          callback_url?: string
+          created_at?: string | null
+          daraja_consumer_key?: string
+          daraja_consumer_secret?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       mpesa_api_credentials: {
         Row: {
           consumer_key: string
@@ -3071,7 +3179,64 @@ export type Database = {
           transaction_status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mpesa_transactions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_fee_id_fkey"
+            columns: ["fee_id"]
+            isOneToOne: false
+            referencedRelation: "fees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parent_engagements: {
         Row: {
@@ -3641,6 +3806,72 @@ export type Database = {
           },
           {
             foreignKeyName: "school_analytics_summary_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_mpesa_config: {
+        Row: {
+          business_shortcode: string | null
+          created_at: string | null
+          id: string
+          mpesa_name: string | null
+          paybill_number: string
+          school_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_shortcode?: string | null
+          created_at?: string | null
+          id?: string
+          mpesa_name?: string | null
+          paybill_number: string
+          school_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_shortcode?: string | null
+          created_at?: string | null
+          id?: string
+          mpesa_name?: string | null
+          paybill_number?: string
+          school_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_mpesa_config_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_mpesa_config_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_mpesa_config_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_mpesa_config_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_mpesa_config_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: true
             referencedRelation: "schools"
@@ -4826,6 +5057,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           attachments: string[] | null
+          category: string | null
           created_at: string | null
           created_by: string | null
           description: string
@@ -4840,6 +5072,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           attachments?: string[] | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description: string
@@ -4854,6 +5087,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           attachments?: string[] | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string
@@ -5352,6 +5586,91 @@ export type Database = {
           total_teachers: number | null
         }
         Relationships: []
+      }
+      mpesa_transactions_with_details: {
+        Row: {
+          admission_number: string | null
+          amount_paid: number | null
+          class_id: string | null
+          class_level: string | null
+          class_name: string | null
+          created_at: string | null
+          fee_amount: number | null
+          fee_category: string | null
+          fee_id: string | null
+          id: string | null
+          mpesa_receipt_number: string | null
+          paybill_number: string | null
+          payment_type: string | null
+          phone_number: string | null
+          roll_number: string | null
+          school_id: string | null
+          school_name: string | null
+          student_id: string | null
+          student_name: string | null
+          transaction_date: string | null
+          transaction_id: string | null
+          transaction_status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mpesa_transactions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_fee_id_fkey"
+            columns: ["fee_id"]
+            isOneToOne: false
+            referencedRelation: "fees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       school_attendance_summary: {
         Row: {
