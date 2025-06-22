@@ -34,7 +34,7 @@ const DataAccessDebugger = () => {
       error,
       isLoading,
       hasAccess: !error && data !== undefined,
-      recordCount: data?.length || 0
+      recordCount: Array.isArray(data) ? data.length : 0
     };
   });
 

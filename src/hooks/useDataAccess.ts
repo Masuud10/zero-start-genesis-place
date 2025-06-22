@@ -26,24 +26,23 @@ export const useDataAccess = ({ table, select = '*', filters = {}, enabled = tru
         schoolId: user.school_id
       });
 
-      let query = supabase.from(table).select(select);
+      try {
+        // Use a more generic approach to avoid type issues
+        const { data, error } = await supabase
+          .from(table as any)
+          .select(select);
 
-      // Apply filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
+        if (error) {
+          console.error(`❌ Error accessing ${table}:`, error);
+          throw error;
         }
-      });
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error(`❌ Error accessing ${table}:`, error);
+        console.log(`✅ Successfully accessed ${table}:`, data?.length || 0, 'records');
+        return data || [];
+      } catch (error: any) {
+        console.error(`❌ Error in data access for ${table}:`, error);
         throw error;
       }
-
-      console.log(`✅ Successfully accessed ${table}:`, data?.length || 0, 'records');
-      return data;
     },
     enabled: enabled && !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes

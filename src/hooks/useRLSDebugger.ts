@@ -3,15 +3,33 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
+interface PermissionResult {
+  canRead: boolean;
+  error?: string;
+  data?: any;
+  count?: number;
+}
+
+interface RLSResults {
+  userInfo: {
+    id: string;
+    email?: string;
+    role?: string;
+    school_id?: string;
+  };
+  permissions: Record<string, PermissionResult>;
+  errors: string[];
+}
+
 export const useRLSDebugger = () => {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['rls-debugger', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<RLSResults | null> => {
       if (!user) return null;
 
-      const results = {
+      const results: RLSResults = {
         userInfo: {
           id: user.id,
           email: user.email,
@@ -37,6 +55,10 @@ export const useRLSDebugger = () => {
         };
       } catch (err: any) {
         results.errors.push(`Profile access: ${err.message}`);
+        results.permissions.profiles = {
+          canRead: false,
+          error: err.message
+        };
       }
 
       // Test school access
@@ -55,6 +77,10 @@ export const useRLSDebugger = () => {
           };
         } catch (err: any) {
           results.errors.push(`School access: ${err.message}`);
+          results.permissions.schools = {
+            canRead: false,
+            error: err.message
+          };
         }
       }
 
@@ -72,6 +98,11 @@ export const useRLSDebugger = () => {
         };
       } catch (err: any) {
         results.errors.push(`Students access: ${err.message}`);
+        results.permissions.students = {
+          canRead: false,
+          error: err.message,
+          count: 0
+        };
       }
 
       return results;
