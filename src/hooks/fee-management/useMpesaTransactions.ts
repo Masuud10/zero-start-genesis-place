@@ -53,7 +53,7 @@ export const useMpesaTransactions = () => {
         student: (transaction.student && typeof transaction.student === 'object' && transaction.student !== null && 'name' in transaction.student && transaction.student.name !== null)
           ? { 
               name: String(transaction.student.name || ''), 
-              admission_number: String((transaction.student as any).admission_number || '') 
+              admission_number: String((transaction.student as any)?.admission_number || '') 
             }
           : undefined,
         class: (transaction.class && typeof transaction.class === 'object' && transaction.class !== null && 'name' in transaction.class && transaction.class.name !== null)

@@ -61,7 +61,7 @@ export const useFeeData = () => {
         student: (fee.student && typeof fee.student === 'object' && fee.student !== null && 'name' in fee.student && fee.student.name !== null)
           ? { 
               name: String(fee.student.name || ''), 
-              admission_number: String((fee.student as any).admission_number || '') 
+              admission_number: String((fee.student as any)?.admission_number || '') 
             }
           : undefined,
         class: (fee.class && typeof fee.class === 'object' && fee.class !== null && 'name' in fee.class && fee.class.name !== null)

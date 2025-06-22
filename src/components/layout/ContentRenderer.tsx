@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Dashboard from '@/components/Dashboard';
@@ -28,6 +27,7 @@ import SchoolsModule from '@/components/modules/SchoolsModule';
 import UsersModule from '@/components/modules/UsersModule';
 import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
+import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
 
 interface ContentRendererProps {
   activeSection: string;
@@ -113,6 +113,9 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       case 'system-health':
         return <SystemHealthModule />;
+
+      case 'company-management':
+        return <CompanyManagementModule />;
 
       default:
         return (

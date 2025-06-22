@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +28,7 @@ import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
 import SchoolOwnerDashboard from '@/components/dashboard/SchoolOwnerDashboard';
+import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
 
 const MainContent: React.FC = () => {
   const { activeSection } = useNavigation();
@@ -110,6 +110,8 @@ const MainContent: React.FC = () => {
         return <FinancialReportsModule />;
       case 'financial-analytics':
         return <FinancialAnalyticsModule />;
+      case 'company-management':
+        return <CompanyManagementModule />;
       default:
         return <div>Content for {activeSection}</div>;
     }

@@ -26,7 +26,8 @@ import {
   Banknote,
   Coins,
   PieChart,
-  Award
+  Award,
+  Globe
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -118,7 +119,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     },
     {
       id: 'announcements',
-      label: 'Announcements',
+      label: userRole === 'edufam_admin' ? 'Communication Center' : 'Announcements',
       icon: Megaphone,
       roles: ['edufam_admin', 'principal', 'teacher', 'school_owner']
     },
@@ -162,6 +163,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: 'users',
       label: 'Users',
       icon: UserPlus,
+      roles: ['edufam_admin']
+    },
+    {
+      id: 'company-management',
+      label: 'Company Management',
+      icon: Globe,
       roles: ['edufam_admin']
     },
     {

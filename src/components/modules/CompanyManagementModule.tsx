@@ -1,441 +1,357 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Globe, 
-  Building2, 
-  Users, 
-  TrendingUp, 
-  Edit, 
-  Save, 
-  X,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  DollarSign,
-  BarChart3
-} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Building2, Save, AlertTriangle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CompanyDetails {
-  id: string;
+  id?: string;
   company_name: string;
-  company_logo_url?: string;
-  company_slogan?: string;
-  company_motto?: string;
-  company_type?: string;
-  website_url?: string;
-  support_email?: string;
-  contact_phone?: string;
-  headquarters_address?: string;
-  registration_number?: string;
-  incorporation_details?: string;
-  year_established?: number;
-  management_team?: any[];
-  subscription_plans?: any[];
-}
-
-interface CompanyMetrics {
-  total_schools: number;
-  active_schools: number;
-  total_users: number;
-  active_users: number;
-  total_revenue: number;
-  monthly_revenue: number;
-  system_uptime_percentage: number;
+  company_logo_url: string;
+  company_slogan: string;
+  company_motto: string;
+  website_url: string;
+  support_email: string;
+  contact_phone: string;
+  headquarters_address: string;
+  registration_number: string;
+  incorporation_details: string;
+  year_established: number;
+  company_type: string;
 }
 
 const CompanyManagementModule = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedDetails, setEditedDetails] = useState<Partial<CompanyDetails>>({});
+  const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Fetch company details
-  const { data: companyDetails, isLoading: detailsLoading } = useQuery({
-    queryKey: ['company-details'],
-    queryFn: async () => {
-      console.log('🏢 Fetching company details');
-      const { data, error } = await supabase
-        .from('company_details')
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Error fetching company details:', error);
-        throw error;
-      }
-      console.log('✅ Company details fetched:', data);
-      return data as CompanyDetails;
-    }
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [companyDetails, setCompanyDetails] = useState<CompanyDetails>({
+    company_name: 'EduFam',
+    company_logo_url: '',
+    company_slogan: '',
+    company_motto: '',
+    website_url: 'https://edufam.com',
+    support_email: 'support@edufam.com',
+    contact_phone: '',
+    headquarters_address: '',
+    registration_number: '',
+    incorporation_details: '',
+    year_established: 2024,
+    company_type: 'EdTech SaaS'
   });
 
-  // Fetch latest company metrics
-  const { data: companyMetrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['company-metrics'],
-    queryFn: async () => {
-      console.log('📊 Fetching company metrics');
-      
-      // First, update metrics
-      await supabase.rpc('update_company_metrics');
-      
-      // Then fetch the latest metrics
-      const { data, error } = await supabase
-        .from('company_metrics')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching company metrics:', error);
-        throw error;
-      }
-      console.log('✅ Company metrics fetched:', data);
-      return data as CompanyMetrics;
-    }
-  });
-
-  // Update company details mutation
-  const updateCompanyDetailsMutation = useMutation({
-    mutationFn: async (updates: Partial<CompanyDetails>) => {
-      const { data, error } = await supabase
-        .from('company_details')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', companyDetails?.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-details'] });
-      toast({
-        title: "Company Details Updated",
-        description: "Company information has been successfully updated.",
-      });
-      setIsEditing(false);
-      setEditedDetails({});
-    },
-    onError: (error: any) => {
-      console.error('Error updating company details:', error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update company details.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  const handleSave = () => {
-    if (Object.keys(editedDetails).length > 0) {
-      updateCompanyDetailsMutation.mutate(editedDetails);
-    } else {
-      setIsEditing(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setEditedDetails({});
-  };
-
-  const handleInputChange = (field: keyof CompanyDetails, value: string | number) => {
-    setEditedDetails(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const getCurrentValue = (field: keyof CompanyDetails) => {
-    return editedDetails[field] !== undefined ? editedDetails[field] : companyDetails?.[field];
-  };
-
-  if (detailsLoading || metricsLoading) {
+  // Permission check
+  if (!user || user.role !== 'edufam_admin') {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-20 bg-gray-200 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <Alert className="bg-red-50 border-red-200 max-w-md">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-600">Access Denied</AlertTitle>
+          <AlertDescription className="text-red-700">
+            Only EduFam Admins can access company management.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
-  const metricsCards = [
-    {
-      title: 'Total Schools',
-      value: companyMetrics?.total_schools || 0,
-      icon: Building2,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Total Users',
-      value: companyMetrics?.total_users || 0,
-      icon: Users,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      title: 'Total Revenue',
-      value: `$${(companyMetrics?.total_revenue || 0).toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
-    },
-    {
-      title: 'System Uptime',
-      value: `${companyMetrics?.system_uptime_percentage || 100}%`,
-      icon: BarChart3,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+  const fetchCompanyDetails = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('company_details')
+        .select('*')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setCompanyDetails({
+          id: data.id,
+          company_name: data.company_name || 'EduFam',
+          company_logo_url: data.company_logo_url || '',
+          company_slogan: data.company_slogan || '',
+          company_motto: data.company_motto || '',
+          website_url: data.website_url || 'https://edufam.com',
+          support_email: data.support_email || 'support@edufam.com',
+          contact_phone: data.contact_phone || '',
+          headquarters_address: data.headquarters_address || '',
+          registration_number: data.registration_number || '',
+          incorporation_details: data.incorporation_details || '',
+          year_established: data.year_established || 2024,
+          company_type: data.company_type || 'EdTech SaaS'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching company details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load company details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const saveCompanyDetails = async () => {
+    try {
+      setSaving(true);
+      
+      const { error } = await supabase
+        .from('company_details')
+        .upsert({
+          ...companyDetails,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Company details saved successfully",
+      });
+    } catch (error: any) {
+      console.error('Error saving company details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save company details",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanyDetails();
+  }, []);
+
+  const handleInputChange = (field: keyof CompanyDetails, value: string | number) => {
+    setCompanyDetails(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-4" />
+        <p className="text-gray-600">Loading company details...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Company Management</h2>
-          <p className="text-muted-foreground">Manage EduFam company information and view performance metrics</p>
-        </div>
-        <Button
-          onClick={isEditing ? handleSave : () => setIsEditing(true)}
-          disabled={updateCompanyDetailsMutation.isPending}
-        >
-          {isEditing ? (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
-            </>
-          ) : (
-            <>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Details
-            </>
-          )}
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+          <Building2 className="h-6 w-6" />
+          Company Management
+        </h2>
+        <p className="text-muted-foreground">
+          Manage EduFam company information and details
+        </p>
       </div>
 
-      {/* Performance Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metricsCards.map((card) => (
-          <Card key={card.title} className={`${card.bgColor} border-none shadow-lg`}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{card.value}</p>
-                </div>
-                <div className={`p-3 rounded-lg bg-white/50`}>
-                  <card.icon className={`h-8 w-8 ${card.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Company Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="w-5 h-5" />
-            Company Information
-          </CardTitle>
-          {isEditing && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleCancel}>
-                <X className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
               <Label htmlFor="company_name">Company Name</Label>
-              {isEditing ? (
-                <Input
-                  id="company_name"
-                  value={getCurrentValue('company_name') || ''}
-                  onChange={(e) => handleInputChange('company_name', e.target.value)}
-                />
-              ) : (
-                <p className="text-lg font-semibold">{companyDetails?.company_name}</p>
-              )}
+              <Input
+                id="company_name"
+                value={companyDetails.company_name}
+                onChange={(e) => handleInputChange('company_name', e.target.value)}
+                placeholder="Enter company name"
+              />
             </div>
-
+            
             <div>
               <Label htmlFor="company_type">Company Type</Label>
-              {isEditing ? (
-                <Input
-                  id="company_type"
-                  value={getCurrentValue('company_type') || ''}
-                  onChange={(e) => handleInputChange('company_type', e.target.value)}
-                />
-              ) : (
-                <Badge variant="secondary">{companyDetails?.company_type}</Badge>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="company_slogan">Company Slogan</Label>
-              {isEditing ? (
-                <Input
-                  id="company_slogan"
-                  value={getCurrentValue('company_slogan') || ''}
-                  onChange={(e) => handleInputChange('company_slogan', e.target.value)}
-                />
-              ) : (
-                <p className="text-muted-foreground italic">{companyDetails?.company_slogan}</p>
-              )}
+              <Input
+                id="company_type"
+                value={companyDetails.company_type}
+                onChange={(e) => handleInputChange('company_type', e.target.value)}
+                placeholder="Enter company type"
+              />
             </div>
 
             <div>
               <Label htmlFor="year_established">Year Established</Label>
-              {isEditing ? (
-                <Input
-                  id="year_established"
-                  type="number"
-                  value={getCurrentValue('year_established') || ''}
-                  onChange={(e) => handleInputChange('year_established', parseInt(e.target.value))}
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{companyDetails?.year_established}</span>
-                </div>
-              )}
+              <Input
+                id="year_established"
+                type="number"
+                value={companyDetails.year_established}
+                onChange={(e) => handleInputChange('year_established', parseInt(e.target.value) || 2024)}
+                placeholder="Enter establishment year"
+              />
             </div>
 
             <div>
-              <Label htmlFor="website_url">Website URL</Label>
-              {isEditing ? (
-                <Input
-                  id="website_url"
-                  value={getCurrentValue('website_url') || ''}
-                  onChange={(e) => handleInputChange('website_url', e.target.value)}
-                />
-              ) : (
-                <a href={companyDetails?.website_url} target="_blank" rel="noopener noreferrer" 
-                   className="text-blue-600 hover:underline">
-                  {companyDetails?.website_url}
-                </a>
-              )}
+              <Label htmlFor="company_slogan">Company Slogan</Label>
+              <Input
+                id="company_slogan"
+                value={companyDetails.company_slogan}
+                onChange={(e) => handleInputChange('company_slogan', e.target.value)}
+                placeholder="Enter company slogan"
+              />
             </div>
 
+            <div>
+              <Label htmlFor="company_motto">Company Motto</Label>
+              <Input
+                id="company_motto"
+                value={companyDetails.company_motto}
+                onChange={(e) => handleInputChange('company_motto', e.target.value)}
+                placeholder="Enter company motto"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
               <Label htmlFor="support_email">Support Email</Label>
-              {isEditing ? (
-                <Input
-                  id="support_email"
-                  type="email"
-                  value={getCurrentValue('support_email') || ''}
-                  onChange={(e) => handleInputChange('support_email', e.target.value)}
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <span>{companyDetails?.support_email}</span>
-                </div>
-              )}
+              <Input
+                id="support_email"
+                type="email"
+                value={companyDetails.support_email}
+                onChange={(e) => handleInputChange('support_email', e.target.value)}
+                placeholder="Enter support email"
+              />
             </div>
 
             <div>
               <Label htmlFor="contact_phone">Contact Phone</Label>
-              {isEditing ? (
-                <Input
-                  id="contact_phone"
-                  value={getCurrentValue('contact_phone') || ''}
-                  onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>{companyDetails?.contact_phone || 'Not provided'}</span>
-                </div>
-              )}
+              <Input
+                id="contact_phone"
+                value={companyDetails.contact_phone}
+                onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                placeholder="Enter contact phone"
+              />
             </div>
 
             <div>
-              <Label htmlFor="registration_number">Registration Number</Label>
-              {isEditing ? (
-                <Input
-                  id="registration_number"
-                  value={getCurrentValue('registration_number') || ''}
-                  onChange={(e) => handleInputChange('registration_number', e.target.value)}
-                />
-              ) : (
-                <span className="font-mono">{companyDetails?.registration_number || 'Not provided'}</span>
-              )}
+              <Label htmlFor="website_url">Website URL</Label>
+              <Input
+                id="website_url"
+                type="url"
+                value={companyDetails.website_url}
+                onChange={(e) => handleInputChange('website_url', e.target.value)}
+                placeholder="Enter website URL"
+              />
             </div>
-          </div>
 
-          <div>
-            <Label htmlFor="headquarters_address">Headquarters Address</Label>
-            {isEditing ? (
+            <div>
+              <Label htmlFor="headquarters_address">Headquarters Address</Label>
               <Textarea
                 id="headquarters_address"
-                value={getCurrentValue('headquarters_address') || ''}
+                value={companyDetails.headquarters_address}
                 onChange={(e) => handleInputChange('headquarters_address', e.target.value)}
+                placeholder="Enter headquarters address"
                 rows={3}
               />
-            ) : (
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-1" />
-                <span>{companyDetails?.headquarters_address || 'Not provided'}</span>
-              </div>
-            )}
-          </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <Label htmlFor="company_motto">Company Motto</Label>
-            {isEditing ? (
-              <Textarea
-                id="company_motto"
-                value={getCurrentValue('company_motto') || ''}
-                onChange={(e) => handleInputChange('company_motto', e.target.value)}
-                rows={2}
+        <Card>
+          <CardHeader>
+            <CardTitle>Legal Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="registration_number">Registration Number</Label>
+              <Input
+                id="registration_number"
+                value={companyDetails.registration_number}
+                onChange={(e) => handleInputChange('registration_number', e.target.value)}
+                placeholder="Enter registration number"
               />
-            ) : (
-              <p className="text-muted-foreground italic">{companyDetails?.company_motto || 'Not provided'}</p>
-            )}
-          </div>
+            </div>
 
-          <div>
-            <Label htmlFor="incorporation_details">Incorporation Details</Label>
-            {isEditing ? (
+            <div>
+              <Label htmlFor="incorporation_details">Incorporation Details</Label>
               <Textarea
                 id="incorporation_details"
-                value={getCurrentValue('incorporation_details') || ''}
+                value={companyDetails.incorporation_details}
                 onChange={(e) => handleInputChange('incorporation_details', e.target.value)}
-                rows={3}
+                placeholder="Enter incorporation details"
+                rows={4}
               />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {companyDetails?.incorporation_details || 'Not provided'}
-              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Branding</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="company_logo_url">Company Logo URL</Label>
+              <Input
+                id="company_logo_url"
+                type="url"
+                value={companyDetails.company_logo_url}
+                onChange={(e) => handleInputChange('company_logo_url', e.target.value)}
+                placeholder="Enter logo URL"
+              />
+            </div>
+            
+            {companyDetails.company_logo_url && (
+              <div className="mt-2">
+                <Label>Logo Preview</Label>
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <img 
+                    src={companyDetails.company_logo_url} 
+                    alt="Company Logo" 
+                    className="h-16 w-auto object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={saveCompanyDetails} 
+          disabled={saving}
+          size="lg"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Save Company Details
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 };
