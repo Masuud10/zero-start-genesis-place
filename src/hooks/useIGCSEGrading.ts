@@ -45,7 +45,18 @@ export const useIGCSEGrading = (classId?: string, term?: string) => {
         .order('subject_name');
 
       if (error) throw error;
-      setSubjects(data || []);
+      
+      // Transform database data to match our interface
+      const transformedSubjects: IGCSESubject[] = (data || []).map(subject => ({
+        id: subject.id,
+        subject_name: subject.subject_name,
+        subject_code: subject.subject_code,
+        subject_type: subject.subject_type as 'core' | 'extended',
+        components: Array.isArray(subject.components) ? subject.components as string[] : [],
+        grade_boundaries: typeof subject.grade_boundaries === 'object' ? subject.grade_boundaries as Record<string, number> : {}
+      }));
+      
+      setSubjects(transformedSubjects);
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -72,7 +83,20 @@ export const useIGCSEGrading = (classId?: string, term?: string) => {
         .eq('teacher_id', user.id);
 
       if (error) throw error;
-      setGrades(data || []);
+      
+      // Transform database data to match our interface
+      const transformedGrades: IGCSEGrade[] = (data || []).map(grade => ({
+        id: grade.id,
+        student_id: grade.student_id,
+        subject_id: grade.subject_id || '',
+        component: grade.component || 'overall',
+        marks: grade.marks || undefined,
+        letter_grade: grade.letter_grade,
+        teacher_remarks: grade.teacher_remarks || undefined,
+        status: grade.status as 'draft' | 'submitted' | 'approved' | 'rejected'
+      }));
+      
+      setGrades(transformedGrades);
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -86,18 +110,24 @@ export const useIGCSEGrading = (classId?: string, term?: string) => {
   };
 
   const saveGrade = async (gradeData: Partial<IGCSEGrade>) => {
-    if (!user?.school_id) return;
+    if (!user?.school_id || !gradeData.letter_grade) return;
 
     try {
       const { data, error } = await supabase
         .from('igcse_grades')
         .upsert({
-          ...gradeData,
+          student_id: gradeData.student_id,
+          subject_id: gradeData.subject_id,
+          component: gradeData.component || 'overall',
+          marks: gradeData.marks || null,
+          letter_grade: gradeData.letter_grade,
+          teacher_remarks: gradeData.teacher_remarks || null,
           school_id: user.school_id,
           class_id: classId,
           term: term,
           teacher_id: user.id,
-          academic_year: new Date().getFullYear().toString()
+          academic_year: new Date().getFullYear().toString(),
+          status: gradeData.status || 'draft'
         }, {
           onConflict: 'school_id,student_id,subject_id,component,term,academic_year'
         })
@@ -106,23 +136,34 @@ export const useIGCSEGrading = (classId?: string, term?: string) => {
 
       if (error) throw error;
       
-      // Update local state
+      // Transform and update local state
+      const transformedGrade: IGCSEGrade = {
+        id: data.id,
+        student_id: data.student_id,
+        subject_id: data.subject_id || '',
+        component: data.component || 'overall',
+        marks: data.marks || undefined,
+        letter_grade: data.letter_grade,
+        teacher_remarks: data.teacher_remarks || undefined,
+        status: data.status as 'draft' | 'submitted' | 'approved' | 'rejected'
+      };
+      
       setGrades(prev => {
         const index = prev.findIndex(g => 
-          g.student_id === data.student_id && 
-          g.subject_id === data.subject_id && 
-          g.component === data.component
+          g.student_id === transformedGrade.student_id && 
+          g.subject_id === transformedGrade.subject_id && 
+          g.component === transformedGrade.component
         );
         if (index >= 0) {
           const updated = [...prev];
-          updated[index] = data;
+          updated[index] = transformedGrade;
           return updated;
         } else {
-          return [...prev, data];
+          return [...prev, transformedGrade];
         }
       });
 
-      return data;
+      return transformedGrade;
     } catch (err: any) {
       setError(err.message);
       throw err;

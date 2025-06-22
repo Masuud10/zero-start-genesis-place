@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -60,7 +59,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const [score, setScore] = useState('');
   const [maxScore, setMaxScore] = useState('100');
   const [selectedStudent, setSelectedStudent] = useState('');
-  const [status, setStatus] = useState<'draft'|'submitted'|'approved'|'rejected'|'released'>('draft');
+  const [status, setStatus<'draft'|'submitted'|'approved'|'rejected'|'released'>('draft');
   const [cbcLevel, setCbcLevel] = useState('');
 
   const [classes, setClasses] = useState<any[]>([]);
@@ -327,6 +326,20 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   // Modal switching: IGCSE custom flow
   if (curriculumType === 'igcse') {
     return <IGCSEGradesModal onClose={onClose} userRole={resolvedUserRole} />;
+  }
+
+  // Only show standard grading modal for standard curriculum
+  if (curriculumType !== 'standard') {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <div className="text-center p-6">
+            <p>Unsupported curriculum type: {curriculumType}</p>
+            <Button onClick={onClose} className="mt-4">Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (

@@ -112,7 +112,16 @@ export const IGCSEGradeEntry: React.FC<IGCSEGradeEntryProps> = ({
       if (gradesError) throw gradesError;
 
       setStudents(studentsData || []);
-      setIgcseSubjects(igcseSubjectsData || []);
+      
+      // Transform IGCSE subjects data
+      const transformedSubjects: IGCSESubject[] = (igcseSubjectsData || []).map(subject => ({
+        id: subject.id,
+        subject_name: subject.subject_name,
+        subject_code: subject.subject_code,
+        subject_type: subject.subject_type as 'core' | 'extended',
+        components: Array.isArray(subject.components) ? subject.components as string[] : []
+      }));
+      setIgcseSubjects(transformedSubjects);
 
       // Organize existing grades
       const gradesMap: Record<string, Record<string, Record<string, IGCSEGradeData>>> = {};
