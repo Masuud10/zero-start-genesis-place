@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -7,8 +6,8 @@ import { useAdminUsersData } from '@/hooks/useAdminUsersData';
 import { TrendingUp, Users, School, DollarSign, BookOpen, Clock } from 'lucide-react';
 
 const EduFamAnalyticsOverview = () => {
-  const { data: schoolsData = [], isLoading: schoolsLoading } = useAdminSchoolsData();
-  const { data: usersData = [], isLoading: usersLoading } = useAdminUsersData();
+  const { data: schoolsData = [], isLoading: schoolsLoading } = useAdminSchoolsData(0);
+  const { data: usersData = [], isLoading: usersLoading } = useAdminUsersData(0);
 
   // Generate mock data for demonstration (in real app, this would come from actual analytics)
   const monthlyData = React.useMemo(() => {
