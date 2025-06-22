@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Dashboard from '@/components/Dashboard';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import SchoolAnalyticsDashboard from '@/components/analytics/SchoolAnalyticsDashboard';
+import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
 import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
 import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
@@ -50,6 +51,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
         return <AnalyticsDashboard />;
       
       case 'school-analytics':
+        // Show individual school analytics for EduFam admins, otherwise show regular school analytics
+        if (user?.role === 'edufam_admin') {
+          return <SchoolAnalyticsList />;
+        }
         return <SchoolAnalyticsDashboard />;
       
       case 'school-management':
