@@ -4,185 +4,162 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, Trash2, Calendar, User, DollarSign, Search, Filter } from 'lucide-react';
-import { useProjects, useDeleteProject, Project } from '@/hooks/useProjects';
-import { format } from 'date-fns';
-import { LoadingCard } from '@/components/common/LoadingStates';
-import EditProjectDialog from './EditProjectDialog';
+import { Calendar, Users, Target, MoreVertical, Eye, Edit, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-const ProjectsList = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: 'planning' | 'in-progress' | 'completed' | 'on-hold';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  progress: number;
+  startDate: string;
+  endDate: string;
+  team: string[];
+  category: string;
+}
 
-  const { data: projects = [], isLoading, error } = useProjects();
-  const deleteProjectMutation = useDeleteProject();
+// Mock data for demonstration
+const mockProjects: Project[] = [
+  {
+    id: '1',
+    name: 'EduFam Platform Enhancement',
+    description: 'Upgrade the core platform with new features and improved user experience',
+    status: 'in-progress',
+    priority: 'high',
+    progress: 75,
+    startDate: '2024-01-15',
+    endDate: '2024-03-30',
+    team: ['Development Team', 'UI/UX Team', 'QA Team'],
+    category: 'Development'
+  },
+  {
+    id: '2',
+    name: 'CBC Curriculum Integration',
+    description: 'Implement comprehensive CBC curriculum support across all modules',
+    status: 'in-progress',
+    priority: 'urgent',
+    progress: 60,
+    startDate: '2024-02-01',
+    endDate: '2024-04-15',
+    team: ['Development Team', 'Education Specialists'],
+    category: 'Curriculum'
+  },
+  {
+    id: '3',
+    name: 'Mobile App Launch',
+    description: 'Develop and launch mobile applications for iOS and Android',
+    status: 'planning',
+    priority: 'medium',
+    progress: 25,
+    startDate: '2024-03-01',
+    endDate: '2024-06-30',
+    team: ['Mobile Team', 'Backend Team'],
+    category: 'Mobile Development'
+  }
+];
 
-  const handleDeleteProject = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      try {
-        await deleteProjectMutation.mutateAsync(id);
-      } catch (error) {
-        console.error('Error deleting project:', error);
-      }
-    }
-  };
-
-  // Filter projects based on search and filters
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.responsible_person.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    const matchesType = typeFilter === 'all' || project.project_type === typeFilter;
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
+const ProjectsList: React.FC = () => {
+  const [projects] = useState<Project[]>(mockProjects);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'planning': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'on_hold': return 'bg-gray-100 text-gray-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'in-progress':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'planning':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'on-hold':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'critical': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'urgent':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'high':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'medium':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'low':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'event': return 'School Event';
-      case 'trip': return 'Academic Trip';
-      case 'campaign': return 'Marketing Campaign';
-      case 'internal': return 'Internal Project';
-      case 'client': return 'Client Project';
-      case 'other': return 'Other';
-      default: return type;
-    }
-  };
-
-  if (isLoading) {
-    return <LoadingCard title="Loading projects..." />;
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-red-600">Error loading projects: {error.message}</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="planning">Planning</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="event">School Events</SelectItem>
-                <SelectItem value="trip">Academic Trips</SelectItem>
-                <SelectItem value="campaign">Marketing Campaigns</SelectItem>
-                <SelectItem value="internal">Internal Projects</SelectItem>
-                <SelectItem value="client">Client Projects</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold">All Projects</h3>
+          <p className="text-sm text-muted-foreground">
+            Manage and track all company projects
+          </p>
+        </div>
+        <Button>
+          <Target className="w-4 h-4 mr-2" />
+          New Project
+        </Button>
+      </div>
 
-      {/* Projects Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredProjects.map((project) => (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {projects.map((project) => (
           <Card key={project.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <CardTitle className="text-lg">{project.project_name}</CardTitle>
-                  <div className="flex gap-2">
-                    <Badge className={getStatusColor(project.status)}>
-                      {project.status.replace('_', ' ')}
-                    </Badge>
-                    <Badge className={getPriorityColor(project.priority)}>
-                      {project.priority}
-                    </Badge>
-                  </div>
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{project.name}</CardTitle>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {project.description}
+                  </p>
                 </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingProject(project)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteProject(project.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Project
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Project
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </CardHeader>
+            
             <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600 line-clamp-2">
-                {project.description || 'No description provided'}
-              </p>
-              
+              <div className="flex gap-2">
+                <Badge className={`text-xs ${getStatusColor(project.status)}`}>
+                  {project.status.replace('-', ' ')}
+                </Badge>
+                <Badge className={`text-xs ${getPriorityColor(project.priority)}`}>
+                  {project.priority}
+                </Badge>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
@@ -191,51 +168,26 @@ const ProjectsList = () => {
                 <Progress value={project.progress} className="h-2" />
               </div>
 
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span>
-                    {format(new Date(project.start_date), 'MMM dd')} - {format(new Date(project.end_date), 'MMM dd, yyyy')}
-                  </span>
+                  <Calendar className="w-4 h-4" />
+                  <span>{new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <span>{project.responsible_person}</span>
+                  <Users className="w-4 h-4" />
+                  <span>{project.team.length} team(s)</span>
                 </div>
-                {project.budget > 0 && (
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-gray-500" />
-                    <span>Budget: ${project.budget.toLocaleString()}</span>
-                  </div>
-                )}
               </div>
 
-              <div className="pt-2 border-t">
-                <Badge variant="outline">
-                  {getTypeLabel(project.project_type)}
+              <div className="pt-2">
+                <Badge variant="outline" className="text-xs">
+                  {project.category}
                 </Badge>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-
-      {filteredProjects.length === 0 && (
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-gray-500">No projects found matching your criteria.</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Edit Project Dialog */}
-      {editingProject && (
-        <EditProjectDialog
-          project={editingProject}
-          open={!!editingProject}
-          onClose={() => setEditingProject(null)}
-        />
-      )}
     </div>
   );
 };

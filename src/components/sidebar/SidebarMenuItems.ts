@@ -24,7 +24,8 @@ import {
   Award,
   Globe,
   PieChart,
-  Banknote
+  Banknote,
+  FolderKanban
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -40,10 +41,11 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
   ];
 
-  // System admin specific items - updated to include Company Management
+  // System admin specific items - ensure Project Hub is prominently placed
   if (userRole === 'edufam_admin') {
     return [
       ...baseItems,
+      { id: 'project-hub', label: 'Project Hub', icon: FolderKanban, roles: ['edufam_admin'] },
       { id: 'analytics', label: 'Schools Analytics', icon: BarChart3, roles: ['edufam_admin'] },
       { id: 'schools', label: 'Schools Management', icon: Building2, roles: ['edufam_admin'] },
       { id: 'company-management', label: 'Company Management', icon: Globe, roles: ['edufam_admin'] },

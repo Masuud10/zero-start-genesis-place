@@ -8,6 +8,8 @@ import SchoolAnalyticsList from './analytics/SchoolAnalyticsList';
 import CompanyManagementModule from './modules/CompanyManagementModule';
 import EduFamReportGeneration from './reports/EduFamReportGeneration';
 import ProjectHubModule from './modules/ProjectHubModule';
+import GradesModule from './modules/GradesModule';
+import TeacherGradesModule from './modules/TeacherGradesModule';
 
 interface MainContentProps {
   activeSection: string;
@@ -28,6 +30,12 @@ const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
           return <ProjectHubModule />;
         }
         return <div className="p-8 text-center text-red-600">Access Denied: Insufficient permissions</div>;
+
+      case 'grades':
+        if (user?.role === 'teacher') {
+          return <TeacherGradesModule />;
+        }
+        return <GradesModule />;
         
       case 'analytics':
         if (user?.role === 'edufam_admin') {
@@ -78,6 +86,30 @@ const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
         return <div className="p-8 text-center">
           <h2 className="text-xl font-semibold mb-4">System Health</h2>
           <p className="text-muted-foreground">System health monitoring feature coming soon.</p>
+        </div>;
+
+      case 'attendance':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Attendance Management</h2>
+          <p className="text-muted-foreground">Attendance management feature coming soon.</p>
+        </div>;
+
+      case 'students':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Student Management</h2>
+          <p className="text-muted-foreground">Student management feature coming soon.</p>
+        </div>;
+
+      case 'finance':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Finance Overview</h2>
+          <p className="text-muted-foreground">Finance management feature coming soon.</p>
+        </div>;
+
+      case 'timetable':
+        return <div className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-4">Timetable Management</h2>
+          <p className="text-muted-foreground">Timetable feature coming soon.</p>
         </div>;
         
       case 'announcements':

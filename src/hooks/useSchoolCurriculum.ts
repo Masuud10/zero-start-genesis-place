@@ -20,6 +20,8 @@ export const useSchoolCurriculum = (): UseSchoolCurriculumReturn => {
 
   const fetchSchoolCurriculum = async () => {
     if (!user?.school_id) {
+      console.log('🎓 No school_id found for user, defaulting to standard curriculum');
+      setCurriculumType('standard');
       setLoading(false);
       return;
     }
@@ -43,15 +45,27 @@ export const useSchoolCurriculum = (): UseSchoolCurriculumReturn => {
         return;
       }
 
-      // Map database values to our curriculum types
+      if (!school) {
+        console.warn('🎓 No school found with ID:', user.school_id);
+        setError('School not found');
+        setCurriculumType('standard');
+        return;
+      }
+
+      // Map database values to our curriculum types with strict validation
       const dbCurriculumType = school?.curriculum_type?.toLowerCase();
       let detectedCurriculum: CurriculumType = 'standard';
 
+      // Strict curriculum type mapping
       if (dbCurriculumType === 'cbc') {
         detectedCurriculum = 'cbc';
       } else if (dbCurriculumType === 'igcse') {
         detectedCurriculum = 'igcse';
       } else if (dbCurriculumType === 'standard' || dbCurriculumType === 'traditional') {
+        detectedCurriculum = 'standard';
+      } else {
+        // If unrecognized curriculum type, log it and default to standard
+        console.warn('🎓 Unrecognized curriculum type:', dbCurriculumType, 'defaulting to standard');
         detectedCurriculum = 'standard';
       }
 

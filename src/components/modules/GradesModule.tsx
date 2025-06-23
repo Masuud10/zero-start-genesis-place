@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import BulkGradingModal from '../grading/BulkGradingModal';
 import NoGradebookPermission from '../grades/NoGradebookPermission';
 import BulkGradingQuickAction from '../dashboard/principal/BulkGradingQuickAction';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 const GradesModule: React.FC = () => {
   const { user } = useAuth();
@@ -73,7 +73,7 @@ const GradesModule: React.FC = () => {
       if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
         const { data: schoolsResponse, error: schoolsError } = await supabase
           .from("schools")
-          .select("id, name")
+          .select("id, name, curriculum_type")
           .order('name');
           
         if (schoolsError) {
@@ -144,14 +144,15 @@ const GradesModule: React.FC = () => {
     if (loadingSummary) {
       return (
         <div className="p-6 flex items-center">
-          <span className="animate-spin h-6 w-6 mr-2 rounded-full border-2 border-blue-400 border-t-transparent"></span>
-          Loading summary...
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Loading summary...</span>
         </div>
       );
     }
     if (errorSummary) {
       return (
         <Alert variant="destructive" className="my-8">
+          <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Could not load summary</AlertTitle>
           <AlertDescription>{errorSummary}</AlertDescription>
         </Alert>
@@ -202,6 +203,7 @@ const GradesModule: React.FC = () => {
     return (
       <div className="p-8">
         <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Curriculum Detection Error</AlertTitle>
           <AlertDescription>
             {curriculumError}. Using standard curriculum as fallback.
@@ -220,11 +222,22 @@ const GradesModule: React.FC = () => {
   const getCurriculumBadgeColor = () => {
     switch (curriculumType) {
       case 'cbc':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'igcse':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+    }
+  };
+
+  const getCurriculumDisplayName = () => {
+    switch (curriculumType) {
+      case 'cbc':
+        return 'CBC (Competency-Based Curriculum)';
+      case 'igcse':
+        return 'IGCSE (International General Certificate)';
+      default:
+        return 'Standard Curriculum';
     }
   };
 
@@ -236,8 +249,8 @@ const GradesModule: React.FC = () => {
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <Badge className={`text-xs ${getCurriculumBadgeColor()}`}>
-              {curriculumType.toUpperCase()} Curriculum Active
+            <Badge className={`text-xs font-medium ${getCurriculumBadgeColor()}`}>
+              {getCurriculumDisplayName()}
             </Badge>
           </div>
           {renderForSummaryRole()}
@@ -247,8 +260,8 @@ const GradesModule: React.FC = () => {
         return (
             <div className="space-y-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Badge className={`text-xs ${getCurriculumBadgeColor()}`}>
-                    {curriculumType.toUpperCase()} Curriculum Active
+                  <Badge className={`text-xs font-medium ${getCurriculumBadgeColor()}`}>
+                    {getCurriculumDisplayName()}
                   </Badge>
                 </div>
                 {renderForSummaryRole()}
@@ -269,8 +282,8 @@ const GradesModule: React.FC = () => {
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <Badge className={`text-xs ${getCurriculumBadgeColor()}`}>
-              {curriculumType.toUpperCase()} Curriculum Active
+            <Badge className={`text-xs font-medium ${getCurriculumBadgeColor()}`}>
+              {getCurriculumDisplayName()}
             </Badge>
           </div>
           <TeacherGradesModule />
