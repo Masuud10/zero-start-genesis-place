@@ -10,28 +10,28 @@ import { NavigationProvider } from '@/contexts/NavigationContext';
 import { ErrorBoundary } from '@/utils/errorBoundary';
 import AppContent from '@/components/AppContent';
 
-// Create a stable query client instance
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: (failureCount, error: any) => {
-        // Don't retry auth or permission errors
-        if (error?.message?.includes('Authentication') || error?.message?.includes('Access denied')) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-      refetchOnWindowFocus: false, // Disable refetch on window focus to reduce API calls
-    },
-    mutations: {
-      retry: 1,
-    },
-  },
-});
-
 function App() {
   console.log('🚀 App: Starting application');
+
+  // Create query client inside the component to ensure proper React context
+  const [queryClient] = React.useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        retry: (failureCount, error: any) => {
+          // Don't retry auth or permission errors
+          if (error?.message?.includes('Authentication') || error?.message?.includes('Access denied')) {
+            return false;
+          }
+          return failureCount < 3;
+        },
+        refetchOnWindowFocus: false, // Disable refetch on window focus to reduce API calls
+      },
+      mutations: {
+        retry: 1,
+      },
+    },
+  }));
 
   return (
     <ErrorBoundary>
