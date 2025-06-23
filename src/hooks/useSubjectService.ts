@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { SubjectService } from '@/services/subjectService';
+import { SubjectDatabaseService } from '@/services/subject/subjectDatabaseService';
 import { Subject, SubjectCreationData, SubjectAssignment, CreateAssignmentData } from '@/types/subject';
 
 export const useSubjectService = () => {
@@ -29,7 +30,7 @@ export const useSubjectService = () => {
       const errorMsg = "No school context found. Please ensure you're logged in as a Principal.";
       console.error('useSubjectService.createSubject: No schoolId available');
       toast({
-        title: "Authentication Error",
+        title: "Authentication Error", 
         description: errorMsg,
         variant: "destructive"
       });
@@ -38,7 +39,16 @@ export const useSubjectService = () => {
 
     setLoading(true);
     try {
-      console.log('useSubjectService.createSubject: Starting creation process', { data, schoolId });
+      console.log('useSubjectService.createSubject: Testing database connection');
+      
+      // Test database connection first
+      const connectionOk = await SubjectDatabaseService.testConnection();
+      if (!connectionOk) {
+        throw new Error('Database connection failed. Please check your internet connection and try again.');
+      }
+
+      console.log('useSubjectService.createSubject: Database connection confirmed, starting creation process');
+      console.log('useSubjectService.createSubject: Data to create:', { data, schoolId });
       
       const subject = await SubjectService.createSubject(data, schoolId);
       
@@ -56,16 +66,21 @@ export const useSubjectService = () => {
       // Enhanced error handling with specific messages
       let errorMessage = error.message || "Failed to create subject";
       
+      // Handle specific error types
       if (error.message?.includes('already exists')) {
         errorMessage = error.message;
-      } else if (error.message?.includes('Permission denied')) {
+      } else if (error.message?.includes('Permission denied') || error.message?.includes('access denied')) {
         errorMessage = "You don't have permission to create subjects. Please contact your administrator.";
-      } else if (error.message?.includes('Invalid reference')) {
+      } else if (error.message?.includes('Invalid reference') || error.message?.includes('does not exist')) {
         errorMessage = "The selected class or teacher is invalid. Please refresh the page and try again.";
-      } else if (error.message?.includes('School ID is required')) {
+      } else if (error.message?.includes('School ID is required') || error.message?.includes('authentication')) {
         errorMessage = "Session expired. Please log out and log back in.";
       } else if (error.message?.includes('required')) {
         errorMessage = error.message;
+      } else if (error.message?.includes('Database connection failed')) {
+        errorMessage = "Unable to connect to the database. Please check your internet connection and try again.";
+      } else if (error.message?.includes('User authentication required')) {
+        errorMessage = "Please log in again to continue.";
       }
       
       toast({

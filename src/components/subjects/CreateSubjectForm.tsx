@@ -47,8 +47,9 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
       console.log('CreateSubjectForm: Loading entities?', loadingEntities);
       console.log('CreateSubjectForm: Classes available:', classList?.length || 0);
       console.log('CreateSubjectForm: Teachers available:', teacherList?.length || 0);
+      console.log('CreateSubjectForm: Current form data:', formData);
     }
-  }, [open, loadingEntities, classList, teacherList]);
+  }, [open, loadingEntities, classList, teacherList, formData]);
 
   const validateForm = () => {
     setError(null);
@@ -76,6 +77,12 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     // Validate code format (letters and numbers only)
     if (!/^[A-Z0-9]+$/i.test(formData.code)) {
       setError("Subject code must contain only letters and numbers");
+      return false;
+    }
+
+    // Check code length limit
+    if (formData.code.length > 20) {
+      setError("Subject code must be 20 characters or less");
       return false;
     }
 
@@ -107,8 +114,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
       };
 
       console.log('CreateSubjectForm: Processed submission data:', submissionData);
+      console.log('CreateSubjectForm: About to call createSubject service');
 
       const result = await createSubject(submissionData);
+
+      console.log('CreateSubjectForm: Service call completed, result:', result);
 
       if (result) {
         console.log('CreateSubjectForm: Subject created successfully:', result);
@@ -121,6 +131,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
         }, 1500);
       } else {
         console.log('CreateSubjectForm: Subject creation returned null - check error handling');
+        setError('Failed to create subject. Please try again.');
       }
     } catch (error: any) {
       console.error('CreateSubjectForm: Form submission error:', error);

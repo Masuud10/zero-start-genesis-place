@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export class SubjectValidationService {
@@ -33,6 +32,11 @@ export class SubjectValidationService {
       throw new Error('Subject code must contain only uppercase letters and numbers');
     }
 
+    // Check if code is too long (database constraint)
+    if (formattedCode.length > 20) {
+      throw new Error('Subject code must be 20 characters or less');
+    }
+
     return formattedCode;
   }
 
@@ -40,41 +44,52 @@ export class SubjectValidationService {
     console.log('SubjectValidationService.checkDuplicates called with:', { name, code, schoolId });
 
     try {
-      // Check for duplicate name within the school
-      const { data: existingName, error: nameCheckError } = await supabase
+      // Test database connection first
+      const { data: connectionTest, error: connectionError } = await supabase
         .from('subjects')
         .select('id')
+        .limit(1);
+
+      if (connectionError) {
+        console.error('Database connection failed in validation:', connectionError);
+        throw new Error('Database connection failed. Please check your internet connection.');
+      }
+
+      // Check for duplicate name within the school - using case-insensitive comparison
+      const { data: existingName, error: nameCheckError } = await supabase
+        .from('subjects')
+        .select('id, name')
         .eq('school_id', schoolId)
-        .ilike('name', name.trim())
         .eq('is_active', true)
-        .maybeSingle();
+        .ilike('name', name.trim());
 
       if (nameCheckError) {
         console.error('SubjectValidationService: Error checking for duplicate subject name:', nameCheckError);
-        throw new Error('Failed to validate subject name: ' + nameCheckError.message);
+        throw new Error(`Failed to validate subject name: ${nameCheckError.message}`);
       }
 
-      if (existingName) {
+      if (existingName && existingName.length > 0) {
         throw new Error(`Subject with name "${name.trim()}" already exists in your school`);
       }
 
-      // Check for duplicate code within the school
+      // Check for duplicate code within the school - case-insensitive
       const { data: existingCode, error: codeCheckError } = await supabase
         .from('subjects')
-        .select('id')
+        .select('id, code')
         .eq('school_id', schoolId)
-        .eq('code', code)
         .eq('is_active', true)
-        .maybeSingle();
+        .ilike('code', code.trim());
 
       if (codeCheckError) {
         console.error('SubjectValidationService: Error checking for duplicate subject code:', codeCheckError);
-        throw new Error('Failed to validate subject code: ' + codeCheckError.message);
+        throw new Error(`Failed to validate subject code: ${codeCheckError.message}`);
       }
 
-      if (existingCode) {
-        throw new Error(`Subject with code "${code}" already exists in your school`);
+      if (existingCode && existingCode.length > 0) {
+        throw new Error(`Subject with code "${code.toUpperCase()}" already exists in your school`);
       }
+
+      console.log('SubjectValidationService: No duplicates found');
 
     } catch (error: any) {
       console.error('SubjectValidationService.checkDuplicates error:', error);
@@ -85,47 +100,100 @@ export class SubjectValidationService {
   static async validateReferences(classId?: string, teacherId?: string, schoolId?: string) {
     console.log('SubjectValidationService.validateReferences called with:', { classId, teacherId, schoolId });
 
+    if (!schoolId) {
+      return; // Skip validation if no school context
+    }
+
     try {
       if (classId) {
         const { data: classData, error: classError } = await supabase
           .from('classes')
-          .select('id')
+          .select('id, name, school_id')
           .eq('id', classId)
-          .eq('school_id', schoolId!)
-          .maybeSingle();
+          .single();
 
         if (classError) {
           console.error('SubjectValidationService: Error validating class:', classError);
-          throw new Error('Failed to validate class: ' + classError.message);
+          if (classError.code === 'PGRST116') {
+            throw new Error('Selected class does not exist');
+          }
+          throw new Error(`Failed to validate class: ${classError.message}`);
         }
 
         if (!classData) {
-          throw new Error('Selected class does not exist or does not belong to your school');
+          throw new Error('Selected class does not exist');
+        }
+
+        if (classData.school_id !== schoolId) {
+          throw new Error('Selected class does not belong to your school');
         }
       }
 
       if (teacherId) {
         const { data: teacherData, error: teacherError } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, name, school_id, role')
           .eq('id', teacherId)
-          .eq('school_id', schoolId!)
-          .eq('role', 'teacher')
-          .maybeSingle();
+          .single();
 
         if (teacherError) {
           console.error('SubjectValidationService: Error validating teacher:', teacherError);
-          throw new Error('Failed to validate teacher: ' + teacherError.message);
+          if (teacherError.code === 'PGRST116') {
+            throw new Error('Selected teacher does not exist');
+          }
+          throw new Error(`Failed to validate teacher: ${teacherError.message}`);
         }
 
         if (!teacherData) {
-          throw new Error('Selected teacher does not exist or does not belong to your school');
+          throw new Error('Selected teacher does not exist');
+        }
+
+        if (teacherData.school_id !== schoolId) {
+          throw new Error('Selected teacher does not belong to your school');
+        }
+
+        if (teacherData.role !== 'teacher') {
+          throw new Error('Selected user is not a teacher');
         }
       }
+
+      console.log('SubjectValidationService: References validated successfully');
 
     } catch (error: any) {
       console.error('SubjectValidationService.validateReferences error:', error);
       throw error;
+    }
+  }
+
+  // Validate school access
+  static async validateSchoolAccess(schoolId: string): Promise<boolean> {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('User authentication required');
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('school_id, role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        throw new Error('Failed to get user profile');
+      }
+
+      // System admins can access any school
+      if (profile.role === 'edufam_admin' || profile.role === 'elimisha_admin') {
+        return true;
+      }
+
+      // Other users can only access their own school
+      return profile.school_id === schoolId;
+
+    } catch (error) {
+      console.error('School access validation failed:', error);
+      return false;
     }
   }
 }
