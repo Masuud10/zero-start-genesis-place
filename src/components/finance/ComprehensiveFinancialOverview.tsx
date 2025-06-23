@@ -212,16 +212,22 @@ const ComprehensiveFinancialOverview: React.FC = () => {
                     </thead>
                     <tbody>
                       {classFeesSummary.map((classData, index) => {
-                        const collectionRate = classData.total_amount > 0 
-                          ? ((classData.paid_amount / classData.total_amount) * 100).toFixed(1)
+                        const totalAmount = classData.totalFees || classData.total_amount || 0;
+                        const paidAmount = classData.totalCollected || classData.paid_amount || 0;
+                        const outstanding = classData.outstanding || classData.balance || (totalAmount - paidAmount);
+                        const studentCount = classData.studentCount || classData.student_count || 0;
+                        const className = classData.className || classData.class_name || 'Unknown Class';
+                        
+                        const collectionRate = totalAmount > 0 
+                          ? ((paidAmount / totalAmount) * 100).toFixed(1)
                           : '0';
                         return (
                           <tr key={index} className="border-b">
-                            <td className="p-2 font-medium">{classData.class_name}</td>
-                            <td className="p-2 text-right">{formatCurrency(classData.total_amount || 0)}</td>
-                            <td className="p-2 text-right text-green-600">{formatCurrency(classData.paid_amount || 0)}</td>
-                            <td className="p-2 text-right text-red-600">{formatCurrency(classData.balance || 0)}</td>
-                            <td className="p-2 text-right">{classData.student_count}</td>
+                            <td className="p-2 font-medium">{className}</td>
+                            <td className="p-2 text-right">{formatCurrency(totalAmount)}</td>
+                            <td className="p-2 text-right text-green-600">{formatCurrency(paidAmount)}</td>
+                            <td className="p-2 text-right text-red-600">{formatCurrency(outstanding)}</td>
+                            <td className="p-2 text-right">{studentCount}</td>
                             <td className="p-2 text-right">
                               <span className={`font-medium ${parseFloat(collectionRate) >= 80 ? 'text-green-600' : parseFloat(collectionRate) >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
                                 {collectionRate}%

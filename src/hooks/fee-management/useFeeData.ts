@@ -27,8 +27,8 @@ export const useFeeData = () => {
         .from('fees')
         .select(`
           *,
-          student:student_id(name, admission_number),
-          class:class_id(name)
+          students!fees_student_id_fkey(name, admission_number),
+          classes!fees_class_id_fkey(name)
         `)
         .eq('school_id', user.school_id)
         .order('created_at', { ascending: false });
@@ -55,13 +55,14 @@ export const useFeeData = () => {
             category: item.category || 'Unknown',
             status: (item.status as 'pending' | 'paid' | 'partial' | 'overdue') || 'pending',
             paidAmount: item.paid_amount || 0,
-            studentName: item.student?.name || 'Unknown Student',
-            admissionNumber: item.student?.admission_number || 'N/A',
-            className: item.class?.name || 'Unknown Class',
+            studentName: item.students?.name || 'Unknown Student',
+            admissionNumber: item.students?.admission_number || 'N/A',
+            className: item.classes?.name || 'Unknown Class',
             academicYear: item.academic_year || new Date().getFullYear().toString(),
             paymentMethod: item.payment_method,
             paidDate: item.paid_date,
             createdAt: item.created_at || new Date().toISOString(),
+            classId: item.class_id,
           };
         }
       });

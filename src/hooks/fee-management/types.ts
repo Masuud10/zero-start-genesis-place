@@ -15,9 +15,11 @@ export interface FeeRecord {
   paymentMethod?: string;
   paidDate?: string;
   createdAt: string;
+  classId?: string;
 }
 
 export interface MPESATransaction {
+  id: string;
   transaction_id: string;
   mpesa_receipt_number?: string;
   phone_number: string;
@@ -40,6 +42,7 @@ export interface MPESATransaction {
 }
 
 export interface MpesaTransaction {
+  id: string;
   transaction_id: string;
   mpesa_receipt_number?: string;
   phone_number: string;
@@ -68,6 +71,13 @@ export interface ClassSummary {
   totalCollected: number;
   outstanding: number;
   studentCount: number;
+  // Add database column name aliases for compatibility
+  class_id?: string;
+  class_name?: string;
+  total_amount?: number;
+  paid_amount?: number;
+  balance?: number;
+  student_count?: number;
 }
 
 export interface Student {
@@ -76,6 +86,9 @@ export interface Student {
   admission_number: string;
   class_id: string;
   school_id: string;
+  class?: {
+    name: string;
+  };
 }
 
 export interface Class {
@@ -91,6 +104,16 @@ export interface FeeStructure {
   academic_year: string;
   term: string;
   is_active: boolean;
+  items?: FeeStructureItem[];
+}
+
+export interface FeeStructureItem {
+  id: string;
+  fee_structure_id: string;
+  name: string;
+  description?: string;
+  amount: number;
+  category: string;
 }
 
 export interface MpesaCredentials {

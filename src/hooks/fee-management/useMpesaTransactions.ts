@@ -27,8 +27,8 @@ export const useMpesaTransactions = () => {
         .from('mpesa_transactions')
         .select(`
           *,
-          student:students(name, admission_number),
-          class:classes(name)
+          students!mpesa_transactions_student_id_fkey(name, admission_number),
+          classes!mpesa_transactions_class_id_fkey(name)
         `)
         .eq('school_id', user.school_id)
         .order('transaction_date', { ascending: false });
@@ -42,11 +42,16 @@ export const useMpesaTransactions = () => {
       
       const transformedData: MPESATransaction[] = (data || []).map((item, index) => {
         try {
-          return transformMPESATransaction(item);
+          const transformed = transformMPESATransaction(item);
+          return {
+            ...transformed,
+            id: item.id || item.transaction_id,
+          };
         } catch (transformError) {
           console.error(`Error transforming MPESA transaction ${index}:`, transformError);
           // Return a basic structure if transformation fails
           return {
+            id: item.id || item.transaction_id,
             transaction_id: item.transaction_id || item.id,
             phone_number: item.phone_number || '',
             amount_paid: Number(item.amount_paid) || 0,
@@ -55,9 +60,9 @@ export const useMpesaTransactions = () => {
             payment_type: item.payment_type || 'Full',
             transaction_date: item.transaction_date || item.created_at || new Date().toISOString(),
             mpesa_receipt_number: item.mpesa_receipt_number,
-            student: item.student ? {
-              name: item.student.name || 'Unknown',
-              admission_number: item.student.admission_number || 'N/A'
+            student: item.students ? {
+              name: item.students.name || 'Unknown',
+              admission_number: item.students.admission_number || 'N/A'
             } : undefined,
           };
         }
