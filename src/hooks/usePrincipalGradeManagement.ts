@@ -151,11 +151,15 @@ export const usePrincipalGradeManagement = () => {
     try {
       console.log('🔄 Approving grades:', gradeIds);
       
-      const { data, error } = await supabase.rpc('update_grade_status', {
-        grade_ids: gradeIds,
-        new_status: 'approved',
-        user_id: user.id
-      });
+      const { error } = await supabase
+        .from('grades')
+        .update({ 
+          status: 'approved',
+          approved_by_principal: true,
+          approved_by: user.id,
+          approved_at: new Date().toISOString()
+        })
+        .in('id', gradeIds);
 
       if (error) throw error;
 
@@ -184,11 +188,15 @@ export const usePrincipalGradeManagement = () => {
     try {
       console.log('🔄 Rejecting grades:', gradeIds);
       
-      const { error } = await supabase.rpc('update_grade_status', {
-        grade_ids: gradeIds,
-        new_status: 'rejected',
-        user_id: user.id
-      });
+      const { error } = await supabase
+        .from('grades')
+        .update({ 
+          status: 'rejected',
+          approved_by_principal: false,
+          approved_by: user.id,
+          approved_at: new Date().toISOString()
+        })
+        .in('id', gradeIds);
 
       if (error) throw error;
 
@@ -217,11 +225,16 @@ export const usePrincipalGradeManagement = () => {
     try {
       console.log('🔄 Releasing grades:', gradeIds);
       
-      const { error } = await supabase.rpc('update_grade_status', {
-        grade_ids: gradeIds,
-        new_status: 'released',
-        user_id: user.id
-      });
+      const { error } = await supabase
+        .from('grades')
+        .update({ 
+          status: 'released',
+          released_to_parents: true,
+          released_by: user.id,
+          released_at: new Date().toISOString()
+        })
+        .in('id', gradeIds)
+        .eq('approved_by_principal', true);
 
       if (error) throw error;
 

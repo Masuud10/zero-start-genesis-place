@@ -96,10 +96,8 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Academic Management</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Grade Management */}
-            <div className="bg-white rounded-lg border shadow-sm">
-              <PrincipalGradesModule />
-            </div>
+            {/* Grade Management - Remove the card wrapper since PrincipalGradesModule has its own card */}
+            <PrincipalGradesModule />
             
             {/* Timetable Management */}
             <div className="bg-white rounded-lg border shadow-sm">
