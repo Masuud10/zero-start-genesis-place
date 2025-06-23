@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { User, Search, Eye, CreditCard, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { User, Search, Eye, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -43,7 +42,7 @@ const StudentAccountsPanel: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch students with proper class relationship
+      // Fetch students with proper class relationship using explicit join
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select(`
@@ -52,31 +51,33 @@ const StudentAccountsPanel: React.FC = () => {
           admission_number,
           class_id,
           school_id,
-          classes!students_class_id_fkey(name)
+          classes:class_id(name)
         `)
         .eq('school_id', user.school_id);
 
       if (studentsError) throw studentsError;
 
-      // Transform students data
+      // Transform students data with proper error handling
       const transformedStudents: Student[] = (studentsData || []).map(student => ({
         id: student.id,
         name: student.name,
         admission_number: student.admission_number,
         class_id: student.class_id,
         school_id: student.school_id,
-        class: student.classes ? { name: student.classes.name } : { name: 'Unknown Class' }
+        class: student.classes && typeof student.classes === 'object' && 'name' in student.classes 
+          ? { name: student.classes.name } 
+          : { name: 'Unknown Class' }
       }));
 
       setStudents(transformedStudents);
 
-      // Fetch fees for all students
+      // Fetch fees for all students with explicit join
       const { data: feesData, error: feesError } = await supabase
         .from('fees')
         .select(`
           *,
-          students!fees_student_id_fkey(name, admission_number),
-          classes!fees_class_id_fkey(name)
+          students:student_id(name, admission_number),
+          classes:class_id(name)
         `)
         .eq('school_id', user.school_id);
 
@@ -100,6 +101,10 @@ const StudentAccountsPanel: React.FC = () => {
         const account = accountsMap.get(studentId);
         
         if (account) {
+          // Ensure status is properly typed
+          const validStatuses: Array<'pending' | 'paid' | 'partial' | 'overdue'> = ['pending', 'paid', 'partial', 'overdue'];
+          const feeStatus = validStatuses.includes(fee.status as any) ? fee.status : 'pending';
+          
           const feeRecord: FeeRecord = {
             id: fee.id,
             studentId: fee.student_id,
@@ -108,7 +113,7 @@ const StudentAccountsPanel: React.FC = () => {
             dueDate: fee.due_date,
             term: fee.term,
             category: fee.category,
-            status: fee.status,
+            status: feeStatus as 'pending' | 'paid' | 'partial' | 'overdue',
             studentName: account.student.name,
             admissionNumber: account.student.admission_number,
             className: account.student.class?.name || 'Unknown Class',
