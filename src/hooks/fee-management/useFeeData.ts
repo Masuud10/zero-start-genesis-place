@@ -27,8 +27,8 @@ export const useFeeData = () => {
         .from('fees')
         .select(`
           *,
-          student:students(name, admission_number),
-          class:classes(name)
+          student:student_id(name, admission_number),
+          class:class_id(name)
         `)
         .eq('school_id', user.school_id)
         .order('created_at', { ascending: false });
@@ -53,7 +53,7 @@ export const useFeeData = () => {
             dueDate: item.due_date || new Date().toISOString(),
             term: item.term || '',
             category: item.category || 'Unknown',
-            status: item.status || 'pending',
+            status: (item.status as 'pending' | 'paid' | 'partial' | 'overdue') || 'pending',
             paidAmount: item.paid_amount || 0,
             studentName: item.student?.name || 'Unknown Student',
             admissionNumber: item.student?.admission_number || 'N/A',

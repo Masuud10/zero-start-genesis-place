@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+interface SettingsData {
+  auto_apply_late_fees: boolean;
+  allow_partial_payments: boolean;
+  send_payment_notifications: boolean;
+  require_payment_approval: boolean;
+  default_currency: string;
+  payment_methods: string[];
+}
+
 interface FinanceSettings {
   id?: string;
   school_id: string;
@@ -23,14 +31,7 @@ interface FinanceSettings {
   late_fee_percentage: number;
   late_fee_grace_days: number;
   tax_rate: number;
-  settings_data: {
-    auto_apply_late_fees: boolean;
-    allow_partial_payments: boolean;
-    send_payment_notifications: boolean;
-    require_payment_approval: boolean;
-    default_currency: string;
-    payment_methods: string[];
-  };
+  settings_data: SettingsData;
 }
 
 const FinanceSettingsPanel: React.FC = () => {
@@ -73,9 +74,23 @@ const FinanceSettingsPanel: React.FC = () => {
       }
 
       if (data) {
+        const settingsData = data.settings_data;
+        
+        // Ensure settings_data is properly typed
+        const typedSettingsData: SettingsData = typeof settingsData === 'object' && settingsData !== null ? {
+          auto_apply_late_fees: Boolean(settingsData.auto_apply_late_fees),
+          allow_partial_payments: Boolean(settingsData.allow_partial_payments ?? true),
+          send_payment_notifications: Boolean(settingsData.send_payment_notifications ?? true),
+          require_payment_approval: Boolean(settingsData.require_payment_approval),
+          default_currency: String(settingsData.default_currency || 'KES'),
+          payment_methods: Array.isArray(settingsData.payment_methods) 
+            ? settingsData.payment_methods 
+            : ['cash', 'mpesa', 'bank_transfer'],
+        } : settings.settings_data;
+
         setSettings({
           ...data,
-          settings_data: data.settings_data || settings.settings_data,
+          settings_data: typedSettingsData,
         });
       }
     } catch (err: any) {

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Settings } from 'lucide-react';
 import { useMpesaCredentials } from '@/hooks/fee-management/useMpesaCredentials';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MpesaCredentialsDialog: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -18,15 +19,34 @@ const MpesaCredentialsDialog: React.FC = () => {
   });
   const { credentials, saveCredentials } = useMpesaCredentials();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   React.useEffect(() => {
     if (credentials) {
-      setFormData(credentials);
+      setFormData({
+        consumer_key: credentials.consumer_key,
+        consumer_secret: credentials.consumer_secret,
+        passkey: credentials.passkey,
+        paybill_number: credentials.paybill_number
+      });
     }
   }, [credentials]);
 
   const handleSave = async () => {
-    const result = await saveCredentials(formData);
+    if (!user?.school_id) {
+      toast({
+        title: "Error",
+        description: "No school ID found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const result = await saveCredentials({
+      ...formData,
+      school_id: user.school_id
+    });
+    
     if (result?.error) {
       toast({
         title: "Error",

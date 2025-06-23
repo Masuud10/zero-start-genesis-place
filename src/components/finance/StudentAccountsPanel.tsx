@@ -81,7 +81,13 @@ const StudentAccountsPanel: React.FC = () => {
       setLoading(true);
       let query = supabase
         .from('students')
-        .select('id, name, admission_number, class:classes(name)')
+        .select(`
+          id, 
+          name, 
+          admission_number,
+          class_id,
+          classes!inner(name)
+        `)
         .eq('school_id', user.school_id)
         .eq('is_active', true)
         .order('name');
@@ -93,7 +99,14 @@ const StudentAccountsPanel: React.FC = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      setStudents(data || []);
+      const transformedStudents: Student[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        admission_number: item.admission_number,
+        class: { name: item.classes?.name || 'Unknown Class' }
+      }));
+
+      setStudents(transformedStudents);
     } catch (err: any) {
       console.error('Error fetching students:', err);
       setError(err.message);
@@ -112,11 +125,23 @@ const StudentAccountsPanel: React.FC = () => {
       // Get student details
       const { data: studentData, error: studentError } = await supabase
         .from('students')
-        .select('id, name, admission_number, class:classes(name)')
+        .select(`
+          id, 
+          name, 
+          admission_number,
+          classes!inner(name)
+        `)
         .eq('id', studentId)
         .single();
 
       if (studentError) throw studentError;
+
+      const student: Student = {
+        id: studentData.id,
+        name: studentData.name,
+        admission_number: studentData.admission_number,
+        class: { name: studentData.classes?.name || 'Unknown Class' }
+      };
 
       // Get student fees
       const { data: feesData, error: feesError } = await supabase
@@ -133,7 +158,7 @@ const StudentAccountsPanel: React.FC = () => {
       const outstanding = totalFees - totalPaid;
 
       setStudentAccount({
-        student: studentData,
+        student,
         totalFees,
         totalPaid,
         outstanding,

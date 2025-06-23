@@ -24,6 +24,7 @@ export const useMpesaCredentials = () => {
 
       if (data) {
         setCredentials({
+          school_id: data.school_id,
           consumer_key: data.consumer_key,
           consumer_secret: data.consumer_secret,
           passkey: data.passkey,

@@ -101,3 +101,18 @@ export interface MpesaCredentials {
   paybill_number: string;
   passkey: string;
 }
+
+export interface FeeData {
+  amount: number;
+  due_date: string;
+  academic_year: string;
+  term: string;
+  category: string;
+}
+
+export interface PaymentData {
+  amount: number;
+  payment_method: string;
+  mpesa_code?: string;
+  reference_number?: string;
+}
