@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PrincipalGradeApprovalInterface } from '@/components/grading/PrincipalGradeApprovalInterface';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, XCircle, Eye, Clock, AlertTriangle, Settings } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Clock, AlertTriangle, Settings, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -21,7 +21,7 @@ const PrincipalGradesManager: React.FC = () => {
   const [showApprovalInterface, setShowApprovalInterface] = useState(false);
 
   // Fetch grades specifically for principal approval with enhanced query
-  const { data: grades, isLoading, refetch } = useQuery({
+  const { data: grades, isLoading, refetch, error } = useQuery({
     queryKey: ['principal-grades-approval', user?.id, schoolId],
     queryFn: async () => {
       if (!user?.id || !schoolId) {
@@ -31,46 +31,58 @@ const PrincipalGradesManager: React.FC = () => {
 
       console.log('🔍 Fetching grades for principal approval:', { schoolId, userId: user.id });
 
-      // Fetch all grades that need principal attention with proper joins
-      const { data, error } = await supabase
-        .from('grades')
-        .select(`
-          id,
-          student_id,
-          subject_id,
-          class_id,
-          term,
-          exam_type,
-          score,
-          max_score,
-          percentage,
-          letter_grade,
-          status,
-          submitted_by,
-          submitted_at,
-          approved_by,
-          approved_at,
-          created_at,
-          students!inner(name, admission_number),
-          subjects!inner(name),
-          classes!inner(name),
-          profiles!grades_submitted_by_fkey(name)
-        `)
-        .eq('school_id', schoolId)
-        .in('status', ['submitted', 'approved', 'rejected', 'released'])
-        .order('submitted_at', { ascending: false });
+      try {
+        // Fetch all grades that need principal attention with proper joins
+        const { data, error } = await supabase
+          .from('grades')
+          .select(`
+            id,
+            student_id,
+            subject_id,
+            class_id,
+            term,
+            exam_type,
+            score,
+            max_score,
+            percentage,
+            letter_grade,
+            status,
+            submitted_by,
+            submitted_at,
+            approved_by,
+            approved_at,
+            created_at,
+            students!inner(name, admission_number),
+            subjects!inner(name),
+            classes!inner(name),
+            profiles!grades_submitted_by_fkey(name)
+          `)
+          .eq('school_id', schoolId)
+          .in('status', ['submitted', 'approved', 'rejected', 'released'])
+          .order('submitted_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Error fetching grades:', error);
-        throw error;
+        if (error) {
+          console.error('❌ Error fetching grades:', error);
+          throw error;
+        }
+
+        console.log('✅ Fetched grades for principal:', data?.length || 0);
+        console.log('📊 Grade statuses:', data?.reduce((acc: any, grade: any) => {
+          acc[grade.status] = (acc[grade.status] || 0) + 1;
+          return acc;
+        }, {}));
+        
+        return data || [];
+      } catch (err) {
+        console.error('❌ Failed to fetch grades:', err);
+        throw err;
       }
-
-      console.log('✅ Fetched grades for principal:', data?.length || 0);
-      return data || [];
     },
     enabled: !!user?.id && !!schoolId && user.role === 'principal',
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Refetch every minute
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const pendingApproval = grades?.filter(grade => grade.status === 'submitted') || [];
@@ -181,6 +193,37 @@ const PrincipalGradesManager: React.FC = () => {
     setShowApprovalInterface(true);
   };
 
+  // Error state
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <XCircle className="h-5 w-5 text-red-500" />
+            Grade Approvals - Error
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load grades: {error?.message || 'Unknown error'}
+            </AlertDescription>
+          </Alert>
+          <Button 
+            onClick={() => refetch()} 
+            className="mt-4"
+            variant="outline"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Loading state
   if (isLoading) {
     return (
       <Card>
@@ -205,14 +248,25 @@ const PrincipalGradesManager: React.FC = () => {
             <CheckCircle className="h-5 w-5" />
             Grade Approvals
           </CardTitle>
-          <Button
-            size="sm"
-            onClick={openApprovalInterface}
-            className="flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" />
-            Advanced Review
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              size="sm"
+              onClick={openApprovalInterface}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Advanced Review
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
