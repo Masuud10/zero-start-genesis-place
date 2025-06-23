@@ -1,6 +1,6 @@
 
 import React from 'react';
-import BulkGradingInterface from './BulkGradingInterface';
+import EnhancedBulkGradingModal from './EnhancedBulkGradingModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 const PrincipalBulkGradingInterface: React.FC = () => {
@@ -24,7 +24,7 @@ const PrincipalBulkGradingInterface: React.FC = () => {
         </p>
       </div>
       
-      <BulkGradingInterface userRole="principal" />
+      <EnhancedBulkGradingModal userRole="principal" />
     </div>
   );
 };
