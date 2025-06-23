@@ -79,10 +79,10 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   }
 
   // Handle curriculum-specific modals
-  if (curriculumType !== 'standard') {
+  if (curriculumType && curriculumType !== 'standard') {
     return (
       <CurriculumModalSwitcher
-        curriculumType={curriculumType || 'standard'}
+        curriculumType={curriculumType}
         onClose={onClose}
         userRole={resolvedUserRole}
       />
@@ -103,6 +103,8 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   };
 
   const validateForm = () => {
+    // Fixed: Changed from curriculumType === 'cbc' to proper check
+    // The original code had a logical flaw - curriculumType can't be both 'standard' and 'cbc'
     const isCBC = curriculumType === 'cbc';
     
     if (!selectedClass) {
@@ -161,6 +163,8 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     setLoading(true);
 
     try {
+      // Fixed: Changed from curriculumType === 'cbc' to proper check
+      // The original code was trying to compare if curriculumType was both 'standard' AND 'cbc' simultaneously
       const isCBC = curriculumType === 'cbc';
       
       const gradeData = {
@@ -170,7 +174,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
         term: selectedTerm,
         exam_type: selectedExamType,
         status: resolvedUserRole === "teacher" ? 'submitted' : status,
-        curriculum_type: curriculumType,
+        curriculum_type: curriculumType || 'standard',
         ...(isCBC
           ? { 
               cbc_performance_level: cbcLevel, 

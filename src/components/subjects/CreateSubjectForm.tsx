@@ -1,15 +1,17 @@
 
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSubjectService } from '@/hooks/useSubjectService';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SubjectCreationData } from '@/types/subject';
+import SubjectBasicInfoForm from './forms/SubjectBasicInfoForm';
+import SubjectClassificationForm from './forms/SubjectClassificationForm';
+import SubjectAssignmentForm from './forms/SubjectAssignmentForm';
+import SubjectFormActions from './forms/SubjectFormActions';
 
 interface CreateSubjectFormProps {
   open: boolean;
@@ -138,6 +140,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     setSuccess(null);
   };
 
+  const clearMessages = () => {
+    setError(null);
+    setSuccess(null);
+  };
+
+  const isFormValid = formData.name.trim() && formData.code.trim();
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white">
@@ -163,171 +172,50 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-700">
-                Subject Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="e.g., Mathematics"
-                value={formData.name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                required
-                disabled={loading}
-                className="border-gray-300 focus:border-blue-500"
-              />
-            </div>
+          <SubjectBasicInfoForm
+            name={formData.name}
+            code={formData.code}
+            onNameChange={handleNameChange}
+            onCodeChange={handleCodeChange}
+            loading={loading}
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="code" className="text-gray-700">
-                Subject Code <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="code"
-                placeholder="e.g., MATH101"
-                value={formData.code}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                required
-                disabled={loading}
-                maxLength={10}
-                className="border-gray-300 focus:border-blue-500"
-              />
-            </div>
-          </div>
+          <SubjectClassificationForm
+            category={formData.category}
+            creditHours={formData.credit_hours}
+            curriculum={formData.curriculum}
+            onCategoryChange={(value) => {
+              setFormData({ ...formData, category: value });
+              clearMessages();
+            }}
+            onCreditHoursChange={(value) => {
+              setFormData({ ...formData, credit_hours: value });
+              clearMessages();
+            }}
+            onCurriculumChange={(value) => {
+              setFormData({ ...formData, curriculum: value });
+              clearMessages();
+            }}
+            loading={loading}
+          />
 
-          {/* Classification */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-gray-700">Category</Label>
-              <Select 
-                value={formData.category} 
-                onValueChange={(value) => {
-                  setFormData({ ...formData, category: value });
-                  setError(null);
-                  setSuccess(null);
-                }}
-                disabled={loading}
-              >
-                <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="core">Core Subject</SelectItem>
-                  <SelectItem value="science">Science</SelectItem>
-                  <SelectItem value="arts">Arts & Humanities</SelectItem>
-                  <SelectItem value="languages">Languages</SelectItem>
-                  <SelectItem value="technical">Technical/Vocational</SelectItem>
-                  <SelectItem value="sports">Physical Education</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <SubjectAssignmentForm
+            classId={formData.class_id}
+            teacherId={formData.teacher_id}
+            classList={classList}
+            teacherList={teacherList}
+            onClassChange={(value) => {
+              setFormData({ ...formData, class_id: value });
+              clearMessages();
+            }}
+            onTeacherChange={(value) => {
+              setFormData({ ...formData, teacher_id: value });
+              clearMessages();
+            }}
+            loading={loading}
+            loadingEntities={loadingEntities}
+          />
 
-            <div className="space-y-2">
-              <Label className="text-gray-700">Credit Hours</Label>
-              <Select 
-                value={formData.credit_hours?.toString()} 
-                onValueChange={(value) => {
-                  setFormData({ ...formData, credit_hours: parseInt(value) || 1 });
-                  setError(null);
-                  setSuccess(null);
-                }}
-                disabled={loading}
-              >
-                <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {[1, 2, 3, 4, 5, 6].map((hours) => (
-                    <SelectItem key={hours} value={hours.toString()}>
-                      {hours} {hours === 1 ? 'Hour' : 'Hours'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Assignment Options */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-gray-700">Class (Optional)</Label>
-              <Select 
-                value={formData.class_id || ''} 
-                onValueChange={(value) => {
-                  setFormData({ ...formData, class_id: value || undefined });
-                  setError(null);
-                  setSuccess(null);
-                }}
-                disabled={loading || loadingEntities}
-              >
-                <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                  <SelectValue placeholder="Select specific class or leave for all" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="">All Classes</SelectItem>
-                  {classList.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-gray-700">Teacher (Optional)</Label>
-              <Select 
-                value={formData.teacher_id || ''} 
-                onValueChange={(value) => {
-                  setFormData({ ...formData, teacher_id: value || undefined });
-                  setError(null);
-                  setSuccess(null);
-                }}
-                disabled={loading || loadingEntities}
-              >
-                <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                  <SelectValue placeholder="Assign teacher later" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="">No teacher assigned</SelectItem>
-                  {teacherList.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Curriculum */}
-          <div className="space-y-2">
-            <Label className="text-gray-700">Curriculum System</Label>
-            <Select 
-              value={formData.curriculum} 
-              onValueChange={(value) => {
-                setFormData({ ...formData, curriculum: value });
-                setError(null);
-                setSuccess(null);
-              }}
-              disabled={loading}
-            >
-              <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="cbc">CBC (Competency Based Curriculum)</SelectItem>
-                <SelectItem value="8-4-4">8-4-4 System</SelectItem>
-                <SelectItem value="igcse">IGCSE</SelectItem>
-                <SelectItem value="ib">International Baccalaureate</SelectItem>
-                <SelectItem value="other">Other System</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Description */}
           <div className="space-y-2">
             <Label className="text-gray-700">Description (Optional)</Label>
             <Input
@@ -335,40 +223,19 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
               value={formData.description}
               onChange={(e) => {
                 setFormData({ ...formData, description: e.target.value });
-                setError(null);
-                setSuccess(null);
+                clearMessages();
               }}
               disabled={loading}
               className="border-gray-300 focus:border-blue-500"
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleClose} 
-              disabled={loading}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={loading || !formData.name.trim() || !formData.code.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Creating...</span>
-                </div>
-              ) : (
-                "Create Subject"
-              )}
-            </Button>
-          </div>
+          <SubjectFormActions
+            onCancel={handleClose}
+            onSubmit={handleSubmit}
+            loading={loading}
+            isFormValid={isFormValid}
+          />
         </form>
       </DialogContent>
     </Dialog>
