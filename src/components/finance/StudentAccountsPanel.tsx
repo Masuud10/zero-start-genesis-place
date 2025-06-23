@@ -64,8 +64,8 @@ const StudentAccountsPanel: React.FC = () => {
         admission_number: student.admission_number,
         class_id: student.class_id,
         school_id: student.school_id,
-        class: student.classes && student.classes !== null && typeof student.classes === 'object' && 'name' in student.classes 
-          ? { name: student.classes.name } 
+        class: student.classes && typeof student.classes === 'object' && 'name' in student.classes 
+          ? { name: student.classes.name as string } 
           : { name: 'Unknown Class' }
       }));
 
@@ -253,7 +253,7 @@ const StudentAccountsPanel: React.FC = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{account.student.class?.name}</TableCell>
+                      <TableCell>{account.student.class?.name || 'Unknown Class'}</TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(account.totalFees)}
                       </TableCell>
