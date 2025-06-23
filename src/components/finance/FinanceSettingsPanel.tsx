@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Smartphone, DollarSign, AlertTriangle, Save, Loader2 } from 'lucide-react';
@@ -74,19 +74,19 @@ const FinanceSettingsPanel: React.FC = () => {
       }
 
       if (data) {
-        const settingsData = data.settings_data;
+        const settingsData = data.settings_data as any;
         
-        // Ensure settings_data is properly typed
-        const typedSettingsData: SettingsData = typeof settingsData === 'object' && settingsData !== null ? {
-          auto_apply_late_fees: Boolean(settingsData.auto_apply_late_fees),
-          allow_partial_payments: Boolean(settingsData.allow_partial_payments ?? true),
-          send_payment_notifications: Boolean(settingsData.send_payment_notifications ?? true),
-          require_payment_approval: Boolean(settingsData.require_payment_approval),
-          default_currency: String(settingsData.default_currency || 'KES'),
-          payment_methods: Array.isArray(settingsData.payment_methods) 
+        // Safely parse settings_data with proper type checking
+        const typedSettingsData: SettingsData = {
+          auto_apply_late_fees: Boolean(settingsData?.auto_apply_late_fees || false),
+          allow_partial_payments: Boolean(settingsData?.allow_partial_payments ?? true),
+          send_payment_notifications: Boolean(settingsData?.send_payment_notifications ?? true),
+          require_payment_approval: Boolean(settingsData?.require_payment_approval || false),
+          default_currency: String(settingsData?.default_currency || 'KES'),
+          payment_methods: Array.isArray(settingsData?.payment_methods) 
             ? settingsData.payment_methods 
             : ['cash', 'mpesa', 'bank_transfer'],
-        } : settings.settings_data;
+        };
 
         setSettings({
           ...data,
@@ -110,9 +110,16 @@ const FinanceSettingsPanel: React.FC = () => {
 
     try {
       setSaving(true);
+      
+      // Convert SettingsData to JSON-compatible format
+      const settingsToSave = {
+        ...settings,
+        settings_data: settings.settings_data as any, // Cast to any for JSON compatibility
+      };
+
       const { error } = await supabase
         .from('finance_settings')
-        .upsert(settings, { onConflict: 'school_id' });
+        .upsert(settingsToSave, { onConflict: 'school_id' });
 
       if (error) throw error;
 

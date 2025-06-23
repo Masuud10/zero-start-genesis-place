@@ -1,73 +1,87 @@
 
-import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { FeeData, PaymentData } from './types';
+import { useToast } from '@/hooks/use-toast';
 
 export const useFeeActions = () => {
+  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const assignFeeToClass = async (classId: string, feeData: FeeData) => {
+  const assignFeeToClass = async (classId: string, feeData: any) => {
+    if (!user?.school_id) return false;
+
     try {
-      // Convert FeeData to a plain JSON object for RPC call
-      const feeDataJson = {
-        amount: feeData.amount,
-        due_date: feeData.due_date,
-        academic_year: feeData.academic_year,
-        term: feeData.term,
-        category: feeData.category
-      };
+      setLoading(true);
+      
+      // Get all students in the class
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('class_id', classId)
+        .eq('school_id', user.school_id);
 
-      const { data, error } = await supabase.rpc('assign_fee_to_class', {
-        p_class_id: classId,
-        p_fee_data: feeDataJson
-      });
+      if (studentsError) throw studentsError;
 
-      if (error) throw error;
-
-      if (data && typeof data === 'object' && 'success' in data && data.success) {
-        toast({
-          title: "Success",
-          description: (typeof data === 'object' && 'message' in data && typeof data.message === 'string') 
-            ? data.message 
-            : "Fee assigned successfully",
-        });
-        return true;
-      } else {
-        const errorMessage = (typeof data === 'object' && 'error' in data && typeof data.error === 'string') 
-          ? data.error 
-          : 'Failed to assign fee';
-        throw new Error(errorMessage);
-      }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const assignFeeToStudent = async (studentId: string, feeData: FeeData, students: any[]) => {
-    try {
-      const student = students.find(s => s.id === studentId);
-      if (!student) throw new Error('Student not found');
+      // Create fee records for each student
+      const feeRecords = students.map(student => ({
+        ...feeData,
+        student_id: student.id,
+        class_id: classId,
+        school_id: user.school_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
 
       const { error } = await supabase
         .from('fees')
-        .insert({
-          school_id: user?.school_id,
-          student_id: studentId,
-          class_id: student.class_id,
-          amount: feeData.amount,
-          due_date: feeData.due_date,
-          academic_year: feeData.academic_year,
-          term: feeData.term,
-          category: feeData.category,
-          status: 'pending'
-        });
+        .insert(feeRecords);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Fee assigned to ${students.length} students in the class`,
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error assigning fee to class:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign fee to class",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const assignFeeToStudent = async (studentId: string, feeData: any, students: any[]) => {
+    if (!user?.school_id) return false;
+
+    try {
+      setLoading(true);
+
+      const student = students.find(s => s.id === studentId);
+      if (!student) {
+        throw new Error('Student not found');
+      }
+
+      const feeRecord = {
+        ...feeData,
+        student_id: studentId,
+        class_id: student.class_id,
+        school_id: user.school_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('fees')
+        .insert([feeRecord]);
 
       if (error) throw error;
 
@@ -75,54 +89,89 @@ export const useFeeActions = () => {
         title: "Success",
         description: "Fee assigned to student successfully",
       });
+
       return true;
-    } catch (err: any) {
+    } catch (error: any) {
+      console.error('Error assigning fee to student:', error);
       toast({
         title: "Error",
-        description: err.message,
+        description: error.message || "Failed to assign fee to student",
         variant: "destructive",
       });
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const recordPayment = async (feeId: string, paymentData: PaymentData) => {
+  const recordPayment = async (feeId: string, paymentData: any) => {
+    if (!user?.school_id) return false;
+
     try {
-      const { data, error } = await supabase.rpc('record_fee_payment', {
-        p_student_fee_id: feeId,
-        p_amount: paymentData.amount,
-        p_payment_method: paymentData.payment_method,
-        p_mpesa_code: paymentData.mpesa_code,
-        p_reference_number: paymentData.reference_number
-      });
+      setLoading(true);
+
+      // Update the fee record with payment information
+      const { error } = await supabase
+        .from('fees')
+        .update({
+          paid_amount: paymentData.amount,
+          payment_method: paymentData.payment_method,
+          paid_date: new Date().toISOString(),
+          status: paymentData.amount >= paymentData.total_amount ? 'paid' : 'partial',
+          mpesa_code: paymentData.mpesa_code,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', feeId)
+        .eq('school_id', user.school_id);
 
       if (error) throw error;
 
-      if (data && typeof data === 'object' && 'success' in data && data.success) {
-        toast({
-          title: "Success",
-          description: "Payment recorded successfully",
-        });
-        return true;
-      } else {
-        const errorMessage = (typeof data === 'object' && 'error' in data && typeof data.error === 'string') 
-          ? data.error 
-          : 'Failed to record payment';
-        throw new Error(errorMessage);
+      // Create a financial transaction record
+      const transactionData = {
+        school_id: user.school_id,
+        fee_id: feeId,
+        student_id: paymentData.student_id,
+        amount: paymentData.amount,
+        payment_method: paymentData.payment_method,
+        transaction_type: 'payment',
+        reference_number: paymentData.reference_number,
+        mpesa_code: paymentData.mpesa_code,
+        description: `Fee payment for ${paymentData.category}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: transactionError } = await supabase
+        .from('financial_transactions')
+        .insert([transactionData]);
+
+      if (transactionError) {
+        console.warn('Failed to create financial transaction record:', transactionError);
       }
-    } catch (err: any) {
+
+      toast({
+        title: "Success",
+        description: "Payment recorded successfully",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Error recording payment:', error);
       toast({
         title: "Error",
-        description: err.message,
+        description: error.message || "Failed to record payment",
         variant: "destructive",
       });
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   return {
     assignFeeToClass,
     assignFeeToStudent,
-    recordPayment
+    recordPayment,
+    loading
   };
 };
