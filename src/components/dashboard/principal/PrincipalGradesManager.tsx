@@ -101,11 +101,27 @@ const PrincipalGradesManager: React.FC = () => {
         if (classesData.error) throw classesData.error;
         if (teachersData.error) throw teachersData.error;
 
-        // Create lookup maps for efficient data joining
-        const studentsMap = new Map(studentsData.data?.map(s => [s.id, s]) || []);
-        const subjectsMap = new Map(subjectsData.data?.map(s => [s.id, s]) || []);
-        const classesMap = new Map(classesData.data?.map(c => [c.id, c]) || []);
-        const teachersMap = new Map(teachersData.data?.map(t => [t.id, t]) || []);
+        // Create lookup maps for efficient data joining with proper null checks
+        const studentsMap = new Map(
+          (studentsData.data || [])
+            .filter(s => s && s.id)
+            .map(s => [s.id, s] as [string, any])
+        );
+        const subjectsMap = new Map(
+          (subjectsData.data || [])
+            .filter(s => s && s.id)
+            .map(s => [s.id, s] as [string, any])
+        );
+        const classesMap = new Map(
+          (classesData.data || [])
+            .filter(c => c && c.id)
+            .map(c => [c.id, c] as [string, any])
+        );
+        const teachersMap = new Map(
+          (teachersData.data || [])
+            .filter(t => t && t.id)
+            .map(t => [t.id, t] as [string, any])
+        );
 
         // Combine the data
         const enrichedGrades = gradeData.map(grade => ({
