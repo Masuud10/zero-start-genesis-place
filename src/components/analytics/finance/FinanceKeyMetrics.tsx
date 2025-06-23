@@ -43,11 +43,25 @@ const FinanceKeyMetrics: React.FC<FinanceKeyMetricsProps> = ({ keyMetrics }) => 
       icon: TrendingUp,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
+    },
+    {
+      title: 'Total Students',
+      value: keyMetrics.totalStudents.toLocaleString(),
+      icon: Users,
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-100'
+    },
+    {
+      title: 'Defaulters',
+      value: keyMetrics.defaultersCount.toLocaleString(),
+      icon: AlertCircle,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100'
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       {metrics.map((metric, index) => (
         <Card key={index}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

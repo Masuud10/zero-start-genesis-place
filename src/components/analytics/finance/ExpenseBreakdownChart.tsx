@@ -8,6 +8,7 @@ interface ExpenseBreakdownChartProps {
   data: {
     category: string;
     amount: number;
+    percentage: number;
     color: string;
   }[];
 }
@@ -17,8 +18,6 @@ const chartConfig = {
 };
 
 const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({ data }) => {
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
   return (
     <Card>
       <CardHeader>
@@ -33,13 +32,13 @@ const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({ data }) =
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ category, percent }) => `${category}: ${(percent * 100).toFixed(0)}%`}
+                label={({ category, percentage }) => `${category}: ${percentage.toFixed(0)}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="amount"
               >
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
               <ChartTooltip content={<ChartTooltipContent />} />

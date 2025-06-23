@@ -5,9 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 
 interface FinanceKeyMetrics {
+  totalRevenue: number;
   totalCollected: number;
   outstandingAmount: number;
   collectionRate: number;
+  totalStudents: number;
   defaultersCount: number;
 }
 
@@ -21,6 +23,7 @@ interface ExpenseBreakdown {
   category: string;
   amount: number;
   percentage: number;
+  color: string;
 }
 
 interface Defaulter {
@@ -97,6 +100,16 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
 
         console.log('✅ Fees data fetched:', feesData?.length || 0, 'records');
 
+        // Fetch students count
+        const { count: studentsCount, error: studentsError } = await supabase
+          .from('students')
+          .select('*', { count: 'exact', head: true })
+          .eq('school_id', schoolId);
+
+        if (studentsError) {
+          console.warn('⚠️ Error fetching students count:', studentsError);
+        }
+
         // Fetch financial transactions
         const { data: transactionsData, error: transactionsError } = await supabase
           .from('financial_transactions')
@@ -141,9 +154,11 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         });
 
         const keyMetrics: FinanceKeyMetrics = {
+          totalRevenue: totalExpected,
           totalCollected,
           outstandingAmount,
           collectionRate,
+          totalStudents: studentsCount || 0,
           defaultersCount: defaulters.length
         };
 
@@ -167,13 +182,14 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           .sort((a, b) => a.date.localeCompare(b.date))
           .slice(-30); // Last 30 days
 
-        // Create expense breakdown (mock data since we don't have expense categories)
+        // Create expense breakdown with color property
+        const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
         const expenseBreakdown: ExpenseBreakdown[] = [
-          { category: 'Salaries', amount: totalCollected * 0.6, percentage: 60 },
-          { category: 'Utilities', amount: totalCollected * 0.15, percentage: 15 },
-          { category: 'Maintenance', amount: totalCollected * 0.1, percentage: 10 },
-          { category: 'Supplies', amount: totalCollected * 0.1, percentage: 10 },
-          { category: 'Other', amount: totalCollected * 0.05, percentage: 5 }
+          { category: 'Salaries', amount: totalCollected * 0.6, percentage: 60, color: colors[0] },
+          { category: 'Utilities', amount: totalCollected * 0.15, percentage: 15, color: colors[1] },
+          { category: 'Maintenance', amount: totalCollected * 0.1, percentage: 10, color: colors[2] },
+          { category: 'Supplies', amount: totalCollected * 0.1, percentage: 10, color: colors[3] },
+          { category: 'Other', amount: totalCollected * 0.05, percentage: 5, color: colors[4] }
         ];
 
         // Create defaulters list
