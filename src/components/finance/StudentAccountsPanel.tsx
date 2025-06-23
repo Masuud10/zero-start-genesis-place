@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +63,7 @@ const StudentAccountsPanel: React.FC = () => {
         admission_number: student.admission_number,
         class_id: student.class_id,
         school_id: student.school_id,
-        class: student.classes && typeof student.classes === 'object' && 'name' in student.classes 
+        class: student.classes && student.classes !== null && typeof student.classes === 'object' && 'name' in student.classes 
           ? { name: student.classes.name } 
           : { name: 'Unknown Class' }
       }));
