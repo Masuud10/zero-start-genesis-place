@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Download, AlertCircle, Loader2 } from "lucide-react";
+import { Download, AlertCircle, Loader2, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/contexts/SchoolContext";
@@ -27,11 +27,31 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
   const { currentSchool } = useSchool();
   const { toast } = useToast();
 
+  const getReportTypeLabel = (reportType: string) => {
+    switch (reportType) {
+      case 'grades': return 'Academic Performance';
+      case 'attendance': return 'Attendance';
+      case 'finance': return 'Financial';
+      case 'students': return 'Student Information';
+      case 'comprehensive': return 'Comprehensive';
+      default: return 'Report';
+    }
+  };
+
   const handleDownload = async () => {
     if (!user?.id) {
       toast({
         title: "Authentication Required",
         description: "Please log in to download reports.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!currentSchool?.id && user.role !== 'edufam_admin') {
+      toast({
+        title: "School Context Required",
+        description: "No school context available. Please contact your administrator.",
         variant: "destructive"
       });
       return;
@@ -68,49 +88,74 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
         try {
           const errorData = await res.json();
           errorMessage = errorData.error || errorMessage;
+          console.error('❌ Report API error details:', errorData);
         } catch {
-          errorMessage = await res.text() || errorMessage;
+          const errorText = await res.text();
+          errorMessage = errorText || errorMessage;
+          console.error('❌ Report API error text:', errorText);
         }
-        console.error('❌ Report API error:', errorMessage);
         throw new Error(errorMessage);
       }
       
       // Verify we got an Excel file
       const contentType = res.headers.get("Content-Type");
       if (!contentType || !contentType.includes("spreadsheet")) {
-        console.error('❌ Invalid content type:', contentType);
+        console.error('❌ Invalid content type received:', contentType);
         throw new Error("Invalid response format - expected Excel file");
       }
       
       const blob = await res.blob();
       if (blob.size === 0) {
-        throw new Error("Empty report file received");
+        throw new Error("Empty report file received - no data available for the selected criteria");
       }
       
       console.log('✅ Report blob received:', blob.size, 'bytes');
       
+      // Create download
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${type}_report_${term}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      const schoolName = currentSchool?.name || 'School';
+      const reportTypeLabel = getReportTypeLabel(type);
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `${schoolName}_${reportTypeLabel}_Report_${term}_${dateStr}.xlsx`;
+      
       document.body.appendChild(a);
       a.click();
+      
+      // Cleanup
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       }, 500);
       
       toast({ 
-        title: "Report Downloaded!", 
-        description: label || "Report downloaded successfully." 
+        title: "Report Downloaded Successfully!", 
+        description: `${reportTypeLabel} report for ${term} has been downloaded.`,
+        duration: 5000
       });
       
     } catch (e: any) {
       console.error('❌ Report download error:', e);
+      
+      let userFriendlyMessage = "Failed to generate report. Please try again.";
+      
+      if (e.message.includes("Database error")) {
+        userFriendlyMessage = "Database connection issue. Please try again later.";
+      } else if (e.message.includes("No data available")) {
+        userFriendlyMessage = `No ${getReportTypeLabel(type).toLowerCase()} data found for ${term}. Please check if data exists for this period.`;
+      } else if (e.message.includes("Authentication")) {
+        userFriendlyMessage = "Authentication error. Please log out and log back in.";
+      } else if (e.message.includes("required")) {
+        userFriendlyMessage = "Missing required information. Please contact your administrator.";
+      }
+      
       toast({ 
-        title: "Download Failed", 
-        description: e.message || "Failed to generate report. Please try again.",
-        variant: "destructive" 
+        title: "Report Download Failed", 
+        description: userFriendlyMessage,
+        variant: "destructive",
+        duration: 7000
       });
     } finally {
       setDownloading(false);
@@ -125,16 +170,24 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
       disabled={isDisabled}
       variant={variant || "outline"}
       size={size}
-      className="flex items-center gap-2"
+      className="flex items-center gap-2 min-w-[160px]"
     >
       {downloading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Generating...</span>
+        </>
       ) : !user?.id ? (
-        <AlertCircle className="w-4 h-4" />
+        <>
+          <AlertCircle className="w-4 h-4 text-red-500" />
+          <span>Login Required</span>
+        </>
       ) : (
-        <Download className="w-4 h-4" />
+        <>
+          <FileSpreadsheet className="w-4 h-4 text-green-600" />
+          <span>{label || `Download ${getReportTypeLabel(type)}`}</span>
+        </>
       )}
-      {downloading ? "Generating..." : label || "Download Report"}
     </Button>
   );
 };

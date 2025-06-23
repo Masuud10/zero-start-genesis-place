@@ -1,4 +1,3 @@
-
 // Edge Function: generate_role_report
 // Generates role-specific reports with proper data scoping
 
@@ -55,13 +54,27 @@ serve(async (req: Request) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-  // Get school info if school_id provided
+  // Get comprehensive school info for header
   let schoolInfo = null;
   if (school_id) {
     try {
       const { data, error } = await supabase
         .from("schools")
-        .select("id, name, logo_url, location")
+        .select(`
+          id, 
+          name, 
+          logo_url, 
+          location, 
+          address,
+          phone,
+          email,
+          motto,
+          slogan,
+          principal_name,
+          principal_contact,
+          registration_number,
+          website_url
+        `)
         .eq("id", school_id)
         .maybeSingle();
       
@@ -82,7 +95,7 @@ serve(async (req: Request) => {
 
   try {
     if (type === "grades") {
-      reportTitle = `Grades Report - ${term}`;
+      reportTitle = `Academic Performance Report - ${term}`;
       
       if (role === "teacher") {
         if (!class_id) {
@@ -101,9 +114,10 @@ serve(async (req: Request) => {
             exam_type,
             status,
             created_at,
-            students!grades_student_id_fkey(id, name, admission_number),
+            comments,
+            students!grades_student_id_fkey(id, name, admission_number, roll_number),
             subjects!grades_subject_id_fkey(id, name, code),
-            classes!grades_class_id_fkey(id, name)
+            classes!grades_class_id_fkey(id, name, level, stream)
           `)
           .eq("class_id", class_id)
           .eq("term", term)
@@ -116,17 +130,19 @@ serve(async (req: Request) => {
         }
         
         resultRows = (data || []).map(grade => ({
-          Student: grade.students?.name || 'N/A',
-          AdmissionNumber: grade.students?.admission_number || 'N/A',
-          Subject: grade.subjects?.name || 'N/A',
-          SubjectCode: grade.subjects?.code || 'N/A',
-          Score: grade.score || 0,
-          MaxScore: grade.max_score || 100,
-          Percentage: grade.percentage || 0,
-          LetterGrade: grade.letter_grade || 'N/A',
-          ExamType: grade.exam_type || 'N/A',
-          Status: grade.status || 'draft',
-          Date: grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
+          'Student Name': grade.students?.name || 'N/A',
+          'Admission Number': grade.students?.admission_number || 'N/A',
+          'Roll Number': grade.students?.roll_number || 'N/A',
+          'Subject': grade.subjects?.name || 'N/A',
+          'Subject Code': grade.subjects?.code || 'N/A',
+          'Score': grade.score || 0,
+          'Max Score': grade.max_score || 100,
+          'Percentage': `${(grade.percentage || 0).toFixed(1)}%`,
+          'Letter Grade': grade.letter_grade || 'N/A',
+          'Exam Type': grade.exam_type || 'N/A',
+          'Status': grade.status || 'draft',
+          'Comments': grade.comments || '',
+          'Date Recorded': grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
         }));
         
       } else if (role === "principal" || role === "school_owner") {
@@ -146,9 +162,10 @@ serve(async (req: Request) => {
             exam_type,
             status,
             created_at,
-            students!grades_student_id_fkey(id, name, admission_number),
+            comments,
+            students!grades_student_id_fkey(id, name, admission_number, roll_number),
             subjects!grades_subject_id_fkey(id, name, code),
-            classes!grades_class_id_fkey(id, name)
+            classes!grades_class_id_fkey(id, name, level, stream)
           `)
           .eq("school_id", school_id)
           .eq("term", term)
@@ -161,16 +178,22 @@ serve(async (req: Request) => {
         }
         
         resultRows = (data || []).map(grade => ({
-          Student: grade.students?.name || 'N/A',
-          AdmissionNumber: grade.students?.admission_number || 'N/A',
-          Class: grade.classes?.name || 'N/A',
-          Subject: grade.subjects?.name || 'N/A',
-          Score: grade.score || 0,
-          MaxScore: grade.max_score || 100,
-          Percentage: grade.percentage || 0,
-          LetterGrade: grade.letter_grade || 'N/A',
-          Status: grade.status || 'draft',
-          Date: grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
+          'Student Name': grade.students?.name || 'N/A',
+          'Admission Number': grade.students?.admission_number || 'N/A',
+          'Roll Number': grade.students?.roll_number || 'N/A',
+          'Class': grade.classes?.name || 'N/A',
+          'Level': grade.classes?.level || 'N/A',
+          'Stream': grade.classes?.stream || 'N/A',
+          'Subject': grade.subjects?.name || 'N/A',
+          'Subject Code': grade.subjects?.code || 'N/A',
+          'Score': grade.score || 0,
+          'Max Score': grade.max_score || 100,
+          'Percentage': `${(grade.percentage || 0).toFixed(1)}%`,
+          'Letter Grade': grade.letter_grade || 'N/A',
+          'Exam Type': grade.exam_type || 'N/A',
+          'Status': grade.status || 'draft',
+          'Comments': grade.comments || '',
+          'Date Recorded': grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
         }));
         
       } else if (role === "edufam_admin") {
@@ -195,9 +218,9 @@ serve(async (req: Request) => {
         
         if (school_id) {
           query = query.eq("school_id", school_id);
-          reportTitle = `Grades Report - ${schoolInfo?.name || 'Selected School'} - ${term}`;
+          reportTitle = `Academic Performance Report - ${schoolInfo?.name || 'Selected School'} - ${term}`;
         } else {
-          reportTitle = `Grades Report - All Schools - ${term}`;
+          reportTitle = `Academic Performance Report - All Schools - ${term}`;
         }
 
         const { data, error } = await query;
@@ -236,8 +259,9 @@ serve(async (req: Request) => {
             status,
             session,
             term,
-            students!attendance_student_id_fkey(id, name, admission_number),
-            classes!attendance_class_id_fkey(id, name)
+            notes,
+            students!attendance_student_id_fkey(id, name, admission_number, roll_number),
+            classes!attendance_class_id_fkey(id, name, level, stream)
           `)
           .eq("class_id", class_id)
           .eq("term", term)
@@ -249,11 +273,14 @@ serve(async (req: Request) => {
         }
         
         resultRows = (data || []).map(attendance => ({
-          Student: attendance.students?.name || 'N/A',
-          AdmissionNumber: attendance.students?.admission_number || 'N/A',
-          Date: attendance.date || 'N/A',
-          Status: attendance.status || 'N/A',
-          Session: attendance.session || 'N/A'
+          'Student Name': attendance.students?.name || 'N/A',
+          'Admission Number': attendance.students?.admission_number || 'N/A',
+          'Roll Number': attendance.students?.roll_number || 'N/A',
+          'Class': attendance.classes?.name || 'N/A',
+          'Date': attendance.date || 'N/A',
+          'Status': attendance.status || 'N/A',
+          'Session': attendance.session || 'N/A',
+          'Notes': attendance.notes || ''
         }));
         
       } else if (role === "principal" || role === "school_owner") {
@@ -269,8 +296,9 @@ serve(async (req: Request) => {
             status,
             session,
             term,
-            students!attendance_student_id_fkey(id, name, admission_number),
-            classes!attendance_class_id_fkey(id, name)
+            notes,
+            students!attendance_student_id_fkey(id, name, admission_number, roll_number),
+            classes!attendance_class_id_fkey(id, name, level, stream)
           `)
           .eq("school_id", school_id)
           .eq("term", term)
@@ -282,12 +310,16 @@ serve(async (req: Request) => {
         }
         
         resultRows = (data || []).map(attendance => ({
-          Student: attendance.students?.name || 'N/A',
-          AdmissionNumber: attendance.students?.admission_number || 'N/A',
-          Class: attendance.classes?.name || 'N/A',
-          Date: attendance.date || 'N/A',
-          Status: attendance.status || 'N/A',
-          Session: attendance.session || 'N/A'
+          'Student Name': attendance.students?.name || 'N/A',
+          'Admission Number': attendance.students?.admission_number || 'N/A',
+          'Roll Number': attendance.students?.roll_number || 'N/A',
+          'Class': attendance.classes?.name || 'N/A',
+          'Level': attendance.classes?.level || 'N/A',
+          'Stream': attendance.classes?.stream || 'N/A',
+          'Date': attendance.date || 'N/A',
+          'Status': attendance.status || 'N/A',
+          'Session': attendance.session || 'N/A',
+          'Notes': attendance.notes || ''
         }));
         
       } else if (role === "edufam_admin") {
@@ -333,7 +365,7 @@ serve(async (req: Request) => {
       }
       
     } else if (type === "finance") {
-      reportTitle = `Finance Report - ${term}`;
+      reportTitle = `Financial Report - ${term}`;
       
       if (role === "finance_officer" || role === "principal" || role === "school_owner") {
         if (!school_id) {
@@ -350,8 +382,10 @@ serve(async (req: Request) => {
             status,
             due_date,
             term,
-            students!fees_student_id_fkey(id, name, admission_number),
-            classes!fees_class_id_fkey(id, name)
+            payment_method,
+            transaction_reference,
+            students!fees_student_id_fkey(id, name, admission_number, roll_number),
+            classes!fees_class_id_fkey(id, name, level, stream)
           `)
           .eq("school_id", school_id)
           .eq("term", term)
@@ -363,15 +397,20 @@ serve(async (req: Request) => {
         }
         
         resultRows = (data || []).map(fee => ({
-          Student: fee.students?.name || 'N/A',
-          AdmissionNumber: fee.students?.admission_number || 'N/A',
-          Class: fee.classes?.name || 'N/A',
-          Category: fee.category || 'N/A',
-          Amount: fee.amount || 0,
-          PaidAmount: fee.paid_amount || 0,
-          Outstanding: (fee.amount || 0) - (fee.paid_amount || 0),
-          Status: fee.status || 'pending',
-          DueDate: fee.due_date || 'N/A'
+          'Student Name': fee.students?.name || 'N/A',
+          'Admission Number': fee.students?.admission_number || 'N/A',
+          'Roll Number': fee.students?.roll_number || 'N/A',
+          'Class': fee.classes?.name || 'N/A',
+          'Level': fee.classes?.level || 'N/A',
+          'Stream': fee.classes?.stream || 'N/A',
+          'Fee Category': fee.category || 'N/A',
+          'Amount Due': `KES ${(fee.amount || 0).toLocaleString()}`,
+          'Amount Paid': `KES ${(fee.paid_amount || 0).toLocaleString()}`,
+          'Outstanding': `KES ${((fee.amount || 0) - (fee.paid_amount || 0)).toLocaleString()}`,
+          'Status': fee.status || 'pending',
+          'Due Date': fee.due_date || 'N/A',
+          'Payment Method': fee.payment_method || 'N/A',
+          'Transaction Reference': fee.transaction_reference || 'N/A'
         }));
         
       } else if (role === "edufam_admin") {
@@ -394,9 +433,9 @@ serve(async (req: Request) => {
 
         if (school_id) {
           query = query.eq("school_id", school_id);
-          reportTitle = `Finance Report - ${schoolInfo?.name || 'Selected School'} - ${term}`;
+          reportTitle = `Financial Report - ${schoolInfo?.name || 'Selected School'} - ${term}`;
         } else {
-          reportTitle = `Finance Report - All Schools - ${term}`;
+          reportTitle = `Financial Report - All Schools - ${term}`;
         }
         
         const { data, error } = await query;
@@ -430,33 +469,65 @@ serve(async (req: Request) => {
     resultRows = [];
   }
 
-  // Include metadata and error handling
-  const metaData = {
-    School: schoolInfo?.name || "N/A",
+  // Create comprehensive school header information
+  const schoolHeader = schoolInfo ? {
+    "SCHOOL INFORMATION": "",
+    "School Name": schoolInfo.name || "N/A",
+    "Registration Number": schoolInfo.registration_number || "N/A",
+    "Location": schoolInfo.location || "N/A",
+    "Address": schoolInfo.address || "N/A",
+    "Phone": schoolInfo.phone || "N/A",
+    "Email": schoolInfo.email || "N/A",
+    "Website": schoolInfo.website_url || "N/A",
+    "Motto": schoolInfo.motto || "N/A",
+    "Slogan": schoolInfo.slogan || "N/A",
+    "Principal": schoolInfo.principal_name || "N/A",
+    "Principal Contact": schoolInfo.principal_contact || "N/A",
+    "": "",
+    "REPORT DETAILS": "",
     "Report Title": reportTitle,
-    Term: term,
-    Generated: new Date().toLocaleString(),
-    "Generated By": role,
-    Company: "EduFam Systems",
-    "Total Records": resultRows.length,
-    ...(hasError && { Error: errorMessage })
+    "Academic Term": term,
+    "Generated Date": new Date().toLocaleDateString(),
+    "Generated Time": new Date().toLocaleTimeString(),
+    "Generated By": `${role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}`,
+    "Total Records": resultRows.length.toString(),
+    "Report Status": hasError ? `Error: ${errorMessage}` : "Successfully Generated",
+    " ": "",
+    "ACADEMIC DATA": ""
+  } : {
+    "REPORT DETAILS": "",
+    "Report Title": reportTitle,
+    "Academic Term": term,
+    "Generated Date": new Date().toLocaleDateString(),
+    "Generated Time": new Date().toLocaleTimeString(),
+    "Generated By": `${role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}`,
+    "Total Records": resultRows.length.toString(),
+    "Report Status": hasError ? `Error: ${errorMessage}` : "Successfully Generated",
+    "": "",
+    "ACADEMIC DATA": ""
   };
 
-  // Build Excel file
+  // Build Excel file with proper structure
   try {
-    // Create worksheet data with metadata at top
+    // Create worksheet data with school header at top, then data
     const worksheetData = [
-      metaData,
-      {},  // Empty row for separation
+      schoolHeader,
+      {}, // Empty row for separation
       ...resultRows
     ];
 
-    const sheet = XLSX.utils.json_to_sheet(worksheetData);
+    const sheet = XLSX.utils.json_to_sheet(worksheetData, { skipHeader: false });
     
     // Set column widths for better readability
-    const colWidths = Object.keys(resultRows[0] || {}).map(() => ({ wch: 15 }));
+    const maxCols = Math.max(
+      Object.keys(schoolHeader).length,
+      resultRows.length > 0 ? Object.keys(resultRows[0]).length : 0
+    );
+    
+    const colWidths = Array(maxCols).fill(0).map(() => ({ wch: 20 }));
     sheet['!cols'] = colWidths;
     
+    // Create workbook and add worksheet
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, "Report");
     
@@ -466,9 +537,9 @@ serve(async (req: Request) => {
       throw new Error("Failed to generate Excel data");
     }
 
-    const filename = `${reportTitle.replace(/[^a-zA-Z0-9]/g,"_")}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const filename = `${schoolInfo?.name || 'School'}_${reportTitle.replace(/[^a-zA-Z0-9]/g,"_")}_${term}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    console.log(`Report generated successfully: ${filename}, ${xlsxData.length} bytes`);
+    console.log(`Report generated successfully: ${filename}, ${xlsxData.length} bytes, ${resultRows.length} records`);
 
     return new Response(xlsxData, {
       status: 200,
