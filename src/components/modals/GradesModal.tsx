@@ -1,35 +1,24 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
-import IGCSEGradesModal from './IGCSEGradesModal';
-import { CBCGradesModal } from './CBCGradesModal';
 import { getGradingPermissions } from '@/utils/grading-permissions';
 import { UserRole } from '@/types/user';
-import GradesForm from './GradesForm';
 import GradeActionButtons from './GradeActionButtons';
-import CBCGradesForm from './CBCGradesForm';
-import { useOptimizedGradeQuery, useGradeSubmissionMutation } from '@/hooks/useOptimizedGradeQuery';
+import { useGradeSubmissionMutation } from '@/hooks/useOptimizedGradeQuery';
+import GradeModalHeader from './grades/GradeModalHeader';
+import GradeFormFields from './grades/GradeFormFields';
+import PrincipalStatusSelector from './grades/PrincipalStatusSelector';
+import CurriculumModalSwitcher from './grades/CurriculumModalSwitcher';
+import GradeDataLoader from './grades/GradeDataLoader';
 
 interface GradesModalProps {
   onClose: () => void;
@@ -89,98 +78,16 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     );
   }
 
-  useEffect(() => {
-    const loadClasses = async () => {
-      if (!user?.school_id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('classes')
-          .select('*')
-          .eq('school_id', user.school_id);
-          
-        if (error) {
-          console.error('Error loading classes:', error);
-          setFormError(`Failed to load classes: ${error.message}`);
-          return;
-        }
-        
-        setClasses(data || []);
-      } catch (err: any) {
-        console.error('Error loading classes:', err);
-        setFormError('Failed to load classes. Please try again.');
-      }
-    };
-    loadClasses();
-  }, [user?.school_id]);
-
-  useEffect(() => {
-    const loadSubjects = async () => {
-      if (!selectedClass || !user?.school_id) {
-        setSubjects([]);
-        return;
-      }
-
-      try {
-        let query = supabase
-          .from('subjects')
-          .select('*')
-          .eq('class_id', selectedClass)
-          .eq('school_id', user.school_id);
-        
-        if (user.role === 'teacher') {
-          query = query.eq('teacher_id', user.id);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('Error loading subjects:', error);
-          setFormError(`Failed to load subjects: ${error.message}`);
-          return;
-        }
-
-        setSubjects(data || []);
-        if (data?.length === 0 && user.role === 'teacher') {
-          setFormError("You are not assigned to any subjects for this class.");
-        } else {
-          setFormError(null);
-        }
-      } catch (err: any) {
-        console.error('Error loading subjects:', err);
-        setFormError('Failed to load subjects. Please try again.');
-      }
-    };
-
-    loadSubjects();
-  }, [selectedClass, user?.school_id, user?.id, user?.role]);
-
-  useEffect(() => {
-    const loadStudents = async () => {
-      if (!selectedClass || !user?.school_id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('students')
-          .select('*')
-          .eq('class_id', selectedClass)
-          .eq('school_id', user.school_id);
-
-        if (error) {
-          console.error('Error loading students:', error);
-          setFormError(`Failed to load students: ${error.message}`);
-          return;
-        }
-
-        setStudents(data || []);
-      } catch (err: any) {
-        console.error('Error loading students:', err);
-        setFormError('Failed to load students. Please try again.');
-      }
-    };
-
-    loadStudents();
-  }, [selectedClass, user?.school_id]);
+  // Handle curriculum-specific modals
+  if (curriculumType !== 'standard') {
+    return (
+      <CurriculumModalSwitcher
+        curriculumType={curriculumType || 'standard'}
+        onClose={onClose}
+        userRole={resolvedUserRole}
+      />
+    );
+  }
 
   const resetForm = () => {
     setSelectedClass('');
@@ -283,7 +190,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
 
       toast({
         title: "Success",
-        description: `Grade submitted successfully using ${curriculumType.toUpperCase()} curriculum.`,
+        description: `Grade submitted successfully using ${curriculumType?.toUpperCase() || 'STANDARD'} curriculum.`,
       });
 
       resetForm();
@@ -318,52 +225,20 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const canSubmit = isTeacher && permissions.canSubmitGrades;
   const canInput = isTeacher ? permissions.canCreateGrades : permissions.canEditGrades || permissions.canCreateGrades;
 
-  // Modal switching: CBC custom flow
-  if (curriculumType === 'cbc') {
-    return <CBCGradesModal onClose={onClose} />;
-  }
-
-  // Modal switching: IGCSE custom flow
-  if (curriculumType === 'igcse') {
-    return <IGCSEGradesModal onClose={onClose} userRole={resolvedUserRole} />;
-  }
-
-  // Only show standard grading modal for standard curriculum
-  // Fix: Check if curriculumType is not standard, and not in the allowed list
-  if (curriculumType && !['standard', 'cbc', 'igcse'].includes(curriculumType)) {
-    return (
-      <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <div className="text-center p-6">
-            <p>Unsupported curriculum type: {curriculumType}</p>
-            <Button onClick={onClose} className="mt-4">Close</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            Enter Grades ({curriculumType?.toUpperCase() || 'STANDARD'} Curriculum)
-            <span className="ml-2 inline-block align-middle">
-              {isTeacher && permissions.canSubmitGrades && (
-                <span className="text-xs text-blue-700 font-semibold">(Teacher: submit for approval)</span>
-              )}
-              {isPrincipal && (
-                <span className="text-xs text-green-700 font-semibold ml-1">(Principal: {[
-                  canApprove ? "approve, " : "",
-                  canOverride ? "override, " : "",
-                  canRelease ? "release, " : "",
-                  "input marks"
-                ].join('').replace(/, $/, '')})</span>
-              )}
-            </span>
-          </DialogTitle>
-        </DialogHeader>
+        <GradeModalHeader
+          curriculumType={curriculumType || 'standard'}
+          isTeacher={isTeacher}
+          isPrincipal={isPrincipal}
+          permissions={{
+            canSubmitGrades: permissions.canSubmitGrades,
+            canApproveGrades: permissions.canApproveGrades,
+            canOverrideGrades: permissions.canOverrideGrades,
+            canReleaseResults: permissions.canReleaseResults
+          }}
+        />
         
         {formError && (
           <Alert variant="destructive">
@@ -372,70 +247,47 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
           </Alert>
         )}
 
-        {curriculumType === 'cbc' ? (
-          <CBCGradesForm
-            classes={classes}
-            selectedClass={selectedClass}
-            setSelectedClass={setSelectedClass}
-            subjects={subjects}
-            selectedSubject={selectedSubject}
-            setSelectedSubject={setSelectedSubject}
-            students={students}
-            selectedStudent={selectedStudent}
-            setSelectedStudent={setSelectedStudent}
-            selectedTerm={selectedTerm}
-            setSelectedTerm={setSelectedTerm}
-            selectedExamType={selectedExamType}
-            setSelectedExamType={setSelectedExamType}
-            cbcLevel={cbcLevel}
-            setCbcLevel={setCbcLevel}
-            canInput={canInput}
-          />
-        ) : (
-          <GradesForm
-            classes={classes}
-            selectedClass={selectedClass}
-            setSelectedClass={setSelectedClass}
-            subjects={subjects}
-            selectedSubject={selectedSubject}
-            setSelectedSubject={setSelectedSubject}
-            students={students}
-            selectedStudent={selectedStudent}
-            setSelectedStudent={setSelectedStudent}
-            selectedTerm={selectedTerm}
-            setSelectedTerm={setSelectedTerm}
-            selectedExamType={selectedExamType}
-            setSelectedExamType={setSelectedExamType}
-            score={score}
-            setScore={setScore}
-            maxScore={maxScore}
-            setMaxScore={setMaxScore}
-            canInput={canInput}
-            isPrincipal={isPrincipal}
-            canOverride={canOverride}
-          />
-        )}
+        <GradeDataLoader
+          user={user}
+          selectedClass={selectedClass}
+          setClasses={setClasses}
+          setSubjects={setSubjects}
+          setStudents={setStudents}
+          setFormError={setFormError}
+        />
+
+        <GradeFormFields
+          curriculumType={curriculumType || 'standard'}
+          classes={classes}
+          selectedClass={selectedClass}
+          setSelectedClass={setSelectedClass}
+          subjects={subjects}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
+          students={students}
+          selectedStudent={selectedStudent}
+          setSelectedStudent={setSelectedStudent}
+          selectedTerm={selectedTerm}
+          setSelectedTerm={setSelectedTerm}
+          selectedExamType={selectedExamType}
+          setSelectedExamType={setSelectedExamType}
+          score={score}
+          setScore={setScore}
+          maxScore={maxScore}
+          setMaxScore={setMaxScore}
+          cbcLevel={cbcLevel}
+          setCbcLevel={setCbcLevel}
+          canInput={canInput}
+          isPrincipal={isPrincipal}
+          canOverride={canOverride}
+        />
         
         {isPrincipal && (
-          <div className="grid grid-cols-4 items-center gap-4 py-4">
-            <Label htmlFor="status" className="text-right">
-              Status
-            </Label>
-            <Select
-              onValueChange={(value) => setStatus(value as 'draft' | 'submitted' | 'approved' | 'rejected' | 'released')}
-              value={status}
-            >
-              <SelectTrigger id="status" className="col-span-3">
-                <SelectValue placeholder="Set Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                {canRelease && <SelectItem value="released">Released</SelectItem>}
-              </SelectContent>
-            </Select>
-          </div>
+          <PrincipalStatusSelector
+            status={status}
+            setStatus={setStatus}
+            canRelease={canRelease}
+          />
         )}
         
         <DialogFooter>
