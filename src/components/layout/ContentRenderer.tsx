@@ -30,6 +30,7 @@ import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
 import EduFamCertificateManagement from '@/components/certificates/EduFamCertificateManagement';
+import ProjectHubModule from '@/components/modules/ProjectHubModule';
 
 interface ContentRendererProps {
   activeSection: string;
@@ -48,6 +49,12 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />;
+      
+      case 'project-hub':
+        if (user?.role === 'edufam_admin') {
+          return <ProjectHubModule />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Insufficient permissions</div>;
       
       case 'analytics':
         return <AnalyticsDashboard />;

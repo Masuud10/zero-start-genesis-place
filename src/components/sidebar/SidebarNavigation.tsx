@@ -34,7 +34,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
 
   // Group items by category for better organization
   const systemItems = filteredItems.filter(item => 
-    ['dashboard', 'analytics', 'school-analytics', 'schools', 'users', 'company-management', 'billing', 'system-health'].includes(item.id)
+    ['dashboard', 'project-hub', 'analytics', 'school-analytics', 'schools', 'users', 'company-management', 'billing', 'system-health'].includes(item.id)
   );
   
   const schoolItems = filteredItems.filter(item => 
@@ -90,6 +90,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
       {user?.role === 'edufam_admin' ? (
         <>
           {renderMenuGroup(systemItems.filter(item => ['dashboard'].includes(item.id)))}
+          {renderMenuGroup(systemItems.filter(item => ['project-hub'].includes(item.id)), 'Project Management')}
           {renderMenuGroup(systemItems.filter(item => ['analytics', 'school-analytics'].includes(item.id)), 'Analytics')}
           {renderMenuGroup(systemItems.filter(item => ['schools', 'users', 'company-management'].includes(item.id)), 'Management')}
           {renderMenuGroup(systemItems.filter(item => ['billing', 'system-health'].includes(item.id)), 'System')}
