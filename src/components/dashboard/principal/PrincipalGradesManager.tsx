@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useOptimizedGradeQuery } from '@/hooks/useOptimizedGradeQuery';
+import { useQuery } from '@tanstack/react-query';
 import { PrincipalGradeApprovalInterface } from '@/components/grading/PrincipalGradeApprovalInterface';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,8 +20,57 @@ const PrincipalGradesManager: React.FC = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [showApprovalInterface, setShowApprovalInterface] = useState(false);
 
-  const { data: grades, isLoading, refetch } = useOptimizedGradeQuery({
-    enabled: !!user?.id && !!schoolId
+  // Fetch grades specifically for principal approval
+  const { data: grades, isLoading, refetch } = useQuery({
+    queryKey: ['principal-grades-approval', user?.id, schoolId],
+    queryFn: async () => {
+      if (!user?.id || !schoolId) {
+        console.log('❌ Missing user ID or school ID for grade fetching');
+        return [];
+      }
+
+      console.log('🔍 Fetching grades for principal approval:', { schoolId, userId: user.id });
+
+      // Fetch all grades that need principal attention
+      const { data, error } = await supabase
+        .from('grades')
+        .select(`
+          id,
+          student_id,
+          subject_id,
+          class_id,
+          term,
+          exam_type,
+          score,
+          max_score,
+          percentage,
+          letter_grade,
+          status,
+          submitted_by,
+          submitted_at,
+          approved_by,
+          approved_at,
+          created_at,
+          students!inner(name, admission_number),
+          subjects!inner(name),
+          classes!inner(name),
+          profiles!grades_submitted_by_fkey(name)
+        `)
+        .eq('school_id', schoolId)
+        .in('status', ['submitted', 'approved', 'rejected'])
+        .order('submitted_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error fetching grades:', error);
+        throw error;
+      }
+
+      console.log('✅ Fetched grades:', data?.length || 0);
+      return data || [];
+    },
+    enabled: !!user?.id && !!schoolId,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000, // Refetch every minute
   });
 
   const pendingApproval = grades?.filter(grade => grade.status === 'submitted') || [];
@@ -34,6 +83,8 @@ const PrincipalGradesManager: React.FC = () => {
     
     setProcessing('approve');
     try {
+      console.log('🔄 Approving grades:', gradeIds);
+      
       const { data, error } = await supabase.rpc('update_grade_status', {
         grade_ids: gradeIds,
         new_status: 'approved',
@@ -49,6 +100,7 @@ const PrincipalGradesManager: React.FC = () => {
 
       refetch();
     } catch (error: any) {
+      console.error('❌ Grade approval failed:', error);
       toast({
         title: "Approval Failed",
         description: error.message || "Failed to approve grades.",
@@ -64,6 +116,8 @@ const PrincipalGradesManager: React.FC = () => {
     
     setProcessing('reject');
     try {
+      console.log('🔄 Rejecting grades:', gradeIds);
+      
       const { error } = await supabase.rpc('update_grade_status', {
         grade_ids: gradeIds,
         new_status: 'rejected',
@@ -79,6 +133,7 @@ const PrincipalGradesManager: React.FC = () => {
 
       refetch();
     } catch (error: any) {
+      console.error('❌ Grade rejection failed:', error);
       toast({
         title: "Rejection Failed",
         description: error.message || "Failed to reject grades.",
@@ -94,6 +149,8 @@ const PrincipalGradesManager: React.FC = () => {
     
     setProcessing('release');
     try {
+      console.log('🔄 Releasing grades:', gradeIds);
+      
       const { error } = await supabase.rpc('update_grade_status', {
         grade_ids: gradeIds,
         new_status: 'released',
@@ -109,6 +166,7 @@ const PrincipalGradesManager: React.FC = () => {
 
       refetch();
     } catch (error: any) {
+      console.error('❌ Grade release failed:', error);
       toast({
         title: "Release Failed",
         description: error.message || "Failed to release grades.",
@@ -217,6 +275,32 @@ const PrincipalGradesManager: React.FC = () => {
                 </AlertDescription>
               </Alert>
 
+              {/* Show recent submissions */}
+              <div className="mb-4 max-h-40 overflow-y-auto">
+                <div className="space-y-2">
+                  {pendingApproval.slice(0, 5).map((grade: any) => (
+                    <div key={grade.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                      <div>
+                        <span className="font-medium">{grade.students?.name}</span>
+                        <span className="text-gray-500 ml-2">• {grade.subjects?.name}</span>
+                        <span className="text-gray-500 ml-2">• {grade.classes?.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{grade.score}/{grade.max_score}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {grade.term} {grade.exam_type}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                  {pendingApproval.length > 5 && (
+                    <p className="text-sm text-gray-500 text-center">
+                      +{pendingApproval.length - 5} more grades pending...
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -308,6 +392,11 @@ const PrincipalGradesManager: React.FC = () => {
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
               <h3 className="font-medium text-gray-900">All Caught Up!</h3>
               <p className="text-gray-500">No grades pending approval at this time.</p>
+              {grades && grades.length > 0 && (
+                <p className="text-sm text-gray-400 mt-2">
+                  Total grades managed: {grades.length}
+                </p>
+              )}
               <Button
                 variant="outline"
                 size="sm"

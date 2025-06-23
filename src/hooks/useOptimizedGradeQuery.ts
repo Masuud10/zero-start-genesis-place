@@ -17,7 +17,9 @@ export const useOptimizedGradeQuery = ({ enabled = true }: UseOptimizedGradeQuer
     queryFn: async () => {
       if (!user?.id || !schoolId) return [];
 
-      const { data, error } = await supabase
+      console.log('🔍 Fetching grades for user:', { userId: user.id, schoolId, role: user.role });
+
+      let query = supabase
         .from('grades')
         .select(`
           id,
@@ -38,15 +40,24 @@ export const useOptimizedGradeQuery = ({ enabled = true }: UseOptimizedGradeQuer
           approved_at,
           created_at
         `)
-        .eq('school_id', schoolId)
-        .eq('submitted_by', user.id)
-        .order('created_at', { ascending: false });
+        .eq('school_id', schoolId);
+
+      // For principals, fetch all grades in their school for approval
+      if (user.role === 'principal') {
+        query = query.in('status', ['submitted', 'approved', 'rejected', 'released']);
+      } else {
+        // For teachers, fetch only their own grades
+        query = query.eq('submitted_by', user.id);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching grades:', error);
+        console.error('❌ Error fetching grades:', error);
         throw error;
       }
 
+      console.log('✅ Fetched grades:', data?.length || 0);
       return data || [];
     },
     enabled: enabled && !!user?.id && !!schoolId
@@ -78,7 +89,7 @@ export const useGradeSubmissionMutation = () => {
         exam_type: gradeData.exam_type.toUpperCase() // Ensure uppercase format
       };
 
-      console.log('Submitting grade:', completeGradeData);
+      console.log('📝 Submitting grade:', completeGradeData);
 
       const { data, error } = await supabase
         .from('grades')
@@ -90,18 +101,19 @@ export const useGradeSubmissionMutation = () => {
         .single();
 
       if (error) {
-        console.error('Grade submission error:', error);
+        console.error('❌ Grade submission error:', error);
         throw new Error(`Failed to submit grade: ${error.message}`);
       }
       
       return data;
     },
     onSuccess: () => {
-      // Invalidate and refetch grades
+      // Invalidate and refetch grades for all relevant queries
       queryClient.invalidateQueries({ queryKey: ['grades'] });
+      queryClient.invalidateQueries({ queryKey: ['principal-grades-approval'] });
     },
     onError: (error) => {
-      console.error('Grade submission mutation error:', error);
+      console.error('❌ Grade submission mutation error:', error);
     }
   });
 };
