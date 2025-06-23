@@ -5,6 +5,7 @@ import { useParentDashboardStats } from '@/hooks/useParentDashboardStats';
 import ParentStatCards from './parent/ParentStatCards';
 import ParentActionButtons from './parent/ParentActionButtons';
 import ParentFeeOverview from './parent/ParentFeeOverview';
+import ChildrenGradesSection from './parent/ChildrenGradesSection';
 
 interface ParentDashboardProps {
   user: AuthUser;
@@ -18,6 +19,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user, onModalOpen }) 
   return (
     <div className="space-y-6">
       <ParentStatCards stats={stats} loading={loading} />
+      <ChildrenGradesSection />
       <ParentFeeOverview />
       <ParentActionButtons onModalOpen={onModalOpen} />
     </div>
