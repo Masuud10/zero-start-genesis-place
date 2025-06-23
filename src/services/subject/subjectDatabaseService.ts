@@ -4,6 +4,13 @@ import { Subject, SubjectCreationData } from '@/types/subject';
 
 export class SubjectDatabaseService {
   static async createSubject(data: SubjectCreationData, schoolId: string): Promise<Subject> {
+    console.log('SubjectDatabaseService.createSubject called with:', { data, schoolId });
+
+    if (!schoolId) {
+      throw new Error('School ID is required for subject creation');
+    }
+
+    // Prepare the payload with proper data structure
     const payload = {
       name: data.name.trim(),
       code: data.code.trim().toUpperCase(),
@@ -17,41 +24,53 @@ export class SubjectDatabaseService {
       is_active: true
     };
 
-    console.log('Creating subject with payload:', payload);
+    console.log('SubjectDatabaseService: Creating subject with payload:', payload);
 
-    const { data: subject, error } = await supabase
-      .from('subjects')
-      .insert(payload)
-      .select()
-      .single();
+    try {
+      const { data: subject, error } = await supabase
+        .from('subjects')
+        .insert(payload)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Subject creation error:', error);
-      
-      // Handle specific database errors
-      if (error.code === '23505') {
-        if (error.message.includes('subjects_name_school_id_key')) {
-          throw new Error('A subject with this name already exists in your school');
-        } else if (error.message.includes('subjects_code_school_id_key')) {
-          throw new Error('A subject with this code already exists in your school');
+      if (error) {
+        console.error('SubjectDatabaseService: Database error:', error);
+        
+        // Handle specific database constraint errors
+        if (error.code === '23505') {
+          if (error.message.includes('subjects_name_school_id_key')) {
+            throw new Error('A subject with this name already exists in your school');
+          } else if (error.message.includes('subjects_code_school_id_key')) {
+            throw new Error('A subject with this code already exists in your school');
+          }
+          throw new Error('A subject with this information already exists');
         }
-        throw new Error('A subject with this information already exists');
+        if (error.code === '23503') {
+          throw new Error('Invalid reference - check that class and teacher exist');
+        }
+        if (error.code === '42501') {
+          throw new Error('Permission denied - you may not have access to create subjects');
+        }
+        
+        throw new Error(error.message || 'Failed to create subject');
       }
-      if (error.code === '23503') {
-        throw new Error('Invalid reference - check that class and teacher exist');
-      }
-      if (error.code === '42501') {
-        throw new Error('Permission denied - you may not have access to create subjects');
-      }
-      
-      throw new Error(error.message || 'Failed to create subject');
-    }
 
-    console.log('Subject created successfully:', subject);
-    return subject;
+      if (!subject) {
+        throw new Error('Subject was not created - no data returned');
+      }
+
+      console.log('SubjectDatabaseService: Subject created successfully:', subject);
+      return subject;
+
+    } catch (error: any) {
+      console.error('SubjectDatabaseService: Create subject error:', error);
+      throw error;
+    }
   }
 
   static async getSubjects(schoolId: string, classId?: string): Promise<Subject[]> {
+    console.log('SubjectDatabaseService.getSubjects called with:', { schoolId, classId });
+
     if (!schoolId) {
       throw new Error('School ID is required');
     }
@@ -70,11 +89,11 @@ export class SubjectDatabaseService {
       const { data, error } = await query.order('name');
 
       if (error) {
-        console.error('Error fetching subjects:', error);
+        console.error('SubjectDatabaseService: Error fetching subjects:', error);
         throw new Error(error.message || 'Failed to fetch subjects');
       }
 
-      console.log('Subjects fetched successfully:', data?.length || 0);
+      console.log('SubjectDatabaseService: Subjects fetched successfully:', data?.length || 0);
       return data || [];
 
     } catch (error: any) {

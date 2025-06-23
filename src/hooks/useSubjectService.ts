@@ -8,12 +8,26 @@ import { Subject, SubjectCreationData, SubjectAssignment, CreateAssignmentData }
 export const useSubjectService = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { schoolId } = useSchoolScopedData();
+  const { schoolId, isReady } = useSchoolScopedData();
 
   const createSubject = useCallback(async (data: SubjectCreationData): Promise<Subject | null> => {
+    console.log('useSubjectService.createSubject: Starting with data:', data);
+    console.log('useSubjectService.createSubject: School context:', { schoolId, isReady });
+
+    if (!isReady) {
+      const errorMsg = "Authentication context not ready. Please refresh the page.";
+      console.error('useSubjectService.createSubject: Context not ready');
+      toast({
+        title: "Authentication Error",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return null;
+    }
+
     if (!schoolId) {
       const errorMsg = "No school context found. Please ensure you're logged in as a Principal.";
-      console.error('createSubject: No schoolId available');
+      console.error('useSubjectService.createSubject: No schoolId available');
       toast({
         title: "Authentication Error",
         description: errorMsg,
@@ -50,6 +64,8 @@ export const useSubjectService = () => {
         errorMessage = "The selected class or teacher is invalid. Please refresh the page and try again.";
       } else if (error.message?.includes('School ID is required')) {
         errorMessage = "Session expired. Please log out and log back in.";
+      } else if (error.message?.includes('required')) {
+        errorMessage = error.message;
       }
       
       toast({
@@ -61,7 +77,7 @@ export const useSubjectService = () => {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, toast]);
+  }, [schoolId, isReady, toast]);
 
   const createAssignment = useCallback(async (data: CreateAssignmentData): Promise<SubjectAssignment | null> => {
     if (!schoolId) {

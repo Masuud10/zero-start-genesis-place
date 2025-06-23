@@ -40,6 +40,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
   const { createSubject, loading } = useSubjectService();
   const { classList, teacherList, loadingEntities } = usePrincipalEntityLists(0);
 
+  // Add debugging for the modal state and data
+  React.useEffect(() => {
+    if (open) {
+      console.log('CreateSubjectForm: Modal opened');
+      console.log('CreateSubjectForm: Loading entities?', loadingEntities);
+      console.log('CreateSubjectForm: Classes available:', classList?.length || 0);
+      console.log('CreateSubjectForm: Teachers available:', teacherList?.length || 0);
+    }
+  }, [open, loadingEntities, classList, teacherList]);
+
   const validateForm = () => {
     setError(null);
     
@@ -77,7 +87,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     setError(null);
     setSuccess(null);
     
-    if (!validateForm()) return;
+    console.log('CreateSubjectForm: Form submission started');
+    console.log('CreateSubjectForm: Form data:', formData);
+    
+    if (!validateForm()) {
+      console.log('CreateSubjectForm: Form validation failed');
+      return;
+    }
 
     console.log('CreateSubjectForm: Submitting subject creation:', formData);
 
@@ -103,6 +119,8 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
           handleClose();
           onSuccess();
         }, 1500);
+      } else {
+        console.log('CreateSubjectForm: Subject creation returned null - check error handling');
       }
     } catch (error: any) {
       console.error('CreateSubjectForm: Form submission error:', error);
@@ -148,6 +166,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
   const isFormValid = Boolean(formData.name.trim() && formData.code.trim());
 
   const handleFormSubmit = () => {
+    console.log('CreateSubjectForm: handleFormSubmit called');
     // Create a synthetic form event for the handleSubmit function
     const syntheticEvent = {
       preventDefault: () => {},
