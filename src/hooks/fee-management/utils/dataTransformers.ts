@@ -1,69 +1,46 @@
 
-import { MpesaTransaction, FeeRecord } from '../types';
+import { FeeRecord, MPESATransaction, MpesaTransaction } from '../types';
 
-export const transformMPESATransaction = (transaction: any): MpesaTransaction => {
+export const transformFeeRecord = (item: any): FeeRecord => {
   return {
-    id: transaction.id,
-    transaction_id: transaction.transaction_id || '',
-    phone_number: transaction.phone_number || '',
-    amount_paid: transaction.amount_paid || 0,
-    transaction_status: transaction.transaction_status || '',
-    mpesa_receipt_number: transaction.mpesa_receipt_number || '',
-    transaction_date: transaction.transaction_date || '',
-    student_id: transaction.student_id || '',
-    fee_id: transaction.fee_id || '',
-    class_id: transaction.class_id || '',
-    student: transaction.student && 
-             transaction.student !== null && 
-             typeof transaction.student === 'object' && 
-             'name' in transaction.student
-      ? {
-          name: (transaction.student as any).name || '',
-          admission_number: (transaction.student as any).admission_number || ''
-        }
-      : undefined,
-    class: transaction.class && 
-           transaction.class !== null && 
-           typeof transaction.class === 'object' && 
-           'name' in transaction.class
-      ? {
-          name: (transaction.class as any).name || ''
-        }
-      : undefined
+    id: item.id,
+    studentId: item.student_id || '',
+    amount: Number(item.amount) || 0,
+    paidAmount: Number(item.paid_amount) || 0,
+    dueDate: item.due_date || new Date().toISOString(),
+    term: item.term || '',
+    category: item.category || 'Unknown',
+    status: item.status || 'pending',
+    studentName: item.student?.name || 'Unknown Student',
+    admissionNumber: item.student?.admission_number || 'N/A',
+    className: item.class?.name || 'Unknown Class',
+    academicYear: item.academic_year || new Date().getFullYear().toString(),
+    paymentMethod: item.payment_method,
+    paidDate: item.paid_date,
+    createdAt: item.created_at || new Date().toISOString(),
   };
 };
 
-export const transformFeeRecord = (fee: any): FeeRecord => {
+export const transformMPESATransaction = (item: any): MPESATransaction => {
   return {
-    id: fee.id,
-    student_id: fee.student_id || '',
-    class_id: fee.class_id || '',
-    school_id: fee.school_id || '',
-    amount: fee.amount || 0,
-    paid_amount: fee.paid_amount || 0,
-    due_date: fee.due_date || '',
-    status: fee.status || 'pending',
-    category: fee.category || '',
-    term: fee.term || '',
-    academic_year: fee.academic_year || '',
-    created_at: fee.created_at || '',
-    updated_at: fee.updated_at || '',
-    student: fee.student && 
-             fee.student !== null && 
-             typeof fee.student === 'object' && 
-             'name' in fee.student
-      ? {
-          name: (fee.student as any).name || '',
-          admission_number: (fee.student as any).admission_number || ''
-        }
-      : undefined,
-    class: fee.class && 
-           fee.class !== null && 
-           typeof fee.class === 'object' && 
-           'name' in fee.class
-      ? {
-          name: (fee.class as any).name || ''
-        }
-      : undefined
+    transaction_id: item.transaction_id || item.id,
+    mpesa_receipt_number: item.mpesa_receipt_number,
+    phone_number: item.phone_number || '',
+    amount_paid: Number(item.amount_paid) || 0,
+    fee_id: item.fee_id,
+    student_id: item.student_id,
+    class_id: item.class_id,
+    school_id: item.school_id || '',
+    transaction_status: item.transaction_status || 'Pending',
+    payment_type: item.payment_type || 'Full',
+    paybill_number: item.paybill_number,
+    transaction_date: item.transaction_date || item.created_at || new Date().toISOString(),
+    student: item.student ? {
+      name: item.student.name || 'Unknown',
+      admission_number: item.student.admission_number || 'N/A'
+    } : undefined,
+    class: item.class ? {
+      name: item.class.name || 'Unknown'
+    } : undefined,
   };
 };

@@ -12,10 +12,18 @@ export const useMpesaTransactions = () => {
   const { user } = useAuth();
 
   const fetchMPESATransactions = async () => {
-    if (!user?.school_id) return;
+    if (!user?.school_id) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      setError(null);
+
+      console.log('🔍 Fetching MPESA transactions for school:', user.school_id);
+
+      const { data, error: fetchError } = await supabase
         .from('mpesa_transactions')
         .select(`
           *,
@@ -25,15 +33,42 @@ export const useMpesaTransactions = () => {
         .eq('school_id', user.school_id)
         .order('transaction_date', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Supabase error fetching MPESA transactions:', fetchError);
+        throw new Error(`Failed to fetch MPESA transactions: ${fetchError.message}`);
+      }
+
+      console.log('✅ MPESA transactions fetched:', data?.length || 0, 'records');
       
-      const transformedData: MPESATransaction[] = (data || []).map(transformMPESATransaction);
+      const transformedData: MPESATransaction[] = (data || []).map((item, index) => {
+        try {
+          return transformMPESATransaction(item);
+        } catch (transformError) {
+          console.error(`Error transforming MPESA transaction ${index}:`, transformError);
+          // Return a basic structure if transformation fails
+          return {
+            transaction_id: item.transaction_id || item.id,
+            phone_number: item.phone_number || '',
+            amount_paid: Number(item.amount_paid) || 0,
+            school_id: item.school_id || '',
+            transaction_status: item.transaction_status || 'Pending',
+            payment_type: item.payment_type || 'Full',
+            transaction_date: item.transaction_date || item.created_at || new Date().toISOString(),
+            mpesa_receipt_number: item.mpesa_receipt_number,
+            student: item.student ? {
+              name: item.student.name || 'Unknown',
+              admission_number: item.student.admission_number || 'N/A'
+            } : undefined,
+          };
+        }
+      });
       
       setMpesaTransactions(transformedData);
       setError(null);
     } catch (err: any) {
       console.error('Error fetching MPESA transactions:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to fetch MPESA transactions');
+      setMpesaTransactions([]);
     } finally {
       setLoading(false);
     }

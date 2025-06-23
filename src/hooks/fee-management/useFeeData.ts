@@ -12,10 +12,18 @@ export const useFeeData = () => {
   const { user } = useAuth();
 
   const fetchFees = async () => {
-    if (!user?.school_id) return;
+    if (!user?.school_id) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      setError(null);
+
+      console.log('🔍 Fetching fees for school:', user.school_id);
+
+      const { data, error: fetchError } = await supabase
         .from('fees')
         .select(`
           *,
@@ -25,15 +33,45 @@ export const useFeeData = () => {
         .eq('school_id', user.school_id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Supabase error fetching fees:', fetchError);
+        throw new Error(`Failed to fetch fees: ${fetchError.message}`);
+      }
+
+      console.log('✅ Fees data fetched:', data?.length || 0, 'records');
       
-      const transformedData: FeeRecord[] = (data || []).map(transformFeeRecord);
+      const transformedData: FeeRecord[] = (data || []).map((item, index) => {
+        try {
+          return transformFeeRecord(item);
+        } catch (transformError) {
+          console.error(`Error transforming fee record ${index}:`, transformError);
+          // Return a basic structure if transformation fails
+          return {
+            id: item.id,
+            studentId: item.student_id || '',
+            amount: item.amount || 0,
+            dueDate: item.due_date || new Date().toISOString(),
+            term: item.term || '',
+            category: item.category || 'Unknown',
+            status: item.status || 'pending',
+            paidAmount: item.paid_amount || 0,
+            studentName: item.student?.name || 'Unknown Student',
+            admissionNumber: item.student?.admission_number || 'N/A',
+            className: item.class?.name || 'Unknown Class',
+            academicYear: item.academic_year || new Date().getFullYear().toString(),
+            paymentMethod: item.payment_method,
+            paidDate: item.paid_date,
+            createdAt: item.created_at || new Date().toISOString(),
+          };
+        }
+      });
       
       setFees(transformedData);
       setError(null);
     } catch (err: any) {
       console.error('Error fetching fees:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to fetch student fees');
+      setFees([]);
     } finally {
       setLoading(false);
     }

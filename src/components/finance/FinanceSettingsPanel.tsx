@@ -7,114 +7,135 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Shield, DollarSign, Smartphone, Save, Eye, EyeOff } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Settings, Smartphone, DollarSign, AlertTriangle, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+interface FinanceSettings {
+  id?: string;
+  school_id: string;
+  mpesa_consumer_key?: string;
+  mpesa_consumer_secret?: string;
+  mpesa_paybill_number?: string;
+  mpesa_passkey?: string;
+  late_fee_percentage: number;
+  late_fee_grace_days: number;
+  tax_rate: number;
+  settings_data: {
+    auto_apply_late_fees: boolean;
+    allow_partial_payments: boolean;
+    send_payment_notifications: boolean;
+    require_payment_approval: boolean;
+    default_currency: string;
+    payment_methods: string[];
+  };
+}
 
 const FinanceSettingsPanel: React.FC = () => {
-  const [showSecrets, setShowSecrets] = useState(false);
-  const [settings, setSettings] = useState({
-    // M-PESA Settings
-    mpesa_consumer_key: '',
-    mpesa_consumer_secret: '',
-    mpesa_passkey: '',
-    mpesa_paybill_number: '',
-    
-    // Fee Settings
-    late_fee_percentage: 0,
-    late_fee_grace_days: 0,
-    tax_rate: 0,
-    
-    // General Settings
-    settings_data: {}
-  });
-  
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [settings, setSettings] = useState<FinanceSettings>({
+    school_id: user?.school_id || '',
+    late_fee_percentage: 0,
+    late_fee_grace_days: 7,
+    tax_rate: 0,
+    settings_data: {
+      auto_apply_late_fees: false,
+      allow_partial_payments: true,
+      send_payment_notifications: true,
+      require_payment_approval: false,
+      default_currency: 'KES',
+      payment_methods: ['cash', 'mpesa', 'bank_transfer'],
+    },
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const { data: financeSettings, isLoading } = useQuery({
-    queryKey: ['finance-settings', user?.school_id],
-    queryFn: async () => {
-      if (!user?.school_id) return null;
+  useEffect(() => {
+    fetchSettings();
+  }, [user?.school_id]);
 
+  const fetchSettings = async () => {
+    if (!user?.school_id) return;
+
+    try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('finance_settings')
         .select('*')
         .eq('school_id', user.school_id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
-    },
-    enabled: !!user?.school_id
-  });
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        throw error;
+      }
 
-  useEffect(() => {
-    if (financeSettings) {
-      setSettings({
-        mpesa_consumer_key: financeSettings.mpesa_consumer_key || '',
-        mpesa_consumer_secret: financeSettings.mpesa_consumer_secret || '',
-        mpesa_passkey: financeSettings.mpesa_passkey || '',
-        mpesa_paybill_number: financeSettings.mpesa_paybill_number || '',
-        late_fee_percentage: financeSettings.late_fee_percentage || 0,
-        late_fee_grace_days: financeSettings.late_fee_grace_days || 0,
-        tax_rate: financeSettings.tax_rate || 0,
-        settings_data: financeSettings.settings_data || {}
-      });
-    }
-  }, [financeSettings]);
-
-  const saveSettingsMutation = useMutation({
-    mutationFn: async (newSettings: typeof settings) => {
-      if (!user?.school_id) throw new Error('No school ID');
-
-      const { data, error } = await supabase
-        .from('finance_settings')
-        .upsert({
-          school_id: user.school_id,
-          ...newSettings,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'school_id'
+      if (data) {
+        setSettings({
+          ...data,
+          settings_data: data.settings_data || settings.settings_data,
         });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Settings Saved",
-        description: "Finance settings have been updated successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ['finance-settings'] });
-    },
-    onError: (error: any) => {
+      }
+    } catch (err: any) {
+      console.error('Error fetching finance settings:', err);
       toast({
         title: "Error",
-        description: error.message || "Failed to save settings",
+        description: "Failed to load finance settings",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-  });
-
-  const handleSave = () => {
-    saveSettingsMutation.mutate(settings);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const saveSettings = async () => {
+    if (!user?.school_id) return;
+
+    try {
+      setSaving(true);
+      const { error } = await supabase
+        .from('finance_settings')
+        .upsert(settings, { onConflict: 'school_id' });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Finance settings saved successfully",
+      });
+    } catch (err: any) {
+      console.error('Error saving finance settings:', err);
+      toast({
+        title: "Error",
+        description: "Failed to save finance settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (field: string, value: any) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateSettingsData = (field: string, value: any) => {
     setSettings(prev => ({
       ...prev,
-      [field]: value
+      settings_data: {
+        ...prev.settings_data,
+        [field]: value,
+      },
     }));
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="ml-2">Loading finance settings...</p>
       </div>
     );
   }
@@ -123,249 +144,216 @@ const FinanceSettingsPanel: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-            Finance Settings
-          </h2>
-          <p className="text-muted-foreground">Configure payment methods and financial policies</p>
+          <h2 className="text-2xl font-bold">Finance Settings</h2>
+          <p className="text-muted-foreground">
+            Configure financial settings, payment methods, and fee policies
+          </p>
         </div>
-        <Button onClick={handleSave} disabled={saveSettingsMutation.isPending}>
-          <Save className="h-4 w-4 mr-2" />
-          {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+        <Button onClick={saveSettings} disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Settings
+            </>
+          )}
         </Button>
       </div>
 
-      <Tabs defaultValue="mpesa" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="mpesa">M-PESA Settings</TabsTrigger>
-          <TabsTrigger value="fees">Fee Settings</TabsTrigger>
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList>
           <TabsTrigger value="general">General Settings</TabsTrigger>
+          <TabsTrigger value="mpesa">M-PESA Configuration</TabsTrigger>
+          <TabsTrigger value="policies">Fee Policies</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="mpesa" className="space-y-4">
+        <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5 text-green-600" />
-                M-PESA API Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-4 w-4 text-yellow-600" />
-                  <span className="text-sm font-medium text-yellow-800">Security Notice</span>
-                </div>
-                <p className="text-sm text-yellow-700">
-                  API credentials are encrypted and stored securely. Only enter production credentials when you're ready to go live.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 mb-4">
-                <Switch
-                  checked={showSecrets}
-                  onCheckedChange={setShowSecrets}
-                />
-                <Label>Show API credentials</Label>
-                {showSecrets ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="consumer_key">Consumer Key</Label>
-                  <Input
-                    id="consumer_key"
-                    type={showSecrets ? "text" : "password"}
-                    value={settings.mpesa_consumer_key}
-                    onChange={(e) => handleInputChange('mpesa_consumer_key', e.target.value)}
-                    placeholder="Enter M-PESA Consumer Key"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="consumer_secret">Consumer Secret</Label>
-                  <Input
-                    id="consumer_secret"
-                    type={showSecrets ? "text" : "password"}
-                    value={settings.mpesa_consumer_secret}
-                    onChange={(e) => handleInputChange('mpesa_consumer_secret', e.target.value)}
-                    placeholder="Enter M-PESA Consumer Secret"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="passkey">Passkey</Label>
-                  <Input
-                    id="passkey"
-                    type={showSecrets ? "text" : "password"}
-                    value={settings.mpesa_passkey}
-                    onChange={(e) => handleInputChange('mpesa_passkey', e.target.value)}
-                    placeholder="Enter M-PESA Passkey"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="paybill">Paybill Number</Label>
-                  <Input
-                    id="paybill"
-                    type="text"
-                    value={settings.mpesa_paybill_number}
-                    onChange={(e) => handleInputChange('mpesa_paybill_number', e.target.value)}
-                    placeholder="Enter Paybill Number"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 mb-2">How to get M-PESA API Credentials:</h4>
-                <ol className="text-sm text-blue-700 space-y-1">
-                  <li>1. Visit the Safaricom Developer Portal</li>
-                  <li>2. Create an account and login</li>
-                  <li>3. Create a new app for M-PESA Express (STK Push)</li>
-                  <li>4. Copy the Consumer Key and Consumer Secret</li>
-                  <li>5. Get your Paybill/Till number and Passkey from Safaricom</li>
-                </ol>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="fees" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-blue-600" />
-                Fee Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="late_fee_percentage">Late Fee Percentage (%)</Label>
-                  <Input
-                    id="late_fee_percentage"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={settings.late_fee_percentage}
-                    onChange={(e) => handleInputChange('late_fee_percentage', parseFloat(e.target.value) || 0)}
-                    placeholder="e.g., 5.00"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Percentage charged on overdue fees
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="late_fee_grace_days">Grace Period (Days)</Label>
-                  <Input
-                    id="late_fee_grace_days"
-                    type="number"
-                    min="0"
-                    value={settings.late_fee_grace_days}
-                    onChange={(e) => handleInputChange('late_fee_grace_days', parseInt(e.target.value) || 0)}
-                    placeholder="e.g., 7"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Days after due date before late fees apply
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="tax_rate">Tax Rate (%)</Label>
-                  <Input
-                    id="tax_rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={settings.tax_rate}
-                    onChange={(e) => handleInputChange('tax_rate', parseFloat(e.target.value) || 0)}
-                    placeholder="e.g., 16.00"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    VAT or other applicable tax rate
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-medium text-green-800 mb-2">Fee Policy Guidelines:</h4>
-                <ul className="text-sm text-green-700 space-y-1">
-                  <li>• Set reasonable late fee percentages (typically 1-5%)</li>
-                  <li>• Provide adequate grace periods for parents</li>
-                  <li>• Ensure tax rates comply with local regulations</li>
-                  <li>• Review and update policies annually</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="general" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-gray-600" />
+                <Settings className="h-5 w-5" />
                 General Finance Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="currency">Default Currency</Label>
-                <Input
-                  id="currency"
-                  type="text"
-                  value="KES"
-                  disabled
-                  placeholder="KES"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Currently fixed to Kenyan Shillings
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="financial_year">Financial Year Start</Label>
-                <Input
-                  id="financial_year"
-                  type="month"
-                  value="2024-01"
-                  placeholder="Select month"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  When does your financial year begin?
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="receipt_template">Receipt Template</Label>
-                <Textarea
-                  id="receipt_template"
-                  placeholder="Customize your payment receipt template..."
-                  rows={4}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Template for payment receipts and invoices
-                </p>
-              </div>
-
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-800 mb-2">Backup & Security:</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Automatic Backups</span>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Two-Factor Authentication</span>
-                    <Switch />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Email Notifications</span>
-                    <Switch defaultChecked />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="defaultCurrency">Default Currency</Label>
+                  <Input
+                    id="defaultCurrency"
+                    value={settings.settings_data.default_currency}
+                    onChange={(e) => updateSettingsData('default_currency', e.target.value)}
+                    placeholder="KES"
+                  />
                 </div>
+                <div>
+                  <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                  <Input
+                    id="taxRate"
+                    type="number"
+                    value={settings.tax_rate}
+                    onChange={(e) => updateSetting('tax_rate', parseFloat(e.target.value) || 0)}
+                    placeholder="16"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="allowPartialPayments"
+                    checked={settings.settings_data.allow_partial_payments}
+                    onCheckedChange={(checked) => updateSettingsData('allow_partial_payments', checked)}
+                  />
+                  <Label htmlFor="allowPartialPayments">Allow Partial Payments</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="requireApproval"
+                    checked={settings.settings_data.require_payment_approval}
+                    onCheckedChange={(checked) => updateSettingsData('require_payment_approval', checked)}
+                  />
+                  <Label htmlFor="requireApproval">Require Payment Approval</Label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="mpesa" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                M-PESA API Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  These are sensitive credentials. Ensure they are kept secure and only accessible to authorized personnel.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="consumerKey">Consumer Key</Label>
+                  <Input
+                    id="consumerKey"
+                    type="password"
+                    value={settings.mpesa_consumer_key || ''}
+                    onChange={(e) => updateSetting('mpesa_consumer_key', e.target.value)}
+                    placeholder="Enter M-PESA Consumer Key"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="consumerSecret">Consumer Secret</Label>
+                  <Input
+                    id="consumerSecret"
+                    type="password"
+                    value={settings.mpesa_consumer_secret || ''}
+                    onChange={(e) => updateSetting('mpesa_consumer_secret', e.target.value)}
+                    placeholder="Enter M-PESA Consumer Secret"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="paybillNumber">Paybill Number</Label>
+                  <Input
+                    id="paybillNumber"
+                    value={settings.mpesa_paybill_number || ''}
+                    onChange={(e) => updateSetting('mpesa_paybill_number', e.target.value)}
+                    placeholder="Enter Paybill Number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="passkey">Passkey</Label>
+                  <Input
+                    id="passkey"
+                    type="password"
+                    value={settings.mpesa_passkey || ''}
+                    onChange={(e) => updateSetting('mpesa_passkey', e.target.value)}
+                    placeholder="Enter M-PESA Passkey"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="policies" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Fee Policies
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="lateFeePercentage">Late Fee Percentage (%)</Label>
+                  <Input
+                    id="lateFeePercentage"
+                    type="number"
+                    value={settings.late_fee_percentage}
+                    onChange={(e) => updateSetting('late_fee_percentage', parseFloat(e.target.value) || 0)}
+                    placeholder="5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="graceDays">Grace Period (Days)</Label>
+                  <Input
+                    id="graceDays"
+                    type="number"
+                    value={settings.late_fee_grace_days}
+                    onChange={(e) => updateSetting('late_fee_grace_days', parseInt(e.target.value) || 0)}
+                    placeholder="7"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="autoLateFees"
+                  checked={settings.settings_data.auto_apply_late_fees}
+                  onCheckedChange={(checked) => updateSettingsData('auto_apply_late_fees', checked)}
+                />
+                <Label htmlFor="autoLateFees">Automatically Apply Late Fees</Label>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="paymentNotifications"
+                  checked={settings.settings_data.send_payment_notifications}
+                  onCheckedChange={(checked) => updateSettingsData('send_payment_notifications', checked)}
+                />
+                <Label htmlFor="paymentNotifications">Send Payment Notifications</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notification Templates</Label>
+                <p className="text-sm text-muted-foreground">
+                  Configure automatic notification templates for payment confirmations, reminders, and overdue notices.
+                </p>
+                <Button variant="outline" size="sm">
+                  Configure Templates
+                </Button>
               </div>
             </CardContent>
           </Card>

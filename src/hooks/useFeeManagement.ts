@@ -28,6 +28,7 @@ export const useFeeManagement = () => {
       refetchFees();
       refetchSummaries();
     }
+    return success;
   };
 
   const handleAssignFeeToStudent = async (studentId: string, feeData: any) => {
@@ -36,6 +37,7 @@ export const useFeeManagement = () => {
       refetchFees();
       refetchSummaries();
     }
+    return success;
   };
 
   const handleRecordPayment = async (feeId: string, paymentData: any) => {
@@ -45,6 +47,7 @@ export const useFeeManagement = () => {
       refetchMpesa();
       refetchSummaries();
     }
+    return success;
   };
 
   return {

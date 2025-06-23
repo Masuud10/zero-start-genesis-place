@@ -1,290 +1,387 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Users, Search, Eye, DollarSign, Clock, CheckCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { User, Search, Eye, CreditCard, AlertCircle, Loader2, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+interface Student {
+  id: string;
+  name: string;
+  admission_number: string;
+  class: { name: string };
+}
+
+interface StudentFeeRecord {
+  id: string;
+  amount: number;
+  paid_amount: number;
+  status: string;
+  due_date: string;
+  category: string;
+  term: string;
+  academic_year: string;
+  payment_method?: string;
+  paid_date?: string;
+}
+
+interface StudentAccount {
+  student: Student;
+  totalFees: number;
+  totalPaid: number;
+  outstanding: number;
+  fees: StudentFeeRecord[];
+}
 
 const StudentAccountsPanel: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [classFilter, setClassFilter] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const { user } = useAuth();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<string>('');
+  const [studentAccount, setStudentAccount] = useState<StudentAccount | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<string>('all');
+  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
 
-  const { data: students, isLoading } = useQuery({
-    queryKey: ['student-accounts', user?.school_id, searchTerm, classFilter],
-    queryFn: async () => {
+  useEffect(() => {
+    fetchStudents();
+    fetchClasses();
+  }, [user?.school_id]);
+
+  const fetchClasses = async () => {
+    if (!user?.school_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('school_id', user.school_id)
+        .order('name');
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (err: any) {
+      console.error('Error fetching classes:', err);
+    }
+  };
+
+  const fetchStudents = async () => {
+    if (!user?.school_id) return;
+
+    try {
+      setLoading(true);
       let query = supabase
         .from('students')
-        .select(`
-          id,
-          name,
-          admission_number,
-          classes!students_class_id_fkey(name),
-          fees:fees!fees_student_id_fkey(
-            id,
-            amount,
-            paid_amount,
-            status,
-            category,
-            term,
-            due_date,
-            academic_year
-          )
-        `)
-        .eq('school_id', user?.school_id)
-        .eq('is_active', true);
+        .select('id, name, admission_number, class:classes(name)')
+        .eq('school_id', user.school_id)
+        .eq('is_active', true)
+        .order('name');
 
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,admission_number.ilike.%${searchTerm}%`);
-      }
-
-      if (classFilter) {
-        query = query.eq('class_id', classFilter);
+      if (selectedClass !== 'all') {
+        query = query.eq('class_id', selectedClass);
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
-      return data?.map(student => {
-        const totalFees = student.fees?.reduce((sum: number, fee: any) => sum + (fee.amount || 0), 0) || 0;
-        const paidAmount = student.fees?.reduce((sum: number, fee: any) => sum + (fee.paid_amount || 0), 0) || 0;
-        const outstanding = totalFees - paidAmount;
-
-        return {
-          ...student,
-          totalFees,
-          paidAmount,
-          outstanding,
-          paymentHistory: student.fees || []
-        };
-      }) || [];
-    },
-    enabled: !!user?.school_id
-  });
-
-  const { data: classes } = useQuery({
-    queryKey: ['classes-for-filter', user?.school_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('id, name')
-        .eq('school_id', user?.school_id)
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.school_id
-  });
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
-      case 'partial':
-        return <Badge className="bg-yellow-100 text-yellow-800">Partial</Badge>;
-      case 'pending':
-        return <Badge className="bg-red-100 text-red-800">Pending</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      setStudents(data || []);
+    } catch (err: any) {
+      console.error('Error fetching students:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const fetchStudentAccount = async (studentId: string) => {
+    if (!studentId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get student details
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id, name, admission_number, class:classes(name)')
+        .eq('id', studentId)
+        .single();
+
+      if (studentError) throw studentError;
+
+      // Get student fees
+      const { data: feesData, error: feesError } = await supabase
+        .from('fees')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false });
+
+      if (feesError) throw feesError;
+
+      const fees = feesData || [];
+      const totalFees = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+      const totalPaid = fees.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
+      const outstanding = totalFees - totalPaid;
+
+      setStudentAccount({
+        student: studentData,
+        totalFees,
+        totalPaid,
+        outstanding,
+        fees,
+      });
+    } catch (err: any) {
+      console.error('Error fetching student account:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusVariant = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'paid': return 'default';
+      case 'pending': return 'secondary';
+      case 'overdue': return 'destructive';
+      default: return 'outline';
+    }
+  };
+
+  const filteredStudents = students.filter(student =>
+    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    fetchStudents();
+  }, [selectedClass]);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Student Accounts
-        </h3>
+        <div>
+          <h2 className="text-2xl font-bold">Student Accounts</h2>
+          <p className="text-muted-foreground">
+            View individual student fee statements and payment history
+          </p>
+        </div>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search by name or admission number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Find Student
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="search">Search Student</Label>
+              <Input
+                id="search"
+                placeholder="Search by name or admission number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Classes</SelectItem>
-                {classes?.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Label htmlFor="class">Filter by Class</Label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="student">Select Student</Label>
+              <Select value={selectedStudent} onValueChange={(value) => {
+                setSelectedStudent(value);
+                fetchStudentAccount(value);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a student" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredStudents.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name} ({student.admission_number})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Students Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Student Fee Accounts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Total Fees</TableHead>
-                  <TableHead>Paid Amount</TableHead>
-                  <TableHead>Outstanding</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students?.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{student.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {student.admission_number}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{student.classes?.name}</TableCell>
-                    <TableCell className="font-semibold">
-                      KES {student.totalFees.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-green-600 font-semibold">
-                      KES {student.paidAmount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-red-600 font-semibold">
-                      KES {student.outstanding.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      {student.outstanding === 0 ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Cleared
-                        </Badge>
-                      ) : student.paidAmount > 0 ? (
-                        <Badge className="bg-yellow-100 text-yellow-800">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Partial
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-800">
-                          <DollarSign className="h-3 w-3 mr-1" />
-                          Outstanding
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" onClick={() => setSelectedStudent(student)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
-                          <DialogHeader>
-                            <DialogTitle>
-                              {selectedStudent?.name} - Fee Account Details
-                            </DialogTitle>
-                          </DialogHeader>
-                          {selectedStudent && (
-                            <div className="space-y-6">
-                              {/* Account Summary */}
-                              <div className="grid grid-cols-3 gap-4">
-                                <Card>
-                                  <CardContent className="pt-6">
-                                    <div className="text-2xl font-bold text-blue-600">
-                                      KES {selectedStudent.totalFees.toLocaleString()}
-                                    </div>
-                                    <p className="text-sm text-gray-600">Total Fees</p>
-                                  </CardContent>
-                                </Card>
-                                <Card>
-                                  <CardContent className="pt-6">
-                                    <div className="text-2xl font-bold text-green-600">
-                                      KES {selectedStudent.paidAmount.toLocaleString()}
-                                    </div>
-                                    <p className="text-sm text-gray-600">Amount Paid</p>
-                                  </CardContent>
-                                </Card>
-                                <Card>
-                                  <CardContent className="pt-6">
-                                    <div className="text-2xl font-bold text-red-600">
-                                      KES {selectedStudent.outstanding.toLocaleString()}
-                                    </div>
-                                    <p className="text-sm text-gray-600">Outstanding</p>
-                                  </CardContent>
-                                </Card>
-                              </div>
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-                              {/* Payment History */}
-                              <div>
-                                <h4 className="text-lg font-semibold mb-4">Payment History</h4>
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Fee Category</TableHead>
-                                      <TableHead>Term</TableHead>
-                                      <TableHead>Amount</TableHead>
-                                      <TableHead>Paid</TableHead>
-                                      <TableHead>Status</TableHead>
-                                      <TableHead>Due Date</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {selectedStudent.paymentHistory.map((fee: any) => (
-                                      <TableRow key={fee.id}>
-                                        <TableCell>{fee.category}</TableCell>
-                                        <TableCell>{fee.term}</TableCell>
-                                        <TableCell>KES {fee.amount.toLocaleString()}</TableCell>
-                                        <TableCell>KES {(fee.paid_amount || 0).toLocaleString()}</TableCell>
-                                        <TableCell>{getStatusBadge(fee.status)}</TableCell>
-                                        <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {loading && (
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="ml-2">Loading student account...</p>
+        </div>
+      )}
+
+      {/* Student Account Details */}
+      {studentAccount && !loading && (
+        <div className="space-y-6">
+          {/* Student Info and Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                {studentAccount.student.name} - Fee Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">Admission Number</div>
+                  <div className="font-medium">{studentAccount.student.admission_number}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Class</div>
+                  <div className="font-medium">{studentAccount.student.class?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Total Fees</div>
+                  <div className="font-medium">KES {studentAccount.totalFees.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Outstanding</div>
+                  <div className={`font-medium ${studentAccount.outstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    KES {studentAccount.outstanding.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-sm text-blue-600 font-medium">Total Fees Assigned</div>
+                  <div className="text-xl font-bold text-blue-900">
+                    KES {studentAccount.totalFees.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-green-600 font-medium">Total Paid</div>
+                  <div className="text-xl font-bold text-green-900">
+                    KES {studentAccount.totalPaid.toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="text-sm text-red-600 font-medium">Outstanding Balance</div>
+                  <div className="text-xl font-bold text-red-900">
+                    KES {studentAccount.outstanding.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fee Records */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Fee Records
+              </CardTitle>
+              <Button variant="outline" size="sm">
+                <FileText className="h-4 w-4 mr-2" />
+                Generate Statement
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {studentAccount.fees.length === 0 ? (
+                <div className="text-center py-8">
+                  <CreditCard className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-4 text-lg font-semibold">No fee records found</h3>
+                  <p className="text-muted-foreground">
+                    No fees have been assigned to this student yet.
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Term</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Paid</TableHead>
+                      <TableHead>Balance</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead>Payment Method</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {studentAccount.fees.map((fee) => (
+                      <TableRow key={fee.id}>
+                        <TableCell className="font-medium">{fee.category || 'N/A'}</TableCell>
+                        <TableCell>{fee.term}</TableCell>
+                        <TableCell>KES {fee.amount.toLocaleString()}</TableCell>
+                        <TableCell>KES {fee.paid_amount.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <span className={fee.amount - fee.paid_amount > 0 ? 'text-red-600' : 'text-green-600'}>
+                            KES {(fee.amount - fee.paid_amount).toLocaleString()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(fee.status)}>
+                            {fee.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {fee.due_date ? new Date(fee.due_date).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell>{fee.payment_method || 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {!selectedStudent && !loading && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <User className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">Select a Student</h3>
+              <p className="text-muted-foreground">
+                Choose a student from the dropdown above to view their fee account.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
