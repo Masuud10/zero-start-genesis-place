@@ -64,24 +64,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
 
   return (
     <div className="space-y-8" key={refreshKey}>
-      {/* Single Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-6 border border-blue-100">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-              Welcome back, {user.name || user.email?.split('@')[0]}!
-            </h1>
-            <p className="text-lg text-muted-foreground mt-2">
-              Here's your financial overview for today
-            </p>
-          </div>
-          <Button onClick={handleRefresh} variant="outline" size="sm" className="bg-white">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
-
       {/* Financial Analytics Dashboard */}
       {data ? (
         <div className="space-y-6">
