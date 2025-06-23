@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +33,7 @@ import {
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
+import AnalyticsOverview from '@/components/analytics/AnalyticsOverview';
 
 const EduFamDashboardOverview = () => {
   
@@ -297,6 +297,9 @@ const EduFamDashboardOverview = () => {
       </div>
 
       {/* Analytics Overview Section - Positioned below Stats Icons */}
+      <AnalyticsOverview />
+
+      {/* Analytics Overview Section - Positioned below Analytics Overview */}
       <EduFamAnalyticsOverview />
 
       {/* Download Buttons Container - Positioned below Analytics Overview */}
