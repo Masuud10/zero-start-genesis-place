@@ -12,7 +12,7 @@ export const usePrincipalGradeManagement = () => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
 
-  // Simplified grade fetching with better error handling
+  // Fixed grade fetching with explicit relationship specification
   const { data: grades = [], isLoading, refetch, error } = useQuery({
     queryKey: ['principal-grades-approval', user?.id, schoolId],
     queryFn: async () => {
@@ -24,6 +24,7 @@ export const usePrincipalGradeManagement = () => {
       console.log('🔍 Fetching grades for principal approval:', { schoolId, userId: user.id });
 
       try {
+        // Fixed query with explicit foreign key specification to avoid ambiguity
         const { data: gradeData, error: gradeError } = await supabase
           .from('grades')
           .select(`
@@ -45,9 +46,9 @@ export const usePrincipalGradeManagement = () => {
             created_at,
             approved_by_principal,
             released_to_parents,
-            students!inner(id, name, admission_number),
-            subjects!inner(id, name, code),
-            classes!inner(id, name),
+            students!grades_student_id_fkey(id, name, admission_number),
+            subjects!grades_subject_id_fkey(id, name, code),
+            classes!grades_class_id_fkey(id, name),
             profiles!grades_submitted_by_fkey(id, name)
           `)
           .eq('school_id', schoolId)
