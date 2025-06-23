@@ -69,14 +69,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-        
-        {/* Welcome Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome, {user.name || user.email?.split('@')[0]}
-          </h1>
-          <p className="text-gray-600">Principal Dashboard - Manage your school effectively</p>
-        </div>
 
         {/* Key Statistics Overview */}
         <section>
@@ -96,7 +88,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Academic Management</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Grade Management - Remove the card wrapper since PrincipalGradesModule has its own card */}
+            {/* Grade Management */}
             <PrincipalGradesModule />
             
             {/* Timetable Management */}

@@ -43,7 +43,9 @@ export const usePrincipalGradeManagement = () => {
             submitted_at,
             approved_by,
             approved_at,
-            created_at
+            created_at,
+            approved_by_principal,
+            released_to_parents
           `)
           .eq('school_id', schoolId)
           .in('status', ['submitted', 'approved', 'rejected', 'released'])
