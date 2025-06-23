@@ -1,50 +1,51 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { BookOpen } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { GraduationCap } from 'lucide-react';
 
 interface GradeDistributionChartProps {
-  data: Array<{ grade: string; count: number; color: string }>;
+  data: Array<{
+    grade: string;
+    count: number;
+    color: string;
+  }>;
 }
 
 const GradeDistributionChart = ({ data }: GradeDistributionChartProps) => {
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+
   return (
-    <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-green-50">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-          <BookOpen className="w-5 h-5 text-green-600" />
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <GraduationCap className="h-5 w-5 text-green-600" />
           Grade Distribution
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={200}>
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={40}
-              outerRadius={90}
-              paddingAngle={2}
-              dataKey="count"
-              label={({ grade, percent }) => `${grade}: ${(percent * 100).toFixed(0)}%`}
               labelLine={false}
-              fontSize={11}
+              label={({ grade, count }) => `${grade}: ${count}`}
+              outerRadius={60}
+              fill="#8884d8"
+              dataKey="count"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#ffffff', 
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px' 
-              }} 
-            />
+            <Tooltip />
           </PieChart>
         </ResponsiveContainer>
+        <div className="mt-4 text-center text-sm text-gray-600">
+          Total Grades: {data.reduce((sum, item) => sum + item.count, 0)}
+        </div>
       </CardContent>
     </Card>
   );
