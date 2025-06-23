@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,7 @@ const PrincipalGradesManager: React.FC = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [showApprovalInterface, setShowApprovalInterface] = useState(false);
 
-  // Fetch grades specifically for principal approval with enhanced query
+  // Fetch grades specifically for principal approval with fixed query
   const { data: grades, isLoading, refetch, error } = useQuery({
     queryKey: ['principal-grades-approval', user?.id, schoolId],
     queryFn: async () => {
@@ -32,8 +31,8 @@ const PrincipalGradesManager: React.FC = () => {
       console.log('🔍 Fetching grades for principal approval:', { schoolId, userId: user.id });
 
       try {
-        // Fetch all grades that need principal attention with proper joins
-        const { data, error } = await supabase
+        // First, get the basic grade data
+        const { data: gradeData, error: gradeError } = await supabase
           .from('grades')
           .select(`
             id,
@@ -51,28 +50,79 @@ const PrincipalGradesManager: React.FC = () => {
             submitted_at,
             approved_by,
             approved_at,
-            created_at,
-            students!inner(name, admission_number),
-            subjects!inner(name),
-            classes!inner(name),
-            profiles!grades_submitted_by_fkey(name)
+            created_at
           `)
           .eq('school_id', schoolId)
           .in('status', ['submitted', 'approved', 'rejected', 'released'])
           .order('submitted_at', { ascending: false });
 
-        if (error) {
-          console.error('❌ Error fetching grades:', error);
-          throw error;
+        if (gradeError) {
+          console.error('❌ Error fetching grade data:', gradeError);
+          throw gradeError;
         }
 
-        console.log('✅ Fetched grades for principal:', data?.length || 0);
-        console.log('📊 Grade statuses:', data?.reduce((acc: any, grade: any) => {
+        if (!gradeData || gradeData.length === 0) {
+          console.log('✅ No grades found for principal review');
+          return [];
+        }
+
+        // Get unique IDs for batch queries
+        const studentIds = [...new Set(gradeData.map(g => g.student_id).filter(Boolean))];
+        const subjectIds = [...new Set(gradeData.map(g => g.subject_id).filter(Boolean))];
+        const classIds = [...new Set(gradeData.map(g => g.class_id).filter(Boolean))];
+        const teacherIds = [...new Set(gradeData.map(g => g.submitted_by).filter(Boolean))];
+
+        // Fetch related data separately
+        const [studentsData, subjectsData, classesData, teachersData] = await Promise.all([
+          // Students
+          studentIds.length > 0 
+            ? supabase.from('students').select('id, name, admission_number').in('id', studentIds)
+            : { data: [], error: null },
+          
+          // Subjects  
+          subjectIds.length > 0
+            ? supabase.from('subjects').select('id, name').in('id', subjectIds)
+            : { data: [], error: null },
+          
+          // Classes
+          classIds.length > 0
+            ? supabase.from('classes').select('id, name').in('id', classIds)
+            : { data: [], error: null },
+          
+          // Teachers
+          teacherIds.length > 0
+            ? supabase.from('profiles').select('id, name').in('id', teacherIds)
+            : { data: [], error: null }
+        ]);
+
+        // Check for errors in related data fetching
+        if (studentsData.error) throw studentsData.error;
+        if (subjectsData.error) throw subjectsData.error;
+        if (classesData.error) throw classesData.error;
+        if (teachersData.error) throw teachersData.error;
+
+        // Create lookup maps for efficient data joining
+        const studentsMap = new Map(studentsData.data?.map(s => [s.id, s]) || []);
+        const subjectsMap = new Map(subjectsData.data?.map(s => [s.id, s]) || []);
+        const classesMap = new Map(classesData.data?.map(c => [c.id, c]) || []);
+        const teachersMap = new Map(teachersData.data?.map(t => [t.id, t]) || []);
+
+        // Combine the data
+        const enrichedGrades = gradeData.map(grade => ({
+          ...grade,
+          students: studentsMap.get(grade.student_id) || null,
+          subjects: subjectsMap.get(grade.subject_id) || null,
+          classes: classesMap.get(grade.class_id) || null,
+          profiles: teachersMap.get(grade.submitted_by) || null
+        }));
+
+        console.log('✅ Fetched grades for principal:', enrichedGrades.length);
+        console.log('📊 Grade statuses:', enrichedGrades.reduce((acc: any, grade: any) => {
           acc[grade.status] = (acc[grade.status] || 0) + 1;
           return acc;
         }, {}));
         
-        return data || [];
+        return enrichedGrades;
       } catch (err) {
         console.error('❌ Failed to fetch grades:', err);
         throw err;
@@ -335,9 +385,9 @@ const PrincipalGradesManager: React.FC = () => {
                   {pendingApproval.slice(0, 5).map((grade: any) => (
                     <div key={grade.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
                       <div>
-                        <span className="font-medium">{grade.students?.name}</span>
-                        <span className="text-gray-500 ml-2">• {grade.subjects?.name}</span>
-                        <span className="text-gray-500 ml-2">• {grade.classes?.name}</span>
+                        <span className="font-medium">{grade.students?.name || 'Unknown Student'}</span>
+                        <span className="text-gray-500 ml-2">• {grade.subjects?.name || 'Unknown Subject'}</span>
+                        <span className="text-gray-500 ml-2">• {grade.classes?.name || 'Unknown Class'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{grade.score}/{grade.max_score}</span>
