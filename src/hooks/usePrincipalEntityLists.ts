@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const usePrincipalEntityLists = (reloadKey: number) => {
   const { schoolId } = useSchoolScopedData();
 
-  const { data: classList = [], isLoading: classListLoading } = useQuery({
+  const { data: classList = [], isLoading: classListLoading, error: classListError } = useQuery({
     queryKey: ['principal-classes', schoolId, reloadKey],
     queryFn: async () => {
       if (!schoolId) return [];
@@ -23,14 +23,14 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
     enabled: !!schoolId,
   });
 
-  const { data: subjectList = [], isLoading: subjectListLoading } = useQuery({
+  const { data: subjectList = [], isLoading: subjectListLoading, error: subjectListError } = useQuery({
     queryKey: ['principal-subjects', schoolId, reloadKey],
     queryFn: async () => {
       if (!schoolId) return [];
       
       const { data, error } = await supabase
         .from('subjects')
-        .select('id, name')
+        .select('id, name, code')
         .eq('school_id', schoolId)
         .eq('is_active', true)
         .order('name');
@@ -41,7 +41,7 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
     enabled: !!schoolId,
   });
 
-  const { data: teacherList = [], isLoading: teacherListLoading } = useQuery({
+  const { data: teacherList = [], isLoading: teacherListLoading, error: teacherListError } = useQuery({
     queryKey: ['principal-teachers', schoolId, reloadKey],
     queryFn: async () => {
       if (!schoolId) return [];
@@ -59,10 +59,34 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
     enabled: !!schoolId,
   });
 
+  const { data: parentList = [], isLoading: parentListLoading, error: parentListError } = useQuery({
+    queryKey: ['principal-parents', schoolId, reloadKey],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .eq('school_id', schoolId)
+        .eq('role', 'parent')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!schoolId,
+  });
+
+  const isLoading = classListLoading || subjectListLoading || teacherListLoading || parentListLoading;
+  const errorEntities = classListError?.message || subjectListError?.message || teacherListError?.message || parentListError?.message || null;
+
   return {
     classList,
     subjectList,
     teacherList,
-    isLoading: classListLoading || subjectListLoading || teacherListLoading,
+    parentList,
+    isLoading,
+    loadingEntities: isLoading,
+    errorEntities,
   };
 };
