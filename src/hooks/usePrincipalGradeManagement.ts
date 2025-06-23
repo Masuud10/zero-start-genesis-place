@@ -12,8 +12,8 @@ export const usePrincipalGradeManagement = () => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
 
-  // Fetch grades specifically for principal approval with fixed query
-  const { data: grades, isLoading, refetch, error } = useQuery({
+  // Simplified grade fetching with better error handling
+  const { data: grades = [], isLoading, refetch, error } = useQuery({
     queryKey: ['principal-grades-approval', user?.id, schoolId],
     queryFn: async () => {
       if (!user?.id || !schoolId) {
@@ -24,7 +24,6 @@ export const usePrincipalGradeManagement = () => {
       console.log('🔍 Fetching grades for principal approval:', { schoolId, userId: user.id });
 
       try {
-        // First, get the basic grade data
         const { data: gradeData, error: gradeError } = await supabase
           .from('grades')
           .select(`
@@ -45,105 +44,33 @@ export const usePrincipalGradeManagement = () => {
             approved_at,
             created_at,
             approved_by_principal,
-            released_to_parents
+            released_to_parents,
+            students!inner(id, name, admission_number),
+            subjects!inner(id, name, code),
+            classes!inner(id, name),
+            profiles!grades_submitted_by_fkey(id, name)
           `)
           .eq('school_id', schoolId)
           .in('status', ['submitted', 'approved', 'rejected', 'released'])
-          .order('submitted_at', { ascending: false });
+          .order('submitted_at', { ascending: false })
+          .limit(100);
 
         if (gradeError) {
           console.error('❌ Error fetching grade data:', gradeError);
           throw gradeError;
         }
 
-        if (!gradeData || gradeData.length === 0) {
-          console.log('✅ No grades found for principal review');
-          return [];
-        }
-
-        // Get unique IDs for batch queries
-        const studentIds = [...new Set(gradeData.map(g => g.student_id).filter(Boolean))];
-        const subjectIds = [...new Set(gradeData.map(g => g.subject_id).filter(Boolean))];
-        const classIds = [...new Set(gradeData.map(g => g.class_id).filter(Boolean))];
-        const teacherIds = [...new Set(gradeData.map(g => g.submitted_by).filter(Boolean))];
-
-        // Fetch related data separately
-        const [studentsData, subjectsData, classesData, teachersData] = await Promise.all([
-          // Students
-          studentIds.length > 0 
-            ? supabase.from('students').select('id, name, admission_number').in('id', studentIds)
-            : { data: [], error: null },
-          
-          // Subjects  
-          subjectIds.length > 0
-            ? supabase.from('subjects').select('id, name').in('id', subjectIds)
-            : { data: [], error: null },
-          
-          // Classes
-          classIds.length > 0
-            ? supabase.from('classes').select('id, name').in('id', classIds)
-            : { data: [], error: null },
-          
-          // Teachers
-          teacherIds.length > 0
-            ? supabase.from('profiles').select('id, name').in('id', teacherIds)
-            : { data: [], error: null }
-        ]);
-
-        // Check for errors in related data fetching
-        if (studentsData.error) throw studentsData.error;
-        if (subjectsData.error) throw subjectsData.error;
-        if (classesData.error) throw classesData.error;
-        if (teachersData.error) throw teachersData.error;
-
-        // Create lookup maps for efficient data joining with proper null checks
-        const studentsMap = new Map(
-          (studentsData.data || [])
-            .filter(s => s && s.id)
-            .map(s => [s.id, s] as [string, any])
-        );
-        const subjectsMap = new Map(
-          (subjectsData.data || [])
-            .filter(s => s && s.id)
-            .map(s => [s.id, s] as [string, any])
-        );
-        const classesMap = new Map(
-          (classesData.data || [])
-            .filter(c => c && c.id)
-            .map(c => [c.id, c] as [string, any])
-        );
-        const teachersMap = new Map(
-          (teachersData.data || [])
-            .filter(t => t && t.id)
-            .map(t => [t.id, t] as [string, any])
-        );
-
-        // Combine the data
-        const enrichedGrades = gradeData.map(grade => ({
-          ...grade,
-          students: studentsMap.get(grade.student_id) || null,
-          subjects: subjectsMap.get(grade.subject_id) || null,
-          classes: classesMap.get(grade.class_id) || null,
-          profiles: teachersMap.get(grade.submitted_by) || null
-        }));
-
-        console.log('✅ Fetched grades for principal:', enrichedGrades.length);
-        console.log('📊 Grade statuses:', enrichedGrades.reduce((acc: any, grade: any) => {
-          acc[grade.status] = (acc[grade.status] || 0) + 1;
-          return acc;
-        }, {}));
-        
-        return enrichedGrades;
+        console.log('✅ Fetched grades for principal:', gradeData?.length || 0);
+        return gradeData || [];
       } catch (err) {
         console.error('❌ Failed to fetch grades:', err);
         throw err;
       }
     },
     enabled: !!user?.id && !!schoolId && user.role === 'principal',
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 30000,
+    refetchInterval: 60000,
+    retry: 2,
   });
 
   const handleApproveGrades = async (gradeIds: string[]) => {

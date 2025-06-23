@@ -3,15 +3,13 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { useSubjectService } from '@/hooks/useSubjectService';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import { AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SubjectCreationData } from '@/types/subject';
-import SubjectBasicInfoForm from './forms/SubjectBasicInfoForm';
-import SubjectClassificationForm from './forms/SubjectClassificationForm';
-import SubjectAssignmentForm from './forms/SubjectAssignmentForm';
-import SubjectFormActions from './forms/SubjectFormActions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CreateSubjectFormProps {
   open: boolean;
@@ -40,17 +38,6 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
   const { createSubject, loading } = useSubjectService();
   const { classList, teacherList, loadingEntities } = usePrincipalEntityLists(0);
 
-  // Add debugging for the modal state and data
-  React.useEffect(() => {
-    if (open) {
-      console.log('CreateSubjectForm: Modal opened');
-      console.log('CreateSubjectForm: Loading entities?', loadingEntities);
-      console.log('CreateSubjectForm: Classes available:', classList?.length || 0);
-      console.log('CreateSubjectForm: Teachers available:', teacherList?.length || 0);
-      console.log('CreateSubjectForm: Current form data:', formData);
-    }
-  }, [open, loadingEntities, classList, teacherList, formData]);
-
   const validateForm = () => {
     setError(null);
     
@@ -74,13 +61,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
       return false;
     }
 
-    // Validate code format (letters and numbers only)
     if (!/^[A-Z0-9]+$/i.test(formData.code)) {
       setError("Subject code must contain only letters and numbers");
       return false;
     }
 
-    // Check code length limit
     if (formData.code.length > 20) {
       setError("Subject code must be 20 characters or less");
       return false;
@@ -95,17 +80,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     setSuccess(null);
     
     console.log('CreateSubjectForm: Form submission started');
-    console.log('CreateSubjectForm: Form data:', formData);
     
     if (!validateForm()) {
       console.log('CreateSubjectForm: Form validation failed');
       return;
     }
 
-    console.log('CreateSubjectForm: Submitting subject creation:', formData);
-
     try {
-      // Ensure code is uppercase and clean data
       const submissionData = {
         ...formData,
         code: formData.code.toUpperCase().trim(),
@@ -113,24 +94,20 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
         description: formData.description?.trim() || ''
       };
 
-      console.log('CreateSubjectForm: Processed submission data:', submissionData);
-      console.log('CreateSubjectForm: About to call createSubject service');
+      console.log('CreateSubjectForm: Submitting subject creation:', submissionData);
 
       const result = await createSubject(submissionData);
-
-      console.log('CreateSubjectForm: Service call completed, result:', result);
 
       if (result) {
         console.log('CreateSubjectForm: Subject created successfully:', result);
         setSuccess(`Subject "${result.name}" created successfully!`);
         
-        // Small delay to show success message before closing
         setTimeout(() => {
           handleClose();
           onSuccess();
         }, 1500);
       } else {
-        console.log('CreateSubjectForm: Subject creation returned null - check error handling');
+        console.log('CreateSubjectForm: Subject creation returned null');
         setError('Failed to create subject. Please try again.');
       }
     } catch (error: any) {
@@ -176,15 +153,6 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
 
   const isFormValid = Boolean(formData.name.trim() && formData.code.trim());
 
-  const handleFormSubmit = () => {
-    console.log('CreateSubjectForm: handleFormSubmit called');
-    // Create a synthetic form event for the handleSubmit function
-    const syntheticEvent = {
-      preventDefault: () => {},
-    } as React.FormEvent;
-    handleSubmit(syntheticEvent);
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white">
@@ -210,49 +178,102 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <SubjectBasicInfoForm
-            name={formData.name}
-            code={formData.code}
-            onNameChange={handleNameChange}
-            onCodeChange={handleCodeChange}
-            loading={loading}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="subject-name" className="text-gray-700">Subject Name *</Label>
+            <Input
+              id="subject-name"
+              value={formData.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="e.g., Mathematics"
+              required
+              disabled={loading}
+              maxLength={100}
+              className="border-gray-300 focus:border-blue-500"
+            />
+          </div>
 
-          <SubjectClassificationForm
-            category={formData.category}
-            creditHours={formData.credit_hours}
-            curriculum={formData.curriculum}
-            onCategoryChange={(value) => {
-              setFormData({ ...formData, category: value });
-              clearMessages();
-            }}
-            onCreditHoursChange={(value) => {
-              setFormData({ ...formData, credit_hours: value });
-              clearMessages();
-            }}
-            onCurriculumChange={(value) => {
-              setFormData({ ...formData, curriculum: value });
-              clearMessages();
-            }}
-            loading={loading}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="subject-code" className="text-gray-700">Subject Code *</Label>
+            <Input
+              id="subject-code"
+              value={formData.code}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              placeholder="e.g., MATH"
+              required
+              disabled={loading}
+              maxLength={10}
+              className="border-gray-300 focus:border-blue-500"
+            />
+          </div>
 
-          <SubjectAssignmentForm
-            classId={formData.class_id}
-            teacherId={formData.teacher_id}
-            classList={classList}
-            teacherList={teacherList}
-            onClassChange={(value) => {
-              setFormData({ ...formData, class_id: value });
-              clearMessages();
-            }}
-            onTeacherChange={(value) => {
-              setFormData({ ...formData, teacher_id: value });
-              clearMessages();
-            }}
-            loading={loading}
-            loadingEntities={loadingEntities}
-          />
+          <div className="space-y-2">
+            <Label className="text-gray-700">Category</Label>
+            <Select
+              value={formData.category}
+              onValueChange={(value) => {
+                setFormData({ ...formData, category: value });
+                clearMessages();
+              }}
+              disabled={loading}
+            >
+              <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="core">Core Subject</SelectItem>
+                <SelectItem value="elective">Elective</SelectItem>
+                <SelectItem value="optional">Optional</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-gray-700">Class (Optional)</Label>
+            <Select
+              value={formData.class_id || ""}
+              onValueChange={(value) => {
+                setFormData({ ...formData, class_id: value || undefined });
+                clearMessages();
+              }}
+              disabled={loading || loadingEntities}
+            >
+              <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                <SelectValue placeholder="Select class (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Classes</SelectItem>
+                {classList.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-gray-700">Teacher (Optional)</Label>
+            <Select
+              value={formData.teacher_id || ""}
+              onValueChange={(value) => {
+                setFormData({ ...formData, teacher_id: value || undefined });
+                clearMessages();
+              }}
+              disabled={loading || loadingEntities}
+            >
+              <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                <SelectValue placeholder="Select teacher (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Unassigned</SelectItem>
+                {teacherList.map((teacher) => (
+                  <SelectItem key={teacher.id} value={teacher.id}>
+                    {teacher.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label className="text-gray-700">Description (Optional)</Label>
@@ -268,12 +289,21 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             />
           </div>
 
-          <SubjectFormActions
-            onCancel={handleClose}
-            onSubmit={handleFormSubmit}
-            loading={loading}
-            isFormValid={isFormValid}
-          />
+          <div className="flex gap-2 pt-4">
+            <Button type="submit" disabled={loading || !isFormValid} className="flex-1">
+              {loading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  Creating...
+                </>
+              ) : (
+                'Create Subject'
+              )}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+              Cancel
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
