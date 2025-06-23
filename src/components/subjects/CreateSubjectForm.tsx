@@ -145,7 +145,15 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     setSuccess(null);
   };
 
-  const isFormValid = formData.name.trim() && formData.code.trim();
+  const isFormValid = Boolean(formData.name.trim() && formData.code.trim());
+
+  const handleFormSubmit = () => {
+    // Create a synthetic form event for the handleSubmit function
+    const syntheticEvent = {
+      preventDefault: () => {},
+    } as React.FormEvent;
+    handleSubmit(syntheticEvent);
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -232,7 +240,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
 
           <SubjectFormActions
             onCancel={handleClose}
-            onSubmit={handleSubmit}
+            onSubmit={handleFormSubmit}
             loading={loading}
             isFormValid={isFormValid}
           />
