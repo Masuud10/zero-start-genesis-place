@@ -329,7 +329,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   }
 
   // Only show standard grading modal for standard curriculum
-  if (curriculumType && !['standard', 'cbc', 'igcse'].includes(curriculumType)) {
+  if (curriculumType && curriculumType !== 'standard') {
     return (
       <Dialog open={true} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
