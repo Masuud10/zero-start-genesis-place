@@ -203,12 +203,12 @@ export const EnhancedFinanceAnalytics: React.FC<EnhancedFinanceAnalyticsProps> =
                 {data.defaultersList.slice(0, 5).map((defaulter, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border rounded">
                     <div>
-                      <p className="font-medium">{defaulter.studentName}</p>
-                      <p className="text-sm text-muted-foreground">{defaulter.className}</p>
+                      <p className="font-medium">{defaulter.student_name}</p>
+                      <p className="text-sm text-muted-foreground">{defaulter.class_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-red-600">KES {defaulter.outstandingAmount.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">{defaulter.daysPastDue} days overdue</p>
+                      <p className="font-medium text-red-600">KES {defaulter.outstanding_amount.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">{defaulter.days_overdue} days overdue</p>
                     </div>
                   </div>
                 ))}

@@ -51,7 +51,7 @@ export const useAnalyticsData = (schoolId?: string) => {
         supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', effectiveSchoolId)
       ]);
 
-      // Fetch grades data for academic performance
+      // Fetch grades data for academic performance with explicit join
       const { data: gradesData } = await supabase
         .from('grades')
         .select(`
@@ -59,7 +59,7 @@ export const useAnalyticsData = (schoolId?: string) => {
           max_score,
           percentage,
           letter_grade,
-          subjects!inner(name),
+          subjects:subject_id(name),
           created_at
         `)
         .eq('school_id', effectiveSchoolId)
@@ -95,7 +95,7 @@ export const useAnalyticsData = (schoolId?: string) => {
       // Subject performance
       const subjectPerformance = new Map<string, number[]>();
       gradesData?.forEach(grade => {
-        const subjectName = grade.subjects.name;
+        const subjectName = grade.subjects?.name || 'Unknown';
         if (!subjectPerformance.has(subjectName)) {
           subjectPerformance.set(subjectName, []);
         }
