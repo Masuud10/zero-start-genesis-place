@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/contexts/SchoolContext";
@@ -42,7 +43,7 @@ const ROLE_REPORT_OPTIONS: Record<string, { value: string, label: string, desc: 
     { value: "finance", label: "Finance Summary", desc: "Finance and fee summary for school" },
   ]
 };
-// Fallback if unknown role
+
 const DEFAULT_REPORTS = [
   { value: "grades", label: "Grades Report", desc: "" },
   { value: "attendance", label: "Attendance Report", desc: "" },
@@ -51,13 +52,17 @@ const DEFAULT_REPORTS = [
 type ReportPanelProps = {
   extraFilters?: Record<string, any>;
   hideCard?: boolean;
-  // For system admins: allow passing showAll for advanced context if needed
   showAll?: boolean;
 };
+
 const termOptions = ["T1", "T2", "T3"];
 const yearOptions = Array.from({ length: 5 }, (_, i) => "" + (2022 + i));
 
-export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters = {}, hideCard, showAll }) => {
+export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ 
+  extraFilters = {}, 
+  hideCard, 
+  showAll 
+}) => {
   const { user } = useAuth();
   const { currentSchool } = useSchool();
   const { toast } = useToast();
@@ -66,111 +71,163 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters =
   const [term, setTerm] = useState(termOptions[0]);
   const [downloading, setDownloading] = useState(false);
 
-  // Provide all options for system admins
-  const available =
-    showAll || user?.role === "edufam_admin"
-      ? ROLE_REPORT_OPTIONS.edufam_admin
-      : ROLE_REPORT_OPTIONS[user?.role as string] || DEFAULT_REPORTS;
+  // Get available reports for current user role
+  const available = showAll || user?.role === "edufam_admin"
+    ? ROLE_REPORT_OPTIONS.edufam_admin
+    : ROLE_REPORT_OPTIONS[user?.role as string] || DEFAULT_REPORTS;
 
   const handleDownload = async () => {
     if (!reportType) {
-      toast({ title: "Select Type", description: "Please select a report type.", variant: "destructive" });
+      toast({ 
+        title: "Select Type", 
+        description: "Please select a report type.", 
+        variant: "destructive" 
+      });
       return;
     }
+
+    if (!user?.id) {
+      toast({ 
+        title: "Authentication Error", 
+        description: "Please log in to generate reports.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setDownloading(true);
+    
     try {
-      // Map UI report type to API reportType
-      let apiType = "";
-      switch (reportType) {
-        case "grades":
-          apiType =
-            ["principal", "school_owner", "edufam_admin"].includes(user?.role || "")
-              ? "principal-academic"
-              : "teacher-parent-grades";
-          break;
-        case "attendance":
-          apiType =
-            ["principal", "school_owner", "edufam_admin"].includes(user?.role || "")
-              ? "principal-attendance"
-              : "teacher-parent-attendance";
-          break;
-        case "finance":
-        case "finance_overview":
-          apiType =
-            user?.role === "edufam_admin" ? "system-finance" : "principal-finance";
-          break;
-        case "school_summary":
-          apiType = user?.role === "edufam_admin" ? "system-school-summary" : "school-summary";
-          break;
-        case "system_performance":
-          apiType = "system-performance";
-          break;
-        case "billing_overview":
-          apiType = "system-billing";
-          break;
-        case "audit_log":
-          apiType = "system-audit";
-          break;
-        default:
-          apiType = "custom";
-      }
-      // Compose request payload
-      const payload = {
-        reportType: apiType,
-        filters: {
-          schoolId: currentSchool?.id || user?.school_id,
-          year,
-          term,
-          ...extraFilters,
-        },
-        userInfo: {
-          role: user?.role,
-          userName: user?.name || "",
-          userSchoolId: user?.school_id || "",
-        }
-      };
-      const response = await fetch(
-        "https://lmqyizrnuahkmwauonqr.functions.supabase.co/generate_report",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      console.log('🔄 Generating report:', { reportType, year, term, role: user.role });
 
-      // NEW LOGIC: Check if we actually got a PDF, otherwise show error.
-      const contentType = response.headers.get("Content-Type");
-      if (!response.ok || !contentType || !contentType.includes("application/pdf")) {
-        // Try to get error from JSON (either custom throw, or generic network error)
-        let errorMsg = "Failed to generate PDF report.";
-        try {
-          const errorData = await response.json();
-          if (errorData && errorData.error) errorMsg = errorData.error;
-        } catch {
-          // Not JSON, leave as default
+      // For Excel reports (role-based data reports)
+      if (['grades', 'attendance', 'finance'].includes(reportType)) {
+        const payload = {
+          role: user.role,
+          school_id: currentSchool?.id || user?.school_id,
+          class_id: extraFilters.class_id,
+          type: reportType,
+          term: term,
+          user_id: user.id
+        };
+        
+        console.log('📊 Excel report payload:', payload);
+        
+        const response = await fetch(
+          "https://lmqyizrnuahkmwauonqr.functions.supabase.co/generate_role_report",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          }
+        );
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Report generation failed: ${response.status} - ${errorText}`);
         }
-        toast({
-          title: "Report Generation Error",
-          description: errorMsg,
-          variant: "destructive"
+        
+        const contentType = response.headers.get("Content-Type");
+        if (!contentType || !contentType.includes("spreadsheet")) {
+          throw new Error("Invalid response format - expected Excel file");
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${user.role}_${reportType}_report_${year}_${term}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => window.URL.revokeObjectURL(url), 500);
+        a.remove();
+        
+        toast({ 
+          title: "Report Downloaded!", 
+          description: `${available.find(r => r.value === reportType)?.label} for ${year} ${term}.` 
         });
-        setDownloading(false);
-        return;
+
+      } else {
+        // For PDF reports (summary reports)
+        let apiType = "";
+        switch (reportType) {
+          case "school_summary":
+            apiType = user?.role === "edufam_admin" ? "system-school-summary" : "school-summary";
+            break;
+          case "system_performance":
+            apiType = "system-performance";
+            break;
+          case "billing_overview":
+            apiType = "system-billing";
+            break;
+          case "audit_log":
+            apiType = "system-audit";
+            break;
+          default:
+            apiType = "platform-overview";
+        }
+        
+        const payload = {
+          reportType: apiType,
+          filters: {
+            schoolId: currentSchool?.id || user?.school_id,
+            year,
+            term,
+            ...extraFilters,
+          },
+          userInfo: {
+            role: user?.role,
+            userName: user?.name || "",
+            userSchoolId: user?.school_id || "",
+          }
+        };
+        
+        console.log('📄 PDF report payload:', payload);
+        
+        const response = await fetch(
+          "https://lmqyizrnuahkmwauonqr.functions.supabase.co/generate_report",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`PDF generation failed: ${response.status} - ${errorText}`);
+        }
+
+        const contentType = response.headers.get("Content-Type");
+        if (!contentType || !contentType.includes("application/pdf")) {
+          const errorData = await response.json().catch(() => ({ error: "Invalid response format" }));
+          throw new Error(errorData.error || "Expected PDF but received different format");
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const name = `${user?.role || "user"}_${reportType}_report_${year}_${term}.pdf`;
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 500);
+        a.remove();
+        
+        toast({ 
+          title: "Report Downloaded!", 
+          description: `${available.find(r => r.value === reportType)?.label} for ${year} ${term}.` 
+        });
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const name = `${user?.role || "user"}_${reportType}_report_${year}_${term}.pdf`;
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 500);
-      a.remove();
-      toast({ title: "Report Downloaded!", description: `${available.find(r => r.value === reportType)?.label} for ${year} ${term}.` });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error('❌ Report generation error:', error);
+      toast({ 
+        title: "Report Generation Failed", 
+        description: error.message || "An unexpected error occurred while generating the report.",
+        variant: "destructive" 
+      });
     } finally {
       setDownloading(false);
     }
@@ -189,7 +246,9 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters =
                 <SelectItem key={rt.value} value={rt.value}>
                   <div>
                     <span className="font-medium">{rt.label}</span>
-                    <div className="text-xs text-muted-foreground">{rt.desc}</div>
+                    {rt.desc && (
+                      <div className="text-xs text-muted-foreground">{rt.desc}</div>
+                    )}
                   </div>
                 </SelectItem>
               ))}
@@ -213,7 +272,19 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters =
           </Select>
         </div>
       </div>
-      <Button onClick={handleDownload} disabled={downloading || !reportType} className="flex gap-2">
+      
+      {!user?.id && (
+        <div className="flex items-center gap-2 text-amber-600 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          Please log in to generate reports
+        </div>
+      )}
+      
+      <Button 
+        onClick={handleDownload} 
+        disabled={downloading || !reportType || !user?.id} 
+        className="flex gap-2"
+      >
         <Download className="w-4 h-4" />
         {downloading ? "Generating..." : "Download Report"}
       </Button>
@@ -221,6 +292,7 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters =
   );
 
   if (hideCard) return Content;
+  
   return (
     <Card>
       <CardHeader>
@@ -230,7 +302,7 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({ extraFilters =
         </CardTitle>
         <CardDescription>
           {user?.role === "edufam_admin"
-            ? "Generate/download analytics, billing, performance, school summaries and more for any school."
+            ? "Generate and download analytics, billing, performance, school summaries and more for any school."
             : "Download term/year academic, attendance, or finance reports (access based on your role)."}
         </CardDescription>
       </CardHeader>
