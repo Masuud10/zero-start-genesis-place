@@ -329,7 +329,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   }
 
   // Only show standard grading modal for standard curriculum
-  if (curriculumType !== 'standard') {
+  if (curriculumType && curriculumType !== 'standard') {
     return (
       <Dialog open={true} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
@@ -347,7 +347,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Enter Grades ({curriculumType.toUpperCase()} Curriculum)
+            Enter Grades ({curriculumType?.toUpperCase() || 'STANDARD'} Curriculum)
             <span className="ml-2 inline-block align-middle">
               {isTeacher && permissions.canSubmitGrades && (
                 <span className="text-xs text-blue-700 font-semibold">(Teacher: submit for approval)</span>

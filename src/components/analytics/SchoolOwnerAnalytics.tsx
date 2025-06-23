@@ -8,7 +8,8 @@ import { BarChart, Bar, XAxis, YAxis, LineChart, Line, ResponsiveContainer } fro
 import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import { Loader2, AlertCircle, Users, BookOpen, DollarSign, TrendingUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SchoolOwnerAnalyticsProps {
@@ -22,9 +23,10 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
   const { schoolId } = useSchoolScopedData();
   const { stats, loading: principalLoading, error: principalError } = usePrincipalDashboardData(0);
   const { data: financeData, isLoading: financeLoading, error: financeError } = useFinanceOfficerAnalytics(filters);
+  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useAnalyticsData(schoolId);
 
-  const loading = principalLoading || financeLoading;
-  const error = principalError || financeError;
+  const loading = principalLoading || financeLoading || analyticsLoading;
+  const error = principalError || financeError || analyticsError;
 
   if (loading) {
     return (
@@ -70,18 +72,16 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
     rate: item.expected > 0 ? (item.collected / item.expected) * 100 : 0
   })) || [];
 
-  const attendanceTrends = financeData?.dailyTransactions?.slice(-6).map(transaction => ({
-    date: new Date(transaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    rate: Math.floor(Math.random() * 10) + 90 // This would need actual attendance data
-  })) || [];
-
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              Total Students
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{stats.totalStudents}</div>
@@ -91,7 +91,10 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Total Teachers
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.totalTeachers}</div>
@@ -101,7 +104,10 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Fee Collection Rate</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Fee Collection Rate
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
@@ -113,7 +119,10 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Total Revenue
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
@@ -130,15 +139,21 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
           <CardTitle>School Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-80">
-            <BarChart data={schoolOverviewData}>
-              <XAxis dataKey="category" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" fill="var(--color-students)" name="Current" />
-              <Bar dataKey="target" fill="var(--color-teachers)" name="Target" opacity={0.5} />
-            </BarChart>
-          </ChartContainer>
+          {schoolOverviewData.length > 0 ? (
+            <ChartContainer config={chartConfig} className="h-80">
+              <BarChart data={schoolOverviewData}>
+                <XAxis dataKey="category" />
+                <YAxis />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="count" fill="var(--color-students)" name="Current" />
+                <Bar dataKey="target" fill="var(--color-teachers)" name="Target" opacity={0.5} />
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-muted-foreground">
+              No school overview data available
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -149,15 +164,21 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
             <CardTitle>Fee Collection by Class</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <BarChart data={feeCollectionTrend}>
-                <XAxis dataKey="class" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="collected" fill="var(--color-collection)" name="Collected (KES)" />
-                <Bar dataKey="expected" fill="#ef4444" name="Expected (KES)" opacity={0.5} />
-              </BarChart>
-            </ChartContainer>
+            {feeCollectionTrend.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-64">
+                <BarChart data={feeCollectionTrend}>
+                  <XAxis dataKey="class" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="collected" fill="var(--color-collection)" name="Collected (KES)" />
+                  <Bar dataKey="expected" fill="#ef4444" name="Expected (KES)" opacity={0.5} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                No fee collection data available
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -167,20 +188,26 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
             <CardTitle>Daily Transaction Trends</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-64">
-              <LineChart data={financeData?.dailyTransactions?.slice(-7) || []}>
-                <XAxis dataKey="date" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="amount" 
-                  stroke="var(--color-revenue)" 
-                  strokeWidth={2}
-                  name="Amount (KES)"
-                />
-              </LineChart>
-            </ChartContainer>
+            {financeData?.dailyTransactions && financeData.dailyTransactions.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-64">
+                <LineChart data={financeData.dailyTransactions.slice(-7)}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="amount" 
+                    stroke="var(--color-revenue)" 
+                    strokeWidth={2}
+                    name="Amount (KES)"
+                  />
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                No transaction trends available
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -203,6 +230,14 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
                   <span className="text-sm">Subjects: {stats.totalSubjects}</span>
                   <Badge variant="default">Active</Badge>
                 </div>
+                {analytics && (
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-sm">Avg Grade: {analytics.averageGrade.toFixed(1)}%</span>
+                    <Badge variant={analytics.averageGrade > 75 ? 'default' : 'secondary'}>
+                      {analytics.averageGrade > 75 ? 'Good' : 'Fair'}
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -235,6 +270,14 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
                     {stats.totalTeachers > 0 ? Math.round(stats.totalStudents / stats.totalTeachers) : 0}:1
                   </span>
                 </div>
+                {analytics && (
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-sm">Attendance: {analytics.attendanceRate.toFixed(1)}%</span>
+                    <Badge variant={analytics.attendanceRate > 85 ? 'default' : 'secondary'}>
+                      {analytics.attendanceRate > 85 ? 'Good' : 'Fair'}
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
           </div>
