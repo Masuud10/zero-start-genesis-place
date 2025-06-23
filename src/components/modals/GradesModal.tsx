@@ -228,7 +228,17 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <GradeModalHeader curriculumType={curriculumType} />
+        <GradeModalHeader 
+          curriculumType={curriculumType || 'standard'}
+          isTeacher={isTeacher}
+          isPrincipal={isPrincipal}
+          permissions={{
+            canSubmitGrades: permissions.canSubmitGrades,
+            canApproveGrades: permissions.canApproveGrades,
+            canOverrideGrades: permissions.canOverrideGrades,
+            canReleaseResults: permissions.canReleaseResults
+          }}
+        />
         
         <div className="space-y-6">
           {formError && (
@@ -277,7 +287,6 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
             <PrincipalStatusSelector
               status={status}
               setStatus={setStatus}
-              canApprove={canApprove}
               canRelease={canRelease}
             />
           )}
@@ -285,13 +294,21 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
 
         <DialogFooter>
           <GradeActionButtons
+            onClose={onClose}
             onSubmit={handleSubmit}
-            onCancel={onClose}
-            onRelease={canRelease ? handleRelease : undefined}
             loading={loading}
-            canSubmit={canSubmit}
-            isTeacher={isTeacher}
+            permissions={{
+              canInput: canSubmit,
+              canSubmit: permissions.canSubmitGrades,
+              canApprove: canApprove,
+              canRelease: canRelease,
+              canOverride: canOverride
+            }}
+            role={isTeacher ? 'teacher' : 'principal'}
             isPrincipal={isPrincipal}
+            isTeacher={isTeacher}
+            canRelease={canRelease}
+            handleRelease={handleRelease}
           />
         </DialogFooter>
       </DialogContent>
