@@ -68,28 +68,10 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
       console.log('🔍 Fetching finance analytics for school:', schoolId);
 
       try {
-        // Fetch fees data with proper error handling
+        // Fetch fees data without complex relationships first
         const { data: feesData, error: feesError } = await supabase
           .from('fees')
-          .select(`
-            id,
-            amount,
-            paid_amount,
-            status,
-            due_date,
-            created_at,
-            student_id,
-            class_id,
-            students!inner(
-              id,
-              name,
-              admission_number
-            ),
-            classes!inner(
-              id,
-              name
-            )
-          `)
+          .select('*')
           .eq('school_id', schoolId)
           .order('created_at', { ascending: false });
 
@@ -100,31 +82,30 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
 
         console.log('✅ Fees data fetched:', feesData?.length || 0, 'records');
 
-        // Fetch students count
-        const { count: studentsCount, error: studentsError } = await supabase
+        // Fetch students data separately
+        const { data: studentsData, error: studentsError } = await supabase
           .from('students')
-          .select('*', { count: 'exact', head: true })
+          .select('id, name, admission_number, class_id')
           .eq('school_id', schoolId);
 
         if (studentsError) {
-          console.warn('⚠️ Error fetching students count:', studentsError);
+          console.warn('⚠️ Error fetching students:', studentsError);
+        }
+
+        // Fetch classes data separately
+        const { data: classesData, error: classesError } = await supabase
+          .from('classes')
+          .select('id, name')
+          .eq('school_id', schoolId);
+
+        if (classesError) {
+          console.warn('⚠️ Error fetching classes:', classesError);
         }
 
         // Fetch financial transactions
         const { data: transactionsData, error: transactionsError } = await supabase
           .from('financial_transactions')
-          .select(`
-            id,
-            amount,
-            transaction_type,
-            payment_method,
-            created_at,
-            student_id,
-            students(
-              name,
-              admission_number
-            )
-          `)
+          .select('*')
           .eq('school_id', schoolId)
           .eq('transaction_type', 'payment')
           .order('created_at', { ascending: false })
@@ -138,6 +119,12 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
 
         // Process fees data safely
         const safeFeesData = feesData || [];
+        const safeStudentsData = studentsData || [];
+        const safeClassesData = classesData || [];
+        
+        // Create lookup maps for better performance
+        const studentsMap = new Map(safeStudentsData.map(student => [student.id, student]));
+        const classesMap = new Map(safeClassesData.map(cls => [cls.id, cls]));
         
         // Calculate key metrics
         const totalCollected = safeFeesData.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
@@ -158,7 +145,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           totalCollected,
           outstandingAmount,
           collectionRate,
-          totalStudents: studentsCount || 0,
+          totalStudents: safeStudentsData.length,
           defaultersCount: defaulters.length
         };
 
@@ -192,17 +179,17 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           { category: 'Other', amount: totalCollected * 0.05, percentage: 5, color: colors[4] }
         ];
 
-        // Create defaulters list
+        // Create defaulters list using lookup maps
         const defaultersList: Defaulter[] = defaulters
           .map(fee => {
-            const student = fee.students as any;
-            const classInfo = fee.classes as any;
+            const student = studentsMap.get(fee.student_id);
+            const studentClass = student ? classesMap.get(student.class_id) : null;
             const dueDate = fee.due_date ? new Date(fee.due_date) : new Date();
             const daysOverdue = Math.floor((currentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
             
             return {
               student_name: student?.name || 'Unknown Student',
-              class_name: classInfo?.name || 'Unknown Class',
+              class_name: studentClass?.name || 'Unknown Class',
               admission_number: student?.admission_number || 'N/A',
               outstanding_amount: (fee.amount || 0) - (fee.paid_amount || 0),
               days_overdue: Math.max(0, daysOverdue)
@@ -211,10 +198,11 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           .sort((a, b) => b.outstanding_amount - a.outstanding_amount)
           .slice(0, 10);
 
-        // Create fee collection by class
+        // Create fee collection by class using lookup maps
         const feesByClass = safeFeesData.reduce((acc, fee) => {
-          const classInfo = fee.classes as any;
-          const className = classInfo?.name || 'Unknown Class';
+          const student = studentsMap.get(fee.student_id);
+          const studentClass = student ? classesMap.get(student.class_id) : null;
+          const className = studentClass?.name || fee.class_id ? classesMap.get(fee.class_id)?.name || 'Unknown Class' : 'Individual Fees';
           
           if (!acc[className]) {
             acc[className] = { collected: 0, expected: 0 };
