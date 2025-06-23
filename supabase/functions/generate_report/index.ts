@@ -28,57 +28,107 @@ serve(async (req) => {
 
   try {
     const SUPABASE_URL = "https://lmqyizrnuahkmwauonqr.supabase.co";
-    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
     if (!SUPABASE_SERVICE_KEY) {
-      throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
+      console.error("SUPABASE_SERVICE_ROLE_KEY is missing");
+      return new Response(
+        JSON.stringify({ error: "Service configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const { reportType, filters, userInfo } = body;
-    
-    if (!reportType) {
-      throw new Error("reportType is required");
+    let body = {};
+    try {
+      body = req.method === "POST" ? await req.json() : {};
+    } catch (error) {
+      console.error("Failed to parse request body:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log('Generating report:', reportType);
+    const { reportType, filters = {}, userInfo = {} } = body;
+    
+    if (!reportType) {
+      return new Response(
+        JSON.stringify({ error: "reportType is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log('Generating report:', reportType, 'with filters:', filters);
 
     let reportContent;
     let reportTitle = "";
 
-    switch (reportType) {
-      case 'platform-overview':
-        reportTitle = "EduFam Platform Overview Report";
-        reportContent = await generatePlatformOverviewReport(supabase, filters);
-        break;
+    try {
+      switch (reportType) {
+        case 'platform-overview':
+          reportTitle = "EduFam Platform Overview Report";
+          reportContent = await generatePlatformOverviewReport(supabase, filters);
+          break;
 
-      case 'schools-summary':
-        reportTitle = "EduFam Schools Summary Report";
-        reportContent = await generateSchoolsSummaryReport(supabase, filters);
-        break;
+        case 'system-school-summary':
+        case 'school-summary':
+          reportTitle = reportType === 'system-school-summary' 
+            ? "EduFam System Schools Summary Report" 
+            : "School Summary Report";
+          reportContent = await generateSchoolsSummaryReport(supabase, filters);
+          break;
 
-      case 'users-analytics':
-        reportTitle = "EduFam Users Analytics Report";
-        reportContent = await generateUsersAnalyticsReport(supabase, filters);
-        break;
+        case 'users-analytics':
+          reportTitle = "EduFam Users Analytics Report";
+          reportContent = await generateUsersAnalyticsReport(supabase, filters);
+          break;
 
-      case 'financial-overview':
-        reportTitle = "EduFam Financial Overview Report";
-        reportContent = await generateFinancialOverviewReport(supabase, filters);
-        break;
+        case 'financial-overview':
+        case 'system-billing':
+          reportTitle = reportType === 'system-billing' 
+            ? "EduFam System Billing Report" 
+            : "Financial Overview Report";
+          reportContent = await generateFinancialOverviewReport(supabase, filters);
+          break;
 
-      case 'system-health':
-        reportTitle = "EduFam System Health Report";
-        reportContent = await generateSystemHealthReport(supabase, filters);
-        break;
+        case 'system-health':
+        case 'system-performance':
+          reportTitle = "EduFam System Performance Report";
+          reportContent = await generateSystemHealthReport(supabase, filters);
+          break;
 
-      case 'company-profile':
-        reportTitle = "EduFam Company Profile Report";
-        reportContent = await generateCompanyProfileReport(supabase, filters);
-        break;
+        case 'company-profile':
+        case 'system-audit':
+          reportTitle = reportType === 'system-audit' 
+            ? "EduFam System Audit Report" 
+            : "EduFam Company Profile Report";
+          reportContent = await generateCompanyProfileReport(supabase, filters);
+          break;
 
-      default:
-        throw new Error('Invalid report type: ' + reportType);
+        default:
+          console.error('Invalid report type:', reportType);
+          return new Response(
+            JSON.stringify({ error: 'Invalid report type: ' + reportType }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+      }
+
+      if (!reportContent || reportContent.length === 0) {
+        console.warn('No report content generated for:', reportType);
+        reportContent = [
+          { text: 'No Data Available', style: 'header' },
+          { text: 'Unable to generate report data at this time.', margin: [0, 10] }
+        ];
+      }
+
+    } catch (reportError) {
+      console.error('Error generating report content:', reportError);
+      reportContent = [
+        { text: 'Report Generation Error', style: 'error' },
+        { text: `Error: ${reportError.message}`, margin: [0, 10] }
+      ];
     }
 
     console.log('Report content generated, creating PDF...');
@@ -116,37 +166,48 @@ serve(async (req) => {
       defaultStyle: defaultStyle
     };
 
-    const pdfDocGenerator = pdfmake.createPdf(docDefinition);
-    
-    const getPdfBuffer = () =>
-      new Promise((resolve, reject) => {
-        pdfDocGenerator.getBuffer((buffer: Uint8Array) => {
-          if (buffer) {
-            resolve(buffer);
-          } else {
-            reject(new Error('Failed to generate PDF buffer'));
-          }
+    try {
+      const pdfDocGenerator = pdfmake.createPdf(docDefinition);
+      
+      const getPdfBuffer = () =>
+        new Promise((resolve, reject) => {
+          pdfDocGenerator.getBuffer((buffer: Uint8Array) => {
+            if (buffer && buffer.length > 0) {
+              resolve(buffer);
+            } else {
+              reject(new Error('Failed to generate PDF buffer'));
+            }
+          });
         });
+
+      const pdfBuffer = await getPdfBuffer();
+      console.log('PDF generated successfully, size:', (pdfBuffer as Uint8Array).length);
+
+      return new Response(pdfBuffer as Uint8Array, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="edufam_${reportType}_${Date.now()}.pdf"`
+        }
       });
 
-    const pdfBuffer = await getPdfBuffer();
-
-    console.log('PDF generated successfully, size:', (pdfBuffer as Uint8Array).length);
-
-    return new Response(pdfBuffer as Uint8Array, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="edufam_${reportType}_${Date.now()}.pdf"`
-      }
-    });
+    } catch (pdfError) {
+      console.error('PDF generation failed:', pdfError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'PDF generation failed',
+          details: pdfError.message
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
   } catch (error: any) {
-    console.error('[generate_report] Error:', error);
+    console.error('[generate_report] Unexpected error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
-        details: error.stack,
+        error: 'Internal server error',
+        details: error.message,
         timestamp: new Date().toISOString()
       }),
       { 

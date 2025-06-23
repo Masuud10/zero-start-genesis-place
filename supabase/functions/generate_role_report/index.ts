@@ -19,36 +19,60 @@ serve(async (req: Request) => {
   let event;
   try {
     event = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), { 
+  } catch (error) {
+    console.error("Invalid JSON:", error);
+    return new Response(JSON.stringify({ error: "Invalid JSON request" }), { 
       status: 400, 
-      headers: corsHeaders 
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 
   const { role, school_id, class_id, type, term, user_id } = event;
   
+  console.log('Report request:', { role, school_id, class_id, type, term, user_id });
+  
   if (!role || !type || !term) {
-    return new Response(JSON.stringify({ error: "Missing required parameters: role, type, term" }), { 
+    return new Response(JSON.stringify({ 
+      error: "Missing required parameters: role, type, term are required" 
+    }), { 
       status: 400, 
-      headers: corsHeaders 
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const SUPABASE_URL = "https://lmqyizrnuahkmwauonqr.supabase.co";
+  const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  
+  if (!SUPABASE_SERVICE_KEY) {
+    console.error("SUPABASE_SERVICE_ROLE_KEY is missing");
+    return new Response(JSON.stringify({ 
+      error: "Service configuration error" 
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   // Get school info if school_id provided
   let schoolInfo = null;
   if (school_id) {
-    const { data } = await supabase
-      .from("schools")
-      .select("id, name, logo_url, location")
-      .eq("id", school_id)
-      .maybeSingle();
-    schoolInfo = data;
+    try {
+      const { data, error } = await supabase
+        .from("schools")
+        .select("id, name, logo_url, location")
+        .eq("id", school_id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error fetching school:", error);
+      } else {
+        schoolInfo = data;
+      }
+    } catch (error) {
+      console.error("School fetch error:", error);
+    }
   }
 
   let resultRows = [];
@@ -58,7 +82,7 @@ serve(async (req: Request) => {
 
   try {
     if (type === "grades") {
-      reportTitle = `Grades Report`;
+      reportTitle = `Grades Report - ${term}`;
       
       if (role === "teacher") {
         if (!class_id) {
@@ -83,11 +107,15 @@ serve(async (req: Request) => {
           `)
           .eq("class_id", class_id)
           .eq("term", term)
-          .in("status", ["submitted", "approved", "released"]);
+          .in("status", ["submitted", "approved", "released"])
+          .order('created_at', { ascending: false });
           
-        if (error) throw error;
+        if (error) {
+          console.error("Teacher grades query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(grade => ({
+        resultRows = (data || []).map(grade => ({
           Student: grade.students?.name || 'N/A',
           AdmissionNumber: grade.students?.admission_number || 'N/A',
           Subject: grade.subjects?.name || 'N/A',
@@ -99,7 +127,7 @@ serve(async (req: Request) => {
           ExamType: grade.exam_type || 'N/A',
           Status: grade.status || 'draft',
           Date: grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
-        })) || [];
+        }));
         
       } else if (role === "principal" || role === "school_owner") {
         if (!school_id) {
@@ -124,11 +152,15 @@ serve(async (req: Request) => {
           `)
           .eq("school_id", school_id)
           .eq("term", term)
-          .in("status", ["submitted", "approved", "released"]);
+          .in("status", ["submitted", "approved", "released"])
+          .order('created_at', { ascending: false });
           
-        if (error) throw error;
+        if (error) {
+          console.error("Principal grades query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(grade => ({
+        resultRows = (data || []).map(grade => ({
           Student: grade.students?.name || 'N/A',
           AdmissionNumber: grade.students?.admission_number || 'N/A',
           Class: grade.classes?.name || 'N/A',
@@ -139,7 +171,7 @@ serve(async (req: Request) => {
           LetterGrade: grade.letter_grade || 'N/A',
           Status: grade.status || 'draft',
           Date: grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
-        })) || [];
+        }));
         
       } else if (role === "edufam_admin") {
         let query = supabase
@@ -158,19 +190,23 @@ serve(async (req: Request) => {
             schools!grades_school_id_fkey(id, name)
           `)
           .eq("term", term)
-          .in("status", ["submitted", "approved", "released"]);
+          .in("status", ["submitted", "approved", "released"])
+          .order('created_at', { ascending: false });
         
         if (school_id) {
           query = query.eq("school_id", school_id);
-          reportTitle = `Grades Report (${schoolInfo?.name || 'Selected School'})`;
+          reportTitle = `Grades Report - ${schoolInfo?.name || 'Selected School'} - ${term}`;
         } else {
-          reportTitle = `Grades Report (All Schools)`;
+          reportTitle = `Grades Report - All Schools - ${term}`;
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) {
+          console.error("Admin grades query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(grade => ({
+        resultRows = (data || []).map(grade => ({
           School: grade.schools?.name || 'N/A',
           Student: grade.students?.name || 'N/A',
           AdmissionNumber: grade.students?.admission_number || 'N/A',
@@ -179,11 +215,13 @@ serve(async (req: Request) => {
           Score: grade.score || 0,
           Percentage: grade.percentage || 0,
           LetterGrade: grade.letter_grade || 'N/A'
-        })) || [];
+        }));
+      } else {
+        throw new Error(`Role ${role} is not authorized for grades reports`);
       }
       
     } else if (type === "attendance") {
-      reportTitle = `Attendance Report`;
+      reportTitle = `Attendance Report - ${term}`;
       
       if (role === "teacher") {
         if (!class_id) {
@@ -202,17 +240,21 @@ serve(async (req: Request) => {
             classes!attendance_class_id_fkey(id, name)
           `)
           .eq("class_id", class_id)
-          .eq("term", term);
+          .eq("term", term)
+          .order('date', { ascending: false });
           
-        if (error) throw error;
+        if (error) {
+          console.error("Teacher attendance query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(attendance => ({
+        resultRows = (data || []).map(attendance => ({
           Student: attendance.students?.name || 'N/A',
           AdmissionNumber: attendance.students?.admission_number || 'N/A',
           Date: attendance.date || 'N/A',
           Status: attendance.status || 'N/A',
           Session: attendance.session || 'N/A'
-        })) || [];
+        }));
         
       } else if (role === "principal" || role === "school_owner") {
         if (!school_id) {
@@ -231,18 +273,22 @@ serve(async (req: Request) => {
             classes!attendance_class_id_fkey(id, name)
           `)
           .eq("school_id", school_id)
-          .eq("term", term);
+          .eq("term", term)
+          .order('date', { ascending: false });
           
-        if (error) throw error;
+        if (error) {
+          console.error("Principal attendance query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(attendance => ({
+        resultRows = (data || []).map(attendance => ({
           Student: attendance.students?.name || 'N/A',
           AdmissionNumber: attendance.students?.admission_number || 'N/A',
           Class: attendance.classes?.name || 'N/A',
           Date: attendance.date || 'N/A',
           Status: attendance.status || 'N/A',
           Session: attendance.session || 'N/A'
-        })) || [];
+        }));
         
       } else if (role === "edufam_admin") {
         let query = supabase
@@ -258,30 +304,36 @@ serve(async (req: Request) => {
             classes!attendance_class_id_fkey(id, name),
             schools!attendance_school_id_fkey(id, name)
           `)
-          .eq("term", term);
+          .eq("term", term)
+          .order('date', { ascending: false });
 
         if (school_id) {
           query = query.eq("school_id", school_id);
-          reportTitle = `Attendance Report (${schoolInfo?.name || 'Selected School'})`;
+          reportTitle = `Attendance Report - ${schoolInfo?.name || 'Selected School'} - ${term}`;
         } else {
-          reportTitle = `Attendance Report (All Schools)`;
+          reportTitle = `Attendance Report - All Schools - ${term}`;
         }
         
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) {
+          console.error("Admin attendance query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(attendance => ({
+        resultRows = (data || []).map(attendance => ({
           School: attendance.schools?.name || 'N/A',
           Student: attendance.students?.name || 'N/A',
           AdmissionNumber: attendance.students?.admission_number || 'N/A',
           Class: attendance.classes?.name || 'N/A',
           Date: attendance.date || 'N/A',
           Status: attendance.status || 'N/A'
-        })) || [];
+        }));
+      } else {
+        throw new Error(`Role ${role} is not authorized for attendance reports`);
       }
       
     } else if (type === "finance") {
-      reportTitle = `Finance Report`;
+      reportTitle = `Finance Report - ${term}`;
       
       if (role === "finance_officer" || role === "principal" || role === "school_owner") {
         if (!school_id) {
@@ -302,11 +354,15 @@ serve(async (req: Request) => {
             classes!fees_class_id_fkey(id, name)
           `)
           .eq("school_id", school_id)
-          .eq("term", term);
+          .eq("term", term)
+          .order('created_at', { ascending: false });
           
-        if (error) throw error;
+        if (error) {
+          console.error("Finance query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(fee => ({
+        resultRows = (data || []).map(fee => ({
           Student: fee.students?.name || 'N/A',
           AdmissionNumber: fee.students?.admission_number || 'N/A',
           Class: fee.classes?.name || 'N/A',
@@ -316,7 +372,7 @@ serve(async (req: Request) => {
           Outstanding: (fee.amount || 0) - (fee.paid_amount || 0),
           Status: fee.status || 'pending',
           DueDate: fee.due_date || 'N/A'
-        })) || [];
+        }));
         
       } else if (role === "edufam_admin") {
         let query = supabase
@@ -333,19 +389,23 @@ serve(async (req: Request) => {
             students!fees_student_id_fkey(id, name, admission_number),
             schools!fees_school_id_fkey(id, name)
           `)
-          .eq("term", term);
+          .eq("term", term)
+          .order('created_at', { ascending: false });
 
         if (school_id) {
           query = query.eq("school_id", school_id);
-          reportTitle = `Finance Report (${schoolInfo?.name || 'Selected School'})`;
+          reportTitle = `Finance Report - ${schoolInfo?.name || 'Selected School'} - ${term}`;
         } else {
-          reportTitle = `Finance Report (All Schools)`;
+          reportTitle = `Finance Report - All Schools - ${term}`;
         }
         
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) {
+          console.error("Admin finance query error:", error);
+          throw new Error(`Database error: ${error.message}`);
+        }
         
-        resultRows = data?.map(fee => ({
+        resultRows = (data || []).map(fee => ({
           School: fee.schools?.name || 'N/A',
           Student: fee.students?.name || 'N/A',
           AdmissionNumber: fee.students?.admission_number || 'N/A',
@@ -354,7 +414,9 @@ serve(async (req: Request) => {
           PaidAmount: fee.paid_amount || 0,
           Outstanding: (fee.amount || 0) - (fee.paid_amount || 0),
           Status: fee.status || 'pending'
-        })) || [];
+        }));
+      } else {
+        throw new Error(`Role ${role} is not authorized for finance reports`);
       }
       
     } else {
@@ -370,7 +432,7 @@ serve(async (req: Request) => {
 
   // Include metadata and error handling
   const metaData = {
-    School: schoolInfo?.name || "",
+    School: schoolInfo?.name || "N/A",
     "Report Title": reportTitle,
     Term: term,
     Generated: new Date().toLocaleString(),
@@ -382,17 +444,31 @@ serve(async (req: Request) => {
 
   // Build Excel file
   try {
-    const sheet = XLSX.utils.json_to_sheet([
+    // Create worksheet data with metadata at top
+    const worksheetData = [
       metaData,
       {},  // Empty row for separation
       ...resultRows
-    ]);
+    ];
+
+    const sheet = XLSX.utils.json_to_sheet(worksheetData);
+    
+    // Set column widths for better readability
+    const colWidths = Object.keys(resultRows[0] || {}).map(() => ({ wch: 15 }));
+    sheet['!cols'] = colWidths;
     
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, "Report");
+    
     const xlsxData = XLSX.write(wb, { bookType: "xlsx", type: "array" });
 
-    const filename = `${reportTitle.replace(/ /g,"_")}_${term}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    if (!xlsxData || xlsxData.length === 0) {
+      throw new Error("Failed to generate Excel data");
+    }
+
+    const filename = `${reportTitle.replace(/[^a-zA-Z0-9]/g,"_")}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    console.log(`Report generated successfully: ${filename}, ${xlsxData.length} bytes`);
 
     return new Response(xlsxData, {
       status: 200,
@@ -410,7 +486,7 @@ serve(async (req: Request) => {
       details: error.message 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 });

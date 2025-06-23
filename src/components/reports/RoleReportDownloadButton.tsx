@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Download, AlertCircle } from "lucide-react";
+import { Download, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/contexts/SchoolContext";
@@ -55,20 +55,30 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
         "https://lmqyizrnuahkmwauonqr.functions.supabase.co/generate_role_report",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          },
           body: JSON.stringify(payload)
         }
       );
       
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ Report API error:', errorText);
-        throw new Error(`Report generation failed (${res.status}): ${errorText}`);
+        let errorMessage = `Report generation failed (${res.status})`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = await res.text() || errorMessage;
+        }
+        console.error('❌ Report API error:', errorMessage);
+        throw new Error(errorMessage);
       }
       
       // Verify we got an Excel file
       const contentType = res.headers.get("Content-Type");
       if (!contentType || !contentType.includes("spreadsheet")) {
+        console.error('❌ Invalid content type:', contentType);
         throw new Error("Invalid response format - expected Excel file");
       }
       
@@ -77,14 +87,18 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
         throw new Error("Empty report file received");
       }
       
+      console.log('✅ Report blob received:', blob.size, 'bytes');
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${type}_report_${term}_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
-      setTimeout(() => window.URL.revokeObjectURL(url), 500);
-      a.remove();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 500);
       
       toast({ 
         title: "Report Downloaded!", 
@@ -95,7 +109,7 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
       console.error('❌ Report download error:', e);
       toast({ 
         title: "Download Failed", 
-        description: e.message || "Failed to generate report. Please try again.", 
+        description: e.message || "Failed to generate report. Please try again.",
         variant: "destructive" 
       });
     } finally {
@@ -103,15 +117,19 @@ const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({
     }
   };
 
+  const isDisabled = downloading || !user?.id;
+
   return (
     <Button
       onClick={handleDownload}
-      disabled={downloading || !user?.id}
+      disabled={isDisabled}
       variant={variant || "outline"}
       size={size}
       className="flex items-center gap-2"
     >
-      {!user?.id ? (
+      {downloading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : !user?.id ? (
         <AlertCircle className="w-4 h-4" />
       ) : (
         <Download className="w-4 h-4" />

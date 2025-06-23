@@ -3,13 +3,18 @@
 
 export const generatePlatformOverviewReport = async (supabase: any, filters: any) => {
   try {
+    console.log('Generating platform overview report...');
+    
     // Get total schools count
     const { data: schoolsData, error: schoolsError } = await supabase
       .from('schools')
       .select('id, name, created_at, location')
       .order('created_at', { ascending: false });
 
-    if (schoolsError) throw schoolsError;
+    if (schoolsError) {
+      console.error('Schools query error:', schoolsError);
+      throw new Error(`Failed to fetch schools: ${schoolsError.message}`);
+    }
 
     // Get total users count by role
     const { data: usersData, error: usersError } = await supabase
@@ -17,7 +22,10 @@ export const generatePlatformOverviewReport = async (supabase: any, filters: any
       .select('id, role, created_at, school_id')
       .order('created_at', { ascending: false });
 
-    if (usersError) throw usersError;
+    if (usersError) {
+      console.error('Users query error:', usersError);
+      throw new Error(`Failed to fetch users: ${usersError.message}`);
+    }
 
     // Get system metrics
     const { data: metricsData, error: metricsError } = await supabase
@@ -26,14 +34,18 @@ export const generatePlatformOverviewReport = async (supabase: any, filters: any
       .order('metric_date', { ascending: false })
       .limit(30);
 
-    if (metricsError) throw metricsError;
+    if (metricsError) {
+      console.error('Metrics query error:', metricsError);
+      // Don't fail the whole report for metrics
+    }
 
     const totalSchools = schoolsData?.length || 0;
     const activeSchools = schoolsData?.filter(s => s.created_at).length || 0;
     const totalUsers = usersData?.length || 0;
     
     const usersByRole = usersData?.reduce((acc: any, user: any) => {
-      acc[user.role] = (acc[user.role] || 0) + 1;
+      const role = user.role || 'unknown';
+      acc[role] = (acc[role] || 0) + 1;
       return acc;
     }, {}) || {};
 
@@ -61,7 +73,8 @@ export const generatePlatformOverviewReport = async (supabase: any, filters: any
               { text: `Total Users: ${totalUsers}`, margin: [0, 5] },
               { text: `Principals: ${usersByRole.principal || 0}`, margin: [0, 5] },
               { text: `Teachers: ${usersByRole.teacher || 0}`, margin: [0, 5] },
-              { text: `Parents: ${usersByRole.parent || 0}`, margin: [0, 5] }
+              { text: `Parents: ${usersByRole.parent || 0}`, margin: [0, 5] },
+              { text: `Finance Officers: ${usersByRole.finance_officer || 0}`, margin: [0, 5] }
             ]
           }
         ],
@@ -82,7 +95,7 @@ export const generatePlatformOverviewReport = async (supabase: any, filters: any
               school.name || 'N/A',
               school.location || 'N/A',
               school.created_at ? new Date(school.created_at).toLocaleDateString() : 'N/A'
-            ]) || [])
+            ]) || [['No schools found', '', '']])
           ]
         },
         margin: [0, 0, 0, 20]
@@ -92,7 +105,7 @@ export const generatePlatformOverviewReport = async (supabase: any, filters: any
     console.error('Error generating platform overview report:', error);
     return [
       {
-        text: 'Error generating platform overview report',
+        text: 'Platform Overview Report - Error',
         style: 'error'
       },
       {
@@ -105,12 +118,42 @@ export const generatePlatformOverviewReport = async (supabase: any, filters: any
 
 export const generateSchoolsSummaryReport = async (supabase: any, filters: any) => {
   try {
-    const { data: schoolsData, error: schoolsError } = await supabase
+    console.log('Generating schools summary report...');
+    
+    // Try to get comprehensive data first
+    let { data: schoolsData, error: schoolsError } = await supabase
       .from('comprehensive_report_data')
       .select('*')
       .order('school_name', { ascending: true });
 
-    if (schoolsError) throw schoolsError;
+    // If comprehensive data doesn't exist, fall back to basic school data
+    if (schoolsError || !schoolsData || schoolsData.length === 0) {
+      console.log('Comprehensive data not available, using basic school data');
+      
+      const { data: basicSchools, error: basicError } = await supabase
+        .from('schools')
+        .select(`
+          id,
+          name,
+          location,
+          created_at
+        `)
+        .order('name', { ascending: true });
+
+      if (basicError) {
+        throw new Error(`Failed to fetch schools: ${basicError.message}`);
+      }
+
+      schoolsData = basicSchools?.map((school: any) => ({
+        school_id: school.id,
+        school_name: school.name,
+        location: school.location,
+        total_students: 0,
+        total_teachers: 0,
+        average_grade: 0,
+        attendance_rate: 0
+      })) || [];
+    }
 
     const totalSchools = schoolsData?.length || 0;
     const totalStudents = schoolsData?.reduce((sum: number, school: any) => sum + (school.total_students || 0), 0);
@@ -165,7 +208,7 @@ export const generateSchoolsSummaryReport = async (supabase: any, filters: any) 
               (school.total_teachers || 0).toString(),
               school.average_grade ? `${school.average_grade.toFixed(1)}%` : 'N/A',
               school.attendance_rate ? `${school.attendance_rate.toFixed(1)}%` : 'N/A'
-            ]) || [])
+            ]) || [['No schools found', '', '', '', '']])
           ]
         }
       }
@@ -174,8 +217,12 @@ export const generateSchoolsSummaryReport = async (supabase: any, filters: any) 
     console.error('Error generating schools summary report:', error);
     return [
       {
-        text: 'Error generating schools summary report',
+        text: 'Schools Summary Report - Error',
         style: 'error'
+      },
+      {
+        text: `Error details: ${error.message || 'Unknown error'}`,
+        margin: [0, 10]
       }
     ];
   }
@@ -183,6 +230,8 @@ export const generateSchoolsSummaryReport = async (supabase: any, filters: any) 
 
 export const generateUsersAnalyticsReport = async (supabase: any, filters: any) => {
   try {
+    console.log('Generating users analytics report...');
+    
     const { data: usersData, error: usersError } = await supabase
       .from('profiles')
       .select(`
@@ -194,18 +243,42 @@ export const generateUsersAnalyticsReport = async (supabase: any, filters: any) 
       `)
       .order('created_at', { ascending: false });
 
-    if (usersError) throw usersError;
+    if (usersError) {
+      throw new Error(`Failed to fetch users: ${usersError.message}`);
+    }
 
     const usersByRole = usersData?.reduce((acc: any, user: any) => {
-      acc[user.role] = (acc[user.role] || 0) + 1;
+      const role = user.role || 'unknown';
+      acc[role] = (acc[role] || 0) + 1;
       return acc;
     }, {}) || {};
+
+    const totalUsers = usersData?.length || 0;
 
     return [
       {
         text: 'Users Analytics Report',
         style: 'header',
         margin: [0, 0, 0, 10]
+      },
+      {
+        columns: [
+          {
+            width: '50%',
+            stack: [
+              { text: 'Total Users', style: 'subheader' },
+              { text: totalUsers.toString(), style: 'bigNumber' }
+            ]
+          },
+          {
+            width: '50%',
+            stack: [
+              { text: 'Active Accounts', style: 'subheader' },
+              { text: totalUsers.toString(), style: 'bigNumber' }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 20]
       },
       {
         text: 'User Distribution by Role',
@@ -231,8 +304,12 @@ export const generateUsersAnalyticsReport = async (supabase: any, filters: any) 
     console.error('Error generating users analytics report:', error);
     return [
       {
-        text: 'Error generating users analytics report',
+        text: 'Users Analytics Report - Error',
         style: 'error'
+      },
+      {
+        text: `Error details: ${error.message || 'Unknown error'}`,
+        margin: [0, 10]
       }
     ];
   }
@@ -240,16 +317,22 @@ export const generateUsersAnalyticsReport = async (supabase: any, filters: any) 
 
 export const generateFinancialOverviewReport = async (supabase: any, filters: any) => {
   try {
+    console.log('Generating financial overview report...');
+    
     const { data: feesData, error: feesError } = await supabase
       .from('fees')
       .select('amount, paid_amount, status, school_id, schools(name)')
       .order('created_at', { ascending: false });
 
-    if (feesError) throw feesError;
+    if (feesError) {
+      console.error('Fees query error:', feesError);
+      throw new Error(`Failed to fetch fees data: ${feesError.message}`);
+    }
 
     const totalFees = feesData?.reduce((sum: number, fee: any) => sum + (fee.amount || 0), 0) || 0;
     const totalCollected = feesData?.reduce((sum: number, fee: any) => sum + (fee.paid_amount || 0), 0) || 0;
     const outstanding = totalFees - totalCollected;
+    const collectionRate = totalFees > 0 ? ((totalCollected / totalFees) * 100) : 0;
 
     return [
       {
@@ -263,38 +346,46 @@ export const generateFinancialOverviewReport = async (supabase: any, filters: an
             width: '33%',
             stack: [
               { text: 'Total Fees', style: 'subheader' },
-              { text: `$${totalFees.toFixed(2)}`, style: 'bigNumber' }
+              { text: `KES ${totalFees.toLocaleString()}`, style: 'bigNumber' }
             ]
           },
           {
             width: '33%',
             stack: [
               { text: 'Collected', style: 'subheader' },
-              { text: `$${totalCollected.toFixed(2)}`, style: 'bigNumber' }
+              { text: `KES ${totalCollected.toLocaleString()}`, style: 'bigNumber' }
             ]
           },
           {
             width: '34%',
             stack: [
               { text: 'Outstanding', style: 'subheader' },
-              { text: `$${outstanding.toFixed(2)}`, style: 'bigNumber' }
+              { text: `KES ${outstanding.toLocaleString()}`, style: 'bigNumber' }
             ]
           }
         ],
         margin: [0, 0, 0, 20]
       },
       {
-        text: `Collection Rate: ${totalFees > 0 ? ((totalCollected / totalFees) * 100).toFixed(1) : 0}%`,
+        text: `Collection Rate: ${collectionRate.toFixed(1)}%`,
         style: 'subheader',
         margin: [0, 10]
+      },
+      {
+        text: `Total Transactions: ${feesData?.length || 0}`,
+        margin: [0, 5]
       }
     ];
   } catch (error) {
     console.error('Error generating financial overview report:', error);
     return [
       {
-        text: 'Error generating financial overview report',
+        text: 'Financial Overview Report - Error',
         style: 'error'
+      },
+      {
+        text: `Error details: ${error.message || 'Unknown error'}`,
+        margin: [0, 10]
       }
     ];
   }
@@ -302,15 +393,20 @@ export const generateFinancialOverviewReport = async (supabase: any, filters: an
 
 export const generateSystemHealthReport = async (supabase: any, filters: any) => {
   try {
+    console.log('Generating system health report...');
+    
     const { data: metricsData, error: metricsError } = await supabase
       .from('company_metrics')
       .select('*')
       .order('metric_date', { ascending: false })
       .limit(7);
 
-    if (metricsError) throw metricsError;
+    if (metricsError) {
+      console.error('Metrics query error:', metricsError);
+    }
 
     const latestMetrics = metricsData?.[0] || {};
+    const hasMetrics = metricsData && metricsData.length > 0;
 
     return [
       {
@@ -338,11 +434,11 @@ export const generateSystemHealthReport = async (supabase: any, filters: any) =>
         margin: [0, 0, 0, 20]
       },
       {
-        text: 'Recent Activity',
+        text: hasMetrics ? 'Recent Activity' : 'System Status',
         style: 'subheader',
         margin: [0, 10, 0, 5]
       },
-      {
+      hasMetrics ? {
         table: {
           headerRows: 1,
           widths: ['*', '*', '*', '*'],
@@ -356,14 +452,21 @@ export const generateSystemHealthReport = async (supabase: any, filters: any) =>
             ]) || [])
           ]
         }
+      } : {
+        text: 'System is operational. No detailed metrics available.',
+        margin: [0, 10]
       }
     ];
   } catch (error) {
     console.error('Error generating system health report:', error);
     return [
       {
-        text: 'Error generating system health report',
+        text: 'System Health Report - Error',
         style: 'error'
+      },
+      {
+        text: `Error details: ${error.message || 'Unknown error'}`,
+        margin: [0, 10]
       }
     ];
   }
@@ -371,12 +474,16 @@ export const generateSystemHealthReport = async (supabase: any, filters: any) =>
 
 export const generateCompanyProfileReport = async (supabase: any, filters: any) => {
   try {
+    console.log('Generating company profile report...');
+    
     const { data: companyData, error: companyError } = await supabase
       .from('company_details')
       .select('*')
       .single();
 
-    if (companyError && companyError.code !== 'PGRST116') throw companyError;
+    if (companyError && companyError.code !== 'PGRST116') {
+      console.error('Company data query error:', companyError);
+    }
 
     const company = companyData || {
       company_name: 'EduFam',
@@ -425,14 +532,27 @@ export const generateCompanyProfileReport = async (supabase: any, filters: any) 
       {
         text: company.company_motto || 'Empowering Education Through Technology',
         margin: [0, 0, 0, 20]
+      },
+      {
+        text: 'Service Information',
+        style: 'subheader',
+        margin: [0, 10, 0, 5]
+      },
+      {
+        text: 'EduFam provides comprehensive school management solutions including student information systems, grade management, attendance tracking, and financial management tools.',
+        margin: [0, 0, 0, 10]
       }
     ];
   } catch (error) {
     console.error('Error generating company profile report:', error);
     return [
       {
-        text: 'Error generating company profile report',
+        text: 'Company Profile Report - Error',
         style: 'error'
+      },
+      {
+        text: `Error details: ${error.message || 'Unknown error'}`,
+        margin: [0, 10]
       }
     ];
   }
