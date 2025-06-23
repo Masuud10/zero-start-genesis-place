@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSubjectService } from '@/hooks/useSubjectService';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
-import { AlertCircle, BookOpen } from 'lucide-react';
+import { AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SubjectCreationData } from '@/types/subject';
 
@@ -33,11 +33,14 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     description: ''
   });
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const { createSubject, loading } = useSubjectService();
   const { classList, teacherList, loadingEntities } = usePrincipalEntityLists(0);
 
   const validateForm = () => {
+    setError(null);
+    
     if (!formData.name.trim()) {
       setError("Subject name is required");
       return false;
@@ -70,33 +73,43 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     
     if (!validateForm()) return;
 
-    console.log('Submitting subject creation:', formData);
+    console.log('CreateSubjectForm: Submitting subject creation:', formData);
 
     try {
-      // Ensure code is uppercase
+      // Ensure code is uppercase and clean data
       const submissionData = {
         ...formData,
-        code: formData.code.toUpperCase(),
+        code: formData.code.toUpperCase().trim(),
         name: formData.name.trim(),
         description: formData.description?.trim() || ''
       };
 
+      console.log('CreateSubjectForm: Processed submission data:', submissionData);
+
       const result = await createSubject(submissionData);
 
       if (result) {
-        handleClose();
-        onSuccess();
+        console.log('CreateSubjectForm: Subject created successfully:', result);
+        setSuccess(`Subject "${result.name}" created successfully!`);
+        
+        // Small delay to show success message before closing
+        setTimeout(() => {
+          handleClose();
+          onSuccess();
+        }, 1500);
       }
     } catch (error: any) {
-      console.error('Form submission error:', error);
+      console.error('CreateSubjectForm: Form submission error:', error);
       setError(error.message || 'Failed to create subject');
     }
   };
 
   const handleClose = () => {
+    console.log('CreateSubjectForm: Closing form and resetting state');
     setFormData({
       name: '',
       code: '',
@@ -108,6 +121,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
       description: ''
     });
     setError(null);
+    setSuccess(null);
     onClose();
   };
 
@@ -115,6 +129,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     const upperValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     setFormData({ ...formData, code: upperValue });
     setError(null);
+    setSuccess(null);
+  };
+
+  const handleNameChange = (value: string) => {
+    setFormData({ ...formData, name: value });
+    setError(null);
+    setSuccess(null);
   };
 
   return (
@@ -134,6 +155,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
           </Alert>
         )}
 
+        {success && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-700">{success}</AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,10 +173,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
                 id="name"
                 placeholder="e.g., Mathematics"
                 value={formData.name}
-                onChange={(e) => {
-                  setFormData({ ...formData, name: e.target.value });
-                  setError(null);
-                }}
+                onChange={(e) => handleNameChange(e.target.value)}
                 required
                 disabled={loading}
                 className="border-gray-300 focus:border-blue-500"
@@ -178,7 +203,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
               <Label className="text-gray-700">Category</Label>
               <Select 
                 value={formData.category} 
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, category: value });
+                  setError(null);
+                  setSuccess(null);
+                }}
                 disabled={loading}
               >
                 <SelectTrigger className="border-gray-300 focus:border-blue-500">
@@ -199,7 +228,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
               <Label className="text-gray-700">Credit Hours</Label>
               <Select 
                 value={formData.credit_hours?.toString()} 
-                onValueChange={(value) => setFormData({ ...formData, credit_hours: parseInt(value) || 1 })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, credit_hours: parseInt(value) || 1 });
+                  setError(null);
+                  setSuccess(null);
+                }}
                 disabled={loading}
               >
                 <SelectTrigger className="border-gray-300 focus:border-blue-500">
@@ -222,7 +255,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
               <Label className="text-gray-700">Class (Optional)</Label>
               <Select 
                 value={formData.class_id || ''} 
-                onValueChange={(value) => setFormData({ ...formData, class_id: value || undefined })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, class_id: value || undefined });
+                  setError(null);
+                  setSuccess(null);
+                }}
                 disabled={loading || loadingEntities}
               >
                 <SelectTrigger className="border-gray-300 focus:border-blue-500">
@@ -243,7 +280,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
               <Label className="text-gray-700">Teacher (Optional)</Label>
               <Select 
                 value={formData.teacher_id || ''} 
-                onValueChange={(value) => setFormData({ ...formData, teacher_id: value || undefined })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, teacher_id: value || undefined });
+                  setError(null);
+                  setSuccess(null);
+                }}
                 disabled={loading || loadingEntities}
               >
                 <SelectTrigger className="border-gray-300 focus:border-blue-500">
@@ -266,7 +307,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             <Label className="text-gray-700">Curriculum System</Label>
             <Select 
               value={formData.curriculum} 
-              onValueChange={(value) => setFormData({ ...formData, curriculum: value })}
+              onValueChange={(value) => {
+                setFormData({ ...formData, curriculum: value });
+                setError(null);
+                setSuccess(null);
+              }}
               disabled={loading}
             >
               <SelectTrigger className="border-gray-300 focus:border-blue-500">
@@ -288,7 +333,11 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             <Input
               placeholder="Brief description of the subject"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, description: e.target.value });
+                setError(null);
+                setSuccess(null);
+              }}
               disabled={loading}
               className="border-gray-300 focus:border-blue-500"
             />
@@ -308,9 +357,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
             <Button 
               type="submit" 
               disabled={loading || !formData.name.trim() || !formData.code.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
             >
-              {loading ? "Creating..." : "Create Subject"}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Creating...</span>
+                </div>
+              ) : (
+                "Create Subject"
+              )}
             </Button>
           </div>
         </form>

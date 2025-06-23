@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Subject, SubjectCreationData, SubjectAssignment, CreateAssignmentData } from '@/types/subject';
 
@@ -26,20 +25,37 @@ export class SubjectService {
     }
 
     try {
+      // Check for duplicate name within the school
+      const { data: existingName, error: nameCheckError } = await supabase
+        .from('subjects')
+        .select('id')
+        .eq('school_id', schoolId)
+        .ilike('name', data.name.trim())
+        .maybeSingle();
+
+      if (nameCheckError) {
+        console.error('Error checking for duplicate subject name:', nameCheckError);
+        throw new Error('Failed to validate subject name: ' + nameCheckError.message);
+      }
+
+      if (existingName) {
+        throw new Error(`Subject with name "${data.name.trim()}" already exists in your school`);
+      }
+
       // Check for duplicate code within the school
-      const { data: existing, error: checkError } = await supabase
+      const { data: existingCode, error: codeCheckError } = await supabase
         .from('subjects')
         .select('id')
         .eq('school_id', schoolId)
         .eq('code', formattedCode)
         .maybeSingle();
 
-      if (checkError) {
-        console.error('Error checking for duplicate subject code:', checkError);
-        throw new Error('Failed to validate subject code: ' + checkError.message);
+      if (codeCheckError) {
+        console.error('Error checking for duplicate subject code:', codeCheckError);
+        throw new Error('Failed to validate subject code: ' + codeCheckError.message);
       }
 
-      if (existing) {
+      if (existingCode) {
         throw new Error(`Subject with code "${formattedCode}" already exists in your school`);
       }
 
@@ -108,7 +124,12 @@ export class SubjectService {
         
         // Handle specific database errors
         if (error.code === '23505') {
-          throw new Error('A subject with this code already exists');
+          if (error.message.includes('subjects_name_school_id_key')) {
+            throw new Error('A subject with this name already exists in your school');
+          } else if (error.message.includes('subjects_code_school_id_key')) {
+            throw new Error('A subject with this code already exists in your school');
+          }
+          throw new Error('A subject with this information already exists');
         }
         if (error.code === '23503') {
           throw new Error('Invalid reference - check that class and teacher exist');

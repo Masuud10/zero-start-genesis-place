@@ -12,9 +12,11 @@ export const useSubjectService = () => {
 
   const createSubject = useCallback(async (data: SubjectCreationData): Promise<Subject | null> => {
     if (!schoolId) {
+      const errorMsg = "No school context found. Please ensure you're logged in as a Principal.";
+      console.error('createSubject: No schoolId available');
       toast({
-        title: "Error",
-        description: "No school context found",
+        title: "Authentication Error",
+        description: errorMsg,
         variant: "destructive"
       });
       return null;
@@ -22,19 +24,37 @@ export const useSubjectService = () => {
 
     setLoading(true);
     try {
+      console.log('useSubjectService.createSubject: Starting creation process', { data, schoolId });
+      
       const subject = await SubjectService.createSubject(data, schoolId);
+      
+      console.log('useSubjectService.createSubject: Subject created successfully', subject);
       
       toast({
         title: "Success",
-        description: "Subject created successfully"
+        description: `Subject "${subject.name}" created successfully`
       });
       
       return subject;
     } catch (error: any) {
-      console.error('Subject creation failed:', error);
+      console.error('useSubjectService.createSubject: Creation failed', error);
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = error.message || "Failed to create subject";
+      
+      if (error.message?.includes('already exists')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('Permission denied')) {
+        errorMessage = "You don't have permission to create subjects. Please contact your administrator.";
+      } else if (error.message?.includes('Invalid reference')) {
+        errorMessage = "The selected class or teacher is invalid. Please refresh the page and try again.";
+      } else if (error.message?.includes('School ID is required')) {
+        errorMessage = "Session expired. Please log out and log back in.";
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to create subject",
+        title: "Error Creating Subject",
+        description: errorMessage,
         variant: "destructive"
       });
       return null;
@@ -45,9 +65,11 @@ export const useSubjectService = () => {
 
   const createAssignment = useCallback(async (data: CreateAssignmentData): Promise<SubjectAssignment | null> => {
     if (!schoolId) {
+      const errorMsg = "No school context found. Please ensure you're logged in properly.";
+      console.error('createAssignment: No schoolId available');
       toast({
-        title: "Error",
-        description: "No school context found",
+        title: "Authentication Error",
+        description: errorMsg,
         variant: "destructive"
       });
       return null;
@@ -55,7 +77,11 @@ export const useSubjectService = () => {
 
     setLoading(true);
     try {
+      console.log('useSubjectService.createAssignment: Starting assignment process', { data, schoolId });
+      
       const assignment = await SubjectService.createAssignment(data, schoolId);
+      
+      console.log('useSubjectService.createAssignment: Assignment created successfully', assignment);
       
       toast({
         title: "Success",
@@ -64,10 +90,19 @@ export const useSubjectService = () => {
       
       return assignment;
     } catch (error: any) {
-      console.error('Assignment creation failed:', error);
+      console.error('useSubjectService.createAssignment: Assignment failed', error);
+      
+      let errorMessage = error.message || "Failed to assign teacher";
+      
+      if (error.message?.includes('already assigned')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('Permission denied')) {
+        errorMessage = "You don't have permission to create assignments. Please contact your administrator.";
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to assign teacher",
+        title: "Error Creating Assignment",
+        description: errorMessage,
         variant: "destructive"
       });
       return null;
@@ -79,7 +114,11 @@ export const useSubjectService = () => {
   const removeAssignment = useCallback(async (assignmentId: string): Promise<boolean> => {
     setLoading(true);
     try {
+      console.log('useSubjectService.removeAssignment: Starting removal', assignmentId);
+      
       await SubjectService.removeAssignment(assignmentId);
+      
+      console.log('useSubjectService.removeAssignment: Assignment removed successfully');
       
       toast({
         title: "Success",
@@ -88,7 +127,7 @@ export const useSubjectService = () => {
       
       return true;
     } catch (error: any) {
-      console.error('Assignment removal failed:', error);
+      console.error('useSubjectService.removeAssignment: Removal failed', error);
       toast({
         title: "Error",
         description: error.message || "Failed to remove assignment",
