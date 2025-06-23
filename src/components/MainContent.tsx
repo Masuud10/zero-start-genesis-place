@@ -10,6 +10,8 @@ import EduFamReportGeneration from './reports/EduFamReportGeneration';
 import ProjectHubModule from './modules/ProjectHubModule';
 import GradesModule from './modules/GradesModule';
 import TeacherGradesModule from './modules/TeacherGradesModule';
+import SupportModule from './modules/SupportModule';
+import UserSupportModule from './modules/UserSupportModule';
 
 interface MainContentProps {
   activeSection: string;
@@ -63,6 +65,14 @@ const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
           <h2 className="text-xl font-semibold mb-4">Reports</h2>
           <p className="text-muted-foreground">Report generation feature coming soon for your role.</p>
         </div>;
+
+      case 'support':
+        // Edufam admins see the full support management system
+        if (user?.role === 'edufam_admin') {
+          return <SupportModule />;
+        }
+        // All other users see the user support module (submit tickets only)
+        return <UserSupportModule />;
         
       case 'schools':
         return <div className="p-8 text-center">
@@ -118,12 +128,6 @@ const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
             {user?.role === 'edufam_admin' ? 'Communication Center' : 'Announcements'}
           </h2>
           <p className="text-muted-foreground">Communication features coming soon.</p>
-        </div>;
-        
-      case 'support':
-        return <div className="p-8 text-center">
-          <h2 className="text-xl font-semibold mb-4">Support Center</h2>
-          <p className="text-muted-foreground">Support center coming soon.</p>
         </div>;
         
       case 'settings':

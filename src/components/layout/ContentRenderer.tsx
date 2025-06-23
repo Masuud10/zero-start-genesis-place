@@ -21,6 +21,7 @@ import TimetableModule from '@/components/modules/TimetableModule';
 import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
 import ReportsModule from '@/components/modules/ReportsModule';
 import SupportModule from '@/components/modules/SupportModule';
+import UserSupportModule from '@/components/modules/UserSupportModule';
 import SettingsModule from '@/components/modules/SettingsModule';
 import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
 import SecurityModule from '@/components/modules/SecurityModule';
@@ -107,7 +108,12 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
         return <ReportsModule />;
 
       case 'support':
-        return <SupportModule />;
+        // Edufam admins see the full support management system
+        if (user?.role === 'edufam_admin') {
+          return <SupportModule />;
+        }
+        // All other users see the user support module (submit tickets only)
+        return <UserSupportModule />;
 
       case 'settings':
         return <SettingsModule />;

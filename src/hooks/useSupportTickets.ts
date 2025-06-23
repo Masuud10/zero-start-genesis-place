@@ -49,9 +49,12 @@ export const useSupportTickets = () => {
         `)
         .order('created_at', { ascending: false });
 
+      // Only edufam_admin can see all tickets, others see only their own
       if (user.role !== 'edufam_admin') {
         query = query.eq('created_by', user.id);
       }
+
+      console.log('🎫 Fetching support tickets for user:', user.role, user.id);
 
       const { data, error: fetchError } = await useTimeoutPromise(
         Promise.resolve(query.then(x => x)),
@@ -76,10 +79,12 @@ export const useSupportTickets = () => {
         creator_name: item.profiles?.name
       })) || [];
 
+      console.log('🎫 Support tickets fetched:', formattedData.length, 'tickets for role:', user.role);
       setTickets(formattedData);
       setError(null);
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch support tickets';
+      console.error('🎫 Error fetching support tickets:', message);
       setError(message);
       setTickets([]);
     } finally {
@@ -100,6 +105,7 @@ export const useSupportTickets = () => {
     if (!user) return { data: null, error: new Error("User not authenticated") };
 
     try {
+      console.log('🎫 Creating support ticket for user:', user.id);
       const { data, error } = await supabase
         .from('support_tickets')
         .insert({
@@ -111,9 +117,11 @@ export const useSupportTickets = () => {
         .single();
 
       if (error) throw error;
+      console.log('🎫 Support ticket created successfully:', data.id);
       await fetchTickets();
       return { data, error: null };
     } catch (error: any) {
+      console.error('🎫 Error creating support ticket:', error);
       return { data: null, error };
     }
   };
