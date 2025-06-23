@@ -3921,6 +3921,116 @@ export type Database = {
           },
         ]
       }
+      project_milestones: {
+        Row: {
+          assigned_to: string | null
+          completed_date: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string
+          id: string
+          milestone_name: string
+          project_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date: string
+          id?: string
+          milestone_name: string
+          project_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string
+          id?: string
+          milestone_name?: string
+          project_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          actual_cost: number | null
+          attachments: Json | null
+          budget: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          notes: string | null
+          priority: string | null
+          progress: number | null
+          project_name: string
+          project_type: string
+          responsible_person: string
+          responsible_person_email: string | null
+          start_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          attachments?: Json | null
+          budget?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          progress?: number | null
+          project_name: string
+          project_type: string
+          responsible_person: string
+          responsible_person_email?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          attachments?: Json | null
+          budget?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          progress?: number | null
+          project_name?: string
+          project_type?: string
+          responsible_person?: string
+          responsible_person_email?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           action: string

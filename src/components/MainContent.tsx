@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Dashboard from './Dashboard';
@@ -7,6 +6,7 @@ import EduFamAdminAnalytics from './analytics/EduFamAdminAnalytics';
 import SchoolAnalyticsList from './analytics/SchoolAnalyticsList';
 import CompanyManagementModule from './modules/CompanyManagementModule';
 import EduFamReportGeneration from './reports/EduFamReportGeneration';
+import ProjectHubModule from './modules/ProjectHubModule';
 
 interface MainContentProps {
   activeSection: string;
@@ -21,6 +21,12 @@ const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />;
+        
+      case 'project-hub':
+        if (user?.role === 'edufam_admin') {
+          return <ProjectHubModule />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Insufficient permissions</div>;
         
       case 'analytics':
         if (user?.role === 'edufam_admin') {

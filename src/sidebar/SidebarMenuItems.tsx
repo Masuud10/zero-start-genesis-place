@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   BookOpen,
@@ -25,7 +24,8 @@ import {
   Calculator,
   Receipt,
   Banknote,
-  Coins
+  Coins,
+  FolderKanban
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -42,6 +42,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Dashboard',
       icon: Home,
       roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
+    },
+    {
+      id: 'project-hub',
+      label: 'Project Hub',
+      icon: FolderKanban,
+      roles: ['edufam_admin']
     },
     {
       id: 'school-management',
