@@ -26,9 +26,7 @@ import {
   Receipt,
   Banknote,
   Coins,
-  PieChart,
-  Award,
-  Globe
+  FolderKanban
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -47,6 +45,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
     },
     {
+      id: 'project-hub',
+      label: 'Project Hub',
+      icon: FolderKanban,
+      roles: ['edufam_admin']
+    },
+    {
       id: 'school-management',
       label: 'School Management',
       icon: Building2,
@@ -57,12 +61,6 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Analytics',
       icon: BarChart3,
       roles: ['edufam_admin', 'principal', 'school_owner']
-    },
-    {
-      id: 'school-analytics',
-      label: 'School Analytics',
-      icon: PieChart,
-      roles: ['edufam_admin']
     },
     {
       id: 'grades',
@@ -113,14 +111,8 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       roles: ['principal', 'teacher', 'school_owner']
     },
     {
-      id: 'certificates',
-      label: 'Certificates',
-      icon: Award,
-      roles: ['principal', 'school_owner', 'edufam_admin']
-    },
-    {
       id: 'announcements',
-      label: userRole === 'edufam_admin' ? 'Communication Center' : 'Announcements',
+      label: 'Announcements',
       icon: Megaphone,
       roles: ['edufam_admin', 'principal', 'teacher', 'school_owner']
     },
@@ -170,12 +162,6 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: 'users',
       label: 'Users',
       icon: UserPlus,
-      roles: ['edufam_admin']
-    },
-    {
-      id: 'company-management',
-      label: 'Company Management',
-      icon: Globe,
       roles: ['edufam_admin']
     },
     {

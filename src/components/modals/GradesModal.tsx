@@ -78,8 +78,9 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     );
   }
 
-  // Handle curriculum-specific modals
+  // Handle curriculum-specific modals - FIXED: Use correct curriculum routing
   if (curriculumType && curriculumType !== 'standard') {
+    console.log('🎓 Routing to curriculum-specific modal:', curriculumType);
     return (
       <CurriculumModalSwitcher
         curriculumType={curriculumType}
@@ -103,8 +104,6 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   };
 
   const validateForm = () => {
-    // Fixed: Changed from curriculumType === 'cbc' to proper check
-    // The original code had a logical flaw - curriculumType can't be both 'standard' and 'cbc'
     const isCBC = curriculumType === 'cbc';
     
     if (!selectedClass) {
@@ -163,8 +162,6 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
     setLoading(true);
 
     try {
-      // Fixed: Changed from curriculumType === 'cbc' to proper check
-      // The original code was trying to compare if curriculumType was both 'standard' AND 'cbc' simultaneously
       const isCBC = curriculumType === 'cbc';
       
       const gradeData = {
@@ -226,88 +223,76 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const canOverride = permissions.canOverrideGrades && isPrincipal;
   const canRelease = permissions.canReleaseResults && isPrincipal;
   const canApprove = permissions.canApproveGrades && isPrincipal;
-  const canSubmit = isTeacher && permissions.canSubmitGrades;
-  const canInput = isTeacher ? permissions.canCreateGrades : permissions.canEditGrades || permissions.canCreateGrades;
+  const canSubmit = isTeacher || isPrincipal;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <GradeModalHeader
-          curriculumType={curriculumType || 'standard'}
-          isTeacher={isTeacher}
-          isPrincipal={isPrincipal}
-          permissions={{
-            canSubmitGrades: permissions.canSubmitGrades,
-            canApproveGrades: permissions.canApproveGrades,
-            canOverrideGrades: permissions.canOverrideGrades,
-            canReleaseResults: permissions.canReleaseResults
-          }}
-        />
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <GradeModalHeader curriculumType={curriculumType} />
         
-        {formError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{formError}</AlertDescription>
-          </Alert>
-        )}
+        <div className="space-y-6">
+          {formError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
 
-        <GradeDataLoader
-          user={user}
-          selectedClass={selectedClass}
-          setClasses={setClasses}
-          setSubjects={setSubjects}
-          setStudents={setStudents}
-          setFormError={setFormError}
-        />
-
-        <GradeFormFields
-          curriculumType={curriculumType || 'standard'}
-          classes={classes}
-          selectedClass={selectedClass}
-          setSelectedClass={setSelectedClass}
-          subjects={subjects}
-          selectedSubject={selectedSubject}
-          setSelectedSubject={setSelectedSubject}
-          students={students}
-          selectedStudent={selectedStudent}
-          setSelectedStudent={setSelectedStudent}
-          selectedTerm={selectedTerm}
-          setSelectedTerm={setSelectedTerm}
-          selectedExamType={selectedExamType}
-          setSelectedExamType={setSelectedExamType}
-          score={score}
-          setScore={setScore}
-          maxScore={maxScore}
-          setMaxScore={setMaxScore}
-          cbcLevel={cbcLevel}
-          setCbcLevel={setCbcLevel}
-          canInput={canInput}
-          isPrincipal={isPrincipal}
-          canOverride={canOverride}
-        />
-        
-        {isPrincipal && (
-          <PrincipalStatusSelector
-            status={status}
-            setStatus={setStatus}
-            canRelease={canRelease}
+          <GradeDataLoader
+            user={user}
+            selectedClass={selectedClass}
+            setClasses={setClasses}
+            setSubjects={setSubjects}
+            setStudents={setStudents}
+            setFormError={setFormError}
           />
-        )}
-        
-        <DialogFooter>
-          {(isTeacher || isPrincipal) && (
-            <GradeActionButtons
-              onClose={onClose}
-              onSubmit={handleSubmit}
-              loading={loading}
-              permissions={{ canInput, canSubmit, canApprove, canRelease, canOverride }}
-              role={isTeacher ? 'teacher' : 'principal'}
-              isPrincipal={isPrincipal}
-              isTeacher={isTeacher}
+
+          <GradeFormFields
+            curriculumType={curriculumType}
+            classes={classes}
+            selectedClass={selectedClass}
+            setSelectedClass={setSelectedClass}
+            subjects={subjects}
+            selectedSubject={selectedSubject}
+            setSelectedSubject={setSelectedSubject}
+            students={students}
+            selectedStudent={selectedStudent}
+            setSelectedStudent={setSelectedStudent}
+            selectedTerm={selectedTerm}
+            setSelectedTerm={setSelectedTerm}
+            selectedExamType={selectedExamType}
+            setSelectedExamType={setSelectedExamType}
+            score={score}
+            setScore={setScore}
+            maxScore={maxScore}
+            setMaxScore={setMaxScore}
+            cbcLevel={cbcLevel}
+            setCbcLevel={setCbcLevel}
+            canInput={canSubmit}
+            isPrincipal={isPrincipal}
+            canOverride={canOverride}
+          />
+
+          {isPrincipal && (
+            <PrincipalStatusSelector
+              status={status}
+              setStatus={setStatus}
+              canApprove={canApprove}
               canRelease={canRelease}
-              handleRelease={handleRelease}
             />
           )}
+        </div>
+
+        <DialogFooter>
+          <GradeActionButtons
+            onSubmit={handleSubmit}
+            onCancel={onClose}
+            onRelease={canRelease ? handleRelease : undefined}
+            loading={loading}
+            canSubmit={canSubmit}
+            isTeacher={isTeacher}
+            isPrincipal={isPrincipal}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

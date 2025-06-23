@@ -17,7 +17,7 @@ import { Loader2 } from 'lucide-react';
 
 const GradesModule: React.FC = () => {
   const { user } = useAuth();
-  const { curriculumType, loading: curriculumLoading } = useSchoolCurriculum();
+  const { curriculumType, loading: curriculumLoading, error: curriculumError } = useSchoolCurriculum();
   const [showBulkModal, setShowBulkModal] = useState(false);
   const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
 
@@ -196,6 +196,20 @@ const GradesModule: React.FC = () => {
       </div>
     );
   }
+
+  // Show curriculum error if any
+  if (curriculumError) {
+    return (
+      <div className="p-8">
+        <Alert variant="destructive">
+          <AlertTitle>Curriculum Detection Error</AlertTitle>
+          <AlertDescription>
+            {curriculumError}. Using standard curriculum as fallback.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   
   if (!user) return <div>Loading...</div>;
 
@@ -213,6 +227,8 @@ const GradesModule: React.FC = () => {
         return 'bg-blue-100 text-blue-800';
     }
   };
+
+  console.log('🎓 GradesModule: Rendering with curriculum:', curriculumType, 'for role:', user.role);
 
   switch (user.role) {
     case 'edufam_admin':
