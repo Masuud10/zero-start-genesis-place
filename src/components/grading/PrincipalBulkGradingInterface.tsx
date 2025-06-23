@@ -1,10 +1,13 @@
 
-import React from 'react';
-import EnhancedBulkGradingModal from './EnhancedBulkGradingModal';
+import React, { useState } from 'react';
+import { EnhancedBulkGradingModal } from './EnhancedBulkGradingModal';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { FileSpreadsheet } from 'lucide-react';
 
 const PrincipalBulkGradingInterface: React.FC = () => {
   const { user } = useAuth();
+  const [showModal, setShowModal] = useState(false);
 
   if (!user || user.role !== 'principal') {
     return (
@@ -24,7 +27,18 @@ const PrincipalBulkGradingInterface: React.FC = () => {
         </p>
       </div>
       
-      <EnhancedBulkGradingModal userRole="principal" />
+      <Button 
+        onClick={() => setShowModal(true)}
+        className="flex items-center gap-2"
+      >
+        <FileSpreadsheet className="h-4 w-4" />
+        Open Grade Entry Sheet
+      </Button>
+
+      <EnhancedBulkGradingModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+      />
     </div>
   );
 };
