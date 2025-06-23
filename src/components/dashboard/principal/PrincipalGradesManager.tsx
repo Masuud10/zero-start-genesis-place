@@ -20,7 +20,7 @@ const PrincipalGradesManager: React.FC = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [showApprovalInterface, setShowApprovalInterface] = useState(false);
 
-  // Fetch grades specifically for principal approval
+  // Fetch grades specifically for principal approval with enhanced query
   const { data: grades, isLoading, refetch } = useQuery({
     queryKey: ['principal-grades-approval', user?.id, schoolId],
     queryFn: async () => {
@@ -31,7 +31,7 @@ const PrincipalGradesManager: React.FC = () => {
 
       console.log('🔍 Fetching grades for principal approval:', { schoolId, userId: user.id });
 
-      // Fetch all grades that need principal attention
+      // Fetch all grades that need principal attention with proper joins
       const { data, error } = await supabase
         .from('grades')
         .select(`
@@ -57,7 +57,7 @@ const PrincipalGradesManager: React.FC = () => {
           profiles!grades_submitted_by_fkey(name)
         `)
         .eq('school_id', schoolId)
-        .in('status', ['submitted', 'approved', 'rejected'])
+        .in('status', ['submitted', 'approved', 'rejected', 'released'])
         .order('submitted_at', { ascending: false });
 
       if (error) {
@@ -65,10 +65,10 @@ const PrincipalGradesManager: React.FC = () => {
         throw error;
       }
 
-      console.log('✅ Fetched grades:', data?.length || 0);
+      console.log('✅ Fetched grades for principal:', data?.length || 0);
       return data || [];
     },
-    enabled: !!user?.id && !!schoolId,
+    enabled: !!user?.id && !!schoolId && user.role === 'principal',
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Refetch every minute
   });

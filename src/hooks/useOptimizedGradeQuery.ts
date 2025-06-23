@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,12 +41,16 @@ export const useOptimizedGradeQuery = ({ enabled = true }: UseOptimizedGradeQuer
         `)
         .eq('school_id', schoolId);
 
-      // For principals, fetch all grades in their school for approval
+      // Enhanced filtering based on user role
       if (user.role === 'principal') {
+        // Principals can see all grades in their school, especially those needing approval
         query = query.in('status', ['submitted', 'approved', 'rejected', 'released']);
-      } else {
-        // For teachers, fetch only their own grades
+      } else if (user.role === 'teacher') {
+        // Teachers can only see their own grades
         query = query.eq('submitted_by', user.id);
+      } else {
+        // Other roles (parents, students) see only released grades
+        query = query.eq('status', 'released');
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -85,7 +88,7 @@ export const useGradeSubmissionMutation = () => {
         school_id: schoolId,
         submitted_by: user.id,
         submitted_at: new Date().toISOString(),
-        status: gradeData.status || 'draft',
+        status: gradeData.status || 'submitted', // Default to 'submitted' for principal approval
         exam_type: gradeData.exam_type.toUpperCase() // Ensure uppercase format
       };
 
