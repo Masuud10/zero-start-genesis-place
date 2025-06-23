@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -296,7 +297,7 @@ const EduFamDashboardOverview = () => {
         ))}
       </div>
 
-      {/* Analytics Overview Section - Positioned below Stats Icons */}
+      {/* Analytics Overview Section - Positioned immediately below Stats Icons */}
       <AnalyticsOverview />
 
       {/* Analytics Overview Section - Positioned below Analytics Overview */}
