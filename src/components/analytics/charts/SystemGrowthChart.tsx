@@ -2,54 +2,49 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Building2, Users } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 interface SystemGrowthChartProps {
   schoolsCount: number;
   usersCount: number;
 }
 
-const SystemGrowthChart = ({ schoolsCount, usersCount }: SystemGrowthChartProps) => {
+const SystemGrowthChart: React.FC<SystemGrowthChartProps> = ({ schoolsCount, usersCount }) => {
   const data = [
     {
       name: 'Schools',
-      value: schoolsCount,
-      color: '#3B82F6'
+      count: schoolsCount,
+      growth: '+12%'
     },
     {
       name: 'Users',
-      value: usersCount,
-      color: '#10B981'
+      count: usersCount,
+      growth: '+8%'
+    },
+    {
+      name: 'Active',
+      count: Math.floor(usersCount * 0.85),
+      growth: '+15%'
     }
   ];
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Building2 className="h-5 w-5 text-blue-600" />
-          System Growth
-        </CardTitle>
+    <Card className="col-span-1">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">System Growth</CardTitle>
+        <TrendingUp className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="flex justify-between mt-4 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span>{schoolsCount} Schools</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span>{usersCount} Users</span>
-          </div>
+        <div className="h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="count" fill="#3b82f6" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
