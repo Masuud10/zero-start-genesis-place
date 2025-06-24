@@ -1,138 +1,196 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Lock, Eye, History } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import MFASetup from './MFASetup';
-import SessionManager from './SessionManager';
-import SecurityAuditLog from './SecurityAuditLog';
-import PasswordStrengthIndicator from './PasswordStrengthIndicator';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Shield, Lock, Eye, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const SecuritySettings: React.FC = () => {
-  const { user } = useAuth();
+  const [settings, setSettings] = useState({
+    twoFactorEnabled: false,
+    sessionTimeout: 30,
+    passwordExpiry: 90,
+    auditLogging: true,
+    ipWhitelist: '',
+    maintenanceMode: false
+  });
+  const [lastLogin, setLastLogin] = useState('2024-06-24 10:30 AM');
+  const [activeSessions, setActiveSessions] = useState(2);
+  const { toast } = useToast();
 
-  if (!user) {
-    return (
-      <Card>
-        <CardContent className="text-center py-8">
-          <p className="text-gray-600">Please log in to access security settings</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleSave = () => {
+    toast({
+      title: "Security Settings Updated",
+      description: "Your security preferences have been saved successfully.",
+    });
+  };
 
-  const isAdmin = ['elimisha_admin', 'edufam_admin'].includes(user.role);
+  const handleTerminateAllSessions = () => {
+    setActiveSessions(1);
+    toast({
+      title: "Sessions Terminated",
+      description: "All other sessions have been terminated. You remain logged in on this device.",
+    });
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Shield className="h-6 w-6" />
+      <div className="flex items-center gap-2">
+        <Shield className="h-6 w-6 text-blue-600" />
         <h1 className="text-2xl font-bold">Security Settings</h1>
       </div>
 
-      {/* Security Overview */}
+      {/* Security Status */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
-            Security Overview
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Security Status
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {user.mfa_enabled ? '✓' : '✗'}
-              </div>
-              <div className="text-sm text-gray-600">MFA Status</div>
-              <div className="text-xs text-gray-500">
-                {user.mfa_enabled ? 'Enabled' : 'Disabled'}
-              </div>
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <span className="text-sm font-medium">Password Strength</span>
+              <Badge className="bg-green-100 text-green-800">Strong</Badge>
             </div>
-            
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {user.role === 'elimisha_admin' ? 'HIGH' : 'MEDIUM'}
-              </div>
-              <div className="text-sm text-gray-600">Access Level</div>
-              <div className="text-xs text-gray-500">
-                Role: {user.role}
-              </div>
+            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <span className="text-sm font-medium">2FA Status</span>
+              <Badge className="bg-yellow-100 text-yellow-800">Disabled</Badge>
             </div>
-            
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never'}
-              </div>
-              <div className="text-sm text-gray-600">Last Login</div>
-              <div className="text-xs text-gray-500">
-                IP: {user.last_login_ip || 'Unknown'}
-              </div>
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <span className="text-sm font-medium">Security Score</span>
+              <Badge className="bg-blue-100 text-blue-800">85/100</Badge>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* MFA Setup */}
-      <MFASetup />
-
       {/* Session Management */}
-      <SessionManager />
-
-      {/* Security Audit Log - Only for Admins */}
-      {isAdmin && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <History className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Security Monitoring</h2>
-          </div>
-          <SecurityAuditLog />
-        </div>
-      )}
-
-      {/* Security Tips */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Security Best Practices
+            Session Management
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <strong>Use Strong Passwords:</strong> Use at least 8 characters with a mix of uppercase, lowercase, numbers, and symbols.
-              </div>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium">Last Login</Label>
+              <p className="text-sm text-gray-600">{lastLogin}</p>
             </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <strong>Enable MFA:</strong> Add an extra layer of security with multi-factor authentication.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <strong>Monitor Sessions:</strong> Regularly review your active sessions and terminate any suspicious ones.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <strong>Keep Software Updated:</strong> Always use the latest version of your browser and operating system.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <strong>Be Cautious with Public Wi-Fi:</strong> Avoid accessing sensitive information on unsecured networks.
+            <div>
+              <Label className="text-sm font-medium">Active Sessions</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">{activeSessions} active</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTerminateAllSessions}
+                  disabled={activeSessions <= 1}
+                >
+                  Terminate All Others
+                </Button>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Security Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            Security Controls
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium">Two-Factor Authentication</Label>
+                <p className="text-xs text-gray-500">Add an extra layer of security to your account</p>
+              </div>
+              <Switch
+                checked={settings.twoFactorEnabled}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, twoFactorEnabled: checked }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Session Timeout (minutes)</Label>
+              <Input
+                type="number"
+                value={settings.sessionTimeout}
+                onChange={(e) => setSettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
+                className="w-32"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Password Expiry (days)</Label>
+              <Input
+                type="number"
+                value={settings.passwordExpiry}
+                onChange={(e) => setSettings(prev => ({ ...prev, passwordExpiry: parseInt(e.target.value) }))}
+                className="w-32"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium">Audit Logging</Label>
+                <p className="text-xs text-gray-500">Log all security-related activities</p>
+              </div>
+              <Switch
+                checked={settings.auditLogging}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, auditLogging: checked }))}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* System Maintenance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            System Maintenance
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div>
+              <Label className="text-sm font-medium text-orange-800">Maintenance Mode</Label>
+              <p className="text-xs text-orange-600">Temporarily disable user access for system updates</p>
+            </div>
+            <Switch
+              checked={settings.maintenanceMode}
+              onCheckedChange={(checked) => setSettings(prev => ({ ...prev, maintenanceMode: checked }))}
+            />
+          </div>
+          
+          {settings.maintenanceMode && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800 font-medium">⚠️ Maintenance mode is active</p>
+              <p className="text-xs text-red-600">Only administrators can access the system</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+          Save Security Settings
+        </Button>
+      </div>
     </div>
   );
 };

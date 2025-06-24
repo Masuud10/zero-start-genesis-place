@@ -7,7 +7,7 @@ import { Eye, EyeOff, Lock, Mail, AlertTriangle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSecureAuth } from "@/hooks/useSecureAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { SecurityCaptcha } from "@/components/security/SecurityCaptcha";
+import SecurityCaptcha from "@/components/security/SecurityCaptcha";
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState("");
