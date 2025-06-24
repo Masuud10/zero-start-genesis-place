@@ -118,11 +118,15 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
         let activities: any[] = [];
         if (auditLogs && auditLogs.length > 0) {
-          // Get user names with timeout - fix the type issue here
-          const userIds = [...new Set(auditLogs.map((log: any) => log.user_id).filter((id: any): id is string => Boolean(id)))];
+          // Get user names with timeout - properly type the userIds array
+          const userIds: string[] = auditLogs
+            .map((log: any) => log.user_id)
+            .filter((id: any): id is string => typeof id === 'string' && Boolean(id));
+          
+          const uniqueUserIds = [...new Set(userIds)];
           let userNames: Record<string, string> = {};
           
-          if (userIds.length > 0) {
+          if (uniqueUserIds.length > 0) {
             try {
               const usersTimeout = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Users query timeout')), 5000)
@@ -131,7 +135,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
               const usersPromise = supabase
                 .from('profiles')
                 .select('id, name')
-                .in('id', userIds);
+                .in('id', uniqueUserIds);
 
               const { data: profilesData } = await Promise.race([
                 usersPromise,
