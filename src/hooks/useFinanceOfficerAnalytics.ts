@@ -137,12 +137,12 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         return acc;
       }, {}) || {};
 
-      const totalExpenses = Object.values(expenseGroups).reduce((sum: number, amount) => sum + (amount as number), 0);
+      const totalExpenses = Object.values(expenseGroups).reduce((sum: number, amount) => sum + Number(amount || 0), 0);
       const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
       const expenseBreakdown = Object.entries(expenseGroups).map(([category, amount]: [string, any], index) => ({
         category,
-        amount,
-        percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0,
+        amount: Number(amount || 0),
+        percentage: totalExpenses > 0 ? (Number(amount || 0) / totalExpenses) * 100 : 0,
         color: colors[index % colors.length]
       }));
 
