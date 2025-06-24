@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types/user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import LoadingScreen from './LoadingScreen';
 
 interface ProtectedRouteProps {
@@ -27,7 +28,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     allowedRoles,
     requireSchoolAssignment,
     userSchoolId: user?.school_id,
-    isLoading
+    isLoading,
+    error
   });
 
   // Show loading while checking authentication
@@ -39,13 +41,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50 max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">Authentication Error</CardTitle>
             <CardDescription>There was a problem with your authentication.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-red-600 mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="w-full"
+              variant="outline"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -64,7 +74,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     console.error('🔒 ProtectedRoute: User has no role assigned');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50 max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">Role Configuration Error</CardTitle>
             <CardDescription>Your account role is missing and needs to be configured.</CardDescription>
@@ -73,10 +83,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <p className="text-sm text-red-600 mb-4">
               Please contact your administrator to assign a role to your account.
             </p>
-            <div className="text-xs text-gray-400 bg-gray-100 p-2 rounded">
+            <div className="text-xs text-gray-400 bg-gray-100 p-2 rounded mb-4">
               User ID: {user.id?.slice(0, 8)}...<br />
               Email: {user.email}
             </div>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="w-full"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -103,11 +120,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check school assignment requirement
-  if (requireSchoolAssignment && !user.school_id) {
+  if (requireSchoolAssignment && !user.school_id && !['elimisha_admin', 'edufam_admin'].includes(user.role)) {
     console.log('🔒 ProtectedRoute: School assignment required but missing for role:', user.role);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-yellow-200 bg-yellow-50 max-w-md">
           <CardHeader>
             <CardTitle className="text-yellow-800">School Assignment Required</CardTitle>
             <CardDescription>Your account needs to be assigned to a school.</CardDescription>

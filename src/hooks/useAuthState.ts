@@ -12,7 +12,6 @@ export const useAuthState = () => {
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
   const initializedRef = useRef(false);
-  const globalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -21,10 +20,6 @@ export const useAuthState = () => {
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
-      }
-      if (globalTimeoutRef.current) {
-        clearTimeout(globalTimeoutRef.current);
-        globalTimeoutRef.current = null;
       }
     };
   }, []);
@@ -36,7 +31,7 @@ export const useAuthState = () => {
         .from('profiles')
         .select('role, name, school_id, avatar_url, mfa_enabled, status')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
       
       if (error) {
         console.error('🔐 AuthState: Profile fetch error:', error);
@@ -75,21 +70,71 @@ export const useAuthState = () => {
         return;
       }
 
-      // Fetch profile with shorter timeout
+      // Fetch profile with timeout
       const profile = await Promise.race([
         fetchProfile(authUser.id),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile timeout')), 5000)
+          setTimeout(() => reject(new Error('Profile timeout')), 3000)
         )
       ]).catch(() => null);
 
       if (!isMountedRef.current) return;
 
-      // Create user data with fallback values
-      const resolvedRole = profile?.role || 
-                         authUser.user_metadata?.role || 
-                         authUser.app_metadata?.role || 
-                         'parent';
+      // Create user data with proper role handling
+      let resolvedRole = profile?.role;
+      
+      // If no role in profile, determine from email or metadata
+      if (!resolvedRole) {
+        resolvedRole = authUser.user_metadata?.role || 
+                     authUser.app_metadata?.role;
+        
+        // Email-based role detection as fallback
+        if (!resolvedRole) {
+          if (authUser.email.includes('admin@edufam') || authUser.email === 'masuud@gmail.com') {
+            resolvedRole = 'edufam_admin';
+          } else if (authUser.email.includes('elimisha')) {
+            resolvedRole = 'elimisha_admin';
+          } else if (authUser.email.includes('principal')) {
+            resolvedRole = 'principal';
+          } else if (authUser.email.includes('teacher')) {
+            resolvedRole = 'teacher';
+          } else {
+            resolvedRole = 'parent';
+          }
+          
+          // Update profile with determined role
+          if (profile) {
+            await supabase
+              .from('profiles')
+              .update({ role: resolvedRole })
+              .eq('id', authUser.id);
+          }
+        }
+      }
+
+      // Determine school assignment
+      let userSchoolId = profile?.school_id ||
+                        authUser.user_metadata?.school_id ||
+                        authUser.app_metadata?.school_id;
+
+      // For non-admin roles without school, assign to first available school
+      if (!['elimisha_admin', 'edufam_admin'].includes(resolvedRole) && !userSchoolId) {
+        const { data: schools } = await supabase
+          .from('schools')
+          .select('id')
+          .order('created_at')
+          .limit(1);
+        
+        if (schools && schools.length > 0) {
+          userSchoolId = schools[0].id;
+          
+          // Update profile with school assignment
+          await supabase
+            .from('profiles')
+            .update({ school_id: userSchoolId })
+            .eq('id', authUser.id);
+        }
+      }
 
       const userData: AuthUser = {
         id: authUser.id,
@@ -100,9 +145,7 @@ export const useAuthState = () => {
               authUser.user_metadata?.full_name ||
               authUser.email.split('@')[0] ||
               'User',
-        school_id: profile?.school_id ||
-          authUser.user_metadata?.school_id ||
-          authUser.app_metadata?.school_id,
+        school_id: userSchoolId,
         avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
         created_at: authUser.created_at,
         updated_at: authUser.updated_at,
@@ -142,15 +185,6 @@ export const useAuthState = () => {
       try {
         console.log('🔐 AuthState: Setting up auth listener');
         
-        // Set a single, shorter timeout for the entire initialization
-        globalTimeoutRef.current = setTimeout(() => {
-          console.error('🔐 AuthState: Auth initialization timeout after 8 seconds');
-          if (isMountedRef.current) {
-            setError('Authentication initialization timeout - please refresh');
-            setIsLoading(false);
-          }
-        }, 8000);
-
         // Clean up existing subscription
         if (subscriptionRef.current) {
           subscriptionRef.current.unsubscribe();
@@ -162,12 +196,6 @@ export const useAuthState = () => {
             console.log('🔐 AuthState: Auth event:', event, !!session);
             if (!isMountedRef.current) return;
             
-            // Clear timeout on any auth event
-            if (globalTimeoutRef.current) {
-              clearTimeout(globalTimeoutRef.current);
-              globalTimeoutRef.current = null;
-            }
-            
             if (event === 'SIGNED_OUT' || !session) {
               await processUser(null);
             } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
@@ -177,22 +205,11 @@ export const useAuthState = () => {
         );
         subscriptionRef.current = subscription;
 
-        // Get initial session with shorter timeout
+        // Get initial session
         console.log('🔐 AuthState: Getting initial session');
-        const { data: { session }, error: sessionError } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<any>((_, reject) => 
-            setTimeout(() => reject(new Error('Session timeout')), 5000)
-          )
-        ]);
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (!isMountedRef.current) return;
-
-        // Clear timeout since we got a response
-        if (globalTimeoutRef.current) {
-          clearTimeout(globalTimeoutRef.current);
-          globalTimeoutRef.current = null;
-        }
 
         if (sessionError) {
           console.error('🔐 AuthState: Session error:', sessionError);
