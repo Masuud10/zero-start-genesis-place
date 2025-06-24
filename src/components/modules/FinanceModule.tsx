@@ -1,156 +1,132 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import FinanceAdminSummary from './FinanceAdminSummary';
-import FinanceOfficerDashboard from '../dashboard/FinanceOfficerDashboard';
-import ParentFinanceView from '../finance/ParentFinanceView';
-import FinancialOverview from '../finance/FinancialOverview';
+import FinanceSettingsPanel from '@/components/finance/FinanceSettingsPanel';
+import StudentAccountsPanel from '@/components/finance/StudentAccountsPanel';
+import MpesaPaymentsPanel from '@/components/finance/MpesaPaymentsPanel';
+import FinancialReportsPanel from '@/components/finance/FinancialReportsPanel';
+import FinanceAnalyticsPanel from '@/components/finance/FinanceAnalyticsPanel';
+import { DollarSign, Settings, Users, CreditCard, BarChart3, FileText } from 'lucide-react';
 
 const FinanceModule: React.FC = () => {
   const { user } = useAuth();
-  
-  const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
-  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
-  const [financeSummary, setFinanceSummary] = useState<any>(null);
-  const [outstandingFees, setOutstandingFees] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const isSummaryRole = user?.role && ['edufam_admin'].includes(user.role);
-  const isFinanceDashboardRole = user?.role && ['school_owner', 'principal', 'finance_officer'].includes(user.role);
+  const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    if (!isSummaryRole) {
-        setLoading(false);
-        return;
-    }
-    
-    if (user.role === 'edufam_admin') {
-      supabase.from("schools")
-        .select("id, name")
-        .then(({ data, error }) => {
-          if (error) setError("Failed to fetch schools list.");
-          else setSchools(data || []);
-        });
-    }
-
-    const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
-
-    if (!effectiveSchoolId) {
-        setFinanceSummary(null);
-        setOutstandingFees(null);
-        if (user.role !== 'edufam_admin') {
-            setError("Your account is not associated with a school.");
-        }
-        setLoading(false);
-        return;
-    }
-
-    const fetchFinanceData = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            // Fetch fees data for summary
-            const { data: feesData, error: feesError } = await supabase
-                .from("fees")
-                .select("amount, paid_amount")
-                .eq("school_id", effectiveSchoolId);
-
-            if (feesError) throw feesError;
-
-            const totalFees = feesData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
-            const totalCollected = feesData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-            const outstanding = totalFees - totalCollected;
-
-            setFinanceSummary({
-                total_collected: totalCollected,
-                total_fees: totalFees
-            });
-            setOutstandingFees(outstanding);
-
-        } catch (err: any) {
-            setError("Could not load financial summary data.");
-            setFinanceSummary(null);
-            setOutstandingFees(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    fetchFinanceData();
-  }, [isSummaryRole, user?.role, user?.school_id, schoolFilter]);
-
-  const renderForSummaryRole = () => {
-    if (loading) {
-      return (
-        <div className="p-6 flex items-center">
-          <span className="animate-spin h-6 w-6 mr-2 rounded-full border-2 border-blue-400 border-t-transparent"></span>
-          Loading summary...
-        </div>
-      );
-    }
-    if (error) {
-      return (
-        <Alert variant="destructive" className="my-8">
-          <AlertTitle>Could not load summary</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      );
-    }
-    if (user?.role === 'edufam_admin' && !schoolFilter && schools.length > 0) {
-      return <FinanceAdminSummary schools={schools} schoolFilter={schoolFilter} setSchoolFilter={setSchoolFilter} financeSummary={null} loading={false} error={null} />;
-    }
-    if (!financeSummary && outstandingFees === null) {
-      const message = user?.role === 'edufam_admin' && schools.length === 0
-        ? "No schools found."
-        : "There is no financial summary available for this school.";
-      return (
-        <Alert className="my-8">
-          <AlertTitle>No Summary Data</AlertTitle>
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      );
-    }
+  if (!user || !['finance_officer', 'principal', 'school_owner'].includes(user.role || '')) {
     return (
-      <FinanceAdminSummary
-        loading={loading}
-        error={null}
-        financeSummary={{
-          total_collected: financeSummary?.total_collected ?? 0,
-          outstanding: outstandingFees, 
-          major_expenses: '—'
-        }}
-        schools={schools}
-        schoolFilter={schoolFilter}
-        setSchoolFilter={setSchoolFilter}
-      />
+      <div className="p-8 text-center text-red-600">
+        <h2 className="text-xl font-semibold mb-4">Access Denied</h2>
+        <p>You don't have permission to access the finance module.</p>
+      </div>
     );
   }
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
-
-  switch (user.role) {
-    case 'edufam_admin':
-      return renderForSummaryRole();
-    case 'school_owner':
-    case 'principal':
-      return <FinancialOverview />;
-    case 'finance_officer':
-      return <FinanceOfficerDashboard user={user} />;
-    case 'parent':
-      return <ParentFinanceView />;
-    default:
-      return (
-        <div className="p-8">
-          <h2 className="text-xl font-bold">You do not have permission to view this page.</h2>
-          <p className="text-gray-500">Your role ({user.role}) does not have access to the finance module.</p>
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Finance Management</h1>
+          <p className="text-muted-foreground">Manage school finances, fees, and payments</p>
         </div>
-      );
-  }
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="mpesa" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            MPESA Payments
+          </TabsTrigger>
+          <TabsTrigger value="students" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Student Accounts
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Reports
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Settings
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">KES 2,450,000</div>
+                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">KES 650,000</div>
+                <p className="text-xs text-muted-foreground">-5.2% from last month</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">MPESA Transactions</CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">1,247</div>
+                <p className="text-xs text-muted-foreground">+15% from last month</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">79.0%</div>
+                <p className="text-xs text-muted-foreground">+2.3% from last month</p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="mpesa">
+          <MpesaPaymentsPanel />
+        </TabsContent>
+
+        <TabsContent value="students">
+          <StudentAccountsPanel />
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <FinancialReportsPanel />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <FinanceAnalyticsPanel />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <FinanceSettingsPanel />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 };
 
 export default FinanceModule;

@@ -12,6 +12,7 @@ import GradesModule from './modules/GradesModule';
 import TeacherGradesModule from './modules/TeacherGradesModule';
 import SupportModule from './modules/SupportModule';
 import UserSupportModule from './modules/UserSupportModule';
+import FinanceModule from './modules/FinanceModule';
 
 interface MainContentProps {
   activeSection: string;
@@ -67,11 +68,9 @@ const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
         </div>;
 
       case 'support':
-        // Edufam admins see the full support management system
         if (user?.role === 'edufam_admin') {
           return <SupportModule />;
         }
-        // All other users see the user support module (submit tickets only)
         return <UserSupportModule />;
         
       case 'schools':
@@ -111,10 +110,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeSection }) => {
         </div>;
 
       case 'finance':
-        return <div className="p-8 text-center">
-          <h2 className="text-xl font-semibold mb-4">Finance Overview</h2>
-          <p className="text-muted-foreground">Finance management feature coming soon.</p>
-        </div>;
+        return <FinanceModule />;
 
       case 'timetable':
         return <div className="p-8 text-center">
