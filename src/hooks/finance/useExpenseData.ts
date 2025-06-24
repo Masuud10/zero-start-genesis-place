@@ -53,7 +53,7 @@ export const useExpenseData = () => {
         return {
           category,
           amount: numAmount,
-          percentage: totalExpenses > 0 ? (numAmount / totalExpenses) * 100 : 0,
+          percentage: totalExpenses > 0 ? Number(((numAmount / totalExpenses) * 100).toFixed(2)) : 0,
           color: colors[index % colors.length]
         };
       });
