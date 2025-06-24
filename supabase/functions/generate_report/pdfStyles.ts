@@ -1,48 +1,58 @@
 
+// PDF styles for report generation
 export const pdfStyles = {
+  header: {
+    fontSize: 22,
+    bold: true,
+    color: '#2563eb',
+    margin: [0, 0, 0, 20]
+  },
   title: {
     fontSize: 24,
     bold: true,
-    color: '#1F2937',
-    alignment: 'center' as const
-  },
-  header: {
-    fontSize: 18,
-    bold: true,
-    color: '#374151',
-    margin: [0, 15, 0, 8] as [number, number, number, number]
+    color: '#1e40af',
+    margin: [0, 0, 0, 20]
   },
   subheader: {
     fontSize: 14,
+    color: '#64748b',
+    margin: [0, 0, 0, 15]
+  },
+  sectionHeader: {
+    fontSize: 16,
     bold: true,
-    color: '#4B5563',
-    margin: [0, 10, 0, 5] as [number, number, number, number]
+    color: '#374151',
+    margin: [0, 15, 0, 8]
   },
   tableHeader: {
     bold: true,
-    fontSize: 12,
-    color: 'white',
-    fillColor: '#3B82F6'
+    fillColor: '#f8fafc',
+    color: '#374151',
+    fontSize: 10
+  },
+  normal: {
+    fontSize: 10,
+    color: '#374151'
   },
   date: {
     fontSize: 10,
-    color: '#6B7280',
-    italics: true
+    italics: true,
+    color: '#6b7280'
   },
   footer: {
-    fontSize: 10,
-    color: '#6B7280',
-    alignment: 'center' as const
+    fontSize: 8,
+    color: '#9ca3af',
+    italics: true
   },
   error: {
-    fontSize: 14,
-    color: '#DC2626',
+    fontSize: 12,
+    color: '#dc2626',
     bold: true
   }
 };
 
 export const defaultStyle = {
-  fontSize: 11,
-  lineHeight: 1.3,
-  color: '#374151'
+  fontSize: 10,
+  color: '#374151',
+  lineHeight: 1.3
 };
