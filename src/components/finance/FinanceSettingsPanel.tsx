@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,16 @@ const FinanceSettingsPanel: React.FC = () => {
       return defaultSettings;
     }
 
+    // If data is a string, try to parse it as JSON
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (error) {
+        console.warn('Failed to parse settings_data as JSON:', error);
+        return defaultSettings;
+      }
+    }
+
     // Merge with defaults to ensure all properties exist
     return {
       currency: typeof data.currency === 'string' ? data.currency : defaultSettings.currency,
@@ -135,19 +146,19 @@ const FinanceSettingsPanel: React.FC = () => {
 
       const settingsToSave = {
         school_id: user.school_id,
-        mpesa_consumer_key: settings.mpesa_consumer_key,
-        mpesa_consumer_secret: settings.mpesa_consumer_secret,
-        mpesa_paybill_number: settings.mpesa_paybill_number,
-        mpesa_passkey: settings.mpesa_passkey,
+        mpesa_consumer_key: settings.mpesa_consumer_key || null,
+        mpesa_consumer_secret: settings.mpesa_consumer_secret || null,
+        mpesa_paybill_number: settings.mpesa_paybill_number || null,
+        mpesa_passkey: settings.mpesa_passkey || null,
         late_fee_percentage: settings.late_fee_percentage,
         late_fee_grace_days: settings.late_fee_grace_days,
         tax_rate: settings.tax_rate,
-        settings_data: settings.settings_data as any, // Cast to any to satisfy Json type
+        settings_data: JSON.stringify(settings.settings_data), // Properly stringify for JSON type
       };
 
       const { error } = await supabase
         .from('finance_settings')
-        .upsert(settingsToSave, {
+        .upsert([settingsToSave], { // Wrap in array for upsert method
           onConflict: 'school_id'
         });
 
