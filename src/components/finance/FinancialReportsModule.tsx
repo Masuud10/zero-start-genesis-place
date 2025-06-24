@@ -3,92 +3,61 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Label } from '@/components/ui/label';
-import { FileText, Download, Calendar, TrendingUp, Users, AlertCircle, Loader2 } from 'lucide-react';
+import { FileText, Download, Calendar, DollarSign, Users, TrendingUp } from 'lucide-react';
 import { useFinanceReports } from '@/hooks/useFinanceReports';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FinancialReportsModule: React.FC = () => {
+  const [reportType, setReportType] = useState<'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions'>('school_financial');
+  const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString());
+  const [term, setTerm] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   const { generateReport, downloadReport, loading } = useFinanceReports();
-  const [reportType, setReportType] = useState('');
-  const [dateFrom, setDateFrom] = useState<Date>();
-  const [dateTo, setDateTo] = useState<Date>();
-  const [academicYear, setAcademicYear] = useState('');
-  const [term, setTerm] = useState('');
-  const [reportData, setReportData] = useState<any>(null);
-
-  const reportTypes = [
-    { value: 'school_financial', label: 'School Financial Summary', icon: TrendingUp },
-    { value: 'fee_collection', label: 'Fee Collection Report', icon: FileText },
-    { value: 'expense_summary', label: 'Expense Summary', icon: AlertCircle },
-    { value: 'mpesa_transactions', label: 'M-PESA Transactions', icon: Users },
-  ];
-
-  const academicYears = [
-    { value: '2024', label: '2024' },
-    { value: '2023', label: '2023' },
-    { value: '2022', label: '2022' },
-  ];
-
-  const terms = [
-    { value: 'Term 1', label: 'Term 1' },
-    { value: 'Term 2', label: 'Term 2' },
-    { value: 'Term 3', label: 'Term 3' },
-  ];
+  const { user } = useAuth();
 
   const handleGenerateReport = async () => {
-    if (!reportType) {
-      return;
-    }
-
     const filters = {
-      reportType: reportType as any,
+      reportType,
       academicYear,
-      term,
-      dateFrom: dateFrom?.toISOString().split('T')[0],
-      dateTo: dateTo?.toISOString().split('T')[0],
+      term: term === 'all' ? undefined : term,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
     };
 
-    const result = await generateReport(filters);
-    if (result.data) {
-      setReportData(result.data);
+    const { data, error } = await generateReport(filters);
+    
+    if (data && !error) {
+      const filename = `${reportType}_${academicYear}_${Date.now()}`;
+      downloadReport(data, filename);
     }
   };
 
-  const handleDownloadReport = () => {
-    if (reportData) {
-      const filename = `${reportType}_report_${new Date().toISOString().split('T')[0]}`;
-      downloadReport(reportData, filename);
-    }
-  };
+  const reportTypes = [
+    { value: 'school_financial', label: 'School Financial Summary', icon: DollarSign },
+    { value: 'fee_collection', label: 'Fee Collection Report', icon: Users },
+    { value: 'expense_summary', label: 'Expense Summary', icon: TrendingUp },
+    { value: 'mpesa_transactions', label: 'M-PESA Transactions', icon: FileText },
+  ];
 
-  const selectedReportType = reportTypes.find(type => type.value === reportType);
+  const currentReportType = reportTypes.find(type => type.value === reportType);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Financial Reports</h2>
-          <p className="text-muted-foreground">
-            Generate comprehensive financial reports and analytics
-          </p>
-        </div>
-      </div>
-
       {/* Report Configuration */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Report Configuration
+            Financial Reports Generator
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <Label htmlFor="reportType">Report Type</Label>
-              <Select value={reportType} onValueChange={setReportType}>
+              <label className="text-sm font-medium mb-2 block">Report Type</label>
+              <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select report type" />
                 </SelectTrigger>
@@ -106,171 +75,201 @@ const FinancialReportsModule: React.FC = () => {
             </div>
 
             <div>
-              <Label htmlFor="academicYear">Academic Year</Label>
+              <label className="text-sm font-medium mb-2 block">Academic Year</label>
               <Select value={academicYear} onValueChange={setAcademicYear}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select academic year" />
+                  <SelectValue placeholder="Select year" />
                 </SelectTrigger>
                 <SelectContent>
-                  {academicYears.map((year) => (
-                    <SelectItem key={year.value} value={year.value}>
-                      {year.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="2024">2024</SelectItem>
+                  <SelectItem value="2023">2023</SelectItem>
+                  <SelectItem value="2022">2022</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="term">Term</Label>
+              <label className="text-sm font-medium mb-2 block">Term</label>
               <Select value={term} onValueChange={setTerm}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select term" />
                 </SelectTrigger>
                 <SelectContent>
-                  {terms.map((termOption) => (
-                    <SelectItem key={termOption.value} value={termOption.value}>
-                      {termOption.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All Terms</SelectItem>
+                  <SelectItem value="term1">Term 1</SelectItem>
+                  <SelectItem value="term2">Term 2</SelectItem>
+                  <SelectItem value="term3">Term 3</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="dateFrom">Date From</Label>
-              <DatePicker
-                date={dateFrom}
-                onDateChange={setDateFrom}
-                placeholder="Select start date"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="dateTo">Date To</Label>
-              <DatePicker
-                date={dateTo}
-                onDateChange={setDateTo}
-                placeholder="Select end date"
-              />
-            </div>
-
-            <div className="flex items-end">
+              <label className="text-sm font-medium mb-2 block">Actions</label>
               <Button 
                 onClick={handleGenerateReport} 
-                disabled={!reportType || loading}
+                disabled={loading}
                 className="w-full"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Generating...
                   </>
                 ) : (
                   <>
-                    <FileText className="h-4 w-4 mr-2" />
+                    <Download className="w-4 h-4 mr-2" />
                     Generate Report
                   </>
                 )}
               </Button>
             </div>
           </div>
+
+          {/* Date Range for certain reports */}
+          {(reportType === 'mpesa_transactions' || reportType === 'expense_summary') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Date From</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Date To</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Quick Reports */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {reportTypes.map((type) => (
-          <Card key={type.value} className="cursor-pointer hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <type.icon className="h-6 w-6 text-blue-600" />
-                <span className="font-medium">{type.label}</span>
+      {/* Report Preview/Description */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {currentReportType && <currentReportType.icon className="h-5 w-5" />}
+            {currentReportType?.label} Preview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {reportType === 'school_financial' && (
+              <div>
+                <h3 className="font-semibold mb-2">School Financial Summary Report</h3>
+                <p className="text-gray-600 mb-4">
+                  This report provides a comprehensive overview of your school's financial status including:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-gray-600">
+                  <li>Total fees collected vs. outstanding amounts</li>
+                  <li>Collection rate percentage</li>
+                  <li>Monthly collection trends</li>
+                  <li>Student payment status breakdown</li>
+                </ul>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setReportType(type.value);
-                  handleGenerateReport();
-                }}
-                disabled={loading}
-              >
-                Quick Generate
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            )}
 
-      {/* Report Preview */}
-      {reportData && (
+            {reportType === 'fee_collection' && (
+              <div>
+                <h3 className="font-semibold mb-2">Fee Collection Report</h3>
+                <p className="text-gray-600 mb-4">
+                  Detailed breakdown of fee collections including:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-gray-600">
+                  <li>Student-wise fee collection details</li>
+                  <li>Class-wise collection summaries</li>
+                  <li>Payment method breakdown</li>
+                  <li>Outstanding balance analysis</li>
+                </ul>
+              </div>
+            )}
+
+            {reportType === 'expense_summary' && (
+              <div>
+                <h3 className="font-semibold mb-2">Expense Summary Report</h3>
+                <p className="text-gray-600 mb-4">
+                  Complete expense tracking report featuring:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-gray-600">
+                  <li>Category-wise expense breakdown</li>
+                  <li>Monthly expense trends</li>
+                  <li>Budget vs. actual spending analysis</li>
+                  <li>Expense approval status</li>
+                </ul>
+              </div>
+            )}
+
+            {reportType === 'mpesa_transactions' && (
+              <div>
+                <h3 className="font-semibold mb-2">M-PESA Transactions Report</h3>
+                <p className="text-gray-600 mb-4">
+                  Comprehensive M-PESA payment analysis including:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-gray-600">
+                  <li>All M-PESA transaction records</li>
+                  <li>Success vs. failure rate analysis</li>
+                  <li>Transaction amount summaries</li>
+                  <li>Student payment tracking via M-PESA</li>
+                </ul>
+              </div>
+            )}
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-blue-800 text-sm">
+                <strong>Note:</strong> Reports are generated in PDF format and include your school's branding and contact information. All financial data is current as of the report generation time.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              {selectedReportType && <selectedReportType.icon className="h-5 w-5" />}
-              Report Preview: {selectedReportType?.label}
-            </CardTitle>
-            <Button onClick={handleDownloadReport} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {reportData.summary && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="text-sm text-blue-600 font-medium">Total Fees</div>
-                    <div className="text-xl font-bold text-blue-900">
-                      KES {reportData.summary.total_fees?.toLocaleString() || '0'}
-                    </div>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <div className="text-sm text-green-600 font-medium">Total Collected</div>
-                    <div className="text-xl font-bold text-green-900">
-                      KES {reportData.summary.total_collected?.toLocaleString() || '0'}
-                    </div>
-                  </div>
-                  <div className="bg-red-50 p-4 rounded-lg">
-                    <div className="text-sm text-red-600 font-medium">Outstanding</div>
-                    <div className="text-xl font-bold text-red-900">
-                      KES {reportData.summary.outstanding?.toLocaleString() || '0'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {reportData.collection_rate && (
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-sm text-purple-600 font-medium">Collection Rate</div>
-                  <div className="text-xl font-bold text-purple-900">
-                    {reportData.collection_rate.toFixed(1)}%
-                  </div>
-                </div>
-              )}
-
-              {reportData.details && Array.isArray(reportData.details) && reportData.details.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Transaction Details</h4>
-                  <div className="text-sm text-gray-600">
-                    {reportData.details.length} transaction(s) found in this period.
-                  </div>
-                </div>
-              )}
-
-              {reportData.message && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {reportData.message}
-                  </AlertDescription>
-                </Alert>
-              )}
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Calendar className="h-8 w-8 text-blue-600 mr-3" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Report Period</p>
+                <p className="text-lg font-semibold">
+                  {academicYear} - {term === 'all' ? 'All Terms' : term.charAt(0).toUpperCase() + term.slice(1)}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <FileText className="h-8 w-8 text-green-600 mr-3" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Report Type</p>
+                <p className="text-lg font-semibold">{currentReportType?.label}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Users className="h-8 w-8 text-purple-600 mr-3" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">School</p>
+                <p className="text-lg font-semibold">{user?.school_id ? 'Active' : 'Not Set'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

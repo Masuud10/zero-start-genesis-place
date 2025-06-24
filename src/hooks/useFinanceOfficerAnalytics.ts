@@ -2,243 +2,191 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
-
-interface FinanceKeyMetrics {
-  totalRevenue: number;
-  totalCollected: number;
-  outstandingAmount: number;
-  collectionRate: number;
-  totalStudents: number;
-  defaultersCount: number;
-}
-
-interface DailyTransaction {
-  date: string;
-  amount: number;
-  count: number;
-}
-
-interface ExpenseBreakdown {
-  category: string;
-  amount: number;
-  percentage: number;
-  color: string;
-}
-
-interface Defaulter {
-  student_name: string;
-  class_name: string;
-  admission_number: string;
-  outstanding_amount: number;
-  days_overdue: number;
-}
-
-interface FeeCollectionData {
-  class: string;
-  collected: number;
-  expected: number;
-  collectionRate: number;
-}
 
 interface FinanceAnalyticsData {
-  keyMetrics: FinanceKeyMetrics;
-  dailyTransactions: DailyTransaction[];
-  expenseBreakdown: ExpenseBreakdown[];
-  defaultersList: Defaulter[];
-  feeCollectionData: FeeCollectionData[];
+  keyMetrics: {
+    totalFeesCollected: number;
+    totalOutstanding: number;
+    totalMpesaPayments: number;
+    collectionRate: number;
+  };
+  feeCollectionData: Array<{
+    month: string;
+    collected: number;
+    outstanding: number;
+  }>;
+  dailyTransactions: Array<{
+    date: string;
+    amount: number;
+    count: number;
+  }>;
+  expenseBreakdown: Array<{
+    category: string;
+    amount: number;
+  }>;
+  defaultersList: Array<{
+    studentName: string;
+    admissionNumber: string;
+    className: string;
+    outstandingAmount: number;
+    daysPastDue: number;
+  }>;
 }
 
 export const useFinanceOfficerAnalytics = (filters: { term: string; class: string }) => {
   const { user } = useAuth();
-  const { currentSchool } = useSchool();
 
   return useQuery({
-    queryKey: ['finance-officer-analytics', user?.id, currentSchool?.id, filters],
+    queryKey: ['finance-officer-analytics', user?.school_id, filters],
     queryFn: async (): Promise<FinanceAnalyticsData> => {
-      if (!user?.id) {
-        throw new Error('User not authenticated');
+      if (!user?.school_id) {
+        throw new Error('No school ID available');
       }
 
-      const schoolId = currentSchool?.id || user?.school_id;
-      if (!schoolId) {
-        throw new Error('No school context available');
+      console.log('📊 Fetching finance analytics for school:', user.school_id);
+
+      // Fetch fees data
+      const { data: feesData, error: feesError } = await supabase
+        .from('fees')
+        .select(`
+          *,
+          students!fees_student_id_fkey(name, admission_number),
+          classes!fees_class_id_fkey(name)
+        `)
+        .eq('school_id', user.school_id);
+
+      if (feesError) {
+        console.error('Error fetching fees:', feesError);
       }
 
-      console.log('🔍 Fetching finance analytics for school:', schoolId);
+      // Fetch MPESA transactions
+      const { data: mpesaData, error: mpesaError } = await supabase
+        .from('mpesa_transactions')
+        .select('*')
+        .eq('school_id', user.school_id)
+        .eq('transaction_status', 'Success');
 
-      try {
-        // Fetch fees data without complex relationships first
-        const { data: feesData, error: feesError } = await supabase
-          .from('fees')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('created_at', { ascending: false });
+      if (mpesaError) {
+        console.error('Error fetching MPESA data:', mpesaError);
+      }
 
-        if (feesError) {
-          console.error('❌ Error fetching fees:', feesError);
-          throw new Error(`Failed to fetch fees data: ${feesError.message}`);
-        }
+      // Fetch expenses
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('school_id', user.school_id);
 
-        console.log('✅ Fees data fetched:', feesData?.length || 0, 'records');
+      if (expensesError) {
+        console.error('Error fetching expenses:', expensesError);
+      }
 
-        // Fetch students data separately
-        const { data: studentsData, error: studentsError } = await supabase
-          .from('students')
-          .select('id, name, admission_number, class_id')
-          .eq('school_id', schoolId);
+      const fees = feesData || [];
+      const mpesaTransactions = mpesaData || [];
+      const expenses = expensesData || [];
 
-        if (studentsError) {
-          console.warn('⚠️ Error fetching students:', studentsError);
-        }
+      // Calculate key metrics
+      const totalFees = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+      const totalPaid = fees.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
+      const totalMpesaPayments = mpesaTransactions.reduce((sum, txn) => sum + (txn.amount_paid || 0), 0);
+      const totalFeesCollected = totalPaid + totalMpesaPayments;
+      const totalOutstanding = totalFees - totalFeesCollected;
+      const collectionRate = totalFees > 0 ? (totalFeesCollected / totalFees) * 100 : 0;
 
-        // Fetch classes data separately
-        const { data: classesData, error: classesError } = await supabase
-          .from('classes')
-          .select('id, name')
-          .eq('school_id', schoolId);
+      const keyMetrics = {
+        totalFeesCollected,
+        totalOutstanding,
+        totalMpesaPayments,
+        collectionRate: Math.round(collectionRate * 100) / 100
+      };
 
-        if (classesError) {
-          console.warn('⚠️ Error fetching classes:', classesError);
-        }
-
-        // Fetch financial transactions
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from('financial_transactions')
-          .select('*')
-          .eq('school_id', schoolId)
-          .eq('transaction_type', 'payment')
-          .order('created_at', { ascending: false })
-          .limit(100);
-
-        if (transactionsError) {
-          console.warn('⚠️ Error fetching transactions (non-critical):', transactionsError);
-        }
-
-        console.log('✅ Transactions data fetched:', transactionsData?.length || 0, 'records');
-
-        // Process fees data safely
-        const safeFeesData = feesData || [];
-        const safeStudentsData = studentsData || [];
-        const safeClassesData = classesData || [];
-        
-        // Create lookup maps for better performance
-        const studentsMap = new Map(safeStudentsData.map(student => [student.id, student]));
-        const classesMap = new Map(safeClassesData.map(cls => [cls.id, cls]));
-        
-        // Calculate key metrics
-        const totalCollected = safeFeesData.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
-        const totalExpected = safeFeesData.reduce((sum, fee) => sum + (fee.amount || 0), 0);
-        const outstandingAmount = totalExpected - totalCollected;
-        const collectionRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0;
-
-        // Count defaulters (fees with outstanding amounts past due date)
-        const currentDate = new Date();
-        const defaulters = safeFeesData.filter(fee => {
-          const outstanding = (fee.amount || 0) - (fee.paid_amount || 0);
-          const dueDate = fee.due_date ? new Date(fee.due_date) : null;
-          return outstanding > 0 && dueDate && dueDate < currentDate;
+      // Generate monthly collection data
+      const monthlyData = new Map<string, { collected: number; outstanding: number }>();
+      
+      fees.forEach(fee => {
+        const month = new Date(fee.created_at).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short' 
         });
+        
+        if (!monthlyData.has(month)) {
+          monthlyData.set(month, { collected: 0, outstanding: 0 });
+        }
+        
+        const data = monthlyData.get(month)!;
+        data.collected += fee.paid_amount || 0;
+        data.outstanding += (fee.amount || 0) - (fee.paid_amount || 0);
+      });
 
-        const keyMetrics: FinanceKeyMetrics = {
-          totalRevenue: totalExpected,
-          totalCollected,
-          outstandingAmount,
-          collectionRate,
-          totalStudents: safeStudentsData.length,
-          defaultersCount: defaulters.length
-        };
+      const feeCollectionData = Array.from(monthlyData.entries()).map(([month, data]) => ({
+        month,
+        ...data
+      }));
 
-        // Process daily transactions
-        const transactionsByDate = (transactionsData || []).reduce((acc, transaction) => {
-          const date = new Date(transaction.created_at).toISOString().split('T')[0];
-          if (!acc[date]) {
-            acc[date] = { amount: 0, count: 0 };
-          }
-          acc[date].amount += transaction.amount || 0;
-          acc[date].count += 1;
-          return acc;
-        }, {} as Record<string, { amount: number; count: number }>);
+      // Generate daily transactions
+      const dailyTxns = new Map<string, { amount: number; count: number }>();
+      
+      mpesaTransactions.forEach(txn => {
+        const date = new Date(txn.transaction_date).toLocaleDateString();
+        if (!dailyTxns.has(date)) {
+          dailyTxns.set(date, { amount: 0, count: 0 });
+        }
+        const data = dailyTxns.get(date)!;
+        data.amount += txn.amount_paid || 0;
+        data.count += 1;
+      });
 
-        const dailyTransactions: DailyTransaction[] = Object.entries(transactionsByDate)
-          .map(([date, data]) => ({
-            date,
-            amount: data.amount,
-            count: data.count
-          }))
-          .sort((a, b) => a.date.localeCompare(b.date))
-          .slice(-30); // Last 30 days
+      const dailyTransactions = Array.from(dailyTxns.entries()).map(([date, data]) => ({
+        date,
+        ...data
+      }));
 
-        // Create expense breakdown with color property
-        const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-        const expenseBreakdown: ExpenseBreakdown[] = [
-          { category: 'Salaries', amount: totalCollected * 0.6, percentage: 60, color: colors[0] },
-          { category: 'Utilities', amount: totalCollected * 0.15, percentage: 15, color: colors[1] },
-          { category: 'Maintenance', amount: totalCollected * 0.1, percentage: 10, color: colors[2] },
-          { category: 'Supplies', amount: totalCollected * 0.1, percentage: 10, color: colors[3] },
-          { category: 'Other', amount: totalCollected * 0.05, percentage: 5, color: colors[4] }
-        ];
+      // Generate expense breakdown
+      const expenseCategories = new Map<string, number>();
+      expenses.forEach(expense => {
+        const category = expense.category || 'Other';
+        expenseCategories.set(category, (expenseCategories.get(category) || 0) + (expense.amount || 0));
+      });
 
-        // Create defaulters list using lookup maps
-        const defaultersList: Defaulter[] = defaulters
-          .map(fee => {
-            const student = studentsMap.get(fee.student_id);
-            const studentClass = student ? classesMap.get(student.class_id) : null;
-            const dueDate = fee.due_date ? new Date(fee.due_date) : new Date();
-            const daysOverdue = Math.floor((currentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            return {
-              student_name: student?.name || 'Unknown Student',
-              class_name: studentClass?.name || 'Unknown Class',
-              admission_number: student?.admission_number || 'N/A',
-              outstanding_amount: (fee.amount || 0) - (fee.paid_amount || 0),
-              days_overdue: Math.max(0, daysOverdue)
-            };
-          })
-          .sort((a, b) => b.outstanding_amount - a.outstanding_amount)
-          .slice(0, 10);
+      const expenseBreakdown = Array.from(expenseCategories.entries()).map(([category, amount]) => ({
+        category,
+        amount
+      }));
 
-        // Create fee collection by class using lookup maps
-        const feesByClass = safeFeesData.reduce((acc, fee) => {
-          const student = studentsMap.get(fee.student_id);
-          const studentClass = student ? classesMap.get(student.class_id) : null;
-          const className = studentClass?.name || fee.class_id ? classesMap.get(fee.class_id)?.name || 'Unknown Class' : 'Individual Fees';
+      // Generate defaulters list
+      const defaultersList = fees
+        .filter(fee => {
+          const outstanding = (fee.amount || 0) - (fee.paid_amount || 0);
+          const isPastDue = new Date(fee.due_date) < new Date();
+          return outstanding > 0 && isPastDue;
+        })
+        .map(fee => {
+          const daysPastDue = Math.floor(
+            (new Date().getTime() - new Date(fee.due_date).getTime()) / (1000 * 60 * 60 * 24)
+          );
           
-          if (!acc[className]) {
-            acc[className] = { collected: 0, expected: 0 };
-          }
-          acc[className].collected += fee.paid_amount || 0;
-          acc[className].expected += fee.amount || 0;
-          return acc;
-        }, {} as Record<string, { collected: number; expected: number }>);
+          return {
+            studentName: fee.students?.name || 'Unknown Student',
+            admissionNumber: fee.students?.admission_number || 'N/A',
+            className: fee.classes?.name || 'Unknown Class',
+            outstandingAmount: (fee.amount || 0) - (fee.paid_amount || 0),
+            daysPastDue
+          };
+        })
+        .sort((a, b) => b.outstandingAmount - a.outstandingAmount)
+        .slice(0, 10);
 
-        const feeCollectionData: FeeCollectionData[] = Object.entries(feesByClass)
-          .map(([className, data]) => ({
-            class: className,
-            collected: data.collected,
-            expected: data.expected,
-            collectionRate: data.expected > 0 ? (data.collected / data.expected) * 100 : 0
-          }))
-          .sort((a, b) => b.collected - a.collected);
+      console.log('📊 Finance analytics compiled successfully');
 
-        console.log('✅ Finance analytics processed successfully');
-
-        return {
-          keyMetrics,
-          dailyTransactions,
-          expenseBreakdown,
-          defaultersList,
-          feeCollectionData
-        };
-
-      } catch (error) {
-        console.error('❌ Error in finance analytics query:', error);
-        throw error;
-      }
+      return {
+        keyMetrics,
+        feeCollectionData,
+        dailyTransactions,
+        expenseBreakdown,
+        defaultersList
+      };
     },
-    enabled: !!user?.id && !!(currentSchool?.id || user?.school_id),
+    enabled: !!user?.school_id,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
-    refetchOnWindowFocus: false
+    retry: 1
   });
 };

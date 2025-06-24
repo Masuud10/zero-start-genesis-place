@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { StudentAccount } from '@/hooks/useStudentAccounts';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Eye } from 'lucide-react';
+import type { StudentAccount } from '@/hooks/useStudentAccounts';
 
 interface StudentAccountsTableProps {
   accounts: StudentAccount[];
@@ -16,6 +17,23 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
   formatCurrency,
   onViewDetails
 }) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'partial': return 'bg-yellow-100 text-yellow-800';
+      case 'overdue': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (accounts.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">No student accounts found matching your criteria.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -23,67 +41,59 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
           <TableRow>
             <TableHead>Student</TableHead>
             <TableHead>Class</TableHead>
-            <TableHead className="text-right">Total Fees</TableHead>
-            <TableHead className="text-right">Paid</TableHead>
-            <TableHead className="text-right">Outstanding</TableHead>
-            <TableHead className="text-right">Payment Rate</TableHead>
+            <TableHead>Total Fees</TableHead>
+            <TableHead>Paid Amount</TableHead>
+            <TableHead>Balance</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {accounts.map((account) => {
-            const paymentRate = account.totalFees > 0 
-              ? ((account.totalPaid / account.totalFees) * 100).toFixed(1)
-              : '0';
-            
-            return (
-              <TableRow key={account.student.id}>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{account.student.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {account.student.admission_number}
-                    </div>
+          {accounts.map((account) => (
+            <TableRow key={account.student.id}>
+              <TableCell>
+                <div>
+                  <div className="font-medium">
+                    {account.student.name || 'Unknown Student'}
                   </div>
-                </TableCell>
-                <TableCell>{account.student.class?.name || 'Unknown Class'}</TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(account.totalFees)}
-                </TableCell>
-                <TableCell className="text-right text-green-600">
-                  {formatCurrency(account.totalPaid)}
-                </TableCell>
-                <TableCell className="text-right text-red-600">
-                  {formatCurrency(account.outstanding)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className={`font-medium ${
-                    parseFloat(paymentRate) >= 80 ? 'text-green-600' :
-                    parseFloat(paymentRate) >= 50 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {paymentRate}%
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => onViewDetails(account)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Details
-                  </Button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+                  <div className="text-sm text-gray-500">
+                    {account.student.admission_number || 'N/A'}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                {account.student.class_name || 'Unknown Class'}
+              </TableCell>
+              <TableCell className="font-semibold">
+                {formatCurrency(account.totalFees)}
+              </TableCell>
+              <TableCell className="text-green-600 font-semibold">
+                {formatCurrency(account.totalPaid)}
+              </TableCell>
+              <TableCell className={`font-semibold ${
+                account.balance > 0 ? 'text-red-600' : 'text-green-600'
+              }`}>
+                {formatCurrency(account.balance)}
+              </TableCell>
+              <TableCell>
+                <Badge className={getStatusColor(account.status)}>
+                  {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  onClick={() => onViewDetails(account)}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Details
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
-      {accounts.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          No student accounts found matching your criteria.
-        </div>
-      )}
     </div>
   );
 };
