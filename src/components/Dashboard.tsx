@@ -36,23 +36,29 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Handler for modal operations - can be enhanced later if needed
+  const handleModalOpen = (modalType: string) => {
+    console.log('Dashboard: Modal open requested:', modalType);
+    // This can be enhanced to handle specific modal logic if needed
+  };
+
   // Route to appropriate dashboard based on user role
   switch (user.role) {
     case 'edufam_admin':
-      return <EduFamAdminDashboard user={user} />;
+      return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
     
     case 'principal':
     case 'school_owner':
-      return <PrincipalDashboard user={user} />;
+      return <PrincipalDashboard user={user} onModalOpen={handleModalOpen} />;
     
     case 'teacher':
-      return <TeacherDashboard user={user} />;
+      return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
     
     case 'finance_officer':
       return <FinanceOfficerDashboard user={user} />;
     
     case 'parent':
-      return <ParentDashboard user={user} />;
+      return <ParentDashboard user={user} onModalOpen={handleModalOpen} />;
     
     default:
       console.warn('🎯 Dashboard: Unknown user role:', user.role);
