@@ -94,7 +94,7 @@ const FinancialAnalyticsModule: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Collected</p>
                 <p className="text-2xl font-bold text-green-600">
-                  KES {keyMetrics.totalFeesCollected.toLocaleString()}
+                  KES {keyMetrics.totalCollected.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -108,7 +108,7 @@ const FinancialAnalyticsModule: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Outstanding</p>
                 <p className="text-2xl font-bold text-red-600">
-                  KES {keyMetrics.totalOutstanding.toLocaleString()}
+                  KES {keyMetrics.outstandingAmount.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -149,17 +149,17 @@ const FinancialAnalyticsModule: React.FC = () => {
         {/* Fee Collection Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Fee Collection</CardTitle>
+            <CardTitle>Fee Collection by Class</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={feeCollectionData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="class" />
                 <YAxis />
                 <Tooltip formatter={(value) => [`KES ${Number(value).toLocaleString()}`, '']} />
                 <Bar dataKey="collected" fill="#10B981" name="Collected" />
-                <Bar dataKey="outstanding" fill="#EF4444" name="Outstanding" />
+                <Bar dataKey="expected" fill="#EF4444" name="Expected" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -197,7 +197,7 @@ const FinancialAnalyticsModule: React.FC = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ category, percentage }) => `${category} ${(percentage || 0).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="amount"
@@ -228,16 +228,16 @@ const FinancialAnalyticsModule: React.FC = () => {
                 {defaultersList.slice(0, 5).map((defaulter, index) => (
                   <div key={index} className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                     <div>
-                      <p className="font-medium">{defaulter.studentName}</p>
+                      <p className="font-medium">{defaulter.student_name}</p>
                       <p className="text-sm text-gray-500">
-                        {defaulter.admissionNumber} - {defaulter.className}
+                        {defaulter.admission_number} - {defaulter.class_name}
                       </p>
                       <p className="text-xs text-red-600">
-                        {defaulter.daysPastDue} days overdue
+                        {defaulter.days_overdue} days overdue
                       </p>
                     </div>
                     <div className="font-bold text-red-600">
-                      KES {defaulter.outstandingAmount.toLocaleString()}
+                      KES {defaulter.outstanding_amount.toLocaleString()}
                     </div>
                   </div>
                 ))}
