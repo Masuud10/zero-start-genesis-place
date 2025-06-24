@@ -9,10 +9,12 @@ import ProjectsKanban from './project-hub/ProjectsKanban';
 import ProjectsTimeline from './project-hub/ProjectsTimeline';
 import ProjectsAnalytics from './project-hub/ProjectsAnalytics';
 import CreateProjectDialog from './project-hub/CreateProjectDialog';
+import { useProjects } from '@/hooks/useProjects';
 
 const ProjectHubModule = () => {
   const [activeTab, setActiveTab] = useState('list');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const { data: projects = [] } = useProjects();
 
   return (
     <div className="space-y-6">
@@ -27,7 +29,7 @@ const ProjectHubModule = () => {
               <div>
                 <h1 className="text-3xl font-bold">Project Hub</h1>
                 <p className="text-blue-100 text-base font-normal mt-1">
-                  Manage company-level projects, events, and campaigns
+                  Manage company-level projects, events, and campaigns ({projects.length} projects)
                 </p>
               </div>
             </CardTitle>

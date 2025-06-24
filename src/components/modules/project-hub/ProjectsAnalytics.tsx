@@ -1,42 +1,45 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { BarChart3, DollarSign, Calendar, TrendingUp, Users, AlertTriangle } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, DollarSign, Target, AlertTriangle } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
-import { LoadingCard } from '@/components/common/LoadingStates';
 
-const ProjectsAnalytics = () => {
-  const { data: projects = [], isLoading, error } = useProjects();
-
-  if (isLoading) {
-    return <LoadingCard title="Loading analytics..." />;
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-red-600">Error loading analytics: {error.message}</p>
-        </CardContent>
-      </Card>
-    );
-  }
+const ProjectsAnalytics: React.FC = () => {
+  const { data: projects = [], isLoading } = useProjects();
 
   // Calculate analytics
   const totalProjects = projects.length;
   const completedProjects = projects.filter(p => p.status === 'completed').length;
   const inProgressProjects = projects.filter(p => p.status === 'in_progress').length;
   const overdueProjects = projects.filter(p => {
-    const endDate = new Date(p.end_date);
     const today = new Date();
+    const endDate = new Date(p.end_date);
     return endDate < today && p.status !== 'completed' && p.status !== 'cancelled';
   }).length;
 
   const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0);
   const totalSpent = projects.reduce((sum, p) => sum + p.actual_cost, 0);
-  const averageProgress = totalProjects > 0 ? projects.reduce((sum, p) => sum + p.progress, 0) / totalProjects : 0;
+  const averageProgress = totalProjects > 0 
+    ? projects.reduce((sum, p) => sum + p.progress, 0) / totalProjects 
+    : 0;
+
+  // Project status distribution
+  const statusDistribution = {
+    planning: projects.filter(p => p.status === 'planning').length,
+    in_progress: projects.filter(p => p.status === 'in_progress').length,
+    on_hold: projects.filter(p => p.status === 'on_hold').length,
+    completed: projects.filter(p => p.status === 'completed').length,
+    cancelled: projects.filter(p => p.status === 'cancelled').length,
+  };
+
+  // Priority distribution
+  const priorityDistribution = {
+    low: projects.filter(p => p.priority === 'low').length,
+    medium: projects.filter(p => p.priority === 'medium').length,
+    high: projects.filter(p => p.priority === 'high').length,
+    critical: projects.filter(p => p.priority === 'critical').length,
+  };
 
   // Project type distribution
   const typeDistribution = projects.reduce((acc, project) => {
@@ -44,108 +47,92 @@ const ProjectsAnalytics = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  // Status distribution
-  const statusDistribution = projects.reduce((acc, project) => {
-    acc[project.status] = (acc[project.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Priority distribution
-  const priorityDistribution = projects.reduce((acc, project) => {
-    acc[project.priority] = (acc[project.priority] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'event': return 'School Events';
-      case 'trip': return 'Academic Trips';
-      case 'campaign': return 'Marketing Campaigns';
-      case 'internal': return 'Internal Projects';
-      case 'client': return 'Client Projects';
-      case 'other': return 'Other';
-      default: return type;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'planning': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'on_hold': return 'bg-gray-100 text-gray-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'critical': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold">Analytics</h3>
+          <p className="text-sm text-muted-foreground">Loading analytics...</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold">Analytics Dashboard</h3>
+        <p className="text-sm text-muted-foreground">
+          Comprehensive insights into project performance and metrics
+        </p>
+      </div>
+
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalProjects}</div>
-            <p className="text-xs text-muted-foreground">
-              {completedProjects} completed ({totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0}%)
-            </p>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
+                <p className="text-2xl font-bold">{totalProjects}</p>
+              </div>
+              <Target className="h-8 w-8 text-blue-500" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inProgressProjects}</div>
-            <p className="text-xs text-muted-foreground">
-              Active projects currently running
-            </p>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-green-600">{completedProjects}</p>
+                <p className="text-xs text-muted-foreground">
+                  {totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0}% completion rate
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{overdueProjects}</div>
-            <p className="text-xs text-muted-foreground">
-              Projects past their end date
-            </p>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+                <p className="text-2xl font-bold text-blue-600">{inProgressProjects}</p>
+              </div>
+              <Clock className="h-8 w-8 text-blue-500" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Progress</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Math.round(averageProgress)}%</div>
-            <Progress value={averageProgress} className="mt-2" />
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Overdue</p>
+                <p className="text-2xl font-bold text-red-600">{overdueProjects}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Budget Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Budget and Progress */}
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -154,17 +141,17 @@ const ProjectsAnalytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between">
-              <span>Total Budget:</span>
-              <span className="font-semibold">${totalBudget.toLocaleString()}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total Budget</span>
+              <span className="font-bold">${totalBudget.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Total Spent:</span>
-              <span className="font-semibold">${totalSpent.toLocaleString()}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Total Spent</span>
+              <span className="font-bold text-red-600">${totalSpent.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Remaining:</span>
-              <span className="font-semibold text-green-600">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Remaining</span>
+              <span className={`font-bold ${totalBudget - totalSpent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 ${(totalBudget - totalSpent).toLocaleString()}
               </span>
             </div>
@@ -174,7 +161,7 @@ const ProjectsAnalytics = () => {
                   <span>Budget Utilization</span>
                   <span>{Math.round((totalSpent / totalBudget) * 100)}%</span>
                 </div>
-                <Progress value={(totalSpent / totalBudget) * 100} />
+                <Progress value={(totalSpent / totalBudget) * 100} className="h-2" />
               </div>
             )}
           </CardContent>
@@ -182,46 +169,51 @@ const ProjectsAnalytics = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Project Types Distribution</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Overall Progress
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(typeDistribution).map(([type, count]) => (
-                <div key={type} className="flex justify-between items-center">
-                  <span className="text-sm">{getTypeLabel(type)}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${(count / totalProjects) * 100}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-medium">{count}</span>
-                  </div>
-                </div>
-              ))}
+          <CardContent className="space-y-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600">{Math.round(averageProgress)}%</div>
+              <p className="text-sm text-muted-foreground">Average completion</p>
+            </div>
+            <Progress value={averageProgress} className="h-3" />
+            <div className="text-sm text-muted-foreground text-center">
+              Across all {totalProjects} projects
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Status and Priority Distribution */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Status Distribution</CardTitle>
+            <CardTitle>Project Status</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(statusDistribution).map(([status, count]) => (
-                <div key={status} className="flex justify-between items-center">
-                  <Badge className={getStatusColor(status)}>
-                    {status.replace('_', ' ')}
-                  </Badge>
-                  <span className="font-medium">{count}</span>
+          <CardContent className="space-y-3">
+            {Object.entries(statusDistribution).map(([status, count]) => (
+              <div key={status} className="flex justify-between items-center">
+                <span className="text-sm capitalize">{status.replace('_', ' ')}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{count}</span>
+                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${
+                        status === 'completed' ? 'bg-green-500' :
+                        status === 'in_progress' ? 'bg-blue-500' :
+                        status === 'planning' ? 'bg-yellow-500' :
+                        status === 'on_hold' ? 'bg-gray-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${totalProjects > 0 ? (count / totalProjects) * 100 : 0}%` }}
+                    ></div>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -229,50 +221,61 @@ const ProjectsAnalytics = () => {
           <CardHeader>
             <CardTitle>Priority Distribution</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(priorityDistribution).map(([priority, count]) => (
-                <div key={priority} className="flex justify-between items-center">
-                  <Badge className={getPriorityColor(priority)}>
-                    {priority}
-                  </Badge>
-                  <span className="font-medium">{count}</span>
+          <CardContent className="space-y-3">
+            {Object.entries(priorityDistribution).map(([priority, count]) => (
+              <div key={priority} className="flex justify-between items-center">
+                <span className="text-sm capitalize">{priority}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{count}</span>
+                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${
+                        priority === 'critical' ? 'bg-red-500' :
+                        priority === 'high' ? 'bg-orange-500' :
+                        priority === 'medium' ? 'bg-blue-500' :
+                        'bg-gray-500'
+                      }`}
+                      style={{ width: `${totalProjects > 0 ? (count / totalProjects) * 100 : 0}%` }}
+                    ></div>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Types</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {Object.entries(typeDistribution).map(([type, count]) => (
+              <div key={type} className="flex justify-between items-center">
+                <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{count}</span>
+                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-purple-500 h-2 rounded-full"
+                      style={{ width: `${totalProjects > 0 ? (count / totalProjects) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Projects</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {projects
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-              .slice(0, 5)
-              .map((project) => (
-                <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <div className="font-medium">{project.project_name}</div>
-                    <div className="text-sm text-gray-600">{project.responsible_person}</div>
-                  </div>
-                  <div className="text-right">
-                    <Badge className={getStatusColor(project.status)}>
-                      {project.status.replace('_', ' ')}
-                    </Badge>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {project.progress}% complete
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </CardContent>
-      </Card>
+      {totalProjects === 0 && (
+        <div className="text-center py-12">
+          <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No analytics available</h3>
+          <p className="text-muted-foreground">
+            Create some projects to see analytics and insights.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

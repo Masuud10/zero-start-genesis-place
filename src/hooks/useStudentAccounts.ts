@@ -49,7 +49,7 @@ export const useStudentAccounts = () => {
         class_id: student.class_id,
         school_id: student.school_id,
         class: student.classes && typeof student.classes === 'object' && 'name' in student.classes 
-          ? { name: student.classes.name as string } 
+          ? { name: (student.classes as { name: string }).name } 
           : { name: 'Unknown Class' }
       }));
 
