@@ -1,16 +1,12 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Student, FeeRecord } from '@/hooks/fee-management/types';
+import { Student } from '@/hooks/fee-management/types';
+import { StudentAccount } from './student-accounts/types';
+import { transformStudentData, createStudentAccountsMap, processFeeData } from './student-accounts/utils';
+import { fetchStudentsWithClasses, fetchFeesWithRelations } from './student-accounts/dataService';
 
-export interface StudentAccount {
-  student: Student;
-  totalFees: number;
-  totalPaid: number;
-  outstanding: number;
-  fees: FeeRecord[];
-}
+export type { StudentAccount } from './student-accounts/types';
 
 export const useStudentAccounts = () => {
   const { user } = useAuth();
@@ -27,111 +23,18 @@ export const useStudentAccounts = () => {
       setError(null);
 
       // Fetch students with proper class relationship using explicit join
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select(`
-          id,
-          name,
-          admission_number,
-          class_id,
-          school_id,
-          classes:class_id(name)
-        `)
-        .eq('school_id', user.school_id);
-
-      if (studentsError) throw studentsError;
-
+      const studentsData = await fetchStudentsWithClasses(user.school_id);
+      
       // Transform students data with proper error handling and null checks
-      const transformedStudents: Student[] = (studentsData || []).map(student => {
-        // Safely handle the classes data with proper null checking
-        let className = 'Unknown Class';
-        
-        // Check if classes exists and is not null
-        if (student.classes && student.classes !== null) {
-          // Handle both single object and array cases
-          if (Array.isArray(student.classes)) {
-            // If it's an array, get the first item's name
-            if (student.classes.length > 0 && student.classes[0]?.name) {
-              className = student.classes[0].name;
-            }
-          } else if (typeof student.classes === 'object' && 'name' in student.classes) {
-            // If it's a single object with name property
-            const classData = student.classes as { name: string };
-            className = classData.name || 'Unknown Class';
-          }
-        }
-
-        return {
-          id: student.id,
-          name: student.name,
-          admission_number: student.admission_number,
-          class_id: student.class_id,
-          school_id: student.school_id,
-          class: { name: className }
-        };
-      });
-
+      const transformedStudents = transformStudentData(studentsData);
       setStudents(transformedStudents);
 
       // Fetch fees for all students with explicit join
-      const { data: feesData, error: feesError } = await supabase
-        .from('fees')
-        .select(`
-          *,
-          students:student_id(name, admission_number),
-          classes:class_id(name)
-        `)
-        .eq('school_id', user.school_id);
-
-      if (feesError) throw feesError;
+      const feesData = await fetchFeesWithRelations(user.school_id);
 
       // Group fees by student and calculate totals
-      const accountsMap = new Map<string, StudentAccount>();
-
-      transformedStudents.forEach(student => {
-        accountsMap.set(student.id, {
-          student,
-          totalFees: 0,
-          totalPaid: 0,
-          outstanding: 0,
-          fees: []
-        });
-      });
-
-      (feesData || []).forEach(fee => {
-        const studentId = fee.student_id;
-        const account = accountsMap.get(studentId);
-        
-        if (account) {
-          // Ensure status is properly typed
-          const validStatuses: Array<'pending' | 'paid' | 'partial' | 'overdue'> = ['pending', 'paid', 'partial', 'overdue'];
-          const feeStatus = validStatuses.includes(fee.status as any) ? fee.status : 'pending';
-          
-          const feeRecord: FeeRecord = {
-            id: fee.id,
-            studentId: fee.student_id,
-            amount: fee.amount || 0,
-            paidAmount: fee.paid_amount || 0,
-            dueDate: fee.due_date,
-            term: fee.term,
-            category: fee.category,
-            status: feeStatus as 'pending' | 'paid' | 'partial' | 'overdue',
-            studentName: account.student.name,
-            admissionNumber: account.student.admission_number,
-            className: account.student.class?.name || 'Unknown Class',
-            academicYear: fee.academic_year,
-            paymentMethod: fee.payment_method,
-            paidDate: fee.paid_date,
-            createdAt: fee.created_at,
-            classId: fee.class_id
-          };
-
-          account.fees.push(feeRecord);
-          account.totalFees += feeRecord.amount;
-          account.totalPaid += feeRecord.paidAmount;
-          account.outstanding = account.totalFees - account.totalPaid;
-        }
-      });
+      const accountsMap = createStudentAccountsMap(transformedStudents);
+      processFeeData(feesData, accountsMap);
 
       setStudentAccounts(Array.from(accountsMap.values()));
     } catch (err: any) {
