@@ -1,13 +1,35 @@
 
 import { useState } from 'react';
 import { useAnalyticsTracking } from './useAnalyticsTracking';
+import { auditLogger } from '@/utils/auditLogger';
+import { rateLimiter, RateLimiter } from '@/utils/rateLimiter';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useGradeSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { trackGradeSubmission } = useAnalyticsTracking();
+  const { user } = useAuth();
 
   const submitGrade = async (gradeData: any) => {
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Check rate limiting for grade submissions
+    const rateLimit = rateLimiter.checkLimit({
+      ...RateLimiter.GRADE_SUBMISSION_LIMIT,
+      identifier: `grade_submit_${user.id}`
+    });
+
+    if (!rateLimit.allowed) {
+      const resetSeconds = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
+      const error = `Rate limit exceeded. Please wait ${resetSeconds} seconds before submitting another grade.`;
+      
+      await auditLogger.logGradeSubmission(user.id, gradeData, false, error);
+      return { success: false, error };
+    }
+
     setIsSubmitting(true);
     try {
       if (!gradeData.class_id) {
@@ -47,9 +69,16 @@ export const useGradeSubmission = () => {
         term: gradeData.term
       });
 
+      // Log successful grade submission
+      await auditLogger.logGradeSubmission(user.id, completeGradeData, true);
+
       return { success: true, data };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Grade submission failed:', error);
+      
+      // Log failed grade submission
+      await auditLogger.logGradeSubmission(user.id, gradeData, false, error.message);
+      
       return { success: false, error };
     } finally {
       setIsSubmitting(false);

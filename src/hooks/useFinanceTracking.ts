@@ -1,13 +1,35 @@
 
 import { useState } from 'react';
 import { useAnalyticsTracking } from './useAnalyticsTracking';
+import { auditLogger } from '@/utils/auditLogger';
+import { rateLimiter, RateLimiter } from '@/utils/rateLimiter';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useFinanceTracking = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { trackFinanceTransaction } = useAnalyticsTracking();
+  const { user } = useAuth();
 
   const processPayment = async (paymentData: any) => {
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Check rate limiting for MPESA transactions
+    const rateLimit = rateLimiter.checkLimit({
+      ...RateLimiter.MPESA_TRANSACTION_LIMIT,
+      identifier: `mpesa_${user.id}`
+    });
+
+    if (!rateLimit.allowed) {
+      const resetMinutes = Math.ceil((rateLimit.resetTime - Date.now()) / 60000);
+      const error = `Rate limit exceeded. Please wait ${resetMinutes} minutes before processing another payment.`;
+      
+      await auditLogger.logMpesaTransaction(user.id, paymentData, false, error);
+      return { success: false, error };
+    }
+
     setIsProcessing(true);
     try {
       if (!paymentData.student_id) {
@@ -47,9 +69,16 @@ export const useFinanceTracking = () => {
         reference_number: paymentData.reference_number
       });
 
+      // Log successful transaction
+      await auditLogger.logMpesaTransaction(user.id, completePaymentData, true);
+
       return { success: true, data };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment processing failed:', error);
+      
+      // Log failed transaction
+      await auditLogger.logMpesaTransaction(user.id, paymentData, false, error.message);
+      
       return { success: false, error };
     } finally {
       setIsProcessing(false);

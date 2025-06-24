@@ -1,17 +1,20 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Lock, Mail, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, AlertTriangle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSecureAuth } from "@/hooks/useSecureAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SecurityCaptcha } from "@/components/security/SecurityCaptcha";
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [securityWarning, setSecurityWarning] = useState("");
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const { secureSignIn, isLoading, csrfToken } = useSecureAuth();
   const { toast } = useToast();
 
@@ -23,12 +26,19 @@ const LoginForm: React.FC = () => {
       return;
     }
 
+    if (!captchaVerified) {
+      setSecurityWarning("Please complete the security verification");
+      return;
+    }
+
     try {
       setSecurityWarning("");
       const { data, error } = await secureSignIn(email, password, csrfToken);
 
       if (error) {
         setSecurityWarning(error.message);
+        // Reset captcha on failed login
+        setCaptchaVerified(false);
         return;
       }
 
@@ -41,6 +51,7 @@ const LoginForm: React.FC = () => {
       }
     } catch (error: any) {
       setSecurityWarning(error.message || "Login failed. Please try again.");
+      setCaptchaVerified(false);
     }
   };
 
@@ -127,7 +138,16 @@ const LoginForm: React.FC = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <SecurityCaptcha 
+              onVerify={setCaptchaVerified}
+              disabled={isLoading}
+            />
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading || !captchaVerified}
+            >
               {isLoading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -139,9 +159,13 @@ const LoginForm: React.FC = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
+            <div className="flex items-center justify-center space-x-1 text-xs text-green-600">
+              <Shield className="h-3 w-3" />
+              <span>Protected by enterprise-grade security</span>
+            </div>
             <p className="text-xs text-gray-500">
-              Protected by enterprise-grade security measures
+              SSL encrypted • Rate limited • Audit logged
             </p>
           </div>
         </CardContent>
