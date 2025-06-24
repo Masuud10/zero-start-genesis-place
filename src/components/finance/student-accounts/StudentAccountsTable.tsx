@@ -17,6 +17,12 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
   formatCurrency,
   onViewDetails
 }) => {
+  const getBalanceStatus = (outstanding: number) => {
+    if (outstanding <= 0) return 'paid';
+    if (outstanding > 0 && outstanding < 1000) return 'partial';
+    return 'overdue';
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-800';
@@ -29,7 +35,7 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
   if (accounts.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No student accounts found matching your criteria.</p>
+        <p className="text-muted-foreground">No student accounts found</p>
       </div>
     );
   }
@@ -40,58 +46,62 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead>Student</TableHead>
-            <TableHead>Class</TableHead>
+            <TableHead>Admission No.</TableHead>
             <TableHead>Total Fees</TableHead>
             <TableHead>Paid Amount</TableHead>
-            <TableHead>Balance</TableHead>
+            <TableHead>Outstanding</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {accounts.map((account) => (
-            <TableRow key={account.student.id}>
-              <TableCell>
-                <div>
-                  <div className="font-medium">
-                    {account.student.name || 'Unknown Student'}
+          {accounts.map((account) => {
+            const status = getBalanceStatus(account.outstanding);
+            return (
+              <TableRow key={account.student.id}>
+                <TableCell>
+                  <div className="font-medium">{account.student.name}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-muted-foreground">
+                    {account.student.admission_number}
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {account.student.admission_number || 'N/A'}
+                </TableCell>
+                <TableCell>
+                  <div className="font-semibold">
+                    {formatCurrency(account.totalFees)}
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                {account.student.class_name || 'Unknown Class'}
-              </TableCell>
-              <TableCell className="font-semibold">
-                {formatCurrency(account.totalFees)}
-              </TableCell>
-              <TableCell className="text-green-600 font-semibold">
-                {formatCurrency(account.totalPaid)}
-              </TableCell>
-              <TableCell className={`font-semibold ${
-                account.balance > 0 ? 'text-red-600' : 'text-green-600'
-              }`}>
-                {formatCurrency(account.balance)}
-              </TableCell>
-              <TableCell>
-                <Badge className={getStatusColor(account.status)}>
-                  {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Button
-                  onClick={() => onViewDetails(account)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Details
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  <div className="font-semibold text-green-600">
+                    {formatCurrency(account.totalPaid)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className={`font-semibold ${
+                    account.outstanding > 0 ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {formatCurrency(account.outstanding)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(status)}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onViewDetails(account)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Details
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

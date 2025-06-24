@@ -1,17 +1,12 @@
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReportFilters {
   reportType: 'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions';
   academicYear?: string;
   term?: string;
-  classId?: string;
-  studentId?: string;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -19,162 +14,119 @@ interface ReportFilters {
 export const useFinanceReports = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const generateReport = async (filters: ReportFilters) => {
     if (!user?.school_id) {
-      toast({
-        title: "Error",
-        description: "No school associated with your account",
-        variant: "destructive",
-      });
-      return { data: null, error: 'No school ID' };
+      return { data: null, error: 'No school assigned to user' };
     }
 
-    setLoading(true);
-    
     try {
-      let data = null;
+      setLoading(true);
       
-      switch (filters.reportType) {
+      let data: any = {};
+      const { reportType, academicYear, term, dateFrom, dateTo } = filters;
+
+      switch (reportType) {
         case 'school_financial':
-          data = await generateSchoolFinancialReport(user.school_id, filters);
+          // Fetch financial overview
+          const [feesResult, expensesResult, transactionsResult] = await Promise.all([
+            supabase
+              .from('fees')
+              .select('amount, paid_amount, status, category')
+              .eq('school_id', user.school_id)
+              .gte('created_at', academicYear ? `${academicYear}-01-01` : '2024-01-01'),
+            
+            supabase
+              .from('expenses')
+              .select('amount, category, date')
+              .eq('school_id', user.school_id)
+              .gte('date', dateFrom || '2024-01-01'),
+            
+            supabase
+              .from('mpesa_transactions')
+              .select('amount_paid, transaction_status, transaction_date')
+              .eq('school_id', user.school_id)
+              .gte('transaction_date', dateFrom || '2024-01-01')
+          ]);
+
+          data = {
+            fees: feesResult.data || [],
+            expenses: expensesResult.data || [],
+            transactions: transactionsResult.data || [],
+            summary: {
+              totalFees: feesResult.data?.reduce((sum, fee) => sum + Number(fee.amount), 0) || 0,
+              totalCollected: feesResult.data?.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0) || 0,
+              totalExpenses: expensesResult.data?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0,
+              mpesaCollections: transactionsResult.data?.filter(t => t.transaction_status === 'Success')
+                .reduce((sum, t) => sum + Number(t.amount_paid), 0) || 0
+            }
+          };
           break;
+
         case 'fee_collection':
-          data = await generateFeeCollectionReport(user.school_id, filters);
+          const { data: feeData } = await supabase
+            .from('fees')
+            .select(`
+              *,
+              students(name, admission_number, class_id),
+              classes(name)
+            `)
+            .eq('school_id', user.school_id)
+            .gte('created_at', academicYear ? `${academicYear}-01-01` : '2024-01-01');
+
+          data = { feeCollection: feeData || [] };
           break;
+
         case 'expense_summary':
-          data = await generateExpenseSummaryReport(user.school_id, filters);
+          const { data: expenseData } = await supabase
+            .from('expenses')
+            .select('*')
+            .eq('school_id', user.school_id)
+            .gte('date', dateFrom || '2024-01-01');
+
+          data = { expenses: expenseData || [] };
           break;
+
         case 'mpesa_transactions':
-          data = await generateMpesaTransactionsReport(user.school_id, filters);
+          const { data: mpesaData } = await supabase
+            .from('mpesa_transactions')
+            .select(`
+              *,
+              students(name, admission_number),
+              classes(name)
+            `)
+            .eq('school_id', user.school_id)
+            .gte('transaction_date', dateFrom || '2024-01-01');
+
+          data = { mpesaTransactions: mpesaData || [] };
           break;
-        default:
-          throw new Error('Invalid report type');
       }
 
       return { data, error: null };
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate report",
-        variant: "destructive",
-      });
+      console.error('Error generating report:', error);
       return { data: null, error: error.message };
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadReport = (reportData: any, filename: string) => {
-    try {
-      const doc = new jsPDF();
-      
-      // Add title
-      doc.setFontSize(16);
-      doc.text('Financial Report', 20, 20);
-      
-      // Add generated date
-      doc.setFontSize(12);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 30);
-      
-      // Add report data as a simple table
-      if (reportData && typeof reportData === 'object') {
-        const tableData = Object.entries(reportData).map(([key, value]) => [
-          key.replace(/_/g, ' ').toUpperCase(),
-          String(value)
-        ]);
-        
-        (doc as any).autoTable({
-          head: [['Field', 'Value']],
-          body: tableData,
-          startY: 40,
-        });
-      }
-      
-      doc.save(`${filename}.pdf`);
-      
-      toast({
-        title: "Success",
-        description: "Report downloaded successfully",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to download report",
-        variant: "destructive",
-      });
-    }
+  const downloadReport = (data: any, filename: string) => {
+    const jsonData = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return {
     generateReport,
     downloadReport,
     loading
-  };
-};
-
-// Helper functions for different report types
-const generateSchoolFinancialReport = async (schoolId: string, filters: ReportFilters) => {
-  const { data, error } = await supabase
-    .from('fees')
-    .select('*')
-    .eq('school_id', schoolId);
-  
-  if (error) throw error;
-  
-  const totalFees = data?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
-  const totalPaid = data?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-  
-  return {
-    summary: {
-      total_fees: totalFees,
-      total_collected: totalPaid,
-      outstanding: totalFees - totalPaid,
-      collection_rate: totalFees > 0 ? (totalPaid / totalFees) * 100 : 0
-    },
-    details: data
-  };
-};
-
-const generateFeeCollectionReport = async (schoolId: string, filters: ReportFilters) => {
-  const { data, error } = await supabase
-    .from('fees')
-    .select('*, student:students(name, admission_number), class:classes(name)')
-    .eq('school_id', schoolId);
-  
-  if (error) throw error;
-  
-  return {
-    collections: data,
-    total_collected: data?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0
-  };
-};
-
-const generateExpenseSummaryReport = async (schoolId: string, filters: ReportFilters) => {
-  // This would need an expenses table - for now return empty
-  return {
-    message: 'Expense tracking not yet implemented',
-    total_expenses: 0
-  };
-};
-
-const generateMpesaTransactionsReport = async (schoolId: string, filters: ReportFilters) => {
-  const { data, error } = await supabase
-    .from('mpesa_transactions')
-    .select('*')
-    .eq('school_id', schoolId);
-  
-  if (error) throw error;
-  
-  const totalAmount = data?.reduce((sum, txn) => sum + (txn.amount_paid || 0), 0) || 0;
-  
-  return {
-    transactions: data,
-    summary: {
-      total_transactions: data?.length || 0,
-      total_amount: totalAmount,
-      successful_transactions: data?.filter(txn => txn.transaction_status === 'Success').length || 0
-    }
   };
 };

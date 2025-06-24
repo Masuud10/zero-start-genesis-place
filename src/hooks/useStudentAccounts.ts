@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 
 export interface StudentAccount {
   student: {
@@ -10,19 +9,18 @@ export interface StudentAccount {
     name: string;
     admission_number: string;
     class_id: string;
-    class_name?: string;
   };
   totalFees: number;
   totalPaid: number;
-  balance: number;
-  status: 'paid' | 'partial' | 'overdue' | 'unpaid';
-  transactions: Array<{
+  outstanding: number;
+  fees: Array<{
     id: string;
     amount: number;
-    payment_method: string;
-    transaction_date: string;
-    mpesa_code?: string;
+    paid_amount: number;
+    category: string;
+    term: string;
     status: string;
+    due_date: string;
   }>;
 }
 
@@ -32,7 +30,6 @@ export const useStudentAccounts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const fetchStudentAccounts = async () => {
     if (!user?.school_id) {
@@ -44,110 +41,47 @@ export const useStudentAccounts = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 Fetching student accounts for school:', user.school_id);
-
-      // Fetch students with their classes
+      // Fetch students
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
-        .select(`
-          id,
-          name,
-          admission_number,
-          class_id,
-          classes!students_class_id_fkey(name)
-        `)
+        .select('id, name, admission_number, class_id')
         .eq('school_id', user.school_id)
         .eq('is_active', true);
 
-      if (studentsError) {
-        throw new Error(`Failed to fetch students: ${studentsError.message}`);
-      }
+      if (studentsError) throw studentsError;
 
       setStudents(studentsData || []);
 
-      // Fetch fees for all students
-      const { data: feesData, error: feesError } = await supabase
-        .from('fees')
-        .select('*')
-        .eq('school_id', user.school_id);
+      // Fetch fees for each student
+      const studentAccountsData: StudentAccount[] = [];
 
-      if (feesError) {
-        console.warn('Error fetching fees:', feesError);
-      }
+      for (const student of studentsData || []) {
+        const { data: feesData } = await supabase
+          .from('fees')
+          .select('id, amount, paid_amount, category, term, status, due_date')
+          .eq('student_id', student.id)
+          .eq('school_id', user.school_id);
 
-      // Fetch MPESA transactions
-      const { data: mpesaData, error: mpesaError } = await supabase
-        .from('mpesa_transactions')
-        .select('*')
-        .eq('school_id', user.school_id);
+        const fees = feesData || [];
+        const totalFees = fees.reduce((sum, fee) => sum + Number(fee.amount), 0);
+        const totalPaid = fees.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0);
+        const outstanding = totalFees - totalPaid;
 
-      if (mpesaError) {
-        console.warn('Error fetching MPESA transactions:', mpesaError);
-      }
-
-      // Create student accounts
-      const accounts: StudentAccount[] = (studentsData || []).map((student) => {
-        const studentFees = (feesData || []).filter(fee => fee.student_id === student.id);
-        const studentTransactions = (mpesaData || []).filter(txn => txn.student_id === student.id);
-
-        const totalFees = studentFees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
-        const totalPaid = studentFees.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) +
-                          studentTransactions.reduce((sum, txn) => sum + (txn.amount_paid || 0), 0);
-        const balance = totalFees - totalPaid;
-
-        let status: 'paid' | 'partial' | 'overdue' | 'unpaid' = 'unpaid';
-        if (balance <= 0) {
-          status = 'paid';
-        } else if (totalPaid > 0) {
-          status = 'partial';
-        } else {
-          // Check for overdue fees
-          const hasOverdue = studentFees.some(fee => 
-            new Date(fee.due_date) < new Date() && fee.status !== 'paid'
-          );
-          status = hasOverdue ? 'overdue' : 'unpaid';
-        }
-
-        const transactions = [
-          ...studentTransactions.map(txn => ({
-            id: txn.id,
-            amount: txn.amount_paid || 0,
-            payment_method: 'mpesa',
-            transaction_date: txn.transaction_date || txn.created_at,
-            mpesa_code: txn.mpesa_receipt_number,
-            status: txn.transaction_status || 'pending'
-          }))
-        ];
-
-        return {
-          student: {
-            id: student.id,
-            name: student.name || 'Unknown Student',
-            admission_number: student.admission_number || 'N/A',
-            class_id: student.class_id || '',
-            class_name: student.classes?.name || 'Unknown Class',
-          },
+        studentAccountsData.push({
+          student,
           totalFees,
           totalPaid,
-          balance,
-          status,
-          transactions
-        };
-      });
+          outstanding,
+          fees
+        });
+      }
 
-      setStudentAccounts(accounts);
-      console.log('✅ Student accounts processed:', accounts.length);
-      
+      setStudentAccounts(studentAccountsData);
+      setError(null);
     } catch (err: any) {
       console.error('Error fetching student accounts:', err);
-      const message = err?.message || 'Failed to fetch student accounts';
-      setError(message);
-      
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
+      setError(err.message || 'Failed to fetch student accounts');
+      setStudentAccounts([]);
     } finally {
       setLoading(false);
     }
