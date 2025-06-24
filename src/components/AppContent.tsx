@@ -7,6 +7,7 @@ import LoadingScreen from '@/components/common/LoadingScreen';
 import LoginForm from '@/components/LoginForm';
 import { ErrorState } from '@/components/common/LoadingStates';
 import { NavigationProvider } from '@/contexts/NavigationContext';
+import { SchoolProvider } from '@/contexts/SchoolContext';
 
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
@@ -112,9 +113,11 @@ const AppContent: React.FC = () => {
   // Authenticated user with role => show main app
   console.log('🎯 AppContent: Authenticated. Render ElimshaLayout.', { role: user.role });
   return (
-    <NavigationProvider>
-      <ElimshaLayout />
-    </NavigationProvider>
+    <SchoolProvider>
+      <NavigationProvider>
+        <ElimshaLayout />
+      </NavigationProvider>
+    </SchoolProvider>
   );
 };
 
