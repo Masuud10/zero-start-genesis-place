@@ -9,10 +9,12 @@ import { UserRole } from '@/types/user';
 import { useRoleValidation } from '@/hooks/useRoleValidation';
 import RoleGuard from '@/components/common/RoleGuard';
 import { useNavigation } from '@/contexts/NavigationContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 const Dashboard = () => {
   const { user, isLoading, error } = useAuth();
   const { isValid, hasValidRole, redirectPath } = useRoleValidation();
+  const { isReady: schoolContextReady } = useSchoolScopedData();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const { activeSection } = useNavigation();
 
@@ -25,12 +27,13 @@ const Dashboard = () => {
     isValid,
     hasValidRole,
     redirectPath,
-    activeSection
+    activeSection,
+    schoolContextReady
   });
 
-  // Show loading state
-  if (isLoading) {
-    console.log('📊 Dashboard: Still loading auth state');
+  // Show loading state while auth or school context is loading
+  if (isLoading || !schoolContextReady) {
+    console.log('📊 Dashboard: Loading auth or school context');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <LoadingCard 
@@ -70,7 +73,7 @@ const Dashboard = () => {
     );
   }
 
-  // Modal handlers with error boundaries
+  // Modal handlers
   const handleModalOpen = (modalType: string) => {
     try {
       console.log('📊 Dashboard: Opening modal:', modalType);
@@ -92,8 +95,6 @@ const Dashboard = () => {
   const handleDataChanged = () => {
     try {
       console.log('📊 Dashboard: Data changed, refreshing...');
-      // This could trigger data refetch or cache invalidation
-      // For now, we'll just close the modal
       setActiveModal(null);
     } catch (error) {
       console.error('📊 Dashboard: Error handling data change:', error);

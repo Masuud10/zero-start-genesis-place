@@ -5,7 +5,7 @@ import { AuthUser } from '@/types/auth';
 import { useSchoolScopedData } from './useSchoolScopedData';
 
 export const useTeacherDashboardStats = (user: AuthUser) => {
-  const { schoolId } = useSchoolScopedData();
+  const { schoolId, isReady } = useSchoolScopedData();
 
   const { data: stats, isLoading: loading, error, refetch } = useQuery({
     queryKey: ['teacher-dashboard-stats', user?.id, schoolId],
@@ -18,6 +18,8 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
           subjectCount: 0,
           todayAttendance: 0,
           pendingGrades: 0,
+          submittedGrades: 0,
+          approvedGrades: 0,
           classes: [],
           subjects: []
         };
@@ -26,7 +28,7 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
       try {
         console.log('📊 Fetching teacher dashboard stats for user:', user.id, 'school:', schoolId);
 
-        // Get classes taught by this teacher with real-time data
+        // Step 1: Get teacher's classes
         const { data: classes, error: classesError } = await supabase
           .from('classes')
           .select('id, name, level, stream')
@@ -41,18 +43,7 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
         const classIds = classes?.map(c => c.id) || [];
         console.log('📊 Teacher classes found:', classIds.length);
 
-        // Get real-time student count in teacher's classes
-        const { count: studentCount, error: studentError } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
-          .in('class_id', classIds)
-          .eq('is_active', true);
-
-        if (studentError) {
-          console.error('Error fetching student count:', studentError);
-        }
-
-        // Get subjects taught by this teacher with real-time data
+        // Step 2: Get subjects taught by this teacher
         const { data: subjects, error: subjectsError } = await supabase
           .from('subjects')
           .select('id, name, code')
@@ -63,7 +54,23 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
           console.error('Error fetching teacher subjects:', subjectsError);
         }
 
-        // Get today's attendance submissions with accurate date handling
+        // Step 3: Get student count in teacher's classes (only if classes exist)
+        let studentCount = 0;
+        if (classIds.length > 0) {
+          const { count, error: studentError } = await supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true })
+            .in('class_id', classIds)
+            .eq('is_active', true);
+
+          if (studentError) {
+            console.error('Error fetching student count:', studentError);
+          } else {
+            studentCount = count || 0;
+          }
+        }
+
+        // Step 4: Get today's attendance submissions
         const today = new Date().toISOString().split('T')[0];
         const { count: todayAttendance, error: attendanceError } = await supabase
           .from('attendance')
@@ -76,50 +83,39 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
           console.error('Error fetching attendance count:', attendanceError);
         }
 
-        // Get pending grade submissions with real-time data
-        const { count: pendingGrades, error: gradesError } = await supabase
-          .from('grades')
-          .select('*', { count: 'exact', head: true })
-          .eq('submitted_by', user.id)
-          .eq('school_id', schoolId)
-          .in('status', ['draft', 'submitted']);
+        // Step 5: Get grade statistics
+        const gradeQueries = [
+          { name: 'pending', status: ['draft', 'submitted'] },
+          { name: 'submitted', status: ['submitted'] },
+          { name: 'approved', status: ['approved'] }
+        ];
 
-        if (gradesError) {
-          console.error('Error fetching pending grades:', gradesError);
-        }
-
-        // Get submitted grades count for additional stats
-        const { count: submittedGrades, error: submittedGradesError } = await supabase
-          .from('grades')
-          .select('*', { count: 'exact', head: true })
-          .eq('submitted_by', user.id)
-          .eq('school_id', schoolId)
-          .eq('status', 'submitted');
-
-        if (submittedGradesError) {
-          console.error('Error fetching submitted grades:', submittedGradesError);
-        }
-
-        // Get approved grades count
-        const { count: approvedGrades, error: approvedGradesError } = await supabase
-          .from('grades')
-          .select('*', { count: 'exact', head: true })
-          .eq('submitted_by', user.id)
-          .eq('school_id', schoolId)
-          .eq('status', 'approved');
-
-        if (approvedGradesError) {
-          console.error('Error fetching approved grades:', approvedGradesError);
+        const gradeStats: Record<string, number> = {};
+        
+        for (const { name, status } of gradeQueries) {
+          try {
+            const { count } = await supabase
+              .from('grades')
+              .select('*', { count: 'exact', head: true })
+              .eq('submitted_by', user.id)
+              .eq('school_id', schoolId)
+              .in('status', status);
+            
+            gradeStats[name] = count || 0;
+          } catch (err) {
+            console.warn(`Error fetching ${name} grades:`, err);
+            gradeStats[name] = 0;
+          }
         }
 
         const statsData = {
           classCount: classes?.length || 0,
-          studentCount: studentCount || 0,
+          studentCount,
           subjectCount: subjects?.length || 0,
           todayAttendance: todayAttendance || 0,
-          pendingGrades: pendingGrades || 0,
-          submittedGrades: submittedGrades || 0,
-          approvedGrades: approvedGrades || 0,
+          pendingGrades: gradeStats.pending || 0,
+          submittedGrades: gradeStats.submitted || 0,
+          approvedGrades: gradeStats.approved || 0,
           classes: classes || [],
           subjects: subjects || []
         };
@@ -143,10 +139,10 @@ export const useTeacherDashboardStats = (user: AuthUser) => {
         };
       }
     },
-    enabled: !!user?.id && !!schoolId,
-    staleTime: 2 * 60 * 1000, // 2 minutes for more frequent updates
-    refetchOnWindowFocus: true,
-    refetchInterval: 5 * 60 * 1000, // Auto-refetch every 5 minutes for real-time updates
+    enabled: !!user?.id && !!schoolId && isReady,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Reduce unnecessary refetches
+    retry: 1, // Only retry once to avoid overwhelming the database
   });
 
   return { stats, loading, error, refetch };

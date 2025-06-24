@@ -20,26 +20,25 @@ interface Student {
   created_at: string;
 }
 
-function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out')), ms)
-    )
-  ]) as Promise<T>;
-}
-
 export const useStudents = (classId?: string) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isSystemAdmin, schoolId } = useSchoolScopedData();
+  const { isSystemAdmin, schoolId, isReady } = useSchoolScopedData();
   const { toast } = useToast();
 
   const fetchStudents = useCallback(async () => {
+    if (!isReady) {
+      console.log('📚 School context not ready yet');
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    
     try {
+      console.log('📚 Fetching students for school:', schoolId, 'class:', classId);
+
       let query = supabase.from('students').select(`
         id,
         name,
@@ -56,27 +55,36 @@ export const useStudents = (classId?: string) => {
         created_at
       `);
 
+      // Apply school filter for non-admin users
       if (!isSystemAdmin && schoolId) {
         query = query.eq('school_id', schoolId);
       }
+
+      // Apply class filter if specified
       if (classId && classId !== 'all') {
         query = query.eq('class_id', classId);
       }
 
+      // Order by name for consistent results
       query = query.order('name');
-      const { data, error: fetchError } = await useTimeoutPromise(
-        Promise.resolve(query.then(x => x)),
-        7000
-      );
 
-      if (fetchError) throw fetchError;
+      const { data, error: fetchError } = await query;
 
+      if (fetchError) {
+        console.error('📚 Students fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('📚 Students fetched successfully:', data?.length || 0);
       setStudents(data || []);
       setError(null);
+
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch students data';
+      console.error('📚 Students fetch failed:', err);
       setError(message);
       setStudents([]);
+      
       toast({
         title: "Student Fetch Error",
         description: message,
@@ -85,16 +93,11 @@ export const useStudents = (classId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [classId, isSystemAdmin, schoolId, toast]);
+  }, [classId, isSystemAdmin, schoolId, toast, isReady]);
 
   useEffect(() => {
-    if (schoolId !== null || isSystemAdmin) {
-      fetchStudents();
-    } else {
-      setStudents([]);
-      setLoading(false);
-    }
-  }, [classId, isSystemAdmin, schoolId, fetchStudents]);
+    fetchStudents();
+  }, [fetchStudents]);
 
   return {
     students,

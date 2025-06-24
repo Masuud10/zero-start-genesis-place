@@ -12,7 +12,7 @@ interface SchoolStats {
 }
 
 export const useSchoolAdminStats = (schoolId?: string) => {
-  const { validateSchoolAccess } = useSchoolScopedData();
+  const { validateSchoolAccess, isReady } = useSchoolScopedData();
 
   const { data: stats, isLoading: loading, error } = useQuery({
     queryKey: ['school-admin-stats', schoolId],
@@ -33,55 +33,53 @@ export const useSchoolAdminStats = (schoolId?: string) => {
       }
 
       try {
-        // Use Promise.allSettled to handle partial failures gracefully
-        const [
-          studentsResult,
-          teachersResult,
-          subjectsResult,
-          classesResult,
-          parentsResult
-        ] = await Promise.allSettled([
-          supabase
-            .from('students')
-            .select('id', { count: 'exact', head: true })
-            .eq('school_id', schoolId)
-            .eq('is_active', true),
-          supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('school_id', schoolId)
-            .eq('role', 'teacher'),
-          supabase
-            .from('subjects')
-            .select('id', { count: 'exact', head: true })
-            .eq('school_id', schoolId),
-          supabase
-            .from('classes')
-            .select('id', { count: 'exact', head: true })
-            .eq('school_id', schoolId),
-          supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('school_id', schoolId)
-            .eq('role', 'parent')
-        ]);
+        console.log('📊 Fetching school admin stats for:', schoolId);
 
-        const getCount = (result: PromiseSettledResult<any>): number => {
-          if (result.status === 'fulfilled') {
-            return result.value.count || 0;
-          } else {
-            console.warn('Failed to fetch count:', result.reason);
-            return 0;
+        // Simplified sequential fetching with individual error handling
+        const queries = [
+          { name: 'students', table: 'students', filters: { school_id: schoolId, is_active: true } },
+          { name: 'teachers', table: 'profiles', filters: { school_id: schoolId, role: 'teacher' } },
+          { name: 'subjects', table: 'subjects', filters: { school_id: schoolId } },
+          { name: 'classes', table: 'classes', filters: { school_id: schoolId } },
+          { name: 'parents', table: 'profiles', filters: { school_id: schoolId, role: 'parent' } }
+        ];
+
+        const results: Record<string, number> = {};
+
+        for (const { name, table, filters } of queries) {
+          try {
+            let query = supabase.from(table).select('id', { count: 'exact', head: true });
+            
+            // Apply filters
+            Object.entries(filters).forEach(([key, value]) => {
+              query = query.eq(key, value);
+            });
+
+            const { count, error } = await query;
+            
+            if (error) {
+              console.warn(`Failed to fetch ${name}:`, error);
+              results[name] = 0;
+            } else {
+              results[name] = count || 0;
+            }
+          } catch (err) {
+            console.warn(`Exception fetching ${name}:`, err);
+            results[name] = 0;
           }
+        }
+
+        const statsData = {
+          totalStudents: results.students,
+          totalTeachers: results.teachers,
+          totalSubjects: results.subjects,
+          totalClasses: results.classes,
+          totalParents: results.parents
         };
 
-        return {
-          totalStudents: getCount(studentsResult),
-          totalTeachers: getCount(teachersResult),
-          totalSubjects: getCount(subjectsResult),
-          totalClasses: getCount(classesResult),
-          totalParents: getCount(parentsResult)
-        };
+        console.log('📊 School admin stats:', statsData);
+        return statsData;
+
       } catch (error) {
         console.error('Error fetching school admin stats:', error);
         // Return zeros instead of throwing to prevent UI crashes
@@ -94,15 +92,10 @@ export const useSchoolAdminStats = (schoolId?: string) => {
         };
       }
     },
-    enabled: !!schoolId,
+    enabled: !!schoolId && isReady,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: (failureCount, error: any) => {
-      // Don't retry permission errors
-      if (error?.message?.includes('Access denied')) {
-        return false;
-      }
-      return failureCount < 2;
-    }
+    retry: 1, // Only retry once
+    refetchOnWindowFocus: false
   });
 
   return { 
