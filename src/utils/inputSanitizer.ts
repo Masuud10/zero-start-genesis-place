@@ -74,7 +74,7 @@ export class InputSanitizer {
   static preventSQLInjection(input: string): string {
     // Remove common SQL injection patterns
     const sqlPatterns = [
-      /('|(\\')|('')|([^a-zA-Z0-9_\-@. ]|[A-Za-z0-9_\-]{0,}['][\s]*[select|update|delete|insert|drop|create|alter|exec|execute|union|script])/gi,
+      /('|(\\')|('')|([^a-zA-Z0-9_\-@. ]|[A-Za-z0-9_\-]{0,}['][\s]*[select|update|delete|insert|drop|create|alter|exec|execute|union|script]))/gi,
       /(union|select|insert|delete|update|drop|create|alter|exec|execute|script)/gi
     ];
     
