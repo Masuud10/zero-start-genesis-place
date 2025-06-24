@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { School, Plus } from 'lucide-react';
+import { School, Plus, Eye, EyeOff, CreditCard } from 'lucide-react';
 
 interface CreateSchoolDialogProps {
   children: React.ReactNode;
@@ -26,6 +27,13 @@ interface SchoolCreationResponse {
   owner_id?: string;
   message?: string;
   error?: string;
+}
+
+interface MpesaCredentials {
+  mpesa_paybill_number: string;
+  mpesa_consumer_key: string;
+  mpesa_consumer_secret: string;
+  mpesa_passkey: string;
 }
 
 const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogProps) => {
@@ -53,8 +61,75 @@ const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogPro
     owner_information: ''
   });
 
+  const [mpesaCredentials, setMpesaCredentials] = useState<MpesaCredentials>({
+    mpesa_paybill_number: '',
+    mpesa_consumer_key: '',
+    mpesa_consumer_secret: '',
+    mpesa_passkey: ''
+  });
+
+  const [showSecrets, setShowSecrets] = useState({
+    consumer_key: false,
+    consumer_secret: false,
+    passkey: false
+  });
+
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleMpesaInputChange = (field: keyof MpesaCredentials, value: string) => {
+    setMpesaCredentials(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const toggleSecretVisibility = (field: keyof typeof showSecrets) => {
+    setShowSecrets(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const saveMpesaCredentials = async (schoolId: string) => {
+    try {
+      const { error } = await supabase
+        .from('finance_settings')
+        .upsert({
+          school_id: schoolId,
+          mpesa_paybill_number: mpesaCredentials.mpesa_paybill_number,
+          mpesa_consumer_key: mpesaCredentials.mpesa_consumer_key,
+          mpesa_consumer_secret: mpesaCredentials.mpesa_consumer_secret,
+          mpesa_passkey: mpesaCredentials.mpesa_passkey,
+          late_fee_percentage: 0,
+          late_fee_grace_days: 7,
+          tax_rate: 0,
+          settings_data: {
+            currency: 'KES',
+            payment_methods: ['cash', 'mpesa'],
+            auto_generate_receipts: true,
+            send_payment_notifications: true,
+            allow_partial_payments: true,
+            require_payment_approval: false,
+          } as any
+        }, {
+          onConflict: 'school_id'
+        });
+
+      if (error) {
+        console.error('Error saving MPESA credentials:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to save MPESA credentials:', error);
+      // Don't fail the entire registration for MPESA credentials
+      toast({
+        title: "Warning",
+        description: "School created successfully but MPESA credentials could not be saved",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,7 +172,12 @@ const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogPro
       // Type assertion for the response
       const response = data as SchoolCreationResponse;
 
-      if (response?.success) {
+      if (response?.success && response?.school_id) {
+        // Save MPESA credentials if provided
+        if (mpesaCredentials.mpesa_paybill_number || mpesaCredentials.mpesa_consumer_key) {
+          await saveMpesaCredentials(response.school_id);
+        }
+
         toast({
           title: "Success",
           description: response.message || "School created successfully",
@@ -121,6 +201,13 @@ const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogPro
           owner_email: '',
           owner_phone: '',
           owner_information: ''
+        });
+
+        setMpesaCredentials({
+          mpesa_paybill_number: '',
+          mpesa_consumer_key: '',
+          mpesa_consumer_secret: '',
+          mpesa_passkey: ''
         });
         
         setOpen(false);
@@ -358,6 +445,107 @@ const CreateSchoolDialog = ({ children, onSchoolCreated }: CreateSchoolDialogPro
                 onChange={(e) => handleInputChange('owner_information', e.target.value)}
                 placeholder="Additional details about the school owner"
               />
+            </div>
+          </div>
+
+          {/* MPESA Configuration */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              MPESA Payment Configuration (Optional)
+            </h3>
+            <p className="text-sm text-gray-600">
+              Configure MPESA payment integration for fee collection. These can be set up later if not available now.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_paybill_number">MPESA Paybill Number</Label>
+                <Input
+                  id="mpesa_paybill_number"
+                  value={mpesaCredentials.mpesa_paybill_number}
+                  onChange={(e) => handleMpesaInputChange('mpesa_paybill_number', e.target.value)}
+                  placeholder="Enter paybill number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_consumer_key">Consumer Key</Label>
+                <div className="relative">
+                  <Input
+                    id="mpesa_consumer_key"
+                    type={showSecrets.consumer_key ? 'text' : 'password'}
+                    value={mpesaCredentials.mpesa_consumer_key}
+                    onChange={(e) => handleMpesaInputChange('mpesa_consumer_key', e.target.value)}
+                    placeholder="Enter consumer key"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleSecretVisibility('consumer_key')}
+                  >
+                    {showSecrets.consumer_key ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_consumer_secret">Consumer Secret</Label>
+                <div className="relative">
+                  <Input
+                    id="mpesa_consumer_secret"
+                    type={showSecrets.consumer_secret ? 'text' : 'password'}
+                    value={mpesaCredentials.mpesa_consumer_secret}
+                    onChange={(e) => handleMpesaInputChange('mpesa_consumer_secret', e.target.value)}
+                    placeholder="Enter consumer secret"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleSecretVisibility('consumer_secret')}
+                  >
+                    {showSecrets.consumer_secret ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_passkey">Passkey</Label>
+                <div className="relative">
+                  <Input
+                    id="mpesa_passkey"
+                    type={showSecrets.passkey ? 'text' : 'password'}
+                    value={mpesaCredentials.mpesa_passkey}
+                    onChange={(e) => handleMpesaInputChange('mpesa_passkey', e.target.value)}
+                    placeholder="Enter passkey"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleSecretVisibility('passkey')}
+                  >
+                    {showSecrets.passkey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 

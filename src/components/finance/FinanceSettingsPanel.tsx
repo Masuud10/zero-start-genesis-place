@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -143,7 +142,7 @@ const FinanceSettingsPanel: React.FC = () => {
         late_fee_percentage: settings.late_fee_percentage,
         late_fee_grace_days: settings.late_fee_grace_days,
         tax_rate: settings.tax_rate,
-        settings_data: settings.settings_data,
+        settings_data: settings.settings_data as any, // Cast to any to satisfy Json type
       };
 
       const { error } = await supabase

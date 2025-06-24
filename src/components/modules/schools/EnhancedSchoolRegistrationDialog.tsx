@@ -13,12 +13,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { SchoolService, CreateSchoolRequest } from '@/services/schoolService';
-import { Loader2, Upload, X, Image, Building2, Mail, Phone, MapPin, Calendar, User, Globe, Hash, FileText } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Upload, X, Image, Building2, Mail, Phone, MapPin, Calendar, User, Globe, Hash, FileText, CreditCard, Eye, EyeOff } from 'lucide-react';
 
 interface EnhancedSchoolRegistrationDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+}
+
+interface MpesaCredentials {
+  mpesa_paybill_number: string;
+  mpesa_consumer_key: string;
+  mpesa_consumer_secret: string;
+  mpesa_passkey: string;
 }
 
 const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialogProps> = ({
@@ -50,6 +58,19 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
     ownerName: '',
     ownerPhone: '',
     curriculumType: 'cbc'
+  });
+
+  const [mpesaCredentials, setMpesaCredentials] = useState<MpesaCredentials>({
+    mpesa_paybill_number: '',
+    mpesa_consumer_key: '',
+    mpesa_consumer_secret: '',
+    mpesa_passkey: ''
+  });
+
+  const [showSecrets, setShowSecrets] = useState({
+    consumer_key: false,
+    consumer_secret: false,
+    passkey: false
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -130,6 +151,20 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
     }
   };
 
+  const handleMpesaInputChange = (field: keyof MpesaCredentials, value: string) => {
+    setMpesaCredentials(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const toggleSecretVisibility = (field: keyof typeof showSecrets) => {
+    setShowSecrets(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -161,6 +196,46 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
         setLogoPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const saveMpesaCredentials = async (schoolId: string) => {
+    try {
+      const { error } = await supabase
+        .from('finance_settings')
+        .upsert({
+          school_id: schoolId,
+          mpesa_paybill_number: mpesaCredentials.mpesa_paybill_number,
+          mpesa_consumer_key: mpesaCredentials.mpesa_consumer_key,
+          mpesa_consumer_secret: mpesaCredentials.mpesa_consumer_secret,
+          mpesa_passkey: mpesaCredentials.mpesa_passkey,
+          late_fee_percentage: 0,
+          late_fee_grace_days: 7,
+          tax_rate: 0,
+          settings_data: {
+            currency: 'KES',
+            payment_methods: ['cash', 'mpesa'],
+            auto_generate_receipts: true,
+            send_payment_notifications: true,
+            allow_partial_payments: true,
+            require_payment_approval: false,
+          } as any
+        }, {
+          onConflict: 'school_id'
+        });
+
+      if (error) {
+        console.error('Error saving MPESA credentials:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to save MPESA credentials:', error);
+      // Don't fail the entire registration for MPESA credentials
+      toast({
+        title: "Warning",
+        description: "School created successfully but MPESA credentials could not be saved",
+        variant: "destructive"
+      });
     }
   };
 
@@ -202,36 +277,19 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
 
       const result = await SchoolService.createSchool(schoolData);
       
-      if (result.success) {
+      if (result.success && result.school_id) {
+        // Save MPESA credentials if provided
+        if (mpesaCredentials.mpesa_paybill_number || mpesaCredentials.mpesa_consumer_key) {
+          await saveMpesaCredentials(result.school_id);
+        }
+
         toast({
           title: "Success",
           description: result.message || "School registered successfully",
         });
         onSuccess();
         onClose();
-        // Reset form
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          address: '',
-          logo_url: '',
-          website_url: '',
-          motto: '',
-          slogan: '',
-          school_type: 'primary',
-          registration_number: '',
-          year_established: new Date().getFullYear(),
-          term_structure: '3-term',
-          owner_information: '',
-          ownerEmail: '',
-          ownerName: '',
-          ownerPhone: '',
-          curriculumType: 'cbc'
-        });
-        setLogoFile(null);
-        setLogoPreview('');
-        setErrors({});
+        resetForm();
       } else {
         toast({
           title: "Registration Failed",
@@ -270,6 +328,12 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       ownerName: '',
       ownerPhone: '',
       curriculumType: 'cbc'
+    });
+    setMpesaCredentials({
+      mpesa_paybill_number: '',
+      mpesa_consumer_key: '',
+      mpesa_consumer_secret: '',
+      mpesa_passkey: ''
     });
     setLogoFile(null);
     setLogoPreview('');
@@ -440,6 +504,40 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                 </div>
                 {errors.year_established && <p className="text-sm text-red-500">{errors.year_established}</p>}
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="term_structure">Term Structure *</Label>
+                <Select 
+                  value={formData.term_structure} 
+                  onValueChange={(value) => handleInputChange('term_structure', value)}
+                >
+                  <SelectTrigger className={errors.term_structure ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Select term structure" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3-term">3-Term System</SelectItem>
+                    <SelectItem value="2-semester">2-Semester System</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.term_structure && <p className="text-sm text-red-500">{errors.term_structure}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="curriculumType">Curriculum Type</Label>
+                <Select 
+                  value={formData.curriculumType} 
+                  onValueChange={(value) => handleInputChange('curriculumType', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select curriculum" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cbc">CBC (Competency-Based Curriculum)</SelectItem>
+                    <SelectItem value="igcse">IGCSE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -515,55 +613,11 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
             </div>
           </div>
 
-          {/* Academic Configuration Section */}
+          {/* School Owner Information Section */}
           <div className="bg-purple-50 p-6 rounded-lg space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Academic Configuration
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="term_structure">Term Structure *</Label>
-                <Select 
-                  value={formData.term_structure} 
-                  onValueChange={(value) => handleInputChange('term_structure', value)}
-                >
-                  <SelectTrigger className={errors.term_structure ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Select term structure" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="3-term">3-Term System</SelectItem>
-                    <SelectItem value="2-semester">2-Semester System</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.term_structure && <p className="text-sm text-red-500">{errors.term_structure}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="curriculumType">Curriculum Type</Label>
-                <Select 
-                  value={formData.curriculumType} 
-                  onValueChange={(value) => handleInputChange('curriculumType', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select curriculum" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cbc">CBC (Competency-Based Curriculum)</SelectItem>
-                    <SelectItem value="igcse">IGCSE</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* School Owner Information Section */}
-          <div className="bg-orange-50 p-6 rounded-lg space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <User className="h-5 w-5" />
-              School Owner Information (Required)
+              School Owner Information
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -591,7 +645,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                 {errors.ownerPhone && <p className="text-sm text-red-500">{errors.ownerPhone}</p>}
               </div>
 
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2">
                 <Label htmlFor="ownerEmail">Owner Email *</Label>
                 <Input
                   id="ownerEmail"
@@ -617,15 +671,113 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
             </div>
           </div>
 
+          {/* MPESA Configuration Section */}
+          <div className="bg-orange-50 p-6 rounded-lg space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              MPESA Payment Configuration (Optional)
+            </h3>
+            <p className="text-sm text-gray-600">
+              Configure MPESA payment integration for fee collection. These can be set up later if not available now.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_paybill_number">MPESA Paybill Number</Label>
+                <Input
+                  id="mpesa_paybill_number"
+                  value={mpesaCredentials.mpesa_paybill_number}
+                  onChange={(e) => handleMpesaInputChange('mpesa_paybill_number', e.target.value)}
+                  placeholder="Enter paybill number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_consumer_key">Consumer Key</Label>
+                <div className="relative">
+                  <Input
+                    id="mpesa_consumer_key"
+                    type={showSecrets.consumer_key ? 'text' : 'password'}
+                    value={mpesaCredentials.mpesa_consumer_key}
+                    onChange={(e) => handleMpesaInputChange('mpesa_consumer_key', e.target.value)}
+                    placeholder="Enter consumer key"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleSecretVisibility('consumer_key')}
+                  >
+                    {showSecrets.consumer_key ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_consumer_secret">Consumer Secret</Label>
+                <div className="relative">
+                  <Input
+                    id="mpesa_consumer_secret"
+                    type={showSecrets.consumer_secret ? 'text' : 'password'}
+                    value={mpesaCredentials.mpesa_consumer_secret}
+                    onChange={(e) => handleMpesaInputChange('mpesa_consumer_secret', e.target.value)}
+                    placeholder="Enter consumer secret"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleSecretVisibility('consumer_secret')}
+                  >
+                    {showSecrets.consumer_secret ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mpesa_passkey">Passkey</Label>
+                <div className="relative">
+                  <Input
+                    id="mpesa_passkey"
+                    type={showSecrets.passkey ? 'text' : 'password'}
+                    value={mpesaCredentials.mpesa_passkey}
+                    onChange={(e) => handleMpesaInputChange('mpesa_passkey', e.target.value)}
+                    placeholder="Enter passkey"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => toggleSecretVisibility('passkey')}
+                  >
+                    {showSecrets.passkey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Form Actions */}
-          <div className="flex justify-end space-x-4 pt-6 border-t bg-gray-50 -mx-6 px-6 py-4 rounded-b-lg">
+          <div className="flex justify-end space-x-4 pt-6 border-t bg-gray-50 -mx-6 px-6 py-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                resetForm();
-                onClose();
-              }}
+              onClick={onClose}
               disabled={loading}
             >
               Cancel
@@ -636,7 +788,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
               className="bg-blue-600 hover:bg-blue-700 px-8"
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {loading ? 'Registering School...' : 'Register School'}
+              {loading ? 'Creating School...' : 'Create School'}
             </Button>
           </div>
         </form>
