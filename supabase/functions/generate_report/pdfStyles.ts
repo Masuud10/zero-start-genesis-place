@@ -1,50 +1,48 @@
 
-// PDF styling configuration for reports
-
 export const pdfStyles = {
   title: {
-    fontSize: 20,
+    fontSize: 24,
     bold: true,
-    color: '#1f2937',
-    alignment: 'center'
+    color: '#1F2937',
+    alignment: 'center' as const
   },
   header: {
-    fontSize: 16,
+    fontSize: 18,
     bold: true,
     color: '#374151',
-    margin: [0, 10, 0, 5]
+    margin: [0, 15, 0, 8] as [number, number, number, number]
   },
   subheader: {
     fontSize: 14,
     bold: true,
-    color: '#4b5563',
-    margin: [0, 8, 0, 4]
+    color: '#4B5563',
+    margin: [0, 10, 0, 5] as [number, number, number, number]
   },
-  bigNumber: {
-    fontSize: 24,
+  tableHeader: {
     bold: true,
-    color: '#059669',
-    alignment: 'center'
-  },
-  error: {
     fontSize: 12,
-    color: '#dc2626',
-    italics: true
+    color: 'white',
+    fillColor: '#3B82F6'
   },
   date: {
     fontSize: 10,
-    color: '#6b7280',
+    color: '#6B7280',
     italics: true
   },
   footer: {
     fontSize: 10,
-    color: '#9ca3af',
-    italics: true
+    color: '#6B7280',
+    alignment: 'center' as const
+  },
+  error: {
+    fontSize: 14,
+    color: '#DC2626',
+    bold: true
   }
 };
 
 export const defaultStyle = {
   fontSize: 11,
-  color: '#374151',
-  lineHeight: 1.3
+  lineHeight: 1.3,
+  color: '#374151'
 };

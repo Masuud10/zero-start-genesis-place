@@ -10,32 +10,31 @@ export interface UpdateUserStatusResponse {
 export class UserStatusService {
   static async updateUserStatus(userId: string, newStatus: 'active' | 'inactive'): Promise<UpdateUserStatusResponse> {
     try {
-      // Call the RPC function for updating user status
-      const { data, error } = await supabase.rpc('update_user_status', {
-        target_user_id: userId,
-        new_status: newStatus
+      // Call the edge function for updating user status
+      const { data, error } = await supabase.functions.invoke('update_user_status', {
+        body: {
+          target_user_id: userId,
+          new_status: newStatus
+        }
       });
 
       if (error) {
-        console.error('Error updating user status:', error);
+        console.error('Error calling update_user_status function:', error);
         return { 
           success: false, 
           error: error.message || 'Failed to update user status' 
         };
       }
 
-      // Type assertion for the response
-      const response = data as { success?: boolean; message?: string; error?: string };
-
-      if (response?.success) {
+      if (data?.success) {
         return { 
           success: true, 
-          message: response.message || 'User status updated successfully' 
+          message: data.message || 'User status updated successfully' 
         };
       } else {
         return { 
           success: false, 
-          error: response?.error || 'Failed to update user status' 
+          error: data?.error || 'Failed to update user status' 
         };
       }
     } catch (error: any) {
