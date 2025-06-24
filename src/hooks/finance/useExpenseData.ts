@@ -50,10 +50,11 @@ export const useExpenseData = () => {
       const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
       const data = Object.entries(expenseGroups).map(([category, amount]: [string, any], index) => {
         const numAmount = typeof amount === 'number' ? amount : Number(amount || 0);
+        const numTotalExpenses = typeof totalExpenses === 'number' ? totalExpenses : Number(totalExpenses || 0);
         return {
           category,
           amount: numAmount,
-          percentage: totalExpenses > 0 ? Number(((numAmount / totalExpenses) * 100).toFixed(2)) : 0,
+          percentage: numTotalExpenses > 0 ? Number(((numAmount / numTotalExpenses) * 100).toFixed(2)) : 0,
           color: colors[index % colors.length]
         };
       });

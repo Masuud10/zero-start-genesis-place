@@ -80,13 +80,17 @@ export const useAuthState = () => {
 
       if (!isMountedRef.current) return;
 
-      // Create user data with proper role handling
+      // Create user data with proper role handling - CRITICAL FIX
       let resolvedRole = profile?.role;
+      
+      console.log('🔐 AuthState: Profile role found:', resolvedRole);
       
       // If no role in profile, determine from email or metadata
       if (!resolvedRole) {
         resolvedRole = authUser.user_metadata?.role || 
                      authUser.app_metadata?.role;
+        
+        console.log('🔐 AuthState: Metadata role found:', resolvedRole);
         
         // Email-based role detection as fallback
         if (!resolvedRole) {
@@ -98,9 +102,13 @@ export const useAuthState = () => {
             resolvedRole = 'principal';
           } else if (authUser.email.includes('teacher')) {
             resolvedRole = 'teacher';
+          } else if (authUser.email.includes('finance')) {
+            resolvedRole = 'finance_officer';
           } else {
             resolvedRole = 'parent';
           }
+          
+          console.log('🔐 AuthState: Email-based role determined:', resolvedRole);
           
           // Update profile with determined role
           if (profile) {
@@ -139,7 +147,7 @@ export const useAuthState = () => {
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email,
-        role: resolvedRole,
+        role: resolvedRole, // CRITICAL: Ensure this is set correctly
         name: profile?.name ||
               authUser.user_metadata?.name ||
               authUser.user_metadata?.full_name ||
@@ -156,7 +164,7 @@ export const useAuthState = () => {
         last_login_ip: undefined,
       };
 
-      console.log('🔐 AuthState: User data processed:', {
+      console.log('🔐 AuthState: User data processed successfully:', {
         email: userData.email,
         role: userData.role,
         school_id: userData.school_id,
