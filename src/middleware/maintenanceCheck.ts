@@ -46,7 +46,7 @@ export class MaintenanceMiddleware {
 
   static async updateMaintenanceMode(enabled: boolean, message: string) {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       
       const { error } = await supabase
         .from('system_settings')
@@ -57,7 +57,7 @@ export class MaintenanceMiddleware {
             updated_at: new Date().toISOString()
           },
           updated_at: new Date().toISOString(),
-          updated_by: user.data.user?.id
+          updated_by: userData.user?.id
         })
         .eq('setting_key', 'maintenance_mode');
 

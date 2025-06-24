@@ -46,12 +46,18 @@ export const useStudentAccounts = () => {
         // Safely handle the classes data with proper null checking
         let className = 'Unknown Class';
         
-        if (student.classes !== null && student.classes !== undefined) {
+        // Check if classes exists and is not null
+        if (student.classes && student.classes !== null) {
           // Handle both single object and array cases
           if (Array.isArray(student.classes)) {
-            className = student.classes.length > 0 && student.classes[0]?.name ? student.classes[0].name : 'Unknown Class';
+            // If it's an array, get the first item's name
+            if (student.classes.length > 0 && student.classes[0]?.name) {
+              className = student.classes[0].name;
+            }
           } else if (typeof student.classes === 'object' && 'name' in student.classes) {
-            className = (student.classes as { name: string }).name || 'Unknown Class';
+            // If it's a single object with name property
+            const classData = student.classes as { name: string };
+            className = classData.name || 'Unknown Class';
           }
         }
 

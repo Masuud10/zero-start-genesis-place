@@ -23,7 +23,9 @@ const MaintenanceCheck: React.FC<MaintenanceCheckProps> = ({ children }) => {
       try {
         const status = await MaintenanceMiddleware.checkMaintenanceStatus(user?.role);
         setMaintenanceStatus({
-          ...status,
+          inMaintenance: status.inMaintenance,
+          message: status.message || '',
+          canBypass: status.canBypass || false,
           loading: false
         });
       } catch (error) {
