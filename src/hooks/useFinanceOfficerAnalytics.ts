@@ -5,15 +5,18 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface FinanceAnalyticsData {
   keyMetrics: {
-    totalFeesCollected: number;
-    totalOutstanding: number;
+    totalRevenue: number;
+    totalCollected: number;
+    outstandingAmount: number;
     totalMpesaPayments: number;
     collectionRate: number;
+    totalStudents: number;
+    defaultersCount: number;
   };
   feeCollectionData: Array<{
-    month: string;
+    class: string;
     collected: number;
-    outstanding: number;
+    expected: number;
   }>;
   dailyTransactions: Array<{
     date: string;
@@ -23,13 +26,15 @@ interface FinanceAnalyticsData {
   expenseBreakdown: Array<{
     category: string;
     amount: number;
+    percentage: number;
+    color: string;
   }>;
   defaultersList: Array<{
-    studentName: string;
-    admissionNumber: string;
-    className: string;
-    outstandingAmount: number;
-    daysPastDue: number;
+    student_name: string;
+    admission_number: string;
+    class_name: string;
+    outstanding_amount: number;
+    days_overdue: number;
   }>;
 }
 
@@ -80,45 +85,64 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         console.error('Error fetching expenses:', expensesError);
       }
 
+      // Fetch students for count
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('school_id', user.school_id)
+        .eq('is_active', true);
+
+      if (studentsError) {
+        console.error('Error fetching students:', studentsError);
+      }
+
       const fees = feesData || [];
       const mpesaTransactions = mpesaData || [];
       const expenses = expensesData || [];
+      const students = studentsData || [];
 
       // Calculate key metrics
       const totalFees = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
       const totalPaid = fees.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
       const totalMpesaPayments = mpesaTransactions.reduce((sum, txn) => sum + (txn.amount_paid || 0), 0);
-      const totalFeesCollected = totalPaid + totalMpesaPayments;
-      const totalOutstanding = totalFees - totalFeesCollected;
-      const collectionRate = totalFees > 0 ? (totalFeesCollected / totalFees) * 100 : 0;
+      const totalCollected = totalPaid + totalMpesaPayments;
+      const outstandingAmount = totalFees - totalCollected;
+      const collectionRate = totalFees > 0 ? (totalCollected / totalFees) * 100 : 0;
+
+      // Count defaulters
+      const defaultersCount = fees.filter(fee => {
+        const outstanding = (fee.amount || 0) - (fee.paid_amount || 0);
+        const isPastDue = new Date(fee.due_date) < new Date();
+        return outstanding > 0 && isPastDue;
+      }).length;
 
       const keyMetrics = {
-        totalFeesCollected,
-        totalOutstanding,
+        totalRevenue: totalFees,
+        totalCollected,
+        outstandingAmount,
         totalMpesaPayments,
-        collectionRate: Math.round(collectionRate * 100) / 100
+        collectionRate: Math.round(collectionRate * 100) / 100,
+        totalStudents: students.length,
+        defaultersCount
       };
 
-      // Generate monthly collection data
-      const monthlyData = new Map<string, { collected: number; outstanding: number }>();
+      // Generate fee collection data by class
+      const classData = new Map<string, { collected: number; expected: number }>();
       
       fees.forEach(fee => {
-        const month = new Date(fee.created_at).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short' 
-        });
+        const className = fee.classes?.name || 'Unknown Class';
         
-        if (!monthlyData.has(month)) {
-          monthlyData.set(month, { collected: 0, outstanding: 0 });
+        if (!classData.has(className)) {
+          classData.set(className, { collected: 0, expected: 0 });
         }
         
-        const data = monthlyData.get(month)!;
+        const data = classData.get(className)!;
         data.collected += fee.paid_amount || 0;
-        data.outstanding += (fee.amount || 0) - (fee.paid_amount || 0);
+        data.expected += fee.amount || 0;
       });
 
-      const feeCollectionData = Array.from(monthlyData.entries()).map(([month, data]) => ({
-        month,
+      const feeCollectionData = Array.from(classData.entries()).map(([className, data]) => ({
+        class: className,
         ...data
       }));
 
@@ -140,16 +164,21 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         ...data
       }));
 
-      // Generate expense breakdown
+      // Generate expense breakdown with colors and percentages
       const expenseCategories = new Map<string, number>();
       expenses.forEach(expense => {
         const category = expense.category || 'Other';
         expenseCategories.set(category, (expenseCategories.get(category) || 0) + (expense.amount || 0));
       });
 
-      const expenseBreakdown = Array.from(expenseCategories.entries()).map(([category, amount]) => ({
+      const totalExpenses = Array.from(expenseCategories.values()).reduce((sum, amount) => sum + amount, 0);
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+      const expenseBreakdown = Array.from(expenseCategories.entries()).map(([category, amount], index) => ({
         category,
-        amount
+        amount,
+        percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100 * 100) / 100 : 0,
+        color: colors[index % colors.length]
       }));
 
       // Generate defaulters list
@@ -165,14 +194,14 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           );
           
           return {
-            studentName: fee.students?.name || 'Unknown Student',
-            admissionNumber: fee.students?.admission_number || 'N/A',
-            className: fee.classes?.name || 'Unknown Class',
-            outstandingAmount: (fee.amount || 0) - (fee.paid_amount || 0),
-            daysPastDue
+            student_name: fee.students?.name || 'Unknown Student',
+            admission_number: fee.students?.admission_number || 'N/A',
+            class_name: fee.classes?.name || 'Unknown Class',
+            outstanding_amount: (fee.amount || 0) - (fee.paid_amount || 0),
+            days_overdue: daysPastDue
           };
         })
-        .sort((a, b) => b.outstandingAmount - a.outstandingAmount)
+        .sort((a, b) => b.outstanding_amount - a.outstanding_amount)
         .slice(0, 10);
 
       console.log('📊 Finance analytics compiled successfully');
