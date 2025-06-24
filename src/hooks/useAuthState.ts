@@ -12,7 +12,7 @@ export const useAuthState = () => {
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
   const initializedRef = useRef(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const globalTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -22,30 +22,21 @@ export const useAuthState = () => {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      if (globalTimeoutRef.current) {
+        clearTimeout(globalTimeoutRef.current);
+        globalTimeoutRef.current = null;
       }
     };
   }, []);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string): Promise<any> => {
     console.log('🔐 AuthState: Fetching profile for', userId);
     try {
-      const profileTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
-      );
-
-      const profilePromise = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('role, name, school_id, avatar_url, mfa_enabled, status')
         .eq('id', userId)
         .maybeSingle();
-
-      const { data, error } = await Promise.race([
-        profilePromise,
-        profileTimeout
-      ]) as any;
       
       if (error) {
         console.error('🔐 AuthState: Profile fetch error:', error);
@@ -84,8 +75,13 @@ export const useAuthState = () => {
         return;
       }
 
-      // Fetch profile with timeout
-      const profile = await fetchProfile(authUser.id);
+      // Fetch profile with shorter timeout
+      const profile = await Promise.race([
+        fetchProfile(authUser.id),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile timeout')), 5000)
+        )
+      ]).catch(() => null);
 
       if (!isMountedRef.current) return;
 
@@ -146,14 +142,14 @@ export const useAuthState = () => {
       try {
         console.log('🔐 AuthState: Setting up auth listener');
         
-        // Set a hard timeout for the entire auth initialization
-        timeoutRef.current = setTimeout(() => {
-          console.error('🔐 AuthState: Auth initialization timeout after 15 seconds');
+        // Set a single, shorter timeout for the entire initialization
+        globalTimeoutRef.current = setTimeout(() => {
+          console.error('🔐 AuthState: Auth initialization timeout after 8 seconds');
           if (isMountedRef.current) {
-            setError('Authentication initialization timeout');
+            setError('Authentication initialization timeout - please refresh');
             setIsLoading(false);
           }
-        }, 15000);
+        }, 8000);
 
         // Clean up existing subscription
         if (subscriptionRef.current) {
@@ -166,10 +162,10 @@ export const useAuthState = () => {
             console.log('🔐 AuthState: Auth event:', event, !!session);
             if (!isMountedRef.current) return;
             
-            // Clear timeout since we got a response
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-              timeoutRef.current = null;
+            // Clear timeout on any auth event
+            if (globalTimeoutRef.current) {
+              clearTimeout(globalTimeoutRef.current);
+              globalTimeoutRef.current = null;
             }
             
             if (event === 'SIGNED_OUT' || !session) {
@@ -181,25 +177,21 @@ export const useAuthState = () => {
         );
         subscriptionRef.current = subscription;
 
-        // Get initial session with timeout
+        // Get initial session with shorter timeout
         console.log('🔐 AuthState: Getting initial session');
-        const sessionTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session fetch timeout')), 8000)
-        );
-
-        const sessionPromise = supabase.auth.getSession();
-        
         const { data: { session }, error: sessionError } = await Promise.race([
-          sessionPromise,
-          sessionTimeout
-        ]) as any;
+          supabase.auth.getSession(),
+          new Promise<any>((_, reject) => 
+            setTimeout(() => reject(new Error('Session timeout')), 5000)
+          )
+        ]);
 
         if (!isMountedRef.current) return;
 
         // Clear timeout since we got a response
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
+        if (globalTimeoutRef.current) {
+          clearTimeout(globalTimeoutRef.current);
+          globalTimeoutRef.current = null;
         }
 
         if (sessionError) {
@@ -216,7 +208,7 @@ export const useAuthState = () => {
       } catch (err: any) {
         console.error('🔐 AuthState: Auth initialization failed:', err);
         if (isMountedRef.current) {
-          setError('Authentication initialization failed');
+          setError('Authentication failed - please refresh the page');
           setIsLoading(false);
         }
       }

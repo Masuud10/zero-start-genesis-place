@@ -47,43 +47,23 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
       console.log('📊 Fetching principal dashboard data for school:', targetSchoolId);
 
-      // Create a single timeout for all queries with shorter duration
-      const queryTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Dashboard data fetch timeout')), 10000)
+      // Create timeout for all queries with shorter duration
+      const createTimeout = (ms: number) => new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
       );
 
-      // Batch all queries with proper error handling
-      const queryPromises = [
-        supabase
-          .from('students')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId)
-          .eq('is_active', true),
-        supabase
-          .from('profiles')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId)
-          .eq('role', 'teacher'),
-        supabase
-          .from('subjects')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId)
-          .eq('is_active', true),
-        supabase
-          .from('classes')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId),
-        supabase
-          .from('profiles')
-          .select('id', { count: 'exact' })
-          .eq('school_id', targetSchoolId)
-          .eq('role', 'parent'),
+      // Batch all queries with proper error handling and shorter timeout
+      const queries = [
+        supabase.from('students').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true),
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'teacher'),
+        supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('is_active', true),
+        supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', targetSchoolId),
+        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', targetSchoolId).eq('role', 'parent'),
       ];
 
-      const results = await Promise.race([
-        Promise.allSettled(queryPromises),
-        queryTimeout
-      ]) as PromiseSettledResult<any>[];
+      const results = await Promise.allSettled(
+        queries.map(query => Promise.race([query, createTimeout(6000)]))
+      );
 
       // Process results with better error handling
       const statsData = {
@@ -96,25 +76,19 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
       setStats(statsData);
 
-      // Fetch recent activities with separate timeout and better error handling
+      // Fetch recent activities with shorter timeout and better error handling
       try {
-        const activitiesTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Activities query timeout')), 5000)
-        );
-
-        const activitiesPromise = supabase
-          .from('security_audit_logs')
-          .select('id, created_at, action, resource, metadata, user_id')
-          .eq('school_id', targetSchoolId)
-          .eq('success', true)
-          .in('action', ['create', 'update'])
-          .order('created_at', { ascending: false })
-          .limit(5);
-
         const { data: auditLogs, error: activitiesError } = await Promise.race([
-          activitiesPromise,
-          activitiesTimeout
-        ]) as any;
+          supabase
+            .from('security_audit_logs')
+            .select('id, created_at, action, resource, metadata, user_id')
+            .eq('school_id', targetSchoolId)
+            .eq('success', true)
+            .in('action', ['create', 'update'])
+            .order('created_at', { ascending: false })
+            .limit(5),
+          createTimeout(4000)
+        ]);
 
         if (activitiesError) {
           console.warn('📊 Activities fetch error:', activitiesError);
@@ -123,28 +97,19 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
           let activities: any[] = [];
           if (auditLogs && auditLogs.length > 0) {
             // Get user names with proper type handling
-            const userIds: string[] = auditLogs
+            const validUserIds = auditLogs
               .map((log: any) => log.user_id)
               .filter((id: any): id is string => typeof id === 'string' && Boolean(id));
             
-            const uniqueUserIds = [...new Set(userIds)];
+            const uniqueUserIds: string[] = [...new Set(validUserIds)];
             let userNames: Record<string, string> = {};
             
             if (uniqueUserIds.length > 0) {
               try {
-                const usersTimeout = new Promise((_, reject) =>
-                  setTimeout(() => reject(new Error('Users query timeout')), 3000)
-                );
-
-                const usersPromise = supabase
-                  .from('profiles')
-                  .select('id, name')
-                  .in('id', uniqueUserIds);
-
                 const { data: profilesData } = await Promise.race([
-                  usersPromise,
-                  usersTimeout
-                ]) as any;
+                  supabase.from('profiles').select('id, name').in('id', uniqueUserIds),
+                  createTimeout(2000)
+                ]);
 
                 if (profilesData) {
                   profilesData.forEach((p: any) => {

@@ -10,7 +10,7 @@ import { NavigationProvider } from '@/contexts/NavigationContext';
 
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
-  const [forceError, setForceError] = useState(false);
+  const [initializationComplete, setInitializationComplete] = useState(false);
 
   console.log('🎯 AppContent: Render start');
 
@@ -53,40 +53,35 @@ const AppContent: React.FC = () => {
     authError, 
     hasUser: !!user, 
     role: user?.role, 
-    email: user?.email 
+    email: user?.email,
+    initializationComplete
   });
 
-  // Force error state if loading takes too long
+  // Set initialization complete after a brief delay to prevent immediate timeout
   useEffect(() => {
-    if (authLoading && !forceError) {
-      const timeout = setTimeout(() => {
-        console.error('🎯 AppContent: Auth loading timeout after 20 seconds');
-        setForceError(true);
-      }, 20000);
+    const timer = setTimeout(() => {
+      setInitializationComplete(true);
+    }, 1000);
 
-      return () => clearTimeout(timeout);
-    }
-  }, [authLoading, forceError]);
+    return () => clearTimeout(timer);
+  }, []);
 
-  // Loading state with timeout protection
-  if (authLoading && !forceError) {
+  // Show loading only for a reasonable time
+  if (authLoading && initializationComplete) {
     console.log('🎯 AppContent: Loading auth...');
     return <LoadingScreen />;
   }
 
-  // Force error or actual error state
-  if (authError || forceError) {
-    console.log('🎯 AppContent: Auth error or timeout:', authError);
+  // Handle auth errors
+  if (authError) {
+    console.log('🎯 AppContent: Auth error:', authError);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
           title="Authentication Error"
-          description={forceError ? "Authentication is taking too long" : "There was a problem with your authentication"}
-          error={forceError ? "Authentication timeout" : authError}
-          onRetry={() => {
-            setForceError(false);
-            window.location.reload();
-          }}
+          description="There was a problem with your authentication"
+          error={authError}
+          onRetry={() => window.location.reload()}
         />
       </div>
     );

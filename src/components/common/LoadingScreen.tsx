@@ -9,12 +9,12 @@ const LoadingScreen = () => {
     const slowTimer = setTimeout(() => {
       setShowSlowWarning(true);
       console.warn('LoadingScreen: Taking longer than expected');
-    }, 3000); // Show warning after 3 seconds
+    }, 2000); // Show warning after 2 seconds
 
     const reloadTimer = setTimeout(() => {
       setShowReloadOption(true);
       console.error('LoadingScreen: Critical timeout reached');
-    }, 10000); // Show reload option after 10 seconds
+    }, 6000); // Show reload option after 6 seconds
 
     return () => {
       clearTimeout(slowTimer);
