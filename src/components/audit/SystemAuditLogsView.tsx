@@ -5,19 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, Search, Download, Filter, AlertTriangle } from 'lucide-react';
+import { Shield, Search, Download, Filter, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { auditLogService, AuditLogEntry } from '@/services/auditLogService';
-import { supabase } from '@/integrations/supabase/client';
-
-interface School {
-  id: string;
-  name: string;
-}
 
 const SystemAuditLogsView: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState('');
@@ -26,23 +19,8 @@ const SystemAuditLogsView: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchSchools();
     fetchAuditLogs();
   }, [actionFilter, schoolFilter, dateRange]);
-
-  const fetchSchools = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('schools')
-        .select('id, name')
-        .order('name');
-
-      if (error) throw error;
-      setSchools(data || []);
-    } catch (error) {
-      console.error('Failed to fetch schools:', error);
-    }
-  };
 
   const fetchAuditLogs = async () => {
     try {
@@ -52,7 +30,7 @@ const SystemAuditLogsView: React.FC = () => {
         school_id: schoolFilter || undefined,
         startDate: dateRange.start || undefined,
         endDate: dateRange.end || undefined,
-        limit: 200
+        limit: 100
       });
 
       if (error) {
@@ -80,36 +58,30 @@ const SystemAuditLogsView: React.FC = () => {
   );
 
   const getActionBadgeColor = (action: string) => {
-    if (action.includes('Delete') || action.includes('Deactivate')) return 'bg-red-100 text-red-800 border-red-200';
-    if (action.includes('Create') || action.includes('Register')) return 'bg-green-100 text-green-800 border-green-200';
-    if (action.includes('Update') || action.includes('Modify')) return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (action.includes('System') || action.includes('Config')) return 'bg-purple-100 text-purple-800 border-purple-200';
-    if (action.includes('Finance') || action.includes('Payment')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    if (role === 'edufam_admin' || role === 'elimisha_admin') return 'bg-red-100 text-red-800';
-    if (role === 'principal' || role === 'school_owner') return 'bg-blue-100 text-blue-800';
+    if (action.includes('System')) return 'bg-purple-100 text-purple-800';
+    if (action.includes('School')) return 'bg-blue-100 text-blue-800';
+    if (action.includes('User')) return 'bg-green-100 text-green-800';
+    if (action.includes('Delete') || action.includes('Deactivate')) return 'bg-red-100 text-red-800';
     return 'bg-gray-100 text-gray-800';
   };
 
-  const getSchoolName = (schoolId: string) => {
-    const school = schools.find(s => s.id === schoolId);
-    return school?.name || 'Unknown School';
+  const getRoleBadgeColor = (role: string) => {
+    if (role === 'edufam_admin') return 'bg-red-100 text-red-800';
+    if (role === 'principal') return 'bg-blue-100 text-blue-800';
+    if (role === 'school_owner') return 'bg-green-100 text-green-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
   const exportLogs = () => {
     const csvContent = [
-      ['Timestamp', 'Action', 'User Role', 'School', 'Target Entity', 'Old Value', 'New Value'].join(','),
+      ['Timestamp', 'Action', 'User Role', 'School ID', 'Target Entity', 'Details'].join(','),
       ...filteredLogs.map(log => [
         new Date(log.timestamp).toLocaleString(),
         log.action,
         log.performed_by_role,
-        log.school_id ? getSchoolName(log.school_id) : 'System',
+        log.school_id || 'System',
         log.target_entity || '',
-        JSON.stringify(log.old_value || {}),
-        JSON.stringify(log.new_value || {})
+        JSON.stringify(log.metadata || {})
       ].map(field => `"${field}"`).join(','))
     ].join('\n');
 
@@ -122,10 +94,6 @@ const SystemAuditLogsView: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const isCriticalAction = (action: string) => {
-    return action.includes('Delete') || action.includes('Deactivate') || action.includes('System');
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -133,9 +101,6 @@ const SystemAuditLogsView: React.FC = () => {
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
             System Audit Logs
-            <Badge variant="outline" className="ml-auto">
-              EduFam Admin Only
-            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -157,28 +122,19 @@ const SystemAuditLogsView: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Actions</SelectItem>
+                <SelectItem value="System">System Actions</SelectItem>
                 <SelectItem value="School">School Actions</SelectItem>
                 <SelectItem value="User">User Actions</SelectItem>
-                <SelectItem value="System">System Actions</SelectItem>
-                <SelectItem value="Delete">Deletions</SelectItem>
-                <SelectItem value="Finance">Finance Actions</SelectItem>
-                <SelectItem value="Config">Configuration</SelectItem>
+                <SelectItem value="Grade">Grade Actions</SelectItem>
+                <SelectItem value="Payment">Payment Actions</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={schoolFilter} onValueChange={setSchoolFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by school" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Schools</SelectItem>
-                {schools.map(school => (
-                  <SelectItem key={school.id} value={school.id}>
-                    {school.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              placeholder="School ID"
+              value={schoolFilter}
+              onChange={(e) => setSchoolFilter(e.target.value)}
+            />
 
             <Input
               type="date"
@@ -205,7 +161,7 @@ const SystemAuditLogsView: React.FC = () => {
             </Button>
           </div>
 
-          {/* System Audit Logs Table */}
+          {/* Audit Logs Table */}
           <div className="border rounded-lg overflow-hidden">
             {loading ? (
               <div className="p-8 text-center">
@@ -220,22 +176,19 @@ const SystemAuditLogsView: React.FC = () => {
             ) : (
               <div className="max-h-96 overflow-y-auto">
                 {filteredLogs.map((log) => (
-                  <div key={log.id} className={`border-b last:border-b-0 p-4 hover:bg-gray-50 ${isCriticalAction(log.action) ? 'bg-red-50 border-l-4 border-l-red-500' : ''}`}>
+                  <div key={log.id} className="border-b last:border-b-0 p-4 hover:bg-gray-50">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          {isCriticalAction(log.action) && (
-                            <AlertTriangle className="h-4 w-4 text-red-500" />
-                          )}
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={getActionBadgeColor(log.action)}>
                             {log.action}
                           </Badge>
-                          <Badge variant="outline" className={getRoleBadgeColor(log.performed_by_role)}>
+                          <Badge className={getRoleBadgeColor(log.performed_by_role)}>
                             {log.performed_by_role}
                           </Badge>
                           {log.school_id && (
-                            <Badge variant="secondary">
-                              {getSchoolName(log.school_id)}
+                            <Badge variant="outline" className="text-xs">
+                              School: {log.school_id.slice(0, 8)}...
                             </Badge>
                           )}
                         </div>
@@ -247,15 +200,15 @@ const SystemAuditLogsView: React.FC = () => {
                         )}
                         
                         {(log.old_value || log.new_value) && (
-                          <div className="text-xs space-y-1 bg-gray-50 p-2 rounded">
+                          <div className="text-xs space-y-1">
                             {log.old_value && (
                               <div className="text-red-600">
-                                <span className="font-medium">Before:</span> {JSON.stringify(log.old_value)}
+                                Old: {JSON.stringify(log.old_value)}
                               </div>
                             )}
                             {log.new_value && (
                               <div className="text-green-600">
-                                <span className="font-medium">After:</span> {JSON.stringify(log.new_value)}
+                                New: {JSON.stringify(log.new_value)}
                               </div>
                             )}
                           </div>
