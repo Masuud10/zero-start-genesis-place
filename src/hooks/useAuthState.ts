@@ -12,6 +12,7 @@ export const useAuthState = () => {
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
   const initializedRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -21,17 +22,30 @@ export const useAuthState = () => {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     console.log('🔐 AuthState: Fetching profile for', userId);
     try {
-      const { data, error } = await supabase
+      const profileTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+      );
+
+      const profilePromise = supabase
         .from('profiles')
         .select('role, name, school_id, avatar_url, mfa_enabled, status')
         .eq('id', userId)
         .maybeSingle();
+
+      const { data, error } = await Promise.race([
+        profilePromise,
+        profileTimeout
+      ]) as any;
       
       if (error) {
         console.error('🔐 AuthState: Profile fetch error:', error);
@@ -53,21 +67,27 @@ export const useAuthState = () => {
     try {
       if (!authUser) {
         console.log('🔐 AuthState: No auth user, clearing state');
-        setUser(null);
-        setError(null);
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setUser(null);
+          setError(null);
+          setIsLoading(false);
+        }
         return;
       }
 
       if (!authUser.email) {
         console.error('🔐 AuthState: User missing email');
-        setError('User account is missing email address');
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setError('User account is missing email address');
+          setIsLoading(false);
+        }
         return;
       }
 
-      // Fetch profile
+      // Fetch profile with timeout
       const profile = await fetchProfile(authUser.id);
+
+      if (!isMountedRef.current) return;
 
       // Create user data with fallback values
       const resolvedRole = profile?.role || 
@@ -104,11 +124,9 @@ export const useAuthState = () => {
         hasProfile: !!profile
       });
 
-      if (isMountedRef.current) {
-        setUser(userData);
-        setError(null);
-        setIsLoading(false);
-      }
+      setUser(userData);
+      setError(null);
+      setIsLoading(false);
     } catch (err: any) {
       console.error('🔐 AuthState: User processing failed:', err);
       if (isMountedRef.current) {
@@ -128,6 +146,15 @@ export const useAuthState = () => {
       try {
         console.log('🔐 AuthState: Setting up auth listener');
         
+        // Set a hard timeout for the entire auth initialization
+        timeoutRef.current = setTimeout(() => {
+          console.error('🔐 AuthState: Auth initialization timeout after 15 seconds');
+          if (isMountedRef.current) {
+            setError('Authentication initialization timeout');
+            setIsLoading(false);
+          }
+        }, 15000);
+
         // Clean up existing subscription
         if (subscriptionRef.current) {
           subscriptionRef.current.unsubscribe();
@@ -139,9 +166,15 @@ export const useAuthState = () => {
             console.log('🔐 AuthState: Auth event:', event, !!session);
             if (!isMountedRef.current) return;
             
+            // Clear timeout since we got a response
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+              timeoutRef.current = null;
+            }
+            
             if (event === 'SIGNED_OUT' || !session) {
               await processUser(null);
-            } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+            } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
               await processUser(session.user);
             }
           }
@@ -151,7 +184,7 @@ export const useAuthState = () => {
         // Get initial session with timeout
         console.log('🔐 AuthState: Getting initial session');
         const sessionTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session fetch timeout')), 10000)
+          setTimeout(() => reject(new Error('Session fetch timeout')), 8000)
         );
 
         const sessionPromise = supabase.auth.getSession();
@@ -161,14 +194,22 @@ export const useAuthState = () => {
           sessionTimeout
         ]) as any;
 
+        if (!isMountedRef.current) return;
+
+        // Clear timeout since we got a response
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+
         if (sessionError) {
           console.error('🔐 AuthState: Session error:', sessionError);
           throw sessionError;
         }
 
-        if (session?.user && isMountedRef.current) {
+        if (session?.user) {
           await processUser(session.user);
-        } else if (isMountedRef.current) {
+        } else {
           setUser(null);
           setIsLoading(false);
         }

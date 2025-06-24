@@ -47,12 +47,12 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
       console.log('📊 Fetching principal dashboard data for school:', targetSchoolId);
 
-      // Create timeout for all queries
+      // Create a single timeout for all queries with shorter duration
       const queryTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout after 15 seconds')), 15000)
+        setTimeout(() => reject(new Error('Dashboard data fetch timeout')), 10000)
       );
 
-      // Batch all queries with timeout protection
+      // Batch all queries with proper error handling
       const queryPromises = [
         supabase
           .from('students')
@@ -85,19 +85,23 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
         queryTimeout
       ]) as PromiseSettledResult<any>[];
 
-      // Process results safely
+      // Process results with better error handling
       const statsData = {
-        totalStudents: results[0]?.status === 'fulfilled' ? (results[0].value.count || 0) : 0,
-        totalTeachers: results[1]?.status === 'fulfilled' ? (results[1].value.count || 0) : 0,
-        totalSubjects: results[2]?.status === 'fulfilled' ? (results[2].value.count || 0) : 0,
-        totalClasses: results[3]?.status === 'fulfilled' ? (results[3].value.count || 0) : 0,
-        totalParents: results[4]?.status === 'fulfilled' ? (results[4].value.count || 0) : 0
+        totalStudents: results[0]?.status === 'fulfilled' && results[0].value?.count !== undefined ? results[0].value.count : 0,
+        totalTeachers: results[1]?.status === 'fulfilled' && results[1].value?.count !== undefined ? results[1].value.count : 0,
+        totalSubjects: results[2]?.status === 'fulfilled' && results[2].value?.count !== undefined ? results[2].value.count : 0,
+        totalClasses: results[3]?.status === 'fulfilled' && results[3].value?.count !== undefined ? results[3].value.count : 0,
+        totalParents: results[4]?.status === 'fulfilled' && results[4].value?.count !== undefined ? results[4].value.count : 0
       };
 
       setStats(statsData);
 
-      // Fetch recent activities with timeout
+      // Fetch recent activities with separate timeout and better error handling
       try {
+        const activitiesTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Activities query timeout')), 5000)
+        );
+
         const activitiesPromise = supabase
           .from('security_audit_logs')
           .select('id, created_at, action, resource, metadata, user_id')
@@ -107,68 +111,69 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
           .order('created_at', { ascending: false })
           .limit(5);
 
-        const activitiesTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Activities query timeout')), 10000)
-        );
-
-        const { data: auditLogs } = await Promise.race([
+        const { data: auditLogs, error: activitiesError } = await Promise.race([
           activitiesPromise,
           activitiesTimeout
         ]) as any;
 
-        let activities: any[] = [];
-        if (auditLogs && auditLogs.length > 0) {
-          // Get user names with timeout - properly type the userIds array
-          const userIds: string[] = auditLogs
-            .map((log: any) => log.user_id)
-            .filter((id: any): id is string => typeof id === 'string' && Boolean(id));
-          
-          const uniqueUserIds = [...new Set(userIds)];
-          let userNames: Record<string, string> = {};
-          
-          if (uniqueUserIds.length > 0) {
-            try {
-              const usersTimeout = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Users query timeout')), 5000)
-              );
-
-              const usersPromise = supabase
-                .from('profiles')
-                .select('id, name')
-                .in('id', uniqueUserIds);
-
-              const { data: profilesData } = await Promise.race([
-                usersPromise,
-                usersTimeout
-              ]) as any;
-
-              if (profilesData) {
-                profilesData.forEach((p: any) => {
-                  if (p.id && p.name) {
-                    userNames[p.id] = p.name;
-                  }
-                });
-              }
-            } catch (userError) {
-              console.warn('📊 Failed to fetch user names:', userError);
-            }
-          }
-
-          activities = auditLogs.map((log: any) => {
-            const userName = log.user_id ? userNames[log.user_id] || 'A user' : 'A user';
-            const actionVerb = log.action === 'create' ? 'created' : 'updated';
-            const resourceName = log.resource ? log.resource.replace(/_/g, ' ') : 'resource';
+        if (activitiesError) {
+          console.warn('📊 Activities fetch error:', activitiesError);
+          setRecentActivities([]);
+        } else {
+          let activities: any[] = [];
+          if (auditLogs && auditLogs.length > 0) {
+            // Get user names with proper type handling
+            const userIds: string[] = auditLogs
+              .map((log: any) => log.user_id)
+              .filter((id: any): id is string => typeof id === 'string' && Boolean(id));
             
-            return {
-              id: log.id,
-              type: log.resource,
-              description: `${userName} ${actionVerb} a ${resourceName}`,
-              timestamp: log.created_at,
-            };
-          });
+            const uniqueUserIds = [...new Set(userIds)];
+            let userNames: Record<string, string> = {};
+            
+            if (uniqueUserIds.length > 0) {
+              try {
+                const usersTimeout = new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error('Users query timeout')), 3000)
+                );
+
+                const usersPromise = supabase
+                  .from('profiles')
+                  .select('id, name')
+                  .in('id', uniqueUserIds);
+
+                const { data: profilesData } = await Promise.race([
+                  usersPromise,
+                  usersTimeout
+                ]) as any;
+
+                if (profilesData) {
+                  profilesData.forEach((p: any) => {
+                    if (p.id && p.name) {
+                      userNames[p.id] = p.name;
+                    }
+                  });
+                }
+              } catch (userError) {
+                console.warn('📊 Failed to fetch user names:', userError);
+              }
+            }
+
+            activities = auditLogs.map((log: any) => {
+              const userName = log.user_id ? userNames[log.user_id] || 'A user' : 'A user';
+              const actionVerb = log.action === 'create' ? 'created' : 'updated';
+              const resourceName = log.resource ? log.resource.replace(/_/g, ' ') : 'resource';
+              
+              return {
+                id: log.id,
+                type: log.resource,
+                description: `${userName} ${actionVerb} a ${resourceName}`,
+                timestamp: log.created_at,
+              };
+            });
+          }
+          
+          setRecentActivities(activities);
         }
-        
-        setRecentActivities(activities);
       } catch (activitiesError) {
         console.warn('📊 Failed to fetch activities:', activitiesError);
         setRecentActivities([]);
