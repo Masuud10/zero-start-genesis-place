@@ -5,14 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ReportFilters {
   reportType: 'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions';
+  classId?: string;
+  studentId?: string;
   academicYear?: string;
   term?: string;
-  dateFrom?: string;
-  dateTo?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export const useFinanceReports = () => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const generateReport = async (filters: ReportFilters) => {
@@ -20,113 +23,214 @@ export const useFinanceReports = () => {
       return { data: null, error: 'No school assigned to user' };
     }
 
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      
-      let data: any = {};
-      const { reportType, academicYear, term, dateFrom, dateTo } = filters;
+      let data: any = null;
 
-      switch (reportType) {
+      switch (filters.reportType) {
         case 'school_financial':
-          // Fetch financial overview
-          const [feesResult, expensesResult, transactionsResult] = await Promise.all([
-            supabase
-              .from('fees')
-              .select('amount, paid_amount, status, category')
-              .eq('school_id', user.school_id)
-              .gte('created_at', academicYear ? `${academicYear}-01-01` : '2024-01-01'),
-            
-            supabase
-              .from('expenses')
-              .select('amount, category, date')
-              .eq('school_id', user.school_id)
-              .gte('date', dateFrom || '2024-01-01'),
-            
-            supabase
-              .from('mpesa_transactions')
-              .select('amount_paid, transaction_status, transaction_date')
-              .eq('school_id', user.school_id)
-              .gte('transaction_date', dateFrom || '2024-01-01')
-          ]);
-
-          data = {
-            fees: feesResult.data || [],
-            expenses: expensesResult.data || [],
-            transactions: transactionsResult.data || [],
-            summary: {
-              totalFees: feesResult.data?.reduce((sum, fee) => sum + Number(fee.amount), 0) || 0,
-              totalCollected: feesResult.data?.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0) || 0,
-              totalExpenses: expensesResult.data?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0,
-              mpesaCollections: transactionsResult.data?.filter(t => t.transaction_status === 'Success')
-                .reduce((sum, t) => sum + Number(t.amount_paid), 0) || 0
-            }
-          };
+          data = await generateSchoolFinancialReport(user.school_id, filters);
           break;
-
         case 'fee_collection':
-          const { data: feeData } = await supabase
-            .from('fees')
-            .select(`
-              *,
-              students(name, admission_number, class_id),
-              classes(name)
-            `)
-            .eq('school_id', user.school_id)
-            .gte('created_at', academicYear ? `${academicYear}-01-01` : '2024-01-01');
-
-          data = { feeCollection: feeData || [] };
+          data = await generateFeeCollectionReport(user.school_id, filters);
           break;
-
         case 'expense_summary':
-          const { data: expenseData } = await supabase
-            .from('expenses')
-            .select('*')
-            .eq('school_id', user.school_id)
-            .gte('date', dateFrom || '2024-01-01');
-
-          data = { expenses: expenseData || [] };
+          data = await generateExpenseSummaryReport(user.school_id, filters);
           break;
-
         case 'mpesa_transactions':
-          const { data: mpesaData } = await supabase
-            .from('mpesa_transactions')
-            .select(`
-              *,
-              students(name, admission_number),
-              classes(name)
-            `)
-            .eq('school_id', user.school_id)
-            .gte('transaction_date', dateFrom || '2024-01-01');
-
-          data = { mpesaTransactions: mpesaData || [] };
+          data = await generateMpesaTransactionsReport(user.school_id, filters);
           break;
+        default:
+          throw new Error('Invalid report type');
       }
 
       return { data, error: null };
-    } catch (error: any) {
-      console.error('Error generating report:', error);
-      return { data: null, error: error.message };
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to generate report';
+      setError(errorMessage);
+      return { data: null, error: errorMessage };
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadReport = (data: any, filename: string) => {
-    const jsonData = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+  const generateSchoolFinancialReport = async (schoolId: string, filters: ReportFilters) => {
+    // Fetch fees data
+    const { data: feesData } = await supabase
+      .from('fees')
+      .select(`
+        *,
+        students(name, admission_number),
+        classes(name)
+      `)
+      .eq('school_id', schoolId);
+
+    // Fetch expenses data
+    const { data: expensesData } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('school_id', schoolId);
+
+    // Fetch MPESA transactions
+    const { data: mpesaData } = await supabase
+      .from('mpesa_transactions')
+      .select('*')
+      .eq('school_id', schoolId);
+
+    const totalFees = feesData?.reduce((sum, fee) => sum + Number(fee.amount || 0), 0) || 0;
+    const totalCollected = feesData?.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0) || 0;
+    const totalExpenses = expensesData?.reduce((sum, expense) => sum + Number(expense.amount || 0), 0) || 0;
+    const totalMpesa = mpesaData?.reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0;
+
+    return {
+      reportType: 'School Financial Overview',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalFees,
+        totalCollected,
+        outstanding: totalFees - totalCollected,
+        totalExpenses,
+        totalMpesa,
+        netIncome: totalCollected - totalExpenses
+      },
+      records: feesData || [],
+      totalAmount: totalCollected
+    };
+  };
+
+  const generateFeeCollectionReport = async (schoolId: string, filters: ReportFilters) => {
+    let query = supabase
+      .from('fees')
+      .select(`
+        *,
+        students(name, admission_number),
+        classes(name)
+      `)
+      .eq('school_id', schoolId);
+
+    if (filters.classId) {
+      query = query.eq('class_id', filters.classId);
+    }
+
+    if (filters.academicYear) {
+      query = query.eq('academic_year', filters.academicYear);
+    }
+
+    if (filters.term) {
+      query = query.eq('term', filters.term);
+    }
+
+    const { data } = await query;
+
+    const totalExpected = data?.reduce((sum, fee) => sum + Number(fee.amount || 0), 0) || 0;
+    const totalCollected = data?.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0) || 0;
+
+    return {
+      reportType: 'Fee Collection Report',
+      generatedAt: new Date().toISOString(),
+      filters,
+      summary: {
+        totalExpected,
+        totalCollected,
+        outstanding: totalExpected - totalCollected,
+        collectionRate: totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0
+      },
+      records: data || [],
+      totalAmount: totalCollected
+    };
+  };
+
+  const generateExpenseSummaryReport = async (schoolId: string, filters: ReportFilters) => {
+    const { data } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('school_id', schoolId);
+
+    const totalExpenses = data?.reduce((sum, expense) => sum + Number(expense.amount || 0), 0) || 0;
+
+    // Group by category
+    const categoryBreakdown = data?.reduce((acc: any, expense) => {
+      const category = expense.category || 'Other';
+      acc[category] = (acc[category] || 0) + Number(expense.amount || 0);
+      return acc;
+    }, {}) || {};
+
+    return {
+      reportType: 'Expense Summary Report',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalExpenses,
+        expenseCount: data?.length || 0,
+        categoryBreakdown
+      },
+      records: data || [],
+      totalAmount: totalExpenses
+    };
+  };
+
+  const generateMpesaTransactionsReport = async (schoolId: string, filters: ReportFilters) => {
+    const { data } = await supabase
+      .from('mpesa_transactions')
+      .select(`
+        *,
+        students(name, admission_number),
+        classes(name)
+      `)
+      .eq('school_id', schoolId);
+
+    const totalAmount = data?.reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0;
+    const successfulTransactions = data?.filter(txn => txn.transaction_status === 'Success') || [];
+
+    return {
+      reportType: 'M-PESA Transactions Report',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalTransactions: data?.length || 0,
+        successfulTransactions: successfulTransactions.length,
+        totalAmount,
+        successfulAmount: successfulTransactions.reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0)
+      },
+      records: data || [],
+      totalAmount
+    };
+  };
+
+  const downloadReport = (reportData: any, filename: string) => {
+    // Convert to CSV format
+    const csvContent = convertToCSV(reportData);
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.json`;
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  };
+
+  const convertToCSV = (reportData: any) => {
+    if (!reportData.records || reportData.records.length === 0) {
+      return 'No data available';
+    }
+
+    const headers = Object.keys(reportData.records[0]).join(',');
+    const rows = reportData.records.map((record: any) =>
+      Object.values(record).map((value: any) => 
+        typeof value === 'string' ? `"${value}"` : value
+      ).join(',')
+    );
+
+    return [headers, ...rows].join('\n');
   };
 
   return {
     generateReport,
     downloadReport,
-    loading
+    loading,
+    error
   };
 };

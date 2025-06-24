@@ -3,66 +3,94 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Download, Calendar, TrendingUp, Users, CreditCard, AlertCircle } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Download, Calendar, Filter, Loader2 } from 'lucide-react';
 import { useFinanceReports } from '@/hooks/useFinanceReports';
-import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FinancialReportsPanel: React.FC = () => {
-  const { generateReport, downloadReport, loading } = useFinanceReports();
-  const { toast } = useToast();
-  const [reportType, setReportType] = useState<'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions'>('school_financial');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString());
+  const { user } = useAuth();
+  const [reportType, setReportType] = useState<'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions' | ''>('');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [academicYear, setAcademicYear] = useState('');
   const [term, setTerm] = useState('');
+  const [generatedReportData, setGeneratedReportData] = useState<any>(null);
+
+  const { generateReport, downloadReport, loading } = useFinanceReports();
+
+  // Fetch students for the dropdown
+  const { data: students } = useQuery({
+    queryKey: ['students', user?.school_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, name, admission_number, class:classes(name)')
+        .eq('school_id', user?.school_id)
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.school_id && reportType === 'fee_collection'
+  });
+
+  // Fetch classes for the dropdown
+  const { data: classes } = useQuery({
+    queryKey: ['classes', user?.school_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name, level, stream')
+        .eq('school_id', user?.school_id)
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.school_id && reportType === 'fee_collection'
+  });
 
   const reportTypes = [
-    { value: 'school_financial', label: 'School Financial Summary', icon: TrendingUp },
-    { value: 'fee_collection', label: 'Fee Collection Report', icon: Users },
-    { value: 'expense_summary', label: 'Expense Summary', icon: FileText },
-    { value: 'mpesa_transactions', label: 'MPESA Transactions', icon: CreditCard },
+    { value: 'school_financial', label: 'School Financial Overview Report' },
+    { value: 'fee_collection', label: 'Fee Collection Report' },
+    { value: 'expense_summary', label: 'Expense Summary Report' },
+    { value: 'mpesa_transactions', label: 'M-PESA Transactions Report' },
   ];
 
   const handleGenerateReport = async () => {
-    if (!reportType) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a report type",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!reportType) return;
 
     const filters = {
-      reportType,
-      academicYear,
+      reportType: reportType as 'school_financial' | 'fee_collection' | 'expense_summary' | 'mpesa_transactions',
+      classId: reportType === 'fee_collection' ? selectedClass : undefined,
+      academicYear: academicYear || undefined,
       term: term || undefined,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
     };
 
-    const { data, error } = await generateReport(filters);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (data) {
-      const filename = `${reportType}_report_${academicYear}${term ? `_${term}` : ''}_${new Date().toISOString().split('T')[0]}`;
-      downloadReport(data, filename);
+    const result = await generateReport(filters);
+    if (result.data) {
+      setGeneratedReportData(result.data);
     }
   };
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const handleDownloadReport = () => {
+    if (generatedReportData) {
+      const filename = `${reportType}_report`;
+      downloadReport(generatedReportData, filename);
+    }
+  };
+
+  const canGenerateReport = () => {
+    if (!reportType) return false;
+    if (reportType === 'fee_collection' && !selectedClass) return false;
+    return true;
+  };
 
   return (
     <div className="space-y-6">
@@ -72,141 +100,200 @@ const FinancialReportsPanel: React.FC = () => {
             <FileText className="h-6 w-6" />
             Financial Reports
           </h2>
-          <p className="text-muted-foreground">Generate and export comprehensive financial reports</p>
+          <p className="text-muted-foreground">Generate and download financial reports</p>
         </div>
       </div>
 
-      {/* Report Configuration */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Report Configuration */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Generate Financial Report
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="report-type">Report Type *</Label>
+                <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select report type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reportTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {reportType === 'fee_collection' && (
+                <div>
+                  <Label htmlFor="class">Class (Optional)</Label>
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes?.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name} {cls.stream && `- ${cls.stream}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="academic-year">Academic Year (Optional)</Label>
+                  <Input
+                    id="academic-year"
+                    value={academicYear}
+                    onChange={(e) => setAcademicYear(e.target.value)}
+                    placeholder="e.g., 2024"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="term">Term (Optional)</Label>
+                  <Select value={term} onValueChange={setTerm}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All terms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Terms</SelectItem>
+                      <SelectItem value="term-1">Term 1</SelectItem>
+                      <SelectItem value="term-2">Term 2</SelectItem>
+                      <SelectItem value="term-3">Term 3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  onClick={handleGenerateReport} 
+                  disabled={!canGenerateReport() || loading}
+                  className="flex-1"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Report
+                    </>
+                  )}
+                </Button>
+                
+                {generatedReportData && (
+                  <Button onClick={handleDownloadReport} variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Report Preview */}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Report Preview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {generatedReportData ? (
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Report Type: {reportType.replace('_', ' ').toUpperCase()}
+                  </div>
+                  <div className="text-sm">
+                    Generated: {new Date().toLocaleDateString()}
+                  </div>
+                  <div className="border rounded p-3 bg-gray-50 text-sm">
+                    <strong>Summary:</strong>
+                    <ul className="mt-2 space-y-1">
+                      <li>• Records found: {generatedReportData.records?.length || 0}</li>
+                      <li>• Total amount: KES {generatedReportData.totalAmount?.toLocaleString() || 0}</li>
+                      <li>• Period: {academicYear || 'All years'} - {term || 'All terms'}</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Select report type and click "Generate Report" to preview</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Quick Reports */}
       <Card>
         <CardHeader>
-          <CardTitle>Report Configuration</CardTitle>
+          <CardTitle>Quick Reports</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="reportType">Report Type</Label>
-              <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select report type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {reportTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      <div className="flex items-center gap-2">
-                        <type.icon className="h-4 w-4" />
-                        {type.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="academicYear">Academic Year</Label>
-              <Select value={academicYear} onValueChange={setAcademicYear}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select academic year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="term">Term (Optional)</Label>
-              <Select value={term} onValueChange={setTerm}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select term" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Terms</SelectItem>
-                  <SelectItem value="Term 1">Term 1</SelectItem>
-                  <SelectItem value="Term 2">Term 2</SelectItem>
-                  <SelectItem value="Term 3">Term 3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateFrom">Date From (Optional)</Label>
-              <Input
-                id="dateFrom"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateTo">Date To (Optional)</Label>
-              <Input
-                id="dateTo"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={handleGenerateReport} disabled={loading}>
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Generate & Download Report
-                </>
-              )}
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setReportType('mpesa_transactions');
+                handleGenerateReport();
+              }}
+              className="h-20 flex-col"
+            >
+              <FileText className="h-6 w-6 mb-2" />
+              Today's MPESA
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setReportType('fee_collection');
+                handleGenerateReport();
+              }}
+              className="h-20 flex-col"
+            >
+              <FileText className="h-6 w-6 mb-2" />
+              Outstanding Fees
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setReportType('expense_summary');
+                handleGenerateReport();
+              }}
+              className="h-20 flex-col"
+            >
+              <FileText className="h-6 w-6 mb-2" />
+              Monthly Expenses
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setReportType('school_financial');
+                handleGenerateReport();
+              }}
+              className="h-20 flex-col"
+            >
+              <FileText className="h-6 w-6 mb-2" />
+              Financial Overview
             </Button>
           </div>
         </CardContent>
       </Card>
-
-      {/* Report Descriptions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {reportTypes.map((type) => (
-          <Card key={type.value} className={reportType === type.value ? 'ring-2 ring-primary' : ''}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <type.icon className="h-5 w-5" />
-                {type.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {type.value === 'school_financial' && 'Complete financial overview including total fees, collections, and outstanding amounts.'}
-                {type.value === 'fee_collection' && 'Detailed breakdown of fee collections by class, term, and payment method.'}
-                {type.value === 'expense_summary' && 'Summary of all school expenses categorized by type and period.'}
-                {type.value === 'mpesa_transactions' && 'Complete list of all MPESA payment transactions with status and details.'}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Usage Instructions */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Report Generation Tips:</strong>
-          <ul className="mt-2 list-disc list-inside space-y-1 text-sm">
-            <li>Select the appropriate report type for your needs</li>
-            <li>Use date filters for specific time periods</li>
-            <li>Reports are generated in PDF format for easy sharing</li>
-            <li>All financial data is up-to-date as of report generation time</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
     </div>
   );
 };

@@ -8,11 +8,13 @@ import StudentAccountsPanel from '@/components/finance/StudentAccountsPanel';
 import MpesaPaymentsPanel from '@/components/finance/MpesaPaymentsPanel';
 import FinancialReportsPanel from '@/components/finance/FinancialReportsPanel';
 import FinanceAnalyticsPanel from '@/components/finance/FinanceAnalyticsPanel';
+import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
 import { DollarSign, Settings, Users, CreditCard, BarChart3, FileText } from 'lucide-react';
 
 const FinanceModule: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const { data: analyticsData } = useFinanceOfficerAnalytics({ term: 'current', class: 'all' });
 
   if (!user || !['finance_officer', 'principal', 'school_owner'].includes(user.role || '')) {
     return (
@@ -22,6 +24,16 @@ const FinanceModule: React.FC = () => {
       </div>
     );
   }
+
+  const keyMetrics = analyticsData?.keyMetrics || {
+    totalRevenue: 0,
+    totalCollected: 0,
+    outstandingAmount: 0,
+    totalMpesaPayments: 0,
+    collectionRate: 0,
+    totalStudents: 0,
+    defaultersCount: 0
+  };
 
   return (
     <div className="space-y-6">
@@ -64,12 +76,22 @@ const FinanceModule: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">KES {keyMetrics.totalRevenue.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Expected fees this year</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">KES 2,450,000</div>
-                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                <div className="text-2xl font-bold text-green-600">KES {keyMetrics.totalCollected.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Collected so far</p>
               </CardContent>
             </Card>
             <Card>
@@ -78,18 +100,8 @@ const FinanceModule: React.FC = () => {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">KES 650,000</div>
-                <p className="text-xs text-muted-foreground">-5.2% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">MPESA Transactions</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">1,247</div>
-                <p className="text-xs text-muted-foreground">+15% from last month</p>
+                <div className="text-2xl font-bold text-red-600">KES {keyMetrics.outstandingAmount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Pending payments</p>
               </CardContent>
             </Card>
             <Card>
@@ -98,8 +110,59 @@ const FinanceModule: React.FC = () => {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">79.0%</div>
-                <p className="text-xs text-muted-foreground">+2.3% from last month</p>
+                <div className="text-2xl font-bold">{keyMetrics.collectionRate}%</div>
+                <p className="text-xs text-muted-foreground">Payment efficiency</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between">
+                  <span>Total Students</span>
+                  <span className="font-semibold">{keyMetrics.totalStudents}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Students with Outstanding Fees</span>
+                  <span className="font-semibold text-orange-600">{keyMetrics.defaultersCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>MPESA Payments (Total)</span>
+                  <span className="font-semibold text-green-600">KES {keyMetrics.totalMpesaPayments.toLocaleString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <button 
+                  onClick={() => setActiveTab('students')}
+                  className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors"
+                >
+                  <div className="font-medium">View Student Accounts</div>
+                  <div className="text-sm text-muted-foreground">Check individual balances and payment history</div>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('reports')}
+                  className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors"
+                >
+                  <div className="font-medium">Generate Reports</div>
+                  <div className="text-sm text-muted-foreground">Export financial data and summaries</div>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('mpesa')}
+                  className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors"
+                >
+                  <div className="font-medium">MPESA Transactions</div>
+                  <div className="text-sm text-muted-foreground">View and manage mobile payments</div>
+                </button>
               </CardContent>
             </Card>
           </div>

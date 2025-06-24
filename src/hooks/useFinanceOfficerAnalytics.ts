@@ -130,7 +130,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         ).reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0
       }));
 
-      // Calculate expense breakdown with colors
+      // Calculate expense breakdown with colors - fix the type casting
       const expenseGroups = expensesData?.reduce((acc: any, expense) => {
         const category = expense.category || 'Other';
         acc[category] = (acc[category] || 0) + Number(expense.amount || 0);
@@ -146,7 +146,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         color: colors[index % colors.length]
       }));
 
-      // Find defaulters (students with overdue fees)
+      // Find defaulters (students with overdue fees) - fix the type casting
       const today = new Date();
       const defaultersList = feesData?.filter(fee => {
         const dueDate = new Date(fee.due_date);
