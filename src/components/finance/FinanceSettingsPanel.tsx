@@ -4,39 +4,61 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Shield, CreditCard, Percent, Save, Eye, EyeOff } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Settings, Shield, CreditCard, AlertCircle, CheckCircle, Save, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface FinanceSettings {
-  mpesa_consumer_key: string;
-  mpesa_consumer_secret: string;
-  mpesa_passkey: string;
-  mpesa_paybill_number: string;
+  id?: string;
+  school_id: string;
+  mpesa_consumer_key?: string;
+  mpesa_consumer_secret?: string;
+  mpesa_paybill_number?: string;
+  mpesa_passkey?: string;
   late_fee_percentage: number;
   late_fee_grace_days: number;
   tax_rate: number;
-  settings_data: any;
+  settings_data: {
+    currency: string;
+    payment_methods: string[];
+    auto_generate_receipts: boolean;
+    send_payment_notifications: boolean;
+    allow_partial_payments: boolean;
+    require_payment_approval: boolean;
+  };
 }
 
 const FinanceSettingsPanel: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [showSecrets, setShowSecrets] = useState(false);
+  
   const [settings, setSettings] = useState<FinanceSettings>({
-    mpesa_consumer_key: '',
-    mpesa_consumer_secret: '',
-    mpesa_passkey: '',
-    mpesa_paybill_number: '',
+    school_id: user?.school_id || '',
     late_fee_percentage: 0,
     late_fee_grace_days: 7,
     tax_rate: 0,
-    settings_data: {}
+    settings_data: {
+      currency: 'KES',
+      payment_methods: ['cash', 'mpesa'],
+      auto_generate_receipts: true,
+      send_payment_notifications: true,
+      allow_partial_payments: true,
+      require_payment_approval: false,
+    }
+  });
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showSecrets, setShowSecrets] = useState({
+    consumer_key: false,
+    consumer_secret: false,
+    passkey: false
   });
 
   useEffect(() => {
@@ -48,36 +70,25 @@ const FinanceSettingsPanel: React.FC = () => {
 
     try {
       setLoading(true);
-      console.log('🔍 Fetching finance settings for school:', user.school_id);
-
+      
       const { data, error } = await supabase
         .from('finance_settings')
         .select('*')
         .eq('school_id', user.school_id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error fetching finance settings:', error);
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
       if (data) {
         setSettings({
-          mpesa_consumer_key: data.mpesa_consumer_key || '',
-          mpesa_consumer_secret: data.mpesa_consumer_secret || '',
-          mpesa_passkey: data.mpesa_passkey || '',
-          mpesa_paybill_number: data.mpesa_paybill_number || '',
-          late_fee_percentage: data.late_fee_percentage || 0,
-          late_fee_grace_days: data.late_fee_grace_days || 7,
-          tax_rate: data.tax_rate || 0,
-          settings_data: data.settings_data || {}
+          ...data,
+          settings_data: data.settings_data || settings.settings_data
         });
-        console.log('✅ Finance settings loaded');
-      } else {
-        console.log('📝 No existing finance settings found');
       }
-    } catch (err: any) {
-      console.error('Error fetching finance settings:', err);
+    } catch (error: any) {
+      console.error('Error fetching finance settings:', error);
       toast({
         title: "Error",
         description: "Failed to load finance settings",
@@ -88,42 +99,39 @@ const FinanceSettingsPanel: React.FC = () => {
     }
   };
 
-  const saveSettings = async () => {
-    if (!user?.school_id) {
-      toast({
-        title: "Error",
-        description: "No school ID found",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSaveSettings = async () => {
+    if (!user?.school_id) return;
 
     try {
       setSaving(true);
-      console.log('💾 Saving finance settings for school:', user.school_id);
+
+      const settingsToSave = {
+        school_id: user.school_id,
+        mpesa_consumer_key: settings.mpesa_consumer_key,
+        mpesa_consumer_secret: settings.mpesa_consumer_secret,
+        mpesa_paybill_number: settings.mpesa_paybill_number,
+        mpesa_passkey: settings.mpesa_passkey,
+        late_fee_percentage: settings.late_fee_percentage,
+        late_fee_grace_days: settings.late_fee_grace_days,
+        tax_rate: settings.tax_rate,
+        settings_data: settings.settings_data,
+      };
 
       const { error } = await supabase
         .from('finance_settings')
-        .upsert({
-          school_id: user.school_id,
-          ...settings,
-          updated_at: new Date().toISOString()
-        }, {
+        .upsert(settingsToSave, {
           onConflict: 'school_id'
         });
 
-      if (error) {
-        console.error('Error saving finance settings:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('✅ Finance settings saved successfully');
       toast({
-        title: "Success",
-        description: "Finance settings saved successfully",
+        title: "Settings Saved",
+        description: "Finance settings have been updated successfully.",
       });
-    } catch (err: any) {
-      console.error('Error saving finance settings:', err);
+
+    } catch (error: any) {
+      console.error('Error saving finance settings:', error);
       toast({
         title: "Error",
         description: "Failed to save finance settings",
@@ -134,10 +142,26 @@ const FinanceSettingsPanel: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: keyof FinanceSettings, value: any) => {
-    setSettings(prev => ({
+  const handleTestMpesaConnection = async () => {
+    if (!settings.mpesa_consumer_key || !settings.mpesa_consumer_secret) {
+      toast({
+        title: "Missing Credentials",
+        description: "Please enter M-PESA consumer key and secret first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Connection Test",
+      description: "M-PESA credentials validation would be implemented here.",
+    });
+  };
+
+  const toggleSecretVisibility = (field: keyof typeof showSecrets) => {
+    setShowSecrets(prev => ({
       ...prev,
-      [field]: value
+      [field]: !prev[field]
     }));
   };
 
@@ -154,136 +178,196 @@ const FinanceSettingsPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Finance Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="mpesa" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="mpesa" className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                M-PESA Setup
-              </TabsTrigger>
-              <TabsTrigger value="fees" className="flex items-center gap-2">
-                <Percent className="h-4 w-4" />
-                Fee Settings
-              </TabsTrigger>
-              <TabsTrigger value="security" className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Security
-              </TabsTrigger>
-            </TabsList>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Finance Settings</h2>
+          <p className="text-muted-foreground">Configure payment methods and financial policies</p>
+        </div>
+        <Button onClick={handleSaveSettings} disabled={saving}>
+          {saving ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Save Settings
+            </>
+          )}
+        </Button>
+      </div>
 
-            <TabsContent value="mpesa" className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-800 mb-2">M-PESA API Configuration</h3>
-                <p className="text-blue-700 text-sm">
-                  Configure your Safaricom Daraja API credentials to enable M-PESA payments. 
-                  Get your credentials from the Safaricom Developer Portal.
-                </p>
-              </div>
+      <Tabs defaultValue="mpesa" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="mpesa">M-PESA Integration</TabsTrigger>
+          <TabsTrigger value="policies">Fee Policies</TabsTrigger>
+          <TabsTrigger value="general">General Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="mpesa" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CreditCard className="w-5 h-5 mr-2" />
+                M-PESA API Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  M-PESA credentials are securely encrypted and stored. Never share these credentials with unauthorized persons.
+                </AlertDescription>
+              </Alert>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="consumer_key">Consumer Key *</Label>
+                  <Label htmlFor="paybill">Paybill Number</Label>
                   <Input
-                    id="consumer_key"
-                    type={showSecrets ? "text" : "password"}
-                    value={settings.mpesa_consumer_key}
-                    onChange={(e) => handleInputChange('mpesa_consumer_key', e.target.value)}
-                    placeholder="Enter Daraja API Consumer Key"
+                    id="paybill"
+                    value={settings.mpesa_paybill_number || ''}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      mpesa_paybill_number: e.target.value
+                    })}
+                    placeholder="Enter paybill number"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="consumer_secret">Consumer Secret *</Label>
-                  <Input
-                    id="consumer_secret"
-                    type={showSecrets ? "text" : "password"}
-                    value={settings.mpesa_consumer_secret}
-                    onChange={(e) => handleInputChange('mpesa_consumer_secret', e.target.value)}
-                    placeholder="Enter Daraja API Consumer Secret"
-                  />
+                  <Label htmlFor="consumer_key">Consumer Key</Label>
+                  <div className="relative">
+                    <Input
+                      id="consumer_key"
+                      type={showSecrets.consumer_key ? 'text' : 'password'}
+                      value={settings.mpesa_consumer_key || ''}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        mpesa_consumer_key: e.target.value
+                      })}
+                      placeholder="Enter consumer key"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleSecretVisibility('consumer_key')}
+                    >
+                      {showSecrets.consumer_key ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="passkey">Lipa Na M-PESA Passkey *</Label>
-                  <Input
-                    id="passkey"
-                    type={showSecrets ? "text" : "password"}
-                    value={settings.mpesa_passkey}
-                    onChange={(e) => handleInputChange('mpesa_passkey', e.target.value)}
-                    placeholder="Enter Lipa Na M-PESA Passkey"
-                  />
+                  <Label htmlFor="consumer_secret">Consumer Secret</Label>
+                  <div className="relative">
+                    <Input
+                      id="consumer_secret"
+                      type={showSecrets.consumer_secret ? 'text' : 'password'}
+                      value={settings.mpesa_consumer_secret || ''}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        mpesa_consumer_secret: e.target.value
+                      })}
+                      placeholder="Enter consumer secret"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleSecretVisibility('consumer_secret')}
+                    >
+                      {showSecrets.consumer_secret ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="paybill_number">Paybill Number *</Label>
-                  <Input
-                    id="paybill_number"
-                    value={settings.mpesa_paybill_number}
-                    onChange={(e) => handleInputChange('mpesa_paybill_number', e.target.value)}
-                    placeholder="Enter Paybill Number"
-                  />
+                  <Label htmlFor="passkey">Passkey</Label>
+                  <div className="relative">
+                    <Input
+                      id="passkey"
+                      type={showSecrets.passkey ? 'text' : 'password'}
+                      value={settings.mpesa_passkey || ''}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        mpesa_passkey: e.target.value
+                      })}
+                      placeholder="Enter passkey"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleSecretVisibility('passkey')}
+                    >
+                      {showSecrets.passkey ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={showSecrets}
-                  onCheckedChange={setShowSecrets}
-                />
-                <Label className="flex items-center gap-2">
-                  {showSecrets ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                  {showSecrets ? 'Hide' : 'Show'} API credentials
-                </Label>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={handleTestMpesaConnection}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Test Connection
+                </Button>
               </div>
-            </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <TabsContent value="fees" className="space-y-4">
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-yellow-800 mb-2">Fee Configuration</h3>
-                <p className="text-yellow-700 text-sm">
-                  Configure automatic fee calculations, late fee penalties, and tax rates.
-                </p>
-              </div>
-
+        <TabsContent value="policies" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fee Management Policies</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="late_fee_percentage">Late Fee Percentage (%)</Label>
                   <Input
                     id="late_fee_percentage"
                     type="number"
+                    step="0.1"
                     min="0"
                     max="100"
-                    step="0.1"
                     value={settings.late_fee_percentage}
-                    onChange={(e) => handleInputChange('late_fee_percentage', parseFloat(e.target.value) || 0)}
-                    placeholder="e.g., 5.0"
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      late_fee_percentage: parseFloat(e.target.value) || 0
+                    })}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Percentage charged as late fee on overdue payments
-                  </p>
                 </div>
 
                 <div>
-                  <Label htmlFor="late_fee_grace_days">Grace Period (Days)</Label>
+                  <Label htmlFor="grace_days">Grace Period (Days)</Label>
                   <Input
-                    id="late_fee_grace_days"
+                    id="grace_days"
                     type="number"
                     min="0"
-                    max="365"
                     value={settings.late_fee_grace_days}
-                    onChange={(e) => handleInputChange('late_fee_grace_days', parseInt(e.target.value) || 0)}
-                    placeholder="e.g., 7"
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      late_fee_grace_days: parseInt(e.target.value) || 0
+                    })}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Days after due date before late fees apply
-                  </p>
                 </div>
 
                 <div>
@@ -291,90 +375,127 @@ const FinanceSettingsPanel: React.FC = () => {
                   <Input
                     id="tax_rate"
                     type="number"
+                    step="0.1"
                     min="0"
                     max="100"
-                    step="0.1"
                     value={settings.tax_rate}
-                    onChange={(e) => handleInputChange('tax_rate', parseFloat(e.target.value) || 0)}
-                    placeholder="e.g., 16.0"
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      tax_rate: parseFloat(e.target.value) || 0
+                    })}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    VAT or other applicable tax rate
-                  </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Fee Calculation Preview</h4>
-                <div className="text-sm space-y-1">
-                  <p>Base Fee Amount: KES 10,000</p>
-                  <p>Tax ({settings.tax_rate}%): KES {((10000 * settings.tax_rate) / 100).toFixed(2)}</p>
-                  <p>Late Fee ({settings.late_fee_percentage}%): KES {((10000 * settings.late_fee_percentage) / 100).toFixed(2)}</p>
-                  <p className="font-semibold border-t pt-1">
-                    Total with taxes and late fees: KES {(10000 + (10000 * settings.tax_rate / 100) + (10000 * settings.late_fee_percentage / 100)).toFixed(2)}
-                  </p>
-                </div>
+        <TabsContent value="general" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>General Finance Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="currency">Default Currency</Label>
+                <Select 
+                  value={settings.settings_data.currency} 
+                  onValueChange={(value) => setSettings({
+                    ...settings,
+                    settings_data: {
+                      ...settings.settings_data,
+                      currency: value
+                    }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="KES">Kenyan Shilling (KES)</SelectItem>
+                    <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                    <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </TabsContent>
 
-            <TabsContent value="security" className="space-y-4">
-              <div className="bg-red-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-red-800 mb-2">Security Information</h3>
-                <p className="text-red-700 text-sm">
-                  All API credentials and sensitive financial data are encrypted and stored securely. 
-                  Only authorized personnel can access this information.
-                </p>
-              </div>
+              <Separator />
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+                <h4 className="font-medium">Payment Options</h4>
+                
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">M-PESA API Credentials</h4>
-                    <p className="text-sm text-gray-500">
-                      {settings.mpesa_consumer_key ? 'Configured' : 'Not configured'}
-                    </p>
+                    <Label>Auto-generate Receipts</Label>
+                    <p className="text-sm text-muted-foreground">Automatically generate receipts for successful payments</p>
                   </div>
-                  <div className={`w-3 h-3 rounded-full ${settings.mpesa_consumer_key ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <Switch
+                    checked={settings.settings_data.auto_generate_receipts}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      settings_data: {
+                        ...settings.settings_data,
+                        auto_generate_receipts: checked
+                      }
+                    })}
+                  />
                 </div>
 
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">Paybill Configuration</h4>
-                    <p className="text-sm text-gray-500">
-                      {settings.mpesa_paybill_number ? `Paybill: ${settings.mpesa_paybill_number}` : 'Not configured'}
-                    </p>
+                    <Label>Send Payment Notifications</Label>
+                    <p className="text-sm text-muted-foreground">Send SMS/email notifications for payments</p>
                   </div>
-                  <div className={`w-3 h-3 rounded-full ${settings.mpesa_paybill_number ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <Switch
+                    checked={settings.settings_data.send_payment_notifications}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      settings_data: {
+                        ...settings.settings_data,
+                        send_payment_notifications: checked
+                      }
+                    })}
+                  />
                 </div>
 
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">Data Encryption</h4>
-                    <p className="text-sm text-gray-500">All data encrypted at rest and in transit</p>
+                    <Label>Allow Partial Payments</Label>
+                    <p className="text-sm text-muted-foreground">Allow students to make partial fee payments</p>
                   </div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <Switch
+                    checked={settings.settings_data.allow_partial_payments}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      settings_data: {
+                        ...settings.settings_data,
+                        allow_partial_payments: checked
+                      }
+                    })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Require Payment Approval</Label>
+                    <p className="text-sm text-muted-foreground">Require administrator approval for payments</p>
+                  </div>
+                  <Switch
+                    checked={settings.settings_data.require_payment_approval}
+                    onCheckedChange={(checked) => setSettings({
+                      ...settings,
+                      settings_data: {
+                        ...settings.settings_data,
+                        require_payment_approval: checked
+                      }
+                    })}
+                  />
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
-
-          <div className="flex justify-end pt-6 border-t">
-            <Button onClick={saveSettings} disabled={saving}>
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Settings
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
