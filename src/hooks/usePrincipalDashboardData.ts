@@ -118,8 +118,8 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
         let activities: any[] = [];
         if (auditLogs && auditLogs.length > 0) {
-          // Get user names with timeout
-          const userIds = [...new Set(auditLogs.map((log: any) => log.user_id).filter(Boolean))];
+          // Get user names with timeout - fix the type issue here
+          const userIds = [...new Set(auditLogs.map((log: any) => log.user_id).filter((id: any): id is string => Boolean(id)))];
           let userNames: Record<string, string> = {};
           
           if (userIds.length > 0) {

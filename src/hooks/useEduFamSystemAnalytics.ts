@@ -16,7 +16,13 @@ export const useEduFamSystemAnalytics = () => {
             setTimeout(() => reject(new Error('Analytics query timeout')), 15000)
           )
         ]);
-        return result;
+        
+        // Type guard to ensure result has the expected structure
+        if (result && typeof result === 'object' && 'data' in result) {
+          return (result as { data: any; error: any }).data;
+        }
+        
+        throw new Error('Invalid response format');
       } catch (error) {
         console.error('Analytics fetch error:', error);
         throw error;
@@ -25,7 +31,6 @@ export const useEduFamSystemAnalytics = () => {
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // 10 minutes
-    select: (data) => data?.data || null,
     retry: 2,
     retryDelay: 1000,
   });
