@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { ErrorBoundary } from '@/utils/errorBoundary';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import EduFamAdminDashboard from './edufam-admin/EduFamAdminDashboard';
@@ -52,7 +52,11 @@ const AdminDashboard = () => {
       {(() => {
         switch (user.role) {
           case 'edufam_admin':
-            return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
+            return (
+              <ErrorBoundary>
+                <EduFamAdminDashboard onModalOpen={handleModalOpen} />
+              </ErrorBoundary>
+            );
           
           case 'principal':
           case 'school_owner':
@@ -64,7 +68,11 @@ const AdminDashboard = () => {
                 />
               );
             }
-            return <SchoolAdminDashboard user={user} onModalOpen={handleModalOpen} />;
+            return (
+              <ErrorBoundary>
+                <SchoolAdminDashboard user={user} onModalOpen={handleModalOpen} />
+              </ErrorBoundary>
+            );
           
           case 'teacher':
             if (!schoolId) {
@@ -75,10 +83,18 @@ const AdminDashboard = () => {
                 />
               );
             }
-            return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
+            return (
+              <ErrorBoundary>
+                <TeacherDashboard user={user} onModalOpen={handleModalOpen} />
+              </ErrorBoundary>
+            );
           
           case 'parent':
-            return <ParentDashboard />;
+            return (
+              <ErrorBoundary>
+                <ParentDashboard />
+              </ErrorBoundary>
+            );
           
           default:
             return (

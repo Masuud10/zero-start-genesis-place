@@ -58,8 +58,17 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
         throw new Error('You do not have permission to view users');
       }
 
-      // Use AdminUserService for better multi-tenant support
-      const { data, error: fetchError } = await AdminUserService.getUsersForSchool();
+      // Add timeout protection
+      const fetchTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('User fetch timeout after 15 seconds')), 15000)
+      );
+
+      const fetchPromise = AdminUserService.getUsersForSchool();
+
+      const { data, error: fetchError } = await Promise.race([
+        fetchPromise,
+        fetchTimeout
+      ]) as any;
 
       if (fetchError) {
         throw fetchError;

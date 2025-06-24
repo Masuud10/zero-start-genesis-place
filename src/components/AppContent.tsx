@@ -55,9 +55,20 @@ const AppContent: React.FC = () => {
     email: user?.email 
   });
 
-  // Loading state
+  // Loading state with timeout protection
   if (authLoading) {
     console.log('🎯 AppContent: Loading auth...');
+    
+    // Add a timeout to prevent infinite loading
+    React.useEffect(() => {
+      const timeout = setTimeout(() => {
+        console.error('🎯 AppContent: Auth loading timeout after 30 seconds');
+        window.location.reload();
+      }, 30000);
+
+      return () => clearTimeout(timeout);
+    }, []);
+
     return <LoadingScreen />;
   }
 
