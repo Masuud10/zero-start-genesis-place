@@ -13,6 +13,12 @@ export type StatsType = {
   totalParents: number;
 };
 
+interface SupabaseQueryResult {
+  data?: any;
+  error?: any;
+  count?: number | null;
+}
+
 export const usePrincipalDashboardData = (reloadKey: number) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -67,18 +73,18 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
 
       // Process results with better error handling
       const statsData = {
-        totalStudents: results[0]?.status === 'fulfilled' && results[0].value?.count !== undefined ? results[0].value.count : 0,
-        totalTeachers: results[1]?.status === 'fulfilled' && results[1].value?.count !== undefined ? results[1].value.count : 0,
-        totalSubjects: results[2]?.status === 'fulfilled' && results[2].value?.count !== undefined ? results[2].value.count : 0,
-        totalClasses: results[3]?.status === 'fulfilled' && results[3].value?.count !== undefined ? results[3].value.count : 0,
-        totalParents: results[4]?.status === 'fulfilled' && results[4].value?.count !== undefined ? results[4].value.count : 0
+        totalStudents: results[0]?.status === 'fulfilled' && (results[0].value as SupabaseQueryResult)?.count !== undefined ? (results[0].value as SupabaseQueryResult).count! : 0,
+        totalTeachers: results[1]?.status === 'fulfilled' && (results[1].value as SupabaseQueryResult)?.count !== undefined ? (results[1].value as SupabaseQueryResult).count! : 0,
+        totalSubjects: results[2]?.status === 'fulfilled' && (results[2].value as SupabaseQueryResult)?.count !== undefined ? (results[2].value as SupabaseQueryResult).count! : 0,
+        totalClasses: results[3]?.status === 'fulfilled' && (results[3].value as SupabaseQueryResult)?.count !== undefined ? (results[3].value as SupabaseQueryResult).count! : 0,
+        totalParents: results[4]?.status === 'fulfilled' && (results[4].value as SupabaseQueryResult)?.count !== undefined ? (results[4].value as SupabaseQueryResult).count! : 0
       };
 
       setStats(statsData);
 
       // Fetch recent activities with shorter timeout and better error handling
       try {
-        const { data: auditLogs, error: activitiesError } = await Promise.race([
+        const activitiesResult = await Promise.race([
           supabase
             .from('security_audit_logs')
             .select('id, created_at, action, resource, metadata, user_id')
@@ -88,16 +94,16 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
             .order('created_at', { ascending: false })
             .limit(5),
           createTimeout(4000)
-        ]);
+        ]) as SupabaseQueryResult;
 
-        if (activitiesError) {
-          console.warn('📊 Activities fetch error:', activitiesError);
+        if (activitiesResult.error) {
+          console.warn('📊 Activities fetch error:', activitiesResult.error);
           setRecentActivities([]);
         } else {
           let activities: any[] = [];
-          if (auditLogs && auditLogs.length > 0) {
+          if (activitiesResult.data && activitiesResult.data.length > 0) {
             // Get user names with proper type handling
-            const validUserIds = auditLogs
+            const validUserIds = activitiesResult.data
               .map((log: any) => log.user_id)
               .filter((id: any): id is string => typeof id === 'string' && Boolean(id));
             
@@ -106,13 +112,13 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
             
             if (uniqueUserIds.length > 0) {
               try {
-                const { data: profilesData } = await Promise.race([
+                const profilesResult = await Promise.race([
                   supabase.from('profiles').select('id, name').in('id', uniqueUserIds),
                   createTimeout(2000)
-                ]);
+                ]) as SupabaseQueryResult;
 
-                if (profilesData) {
-                  profilesData.forEach((p: any) => {
+                if (profilesResult.data) {
+                  profilesResult.data.forEach((p: any) => {
                     if (p.id && p.name) {
                       userNames[p.id] = p.name;
                     }
@@ -123,7 +129,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
               }
             }
 
-            activities = auditLogs.map((log: any) => {
+            activities = activitiesResult.data.map((log: any) => {
               const userName = log.user_id ? userNames[log.user_id] || 'A user' : 'A user';
               const actionVerb = log.action === 'create' ? 'created' : 'updated';
               const resourceName = log.resource ? log.resource.replace(/_/g, ' ') : 'resource';
