@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
-import { useCreateProject } from '@/hooks/useProjects';
+import { useCreateProject, Project } from '@/hooks/useProjects';
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -29,13 +29,13 @@ interface CreateProjectDialogProps {
 type ProjectFormData = {
   project_name: string;
   description: string;
-  project_type: string;
+  project_type: 'event' | 'trip' | 'campaign' | 'internal' | 'client' | 'other';
   responsible_person: string;
   responsible_person_email: string;
   start_date: string;
   end_date: string;
-  status: string;
-  priority: string;
+  status: 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'critical';
   budget: number;
   notes: string;
 };
@@ -123,7 +123,7 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({ open, onClose
               <Label htmlFor="project_type">Project Type *</Label>
               <Select
                 value={watch('project_type')}
-                onValueChange={(value) => setValue('project_type', value)}
+                onValueChange={(value: 'event' | 'trip' | 'campaign' | 'internal' | 'client' | 'other') => setValue('project_type', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -205,7 +205,7 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({ open, onClose
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={watch('priority')}
-                onValueChange={(value) => setValue('priority', value)}
+                onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => setValue('priority', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
