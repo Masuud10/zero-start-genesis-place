@@ -41,17 +41,29 @@ export const useStudentAccounts = () => {
 
       if (studentsError) throw studentsError;
 
-      // Transform students data with proper error handling
-      const transformedStudents: Student[] = (studentsData || []).map(student => ({
-        id: student.id,
-        name: student.name,
-        admission_number: student.admission_number,
-        class_id: student.class_id,
-        school_id: student.school_id,
-        class: student.classes && typeof student.classes === 'object' && 'name' in student.classes 
-          ? { name: (student.classes as { name: string }).name } 
-          : { name: 'Unknown Class' }
-      }));
+      // Transform students data with proper error handling and null checks
+      const transformedStudents: Student[] = (studentsData || []).map(student => {
+        // Safely handle the classes data with proper null checking
+        let className = 'Unknown Class';
+        
+        if (student.classes) {
+          // Handle both single object and array cases
+          if (Array.isArray(student.classes)) {
+            className = student.classes.length > 0 && student.classes[0]?.name ? student.classes[0].name : 'Unknown Class';
+          } else if (typeof student.classes === 'object' && student.classes !== null && 'name' in student.classes) {
+            className = (student.classes as { name: string }).name || 'Unknown Class';
+          }
+        }
+
+        return {
+          id: student.id,
+          name: student.name,
+          admission_number: student.admission_number,
+          class_id: student.class_id,
+          school_id: student.school_id,
+          class: { name: className }
+        };
+      });
 
       setStudents(transformedStudents);
 
