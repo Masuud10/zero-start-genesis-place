@@ -98,7 +98,17 @@ class AuditLogService {
 
     const { data, error } = await query;
 
-    return { data: data || [], error };
+    // Transform the data to match our interface, handling the ip_address type properly
+    const transformedData: AuditLogEntry[] = (data || []).map(item => ({
+      ...item,
+      ip_address: item.ip_address ? String(item.ip_address) : undefined,
+      school_id: item.school_id || undefined,
+      target_entity: item.target_entity || undefined,
+      user_agent: item.user_agent || undefined,
+      metadata: item.metadata || undefined
+    }));
+
+    return { data: transformedData, error };
   }
 
   // Get all audit logs for system admins
@@ -155,7 +165,17 @@ class AuditLogService {
 
     const { data, error } = await query;
 
-    return { data: data || [], error };
+    // Transform the data to match our interface, handling the ip_address type properly
+    const transformedData: AuditLogEntry[] = (data || []).map(item => ({
+      ...item,
+      ip_address: item.ip_address ? String(item.ip_address) : undefined,
+      school_id: item.school_id || undefined,
+      target_entity: item.target_entity || undefined,
+      user_agent: item.user_agent || undefined,
+      metadata: item.metadata || undefined
+    }));
+
+    return { data: transformedData, error };
   }
 
   // Convenience methods for logging specific actions
