@@ -91,7 +91,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
 
       if (expensesError) throw expensesError;
 
-      // Calculate key metrics
+      // Calculate key metrics with proper type casting
       const totalFees = feesData?.reduce((sum, fee) => sum + Number(fee.amount || 0), 0) || 0;
       const totalPaid = feesData?.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0) || 0;
       const outstandingAmount = totalFees - totalPaid;
@@ -99,7 +99,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
       const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
       const totalStudents = studentsData?.length || 0;
 
-      // Group fee collection by class
+      // Group fee collection by class with proper type casting
       const classGroups = feesData?.reduce((acc: any, fee) => {
         const className = fee.classes?.name || 'Unknown';
         if (!acc[className]) {
@@ -112,8 +112,8 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
 
       const feeCollectionData = Object.entries(classGroups).map(([className, data]: [string, any]) => ({
         class: className,
-        collected: data.collected,
-        expected: data.expected
+        collected: Number(data.collected || 0),
+        expected: Number(data.expected || 0)
       }));
 
       // Generate daily transactions data (last 30 days)
@@ -130,10 +130,10 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         ).reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0
       }));
 
-      // Calculate expense breakdown with colors - fix the type casting
+      // Calculate expense breakdown with colors and proper type casting
       const expenseGroups = expensesData?.reduce((acc: any, expense) => {
         const category = expense.category || 'Other';
-        acc[category] = (acc[category] || 0) + Number(expense.amount || 0);
+        acc[category] = Number(acc[category] || 0) + Number(expense.amount || 0);
         return acc;
       }, {}) || {};
 
@@ -146,20 +146,29 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         color: colors[index % colors.length]
       }));
 
-      // Find defaulters (students with overdue fees) - fix the type casting
+      // Find defaulters (students with overdue fees) with proper type casting
       const today = new Date();
       const defaultersList = feesData?.filter(fee => {
         const dueDate = new Date(fee.due_date);
         const isPastDue = dueDate < today;
-        const hasOutstanding = Number(fee.amount || 0) > Number(fee.paid_amount || 0);
+        const feeAmount = Number(fee.amount || 0);
+        const paidAmount = Number(fee.paid_amount || 0);
+        const hasOutstanding = feeAmount > paidAmount;
         return isPastDue && hasOutstanding;
-      }).map(fee => ({
-        student_name: fee.students?.name || 'Unknown',
-        admission_number: fee.students?.admission_number || 'N/A',
-        class_name: fee.classes?.name || 'Unknown',
-        outstanding_amount: Number(fee.amount || 0) - Number(fee.paid_amount || 0),
-        days_overdue: Math.floor((today.getTime() - new Date(fee.due_date).getTime()) / (1000 * 60 * 60 * 24))
-      })) || [];
+      }).map(fee => {
+        const feeAmount = Number(fee.amount || 0);
+        const paidAmount = Number(fee.paid_amount || 0);
+        const dueDate = new Date(fee.due_date);
+        const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return {
+          student_name: fee.students?.name || 'Unknown',
+          admission_number: fee.students?.admission_number || 'N/A',
+          class_name: fee.classes?.name || 'Unknown',
+          outstanding_amount: feeAmount - paidAmount,
+          days_overdue: Math.max(0, daysOverdue)
+        };
+      }) || [];
 
       setData({
         keyMetrics: {
