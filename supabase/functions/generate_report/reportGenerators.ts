@@ -1,3 +1,4 @@
+
 export async function generatePlatformOverviewReport(supabase: any, filters: any = {}) {
   console.log('🔄 Generating Platform Overview Report with filters:', filters);
   
@@ -11,13 +12,12 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
       supabase.from('financial_transactions').select('id, amount, created_at, transaction_type').order('created_at', { ascending: false })
     ]);
 
-    // Log what we actually got
-    console.log('📊 Raw data fetched:', { 
-      schools: schoolsResult.data?.length || 0, 
-      users: usersResult.data?.length || 0, 
-      students: studentsResult.data?.length || 0, 
-      grades: gradesResult.data?.length || 0,
-      transactions: transactionsResult.data?.length || 0
+    console.log('📊 Query results:', { 
+      schools: schoolsResult, 
+      users: usersResult, 
+      students: studentsResult, 
+      grades: gradesResult,
+      transactions: transactionsResult
     });
 
     const schools = schoolsResult.data || [];
@@ -38,7 +38,6 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
       ? (grades.reduce((sum, grade) => sum + (parseFloat(grade.percentage) || 0), 0) / grades.length).toFixed(1)
       : '0.0';
 
-    const recentTransactions = transactions.slice(0, 5);
     const totalRevenue = transactions.reduce((sum, txn) => sum + (parseFloat(txn.amount) || 0), 0);
 
     // User role distribution
@@ -56,13 +55,19 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
       // Executive Summary with real data
       { text: 'Executive Summary', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
-        text: [
-          'This comprehensive platform overview provides insights into the current state of the EduFam educational management system. ',
-          `As of ${new Date().toLocaleDateString()}, our platform actively serves ${totalSchools} educational institutions `,
-          `with ${totalUsers} registered users across the entire system. The platform has processed ${totalGrades} academic `,
-          `assessments and ${totalTransactions} financial transactions, demonstrating robust operational activity.`
-        ],
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              'This comprehensive platform overview provides insights into the current state of the EduFam educational management system. ',
+              `As of ${new Date().toLocaleDateString()}, our platform actively serves ${totalSchools} educational institutions `,
+              `with ${totalUsers} registered users across the entire system. The platform has processed ${totalGrades} academic `,
+              `assessments and ${totalTransactions} financial transactions, demonstrating robust operational activity.`
+            ],
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -71,7 +76,7 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
       {
         table: {
           headerRows: 1,
-          widths: ['50%', '50%'],
+          widths: ['60%', '40%'],
           body: [
             [{ text: 'Metric', style: 'tableHeader' }, { text: 'Value', style: 'tableHeader' }],
             ['Total Educational Institutions', totalSchools.toString()],
@@ -81,7 +86,7 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
             ['Financial Transactions Processed', totalTransactions.toString()],
             ['Platform Average Grade Performance', `${averageGrade}%`],
             ['Total Revenue Processed', `KES ${totalRevenue.toLocaleString()}`],
-            ['System Operational Since', '2024']
+            ['Report Generated On', new Date().toLocaleDateString()]
           ]
         },
         layout: 'lightHorizontalLines',
@@ -90,7 +95,7 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
 
       // User Role Distribution with real data
       { text: 'User Role Distribution', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      {
+      Object.keys(roleDistribution).length > 0 ? {
         table: {
           headerRows: 1,
           widths: ['60%', '25%', '15%'],
@@ -104,6 +109,16 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
           ]
         },
         layout: 'lightHorizontalLines',
+        margin: [0, 0, 0, 15]
+      } : {
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'User role distribution will be available once users are registered and assigned roles in the system.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -125,23 +140,31 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 15]
       } : {
-        text: 'No educational institutions have been registered in the system yet. This indicates the platform is in its initial setup phase.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'No educational institutions have been registered in the system yet. This indicates the platform is in its initial setup phase.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
       // Financial Activity Overview
       { text: 'Financial Activity Overview', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      totalTransactions > 0 ? {
-        text: [
-          `The platform has processed ${totalTransactions} financial transactions with a total value of KES ${totalRevenue.toLocaleString()}. `,
-          `Recent transaction activity shows ${recentTransactions.length} transactions in the latest batch, indicating active financial operations.`
-        ],
-        style: 'normal',
-        margin: [0, 0, 0, 15]
-      } : {
-        text: 'Financial transaction processing is ready for activation as schools begin their fee collection and payment operations.',
-        style: 'normal',
+      {
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: totalTransactions > 0 ? [
+              `The platform has processed ${totalTransactions} financial transactions with a total value of KES ${totalRevenue.toLocaleString()}. `,
+              `This demonstrates active financial operations across the educational institutions in the network.`
+            ] : 'Financial transaction processing is ready for activation as schools begin their fee collection and payment operations.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -166,24 +189,18 @@ export async function generatePlatformOverviewReport(supabase: any, filters: any
 
   } catch (error) {
     console.error('❌ Error generating platform overview report:', error);
-    // Return meaningful fallback content instead of empty
     return [
       { text: 'EduFam Platform Overview Report', style: 'header', alignment: 'center' },
       { text: 'Report Generation Notice', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       { 
-        text: 'The platform overview report is being compiled. Data collection services are operational and gathering institutional metrics.',
-        style: 'normal',
-        margin: [0, 0, 0, 15]
-      },
-      { text: 'System Status', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      {
-        ul: [
-          'EduFam platform systems are operational',
-          'Database connectivity established',
-          'User authentication services active',
-          'Multi-tenant architecture functioning',
-          'Report generation services available'
-        ],
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'The platform overview report is being compiled. Data collection services are operational and gathering institutional metrics.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       }
     ];
@@ -237,13 +254,6 @@ export async function generateSchoolsSummaryReport(supabase: any, filters: any =
     const totalClasses = classes.length;
     const averageStudentsPerSchool = schoolsData.length > 0 ? Math.round(totalStudents / schoolsData.length) : 0;
 
-    // School type distribution
-    const schoolTypeDistribution = schoolsData.reduce((acc: any, school: any) => {
-      const type = school.school_type || 'Primary';
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {});
-
     console.log('✅ Calculated school statistics:', { totalStudents, totalUsers, averageStudentsPerSchool });
 
     const content = [
@@ -252,12 +262,18 @@ export async function generateSchoolsSummaryReport(supabase: any, filters: any =
       // Schools Network Summary with real data
       { text: 'Educational Network Overview', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
-        text: [
-          `EduFam currently operates a comprehensive educational network serving ${schoolsData.length} institutions `,
-          `across the region. This network encompasses ${totalStudents} enrolled students, ${totalUsers} platform users, `,
-          `and ${totalClasses} organized classes, representing a substantial educational community.`
-        ],
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              `EduFam currently operates a comprehensive educational network serving ${schoolsData.length} institutions `,
+              `across the region. This network encompasses ${totalStudents} enrolled students, ${totalUsers} platform users, `,
+              `and ${totalClasses} organized classes, representing a substantial educational community.`
+            ],
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -309,31 +325,14 @@ export async function generateSchoolsSummaryReport(supabase: any, filters: any =
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 15]
       } : {
-        text: 'No educational institutions have been registered in the system yet. The platform is ready to onboard schools and begin operations.',
-        style: 'normal',
-        margin: [0, 0, 0, 15]
-      },
-
-      // School Type Distribution with real data
-      { text: 'Institution Type Distribution', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      Object.keys(schoolTypeDistribution).length > 0 ? {
         table: {
-          headerRows: 1,
-          widths: ['60%', '25%', '15%'],
-          body: [
-            [{ text: 'Institution Type', style: 'tableHeader' }, { text: 'Count', style: 'tableHeader' }, { text: 'Percentage', style: 'tableHeader' }],
-            ...Object.entries(schoolTypeDistribution).map(([type, count]) => [
-              type.charAt(0).toUpperCase() + type.slice(1),
-              count.toString(),
-              schoolsData.length > 0 ? `${((count as number / schoolsData.length) * 100).toFixed(1)}%` : '0%'
-            ])
-          ]
+          widths: ['100%'],
+          body: [[{
+            text: 'No educational institutions have been registered in the system yet. The platform is ready to onboard schools and begin operations.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
         },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 15]
-      } : {
-        text: 'Institution type distribution will be available once schools are registered and categorized in the system.',
-        style: 'normal',
         margin: [0, 0, 0, 15]
       },
 
@@ -361,19 +360,14 @@ export async function generateSchoolsSummaryReport(supabase: any, filters: any =
       { text: 'EduFam Schools Network Summary Report', style: 'header', alignment: 'center' },
       { text: 'Report Compilation Notice', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       { 
-        text: 'The schools network summary is being compiled. Educational institution data collection is in progress.',
-        style: 'normal',
-        margin: [0, 0, 0, 15]
-      },
-      { text: 'Network Status', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      {
-        ul: [
-          'EduFam network infrastructure operational',
-          'School registration system active',
-          'Multi-tenant data architecture functioning',
-          'Institution management tools available',
-          'Network reporting services ready'
-        ],
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'The schools network summary is being compiled. Educational institution data collection is in progress.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       }
     ];
@@ -425,12 +419,18 @@ export async function generateUsersAnalyticsReport(supabase: any, filters: any =
       // Overview with real data
       { text: 'User Analytics Overview', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
-        text: [
-          `This comprehensive analytics report examines ${totalUsers} users across the EduFam platform, `,
-          `providing detailed insights into user distribution, activity patterns, and growth metrics. `,
-          `The analysis covers role distribution, registration trends, and platform adoption rates.`
-        ],
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              `This comprehensive analytics report examines ${totalUsers} users across the EduFam platform, `,
+              `providing detailed insights into user distribution, activity patterns, and growth metrics. `,
+              `The analysis covers role distribution, registration trends, and platform adoption rates.`
+            ],
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -477,8 +477,14 @@ export async function generateUsersAnalyticsReport(supabase: any, filters: any =
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 15]
       } : {
-        text: 'User role distribution data will be available as users register and are assigned roles in the system.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'User role distribution data will be available as users register and are assigned roles in the system.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -504,8 +510,14 @@ export async function generateUsersAnalyticsReport(supabase: any, filters: any =
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 15]
       } : {
-        text: 'Recent user registration activity will appear here as new users join the platform.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'Recent user registration activity will appear here as new users join the platform.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -533,8 +545,14 @@ export async function generateUsersAnalyticsReport(supabase: any, filters: any =
       { text: 'EduFam Users Analytics Report', style: 'header', alignment: 'center' },
       { text: 'Analytics Compilation Notice', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       { 
-        text: 'User analytics data compilation is in progress. User management and analytics systems are operational.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'User analytics data compilation is in progress. User management and analytics systems are operational.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       }
     ];
@@ -592,12 +610,18 @@ export async function generateFinancialOverviewReport(supabase: any, filters: an
       // Executive Summary with real data
       { text: 'Financial Overview Summary', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
-        text: [
-          `This comprehensive financial overview analyzes the complete financial operations across the EduFam platform. `,
-          `The report covers fee collection performance, transaction processing, expense management, and revenue analytics. `,
-          `Current data shows KES ${totalFeesCharged.toLocaleString()} in total fees charged with a collection rate of ${collectionRate.toFixed(1)}%.`
-        ],
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              `This comprehensive financial overview analyzes the complete financial operations across the EduFam platform. `,
+              `The report covers fee collection performance, transaction processing, expense management, and revenue analytics. `,
+              `Current data shows KES ${totalFeesCharged.toLocaleString()} in total fees charged with a collection rate of ${collectionRate.toFixed(1)}%.`
+            ],
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -645,8 +669,14 @@ export async function generateFinancialOverviewReport(supabase: any, filters: an
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 15]
       } : {
-        text: 'Fee category analysis will be available as schools configure their fee structures and begin charging fees.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'Fee category analysis will be available as schools configure their fee structures and begin charging fees.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -668,8 +698,14 @@ export async function generateFinancialOverviewReport(supabase: any, filters: an
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 15]
       } : {
-        text: 'Payment method distribution data will be available as financial transactions are processed through the system.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'Payment method distribution data will be available as financial transactions are processed through the system.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -697,8 +733,14 @@ export async function generateFinancialOverviewReport(supabase: any, filters: an
       { text: 'EduFam Financial Overview Report', style: 'header', alignment: 'center' },
       { text: 'Financial Data Compilation Notice', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       { 
-        text: 'Financial overview data compilation is in progress. Financial management and reporting systems are operational.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'Financial overview data compilation is in progress. Financial management and reporting systems are operational.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       }
     ];
@@ -750,13 +792,19 @@ export async function generateSystemHealthReport(supabase: any, filters: any = {
       // System Health Overview
       { text: 'System Health Overview', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
-        text: [
-          `EduFam platform is operating at optimal performance levels with all core services functioning normally. `,
-          `The system is currently managing ${totalDataPoints} data records across ${schools.length} institutions `,
-          `with ${users.length} active users. Recent system activity shows ${recentActivity.schools + recentActivity.users + recentActivity.transactions} `,
-          `new records in the past 7 days, indicating healthy platform utilization.`
-        ],
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              `EduFam platform is operating at optimal performance levels with all core services functioning normally. `,
+              `The system is currently managing ${totalDataPoints} data records across ${schools.length} institutions `,
+              `with ${users.length} active users. Recent system activity shows ${recentActivity.schools + recentActivity.users + recentActivity.transactions} `,
+              `new records in the past 7 days, indicating healthy platform utilization.`
+            ],
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -829,28 +877,6 @@ export async function generateSystemHealthReport(supabase: any, filters: any = {
         margin: [0, 0, 0, 15]
       },
 
-      // Security & Compliance Status
-      { text: 'Security & Compliance Status', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      {
-        table: {
-          headerRows: 1,
-          widths: ['60%', '40%'],
-          body: [
-            [{ text: 'Security Component', style: 'tableHeader' }, { text: 'Status', style: 'tableHeader' }],
-            ['SSL/TLS Encryption', 'Active'],
-            ['Database Security', 'Enforced'],
-            ['User Authentication', 'Multi-factor Ready'],
-            ['Data Privacy Compliance', 'Compliant'],
-            ['Backup Encryption', 'Enabled'],
-            ['Access Control', 'Role-based'],
-            ['Audit Logging', 'Active'],
-            ['Multi-tenant Isolation', 'Enforced']
-          ]
-        },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 15]
-      },
-
       // System Recommendations
       { text: 'System Health Recommendations', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
@@ -875,8 +901,14 @@ export async function generateSystemHealthReport(supabase: any, filters: any = {
       { text: 'EduFam System Performance Report', style: 'header', alignment: 'center' },
       { text: 'System Status Notice', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       { 
-        text: 'System health monitoring is active and collecting performance data. All core systems are operational.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'System health monitoring is active and collecting performance data. All core systems are operational.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       }
     ];
@@ -929,13 +961,19 @@ export async function generateCompanyProfileReport(supabase: any, filters: any =
       // Company Overview with real data
       { text: 'Company Overview', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
-        text: [
-          `${companyData.company_name || 'EduFam'} stands as a pioneering educational technology company dedicated to `,
-          `transforming education through innovative digital solutions. Established in ${companyData.year_established || 2024}, `,
-          `the company has grown to serve ${totalSchools} educational institutions with ${totalUsers} platform users, `,
-          `demonstrating significant impact in the educational technology sector across ${Object.keys(regionalDistribution).length} regions.`
-        ],
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              `${companyData.company_name || 'EduFam'} stands as a pioneering educational technology company dedicated to `,
+              `transforming education through innovative digital solutions. Established in ${companyData.year_established || 2024}, `,
+              `the company has grown to serve ${totalSchools} educational institutions with ${totalUsers} platform users, `,
+              `demonstrating significant impact in the educational technology sector across ${Object.keys(regionalDistribution).length} regions.`
+            ],
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -965,14 +1003,20 @@ export async function generateCompanyProfileReport(supabase: any, filters: any =
       // Mission & Vision
       { text: 'Mission & Vision Statement', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       {
-        text: [
-          { text: 'Mission Statement: ', style: 'highlight' },
-          companyData.company_motto || 'To empower educational institutions with innovative technology solutions that enhance learning outcomes, streamline administrative processes, and bridge the digital divide in education.',
-          '\n\n',
-          { text: 'Vision Statement: ', style: 'highlight' },
-          'To be the leading educational technology platform in Africa, transforming how schools operate, students learn, and educators teach through comprehensive digital solutions.'
-        ],
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              { text: 'Mission Statement: ', style: 'highlight' },
+              companyData.company_motto || 'To empower educational institutions with innovative technology solutions that enhance learning outcomes, streamline administrative processes, and bridge the digital divide in education.',
+              '\n\n',
+              { text: 'Vision Statement: ', style: 'highlight' },
+              'To be the leading educational technology platform in Africa, transforming how schools operate, students learn, and educators teach through comprehensive digital solutions.'
+            ],
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -1016,8 +1060,14 @@ export async function generateCompanyProfileReport(supabase: any, filters: any =
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 15]
       } : {
-        text: 'Geographic distribution data will be available as schools provide location information during registration.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'Geographic distribution data will be available as schools provide location information during registration.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       },
 
@@ -1036,19 +1086,6 @@ export async function generateCompanyProfileReport(supabase: any, filters: any =
           'Secure Cloud-based Data Storage and Management',
           'Multi-tenant Architecture with School Isolation'
         ],
-        margin: [0, 0, 0, 15]
-      },
-
-      // Technology & Innovation
-      { text: 'Technology Innovation & Infrastructure', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      {
-        text: [
-          'EduFam platform is built using cutting-edge web technologies including React, TypeScript, and Supabase, ',
-          'specifically designed and optimized for the African education market. The platform prioritizes data security, ',
-          'user experience excellence, infinite scalability, and robust multi-tenant architecture that ensures ',
-          'complete data isolation between institutions while maintaining optimal performance.'
-        ],
-        style: 'normal',
         margin: [0, 0, 0, 15]
       },
 
@@ -1084,8 +1121,14 @@ export async function generateCompanyProfileReport(supabase: any, filters: any =
       { text: 'EduFam Company Profile Report', style: 'header', alignment: 'center' },
       { text: 'Company Profile Compilation Notice', style: 'sectionHeader', margin: [0, 20, 0, 10] },
       { 
-        text: 'Company profile data compilation is in progress. Corporate information and operational metrics are being gathered.',
-        style: 'normal',
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: 'Company profile data compilation is in progress. Corporate information and operational metrics are being gathered.',
+            style: 'normal',
+            border: [false, false, false, false]
+          }]]
+        },
         margin: [0, 0, 0, 15]
       }
     ];

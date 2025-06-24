@@ -136,30 +136,21 @@ serve(async (req) => {
 
       console.log('✅ Report content generated successfully, sections:', reportContent?.length || 0);
 
-      // Enhanced content validation - ensure we always have meaningful content
+      // Validate that we have actual content
       if (!reportContent || !Array.isArray(reportContent) || reportContent.length === 0) {
-        console.warn('⚠️ Empty report content detected, generating fallback content');
+        console.warn('⚠️ Empty report content detected, this should not happen with the new generators');
         reportContent = [
           { text: reportTitle, style: 'header', alignment: 'center', margin: [0, 30] },
           { text: 'Report Status', style: 'sectionHeader', margin: [0, 25, 0, 10] },
           {
-            text: [
-              'Your EduFam report is being processed. The system is currently gathering and compiling data from across the platform. ',
-              'This includes information from educational institutions, user accounts, academic records, and operational metrics. ',
-              'Please try generating the report again in a few moments as data collection processes complete.'
-            ],
-            style: 'normal', 
-            margin: [0, 0, 0, 15]
-          },
-          { text: 'System Status', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-          {
-            ul: [
-              'EduFam platform systems operational',
-              'Database connectivity established', 
-              'Report generation services active',
-              'Data processing engines running',
-              'Multi-tenant architecture functioning'
-            ],
+            table: {
+              widths: ['100%'],
+              body: [[{
+                text: 'Your EduFam report is being processed. Please try generating the report again.',
+                style: 'normal',
+                border: [false, false, false, false]
+              }]]
+            },
             margin: [0, 0, 0, 15]
           }
         ];
@@ -167,31 +158,16 @@ serve(async (req) => {
 
     } catch (reportError) {
       console.error('❌ Error in report generation:', reportError);
-      // Enhanced fallback content with error context
-      reportContent = [
-        { text: reportTitle || 'EduFam Report', style: 'header', alignment: 'center', margin: [0, 30] },
-        { text: 'Report Generation Status', style: 'sectionHeader', margin: [0, 25, 0, 10] },
-        {
-          text: [
-            'The EduFam reporting system is currently processing your request. Data compilation is in progress and involves ',
-            'gathering information from multiple system components including educational institutions, user management, ',
-            'academic performance tracking, and financial operations. The system remains fully operational during this process.'
-          ],
-          style: 'normal',
-          margin: [0, 0, 0, 15]
-        },
-        { text: 'Operational Status', style: 'sectionHeader', margin: [0, 20, 0, 10] },
-        {
-          ul: [
-            'Platform services running normally',
-            'Data collection systems active',
-            'Report generation queue processing',
-            'System monitoring and health checks operational',
-            'User authentication and security systems functioning'
-          ],
-          margin: [0, 0, 0, 15]
-        }
-      ];
+      // Return error response instead of fallback content
+      return new Response(
+        JSON.stringify({ 
+          error: 'Report generation failed',
+          details: reportError.message || 'Unknown error occurred during report generation',
+          reportType: reportType,
+          timestamp: new Date().toISOString()
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log('🏢 Fetching company details for report footer...');
@@ -220,33 +196,45 @@ serve(async (req) => {
       };
 
       companyFooter = {
-        text: [
-          { text: '\n\n' },
-          { text: '─'.repeat(80), style: 'footer', alignment: 'center' },
-          { text: '\nCompany Information\n', style: 'footer', alignment: 'center', bold: true },
-          { text: `${company.company_name} - ${company.company_type}\n`, style: 'footer', alignment: 'center', bold: true },
-          { text: `${company.website_url} | ${company.support_email}\n`, style: 'footer', alignment: 'center' },
-          { text: `${company.headquarters_address}\n`, style: 'footer', alignment: 'center' },
-          { text: `Phone: ${company.contact_phone} | Established: ${company.year_established}\n`, style: 'footer', alignment: 'center' },
-          { text: `"${company.company_motto}"\n`, style: 'footer', alignment: 'center', italics: true },
-          { text: `\nReport generated: ${new Date().toLocaleString()} | Document ID: RPT-${Date.now()}\n`, style: 'footer', alignment: 'center', italics: true },
-          { text: `EduFam Report Generation System v2.1 - Confidential`, style: 'footer', alignment: 'center', italics: true }
-        ]
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              { text: '\n\n' },
+              { text: '─'.repeat(80), style: 'footer', alignment: 'center' },
+              { text: '\nCompany Information\n', style: 'footer', alignment: 'center', bold: true },
+              { text: `${company.company_name} - ${company.company_type}\n`, style: 'footer', alignment: 'center', bold: true },
+              { text: `${company.website_url} | ${company.support_email}\n`, style: 'footer', alignment: 'center' },
+              { text: `${company.headquarters_address}\n`, style: 'footer', alignment: 'center' },
+              { text: `Phone: ${company.contact_phone} | Established: ${company.year_established}\n`, style: 'footer', alignment: 'center' },
+              { text: `"${company.company_motto}"\n`, style: 'footer', alignment: 'center', italics: true },
+              { text: `\nReport generated: ${new Date().toLocaleString()} | Document ID: RPT-${Date.now()}\n`, style: 'footer', alignment: 'center', italics: true },
+              { text: `EduFam Report Generation System v2.1 - Confidential`, style: 'footer', alignment: 'center', italics: true }
+            ],
+            border: [false, false, false, false]
+          }]]
+        }
       };
       console.log('✅ Company footer created successfully');
     } catch (error) {
       console.error('⚠️ Error fetching company details, using enhanced defaults:', error);
       companyFooter = {
-        text: [
-          { text: '\n\n' },
-          { text: '─'.repeat(80), style: 'footer', alignment: 'center' },
-          { text: '\nEduFam - Educational Technology Platform\n', style: 'footer', alignment: 'center', bold: true },
-          { text: 'https://edufam.com | support@edufam.com\n', style: 'footer', alignment: 'center' },
-          { text: 'Nairobi, Kenya | Established: 2024\n', style: 'footer', alignment: 'center' },
-          { text: '"Empowering Education Through Technology"\n', style: 'footer', alignment: 'center', italics: true },
-          { text: `\nReport generated: ${new Date().toLocaleString()} | Document ID: RPT-${Date.now()}\n`, style: 'footer', alignment: 'center', italics: true },
-          { text: `EduFam Report Generation System - Confidential`, style: 'footer', alignment: 'center', italics: true }
-        ]
+        table: {
+          widths: ['100%'],
+          body: [[{
+            text: [
+              { text: '\n\n' },
+              { text: '─'.repeat(80), style: 'footer', alignment: 'center' },
+              { text: '\nEduFam - Educational Technology Platform\n', style: 'footer', alignment: 'center', bold: true },
+              { text: 'https://edufam.com | support@edufam.com\n', style: 'footer', alignment: 'center' },
+              { text: 'Nairobi, Kenya | Established: 2024\n', style: 'footer', alignment: 'center' },
+              { text: '"Empowering Education Through Technology"\n', style: 'footer', alignment: 'center', italics: true },
+              { text: `\nReport generated: ${new Date().toLocaleString()} | Document ID: RPT-${Date.now()}\n`, style: 'footer', alignment: 'center', italics: true },
+              { text: `EduFam Report Generation System - Confidential`, style: 'footer', alignment: 'center', italics: true }
+            ],
+            border: [false, false, false, false]
+          }]]
+        }
       };
     }
 
@@ -307,7 +295,7 @@ serve(async (req) => {
           margin: [0, 0, 0, 25]
         },
         
-        // Report content with validation
+        // Report content - this is the main content from generators
         ...reportContent,
         
         // Enhanced company footer
