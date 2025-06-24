@@ -90,6 +90,22 @@ export const useMpesaTransactions = () => {
     }
   };
 
+  const processSTKPush = async (phoneNumber: string, amount: number, feeId: string) => {
+    try {
+      // This would typically call an edge function or API to process STK push
+      // For now, we'll simulate the process
+      console.log('Processing STK Push:', { phoneNumber, amount, feeId });
+      
+      // In a real implementation, you would call your MPESA API here
+      // and then insert the transaction record into the database
+      
+      return { success: true, error: null };
+    } catch (error: any) {
+      console.error('Error processing STK push:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   useEffect(() => {
     fetchTransactions();
   }, [user?.school_id]);
@@ -98,6 +114,7 @@ export const useMpesaTransactions = () => {
     transactions,
     loading,
     error,
-    refetch: fetchTransactions
+    refetch: fetchTransactions,
+    processSTKPush
   };
 };

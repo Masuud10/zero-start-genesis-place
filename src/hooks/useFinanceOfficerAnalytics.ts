@@ -5,10 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface FinanceAnalyticsData {
   keyMetrics: {
+    totalRevenue: number;
     totalCollected: number;
     outstandingAmount: number;
     totalMpesaPayments: number;
     collectionRate: number;
+    totalStudents: number;
+    defaultersCount: number;
   };
   feeCollectionData: Array<{
     class: string;
@@ -23,6 +26,7 @@ interface FinanceAnalyticsData {
     category: string;
     amount: number;
     percentage: number;
+    color: string;
   }>;
   defaultersList: Array<{
     student_name: string;
@@ -49,17 +53,26 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
       setIsLoading(true);
       setError(null);
 
-      // Fetch fees data
+      // Fetch fees data with proper relationship hints
       const { data: feesData, error: feesError } = await supabase
         .from('fees')
         .select(`
           *,
-          students(name, admission_number),
-          classes(name)
+          students!fees_student_id_fkey(name, admission_number),
+          classes!fees_class_id_fkey(name)
         `)
         .eq('school_id', user.school_id);
 
       if (feesError) throw feesError;
+
+      // Fetch students count
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('school_id', user.school_id)
+        .eq('is_active', true);
+
+      if (studentsError) throw studentsError;
 
       // Fetch MPESA transactions
       const { data: mpesaData, error: mpesaError } = await supabase
@@ -79,11 +92,12 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
       if (expensesError) throw expensesError;
 
       // Calculate key metrics
-      const totalFees = feesData?.reduce((sum, fee) => sum + Number(fee.amount), 0) || 0;
+      const totalFees = feesData?.reduce((sum, fee) => sum + Number(fee.amount || 0), 0) || 0;
       const totalPaid = feesData?.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0) || 0;
       const outstandingAmount = totalFees - totalPaid;
-      const totalMpesaPayments = mpesaData?.reduce((sum, txn) => sum + Number(txn.amount_paid), 0) || 0;
+      const totalMpesaPayments = mpesaData?.reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0;
       const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
+      const totalStudents = studentsData?.length || 0;
 
       // Group fee collection by class
       const classGroups = feesData?.reduce((acc: any, fee) => {
@@ -91,7 +105,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         if (!acc[className]) {
           acc[className] = { collected: 0, expected: 0 };
         }
-        acc[className].expected += Number(fee.amount);
+        acc[className].expected += Number(fee.amount || 0);
         acc[className].collected += Number(fee.paid_amount || 0);
         return acc;
       }, {}) || {};
@@ -113,21 +127,23 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         date,
         amount: mpesaData?.filter(txn => 
           txn.transaction_date?.startsWith(date)
-        ).reduce((sum, txn) => sum + Number(txn.amount_paid), 0) || 0
+        ).reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0
       }));
 
-      // Calculate expense breakdown
+      // Calculate expense breakdown with colors
       const expenseGroups = expensesData?.reduce((acc: any, expense) => {
         const category = expense.category || 'Other';
-        acc[category] = (acc[category] || 0) + Number(expense.amount);
+        acc[category] = (acc[category] || 0) + Number(expense.amount || 0);
         return acc;
       }, {}) || {};
 
       const totalExpenses = Object.values(expenseGroups).reduce((sum: number, amount) => sum + (amount as number), 0);
-      const expenseBreakdown = Object.entries(expenseGroups).map(([category, amount]: [string, any]) => ({
+      const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+      const expenseBreakdown = Object.entries(expenseGroups).map(([category, amount]: [string, any], index) => ({
         category,
         amount,
-        percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
+        percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0,
+        color: colors[index % colors.length]
       }));
 
       // Find defaulters (students with overdue fees)
@@ -135,22 +151,25 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
       const defaultersList = feesData?.filter(fee => {
         const dueDate = new Date(fee.due_date);
         const isPastDue = dueDate < today;
-        const hasOutstanding = Number(fee.amount) > Number(fee.paid_amount || 0);
+        const hasOutstanding = Number(fee.amount || 0) > Number(fee.paid_amount || 0);
         return isPastDue && hasOutstanding;
       }).map(fee => ({
         student_name: fee.students?.name || 'Unknown',
         admission_number: fee.students?.admission_number || 'N/A',
         class_name: fee.classes?.name || 'Unknown',
-        outstanding_amount: Number(fee.amount) - Number(fee.paid_amount || 0),
+        outstanding_amount: Number(fee.amount || 0) - Number(fee.paid_amount || 0),
         days_overdue: Math.floor((today.getTime() - new Date(fee.due_date).getTime()) / (1000 * 60 * 60 * 24))
       })) || [];
 
       setData({
         keyMetrics: {
+          totalRevenue: totalFees,
           totalCollected: totalPaid,
           outstandingAmount,
           totalMpesaPayments,
-          collectionRate
+          collectionRate,
+          totalStudents,
+          defaultersCount: defaultersList.length
         },
         feeCollectionData,
         dailyTransactions,
