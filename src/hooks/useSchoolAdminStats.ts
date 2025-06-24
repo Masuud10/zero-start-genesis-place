@@ -35,46 +35,75 @@ export const useSchoolAdminStats = (schoolId?: string) => {
       try {
         console.log('📊 Fetching school admin stats for:', schoolId);
 
-        // Simplified sequential fetching with individual error handling
-        const queries = [
-          { name: 'students', table: 'students', filters: { school_id: schoolId, is_active: true } },
-          { name: 'teachers', table: 'profiles', filters: { school_id: schoolId, role: 'teacher' } },
-          { name: 'subjects', table: 'subjects', filters: { school_id: schoolId } },
-          { name: 'classes', table: 'classes', filters: { school_id: schoolId } },
-          { name: 'parents', table: 'profiles', filters: { school_id: schoolId, role: 'parent' } }
-        ];
+        // Fetch students count
+        let studentsCount = 0;
+        try {
+          const { count } = await supabase
+            .from('students')
+            .select('id', { count: 'exact', head: true })
+            .eq('school_id', schoolId)
+            .eq('is_active', true);
+          studentsCount = count || 0;
+        } catch (err) {
+          console.warn('Failed to fetch students count:', err);
+        }
 
-        const results: Record<string, number> = {};
+        // Fetch teachers count
+        let teachersCount = 0;
+        try {
+          const { count } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('school_id', schoolId)
+            .eq('role', 'teacher');
+          teachersCount = count || 0;
+        } catch (err) {
+          console.warn('Failed to fetch teachers count:', err);
+        }
 
-        for (const { name, table, filters } of queries) {
-          try {
-            let query = supabase.from(table).select('id', { count: 'exact', head: true });
-            
-            // Apply filters
-            Object.entries(filters).forEach(([key, value]) => {
-              query = query.eq(key, value);
-            });
+        // Fetch subjects count
+        let subjectsCount = 0;
+        try {
+          const { count } = await supabase
+            .from('subjects')
+            .select('id', { count: 'exact', head: true })
+            .eq('school_id', schoolId);
+          subjectsCount = count || 0;
+        } catch (err) {
+          console.warn('Failed to fetch subjects count:', err);
+        }
 
-            const { count, error } = await query;
-            
-            if (error) {
-              console.warn(`Failed to fetch ${name}:`, error);
-              results[name] = 0;
-            } else {
-              results[name] = count || 0;
-            }
-          } catch (err) {
-            console.warn(`Exception fetching ${name}:`, err);
-            results[name] = 0;
-          }
+        // Fetch classes count
+        let classesCount = 0;
+        try {
+          const { count } = await supabase
+            .from('classes')
+            .select('id', { count: 'exact', head: true })
+            .eq('school_id', schoolId);
+          classesCount = count || 0;
+        } catch (err) {
+          console.warn('Failed to fetch classes count:', err);
+        }
+
+        // Fetch parents count
+        let parentsCount = 0;
+        try {
+          const { count } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('school_id', schoolId)
+            .eq('role', 'parent');
+          parentsCount = count || 0;
+        } catch (err) {
+          console.warn('Failed to fetch parents count:', err);
         }
 
         const statsData = {
-          totalStudents: results.students,
-          totalTeachers: results.teachers,
-          totalSubjects: results.subjects,
-          totalClasses: results.classes,
-          totalParents: results.parents
+          totalStudents: studentsCount,
+          totalTeachers: teachersCount,
+          totalSubjects: subjectsCount,
+          totalClasses: classesCount,
+          totalParents: parentsCount
         };
 
         console.log('📊 School admin stats:', statsData);
