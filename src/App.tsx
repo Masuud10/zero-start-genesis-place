@@ -1,59 +1,31 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { SchoolProvider } from '@/contexts/SchoolContext';
-import { NavigationProvider } from '@/contexts/NavigationContext';
-import { ErrorBoundary } from '@/utils/errorBoundary';
-import AppContent from '@/components/AppContent';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import MaintenanceCheck from "./components/maintenance/MaintenanceCheck";
+import Index from "./pages/Index";
 
-function App() {
-  console.log('🚀 App: Starting application');
+const queryClient = new QueryClient();
 
-  // Create query client inside the component to ensure proper React context
-  const [queryClient] = React.useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: (failureCount, error: any) => {
-          // Don't retry auth or permission errors
-          if (error?.message?.includes('Authentication') || error?.message?.includes('Access denied')) {
-            return false;
-          }
-          return failureCount < 3;
-        },
-        refetchOnWindowFocus: false, // Disable refetch on window focus to reduce API calls
-      },
-      mutations: {
-        retry: 1,
-      },
-    },
-  }));
-
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <AuthProvider>
-            <SchoolProvider>
-              <NavigationProvider>
-                <div className="min-h-screen bg-background">
-                  <Routes>
-                    <Route path="/*" element={<AppContent />} />
-                  </Routes>
-                  <Toaster />
-                </div>
-                {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
-              </NavigationProvider>
-            </SchoolProvider>
-          </AuthProvider>
-        </Router>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <MaintenanceCheck>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/*" element={<Index />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </MaintenanceCheck>
+    </AuthProvider>
+  </QueryClientProvider>
+);
 
 export default App;

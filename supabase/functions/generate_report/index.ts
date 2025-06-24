@@ -74,6 +74,7 @@ serve(async (req) => {
 
         case 'system-school-summary':
         case 'school-summary':
+        case 'schools-summary':  // Fix: Added missing case
           reportTitle = reportType === 'system-school-summary' 
             ? "EduFam System Schools Summary Report" 
             : "School Summary Report";
@@ -133,6 +134,29 @@ serve(async (req) => {
 
     console.log('Report content generated, creating PDF...');
 
+    // Get company details for footer
+    let companyFooter = {};
+    try {
+      const { data: companyDetails } = await supabase
+        .from('company_details')
+        .select('*')
+        .single();
+      
+      if (companyDetails) {
+        companyFooter = {
+          text: [
+            { text: '\n\n--- Company Information ---\n', style: 'footer', alignment: 'center' },
+            { text: `${companyDetails.company_name}\n`, style: 'footer', alignment: 'center' },
+            { text: `${companyDetails.website_url} | ${companyDetails.support_email}\n`, style: 'footer', alignment: 'center' },
+            { text: `${companyDetails.headquarters_address}\n`, style: 'footer', alignment: 'center' },
+            { text: `Phone: ${companyDetails.contact_phone} | Est. ${companyDetails.year_established}`, style: 'footer', alignment: 'center' }
+          ]
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching company details:', error);
+    }
+
     // Generate PDF with enhanced styling
     const docDefinition = {
       content: [
@@ -155,12 +179,7 @@ serve(async (req) => {
           alignment: 'center',
           margin: [0, 20, 0, 0]
         },
-        {
-          text: 'Powered by EduFam - Education Management System',
-          style: 'footer',
-          alignment: 'center',
-          margin: [0, 10, 0, 0]
-        }
+        companyFooter
       ],
       styles: pdfStyles,
       defaultStyle: defaultStyle
