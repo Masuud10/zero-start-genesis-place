@@ -14,6 +14,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+interface FinanceSettingsData {
+  currency: string;
+  payment_methods: string[];
+  auto_generate_receipts: boolean;
+  send_payment_notifications: boolean;
+  allow_partial_payments: boolean;
+  require_payment_approval: boolean;
+}
+
 interface FinanceSettings {
   id?: string;
   school_id: string;
@@ -24,14 +33,7 @@ interface FinanceSettings {
   late_fee_percentage: number;
   late_fee_grace_days: number;
   tax_rate: number;
-  settings_data: {
-    currency: string;
-    payment_methods: string[];
-    auto_generate_receipts: boolean;
-    send_payment_notifications: boolean;
-    allow_partial_payments: boolean;
-    require_payment_approval: boolean;
-  };
+  settings_data: FinanceSettingsData;
 }
 
 const FinanceSettingsPanel: React.FC = () => {
@@ -65,6 +67,33 @@ const FinanceSettingsPanel: React.FC = () => {
     fetchSettings();
   }, [user?.school_id]);
 
+  const parseSettingsData = (data: any): FinanceSettingsData => {
+    // Default settings structure
+    const defaultSettings: FinanceSettingsData = {
+      currency: 'KES',
+      payment_methods: ['cash', 'mpesa'],
+      auto_generate_receipts: true,
+      send_payment_notifications: true,
+      allow_partial_payments: true,
+      require_payment_approval: false,
+    };
+
+    // If data is null, undefined, or not an object, return defaults
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return defaultSettings;
+    }
+
+    // Merge with defaults to ensure all properties exist
+    return {
+      currency: typeof data.currency === 'string' ? data.currency : defaultSettings.currency,
+      payment_methods: Array.isArray(data.payment_methods) ? data.payment_methods : defaultSettings.payment_methods,
+      auto_generate_receipts: typeof data.auto_generate_receipts === 'boolean' ? data.auto_generate_receipts : defaultSettings.auto_generate_receipts,
+      send_payment_notifications: typeof data.send_payment_notifications === 'boolean' ? data.send_payment_notifications : defaultSettings.send_payment_notifications,
+      allow_partial_payments: typeof data.allow_partial_payments === 'boolean' ? data.allow_partial_payments : defaultSettings.allow_partial_payments,
+      require_payment_approval: typeof data.require_payment_approval === 'boolean' ? data.require_payment_approval : defaultSettings.require_payment_approval,
+    };
+  };
+
   const fetchSettings = async () => {
     if (!user?.school_id) return;
 
@@ -84,7 +113,7 @@ const FinanceSettingsPanel: React.FC = () => {
       if (data) {
         setSettings({
           ...data,
-          settings_data: data.settings_data || settings.settings_data
+          settings_data: parseSettingsData(data.settings_data)
         });
       }
     } catch (error: any) {
