@@ -103,7 +103,7 @@ export const usePrincipalDashboardData = (reloadKey: number) => {
           let activities: any[] = [];
           if (activitiesResult.data && activitiesResult.data.length > 0) {
             // Get user names with proper type handling
-            const validUserIds = activitiesResult.data
+            const validUserIds: string[] = activitiesResult.data
               .map((log: any) => log.user_id)
               .filter((id: any): id is string => typeof id === 'string' && Boolean(id));
             
