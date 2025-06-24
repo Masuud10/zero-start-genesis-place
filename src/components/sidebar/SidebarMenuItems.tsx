@@ -26,7 +26,8 @@ import {
   Receipt,
   Banknote,
   Coins,
-  FolderKanban
+  FolderKanban,
+  ClipboardList
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -127,6 +128,18 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Reports',
       icon: FileText,
       roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
+    },
+    {
+      id: 'school-activity-logs',
+      label: 'School Activity Logs',
+      icon: ClipboardList,
+      roles: ['principal', 'school_owner']
+    },
+    {
+      id: 'system-audit-logs',
+      label: 'System Audit Logs',
+      icon: Shield,
+      roles: ['edufam_admin']
     },
     {
       id: 'support',

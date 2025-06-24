@@ -707,6 +707,90 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          performed_by_role: string
+          performed_by_user_id: string | null
+          school_id: string | null
+          target_entity: string | null
+          timestamp: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_by_role: string
+          performed_by_user_id?: string | null
+          school_id?: string | null
+          target_entity?: string | null
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_by_role?: string
+          performed_by_user_id?: string | null
+          school_id?: string | null
+          target_entity?: string | null
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_transactions: {
         Row: {
           amount: number
@@ -6354,6 +6438,16 @@ export type Database = {
       is_system_in_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_audit_action: {
+        Args: {
+          p_action: string
+          p_target_entity?: string
+          p_old_value?: Json
+          p_new_value?: Json
+          p_metadata?: Json
+        }
+        Returns: string
       }
       log_security_event: {
         Args: {
