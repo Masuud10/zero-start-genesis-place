@@ -17,12 +17,6 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
   formatCurrency,
   onViewDetails
 }) => {
-  const getBalanceStatus = (outstanding: number) => {
-    if (outstanding <= 0) return 'paid';
-    if (outstanding > 0 && outstanding < 1000) return 'partial';
-    return 'overdue';
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-800';
@@ -45,8 +39,9 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Student</TableHead>
-            <TableHead>Admission No.</TableHead>
+            <TableHead>Student Name</TableHead>
+            <TableHead>Admission Number</TableHead>
+            <TableHead>Class</TableHead>
             <TableHead>Total Fees</TableHead>
             <TableHead>Paid Amount</TableHead>
             <TableHead>Outstanding</TableHead>
@@ -55,53 +50,35 @@ const StudentAccountsTable: React.FC<StudentAccountsTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {accounts.map((account) => {
-            const status = getBalanceStatus(account.outstanding);
-            return (
-              <TableRow key={account.student.id}>
-                <TableCell>
-                  <div className="font-medium">{account.student.name}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-muted-foreground">
-                    {account.student.admission_number}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-semibold">
-                    {formatCurrency(account.totalFees)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-semibold text-green-600">
-                    {formatCurrency(account.totalPaid)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className={`font-semibold ${
-                    account.outstanding > 0 ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                    {formatCurrency(account.outstanding)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(status)}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onViewDetails(account)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Details
-                  </Button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {accounts.map((account) => (
+            <TableRow key={account.student.id}>
+              <TableCell className="font-medium">{account.student.name}</TableCell>
+              <TableCell>{account.student.admission_number}</TableCell>
+              <TableCell>{account.student.class_name}</TableCell>
+              <TableCell>{formatCurrency(account.totalFees)}</TableCell>
+              <TableCell className="text-green-600 font-medium">
+                {formatCurrency(account.totalPaid)}
+              </TableCell>
+              <TableCell className={account.outstanding > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                {formatCurrency(account.outstanding)}
+              </TableCell>
+              <TableCell>
+                <Badge className={getStatusColor(account.status)}>
+                  {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onViewDetails(account)}
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>

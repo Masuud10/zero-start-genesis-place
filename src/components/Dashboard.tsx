@@ -47,6 +47,7 @@ const Dashboard: React.FC = () => {
   
   switch (user.role) {
     case 'edufam_admin':
+    case 'elimisha_admin':
       console.log('🎯 Dashboard: Routing to EduFam Admin Dashboard');
       return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
     

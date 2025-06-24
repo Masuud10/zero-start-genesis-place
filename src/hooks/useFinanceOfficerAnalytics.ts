@@ -1,7 +1,9 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useFinanceMetrics } from './finance/useFinanceMetrics';
+import { useFeeCollectionData } from './finance/useFeeCollectionData';
+import { useTransactionData } from './finance/useTransactionData';
+import { useExpenseData } from './finance/useExpenseData';
+import { useDefaultersData } from './finance/useDefaultersData';
 
 interface FinanceAnalyticsData {
   keyMetrics: {
@@ -38,170 +40,35 @@ interface FinanceAnalyticsData {
 }
 
 export const useFinanceOfficerAnalytics = (filters: { term: string; class: string }) => {
-  const [data, setData] = useState<FinanceAnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
+  const { metrics, isLoading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useFinanceMetrics();
+  const { feeCollectionData, isLoading: feeLoading, error: feeError, refetch: refetchFee } = useFeeCollectionData();
+  const { dailyTransactions, isLoading: transactionLoading, error: transactionError, refetch: refetchTransaction } = useTransactionData();
+  const { expenseBreakdown, isLoading: expenseLoading, error: expenseError, refetch: refetchExpense } = useExpenseData();
+  const { defaultersList, isLoading: defaultersLoading, error: defaultersError, refetch: refetchDefaulters } = useDefaultersData();
 
-  const fetchAnalytics = async () => {
-    if (!user?.school_id) {
-      setIsLoading(false);
-      return;
-    }
+  const isLoading = metricsLoading || feeLoading || transactionLoading || expenseLoading || defaultersLoading;
+  const error = metricsError || feeError || transactionError || expenseError || defaultersError;
 
-    try {
-      setIsLoading(true);
-      setError(null);
+  const data: FinanceAnalyticsData | null = metrics ? {
+    keyMetrics: metrics,
+    feeCollectionData,
+    dailyTransactions,
+    expenseBreakdown,
+    defaultersList
+  } : null;
 
-      // Fetch fees data with proper relationship hints
-      const { data: feesData, error: feesError } = await supabase
-        .from('fees')
-        .select(`
-          *,
-          students!fees_student_id_fkey(name, admission_number),
-          classes!fees_class_id_fkey(name)
-        `)
-        .eq('school_id', user.school_id);
-
-      if (feesError) throw feesError;
-
-      // Fetch students count
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('school_id', user.school_id)
-        .eq('is_active', true);
-
-      if (studentsError) throw studentsError;
-
-      // Fetch MPESA transactions
-      const { data: mpesaData, error: mpesaError } = await supabase
-        .from('mpesa_transactions')
-        .select('*')
-        .eq('school_id', user.school_id)
-        .eq('transaction_status', 'Success');
-
-      if (mpesaError) throw mpesaError;
-
-      // Fetch expenses
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('school_id', user.school_id);
-
-      if (expensesError) throw expensesError;
-
-      // Calculate key metrics with proper type casting
-      const totalFees = feesData?.reduce((sum, fee) => sum + Number(fee.amount || 0), 0) || 0;
-      const totalPaid = feesData?.reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0) || 0;
-      const outstandingAmount = totalFees - totalPaid;
-      const totalMpesaPayments = mpesaData?.reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0;
-      const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
-      const totalStudents = studentsData?.length || 0;
-
-      // Group fee collection by class with proper type casting
-      const classGroups = feesData?.reduce((acc: any, fee) => {
-        const className = fee.classes?.name || 'Unknown';
-        if (!acc[className]) {
-          acc[className] = { collected: 0, expected: 0 };
-        }
-        acc[className].expected += Number(fee.amount || 0);
-        acc[className].collected += Number(fee.paid_amount || 0);
-        return acc;
-      }, {}) || {};
-
-      const feeCollectionData = Object.entries(classGroups).map(([className, data]: [string, any]) => ({
-        class: className,
-        collected: Number(data.collected || 0),
-        expected: Number(data.expected || 0)
-      }));
-
-      // Generate daily transactions data (last 30 days)
-      const last30Days = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        return date.toISOString().split('T')[0];
-      }).reverse();
-
-      const dailyTransactions = last30Days.map(date => ({
-        date,
-        amount: mpesaData?.filter(txn => 
-          txn.transaction_date?.startsWith(date)
-        ).reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0) || 0
-      }));
-
-      // Calculate expense breakdown with colors and proper type casting
-      const expenseGroups = expensesData?.reduce((acc: any, expense) => {
-        const category = expense.category || 'Other';
-        acc[category] = Number(acc[category] || 0) + Number(expense.amount || 0);
-        return acc;
-      }, {}) || {};
-
-      const totalExpenses = Object.values(expenseGroups).reduce((sum: number, amount) => sum + Number(amount || 0), 0);
-      const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-      const expenseBreakdown = Object.entries(expenseGroups).map(([category, amount]: [string, any], index) => ({
-        category,
-        amount: Number(amount || 0),
-        percentage: totalExpenses > 0 ? (Number(amount || 0) / totalExpenses) * 100 : 0,
-        color: colors[index % colors.length]
-      }));
-
-      // Find defaulters (students with overdue fees) with proper type casting
-      const today = new Date();
-      const defaultersList = feesData?.filter(fee => {
-        const dueDate = new Date(fee.due_date);
-        const isPastDue = dueDate < today;
-        const feeAmount = Number(fee.amount || 0);
-        const paidAmount = Number(fee.paid_amount || 0);
-        const hasOutstanding = feeAmount > paidAmount;
-        return isPastDue && hasOutstanding;
-      }).map(fee => {
-        const feeAmount = Number(fee.amount || 0);
-        const paidAmount = Number(fee.paid_amount || 0);
-        const dueDate = new Date(fee.due_date);
-        const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        return {
-          student_name: fee.students?.name || 'Unknown',
-          admission_number: fee.students?.admission_number || 'N/A',
-          class_name: fee.classes?.name || 'Unknown',
-          outstanding_amount: feeAmount - paidAmount,
-          days_overdue: Math.max(0, daysOverdue)
-        };
-      }) || [];
-
-      setData({
-        keyMetrics: {
-          totalRevenue: totalFees,
-          totalCollected: totalPaid,
-          outstandingAmount,
-          totalMpesaPayments,
-          collectionRate,
-          totalStudents,
-          defaultersCount: defaultersList.length
-        },
-        feeCollectionData,
-        dailyTransactions,
-        expenseBreakdown,
-        defaultersList
-      });
-
-    } catch (err: any) {
-      console.error('Error fetching finance analytics:', err);
-      setError(err);
-    } finally {
-      setIsLoading(false);
-    }
+  const refetch = () => {
+    refetchMetrics();
+    refetchFee();
+    refetchTransaction();
+    refetchExpense();
+    refetchDefaulters();
   };
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, [user?.school_id, filters.term, filters.class]);
 
   return {
     data,
     isLoading,
     error,
-    refetch: fetchAnalytics
+    refetch
   };
 };
