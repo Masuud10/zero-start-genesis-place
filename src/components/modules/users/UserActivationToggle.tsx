@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { UserStatusService } from '@/services/system/userStatusService';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,22 +53,22 @@ const UserActivationToggle = ({
     try {
       const newStatus = isActive ? 'inactive' : 'active';
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
+      const result = await UserStatusService.updateUserStatus(userId, newStatus);
 
-      if (error) throw error;
+      if (result.success) {
+        toast({
+          title: "User Status Updated",
+          description: `${userName} has been ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully.`,
+        });
 
-      toast({
-        title: "User Status Updated",
-        description: `${userName} has been ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully.`,
-      });
-
-      if (onStatusChanged) onStatusChanged();
+        if (onStatusChanged) onStatusChanged();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to update user status",
+          variant: "destructive",
+        });
+      }
 
     } catch (error: any) {
       console.error('Error updating user status:', error);

@@ -20,7 +20,7 @@ const EduFamAnalyticsOverview = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-6 h-6 text-blue-600" />
-          <h3 className="text-xl font-semibold text-gray-900">Analytics Overview</h3>
+          <h3 className="text-xl font-semibold text-gray-900">Real-Time Analytics Overview</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -37,9 +37,9 @@ const EduFamAnalyticsOverview = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="w-6 h-6 text-blue-600" />
-        <h3 className="text-xl font-semibold text-gray-900">Analytics Overview</h3>
+        <h3 className="text-xl font-semibold text-gray-900">Real-Time Analytics Overview</h3>
         <div className="ml-auto text-sm text-gray-500">
-          Real-time data • Last updated: {new Date().toLocaleTimeString()}
+          Live data • Last updated: {new Date().toLocaleTimeString()}
         </div>
       </div>
 
@@ -62,7 +62,7 @@ const EduFamAnalyticsOverview = () => {
         {/* Weekly Attendance Summary */}
         <AttendanceAnalyticsChart data={analyticsData?.attendanceChartData || []} />
 
-        {/* System Statistics */}
+        {/* System Health and Statistics */}
         <SystemHealthCard 
           schoolsCount={schoolsData.length} 
           usersCount={usersData.length} 
