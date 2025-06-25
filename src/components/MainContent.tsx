@@ -25,6 +25,13 @@ import FeeManagementModule from './modules/FeeManagementModule';
 import FinanceSettingsModule from './modules/FinanceSettingsModule';
 import SchoolActivityLogsModule from './modules/SchoolActivityLogsModule';
 import SystemAuditLogsModule from './modules/SystemAuditLogsModule';
+import SystemSettings from './settings/SystemSettings';
+import MaintenanceSettings from './settings/MaintenanceSettings';
+import DatabaseSettings from './settings/DatabaseSettings';
+import SecuritySettingsPanel from './settings/SecuritySettingsPanel';
+import NotificationSettings from './settings/NotificationSettings';
+import UserManagementSettings from './settings/UserManagementSettings';
+import CompanySettings from './settings/CompanySettings';
 
 interface MainContentProps {
   activeModule: string;
@@ -37,6 +44,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeModule }) => {
   // Role-based access control for audit logs
   const canAccessSchoolLogs = canAccessRoute(['principal', 'school_owner']);
   const canAccessSystemLogs = canAccessRoute(['edufam_admin']);
+  const canAccessSystemSettings = canAccessRoute(['edufam_admin']);
 
   const renderContent = () => {
     switch (activeModule) {
@@ -86,6 +94,23 @@ const MainContent: React.FC<MainContentProps> = ({ activeModule }) => {
         return canAccessRoute(['edufam_admin']) ? <BillingModule /> : <Dashboard />;
       case 'system-health':
         return canAccessRoute(['edufam_admin']) ? <SystemHealthModule /> : <Dashboard />;
+      
+      // System Settings Routes
+      case 'system-settings':
+        return canAccessSystemSettings ? <SystemSettings /> : <Dashboard />;
+      case 'system-settings-maintenance':
+        return canAccessSystemSettings ? <div className="p-6"><MaintenanceSettings /></div> : <Dashboard />;
+      case 'system-settings-database':
+        return canAccessSystemSettings ? <div className="p-6"><DatabaseSettings /></div> : <Dashboard />;
+      case 'system-settings-security':
+        return canAccessSystemSettings ? <div className="p-6"><SecuritySettingsPanel /></div> : <Dashboard />;
+      case 'system-settings-notifications':
+        return canAccessSystemSettings ? <div className="p-6"><NotificationSettings /></div> : <Dashboard />;
+      case 'system-settings-users':
+        return canAccessSystemSettings ? <div className="p-6"><UserManagementSettings /></div> : <Dashboard />;
+      case 'system-settings-company':
+        return canAccessSystemSettings ? <div className="p-6"><CompanySettings /></div> : <Dashboard />;
+      
       default:
         return <Dashboard />;
     }

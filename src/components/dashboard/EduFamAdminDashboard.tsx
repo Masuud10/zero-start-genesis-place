@@ -12,7 +12,6 @@ import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCar
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
 import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import DashboardModals from './DashboardModals';
-import EduFamSystemSettings from '@/components/modules/settings/EduFamSystemSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
@@ -105,7 +104,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   // Place report download buttons at the top for Admins
   const renderReportDownloads = () => (
-    <div className="mb-4 flex flex-col md:flex-row items-start md:items-center gap-2">
+    <div className="mb-6 flex flex-col md:flex-row items-start md:items-center gap-2">
       <RoleReportDownloadButton
         type="grades"
         term={"" + (new Date().getFullYear())}
@@ -148,13 +147,15 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       {/* Excel report download shortcuts for EduFam Admin */}
       {renderReportDownloads()}
 
-      {/* System Health Status */}
-      <SystemHealthStatusCard />
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white rounded-xl p-6 shadow-lg">
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {user.name}!</h1>
+        <p className="text-blue-100">
+          Manage your educational platform from this comprehensive admin dashboard
+        </p>
+      </div>
 
-      {/* System Settings (including Maintenance Control) */}
-      <EduFamSystemSettings />
-
-      {/* System Overview Cards */}
+      {/* Stats Icons directly below greetings */}
       <SystemOverviewCards
         schoolsCount={validSchoolsData.length}
         totalUsers={userStats.totalUsers}
@@ -166,8 +167,11 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         usersRefetching={usersRefetching}
       />
 
-      {/* Analytics Overview Section */}
+      {/* Real-Time Analytics Overview (bar charts, line graphs, pie charts) */}
       <EduFamAnalyticsOverview />
+
+      {/* System Health Status */}
+      <SystemHealthStatusCard />
 
       {/* Administrative Hub */}
       <AdministrativeHub

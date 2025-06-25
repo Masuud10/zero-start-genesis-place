@@ -20,8 +20,10 @@ import {
   Clock,
   Database
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SettingsModule = () => {
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState('users');
   
   const { 
@@ -41,6 +43,42 @@ const SettingsModule = () => {
   const handleMaintenance = (action: string) => {
     systemMaintenance.mutate(action);
   };
+
+  // For non-admin users, show basic settings
+  if (user?.role !== 'edufam_admin') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+          <p className="text-muted-foreground">
+            Manage your account and system preferences
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Basic account settings and preferences will be available here.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>School Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              School-specific configuration options will be available here.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const sections = [
     { id: 'users', label: 'User Management', icon: Users },
@@ -102,9 +140,7 @@ const SettingsModule = () => {
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   <span className="font-medium capitalize">{role.replace('_', ' ')}</span>
                 </div>
-                <Badge variant="outline" className="bg-white">
-                  {count as number}
-                </Badge>
+                <Badge variant="secondary">{count}</Badge>
               </div>
             ))}
           </div>
@@ -113,310 +149,158 @@ const SettingsModule = () => {
     </div>
   );
 
-  const renderSecurity = () => (
+  const renderSecuritySection = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-r from-red-50 to-pink-50 border-red-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-red-700">Security Incidents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-900">
-              {securityData?.security_incidents || 0}
-            </div>
-            <p className="text-xs text-red-600 mt-1">Last 7 days</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-700">Failed Logins</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-900">
-              {securityData?.failed_login_attempts || 0}
-            </div>
-            <p className="text-xs text-yellow-600 mt-1">Total attempts</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700">Active Rate Limits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-900">
-              {securityData?.active_rate_limits?.length || 0}
-            </div>
-            <p className="text-xs text-purple-600 mt-1">Currently blocked</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-green-700">Audit Events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900">
-              {securityData?.total_audit_events || 0}
-            </div>
-            <p className="text-xs text-green-600 mt-1">Total logged</p>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Recent Security Events
+            <Shield className="h-5 w-5 text-green-600" />
+            Security Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {!securityData?.recent_audit_logs || securityData.recent_audit_logs.length === 0 ? (
-            <div className="text-center py-8">
-              <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-600">No recent security events</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-green-900">
+                {securityData?.total_audit_events || 0}
+              </div>
+              <p className="text-sm text-green-700">Total Audit Events</p>
             </div>
-          ) : (
+            <div className="text-center p-4 bg-red-50 rounded-lg">
+              <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-red-900">
+                {securityData?.security_incidents || 0}
+              </div>
+              <p className="text-sm text-red-700">Security Incidents</p>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <Activity className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-blue-900">
+                {securityData?.failed_login_attempts || 0}
+              </div>
+              <p className="text-sm text-blue-700">Failed Login Attempts</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Security Events</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {securityData?.recent_audit_logs?.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Action</TableHead>
-                  <TableHead>Resource</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Time</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {securityData.recent_audit_logs.slice(0, 5).map((log) => (
+                {securityData.recent_audit_logs.slice(0, 5).map((log: any) => (
                   <TableRow key={log.id}>
-                    <TableCell className="font-medium capitalize">
-                      {log.action?.replace('_', ' ')}
-                    </TableCell>
-                    <TableCell className="capitalize">
-                      {log.resource?.replace('_', ' ')}
-                    </TableCell>
+                    <TableCell className="font-medium">{log.action}</TableCell>
+                    <TableCell>{log.user_id || 'System'}</TableCell>
+                    <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
                     <TableCell>
-                      {log.success ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Success
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-800">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Failed
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {new Date(log.created_at).toLocaleDateString()}
+                      <Badge variant={log.success ? "default" : "destructive"}>
+                        {log.success ? 'Success' : 'Failed'}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          ) : (
+            <p className="text-muted-foreground">No recent security events</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 
-  const renderMaintenance = () => (
+  const renderMaintenanceSection = () => (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-900">
-            <Database className="h-5 w-5" />
-            System Maintenance
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert className="bg-blue-50 border-blue-200">
-            <AlertTriangle className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-800">Maintenance Operations</AlertTitle>
-            <AlertDescription className="text-blue-700">
-              These operations help maintain system performance and security. Use with caution.
-            </AlertDescription>
-          </Alert>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border border-gray-200">
-              <CardContent className="p-4 text-center">
-                <Trash2 className="h-8 w-8 mx-auto mb-3 text-red-500" />
-                <h3 className="font-semibold text-gray-900 mb-2">Clean Audit Logs</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Remove audit logs older than 30 days to free up space.
-                </p>
-                <Button
-                  onClick={() => handleMaintenance('cleanup_audit_logs')}
-                  disabled={systemMaintenance.isPending}
-                  variant="outline"
-                  className="border-red-300 text-red-700 hover:bg-red-50"
-                  size="sm"
-                >
-                  {systemMaintenance.isPending ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 mr-2" />
-                  )}
-                  Clean Logs
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-gray-200">
-              <CardContent className="p-4 text-center">
-                <Key className="h-8 w-8 mx-auto mb-3 text-yellow-500" />
-                <h3 className="font-semibold text-gray-900 mb-2">Reset Rate Limits</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Clear all active rate limit blocks and reset counters.
-                </p>
-                <Button
-                  onClick={() => handleMaintenance('reset_rate_limits')}
-                  disabled={systemMaintenance.isPending}
-                  variant="outline"
-                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
-                  size="sm"
-                >
-                  {systemMaintenance.isPending ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Key className="h-4 w-4 mr-2" />
-                  )}
-                  Reset Limits
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-gray-200">
-              <CardContent className="p-4 text-center">
-                <Database className="h-8 w-8 mx-auto mb-3 text-blue-500" />
-                <h3 className="font-semibold text-gray-900 mb-2">Optimize Database</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Run database optimization and maintenance routines.
-                </p>
-                <Button
-                  onClick={() => handleMaintenance('optimize_database')}
-                  disabled={systemMaintenance.isPending}
-                  variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                  size="sm"
-                >
-                  {systemMaintenance.isPending ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Database className="h-4 w-4 mr-2" />
-                  )}
-                  Optimize
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>System Maintenance</AlertTitle>
+        <AlertDescription>
+          Use these tools to maintain system performance and clean up data.
+        </AlertDescription>
+      </Alert>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            System Status
+            <Database className="h-5 w-5" />
+            Database Maintenance
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Database Connection</span>
-              </div>
-              <Badge className="bg-green-100 text-green-800">Healthy</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium">File Storage</span>
-              </div>
-              <Badge className="bg-green-100 text-green-800">Operational</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Background Jobs</span>
-              </div>
-              <Badge className="bg-green-100 text-green-800">Running</Badge>
-            </div>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button
+              onClick={() => handleMaintenance('cleanup_audit_logs')}
+              disabled={systemMaintenance.isPending}
+              variant="outline"
+              className="justify-start"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clean Old Audit Logs
+            </Button>
+            <Button
+              onClick={() => handleMaintenance('reset_rate_limits')}
+              disabled={systemMaintenance.isPending}
+              variant="outline"
+              className="justify-start"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reset Rate Limits
+            </Button>
+            <Button
+              onClick={() => handleMaintenance('optimize_database')}
+              disabled={systemMaintenance.isPending}
+              variant="outline"
+              className="justify-start"
+            >
+              <Database className="mr-2 h-4 w-4" />
+              Optimize Database
+            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 
-  if (userStatsLoading || securityLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">System Settings</h2>
-        </div>
-        <div className="animate-pulse space-y-4">
-          <div className="h-32 bg-gray-200 rounded"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (userStatsError || securityError) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">System Settings</h2>
-        </div>
-        <Alert className="bg-red-50 border-red-200">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-600">Settings Error</AlertTitle>
-          <AlertDescription className="text-red-700">
-            Failed to load system settings data. Please refresh the page.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">System Settings</h2>
-          <p className="text-muted-foreground">Manage users, security, and system maintenance</p>
-        </div>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">System Settings</h2>
+        <p className="text-muted-foreground">
+          Manage system-wide settings and configurations
+        </p>
       </div>
 
-      {/* Navigation */}
-      <Card>
-        <CardContent className="p-2">
-          <div className="flex space-x-1">
-            {sections.map((section) => (
-              <Button
-                key={section.id}
-                variant={activeSection === section.id ? "default" : "ghost"}
-                onClick={() => setActiveSection(section.id)}
-                className="flex items-center gap-2"
-              >
-                <section.icon className="h-4 w-4" />
-                {section.label}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+        {sections.map((section) => (
+          <Button
+            key={section.id}
+            variant={activeSection === section.id ? "default" : "ghost"}
+            onClick={() => setActiveSection(section.id)}
+            className="flex items-center space-x-2"
+          >
+            <section.icon className="h-4 w-4" />
+            <span>{section.label}</span>
+          </Button>
+        ))}
+      </div>
 
-      {/* Content */}
       {activeSection === 'users' && renderUserManagement()}
-      {activeSection === 'security' && renderSecurity()}
-      {activeSection === 'maintenance' && renderMaintenance()}
+      {activeSection === 'security' && renderSecuritySection()}
+      {activeSection === 'maintenance' && renderMaintenanceSection()}
     </div>
   );
 };

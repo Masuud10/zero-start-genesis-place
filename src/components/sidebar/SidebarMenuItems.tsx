@@ -27,7 +27,10 @@ import {
   Banknote,
   Coins,
   FolderKanban,
-  ClipboardList
+  ClipboardList,
+  ChevronDown,
+  Bell,
+  Wrench
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -35,6 +38,7 @@ export interface MenuItem {
   label: string;
   icon: any;
   roles: string[];
+  subItems?: MenuItem[];
 }
 
 export const getMenuItems = (userRole?: string): MenuItem[] => {
@@ -146,13 +150,66 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Support',
       icon: HelpCircle,
       roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
-    },
-    {
+    }
+  ];
+
+  // Add System Settings with dropdown for EduFam Admins
+  if (userRole === 'edufam_admin') {
+    baseItems.push({
+      id: 'system-settings',
+      label: 'System Settings',
+      icon: Settings,
+      roles: ['edufam_admin'],
+      subItems: [
+        {
+          id: 'system-settings-maintenance',
+          label: 'Maintenance Settings',
+          icon: Wrench,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'system-settings-database',
+          label: 'Database Settings',
+          icon: Database,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'system-settings-security',
+          label: 'Security Settings',
+          icon: Shield,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'system-settings-notifications',
+          label: 'Notification Settings',
+          icon: Bell,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'system-settings-users',
+          label: 'User Management Settings',
+          icon: UserPlus,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'system-settings-company',
+          label: 'Company Settings',
+          icon: Building2,
+          roles: ['edufam_admin']
+        }
+      ]
+    });
+  } else {
+    // Regular settings for other roles
+    baseItems.push({
       id: 'settings',
       label: 'Settings',
       icon: Settings,
-      roles: ['edufam_admin', 'principal', 'school_owner']
-    },
+      roles: ['principal', 'school_owner']
+    });
+  }
+
+  baseItems.push(
     {
       id: 'finance-settings',
       label: 'Finance Settings',
@@ -163,7 +220,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: 'security',
       label: 'Security',
       icon: Shield,
-      roles: ['edufam_admin', 'principal', 'school_owner']
+      roles: ['principal', 'school_owner']
     },
     {
       id: 'schools',
@@ -189,7 +246,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       icon: Activity,
       roles: ['edufam_admin']
     }
-  ];
+  );
 
   return baseItems;
 };

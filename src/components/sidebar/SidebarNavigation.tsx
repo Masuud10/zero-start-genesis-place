@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMenuItems } from './SidebarMenuItems';
 import {
@@ -10,7 +10,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface SidebarNavigationProps {
   activeSection: string;
@@ -22,6 +26,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   onSectionChange,
 }) => {
   const { user } = useAuth();
+  const [expandedItems, setExpandedItems] = useState<string[]>(['system-settings']);
   
   console.log('🔧 SidebarNavigation: Rendering with user role:', user?.role);
   
@@ -31,6 +36,14 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   );
 
   console.log('📋 SidebarNavigation: Filtered menu items:', filteredItems.map(item => item.id));
+
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
 
   // Group items by category for better organization
   const systemItems = filteredItems.filter(item => 
@@ -54,6 +67,57 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     !financeItems.includes(item) && !communicationItems.includes(item)
   );
 
+  const renderMenuItem = (item: typeof filteredItems[0]) => {
+    const IconComponent = item.icon;
+    const isActive = activeSection === item.id;
+    const hasSubItems = item.subItems && item.subItems.length > 0;
+    const isExpanded = expandedItems.includes(item.id);
+
+    return (
+      <SidebarMenuItem key={item.id}>
+        <SidebarMenuButton
+          onClick={() => {
+            if (hasSubItems) {
+              toggleExpanded(item.id);
+            } else {
+              onSectionChange(item.id);
+            }
+          }}
+          isActive={isActive && !hasSubItems}
+          className="w-full justify-start"
+        >
+          <IconComponent className="w-4 h-4" />
+          <span>{item.label}</span>
+          {hasSubItems && (
+            isExpanded ? 
+              <ChevronDown className="w-4 h-4 ml-auto" /> : 
+              <ChevronRight className="w-4 h-4 ml-auto" />
+          )}
+        </SidebarMenuButton>
+        {hasSubItems && isExpanded && (
+          <SidebarMenuSub>
+            {item.subItems?.map((subItem) => {
+              const SubIconComponent = subItem.icon;
+              const isSubActive = activeSection === subItem.id;
+              
+              return (
+                <SidebarMenuSubItem key={subItem.id}>
+                  <SidebarMenuSubButton
+                    onClick={() => onSectionChange(subItem.id)}
+                    isActive={isSubActive}
+                  >
+                    <SubIconComponent className="w-4 h-4" />
+                    <span>{subItem.label}</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        )}
+      </SidebarMenuItem>
+    );
+  };
+
   const renderMenuGroup = (items: typeof filteredItems, groupLabel?: string) => {
     if (items.length === 0) return null;
     
@@ -62,23 +126,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         {groupLabel && <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>}
         <SidebarGroupContent>
           <SidebarMenu>
-            {items.map((item) => {
-              const IconComponent = item.icon;
-              const isActive = activeSection === item.id;
-              
-              return (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => onSectionChange(item.id)}
-                    isActive={isActive}
-                    className="w-full justify-start"
-                  >
-                    <IconComponent className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
+            {items.map(renderMenuItem)}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -95,7 +143,8 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
           {renderMenuGroup(systemItems.filter(item => ['schools', 'users', 'company-management'].includes(item.id)), 'Management')}
           {renderMenuGroup(systemItems.filter(item => ['billing', 'system-health'].includes(item.id)), 'System')}
           {renderMenuGroup(communicationItems, 'Communication')}
-          {renderMenuGroup(otherItems.filter(item => ['reports', 'support', 'settings', 'security'].includes(item.id)), 'Tools')}
+          {renderMenuGroup(otherItems.filter(item => ['reports', 'support'].includes(item.id)), 'Tools')}
+          {renderMenuGroup(otherItems.filter(item => ['system-settings', 'security'].includes(item.id)), 'Settings')}
         </>
       ) : (
         <>
