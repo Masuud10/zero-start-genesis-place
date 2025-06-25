@@ -1,27 +1,104 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useSecuritySettings } from '@/hooks/useSystemSettings';
-import { Shield, Lock, Eye, AlertTriangle, Users, Activity } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Shield, Key, AlertTriangle, Users, Eye } from 'lucide-react';
 
 const SecuritySettingsPanel: React.FC = () => {
-  const { data: securityData, isLoading } = useSecuritySettings();
-  const [settings, setSettings] = React.useState({
-    sessionTimeout: 30,
-    maxLoginAttempts: 5,
-    passwordExpiry: 90,
-    auditRetention: 365,
-    enforceStrongPasswords: true,
-    enableAuditLogging: true
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [sessionTimeout, setSessionTimeout] = useState(30);
+
+  // Fetch security settings
+  const { data: securitySettings, isLoading } = useQuery({
+    queryKey: ['security-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', ['mfa_required', 'session_timeout', 'password_policy']);
+
+      if (error) throw error;
+
+      const settings: Record<string, any> = {};
+      data?.forEach(item => {
+        settings[item.setting_key] = item.setting_value;
+      });
+
+      return {
+        mfaRequired: settings.mfa_required?.enabled || false,
+        sessionTimeout: settings.session_timeout?.minutes || 30,
+        passwordPolicy: settings.password_policy || {
+          minLength: 8,
+          requireUppercase: true,
+          requireNumbers: true,
+          requireSpecialChars: true
+        }
+      };
+    },
   });
 
-  const handleSave = () => {
-    // Implementation would save to backend
-    console.log('Saving security settings:', settings);
+  // Fetch recent security events
+  const { data: securityEvents } = useQuery({
+    queryKey: ['security-events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('security_audit_logs')
+        .select('action, user_id, success, created_at, metadata')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Update security settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: any }) => {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          setting_key: key,
+          setting_value: value
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['security-settings'] });
+      toast({
+        title: "Success",
+        description: "Security settings updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update security settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggleMFA = () => {
+    updateSettingsMutation.mutate({
+      key: 'mfa_required',
+      value: { enabled: !securitySettings?.mfaRequired }
+    });
+  };
+
+  const handleUpdateSessionTimeout = () => {
+    updateSettingsMutation.mutate({
+      key: 'session_timeout',
+      value: { minutes: sessionTimeout }
+    });
   };
 
   if (isLoading) {
@@ -31,7 +108,6 @@ const SecuritySettingsPanel: React.FC = () => {
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-gray-200 rounded w-1/4"></div>
             <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
           </div>
         </CardContent>
       </Card>
@@ -40,114 +116,112 @@ const SecuritySettingsPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Authentication Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Security Controls
+            Authentication & Access
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Session Timeout (minutes)</Label>
-              <Input
-                type="number"
-                value={settings.sessionTimeout}
-                onChange={(e) => setSettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
-              />
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium">Multi-Factor Authentication</h3>
+              <p className="text-sm text-gray-600">
+                Require MFA for admin and sensitive roles
+              </p>
             </div>
-
-            <div className="space-y-2">
-              <Label>Max Login Attempts</Label>
-              <Input
-                type="number"
-                value={settings.maxLoginAttempts}
-                onChange={(e) => setSettings(prev => ({ ...prev, maxLoginAttempts: parseInt(e.target.value) }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Password Expiry (days)</Label>
-              <Input
-                type="number"
-                value={settings.passwordExpiry}
-                onChange={(e) => setSettings(prev => ({ ...prev, passwordExpiry: parseInt(e.target.value) }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Audit Log Retention (days)</Label>
-              <Input
-                type="number"
-                value={settings.auditRetention}
-                onChange={(e) => setSettings(prev => ({ ...prev, auditRetention: parseInt(e.target.value) }))}
-              />
-            </div>
+            <Switch
+              checked={securitySettings?.mfaRequired || false}
+              onCheckedChange={handleToggleMFA}
+              disabled={updateSettingsMutation.isPending}
+            />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Enforce Strong Passwords</Label>
-                <p className="text-sm text-gray-600">Require complex passwords for all users</p>
-              </div>
-              <Switch
-                checked={settings.enforceStrongPasswords}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, enforceStrongPasswords: checked }))}
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium">Session Timeout (minutes)</label>
+              <Input
+                type="number"
+                value={sessionTimeout}
+                onChange={(e) => setSessionTimeout(Number(e.target.value))}
+                min={5}
+                max={480}
+                className="mt-1"
               />
             </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Enable Audit Logging</Label>
-                <p className="text-sm text-gray-600">Log all user actions and system events</p>
-              </div>
-              <Switch
-                checked={settings.enableAuditLogging}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, enableAuditLogging: checked }))}
-              />
-            </div>
+            <Button
+              onClick={handleUpdateSessionTimeout}
+              disabled={updateSettingsMutation.isPending}
+              variant="outline"
+              size="sm"
+              className="mt-6"
+            >
+              Update
+            </Button>
           </div>
-
-          <Button onClick={handleSave} className="w-full">
-            Save Security Settings
-          </Button>
         </CardContent>
       </Card>
 
+      {/* Password Policy */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Security Overview
+            <Key className="h-5 w-5" />
+            Password Policy
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg text-center">
-              <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-blue-900">
-                {securityData?.failed_login_attempts || 0}
-              </div>
-              <p className="text-sm text-blue-700">Failed Login Attempts</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Minimum Length</p>
+              <Badge variant="outline">{securitySettings?.passwordPolicy?.minLength || 8} characters</Badge>
             </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Requirements</p>
+              <div className="flex flex-wrap gap-1">
+                <Badge variant="secondary" className="text-xs">Uppercase</Badge>
+                <Badge variant="secondary" className="text-xs">Numbers</Badge>
+                <Badge variant="secondary" className="text-xs">Special Chars</Badge>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div className="p-4 bg-green-50 rounded-lg text-center">
-              <Eye className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-green-900">
-                {securityData?.total_audit_events || 0}
+      {/* Recent Security Events */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Recent Security Events
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {securityEvents?.map((event, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  {event.success ? (
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  )}
+                  <div>
+                    <p className="font-medium">{event.action}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(event.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={event.success ? 'default' : 'destructive'}>
+                  {event.success ? 'Success' : 'Failed'}
+                </Badge>
               </div>
-              <p className="text-sm text-green-700">Audit Events</p>
-            </div>
-
-            <div className="p-4 bg-red-50 rounded-lg text-center">
-              <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-red-900">
-                {securityData?.security_incidents || 0}
-              </div>
-              <p className="text-sm text-red-700">Security Incidents</p>
-            </div>
+            )) || (
+              <p className="text-center text-gray-500 py-4">No recent security events</p>
+            )}
           </div>
         </CardContent>
       </Card>

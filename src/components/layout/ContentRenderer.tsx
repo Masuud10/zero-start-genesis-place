@@ -32,6 +32,7 @@ import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
 import EduFamCertificateManagement from '@/components/certificates/EduFamCertificateManagement';
 import ProjectHubModule from '@/components/modules/ProjectHubModule';
+import SystemSettings from '@/components/settings/SystemSettings';
 
 interface ContentRendererProps {
   activeSection: string;
@@ -138,6 +139,19 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       case 'system-health':
         return <SystemHealthModule />;
+
+      // System Settings routes - Handle all system settings subsections
+      case 'system-settings':
+      case 'system-settings-maintenance':
+      case 'system-settings-database':
+      case 'system-settings-security':
+      case 'system-settings-notifications':
+      case 'system-settings-users':
+      case 'system-settings-company':
+        if (user?.role === 'edufam_admin') {
+          return <SystemSettings />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Insufficient permissions</div>;
 
       default:
         return (
