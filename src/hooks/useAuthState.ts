@@ -94,16 +94,20 @@ export const useAuthState = () => {
         
         // Email-based role detection as fallback
         if (!resolvedRole) {
-          if (authUser.email.includes('admin@edufam') || authUser.email === 'masuud@gmail.com') {
+          const emailLower = authUser.email.toLowerCase();
+          
+          if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com') {
             resolvedRole = 'edufam_admin';
-          } else if (authUser.email.includes('elimisha')) {
+          } else if (emailLower.includes('elimisha')) {
             resolvedRole = 'elimisha_admin';
-          } else if (authUser.email.includes('principal')) {
+          } else if (emailLower.includes('principal')) {
             resolvedRole = 'principal';
-          } else if (authUser.email.includes('teacher')) {
+          } else if (emailLower.includes('teacher')) {
             resolvedRole = 'teacher';
-          } else if (authUser.email.includes('finance')) {
+          } else if (emailLower.includes('finance')) {
             resolvedRole = 'finance_officer';
+          } else if (emailLower.includes('owner')) {
+            resolvedRole = 'school_owner';
           } else {
             resolvedRole = 'parent';
           }
@@ -111,11 +115,19 @@ export const useAuthState = () => {
           console.log('🔐 AuthState: Email-based role determined:', resolvedRole);
           
           // Update profile with determined role
-          if (profile) {
-            await supabase
-              .from('profiles')
-              .update({ role: resolvedRole })
-              .eq('id', authUser.id);
+          if (resolvedRole) {
+            try {
+              await supabase
+                .from('profiles')
+                .upsert({ 
+                  id: authUser.id, 
+                  email: authUser.email,
+                  role: resolvedRole,
+                  name: authUser.user_metadata?.name || authUser.email.split('@')[0]
+                });
+            } catch (updateError) {
+              console.warn('🔐 AuthState: Failed to update profile role:', updateError);
+            }
           }
         }
       }
@@ -137,10 +149,14 @@ export const useAuthState = () => {
           userSchoolId = schools[0].id;
           
           // Update profile with school assignment
-          await supabase
-            .from('profiles')
-            .update({ school_id: userSchoolId })
-            .eq('id', authUser.id);
+          try {
+            await supabase
+              .from('profiles')
+              .update({ school_id: userSchoolId })
+              .eq('id', authUser.id);
+          } catch (updateError) {
+            console.warn('🔐 AuthState: Failed to update school assignment:', updateError);
+          }
         }
       }
 
