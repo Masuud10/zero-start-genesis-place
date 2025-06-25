@@ -42,15 +42,6 @@ export const useNotifications = () => {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      // Fetch system notifications (if table exists)
-      const { data: systemNotifications } = await supabase
-        .from('system_notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
-        .maybeSingle();
-
       const notificationsList: Notification[] = [];
 
       // Process announcements
@@ -61,7 +52,7 @@ export const useNotifications = () => {
             title: item.announcements.title,
             content: item.announcements.content,
             type: 'announcement',
-            priority: item.announcements.priority || 'medium',
+            priority: (item.announcements.priority as 'low' | 'medium' | 'high') || 'medium',
             read_at: item.read_at,
             created_at: item.created_at,
           });

@@ -4151,6 +4151,7 @@ export type Database = {
           address: string | null
           avatar_url: string | null
           created_at: string | null
+          dashboard_preferences: Json | null
           date_of_birth: string | null
           email: string
           failed_login_attempts: number | null
@@ -4171,12 +4172,14 @@ export type Database = {
           school_id: string | null
           status: string | null
           theme: string | null
+          theme_preference: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
           avatar_url?: string | null
           created_at?: string | null
+          dashboard_preferences?: Json | null
           date_of_birth?: string | null
           email: string
           failed_login_attempts?: number | null
@@ -4197,12 +4200,14 @@ export type Database = {
           school_id?: string | null
           status?: string | null
           theme?: string | null
+          theme_preference?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
           avatar_url?: string | null
           created_at?: string | null
+          dashboard_preferences?: Json | null
           date_of_birth?: string | null
           email?: string
           failed_login_attempts?: number | null
@@ -4223,6 +4228,7 @@ export type Database = {
           school_id?: string | null
           status?: string | null
           theme?: string | null
+          theme_preference?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -6092,6 +6098,48 @@ export type Database = {
           metric_type?: string
           metric_value?: number
           recorded_at?: string
+        }
+        Relationships: []
+      }
+      system_notifications: {
+        Row: {
+          content: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          priority: string
+          read_at: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
