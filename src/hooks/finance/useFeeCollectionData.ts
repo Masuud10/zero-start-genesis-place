@@ -23,32 +23,49 @@ export const useFeeCollectionData = () => {
       
       console.log('Fetching fee collection data for school:', user.school_id);
       
-      // Fetch fees grouped by class
+      // First, fetch fees data
       const { data: feesData, error: feesError } = await supabase
         .from('fees')
-        .select(`
-          amount,
-          paid_amount,
-          students!inner(
-            class_id,
-            classes!inner(
-              id,
-              name
-            )
-          )
-        `)
+        .select('student_id, amount, paid_amount')
         .eq('school_id', user.school_id);
 
       if (feesError) {
-        console.error('Error fetching fee collection data:', feesError);
+        console.error('Error fetching fees data:', feesError);
         throw feesError;
+      }
+
+      if (!feesData || feesData.length === 0) {
+        setFeeCollectionData([
+          { class: 'No Classes', collected: 0, expected: 0 }
+        ]);
+        return;
+      }
+
+      // Get unique student IDs from fees
+      const studentIds = [...new Set(feesData.map(fee => fee.student_id))];
+
+      // Fetch students with their class information
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select(`
+          id,
+          class_id,
+          classes!inner(id, name)
+        `)
+        .in('id', studentIds)
+        .eq('school_id', user.school_id);
+
+      if (studentsError) {
+        console.error('Error fetching students data:', studentsError);
+        throw studentsError;
       }
 
       // Group by class and calculate totals
       const classMap = new Map();
       
-      feesData?.forEach(fee => {
-        const className = fee.students?.classes?.name || 'Unknown Class';
+      feesData.forEach(fee => {
+        const student = studentsData?.find(s => s.id === fee.student_id);
+        const className = student?.classes?.name || 'Unknown Class';
         const amount = Number(fee.amount || 0);
         const paidAmount = Number(fee.paid_amount || 0);
         

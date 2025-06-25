@@ -23,40 +23,57 @@ export const useDefaultersData = () => {
       
       console.log('Fetching defaulters data for school:', user.school_id);
       
-      // Fetch overdue fees with student and class information
+      // Get today's date for comparison
       const today = new Date().toISOString().split('T')[0];
       
-      const { data: defaultersData, error: defaultersError } = await supabase
+      // First, fetch overdue fees
+      const { data: feesData, error: feesError } = await supabase
         .from('fees')
-        .select(`
-          amount,
-          paid_amount,
-          due_date,
-          students!inner(
-            name,
-            admission_number,
-            classes!inner(
-              name
-            )
-          )
-        `)
+        .select('id, student_id, amount, paid_amount, due_date')
         .eq('school_id', user.school_id)
         .lt('due_date', today)
         .neq('status', 'paid');
 
-      if (defaultersError) {
-        console.error('Error fetching defaulters data:', defaultersError);
-        throw defaultersError;
+      if (feesError) {
+        console.error('Error fetching fees data:', feesError);
+        throw feesError;
       }
 
-      // Process defaulters data
-      const processedDefaulters = defaultersData
-        ?.filter(fee => {
+      if (!feesData || feesData.length === 0) {
+        setDefaultersList([]);
+        return;
+      }
+
+      // Get unique student IDs from the fees
+      const studentIds = [...new Set(feesData.map(fee => fee.student_id))];
+
+      // Fetch student details separately
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select(`
+          id,
+          name,
+          admission_number,
+          class_id,
+          classes!inner(name)
+        `)
+        .in('id', studentIds)
+        .eq('school_id', user.school_id);
+
+      if (studentsError) {
+        console.error('Error fetching students data:', studentsError);
+        throw studentsError;
+      }
+
+      // Process defaulters data by combining fees and student info
+      const processedDefaulters = feesData
+        .filter(fee => {
           const amount = Number(fee.amount || 0);
           const paidAmount = Number(fee.paid_amount || 0);
           return amount > paidAmount; // Has outstanding amount
         })
         .map(fee => {
+          const student = studentsData?.find(s => s.id === fee.student_id);
           const amount = Number(fee.amount || 0);
           const paidAmount = Number(fee.paid_amount || 0);
           const outstandingAmount = amount - paidAmount;
@@ -66,15 +83,16 @@ export const useDefaultersData = () => {
           const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
           
           return {
-            student_name: fee.students?.name || 'Unknown Student',
-            admission_number: fee.students?.admission_number || 'N/A',
-            class_name: fee.students?.classes?.name || 'Unknown Class',
+            student_name: student?.name || 'Unknown Student',
+            admission_number: student?.admission_number || 'N/A',
+            class_name: student?.classes?.name || 'Unknown Class',
             outstanding_amount: outstandingAmount,
             days_overdue: daysOverdue
           };
         })
+        .filter(defaulter => defaulter.student_name !== 'Unknown Student') // Filter out invalid records
         .sort((a, b) => b.outstanding_amount - a.outstanding_amount) // Sort by outstanding amount desc
-        .slice(0, 10) || []; // Top 10 defaulters
+        .slice(0, 10); // Top 10 defaulters
       
       setDefaultersList(processedDefaulters);
       
