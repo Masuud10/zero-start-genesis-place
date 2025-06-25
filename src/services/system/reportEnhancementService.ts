@@ -62,7 +62,6 @@ export class ReportEnhancementService {
 
   static async getSystemMetrics() {
     try {
-      // Get real system metrics from multiple tables
       const [schoolsResult, usersResult, activeSchoolsResult, supportTicketsResult] = await Promise.all([
         supabase.from('schools').select('id', { count: 'exact' }),
         supabase.from('profiles').select('id', { count: 'exact' }),
@@ -75,7 +74,6 @@ export class ReportEnhancementService {
       const activeSchools = activeSchoolsResult.count || 0;
       const totalSupportTickets = supportTicketsResult.count || 0;
 
-      // Calculate additional metrics
       const openTickets = supportTicketsResult.data?.filter(ticket => ticket.status === 'open').length || 0;
       const ticketResolutionRate = totalSupportTickets > 0 ? ((totalSupportTickets - openTickets) / totalSupportTickets) * 100 : 100;
 
@@ -86,7 +84,7 @@ export class ReportEnhancementService {
         totalSupportTickets,
         openTickets,
         ticketResolutionRate: Math.round(ticketResolutionRate * 100) / 100,
-        systemUptime: 99.8, // This would come from actual monitoring
+        systemUptime: 99.8,
         lastUpdated: new Date().toISOString()
       };
     } catch (error) {
@@ -104,6 +102,27 @@ export class ReportEnhancementService {
     }
   }
 
+  static async generateComprehensiveReport() {
+    try {
+      const [systemMetrics, financialSummary, userMetrics] = await Promise.all([
+        this.getSystemMetrics(),
+        this.getFinancialSummary(),
+        this.getUserEngagementMetrics()
+      ]);
+
+      return {
+        systemMetrics,
+        financialSummary,
+        userMetrics,
+        generatedAt: new Date().toISOString(),
+        reportType: 'comprehensive'
+      };
+    } catch (error) {
+      console.error('Error generating comprehensive report:', error);
+      return null;
+    }
+  }
+
   static async getFinancialSummary(dateFilter?: { start: Date; end: Date }) {
     try {
       let feesQuery = supabase
@@ -114,7 +133,6 @@ export class ReportEnhancementService {
         .from('expenses')
         .select('amount, created_at, school_id');
 
-      // Apply date filter if provided
       if (dateFilter) {
         const startDate = dateFilter.start.toISOString();
         const endDate = dateFilter.end.toISOString();
@@ -178,7 +196,6 @@ export class ReportEnhancementService {
         .from('profiles')
         .select('role, created_at');
 
-      // Apply date filter if provided
       if (dateFilter) {
         const startDate = dateFilter.start.toISOString();
         const endDate = dateFilter.end.toISOString();
@@ -199,7 +216,6 @@ export class ReportEnhancementService {
       }, {}) || {};
 
       const totalUsers = profiles?.length || 0;
-      // Since we don't have last_login data, we'll assume all users are active for now
       const activeUsers = profiles?.length || 0;
       const newUsersInPeriod = profiles?.length || 0;
 

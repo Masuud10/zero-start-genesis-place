@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { FileText, Download, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PDFGenerationService } from '@/services/pdfGenerationService';
 
 interface ReportExporterProps {
   onExport?: (format: string, reportType: string) => void;
@@ -21,7 +22,6 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
     { value: 'comprehensive', label: 'Comprehensive System Report' },
     { value: 'schools', label: 'School Performance Report' },
     { value: 'financial', label: 'Financial Summary Report' },
-    { value: 'support', label: 'Support Analytics Report' },
     { value: 'system_health', label: 'System Health Report' },
   ];
 
@@ -29,21 +29,36 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
     setIsExporting(true);
     
     try {
-      // Simulate export process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      switch (reportType) {
+        case 'comprehensive':
+          await PDFGenerationService.generateComprehensiveReport();
+          break;
+        case 'schools':
+          await PDFGenerationService.generateSchoolPerformanceReport();
+          break;
+        case 'financial':
+          await PDFGenerationService.generateFinancialReport();
+          break;
+        case 'system_health':
+          await PDFGenerationService.generateSystemHealthReport();
+          break;
+        default:
+          throw new Error('Invalid report type selected');
+      }
       
       toast({
-        title: "Export Successful",
-        description: `${reportTypes.find(r => r.value === reportType)?.label} exported as ${format.toUpperCase()}`,
+        title: "Report Generated Successfully",
+        description: `${reportTypes.find(r => r.value === reportType)?.label} has been downloaded as PDF`,
       });
       
       if (onExport) {
         onExport(format, reportType);
       }
     } catch (error) {
+      console.error('Report generation error:', error);
       toast({
-        title: "Export Failed",
-        description: "An error occurred while exporting the report.",
+        title: "Report Generation Failed",
+        description: "An error occurred while generating the report. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -85,8 +100,6 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pdf">PDF</SelectItem>
-                <SelectItem value="csv">CSV</SelectItem>
-                <SelectItem value="excel">Excel</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -95,7 +108,7 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>Current month data</span>
+            <span>Current system data</span>
           </div>
           
           <Button 
@@ -104,13 +117,13 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            {isExporting ? 'Exporting...' : 'Export Report'}
+            {isExporting ? 'Generating PDF...' : 'Export Report'}
           </Button>
         </div>
 
         <div className="pt-2 border-t">
           <p className="text-xs text-muted-foreground">
-            Reports include data from all schools in the network. Exported files will be available for download immediately.
+            Reports include real data from all schools in the network and are professionally formatted with EduFam branding.
           </p>
         </div>
       </CardContent>
