@@ -11,6 +11,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Settings, AlertTriangle } from 'lucide-react';
 
+interface MaintenanceConfig {
+  enabled: boolean;
+  message: string;
+  estimated_duration: string;
+  affected_services: string;
+}
+
 const MaintenanceSettings: React.FC = () => {
   const { toast } = useToast();
   const [maintenanceData, setMaintenanceData] = useState({
@@ -30,18 +37,19 @@ const MaintenanceSettings: React.FC = () => {
         .eq('setting_key', 'maintenance_mode');
 
       if (error) throw error;
-      return data?.[0]?.setting_value || {};
+      return data?.[0]?.setting_value as MaintenanceConfig || {};
     }
   });
 
   React.useEffect(() => {
     if (maintenanceConfig) {
+      const config = maintenanceConfig as MaintenanceConfig;
       setMaintenanceData(prev => ({
         ...prev,
-        maintenance_mode: maintenanceConfig.enabled || false,
-        maintenance_message: maintenanceConfig.message || prev.maintenance_message,
-        estimated_duration: maintenanceConfig.estimated_duration || '',
-        affected_services: maintenanceConfig.affected_services || 'All services'
+        maintenance_mode: config.enabled || false,
+        maintenance_message: config.message || prev.maintenance_message,
+        estimated_duration: config.estimated_duration || '',
+        affected_services: config.affected_services || 'All services'
       }));
     }
   }, [maintenanceConfig]);

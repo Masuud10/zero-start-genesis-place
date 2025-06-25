@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,11 +10,14 @@ import Index from "./pages/Index";
 import { HttpsEnforcer } from "./utils/httpsEnforcer";
 import { useEffect, useState } from "react";
 import { useAuth } from "./contexts/AuthContext";
+import Dashboard from "./components/Dashboard";
+import SchoolAnalyticsOverview from "./components/analytics/SchoolAnalyticsOverview";
+import SystemSettings from "./components/settings/SystemSettings";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
