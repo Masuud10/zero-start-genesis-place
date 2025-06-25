@@ -162,38 +162,38 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       roles: ['edufam_admin'],
       subItems: [
         {
-          id: 'system-settings-maintenance',
+          id: 'maintenance',
           label: 'Maintenance',
           icon: Wrench,
           roles: ['edufam_admin']
         },
         {
-          id: 'system-settings-database',
+          id: 'database',
           label: 'Database',
           icon: Database,
           roles: ['edufam_admin']
         },
         {
-          id: 'system-settings-security',
+          id: 'security',
           label: 'Security',
           icon: Shield,
           roles: ['edufam_admin']
         },
         {
-          id: 'system-settings-notifications',
+          id: 'notifications',
           label: 'Notifications',
           icon: Bell,
           roles: ['edufam_admin']
         },
         {
-          id: 'system-settings-users',
+          id: 'user-management',
           label: 'User Management',
           icon: UserPlus,
           roles: ['edufam_admin']
         },
         {
-          id: 'system-settings-company',
-          label: 'Company',
+          id: 'company-settings',
+          label: 'Company Settings',
           icon: Building2,
           roles: ['edufam_admin']
         }

@@ -46,7 +46,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
         <div className="space-y-1">
           {filteredItems.map((item) => (
             <div key={item.id}>
-              {item.subItems ? (
+              {item.subItems && item.subItems.length > 0 ? (
                 <MenuGroup
                   item={item}
                   activeSection={activeSection}

@@ -27,7 +27,7 @@ export const MenuGroup: React.FC<MenuGroupProps> = ({
   };
 
   const isActive = activeSection === item.id || 
-    item.subItems?.some(subItem => activeSection === subItem.id);
+    (item.subItems && item.subItems.some(subItem => activeSection === subItem.id));
 
   return (
     <div>
