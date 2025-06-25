@@ -37,16 +37,16 @@ export class SystemMaintenanceService {
       
       const { error } = await supabase
         .from('system_settings')
-        .update({
+        .upsert({
+          setting_key: 'maintenance_mode',
           setting_value: {
             enabled,
             message: currentMessage,
             updated_at: new Date().toISOString()
-          },
-          updated_at: new Date().toISOString(),
-          updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('setting_key', 'maintenance_mode');
+          }
+        }, {
+          onConflict: 'setting_key'
+        });
 
       if (error) throw error;
 
@@ -54,24 +54,6 @@ export class SystemMaintenanceService {
     } catch (error: any) {
       console.error('Error updating maintenance status:', error);
       return { success: false, error };
-    }
-  }
-
-  static async checkSystemStatus(): Promise<{ inMaintenance: boolean; message?: string }> {
-    try {
-      const { data } = await this.getMaintenanceStatus();
-      
-      if (!data) {
-        return { inMaintenance: false };
-      }
-
-      return {
-        inMaintenance: data.enabled,
-        message: data.message
-      };
-    } catch (error) {
-      console.error('Error checking system status:', error);
-      return { inMaintenance: false };
     }
   }
 }

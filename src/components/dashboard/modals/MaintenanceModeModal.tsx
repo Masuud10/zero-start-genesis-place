@@ -2,14 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { AuthUser } from '@/types/auth';
 import { SystemMaintenanceService } from '@/services/system/systemMaintenanceService';
-import { Settings, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Settings, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface MaintenanceModeModalProps {
   isOpen: boolean;
@@ -27,32 +27,37 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
-  const [maintenanceMessage, setMaintenanceMessage] = useState(
-    'System is currently under maintenance. Please try again later.'
-  );
+  const [settings, setSettings] = useState({
+    enabled: false,
+    message: 'System is currently under maintenance. Please try again later.'
+  });
 
   useEffect(() => {
     if (isOpen) {
-      fetchMaintenanceStatus();
+      fetchMaintenanceSettings();
     }
   }, [isOpen]);
 
-  const fetchMaintenanceStatus = async () => {
+  const fetchMaintenanceSettings = async () => {
     try {
       setLoading(true);
-      const { data } = await SystemMaintenanceService.getMaintenanceStatus();
-      if (data) {
-        setMaintenanceEnabled(data.enabled);
-        setMaintenanceMessage(data.message);
+      const { data, error } = await SystemMaintenanceService.getMaintenanceStatus();
+      
+      if (error) {
+        console.error('Error fetching maintenance settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load maintenance settings",
+          variant: "destructive",
+        });
+      } else if (data) {
+        setSettings({
+          enabled: data.enabled,
+          message: data.message
+        });
       }
     } catch (error) {
-      console.error('Error fetching maintenance status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch maintenance settings",
-        variant: "destructive",
-      });
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
@@ -62,10 +67,10 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
     try {
       setSaving(true);
       const { success, error } = await SystemMaintenanceService.updateMaintenanceStatus(
-        maintenanceEnabled,
-        maintenanceMessage
+        settings.enabled,
+        settings.message
       );
-
+      
       if (success) {
         toast({
           title: "Success",
@@ -74,13 +79,17 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
         onSuccess();
         onClose();
       } else {
-        throw new Error(error?.message || 'Failed to update maintenance settings');
+        toast({
+          title: "Error",
+          description: "Failed to update maintenance settings",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error('Error updating maintenance settings:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update maintenance settings",
+        description: "Failed to update maintenance settings",
         variant: "destructive",
       });
     } finally {
@@ -107,56 +116,50 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Maintenance Mode Settings
+            Maintenance Mode
           </DialogTitle>
           <DialogDescription>
-            Configure system maintenance mode and message
+            Control system-wide maintenance mode settings
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
-          {maintenanceEnabled ? (
-            <Alert className="bg-yellow-50 border-yellow-200">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-700">
-                Maintenance mode is currently enabled. Users will see the maintenance message.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700">
-                System is running normally. Users have full access.
-              </AlertDescription>
-            </Alert>
-          )}
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Enabling maintenance mode will prevent all users except admins from accessing the system.
+            </AlertDescription>
+          </Alert>
 
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="maintenance-toggle">Enable Maintenance Mode</Label>
-              <p className="text-xs text-gray-500">
-                When enabled, users will be shown a maintenance message
-              </p>
+              <Label htmlFor="maintenance-enabled">Enable Maintenance Mode</Label>
+              <p className="text-xs text-gray-500 mt-1">Block non-admin user access</p>
             </div>
             <Switch
-              id="maintenance-toggle"
-              checked={maintenanceEnabled}
-              onCheckedChange={setMaintenanceEnabled}
+              id="maintenance-enabled"
+              checked={settings.enabled}
+              onCheckedChange={(checked) => 
+                setSettings(prev => ({ ...prev, enabled: checked }))
+              }
             />
           </div>
 
-          {maintenanceEnabled && (
-            <div>
-              <Label htmlFor="maintenance-message">Maintenance Message</Label>
-              <Textarea
-                id="maintenance-message"
-                value={maintenanceMessage}
-                onChange={(e) => setMaintenanceMessage(e.target.value)}
-                placeholder="Enter the message to display to users during maintenance"
-                rows={4}
-              />
-            </div>
-          )}
+          <div>
+            <Label htmlFor="maintenance-message">Maintenance Message</Label>
+            <Input
+              id="maintenance-message"
+              value={settings.message}
+              onChange={(e) => 
+                setSettings(prev => ({ ...prev, message: e.target.value }))
+              }
+              placeholder="Enter maintenance message for users"
+              className="mt-1"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              This message will be displayed to users when they try to access the system.
+            </p>
+          </div>
 
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
