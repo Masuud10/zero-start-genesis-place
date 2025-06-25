@@ -6,177 +6,101 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { Settings, AlertTriangle } from 'lucide-react';
-
-interface MaintenanceConfig {
-  enabled: boolean;
-  message: string;
-  estimated_duration: string;
-  affected_services: string;
-}
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useMaintenanceSettings, useUpdateMaintenanceSettings } from '@/hooks/useMaintenanceSettings';
+import { Settings, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const MaintenanceSettings: React.FC = () => {
-  const { toast } = useToast();
-  const [maintenanceData, setMaintenanceData] = useState({
-    maintenance_mode: false,
-    maintenance_message: 'System is under maintenance. Please try again later.',
-    estimated_duration: '',
-    affected_services: 'All services'
-  });
-
-  // Fetch current maintenance settings
-  const { data: maintenanceConfig } = useQuery({
-    queryKey: ['maintenance-config'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_key, setting_value')
-        .eq('setting_key', 'maintenance_mode');
-
-      if (error) throw error;
-      
-      // Safely parse the JSON value
-      const settingValue = data?.[0]?.setting_value;
-      if (settingValue && typeof settingValue === 'object' && !Array.isArray(settingValue)) {
-        return settingValue as unknown as MaintenanceConfig;
-      }
-      
-      // Return default config if no valid data
-      return {
-        enabled: false,
-        message: 'System is under maintenance. Please try again later.',
-        estimated_duration: '',
-        affected_services: 'All services'
-      } as MaintenanceConfig;
-    }
-  });
+  const { data: maintenanceSettings, isLoading } = useMaintenanceSettings();
+  const updateMaintenance = useUpdateMaintenanceSettings();
+  
+  const [enabled, setEnabled] = useState(false);
+  const [message, setMessage] = useState('System is currently under maintenance. Please try again later.');
 
   React.useEffect(() => {
-    if (maintenanceConfig) {
-      setMaintenanceData(prev => ({
-        ...prev,
-        maintenance_mode: maintenanceConfig.enabled || false,
-        maintenance_message: maintenanceConfig.message || prev.maintenance_message,
-        estimated_duration: maintenanceConfig.estimated_duration || '',
-        affected_services: maintenanceConfig.affected_services || 'All services'
-      }));
+    if (maintenanceSettings) {
+      setEnabled(maintenanceSettings.enabled);
+      setMessage(maintenanceSettings.message);
     }
-  }, [maintenanceConfig]);
+  }, [maintenanceSettings]);
 
-  const updateMaintenanceMutation = useMutation({
-    mutationFn: async (config: typeof maintenanceData) => {
-      const { error } = await supabase
-        .from('system_settings')
-        .upsert({
-          setting_key: 'maintenance_mode',
-          setting_value: {
-            enabled: config.maintenance_mode,
-            message: config.maintenance_message,
-            estimated_duration: config.estimated_duration,
-            affected_services: config.affected_services,
-            updated_at: new Date().toISOString()
-          }
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Maintenance settings updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      console.error('Error updating maintenance settings:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update maintenance settings",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateMaintenanceMutation.mutate(maintenanceData);
+  const handleSave = () => {
+    updateMaintenance.mutate({ enabled, message });
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings className="h-5 w-5" />
-          Maintenance Settings
+          Maintenance Mode Settings
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="maintenance_mode">Enable Maintenance Mode</Label>
-              <p className="text-xs text-gray-500">Prevent user access to the system</p>
-            </div>
-            <Switch
-              id="maintenance_mode"
-              checked={maintenanceData.maintenance_mode}
-              onCheckedChange={(checked) => 
-                setMaintenanceData(prev => ({ ...prev, maintenance_mode: checked }))
-              }
+      <CardContent className="space-y-4">
+        {enabled && (
+          <Alert className="bg-yellow-50 border-yellow-200">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-700">
+              Maintenance mode is currently enabled. Users will see the maintenance message.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!enabled && (
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-700">
+              System is running normally. Users have full access.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="maintenance-mode">Enable Maintenance Mode</Label>
+            <p className="text-xs text-gray-500">
+              When enabled, users will be shown a maintenance message
+            </p>
+          </div>
+          <Switch
+            id="maintenance-mode"
+            checked={enabled}
+            onCheckedChange={setEnabled}
+          />
+        </div>
+
+        {enabled && (
+          <div>
+            <Label htmlFor="maintenance-message">Maintenance Message</Label>
+            <Textarea
+              id="maintenance-message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Enter the message to display to users during maintenance"
+              rows={4}
             />
           </div>
+        )}
 
-          {maintenanceData.maintenance_mode && (
-            <>
-              <div>
-                <Label htmlFor="maintenance_message">Maintenance Message</Label>
-                <Textarea
-                  id="maintenance_message"
-                  value={maintenanceData.maintenance_message}
-                  onChange={(e) => 
-                    setMaintenanceData(prev => ({ ...prev, maintenance_message: e.target.value }))
-                  }
-                  placeholder="Message to display during maintenance"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="estimated_duration">Estimated Duration</Label>
-                <Input
-                  id="estimated_duration"
-                  value={maintenanceData.estimated_duration}
-                  onChange={(e) => 
-                    setMaintenanceData(prev => ({ ...prev, estimated_duration: e.target.value }))
-                  }
-                  placeholder="e.g., 2 hours"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="affected_services">Affected Services</Label>
-                <Input
-                  id="affected_services"
-                  value={maintenanceData.affected_services}
-                  onChange={(e) => 
-                    setMaintenanceData(prev => ({ ...prev, affected_services: e.target.value }))
-                  }
-                  placeholder="All services"
-                />
-              </div>
-            </>
-          )}
-
-          <Button 
-            type="submit" 
-            disabled={updateMaintenanceMutation.isPending}
-            className="w-full"
-          >
-            {updateMaintenanceMutation.isPending ? 'Updating...' : 'Update Maintenance Settings'}
-          </Button>
-        </form>
+        <Button 
+          onClick={handleSave} 
+          disabled={updateMaintenance.isPending}
+          className="w-full"
+        >
+          {updateMaintenance.isPending ? 'Saving...' : 'Save Settings'}
+        </Button>
       </CardContent>
     </Card>
   );

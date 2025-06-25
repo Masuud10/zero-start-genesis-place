@@ -29,9 +29,9 @@ export const MenuItem: React.FC<MenuItemProps> = ({
         isActive
           ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
           : 'text-gray-700 hover:bg-gray-100'
-      } ${isSubItem ? 'text-xs pl-6' : ''}`}
+      } ${isSubItem ? 'pl-6' : ''}`}
     >
-      <Icon className={`flex-shrink-0 ${isSubItem ? 'h-3 w-3' : 'h-4 w-4'}`} />
+      <Icon className="h-4 w-4 flex-shrink-0" />
       <span className="flex-1 text-left">{item.label}</span>
     </button>
   );

@@ -34,6 +34,7 @@ export interface MenuItem {
   icon: any;
   roles: string[];
   permission?: string;
+  subItems?: MenuItem[];
 }
 
 export const getMenuItems = (userRole?: string): MenuItem[] => {

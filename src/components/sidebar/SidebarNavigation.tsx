@@ -1,33 +1,24 @@
-
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { getMenuItems } from './SidebarMenuItems';
-import { SidebarContent } from '@/components/ui/sidebar';
 import { MenuGroup } from './MenuGroup';
 import { MenuItem } from './MenuItem';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarNavigationProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
 }
 
-const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
+export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   activeSection,
-  onSectionChange,
+  onSectionChange
 }) => {
   const { user } = useAuth();
-  const [expandedItems, setExpandedItems] = useState<string[]>(['system-settings']);
-  
-  console.log('🔧 SidebarNavigation: Rendering with user role:', user?.role);
-  
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
   const menuItems = getMenuItems(user?.role);
-  const filteredItems = menuItems.filter(item => 
-    item.roles.includes(user?.role || '')
-  );
 
-  console.log('📋 SidebarNavigation: Filtered menu items:', filteredItems.length);
-
-  const toggleExpanded = (itemId: string) => {
+  const handleToggleExpanded = (itemId: string) => {
     setExpandedItems(prev => 
       prev.includes(itemId) 
         ? prev.filter(id => id !== itemId)
@@ -35,38 +26,33 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     );
   };
 
-  const handleSectionChange = (section: string) => {
-    console.log('🎯 SidebarNavigation: Section change requested:', section);
-    onSectionChange(section);
-  };
-
   return (
-    <SidebarContent>
-      <div className="px-3 py-2">
-        <div className="space-y-1">
-          {filteredItems.map((item) => (
-            <div key={item.id}>
-              {item.subItems && item.subItems.length > 0 ? (
-                <MenuGroup
-                  item={item}
-                  activeSection={activeSection}
-                  expandedItems={expandedItems}
-                  onToggleExpanded={toggleExpanded}
-                  onSectionChange={handleSectionChange}
-                />
-              ) : (
-                <MenuItem
-                  item={item}
-                  activeSection={activeSection}
-                  onSectionChange={handleSectionChange}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </SidebarContent>
+    <nav className="space-y-1">
+      {menuItems.map((item) => {
+        // If item has subItems, render as MenuGroup
+        if (item.subItems && item.subItems.length > 0) {
+          return (
+            <MenuGroup
+              key={item.id}
+              item={item}
+              activeSection={activeSection}
+              expandedItems={expandedItems}
+              onToggleExpanded={handleToggleExpanded}
+              onSectionChange={onSectionChange}
+            />
+          );
+        }
+
+        // Otherwise render as regular MenuItem
+        return (
+          <MenuItem
+            key={item.id}
+            item={item}
+            activeSection={activeSection}
+            onSectionChange={onSectionChange}
+          />
+        );
+      })}
+    </nav>
   );
 };
-
-export default SidebarNavigation;

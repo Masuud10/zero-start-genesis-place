@@ -1,53 +1,78 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useMaintenanceSettings, useUpdateMaintenanceSettings } from '@/hooks/useMaintenanceSettings';
-import { Settings, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { SystemMaintenanceService } from '@/services/system/systemMaintenanceService';
+import { Settings, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 
 const SystemMaintenanceControl = () => {
-  const { data: maintenanceSettings, isLoading } = useMaintenanceSettings();
-  const updateMaintenance = useUpdateMaintenanceSettings();
-  
-  const [enabled, setEnabled] = useState(false);
-  const [message, setMessage] = useState('');
-
-  React.useEffect(() => {
-    if (maintenanceSettings) {
-      setEnabled(maintenanceSettings.enabled);
-      setMessage(maintenanceSettings.message);
-    }
-  }, [maintenanceSettings]);
-
-  const handleToggleChange = (checked: boolean) => {
-    setEnabled(checked);
-  };
-
-  const handleSaveSettings = () => {
-    updateMaintenance.mutate({ enabled, message });
-  };
-
-  const hasChanges = maintenanceSettings && (
-    enabled !== maintenanceSettings.enabled || 
-    message !== maintenanceSettings.message
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState(
+    'System is currently under maintenance. Please try again later.'
   );
 
-  if (isLoading) {
+  React.useEffect(() => {
+    fetchMaintenanceStatus();
+  }, []);
+
+  const fetchMaintenanceStatus = async () => {
+    try {
+      setLoading(true);
+      const { data } = await SystemMaintenanceService.getMaintenanceStatus();
+      if (data) {
+        setMaintenanceEnabled(data.enabled);
+        setMaintenanceMessage(data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching maintenance status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const { success, error } = await SystemMaintenanceService.updateMaintenanceStatus(
+        maintenanceEnabled,
+        maintenanceMessage
+      );
+
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Maintenance settings updated successfully",
+        });
+      } else {
+        throw new Error(error?.message || 'Failed to update maintenance settings');
+      }
+    } catch (error: any) {
+      console.error('Error updating maintenance settings:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update maintenance settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            System Maintenance Control
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading maintenance settings...</span>
           </div>
         </CardContent>
       </Card>
@@ -58,76 +83,68 @@ const SystemMaintenanceControl = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Settings className="w-5 h-5" />
+          <Settings className="h-5 w-5" />
           System Maintenance Control
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <Alert className={enabled ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
-          {enabled ? (
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          ) : (
+      <CardContent className="space-y-4">
+        {maintenanceEnabled ? (
+          <Alert className="bg-yellow-50 border-yellow-200">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-700">
+              Maintenance mode is currently enabled. Users will see the maintenance message.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="bg-green-50 border-green-200">
             <CheckCircle className="h-4 w-4 text-green-600" />
-          )}
-          <AlertDescription className={enabled ? "text-red-700" : "text-green-700"}>
-            <strong>System Status:</strong> {enabled ? 'Maintenance Mode - Active' : 'Available - Normal Operations'}
-          </AlertDescription>
-        </Alert>
+            <AlertDescription className="text-green-700">
+              System is running normally. Users have full access.
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="maintenance-toggle" className="text-base font-medium">
-                Maintenance Mode
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                When enabled, non-admin users will see a maintenance message and cannot access the system
-              </p>
-            </div>
-            <Switch
-              id="maintenance-toggle"
-              checked={enabled}
-              onCheckedChange={handleToggleChange}
-            />
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="maintenance-toggle">Enable Maintenance Mode</Label>
+            <p className="text-xs text-gray-500">
+              When enabled, users will be shown a maintenance message
+            </p>
           </div>
+          <Switch
+            id="maintenance-toggle"
+            checked={maintenanceEnabled}
+            onCheckedChange={setMaintenanceEnabled}
+          />
+        </div>
 
-          <div className="space-y-2">
+        {maintenanceEnabled && (
+          <div>
             <Label htmlFor="maintenance-message">Maintenance Message</Label>
             <Textarea
               id="maintenance-message"
-              placeholder="Enter the message users will see during maintenance..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={3}
+              value={maintenanceMessage}
+              onChange={(e) => setMaintenanceMessage(e.target.value)}
+              placeholder="Enter the message to display to users during maintenance"
+              rows={4}
             />
-            <p className="text-xs text-muted-foreground">
-              This message will be displayed to all non-admin users when maintenance mode is active
-            </p>
           </div>
+        )}
 
-          <div className="flex items-center gap-3 pt-4">
-            <Button
-              onClick={handleSaveSettings}
-              disabled={!hasChanges || updateMaintenance.isPending}
-              className={enabled ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
-            >
-              {updateMaintenance.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Updating...
-                </>
-              ) : (
-                `${enabled ? 'Enable' : 'Disable'} Maintenance Mode`
-              )}
-            </Button>
-            
-            {hasChanges && (
-              <p className="text-sm text-amber-600">
-                You have unsaved changes
-              </p>
-            )}
-          </div>
-        </div>
+        <Button 
+          onClick={handleSave} 
+          disabled={saving}
+          className="w-full"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Maintenance Settings'
+          )}
+        </Button>
       </CardContent>
     </Card>
   );

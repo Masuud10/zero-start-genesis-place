@@ -49,6 +49,12 @@ const DashboardModals: React.FC<DashboardModalsProps> = ({
       );
     
     case 'system-config':
+    case 'maintenance-mode':
+    case 'database-settings':
+    case 'security-settings':
+    case 'notification-settings':
+    case 'user-management':
+    case 'company-details':
       return (
         <SystemConfigModal
           isOpen={true}
