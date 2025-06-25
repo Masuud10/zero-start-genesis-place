@@ -147,15 +147,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       {/* Excel report download shortcuts for EduFam Admin */}
       {renderReportDownloads()}
 
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white rounded-xl p-6 shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {user.name}!</h1>
-        <p className="text-blue-100">
-          Manage your educational platform from this comprehensive admin dashboard
-        </p>
-      </div>
-
-      {/* Stats Icons directly below greetings */}
+      {/* Stats Icons directly below greetings - REMOVED DUPLICATE WELCOME SECTION */}
       <SystemOverviewCards
         schoolsCount={validSchoolsData.length}
         totalUsers={userStats.totalUsers}

@@ -163,37 +163,37 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       subItems: [
         {
           id: 'system-settings-maintenance',
-          label: 'Maintenance Settings',
+          label: 'Maintenance',
           icon: Wrench,
           roles: ['edufam_admin']
         },
         {
           id: 'system-settings-database',
-          label: 'Database Settings',
+          label: 'Database',
           icon: Database,
           roles: ['edufam_admin']
         },
         {
           id: 'system-settings-security',
-          label: 'Security Settings',
+          label: 'Security',
           icon: Shield,
           roles: ['edufam_admin']
         },
         {
           id: 'system-settings-notifications',
-          label: 'Notification Settings',
+          label: 'Notifications',
           icon: Bell,
           roles: ['edufam_admin']
         },
         {
           id: 'system-settings-users',
-          label: 'User Management Settings',
+          label: 'User Management',
           icon: UserPlus,
           roles: ['edufam_admin']
         },
         {
           id: 'system-settings-company',
-          label: 'Company Settings',
+          label: 'Company',
           icon: Building2,
           roles: ['edufam_admin']
         }
