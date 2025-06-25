@@ -49,8 +49,7 @@ export const useFeeCollectionData = () => {
         .from('students')
         .select(`
           id,
-          class_id,
-          classes!inner(id, name)
+          class_id
         `)
         .in('id', studentIds)
         .eq('school_id', user.school_id);
@@ -60,29 +59,44 @@ export const useFeeCollectionData = () => {
         throw studentsError;
       }
 
+      // Fetch class information separately
+      const classIds = [...new Set(studentsData?.map(s => s.class_id).filter(Boolean) || [])];
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name')
+        .in('id', classIds);
+
+      if (classesError) {
+        console.error('Error fetching classes data:', classesError);
+        throw classesError;
+      }
+
+      // Create a map for quick class lookup
+      const classMap = new Map(classesData?.map(c => [c.id, c.name]) || []);
+
       // Group by class and calculate totals
-      const classMap = new Map();
+      const classDataMap = new Map();
       
       feesData.forEach(fee => {
         const student = studentsData?.find(s => s.id === fee.student_id);
-        const className = student?.classes?.name || 'Unknown Class';
+        const className = classMap.get(student?.class_id) || 'Unknown Class';
         const amount = Number(fee.amount || 0);
         const paidAmount = Number(fee.paid_amount || 0);
         
-        if (!classMap.has(className)) {
-          classMap.set(className, {
+        if (!classDataMap.has(className)) {
+          classDataMap.set(className, {
             class: className,
             expected: 0,
             collected: 0
           });
         }
         
-        const classData = classMap.get(className);
+        const classData = classDataMap.get(className);
         classData.expected += amount;
         classData.collected += paidAmount;
       });
 
-      const collectionData = Array.from(classMap.values());
+      const collectionData = Array.from(classDataMap.values());
       
       // If no data, provide some default structure
       if (collectionData.length === 0) {

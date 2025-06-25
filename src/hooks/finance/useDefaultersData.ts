@@ -47,15 +47,14 @@ export const useDefaultersData = () => {
       // Get unique student IDs from the fees
       const studentIds = [...new Set(feesData.map(fee => fee.student_id))];
 
-      // Fetch student details separately
+      // Fetch student details with explicit join to classes
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select(`
           id,
           name,
           admission_number,
-          class_id,
-          classes!inner(name)
+          class_id
         `)
         .in('id', studentIds)
         .eq('school_id', user.school_id);
@@ -64,6 +63,21 @@ export const useDefaultersData = () => {
         console.error('Error fetching students data:', studentsError);
         throw studentsError;
       }
+
+      // Fetch class information separately
+      const classIds = [...new Set(studentsData?.map(s => s.class_id).filter(Boolean) || [])];
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name')
+        .in('id', classIds);
+
+      if (classesError) {
+        console.error('Error fetching classes data:', classesError);
+        throw classesError;
+      }
+
+      // Create a map for quick class lookup
+      const classMap = new Map(classesData?.map(c => [c.id, c.name]) || []);
 
       // Process defaulters data by combining fees and student info
       const processedDefaulters = feesData
@@ -85,7 +99,7 @@ export const useDefaultersData = () => {
           return {
             student_name: student?.name || 'Unknown Student',
             admission_number: student?.admission_number || 'N/A',
-            class_name: student?.classes?.name || 'Unknown Class',
+            class_name: classMap.get(student?.class_id) || 'Unknown Class',
             outstanding_amount: outstandingAmount,
             days_overdue: daysOverdue
           };
