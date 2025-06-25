@@ -50,20 +50,12 @@ const getDefaultMetrics = () => ({
   defaultersCount: 0
 });
 
-const getDefaultData = (): FinanceAnalyticsData => ({
-  keyMetrics: getDefaultMetrics(),
-  feeCollectionData: [],
-  dailyTransactions: [],
-  expenseBreakdown: [],
-  defaultersList: []
-});
-
 export const useFinanceOfficerAnalytics = (filters: { term: string; class: string }) => {
   const [data, setData] = useState<FinanceAnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Individual hooks with error handling
+  // Individual hooks
   const { 
     metrics, 
     isLoading: metricsLoading, 
@@ -95,7 +87,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
   } = useDefaultersData();
 
   useEffect(() => {
-    // Wait for all hooks to complete loading
+    // Check if all individual hooks have finished loading
     const allLoaded = !metricsLoading && !feeLoading && !transactionLoading && !expenseLoading && !defaultersLoading;
     
     if (allLoaded) {
@@ -107,7 +99,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         defaultersList
       });
 
-      // Aggregate errors
+      // Check for any errors
       const errors = [metricsError, feeError, transactionError, expenseError, defaultersError].filter(Boolean);
       
       if (errors.length > 0) {
@@ -117,7 +109,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         setError(null);
       }
 
-      // Construct data with fallbacks
+      // Construct final data object
       const financeData: FinanceAnalyticsData = {
         keyMetrics: metrics || getDefaultMetrics(),
         feeCollectionData: feeCollectionData || [],
@@ -135,11 +127,11 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
     metricsError, feeError, transactionError, expenseError, defaultersError
   ]);
 
-  const refetch = () => {
+  const refetch = async () => {
     console.log('Refetching finance analytics data...');
     setIsLoading(true);
     setError(null);
-    // Individual refetch calls would go here if the hooks support it
+    // Individual hooks will handle their own refetching
   };
 
   return {

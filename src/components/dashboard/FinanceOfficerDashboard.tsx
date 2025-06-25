@@ -29,7 +29,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
     if (isLoading) {
       const timeout = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 10000); // 10 seconds timeout
+      }, 15000); // 15 seconds timeout
 
       return () => clearTimeout(timeout);
     } else {
@@ -53,7 +53,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-muted-foreground">Loading financial overview...</p>
-          <p className="text-sm text-muted-foreground mt-2">This may take a few moments</p>
+          <p className="text-sm text-muted-foreground mt-2">Please wait while we fetch your data</p>
         </div>
       </div>
     );
@@ -88,7 +88,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
     );
   }
 
-  // Show basic metrics even if some data is missing
+  // Use data with safe fallbacks
   const safeData = data || {
     keyMetrics: {
       totalRevenue: 0,
@@ -162,50 +162,50 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">MPESA Payments</CardTitle>
+            <CardTitle className="text-sm font-medium">Collection Rate</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              KES {safeData.keyMetrics.totalMpesaPayments.toLocaleString()}
+              {safeData.keyMetrics.collectionRate}%
             </div>
-            <p className="text-xs text-muted-foreground">Digital payments</p>
+            <p className="text-xs text-muted-foreground">Payment efficiency</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Detailed Analytics */}
-      {data ? (
-        <div className="space-y-6">
-          {/* Key Metrics */}
-          <FinanceKeyMetrics keyMetrics={data.keyMetrics} />
-          
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DailyTransactionsChart data={data.dailyTransactions} />
-            <ExpenseBreakdownChart data={data.expenseBreakdown} />
-          </div>
-
-          {/* Defaulters List */}
-          <TopDefaultersList data={data.defaultersList} />
+      <div className="space-y-6">
+        {/* Key Metrics */}
+        <FinanceKeyMetrics keyMetrics={safeData.keyMetrics} />
+        
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DailyTransactionsChart data={safeData.dailyTransactions} />
+          <ExpenseBreakdownChart data={safeData.expenseBreakdown} />
         </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="bg-white rounded-lg shadow-sm border p-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Limited Financial Data Available</h3>
-            <p className="text-gray-500 mb-4">
-              Some financial data is currently unavailable. This could be because:
+
+        {/* Defaulters List */}
+        <TopDefaultersList data={safeData.defaultersList} />
+      </div>
+
+      {/* Data Status Info */}
+      {(!data || (safeData.keyMetrics.totalRevenue === 0 && safeData.feeCollectionData.length === 0)) && (
+        <div className="text-center py-8">
+          <div className="bg-blue-50 rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-medium text-blue-900 mb-2">Getting Started</h3>
+            <p className="text-blue-700 mb-4">
+              No financial data found. This could be because:
             </p>
-            <ul className="text-sm text-gray-500 text-left max-w-md mx-auto space-y-1">
+            <ul className="text-sm text-blue-600 text-left max-w-md mx-auto space-y-1">
               <li>• No fee structures have been set up</li>
               <li>• No student fee records exist</li>
-              <li>• No expenses have been recorded</li>
-              <li>• Data is still being processed</li>
+              <li>• No payments have been recorded</li>
+              <li>• No expenses have been logged</li>
             </ul>
-            <Button onClick={handleRefresh} className="mt-4" variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
+            <p className="text-sm text-blue-600 mt-4">
+              Start by setting up fee structures in the Finance Module to see analytics here.
+            </p>
           </div>
         </div>
       )}

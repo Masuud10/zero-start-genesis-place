@@ -41,7 +41,7 @@ export const useFinanceMetrics = () => {
 
       console.log('Fetching finance metrics for school:', user.school_id);
 
-      // Fetch fees data with error handling
+      // Fetch fees data
       const { data: feesData, error: feesError } = await supabase
         .from('fees')
         .select('amount, paid_amount, due_date, status')
@@ -49,10 +49,10 @@ export const useFinanceMetrics = () => {
 
       if (feesError) {
         console.error('Error fetching fees:', feesError);
-        // Continue with empty data rather than failing completely
+        throw feesError;
       }
 
-      // Fetch students count with error handling
+      // Fetch students count
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('id')
@@ -61,17 +61,19 @@ export const useFinanceMetrics = () => {
 
       if (studentsError) {
         console.error('Error fetching students:', studentsError);
+        // Don't throw, just log and continue with empty array
       }
 
-      // Fetch MPESA transactions with error handling
+      // Fetch MPESA transactions
       const { data: mpesaData, error: mpesaError } = await supabase
-        .from('mpesa_transactions')
-        .select('amount_paid')
+        .from('financial_transactions')
+        .select('amount')
         .eq('school_id', user.school_id)
-        .eq('transaction_status', 'Success');
+        .eq('payment_method', 'mpesa');
 
       if (mpesaError) {
         console.error('Error fetching MPESA data:', mpesaError);
+        // Don't throw, just log and continue with empty array
       }
 
       // Calculate metrics with safe defaults
@@ -92,14 +94,14 @@ export const useFinanceMetrics = () => {
       const outstandingAmount = totalFees - totalPaid;
       
       const totalMpesaPayments = mpesaTransactions.reduce((sum, txn) => {
-        const amount = Number(txn.amount_paid || 0);
+        const amount = Number(txn.amount || 0);
         return sum + amount;
       }, 0);
 
       const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
       const totalStudents = students.length;
 
-      // Find defaulters
+      // Find defaulters (fees past due date with outstanding amounts)
       const today = new Date();
       const defaultersList = fees.filter(fee => {
         const dueDate = new Date(fee.due_date);
