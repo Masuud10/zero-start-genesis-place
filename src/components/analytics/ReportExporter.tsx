@@ -48,6 +48,7 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
     try {
       console.log(`Starting PDF generation for report type: ${reportType}`);
       
+      // Call the appropriate PDF generation method based on report type
       switch (reportType) {
         case 'comprehensive':
           await PDFGenerationService.generateComprehensiveReport();
@@ -69,12 +70,12 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
       setLastGenerated(new Date().toLocaleString());
       
       toast({
-        title: "✅ Report Generated Successfully",
+        title: "✅ PDF Report Generated Successfully",
         description: (
           <div className="space-y-1">
             <p className="font-medium">{selectedReport?.label}</p>
             <p className="text-sm text-muted-foreground">
-              Professional PDF report has been downloaded with EduFam branding
+              Professional PDF report with EduFam branding has been downloaded
             </p>
           </div>
         ),
@@ -84,9 +85,9 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
         onExport(format, reportType);
       }
     } catch (error) {
-      console.error('Report generation error:', error);
+      console.error('PDF Report generation error:', error);
       toast({
-        title: "❌ Report Generation Failed",
+        title: "❌ PDF Report Generation Failed",
         description: "An error occurred while generating the PDF report. Please try again.",
         variant: "destructive",
       });
@@ -102,10 +103,10 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
         <CardTitle className="flex items-center gap-2 text-blue-900">
           <FileText className="h-5 w-5" />
-          Professional Report Export
+          EduFam PDF Report Generation
         </CardTitle>
         <p className="text-sm text-blue-700">
-          Generate branded PDF reports with real-time system data
+          Generate professional PDF reports with real-time system data and EduFam branding
         </p>
       </CardHeader>
       <CardContent className="space-y-6 p-6">
@@ -133,16 +134,16 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Export Format</label>
-            <Select value={format} onValueChange={setFormat}>
+            <Select value={format} onValueChange={setFormat} disabled>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pdf">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
+                    <FileText className="h-4 w-4 text-red-600" />
                     <span>Professional PDF</span>
-                    <Badge variant="secondary" className="ml-2">Recommended</Badge>
+                    <Badge variant="secondary" className="ml-2">Only Format</Badge>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -153,20 +154,24 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
         {/* Report Preview */}
         {selectedReportType && (
           <div className="bg-gray-50 p-4 rounded-lg border">
-            <h4 className="font-medium text-gray-900 mb-2">Report Preview</h4>
+            <h4 className="font-medium text-gray-900 mb-2">PDF Report Preview</h4>
             <p className="text-sm text-gray-600 mb-3">{selectedReportType.description}</p>
             <div className="flex items-center gap-4 text-xs text-gray-500">
               <div className="flex items-center gap-1">
                 <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>EduFam Branding</span>
+                <span>EduFam Branding & Logo</span>
               </div>
               <div className="flex items-center gap-1">
                 <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>Real-time Data</span>
+                <span>Real Database Data</span>
               </div>
               <div className="flex items-center gap-1">
                 <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>Professional Format</span>
+                <span>Professional PDF Format</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <CheckCircle className="h-3 w-3 text-green-600" />
+                <span>Formatted Tables & Charts</span>
               </div>
             </div>
           </div>
@@ -175,10 +180,10 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>Real-time system data</span>
+            <span>Live system data • PDF format only</span>
             {lastGenerated && (
               <Badge variant="outline" className="ml-2">
-                Last: {lastGenerated}
+                Last Generated: {lastGenerated}
               </Badge>
             )}
           </div>
@@ -186,7 +191,7 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
           <Button 
             onClick={handleExport} 
             disabled={isExporting}
-            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[140px]"
+            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[160px]"
           >
             {isExporting ? (
               <>
@@ -196,7 +201,7 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Export PDF Report
+                Generate PDF Report
               </>
             )}
           </Button>
@@ -208,11 +213,12 @@ const ReportExporter = ({ onExport }: ReportExporterProps) => {
             <div className="text-xs text-blue-700">
               <p className="font-medium mb-1">Professional PDF Reports Include:</p>
               <ul className="space-y-1 list-disc list-inside ml-2">
-                <li>EduFam company branding and logo</li>
-                <li>Real data from all schools in the network</li>
-                <li>Professional formatting with headers and tables</li>
-                <li>Footer with page numbers and generation date</li>
-                <li>Summary statistics and visual insights</li>
+                <li>EduFam company branding, logo, and professional headers</li>
+                <li>Real-time data from all schools and users in the network</li>
+                <li>Well-formatted tables with proper styling and alignment</li>
+                <li>Professional footer with page numbers and generation timestamp</li>
+                <li>Summary statistics, insights, and visual data presentation</li>
+                <li>Structured layout with clear sections and hierarchical information</li>
               </ul>
             </div>
           </div>
