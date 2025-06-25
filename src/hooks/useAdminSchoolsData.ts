@@ -1,31 +1,47 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { SchoolService } from '@/services/schoolService';
+import { supabase } from '@/integrations/supabase/client';
 
-export function useAdminSchoolsData(refreshKey: number) {
+/**
+ * Fetches all schools with their basic information for admin dashboard
+ */
+export function useAdminSchoolsData(refreshKey = 0) {
   return useQuery({
     queryKey: ['admin-schools', refreshKey],
     queryFn: async () => {
-      console.log('🏫 EduFamAdmin: Fetching schools data');
-      try {
-        const result = await SchoolService.getAllSchools();
-        if (result.error) {
-          console.error('🏫 EduFamAdmin: School fetch error:', result.error);
-          throw new Error(result.error.message || 'Failed to fetch schools');
-        }
-        const schools = result.data || [];
-        console.log('🏫 EduFamAdmin: Schools fetched successfully:', schools.length);
-        return schools.filter(school => school && typeof school === 'object' && school.id);
-      } catch (error) {
-        console.error('🏫 EduFamAdmin: Exception fetching schools:', error);
-        throw error;
+      console.log('📊 Fetching admin schools data...');
+      
+      const { data, error } = await supabase
+        .from('schools')
+        .select(`
+          id, 
+          name, 
+          email, 
+          phone, 
+          address, 
+          location,
+          created_at,
+          owner_id,
+          logo_url,
+          website_url,
+          motto,
+          slogan,
+          school_type,
+          registration_number,
+          year_established
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error fetching schools:', error);
+        throw new Error(`Failed to fetch schools: ${error.message}`);
       }
+
+      console.log('✅ Schools data fetched successfully:', data?.length || 0, 'schools');
+      return Array.isArray(data) ? data : [];
     },
-    retry: (failureCount) => {
-      console.log('🏫 EduFamAdmin: Retry attempt', failureCount, 'for schools');
-      return failureCount < 2;
-    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    staleTime: 30000, // 30 seconds
+    retry: 2,
   });
 }
