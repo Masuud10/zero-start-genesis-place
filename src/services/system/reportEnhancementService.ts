@@ -176,7 +176,7 @@ export class ReportEnhancementService {
     try {
       let profilesQuery = supabase
         .from('profiles')
-        .select('role, created_at, last_login');
+        .select('role, created_at');
 
       // Apply date filter if provided
       if (dateFilter) {
@@ -199,7 +199,8 @@ export class ReportEnhancementService {
       }, {}) || {};
 
       const totalUsers = profiles?.length || 0;
-      const activeUsers = profiles?.filter(p => p.last_login).length || 0;
+      // Since we don't have last_login data, we'll assume all users are active for now
+      const activeUsers = profiles?.length || 0;
       const newUsersInPeriod = profiles?.length || 0;
 
       return {
