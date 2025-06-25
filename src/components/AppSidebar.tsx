@@ -5,7 +5,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { BookOpen } from 'lucide-react';
-import SidebarNavigation from './sidebar/SidebarNavigation';
+import { SidebarNavigation } from './sidebar/SidebarNavigation';
 import { useNavigation } from '@/contexts/NavigationContext';
 
 const AppSidebar: React.FC = () => {
