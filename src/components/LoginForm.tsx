@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,7 +68,7 @@ const LoginForm: React.FC = () => {
           <div className="mx-auto w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mb-4">
             <Lock className="h-6 w-6 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl font-bold">Welcome Back!</CardTitle>
           <p className="text-gray-600">Sign in to your EduFam account</p>
         </CardHeader>
         <CardContent>
@@ -138,14 +137,14 @@ const LoginForm: React.FC = () => {
               </div>
             </div>
 
-            <SecurityCaptcha 
+            <SecurityCaptcha
               onVerify={setCaptchaVerified}
               disabled={isLoading}
             />
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isLoading || !captchaVerified}
             >
               {isLoading ? (
