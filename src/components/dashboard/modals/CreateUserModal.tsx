@@ -15,71 +15,70 @@ interface CreateUserModalProps {
   onClose: () => void;
   onSuccess: () => void;
   currentUser: AuthUser;
+  initialRole?: string;
 }
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  currentUser
+  currentUser,
+  initialRole = 'parent'
 }) => {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
+  const [userData, setUserData] = useState({
     email: '',
+    password: 'TempPassword123!',
     name: '',
-    role: '',
-    school_id: '',
-    password: 'TempPassword123!'
+    role: initialRole,
+    schoolId: currentUser.school_id || ''
   });
 
-  // Fetch schools for selection
+  // Get available schools for selection
   const { data: schools = [] } = useQuery({
-    queryKey: ['schools-for-user-creation'],
+    queryKey: ['schools'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('schools')
         .select('id, name')
         .order('name');
-
       if (error) throw error;
-      return data || [];
+      return data;
     },
-    enabled: isOpen
+    enabled: isOpen && currentUser.role === 'edufam_admin'
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (userData: typeof formData) => {
+    mutationFn: async (user: typeof userData) => {
       const { data, error } = await supabase.rpc('create_admin_user', {
-        user_email: userData.email,
-        user_password: userData.password,
-        user_name: userData.name,
-        user_role: userData.role,
-        user_school_id: userData.school_id || null
+        user_email: user.email,
+        user_password: user.password,
+        user_name: user.name,
+        user_role: user.role,
+        user_school_id: user.schoolId || null
       });
-
-      if (error) throw error;
       
-      // Check if the response indicates an error
-      if (data && typeof data === 'object' && 'error' in data) {
-        throw new Error(data.error as string);
-      }
-
+      if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "User created successfully",
-      });
-      onSuccess();
-      onClose();
-      setFormData({
-        email: '',
-        name: '',
-        role: '',
-        school_id: '',
-        password: 'TempPassword123!'
-      });
+    onSuccess: (result) => {
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "User created successfully",
+        });
+        onSuccess();
+        onClose();
+        setUserData({
+          email: '',
+          password: 'TempPassword123!',
+          name: '',
+          role: initialRole,
+          schoolId: currentUser.school_id || ''
+        });
+      } else {
+        throw new Error(result.error || 'Failed to create user');
+      }
     },
     onError: (error: any) => {
       console.error('Error creating user:', error);
@@ -93,44 +92,19 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.email || !formData.name || !formData.role) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate school assignment for non-admin roles
-    if (!['edufam_admin', 'elimisha_admin'].includes(formData.role) && !formData.school_id) {
-      toast({
-        title: "Error",
-        description: "School assignment is required for this role",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createUserMutation.mutate(formData);
+    createUserMutation.mutate(userData);
   };
 
   const roleOptions = [
-    { value: 'school_owner', label: 'School Owner' },
-    { value: 'principal', label: 'Principal' },
-    { value: 'teacher', label: 'Teacher' },
-    { value: 'finance_officer', label: 'Finance Officer' },
     { value: 'parent', label: 'Parent' },
+    { value: 'teacher', label: 'Teacher' },
+    { value: 'principal', label: 'Principal' },
+    { value: 'school_owner', label: 'School Owner' },
+    { value: 'finance_officer', label: 'Finance Officer' },
+    ...(currentUser.role === 'edufam_admin' ? [
+      { value: 'edufam_admin', label: 'EduFam Admin' }
+    ] : [])
   ];
-
-  // Add admin roles for EduFam admin
-  if (currentUser.role === 'edufam_admin') {
-    roleOptions.unshift(
-      { value: 'edufam_admin', label: 'EduFam Admin' },
-      { value: 'elimisha_admin', label: 'Elimisha Admin' }
-    );
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -138,64 +112,65 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Add a new user to the system with appropriate role and school assignment.
+            Add a new user to the system with the specified role.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email">Email Address *</Label>
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              value={userData.name}
+              onChange={(e) => setUserData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Enter full name"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="user@example.com"
+              value={userData.email}
+              onChange={(e) => setUserData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="Enter email address"
               required
             />
           </div>
-
+          
           <div>
-            <Label htmlFor="name">Full Name *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="John Doe"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="role">Role *</Label>
-            <Select
-              value={formData.role}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+            <Label htmlFor="role">Role</Label>
+            <Select 
+              value={userData.role} 
+              onValueChange={(value) => setUserData(prev => ({ ...prev, role: value }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select user role" />
+                <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                {roleOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                {roleOptions.map(role => (
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {formData.role && !['edufam_admin', 'elimisha_admin'].includes(formData.role) && (
+          {/* School selection - only for system admins or when role requires school */}
+          {(currentUser.role === 'edufam_admin' && userData.role !== 'edufam_admin') && (
             <div>
-              <Label htmlFor="school">School Assignment *</Label>
-              <Select
-                value={formData.school_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, school_id: value }))}
+              <Label htmlFor="school">School</Label>
+              <Select 
+                value={userData.schoolId} 
+                onValueChange={(value) => setUserData(prev => ({ ...prev, schoolId: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select school" />
                 </SelectTrigger>
                 <SelectContent>
-                  {schools.map((school) => (
+                  {schools.map(school => (
                     <SelectItem key={school.id} value={school.id}>
                       {school.name}
                     </SelectItem>
@@ -210,12 +185,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             <Input
               id="password"
               type="password"
-              value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              placeholder="Temporary password"
+              value={userData.password}
+              onChange={(e) => setUserData(prev => ({ ...prev, password: e.target.value }))}
+              placeholder="Enter temporary password"
+              required
             />
             <p className="text-xs text-gray-500 mt-1">
-              User should change this upon first login
+              The user will be prompted to change this password on first login.
             </p>
           </div>
 
