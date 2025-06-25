@@ -117,7 +117,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                     <span className="font-medium capitalize">{role.replace('_', ' ')}</span>
                   </div>
-                  <Badge variant="secondary">{count}</Badge>
+                  <Badge variant="secondary">{String(count)}</Badge>
                 </div>
               ))}
             </div>

@@ -18,6 +18,12 @@ interface CreateUserModalProps {
   initialRole?: string;
 }
 
+interface CreateUserRpcResponse {
+  success?: boolean;
+  error?: string;
+  user_id?: string;
+}
+
 const CreateUserModal: React.FC<CreateUserModalProps> = ({
   isOpen,
   onClose,
@@ -59,10 +65,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       });
       
       if (error) throw error;
-      return data;
+      return data as CreateUserRpcResponse;
     },
     onSuccess: (result) => {
-      if (result.success) {
+      if (result && result.success) {
         toast({
           title: "Success",
           description: "User created successfully",
@@ -77,7 +83,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           schoolId: currentUser.school_id || ''
         });
       } else {
-        throw new Error(result.error || 'Failed to create user');
+        throw new Error(result?.error || 'Failed to create user');
       }
     },
     onError: (error: any) => {
