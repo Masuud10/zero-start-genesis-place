@@ -35,7 +35,6 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
     website_url: '',
     motto: '',
     slogan: '',
-    school_type: 'primary',
     registration_number: '',
     year_established: new Date().getFullYear(),
     curriculum_type: 'cbc'
@@ -52,7 +51,6 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
         website_url: schoolData.website_url || null,
         motto: schoolData.motto || null,
         slogan: schoolData.slogan || null,
-        school_type: schoolData.school_type,
         registration_number: schoolData.registration_number || null,
         year_established: schoolData.year_established,
         owner_name: schoolData.owner_name || null,
@@ -88,7 +86,6 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
         website_url: '',
         motto: '',
         slogan: '',
-        school_type: 'primary',
         registration_number: '',
         year_established: new Date().getFullYear(),
         curriculum_type: 'cbc'

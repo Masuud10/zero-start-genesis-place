@@ -26,7 +26,6 @@ export function useAdminSchoolsData(refreshKey = 0) {
           website_url,
           motto,
           slogan,
-          school_type,
           registration_number,
           year_established
         `)
