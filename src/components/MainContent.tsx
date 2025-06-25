@@ -61,7 +61,7 @@ const MainContent: React.FC = () => {
           case 'finance_officer':
             return <FinanceOfficerDashboard user={user} />;
           case 'school_owner':
-            return <SchoolOwnerDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <SchoolOwnerDashboard />;
           default:
             return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
         }
@@ -135,7 +135,7 @@ const MainContent: React.FC = () => {
           case 'finance_officer':
             return <FinanceOfficerDashboard user={user} />;
           case 'school_owner':
-            return <SchoolOwnerDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <SchoolOwnerDashboard />;
           default:
             return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
         }
