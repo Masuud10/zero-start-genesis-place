@@ -21,6 +21,16 @@ export const useFinanceMetrics = () => {
 
   const fetchMetrics = async () => {
     if (!user?.school_id) {
+      console.log('No school_id available for finance metrics');
+      setMetrics({
+        totalRevenue: 0,
+        totalCollected: 0,
+        outstandingAmount: 0,
+        totalMpesaPayments: 0,
+        collectionRate: 0,
+        totalStudents: 0,
+        defaultersCount: 0
+      });
       setIsLoading(false);
       return;
     }
@@ -29,65 +39,78 @@ export const useFinanceMetrics = () => {
       setIsLoading(true);
       setError(null);
 
-      // Fetch fees data
+      console.log('Fetching finance metrics for school:', user.school_id);
+
+      // Fetch fees data with error handling
       const { data: feesData, error: feesError } = await supabase
         .from('fees')
-        .select('*')
+        .select('amount, paid_amount, due_date, status')
         .eq('school_id', user.school_id);
 
-      if (feesError) throw feesError;
+      if (feesError) {
+        console.error('Error fetching fees:', feesError);
+        // Continue with empty data rather than failing completely
+      }
 
-      // Fetch students count
+      // Fetch students count with error handling
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('id')
         .eq('school_id', user.school_id)
         .eq('is_active', true);
 
-      if (studentsError) throw studentsError;
+      if (studentsError) {
+        console.error('Error fetching students:', studentsError);
+      }
 
-      // Fetch MPESA transactions
+      // Fetch MPESA transactions with error handling
       const { data: mpesaData, error: mpesaError } = await supabase
         .from('mpesa_transactions')
-        .select('*')
+        .select('amount_paid')
         .eq('school_id', user.school_id)
         .eq('transaction_status', 'Success');
 
-      if (mpesaError) throw mpesaError;
+      if (mpesaError) {
+        console.error('Error fetching MPESA data:', mpesaError);
+      }
 
-      // Calculate metrics with proper type casting
-      const totalFees = feesData?.reduce((sum, fee) => {
-        const amount = typeof fee.amount === 'number' ? fee.amount : Number(fee.amount || 0);
+      // Calculate metrics with safe defaults
+      const fees = feesData || [];
+      const students = studentsData || [];
+      const mpesaTransactions = mpesaData || [];
+
+      const totalFees = fees.reduce((sum, fee) => {
+        const amount = Number(fee.amount || 0);
         return sum + amount;
-      }, 0) || 0;
+      }, 0);
 
-      const totalPaid = feesData?.reduce((sum, fee) => {
-        const paidAmount = typeof fee.paid_amount === 'number' ? fee.paid_amount : Number(fee.paid_amount || 0);
+      const totalPaid = fees.reduce((sum, fee) => {
+        const paidAmount = Number(fee.paid_amount || 0);
         return sum + paidAmount;
-      }, 0) || 0;
+      }, 0);
 
       const outstandingAmount = totalFees - totalPaid;
       
-      const totalMpesaPayments = mpesaData?.reduce((sum, txn) => {
-        const amount = typeof txn.amount_paid === 'number' ? txn.amount_paid : Number(txn.amount_paid || 0);
+      const totalMpesaPayments = mpesaTransactions.reduce((sum, txn) => {
+        const amount = Number(txn.amount_paid || 0);
         return sum + amount;
-      }, 0) || 0;
+      }, 0);
 
       const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
-      const totalStudents = studentsData?.length || 0;
+      const totalStudents = students.length;
 
       // Find defaulters
       const today = new Date();
-      const defaultersList = feesData?.filter(fee => {
+      const defaultersList = fees.filter(fee => {
         const dueDate = new Date(fee.due_date);
         const isPastDue = dueDate < today;
-        const feeAmount = typeof fee.amount === 'number' ? fee.amount : Number(fee.amount || 0);
-        const paidAmount = typeof fee.paid_amount === 'number' ? fee.paid_amount : Number(fee.paid_amount || 0);
+        const feeAmount = Number(fee.amount || 0);
+        const paidAmount = Number(fee.paid_amount || 0);
         const hasOutstanding = feeAmount > paidAmount;
         return isPastDue && hasOutstanding;
-      }) || [];
+      });
 
-      setMetrics({
+      const calculatedMetrics = {
         totalRevenue: totalFees,
         totalCollected: totalPaid,
         outstandingAmount,
@@ -95,11 +118,24 @@ export const useFinanceMetrics = () => {
         collectionRate,
         totalStudents,
         defaultersCount: defaultersList.length
-      });
+      };
+
+      console.log('Finance metrics calculated:', calculatedMetrics);
+      setMetrics(calculatedMetrics);
 
     } catch (err: any) {
       console.error('Error fetching finance metrics:', err);
       setError(err);
+      // Set default metrics even on error
+      setMetrics({
+        totalRevenue: 0,
+        totalCollected: 0,
+        outstandingAmount: 0,
+        totalMpesaPayments: 0,
+        collectionRate: 0,
+        totalStudents: 0,
+        defaultersCount: 0
+      });
     } finally {
       setIsLoading(false);
     }

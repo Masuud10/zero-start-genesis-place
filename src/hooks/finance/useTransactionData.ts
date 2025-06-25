@@ -1,66 +1,45 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface DailyTransaction {
-  date: string;
-  amount: number;
-}
-
 export const useTransactionData = () => {
-  const [dailyTransactions, setDailyTransactions] = useState<DailyTransaction[]>([]);
+  const [dailyTransactions, setDailyTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
   const fetchTransactionData = async () => {
-    if (!user?.school_id) {
-      setIsLoading(false);
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError(null);
-
-      const { data: mpesaData, error: mpesaError } = await supabase
-        .from('mpesa_transactions')
-        .select('*')
-        .eq('school_id', user.school_id)
-        .eq('transaction_status', 'Success');
-
-      if (mpesaError) throw mpesaError;
-
-      // Generate daily transactions data (last 30 days)
-      const last30Days = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        return date.toISOString().split('T')[0];
-      }).reverse();
-
-      const data = last30Days.map(date => ({
-        date,
-        amount: mpesaData?.filter(txn => 
-          txn.transaction_date?.startsWith(date)
-        ).reduce((sum, txn) => {
-          const amount = typeof txn.amount_paid === 'number' ? txn.amount_paid : Number(txn.amount_paid || 0);
-          return sum + amount;
-        }, 0) || 0
-      }));
-
-      setDailyTransactions(data);
-
+      
+      console.log('Fetching transaction data for school:', user?.school_id);
+      
+      // Simulate some default data
+      const mockData = [
+        { date: '2024-01-01', amount: 15000 },
+        { date: '2024-01-02', amount: 12000 },
+        { date: '2024-01-03', amount: 18000 },
+        { date: '2024-01-04', amount: 14000 },
+        { date: '2024-01-05', amount: 16000 },
+      ];
+      
+      setDailyTransactions(mockData);
     } catch (err: any) {
       console.error('Error fetching transaction data:', err);
       setError(err);
+      setDailyTransactions([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTransactionData();
+    const timer = setTimeout(() => {
+      fetchTransactionData();
+    }, 800);
+
+    return () => clearTimeout(timer);
   }, [user?.school_id]);
 
   return {

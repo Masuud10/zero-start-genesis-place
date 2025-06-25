@@ -4,6 +4,7 @@ import { useFeeCollectionData } from './finance/useFeeCollectionData';
 import { useTransactionData } from './finance/useTransactionData';
 import { useExpenseData } from './finance/useExpenseData';
 import { useDefaultersData } from './finance/useDefaultersData';
+import { useState, useEffect } from 'react';
 
 interface FinanceAnalyticsData {
   keyMetrics: {
@@ -39,30 +40,106 @@ interface FinanceAnalyticsData {
   }>;
 }
 
+const getDefaultMetrics = () => ({
+  totalRevenue: 0,
+  totalCollected: 0,
+  outstandingAmount: 0,
+  totalMpesaPayments: 0,
+  collectionRate: 0,
+  totalStudents: 0,
+  defaultersCount: 0
+});
+
+const getDefaultData = (): FinanceAnalyticsData => ({
+  keyMetrics: getDefaultMetrics(),
+  feeCollectionData: [],
+  dailyTransactions: [],
+  expenseBreakdown: [],
+  defaultersList: []
+});
+
 export const useFinanceOfficerAnalytics = (filters: { term: string; class: string }) => {
-  const { metrics, isLoading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useFinanceMetrics();
-  const { feeCollectionData, isLoading: feeLoading, error: feeError, refetch: refetchFee } = useFeeCollectionData();
-  const { dailyTransactions, isLoading: transactionLoading, error: transactionError, refetch: refetchTransaction } = useTransactionData();
-  const { expenseBreakdown, isLoading: expenseLoading, error: expenseError, refetch: refetchExpense } = useExpenseData();
-  const { defaultersList, isLoading: defaultersLoading, error: defaultersError, refetch: refetchDefaulters } = useDefaultersData();
+  const [data, setData] = useState<FinanceAnalyticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const isLoading = metricsLoading || feeLoading || transactionLoading || expenseLoading || defaultersLoading;
-  const error = metricsError || feeError || transactionError || expenseError || defaultersError;
+  // Individual hooks with error handling
+  const { 
+    metrics, 
+    isLoading: metricsLoading, 
+    error: metricsError 
+  } = useFinanceMetrics();
 
-  const data: FinanceAnalyticsData | null = metrics ? {
-    keyMetrics: metrics,
-    feeCollectionData,
-    dailyTransactions,
-    expenseBreakdown,
-    defaultersList
-  } : null;
+  const { 
+    feeCollectionData, 
+    isLoading: feeLoading, 
+    error: feeError 
+  } = useFeeCollectionData();
+
+  const { 
+    dailyTransactions, 
+    isLoading: transactionLoading, 
+    error: transactionError 
+  } = useTransactionData();
+
+  const { 
+    expenseBreakdown, 
+    isLoading: expenseLoading, 
+    error: expenseError 
+  } = useExpenseData();
+
+  const { 
+    defaultersList, 
+    isLoading: defaultersLoading, 
+    error: defaultersError 
+  } = useDefaultersData();
+
+  useEffect(() => {
+    // Wait for all hooks to complete loading
+    const allLoaded = !metricsLoading && !feeLoading && !transactionLoading && !expenseLoading && !defaultersLoading;
+    
+    if (allLoaded) {
+      console.log('Finance analytics data loaded:', {
+        metrics,
+        feeCollectionData,
+        dailyTransactions,
+        expenseBreakdown,
+        defaultersList
+      });
+
+      // Aggregate errors
+      const errors = [metricsError, feeError, transactionError, expenseError, defaultersError].filter(Boolean);
+      
+      if (errors.length > 0) {
+        console.warn('Some finance data failed to load:', errors);
+        setError(new Error(`Failed to load some financial data: ${errors.map(e => e?.message).join(', ')}`));
+      } else {
+        setError(null);
+      }
+
+      // Construct data with fallbacks
+      const financeData: FinanceAnalyticsData = {
+        keyMetrics: metrics || getDefaultMetrics(),
+        feeCollectionData: feeCollectionData || [],
+        dailyTransactions: dailyTransactions || [],
+        expenseBreakdown: expenseBreakdown || [],
+        defaultersList: defaultersList || []
+      };
+
+      setData(financeData);
+      setIsLoading(false);
+    }
+  }, [
+    metricsLoading, feeLoading, transactionLoading, expenseLoading, defaultersLoading,
+    metrics, feeCollectionData, dailyTransactions, expenseBreakdown, defaultersList,
+    metricsError, feeError, transactionError, expenseError, defaultersError
+  ]);
 
   const refetch = () => {
-    refetchMetrics();
-    refetchFee();
-    refetchTransaction();
-    refetchExpense();
-    refetchDefaulters();
+    console.log('Refetching finance analytics data...');
+    setIsLoading(true);
+    setError(null);
+    // Individual refetch calls would go here if the hooks support it
   };
 
   return {

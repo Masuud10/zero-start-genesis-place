@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthUser } from '@/types/auth';
 import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, DollarSign, TrendingUp, Users, CreditCard } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import FinanceKeyMetrics from '@/components/analytics/finance/FinanceKeyMetrics';
 import DailyTransactionsChart from '@/components/analytics/finance/DailyTransactionsChart';
 import ExpenseBreakdownChart from '@/components/analytics/finance/ExpenseBreakdownChart';
@@ -18,38 +19,63 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
   console.log('💰 FinanceOfficerDashboard: Rendering for finance officer:', user.email);
   
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   const filters = { term: 'current', class: 'all' };
   const { data, isLoading, error, refetch } = useFinanceOfficerAnalytics(filters);
 
+  // Set a timeout for loading to prevent infinite loading
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 10000); // 10 seconds timeout
+
+      return () => clearTimeout(timeout);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [isLoading]);
+
   const handleRefresh = () => {
+    console.log('Refreshing finance dashboard...');
     setRefreshKey(prev => prev + 1);
+    setLoadingTimeout(false);
     if (refetch) {
       refetch();
     }
   };
 
-  if (isLoading) {
+  // Show loading state for reasonable time
+  if (isLoading && !loadingTimeout) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-muted-foreground">Loading financial overview...</p>
+          <p className="text-sm text-muted-foreground mt-2">This may take a few moments</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  // Show error state or timeout
+  if (error || loadingTimeout) {
     return (
       <div className="space-y-4">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Financial Data</AlertTitle>
+          <AlertTitle>
+            {loadingTimeout ? 'Loading Timeout' : 'Error Loading Financial Data'}
+          </AlertTitle>
           <AlertDescription className="mt-2">
-            There was a problem loading the financial analytics. Please try refreshing the page.
-            <br />
-            <small className="text-xs mt-2 block">Error: {error.message}</small>
+            {loadingTimeout 
+              ? 'The dashboard is taking longer than expected to load. This might be due to network issues or missing data.'
+              : 'There was a problem loading the financial analytics. Please try refreshing the page.'
+            }
+            {error && (
+              <><br /><small className="text-xs mt-2 block">Error: {error.message}</small></>
+            )}
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
@@ -62,9 +88,93 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
     );
   }
 
+  // Show basic metrics even if some data is missing
+  const safeData = data || {
+    keyMetrics: {
+      totalRevenue: 0,
+      totalCollected: 0,
+      outstandingAmount: 0,
+      totalMpesaPayments: 0,
+      collectionRate: 0,
+      totalStudents: 0,
+      defaultersCount: 0
+    },
+    feeCollectionData: [],
+    dailyTransactions: [],
+    expenseBreakdown: [],
+    defaultersList: []
+  };
+
   return (
     <div className="space-y-8" key={refreshKey}>
-      {/* Financial Analytics Dashboard */}
+      {/* Welcome Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Finance Dashboard</h1>
+          <p className="text-gray-600">Welcome back, {user.name || user.email}</p>
+        </div>
+        <Button onClick={handleRefresh} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Quick Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              KES {safeData.keyMetrics.totalRevenue.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">Expected this term</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              KES {safeData.keyMetrics.totalCollected.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">Payments received</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              KES {safeData.keyMetrics.outstandingAmount.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">Pending collection</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MPESA Payments</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              KES {safeData.keyMetrics.totalMpesaPayments.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">Digital payments</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed Analytics */}
       {data ? (
         <div className="space-y-6">
           {/* Key Metrics */}
@@ -82,9 +192,9 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
       ) : (
         <div className="text-center py-12">
           <div className="bg-white rounded-lg shadow-sm border p-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Data Available</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Limited Financial Data Available</h3>
             <p className="text-gray-500 mb-4">
-              There's no financial data to display at the moment. This could be because:
+              Some financial data is currently unavailable. This could be because:
             </p>
             <ul className="text-sm text-gray-500 text-left max-w-md mx-auto space-y-1">
               <li>• No fee structures have been set up</li>
