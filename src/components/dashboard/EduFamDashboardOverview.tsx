@@ -122,7 +122,7 @@ const EduFamDashboardOverview = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview Cards - Removed Excel download container */}
+      {/* Stats Overview Cards */}
       <SystemOverviewCards
         schoolsCount={validSchoolsData.length}
         totalUsers={userStats.totalUsers}
@@ -140,7 +140,7 @@ const EduFamDashboardOverview = () => {
       {/* System Health Status */}
       <SystemHealthStatusCard />
 
-      {/* Administrative Hub - Fixed System Management Center */}
+      {/* Administrative Hub - System Management Center */}
       <AdministrativeHub
         onModalOpen={handleModalOpen}
         onUserCreated={handleUserCreated}

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import ProjectHubModule from './modules/ProjectHubModule';
 import AnalyticsDashboard from './analytics/AnalyticsDashboard';
+import SchoolAnalyticsOverview from './analytics/SchoolAnalyticsOverview';
 import GradesModule from './modules/GradesModule';
 import AttendanceModule from './modules/AttendanceModule';
 import StudentsModule from './modules/StudentsModule';
@@ -69,6 +70,8 @@ const MainContent: React.FC = () => {
         return <ProjectHubModule />;
       case 'analytics':
         return <AnalyticsDashboard />;
+      case 'schools-analytics':
+        return <SchoolAnalyticsOverview />;
       case 'grades':
         return <GradesModule />;
       case 'attendance':
@@ -113,12 +116,12 @@ const MainContent: React.FC = () => {
         return <SystemHealthModule />;
       // System Settings routes
       case 'system-settings':
-      case 'system-settings-maintenance':
-      case 'system-settings-database':
-      case 'system-settings-security':
-      case 'system-settings-notifications':
-      case 'system-settings-users':
-      case 'system-settings-company':
+      case 'maintenance':
+      case 'database':
+      case 'security':
+      case 'notifications':
+      case 'user-management':
+      case 'company-settings':
         return <SystemSettings />;
       default:
         console.warn('🚨 MainContent: Unknown section:', activeSection);

@@ -25,7 +25,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     item.roles.includes(user?.role || '')
   );
 
-  console.log('📋 SidebarNavigation: Filtered menu items:', filteredItems.map(item => item.id));
+  console.log('📋 SidebarNavigation: Filtered menu items:', filteredItems.length);
 
   const toggleExpanded = (itemId: string) => {
     setExpandedItems(prev => 
@@ -35,152 +35,36 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     );
   };
 
-  // Group items by category for better organization
-  const systemItems = filteredItems.filter(item => 
-    ['dashboard', 'project-hub', 'analytics', 'school-analytics', 'schools', 'users', 'company-management', 'billing', 'system-health'].includes(item.id)
-  );
-  
-  const schoolItems = filteredItems.filter(item => 
-    ['school-management', 'grades', 'attendance', 'students', 'certificates', 'timetable'].includes(item.id)
-  );
-  
-  const financeItems = filteredItems.filter(item => 
-    ['finance', 'payments', 'student-accounts', 'fee-management', 'mpesa-payments', 'financial-reports', 'financial-analytics'].includes(item.id)
-  );
-  
-  const communicationItems = filteredItems.filter(item => 
-    ['announcements', 'messages'].includes(item.id)
-  );
-  
-  const settingsItems = filteredItems.filter(item => 
-    ['system-settings', 'settings', 'security'].includes(item.id)
-  );
-  
-  const otherItems = filteredItems.filter(item => 
-    !systemItems.includes(item) && !schoolItems.includes(item) && 
-    !financeItems.includes(item) && !communicationItems.includes(item) &&
-    !settingsItems.includes(item)
-  );
+  const handleSectionChange = (section: string) => {
+    console.log('🎯 SidebarNavigation: Section change requested:', section);
+    onSectionChange(section);
+  };
 
   return (
     <SidebarContent>
-      {user?.role === 'edufam_admin' ? (
-        <>
-          <MenuGroup
-            items={systemItems.filter(item => ['dashboard'].includes(item.id))}
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          <MenuGroup
-            items={systemItems.filter(item => ['project-hub'].includes(item.id))}
-            groupLabel="Project Management"
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          <MenuGroup
-            items={systemItems.filter(item => ['analytics', 'school-analytics'].includes(item.id))}
-            groupLabel="Analytics"
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          <MenuGroup
-            items={systemItems.filter(item => ['schools', 'users', 'company-management'].includes(item.id))}
-            groupLabel="Management"
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          <MenuGroup
-            items={systemItems.filter(item => ['billing', 'system-health'].includes(item.id))}
-            groupLabel="System"
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          <MenuGroup
-            items={communicationItems}
-            groupLabel="Communication"
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          <MenuGroup
-            items={otherItems.filter(item => ['reports', 'support'].includes(item.id))}
-            groupLabel="Tools"
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          <MenuGroup
-            items={settingsItems}
-            groupLabel="Settings"
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-        </>
-      ) : (
-        <>
-          <MenuGroup
-            items={systemItems.filter(item => ['dashboard'].includes(item.id))}
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-          />
-          {schoolItems.length > 0 && (
-            <MenuGroup
-              items={schoolItems}
-              groupLabel="Academic"
-              activeSection={activeSection}
-              onSectionChange={onSectionChange}
-              expandedItems={expandedItems}
-              toggleExpanded={toggleExpanded}
-            />
-          )}
-          {financeItems.length > 0 && (
-            <MenuGroup
-              items={financeItems}
-              groupLabel="Finance"
-              activeSection={activeSection}
-              onSectionChange={onSectionChange}
-              expandedItems={expandedItems}
-              toggleExpanded={toggleExpanded}
-            />
-          )}
-          {communicationItems.length > 0 && (
-            <MenuGroup
-              items={communicationItems}
-              groupLabel="Communication"
-              activeSection={activeSection}
-              onSectionChange={onSectionChange}
-              expandedItems={expandedItems}
-              toggleExpanded={toggleExpanded}
-            />
-          )}
-          {otherItems.length > 0 && (
-            <MenuGroup
-              items={otherItems}
-              groupLabel="Tools"
-              activeSection={activeSection}
-              onSectionChange={onSectionChange}
-              expandedItems={expandedItems}
-              toggleExpanded={toggleExpanded}
-            />
-          )}
-        </>
-      )}
+      <div className="px-3 py-2">
+        <div className="space-y-1">
+          {filteredItems.map((item) => (
+            <div key={item.id}>
+              {item.subItems ? (
+                <MenuGroup
+                  item={item}
+                  activeSection={activeSection}
+                  expandedItems={expandedItems}
+                  onToggleExpanded={toggleExpanded}
+                  onSectionChange={handleSectionChange}
+                />
+              ) : (
+                <MenuItem
+                  item={item}
+                  activeSection={activeSection}
+                  onSectionChange={handleSectionChange}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </SidebarContent>
   );
 };
