@@ -10,6 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
 
+interface MaintenanceMode {
+  enabled: boolean;
+  message: string;
+}
+
 const MaintenanceSettings: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -18,7 +23,7 @@ const MaintenanceSettings: React.FC = () => {
   // Fetch maintenance mode status
   const { data: maintenanceStatus, isLoading } = useQuery({
     queryKey: ['maintenance-mode'],
-    queryFn: async () => {
+    queryFn: async (): Promise<MaintenanceMode> => {
       const { data, error } = await supabase
         .from('system_settings')
         .select('setting_value')
@@ -29,7 +34,16 @@ const MaintenanceSettings: React.FC = () => {
         throw error;
       }
 
-      return data?.setting_value || { enabled: false, message: '' };
+      if (!data?.setting_value) {
+        return { enabled: false, message: '' };
+      }
+
+      // Type-safe parsing of JSON data
+      const settingValue = data.setting_value as any;
+      return {
+        enabled: Boolean(settingValue?.enabled || false),
+        message: String(settingValue?.message || '')
+      };
     },
   });
 

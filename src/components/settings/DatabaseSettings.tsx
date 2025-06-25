@@ -8,41 +8,56 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Database, Activity, HardDrive, Clock } from 'lucide-react';
 
+interface TableStat {
+  table: string;
+  count: number;
+  status: 'healthy' | 'error';
+}
+
 const DatabaseSettings: React.FC = () => {
   const { toast } = useToast();
 
-  // Fetch database statistics
+  // Fetch database statistics for key tables only
   const { data: dbStats, isLoading } = useQuery({
     queryKey: ['database-stats'],
-    queryFn: async () => {
-      // Get table counts and basic stats
-      const tables = [
-        'schools', 'profiles', 'students', 'classes', 'subjects',
-        'grades', 'attendance', 'announcements', 'messages'
-      ];
-
-      const stats = await Promise.all(
+    queryFn: async (): Promise<TableStat[]> => {
+      const tables = ['schools', 'profiles', 'students', 'classes', 'subjects', 'grades', 'attendance'];
+      
+      const stats = await Promise.allSettled(
         tables.map(async (table) => {
-          const { count, error } = await supabase
-            .from(table)
-            .select('*', { count: 'exact', head: true });
-          
-          return {
-            table,
-            count: error ? 0 : count || 0,
-            status: error ? 'error' : 'healthy'
-          };
+          try {
+            const { count, error } = await supabase
+              .from(table as any)
+              .select('*', { count: 'exact', head: true });
+            
+            return {
+              table,
+              count: error ? 0 : count || 0,
+              status: error ? 'error' as const : 'healthy' as const
+            };
+          } catch (err) {
+            return {
+              table,
+              count: 0,
+              status: 'error' as const
+            };
+          }
         })
       );
 
-      return stats;
+      return stats.map(result => 
+        result.status === 'fulfilled' ? result.value : {
+          table: 'unknown',
+          count: 0,
+          status: 'error' as const
+        }
+      );
     },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const handleOptimizeDatabase = async () => {
     try {
-      // This would typically call a database optimization function
       toast({
         title: "Database Optimization",
         description: "Database optimization initiated. This may take a few minutes.",
@@ -58,7 +73,6 @@ const DatabaseSettings: React.FC = () => {
 
   const handleBackupDatabase = async () => {
     try {
-      // This would typically trigger a backup process
       toast({
         title: "Database Backup",
         description: "Database backup initiated. You will be notified when complete.",
