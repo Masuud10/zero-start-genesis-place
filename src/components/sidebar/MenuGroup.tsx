@@ -50,7 +50,7 @@ export const MenuGroup: React.FC<MenuGroupProps> = ({
       </button>
 
       {/* Sub Items */}
-      {isExpanded && item.subItems && (
+      {isExpanded && item.subItems && item.subItems.length > 0 && (
         <div className="ml-6 mt-1 space-y-1">
           {item.subItems.map((subItem) => (
             <MenuItem
