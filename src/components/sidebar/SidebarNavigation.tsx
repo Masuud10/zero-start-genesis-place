@@ -52,9 +52,14 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
     ['announcements', 'messages'].includes(item.id)
   );
   
+  const settingsItems = filteredItems.filter(item => 
+    ['system-settings', 'settings', 'security'].includes(item.id)
+  );
+  
   const otherItems = filteredItems.filter(item => 
     !systemItems.includes(item) && !schoolItems.includes(item) && 
-    !financeItems.includes(item) && !communicationItems.includes(item)
+    !financeItems.includes(item) && !communicationItems.includes(item) &&
+    !settingsItems.includes(item)
   );
 
   return (
@@ -117,7 +122,7 @@ const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
             toggleExpanded={toggleExpanded}
           />
           <MenuGroup
-            items={otherItems.filter(item => ['system-settings', 'security'].includes(item.id))}
+            items={settingsItems}
             groupLabel="Settings"
             activeSection={activeSection}
             onSectionChange={onSectionChange}
