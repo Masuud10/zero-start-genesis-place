@@ -2,7 +2,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
-import DashboardContainer from './dashboard/DashboardContainer';
 import ProjectHubModule from './modules/ProjectHubModule';
 import AnalyticsDashboard from './analytics/AnalyticsDashboard';
 import GradesModule from './modules/GradesModule';
@@ -27,6 +26,12 @@ import UsersModule from './modules/UsersModule';
 import BillingModule from './modules/BillingModule';
 import SystemHealthModule from './modules/SystemHealthModule';
 import SystemSettings from './settings/SystemSettings';
+import EduFamAdminDashboard from './dashboard/EduFamAdminDashboard';
+import PrincipalDashboard from './dashboard/PrincipalDashboard';
+import TeacherDashboard from './dashboard/TeacherDashboard';
+import ParentDashboard from './dashboard/ParentDashboard';
+import FinanceOfficerDashboard from './dashboard/FinanceOfficerDashboard';
+import SchoolOwnerDashboard from './dashboard/SchoolOwnerDashboard';
 
 const MainContent: React.FC = () => {
   const { user } = useAuth();
@@ -37,7 +42,23 @@ const MainContent: React.FC = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <DashboardContainer />;
+        // Render role-specific dashboard
+        switch (user?.role) {
+          case 'edufam_admin':
+            return <EduFamAdminDashboard />;
+          case 'principal':
+            return <PrincipalDashboard />;
+          case 'teacher':
+            return <TeacherDashboard />;
+          case 'parent':
+            return <ParentDashboard />;
+          case 'finance_officer':
+            return <FinanceOfficerDashboard />;
+          case 'school_owner':
+            return <SchoolOwnerDashboard />;
+          default:
+            return <EduFamAdminDashboard />;
+        }
       case 'project-hub':
         return <ProjectHubModule />;
       case 'analytics':
@@ -95,7 +116,23 @@ const MainContent: React.FC = () => {
         return <SystemSettings />;
       default:
         console.warn('🚨 MainContent: Unknown section:', activeSection);
-        return <DashboardContainer />;
+        // Return role-specific dashboard as fallback
+        switch (user?.role) {
+          case 'edufam_admin':
+            return <EduFamAdminDashboard />;
+          case 'principal':
+            return <PrincipalDashboard />;
+          case 'teacher':
+            return <TeacherDashboard />;
+          case 'parent':
+            return <ParentDashboard />;
+          case 'finance_officer':
+            return <FinanceOfficerDashboard />;
+          case 'school_owner':
+            return <SchoolOwnerDashboard />;
+          default:
+            return <EduFamAdminDashboard />;
+        }
     }
   };
 

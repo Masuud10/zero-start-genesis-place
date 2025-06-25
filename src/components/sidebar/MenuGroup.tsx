@@ -6,11 +6,10 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
 } from '@/components/ui/sidebar';
-import { MenuItem } from './MenuItem';
-import { MenuItem as MenuItemType } from './SidebarMenuItems';
+import { MenuItem, MenuItem as MenuItemComponent } from './MenuItem';
 
 interface MenuGroupProps {
-  items: MenuItemType[];
+  items: MenuItem[];
   groupLabel?: string;
   activeSection: string;
   onSectionChange: (section: string) => void;
@@ -34,7 +33,7 @@ export const MenuGroup: React.FC<MenuGroupProps> = ({
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map(item => (
-            <MenuItem
+            <MenuItemComponent
               key={item.id}
               item={item}
               activeSection={activeSection}

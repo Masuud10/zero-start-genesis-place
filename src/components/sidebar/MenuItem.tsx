@@ -8,10 +8,18 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { MenuItem as MenuItemType } from './SidebarMenuItems';
+
+// Define the MenuItem interface with subItems support
+export interface MenuItem {
+  id: string;
+  label: string;
+  icon: any;
+  roles: string[];
+  subItems?: MenuItem[];
+}
 
 interface MenuItemProps {
-  item: MenuItemType;
+  item: MenuItem;
   activeSection: string;
   onSectionChange: (section: string) => void;
   expandedItems: string[];

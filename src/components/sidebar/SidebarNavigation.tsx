@@ -2,19 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMenuItems } from './SidebarMenuItems';
-import {
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
-} from '@/components/ui/sidebar';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { SidebarContent } from '@/components/ui/sidebar';
 import { MenuGroup } from './MenuGroup';
 import { MenuItem } from './MenuItem';
 
