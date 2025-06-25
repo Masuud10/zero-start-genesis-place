@@ -94,7 +94,7 @@
   }
   
   .animate-fade-in {
-    animation: fadeIn 0.6s ease-out;
+    animation: fadeIn 0.8s ease-out;
   }
 
   .animate-float {
@@ -105,16 +105,61 @@
     animation: gradient-x 4s ease infinite;
     background-size: 200% 200%;
   }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.8s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.8s ease-out;
+  }
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -139,7 +184,7 @@
   }
 }
 
-/* Custom scrollbar */
+/* Enhanced scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -158,13 +203,43 @@
   background: rgb(100 116 139);
 }
 
-/* Enhanced smooth scrolling */
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Better focus states */
+/* Enhanced focus states */
 *:focus-visible {
   outline: 2px solid rgb(59 130 246);
   outline-offset: 2px;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Improved button hover effects */
+.btn-hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Text gradient animations */
+.text-gradient-animate {
+  background: linear-gradient(-45deg, #3b82f6, #10b981, #8b5cf6, #f59e0b);
+  background-size: 400% 400%;
+  animation: gradient-x 4s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

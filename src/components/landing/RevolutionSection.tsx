@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +9,7 @@ import {
   CheckCircle,
   Globe,
   Zap,
+  Shield
 } from "lucide-react";
 
 interface RevolutionSectionProps {
@@ -22,16 +24,15 @@ const RevolutionSection = ({
   onScheduleDemo,
 }: RevolutionSectionProps) => {
   return (
-    <section className="py-32 bg-gradient-to-br from-blue-900 via-green-800 to-purple-900 relative overflow-hidden">
-      {/* Enhanced animated background */}
+    <section className="py-24 bg-gradient-to-br from-blue-600 via-emerald-600 to-purple-600 relative overflow-hidden">
+      {/* Enhanced background with improved layers */}
       <div className="absolute inset-0">
-        {/* Multiple gradient layers for depth */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/90 via-green-800/90 to-purple-900/90"></div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-blue-500/20 to-green-500/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 via-emerald-600/90 to-purple-600/90"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-blue-500/20 to-emerald-500/20"></div>
 
-        {/* Animated floating elements */}
+        {/* Refined floating elements */}
         <div className="absolute inset-0">
-          {[...Array(30)].map((_, i) => (
+          {[...Array(25)].map((_, i) => (
             <div
               key={i}
               className="absolute animate-pulse"
@@ -49,44 +50,39 @@ const RevolutionSection = ({
           ))}
         </div>
 
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 opacity-10">
-          <div
-            className="w-full h-full"
-            style={{
-              backgroundImage: `
+        {/* Subtle grid overlay */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="w-full h-full" style={{
+            backgroundImage: `
               linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
               linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
             `,
-              backgroundSize: "50px 50px",
-            }}
-          ></div>
+            backgroundSize: "50px 50px"
+          }}></div>
         </div>
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Enhanced badge */}
-        <div className="inline-flex items-center px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full text-sm font-medium mb-8 animate-fade-in shadow-xl">
+        <div className="inline-flex items-center px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/20 text-white rounded-full text-sm font-semibold mb-8 shadow-lg">
           <Rocket className="w-5 h-5 mr-2 animate-bounce" />
           🇰🇪 Transform Your School Today
-          <div className="ml-2 w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+          <div className="ml-2 w-2 h-2 bg-emerald-400 rounded-full animate-ping"></div>
         </div>
 
-        {/* Main heading with enhanced styling */}
-        <h2 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 animate-fade-in leading-tight">
+        {/* Enhanced main heading */}
+        <h2 className="text-5xl md:text-7xl font-bold text-white mb-8 leading-tight">
           Ready to Join Kenya's
-          <span className="block bg-gradient-to-r from-yellow-400 via-green-400 to-blue-400 bg-clip-text text-transparent animate-gradient-x">
+          <span className="block bg-gradient-to-r from-yellow-400 via-emerald-400 to-blue-400 bg-clip-text text-transparent animate-gradient-x">
             Educational Revolution?
           </span>
         </h2>
 
-        {/* Enhanced description */}
-        <p className="text-xl md:text-2xl text-blue-200 mb-12 leading-relaxed max-w-4xl mx-auto animate-fade-in">
-          Join over{" "}
-          <span className="font-bold text-yellow-400">10+ Kenyan schools</span>{" "}
-          already using EduFam to streamline operations, improve academic
-          outcomes, and embrace digital transformation.
-          <span className="block mt-4 text-lg text-green-300">
+        {/* Improved description */}
+        <p className="text-xl md:text-2xl text-blue-100 mb-12 leading-relaxed max-w-4xl mx-auto">
+          Join over <span className="font-bold text-yellow-300">10+ Kenyan schools</span> already using EduFam 
+          to streamline operations, improve academic outcomes, and embrace digital transformation.
+          <span className="block mt-4 text-lg text-emerald-200">
             Be part of the future of education in Africa.
           </span>
         </p>
@@ -96,32 +92,31 @@ const RevolutionSection = ({
           <Button
             onClick={onGetStarted}
             size="lg"
-            className="bg-gradient-to-r from-yellow-500 via-green-500 to-blue-500 hover:from-yellow-600 hover:via-green-600 hover:to-blue-600 text-white shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-110 group text-xl px-12 py-6 relative overflow-hidden"
+            className="bg-white text-blue-600 hover:bg-blue-50 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 group text-xl px-12 py-6 font-bold rounded-xl"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform translate-x-[-100%] group-hover:translate-x-[100%]"></div>
-            <Rocket className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform duration-300 relative" />
-            <span className="relative font-bold">Start Free Trial Now</span>
-            <ArrowRight className="w-6 h-6 ml-3 group-hover:translate-x-2 transition-transform duration-300 relative" />
+            <Rocket className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform duration-300" />
+            Start Free Trial Now
+            <ArrowRight className="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform duration-300" />
           </Button>
 
           <Button
             variant="outline"
             size="lg"
             onClick={onContactSales}
-            className="border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white hover:text-blue-900 transition-all duration-500 group text-xl px-12 py-6"
+            className="border-2 border-white/40 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/60 transition-all duration-300 group text-xl px-12 py-6 font-bold rounded-xl"
           >
             <Phone className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform duration-300" />
-            <span className="font-bold">Contact Sales Team</span>
+            Contact Sales Team
           </Button>
 
           <Button
             variant="outline"
             size="lg"
             onClick={onScheduleDemo}
-            className="border-2 border-green-400 bg-green-500/20 backdrop-blur-sm text-white hover:bg-green-400 hover:text-green-900 transition-all duration-500 group text-xl px-12 py-6"
+            className="border-2 border-emerald-400/60 bg-emerald-500/20 backdrop-blur-sm text-white hover:bg-emerald-400/30 hover:border-emerald-400 transition-all duration-300 group text-xl px-12 py-6 font-bold rounded-xl"
           >
             <Calendar className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform duration-300" />
-            <span className="font-bold">Book Live Demo</span>
+            Book Live Demo
           </Button>
         </div>
 
@@ -134,7 +129,7 @@ const RevolutionSection = ({
               subtext: "No credit card required",
             },
             {
-              icon: Globe,
+              icon: Shield,
               text: "CBC compliant system",
               subtext: "MOE approved curriculum",
             },
@@ -146,41 +141,41 @@ const RevolutionSection = ({
           ].map((item, index) => (
             <div
               key={index}
-              className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:-translate-y-2 group"
+              className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:-translate-y-1 group"
             >
-              <item.icon className="w-8 h-8 text-green-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
+              <item.icon className="w-8 h-8 text-emerald-300 mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
               <p className="font-bold text-white text-lg mb-1">{item.text}</p>
               <p className="text-blue-200 text-sm">{item.subtext}</p>
             </div>
           ))}
         </div>
 
-        {/* Success metrics */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-8 border border-white/10">
+        {/* Success metrics with better styling */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20">
           <h3 className="text-2xl font-bold text-white mb-6">
             Join Schools That Have Already Transformed
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div className="group">
-              <div className="text-4xl font-bold text-yellow-400 group-hover:scale-110 transition-transform duration-300">
+              <div className="text-4xl font-bold text-yellow-400 group-hover:scale-110 transition-transform duration-300 mb-1">
                 98%
               </div>
               <div className="text-white text-sm">Satisfaction Rate</div>
             </div>
             <div className="group">
-              <div className="text-4xl font-bold text-green-400 group-hover:scale-110 transition-transform duration-300">
+              <div className="text-4xl font-bold text-emerald-400 group-hover:scale-110 transition-transform duration-300 mb-1">
                 300%
               </div>
               <div className="text-white text-sm">Efficiency Increase</div>
             </div>
             <div className="group">
-              <div className="text-4xl font-bold text-blue-400 group-hover:scale-110 transition-transform duration-300">
+              <div className="text-4xl font-bold text-blue-400 group-hover:scale-110 transition-transform duration-300 mb-1">
                 10+
               </div>
               <div className="text-white text-sm">Schools Served</div>
             </div>
             <div className="group">
-              <div className="text-4xl font-bold text-purple-400 group-hover:scale-110 transition-transform duration-300">
+              <div className="text-4xl font-bold text-purple-400 group-hover:scale-110 transition-transform duration-300 mb-1">
                 24/7
               </div>
               <div className="text-white text-sm">Local Support</div>

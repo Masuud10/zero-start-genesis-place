@@ -1843,6 +1843,290 @@ export type Database = {
           },
         ]
       }
+      exam_analytics: {
+        Row: {
+          analytics_type: string
+          class_id: string | null
+          data: Json
+          exam_session_id: string
+          generated_at: string | null
+          id: string
+          school_id: string
+          subject_id: string | null
+        }
+        Insert: {
+          analytics_type: string
+          class_id?: string | null
+          data?: Json
+          exam_session_id: string
+          generated_at?: string | null
+          id?: string
+          school_id: string
+          subject_id?: string | null
+        }
+        Update: {
+          analytics_type?: string
+          class_id?: string | null
+          data?: Json
+          exam_session_id?: string
+          generated_at?: string | null
+          id?: string
+          school_id?: string
+          subject_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_analytics_exam_session_fkey"
+            columns: ["exam_session_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_analytics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_sessions: {
+        Row: {
+          academic_year: string
+          created_at: string | null
+          created_by: string
+          curriculum_type: string
+          end_date: string
+          exam_type: string
+          id: string
+          is_active: boolean | null
+          is_published: boolean | null
+          school_id: string
+          session_name: string
+          start_date: string
+          term: string
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year: string
+          created_at?: string | null
+          created_by: string
+          curriculum_type?: string
+          end_date: string
+          exam_type: string
+          id?: string
+          is_active?: boolean | null
+          is_published?: boolean | null
+          school_id: string
+          session_name: string
+          start_date: string
+          term: string
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          created_at?: string | null
+          created_by?: string
+          curriculum_type?: string
+          end_date?: string
+          exam_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_published?: boolean | null
+          school_id?: string
+          session_name?: string
+          start_date?: string
+          term?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_timetables: {
+        Row: {
+          class_id: string
+          created_at: string | null
+          created_by: string
+          duration_minutes: number
+          end_time: string
+          exam_date: string
+          exam_session_id: string
+          id: string
+          instructions: string | null
+          invigilator_id: string | null
+          is_published: boolean | null
+          school_id: string
+          start_time: string
+          subject_id: string
+          updated_at: string | null
+          venue: string | null
+        }
+        Insert: {
+          class_id: string
+          created_at?: string | null
+          created_by: string
+          duration_minutes?: number
+          end_time: string
+          exam_date: string
+          exam_session_id: string
+          id?: string
+          instructions?: string | null
+          invigilator_id?: string | null
+          is_published?: boolean | null
+          school_id: string
+          start_time: string
+          subject_id: string
+          updated_at?: string | null
+          venue?: string | null
+        }
+        Update: {
+          class_id?: string
+          created_at?: string | null
+          created_by?: string
+          duration_minutes?: number
+          end_time?: string
+          exam_date?: string
+          exam_session_id?: string
+          id?: string
+          instructions?: string | null
+          invigilator_id?: string | null
+          is_published?: boolean | null
+          school_id?: string
+          start_time?: string
+          subject_id?: string
+          updated_at?: string | null
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_timetables_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_exam_session_fkey"
+            columns: ["exam_session_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_invigilator_fkey"
+            columns: ["invigilator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_timetables_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -3872,18 +4156,21 @@ export type Database = {
           failed_login_attempts: number | null
           gender: string | null
           id: string
+          language: string | null
           last_login_at: string | null
           last_login_ip: unknown | null
           locked_until: string | null
           mfa_enabled: boolean | null
           name: string
           national_id: string | null
+          notifications_enabled: boolean | null
           password_changed_at: string | null
           phone: string | null
           profile_photo_url: string | null
           role: string
           school_id: string | null
           status: string | null
+          theme: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3895,18 +4182,21 @@ export type Database = {
           failed_login_attempts?: number | null
           gender?: string | null
           id: string
+          language?: string | null
           last_login_at?: string | null
           last_login_ip?: unknown | null
           locked_until?: string | null
           mfa_enabled?: boolean | null
           name: string
           national_id?: string | null
+          notifications_enabled?: boolean | null
           password_changed_at?: string | null
           phone?: string | null
           profile_photo_url?: string | null
           role?: string
           school_id?: string | null
           status?: string | null
+          theme?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3918,18 +4208,21 @@ export type Database = {
           failed_login_attempts?: number | null
           gender?: string | null
           id?: string
+          language?: string | null
           last_login_at?: string | null
           last_login_ip?: unknown | null
           locked_until?: string | null
           mfa_enabled?: boolean | null
           name?: string
           national_id?: string | null
+          notifications_enabled?: boolean | null
           password_changed_at?: string | null
           phone?: string | null
           profile_photo_url?: string | null
           role?: string
           school_id?: string | null
           status?: string | null
+          theme?: string | null
           updated_at?: string | null
         }
         Relationships: [
