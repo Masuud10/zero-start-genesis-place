@@ -37,19 +37,31 @@ const MaintenanceSettings: React.FC = () => {
         .eq('setting_key', 'maintenance_mode');
 
       if (error) throw error;
-      return data?.[0]?.setting_value as MaintenanceConfig || {};
+      
+      // Safely parse the JSON value
+      const settingValue = data?.[0]?.setting_value;
+      if (settingValue && typeof settingValue === 'object' && !Array.isArray(settingValue)) {
+        return settingValue as unknown as MaintenanceConfig;
+      }
+      
+      // Return default config if no valid data
+      return {
+        enabled: false,
+        message: 'System is under maintenance. Please try again later.',
+        estimated_duration: '',
+        affected_services: 'All services'
+      } as MaintenanceConfig;
     }
   });
 
   React.useEffect(() => {
     if (maintenanceConfig) {
-      const config = maintenanceConfig as MaintenanceConfig;
       setMaintenanceData(prev => ({
         ...prev,
-        maintenance_mode: config.enabled || false,
-        maintenance_message: config.message || prev.maintenance_message,
-        estimated_duration: config.estimated_duration || '',
-        affected_services: config.affected_services || 'All services'
+        maintenance_mode: maintenanceConfig.enabled || false,
+        maintenance_message: maintenanceConfig.message || prev.maintenance_message,
+        estimated_duration: maintenanceConfig.estimated_duration || '',
+        affected_services: maintenanceConfig.affected_services || 'All services'
       }));
     }
   }, [maintenanceConfig]);
