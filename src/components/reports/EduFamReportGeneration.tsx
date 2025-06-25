@@ -17,7 +17,7 @@ const EduFamReportGeneration = () => {
   const [dateRange, setDateRange] = useState('current_month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [format as formatType, setFormat] = useState('pdf');
+  const [formatType, setFormatType] = useState('pdf');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -412,7 +412,7 @@ const EduFamReportGeneration = () => {
 
               <div>
                 <Label htmlFor="format">Export Format</Label>
-                <Select value={formatType} onValueChange={setFormat}>
+                <Select value={formatType} onValueChange={setFormatType}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
