@@ -122,7 +122,7 @@ const EduFamDashboardOverview = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview Cards */}
+      {/* Stats Overview Cards - REMOVED DOWNLOAD EXCEL CONTAINER */}
       <SystemOverviewCards
         schoolsCount={validSchoolsData.length}
         totalUsers={userStats.totalUsers}

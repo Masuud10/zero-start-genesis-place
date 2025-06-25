@@ -10,7 +10,6 @@ import UserRoleBreakdown from './admin/UserRoleBreakdown';
 import ErrorDisplay from './admin/ErrorDisplay';
 import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCard";
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
-import RoleReportDownloadButton from '@/components/reports/RoleReportDownloadButton';
 import DashboardModals from './DashboardModals';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -102,22 +101,6 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     return calculateUserStats(usersData);
   }, [usersData]);
 
-  // Place report download buttons at the top for Admins
-  const renderReportDownloads = () => (
-    <div className="mb-6 flex flex-col md:flex-row items-start md:items-center gap-2">
-      <RoleReportDownloadButton
-        type="grades"
-        term={"" + (new Date().getFullYear())}
-        label="Download All School Grades (Excel)"
-      />
-      <RoleReportDownloadButton
-        type="attendance"
-        term={"" + (new Date().getFullYear())}
-        label="Download All School Attendance (Excel)"
-      />
-    </div>
-  );
-
   // Critical error state: both queries failed
   if (schoolsError && usersError) {
     return (
@@ -144,10 +127,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Excel report download shortcuts for EduFam Admin */}
-      {renderReportDownloads()}
-
-      {/* Stats Icons directly below greetings - REMOVED DUPLICATE WELCOME SECTION */}
+      {/* Stats Icons directly below greetings - REMOVED DOWNLOAD EXCEL CONTAINER */}
       <SystemOverviewCards
         schoolsCount={validSchoolsData.length}
         totalUsers={userStats.totalUsers}
