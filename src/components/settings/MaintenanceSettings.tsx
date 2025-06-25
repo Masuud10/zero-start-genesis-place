@@ -2,177 +2,163 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
-
-interface MaintenanceMode {
-  enabled: boolean;
-  message: string;
-}
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Settings, AlertTriangle } from 'lucide-react';
 
 const MaintenanceSettings: React.FC = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [message, setMessage] = useState('');
-
-  // Fetch maintenance mode status
-  const { data: maintenanceStatus, isLoading } = useQuery({
-    queryKey: ['maintenance-mode'],
-    queryFn: async (): Promise<MaintenanceMode> => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'maintenance_mode')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (!data?.setting_value) {
-        return { enabled: false, message: '' };
-      }
-
-      // Type-safe parsing of JSON data
-      const settingValue = data.setting_value as any;
-      return {
-        enabled: Boolean(settingValue?.enabled || false),
-        message: String(settingValue?.message || '')
-      };
-    },
+  const [maintenanceData, setMaintenanceData] = useState({
+    maintenance_mode: false,
+    maintenance_message: 'System is under maintenance. Please try again later.',
+    estimated_duration: '',
+    affected_services: 'All services'
   });
 
-  // Toggle maintenance mode mutation
-  const toggleMaintenanceMutation = useMutation({
-    mutationFn: async ({ enabled, message }: { enabled: boolean; message: string }) => {
+  // Fetch current maintenance settings
+  const { data: maintenanceConfig } = useQuery({
+    queryKey: ['maintenance-config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_key, setting_value')
+        .eq('setting_key', 'maintenance_mode');
+
+      if (error) throw error;
+      return data?.[0]?.setting_value || {};
+    }
+  });
+
+  React.useEffect(() => {
+    if (maintenanceConfig) {
+      setMaintenanceData(prev => ({
+        ...prev,
+        maintenance_mode: maintenanceConfig.enabled || false,
+        maintenance_message: maintenanceConfig.message || prev.maintenance_message,
+        estimated_duration: maintenanceConfig.estimated_duration || '',
+        affected_services: maintenanceConfig.affected_services || 'All services'
+      }));
+    }
+  }, [maintenanceConfig]);
+
+  const updateMaintenanceMutation = useMutation({
+    mutationFn: async (config: typeof maintenanceData) => {
       const { error } = await supabase
         .from('system_settings')
         .upsert({
           setting_key: 'maintenance_mode',
-          setting_value: { enabled, message }
+          setting_value: {
+            enabled: config.maintenance_mode,
+            message: config.maintenance_message,
+            estimated_duration: config.estimated_duration,
+            affected_services: config.affected_services,
+            updated_at: new Date().toISOString()
+          }
         });
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maintenance-mode'] });
       toast({
         title: "Success",
-        description: "Maintenance mode settings updated successfully",
+        description: "Maintenance settings updated successfully",
       });
     },
     onError: (error: any) => {
+      console.error('Error updating maintenance settings:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update maintenance mode",
+        description: error.message || "Failed to update maintenance settings",
         variant: "destructive",
       });
     },
   });
 
-  const handleToggleMaintenance = () => {
-    const isEnabled = maintenanceStatus?.enabled || false;
-    toggleMaintenanceMutation.mutate({
-      enabled: !isEnabled,
-      message: message || maintenanceStatus?.message || 'System is under maintenance. Please try again later.'
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMaintenanceMutation.mutate(maintenanceData);
   };
-
-  const handleUpdateMessage = () => {
-    const isEnabled = maintenanceStatus?.enabled || false;
-    toggleMaintenanceMutation.mutate({
-      enabled: isEnabled,
-      message: message
-    });
-  };
-
-  React.useEffect(() => {
-    if (maintenanceStatus?.message) {
-      setMessage(maintenanceStatus.message);
-    }
-  }, [maintenanceStatus]);
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="h-10 bg-gray-200 rounded mb-4"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const isMaintenanceEnabled = maintenanceStatus?.enabled || false;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wrench className="h-5 w-5" />
-            System Maintenance
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Alert className={isMaintenanceEnabled ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
-            {isMaintenanceEnabled ? (
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-            ) : (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            )}
-            <AlertDescription className={isMaintenanceEnabled ? 'text-red-700' : 'text-green-700'}>
-              {isMaintenanceEnabled 
-                ? 'System is currently in maintenance mode. New users cannot access the system.'
-                : 'System is operational. All users can access the system normally.'
-              }
-            </AlertDescription>
-          </Alert>
-
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Settings className="h-5 w-5" />
+          Maintenance Settings
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium">Maintenance Mode</h3>
-              <p className="text-sm text-gray-600">
-                When enabled, prevents new user access while displaying a maintenance message
-              </p>
+              <Label htmlFor="maintenance_mode">Enable Maintenance Mode</Label>
+              <p className="text-xs text-gray-500">Prevent user access to the system</p>
             </div>
             <Switch
-              checked={isMaintenanceEnabled}
-              onCheckedChange={handleToggleMaintenance}
-              disabled={toggleMaintenanceMutation.isPending}
+              id="maintenance_mode"
+              checked={maintenanceData.maintenance_mode}
+              onCheckedChange={(checked) => 
+                setMaintenanceData(prev => ({ ...prev, maintenance_mode: checked }))
+              }
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="maintenance-message" className="text-sm font-medium">
-              Maintenance Message
-            </label>
-            <Textarea
-              id="maintenance-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Enter the message users will see during maintenance"
-              rows={3}
-            />
-            <Button 
-              onClick={handleUpdateMessage}
-              disabled={toggleMaintenanceMutation.isPending}
-              variant="outline"
-              size="sm"
-            >
-              Update Message
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          {maintenanceData.maintenance_mode && (
+            <>
+              <div>
+                <Label htmlFor="maintenance_message">Maintenance Message</Label>
+                <Textarea
+                  id="maintenance_message"
+                  value={maintenanceData.maintenance_message}
+                  onChange={(e) => 
+                    setMaintenanceData(prev => ({ ...prev, maintenance_message: e.target.value }))
+                  }
+                  placeholder="Message to display during maintenance"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="estimated_duration">Estimated Duration</Label>
+                <Input
+                  id="estimated_duration"
+                  value={maintenanceData.estimated_duration}
+                  onChange={(e) => 
+                    setMaintenanceData(prev => ({ ...prev, estimated_duration: e.target.value }))
+                  }
+                  placeholder="e.g., 2 hours"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="affected_services">Affected Services</Label>
+                <Input
+                  id="affected_services"
+                  value={maintenanceData.affected_services}
+                  onChange={(e) => 
+                    setMaintenanceData(prev => ({ ...prev, affected_services: e.target.value }))
+                  }
+                  placeholder="All services"
+                />
+              </div>
+            </>
+          )}
+
+          <Button 
+            type="submit" 
+            disabled={updateMaintenanceMutation.isPending}
+            className="w-full"
+          >
+            {updateMaintenanceMutation.isPending ? 'Updating...' : 'Update Maintenance Settings'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

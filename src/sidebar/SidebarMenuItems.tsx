@@ -26,7 +26,9 @@ import {
   Receipt,
   Banknote,
   Coins,
-  FolderKanban
+  FolderKanban,
+  Bell,
+  Wrench
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -34,6 +36,7 @@ export interface MenuItem {
   label: string;
   icon: any;
   roles: string[];
+  subItems?: MenuItem[];
 }
 
 export const getMenuItems = (userRole?: string): MenuItem[] => {
@@ -61,6 +64,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Analytics',
       icon: BarChart3,
       roles: ['edufam_admin', 'principal', 'school_owner']
+    },
+    {
+      id: 'schools-analytics',
+      label: 'Schools Analytics',
+      icon: TrendingUp,
+      roles: ['edufam_admin']
     },
     {
       id: 'grades',
@@ -138,7 +147,51 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: 'settings',
       label: 'Settings',
       icon: Settings,
-      roles: ['edufam_admin', 'principal', 'school_owner']
+      roles: ['principal', 'school_owner']
+    },
+    {
+      id: 'system-settings',
+      label: 'System Settings',
+      icon: Wrench,
+      roles: ['edufam_admin'],
+      subItems: [
+        {
+          id: 'maintenance',
+          label: 'Maintenance',
+          icon: Settings,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'database',
+          label: 'Database',
+          icon: Database,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'security',
+          label: 'Security',
+          icon: Shield,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'notifications',
+          label: 'Notifications',
+          icon: Bell,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'user-management',
+          label: 'User Management',
+          icon: Users,
+          roles: ['edufam_admin']
+        },
+        {
+          id: 'company-settings',
+          label: 'Company Settings',
+          icon: Building2,
+          roles: ['edufam_admin']
+        }
+      ]
     },
     {
       id: 'finance-settings',
@@ -150,7 +203,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: 'security',
       label: 'Security',
       icon: Shield,
-      roles: ['edufam_admin', 'principal', 'school_owner']
+      roles: ['principal', 'school_owner']
     },
     {
       id: 'schools',
