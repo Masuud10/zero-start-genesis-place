@@ -1,59 +1,47 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRoleBasedRouting } from '@/hooks/useRoleBasedRouting';
-import Dashboard from './Dashboard';
-import AnnouncementsModule from './modules/AnnouncementsModule';
+import { useNavigation } from '@/contexts/NavigationContext';
+import DashboardContainer from './dashboard/DashboardContainer';
+import ProjectHubModule from './modules/ProjectHubModule';
+import AnalyticsDashboard from './analytics/AnalyticsDashboard';
 import GradesModule from './modules/GradesModule';
 import AttendanceModule from './modules/AttendanceModule';
 import StudentsModule from './modules/StudentsModule';
 import FinanceModule from './modules/FinanceModule';
+import ProcessPaymentsModule from './modules/ProcessPaymentsModule';
+import StudentAccountsModule from './modules/StudentAccountsModule';
+import FeeManagementModule from './modules/FeeManagementModule';
 import TimetableModule from './modules/TimetableModule';
+import AnnouncementsModule from './modules/AnnouncementsModule';
 import MessagesModule from './modules/MessagesModule';
 import ReportsModule from './modules/ReportsModule';
+import SchoolActivityLogsModule from './modules/SchoolActivityLogsModule';
+import SystemAuditLogsModule from './modules/SystemAuditLogsModule';
 import SupportModule from './modules/SupportModule';
 import SettingsModule from './modules/SettingsModule';
+import FinanceSettingsModule from './modules/FinanceSettingsModule';
 import SecurityModule from './modules/SecurityModule';
 import SchoolsModule from './modules/SchoolsModule';
 import UsersModule from './modules/UsersModule';
 import BillingModule from './modules/BillingModule';
 import SystemHealthModule from './modules/SystemHealthModule';
-import ProjectHubModule from './modules/ProjectHubModule';
-import ProcessPaymentsModule from './modules/ProcessPaymentsModule';
-import StudentAccountsModule from './modules/StudentAccountsModule';
-import FeeManagementModule from './modules/FeeManagementModule';
-import FinanceSettingsModule from './modules/FinanceSettingsModule';
-import SchoolActivityLogsModule from './modules/SchoolActivityLogsModule';
-import SystemAuditLogsModule from './modules/SystemAuditLogsModule';
 import SystemSettings from './settings/SystemSettings';
-import MaintenanceSettings from './settings/MaintenanceSettings';
-import DatabaseSettings from './settings/DatabaseSettings';
-import SecuritySettingsPanel from './settings/SecuritySettingsPanel';
-import NotificationSettings from './settings/NotificationSettings';
-import UserManagementSettings from './settings/UserManagementSettings';
-import CompanySettings from './settings/CompanySettings';
 
-interface MainContentProps {
-  activeModule: string;
-}
-
-const MainContent: React.FC<MainContentProps> = ({ activeModule }) => {
+const MainContent: React.FC = () => {
   const { user } = useAuth();
-  const { canAccessRoute } = useRoleBasedRouting();
+  const { activeSection } = useNavigation();
 
-  // Role-based access control for audit logs
-  const canAccessSchoolLogs = canAccessRoute(['principal', 'school_owner']);
-  const canAccessSystemLogs = canAccessRoute(['edufam_admin']);
-  const canAccessSystemSettings = canAccessRoute(['edufam_admin']);
+  console.log('🎯 MainContent: Rendering section:', activeSection, 'for role:', user?.role);
 
   const renderContent = () => {
-    switch (activeModule) {
+    switch (activeSection) {
       case 'dashboard':
-        return <Dashboard />;
+        return <DashboardContainer />;
       case 'project-hub':
-        return canAccessRoute(['edufam_admin']) ? <ProjectHubModule /> : <Dashboard />;
-      case 'announcements':
-        return <AnnouncementsModule />;
+        return <ProjectHubModule />;
+      case 'analytics':
+        return <AnalyticsDashboard />;
       case 'grades':
         return <GradesModule />;
       case 'attendance':
@@ -63,64 +51,57 @@ const MainContent: React.FC<MainContentProps> = ({ activeModule }) => {
       case 'finance':
         return <FinanceModule />;
       case 'payments':
-        return canAccessRoute(['finance_officer']) ? <ProcessPaymentsModule /> : <Dashboard />;
+        return <ProcessPaymentsModule />;
       case 'student-accounts':
-        return canAccessRoute(['finance_officer']) ? <StudentAccountsModule /> : <Dashboard />;
+        return <StudentAccountsModule />;
       case 'fee-management':
-        return canAccessRoute(['finance_officer']) ? <FeeManagementModule /> : <Dashboard />;
-      case 'finance-settings':
-        return canAccessRoute(['finance_officer']) ? <FinanceSettingsModule /> : <Dashboard />;
+        return <FeeManagementModule />;
       case 'timetable':
         return <TimetableModule />;
+      case 'announcements':
+        return <AnnouncementsModule />;
       case 'messages':
         return <MessagesModule />;
       case 'reports':
         return <ReportsModule />;
       case 'school-activity-logs':
-        return canAccessSchoolLogs ? <SchoolActivityLogsModule /> : <Dashboard />;
+        return <SchoolActivityLogsModule />;
       case 'system-audit-logs':
-        return canAccessSystemLogs ? <SystemAuditLogsModule /> : <Dashboard />;
+        return <SystemAuditLogsModule />;
       case 'support':
         return <SupportModule />;
       case 'settings':
         return <SettingsModule />;
+      case 'finance-settings':
+        return <FinanceSettingsModule />;
       case 'security':
         return <SecurityModule />;
       case 'schools':
-        return canAccessRoute(['edufam_admin']) ? <SchoolsModule /> : <Dashboard />;
+        return <SchoolsModule />;
       case 'users':
-        return canAccessRoute(['edufam_admin']) ? <UsersModule /> : <Dashboard />;
+        return <UsersModule />;
       case 'billing':
-        return canAccessRoute(['edufam_admin']) ? <BillingModule /> : <Dashboard />;
+        return <BillingModule />;
       case 'system-health':
-        return canAccessRoute(['edufam_admin']) ? <SystemHealthModule /> : <Dashboard />;
-      
-      // System Settings Routes
+        return <SystemHealthModule />;
+      // System Settings routes
       case 'system-settings':
-        return canAccessSystemSettings ? <SystemSettings /> : <Dashboard />;
       case 'system-settings-maintenance':
-        return canAccessSystemSettings ? <div className="p-6"><MaintenanceSettings /></div> : <Dashboard />;
       case 'system-settings-database':
-        return canAccessSystemSettings ? <div className="p-6"><DatabaseSettings /></div> : <Dashboard />;
       case 'system-settings-security':
-        return canAccessSystemSettings ? <div className="p-6"><SecuritySettingsPanel /></div> : <Dashboard />;
       case 'system-settings-notifications':
-        return canAccessSystemSettings ? <div className="p-6"><NotificationSettings /></div> : <Dashboard />;
       case 'system-settings-users':
-        return canAccessSystemSettings ? <div className="p-6"><UserManagementSettings /></div> : <Dashboard />;
       case 'system-settings-company':
-        return canAccessSystemSettings ? <div className="p-6"><CompanySettings /></div> : <Dashboard />;
-      
+        return <SystemSettings />;
       default:
-        return <Dashboard />;
+        console.warn('🚨 MainContent: Unknown section:', activeSection);
+        return <DashboardContainer />;
     }
   };
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="container mx-auto p-6">
-        {renderContent()}
-      </div>
+      {renderContent()}
     </div>
   );
 };
