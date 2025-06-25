@@ -1,12 +1,11 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Bell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AuthUser } from '@/types/auth';
 import { School } from '@/types/school';
 import UserProfileDropdown from './UserProfileDropdown';
+import NotificationsDropdown from '@/components/notifications/NotificationsDropdown';
 
 interface DashboardContainerProps {
   user: AuthUser;
@@ -142,10 +141,7 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
               {/* Right side - User Actions */}
               <div className="flex items-center space-x-2 flex-shrink-0">
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="relative text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-colors rounded-full h-10 w-10">
-                  <Bell className="h-5 w-5" />
-                  <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                </Button>
+                <NotificationsDropdown />
 
                 {/* User Profile Dropdown */}
                 <UserProfileDropdown user={user} currentSchool={currentSchool} onLogout={onLogout} />
