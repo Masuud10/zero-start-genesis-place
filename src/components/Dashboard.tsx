@@ -36,12 +36,6 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Handler for modal operations - can be enhanced later if needed
-  const handleModalOpen = (modalType: string) => {
-    console.log('Dashboard: Modal open requested:', modalType);
-    // This can be enhanced to handle specific modal logic if needed
-  };
-
   // Route to appropriate dashboard based on user role with proper logging
   console.log('🎯 Dashboard: Routing based on role:', user.role);
   
@@ -49,16 +43,16 @@ const Dashboard: React.FC = () => {
     case 'edufam_admin':
     case 'elimisha_admin':
       console.log('🎯 Dashboard: Routing to EduFam Admin Dashboard');
-      return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
+      return <EduFamAdminDashboard />;
     
     case 'principal':
     case 'school_owner':
       console.log('🎯 Dashboard: Routing to Principal Dashboard');
-      return <PrincipalDashboard user={user} onModalOpen={handleModalOpen} />;
+      return <PrincipalDashboard user={user} />;
     
     case 'teacher':
       console.log('🎯 Dashboard: Routing to Teacher Dashboard');
-      return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
+      return <TeacherDashboard user={user} />;
     
     case 'finance_officer':
       console.log('🎯 Dashboard: Routing to Finance Officer Dashboard');
@@ -66,7 +60,7 @@ const Dashboard: React.FC = () => {
     
     case 'parent':
       console.log('🎯 Dashboard: Routing to Parent Dashboard');
-      return <ParentDashboard user={user} onModalOpen={handleModalOpen} />;
+      return <ParentDashboard user={user} />;
     
     default:
       console.warn('🎯 Dashboard: Unknown user role:', user.role);

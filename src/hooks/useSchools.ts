@@ -32,6 +32,15 @@ export interface School {
   updated_at: string;
 }
 
+interface SchoolCreationResult {
+  success?: boolean;
+  school_id?: string;
+  owner_id?: string;
+  principal_id?: string;
+  message?: string;
+  error?: string;
+}
+
 export const useSchools = () => {
   return useQuery({
     queryKey: ['schools'],
@@ -147,7 +156,7 @@ export const useCreateSchool = () => {
         throw error;
       }
 
-      return data;
+      return data as SchoolCreationResult;
     },
     onSuccess: (result) => {
       console.log('🏫 School creation successful:', result);

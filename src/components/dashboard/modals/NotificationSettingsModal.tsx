@@ -4,14 +4,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthUser } from '@/types/auth';
-import { Bell, Loader2, Mail, MessageSquare, AlertCircle } from 'lucide-react';
+import { Bell, Loader2, Mail, AlertCircle } from 'lucide-react';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -21,6 +20,7 @@ interface NotificationSettingsModalProps {
 }
 
 interface NotificationSettings {
+  [key: string]: any;
   email_notifications: boolean;
   sms_notifications: boolean;
   push_notifications: boolean;
@@ -63,7 +63,7 @@ const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
         .from('system_settings')
         .select('setting_value')
         .eq('setting_key', 'notification_settings')
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -75,7 +75,7 @@ const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
   });
 
   useEffect(() => {
-    if (currentSettings) {
+    if (currentSettings && typeof currentSettings === 'object') {
       setSettings(prev => ({ ...prev, ...currentSettings }));
     }
   }, [currentSettings]);
@@ -86,7 +86,7 @@ const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
         .from('system_settings')
         .upsert({
           setting_key: 'notification_settings',
-          setting_value: newSettings,
+          setting_value: newSettings as any,
           updated_at: new Date().toISOString()
         });
 

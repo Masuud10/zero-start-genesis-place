@@ -58,6 +58,15 @@ interface SchoolFormData {
   mpesa_passkey: string;
 }
 
+interface SchoolCreationResult {
+  success?: boolean;
+  school_id?: string;
+  owner_id?: string;
+  principal_id?: string;
+  message?: string;
+  error?: string;
+}
+
 const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
   isOpen,
   onClose,
@@ -153,7 +162,7 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
       }
 
       console.log('🏫 Database function result:', result);
-      return result;
+      return result as SchoolCreationResult;
     },
     onSuccess: (result) => {
       console.log('🏫 School creation result:', result);

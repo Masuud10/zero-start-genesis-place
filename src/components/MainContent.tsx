@@ -40,31 +40,25 @@ const MainContent: React.FC = () => {
 
   console.log('🎯 MainContent: Rendering section:', activeSection, 'for role:', user?.role);
 
-  // Modal handler function
-  const handleModalOpen = (modalType: string) => {
-    console.log('🎯 MainContent: Modal open requested:', modalType);
-    // This can be enhanced to handle specific modal logic if needed
-  };
-
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
         // Render role-specific dashboard
         switch (user?.role) {
           case 'edufam_admin':
-            return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
+            return <EduFamAdminDashboard />;
           case 'principal':
-            return <PrincipalDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <PrincipalDashboard user={user} />;
           case 'teacher':
-            return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <TeacherDashboard user={user} />;
           case 'parent':
-            return <ParentDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <ParentDashboard user={user} />;
           case 'finance_officer':
             return <FinanceOfficerDashboard user={user} />;
           case 'school_owner':
             return <SchoolOwnerDashboard />;
           default:
-            return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
+            return <EduFamAdminDashboard />;
         }
       case 'project-hub':
         return <ProjectHubModule />;
@@ -128,19 +122,19 @@ const MainContent: React.FC = () => {
         // Return role-specific dashboard as fallback
         switch (user?.role) {
           case 'edufam_admin':
-            return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
+            return <EduFamAdminDashboard />;
           case 'principal':
-            return <PrincipalDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <PrincipalDashboard user={user} />;
           case 'teacher':
-            return <TeacherDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <TeacherDashboard user={user} />;
           case 'parent':
-            return <ParentDashboard user={user} onModalOpen={handleModalOpen} />;
+            return <ParentDashboard user={user} />;
           case 'finance_officer':
             return <FinanceOfficerDashboard user={user} />;
           case 'school_owner':
             return <SchoolOwnerDashboard />;
           default:
-            return <EduFamAdminDashboard onModalOpen={handleModalOpen} />;
+            return <EduFamAdminDashboard />;
         }
     }
   };
