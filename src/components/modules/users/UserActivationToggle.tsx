@@ -86,7 +86,9 @@ const UserActivationToggle = ({
   if (!canToggle) {
     return (
       <div className="flex items-center">
-        <span className="text-sm text-muted-foreground">System Admin</span>
+        <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+          System Admin
+        </span>
       </div>
     );
   }
@@ -94,13 +96,15 @@ const UserActivationToggle = ({
   return (
     <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
       <AlertDialogTrigger asChild>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 cursor-pointer">
           <Switch
             checked={isActive}
             disabled={isUpdating}
             onCheckedChange={() => setShowConfirmDialog(true)}
           />
-          <span className="text-sm text-muted-foreground">
+          <span className={`text-sm font-medium ${
+            isActive ? 'text-green-600' : 'text-red-600'
+          }`}>
             {isActive ? 'Active' : 'Inactive'}
           </span>
         </div>
@@ -113,8 +117,19 @@ const UserActivationToggle = ({
           <AlertDialogDescription>
             Are you sure you want to {isActive ? 'deactivate' : 'activate'} {userName}'s account?
             {isActive && (
-              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                <strong>Warning:</strong> Deactivating this user will prevent them from logging in and accessing any system features.
+              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <strong className="text-yellow-800">Warning:</strong> 
+                <span className="text-yellow-700 ml-1">
+                  Deactivating this user will immediately prevent them from logging in and accessing any system features.
+                </span>
+              </div>
+            )}
+            {!isActive && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                <strong className="text-green-800">Note:</strong>
+                <span className="text-green-700 ml-1">
+                  Activating this user will restore their access according to their assigned role and school.
+                </span>
               </div>
             )}
           </AlertDialogDescription>

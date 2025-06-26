@@ -10,6 +10,8 @@ export interface UpdateUserStatusResponse {
 export class UserStatusService {
   static async updateUserStatus(userId: string, newStatus: 'active' | 'inactive'): Promise<UpdateUserStatusResponse> {
     try {
+      console.log(`🔄 Updating user status: ${userId} to ${newStatus}`);
+      
       // Call the edge function for updating user status
       const { data, error } = await supabase.functions.invoke('update_user_status', {
         body: {
@@ -19,7 +21,7 @@ export class UserStatusService {
       });
 
       if (error) {
-        console.error('Error calling update_user_status function:', error);
+        console.error('❌ Error calling update_user_status function:', error);
         return { 
           success: false, 
           error: error.message || 'Failed to update user status' 
@@ -27,18 +29,20 @@ export class UserStatusService {
       }
 
       if (data?.success) {
+        console.log('✅ User status updated successfully:', data);
         return { 
           success: true, 
           message: data.message || 'User status updated successfully' 
         };
       } else {
+        console.error('❌ Function returned error:', data);
         return { 
           success: false, 
           error: data?.error || 'Failed to update user status' 
         };
       }
     } catch (error: any) {
-      console.error('Unexpected error in updateUserStatus:', error);
+      console.error('❌ Unexpected error in updateUserStatus:', error);
       return { 
         success: false, 
         error: error.message || 'Unknown error occurred' 
@@ -77,7 +81,8 @@ export class UserStatusService {
       return {
         canManageUsers,
         userRole: profile.role,
-        isSystemAdmin
+        isSystemAdmin,
+        schoolId: profile.school_id
       };
     } catch (error) {
       console.error('Error getting user permissions:', error);

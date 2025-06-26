@@ -56,12 +56,30 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
   const createUserMutation = useMutation({
     mutationFn: async (user: typeof userData) => {
+      // Ensure non-admin users are assigned to a school
+      let finalSchoolId = user.schoolId;
+      
+      if (user.role !== 'edufam_admin') {
+        if (!finalSchoolId) {
+          // If no school selected and user is edufam_admin, require school selection
+          if (currentUser.role === 'edufam_admin') {
+            throw new Error('Please select a school for this user role');
+          }
+          // If current user has a school, use that
+          finalSchoolId = currentUser.school_id;
+        }
+        
+        if (!finalSchoolId) {
+          throw new Error('School assignment is required for this role');
+        }
+      }
+
       const { data, error } = await supabase.rpc('create_admin_user', {
         user_email: user.email,
         user_password: user.password,
         user_name: user.name,
         user_role: user.role,
-        user_school_id: user.schoolId || null
+        user_school_id: finalSchoolId || null
       });
       
       if (error) throw error;
@@ -71,7 +89,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       if (result && result.success) {
         toast({
           title: "Success",
-          description: "User created successfully",
+          description: "User created successfully with proper school assignment",
         });
         onSuccess();
         onClose();
@@ -112,18 +130,21 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     ] : [])
   ];
 
+  // Check if school selection should be shown
+  const shouldShowSchoolSelection = currentUser.role === 'edufam_admin' && userData.role !== 'edufam_admin';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
-            Add a new user to the system with the specified role.
+            Add a new user to the system with the specified role and school assignment.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">Full Name *</Label>
             <Input
               id="name"
               value={userData.name}
@@ -134,7 +155,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               type="email"
@@ -146,7 +167,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role">Role *</Label>
             <Select 
               value={userData.role} 
               onValueChange={(value) => setUserData(prev => ({ ...prev, role: value }))}
@@ -164,10 +185,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </Select>
           </div>
 
-          {/* School selection - only for system admins or when role requires school */}
-          {(currentUser.role === 'edufam_admin' && userData.role !== 'edufam_admin') && (
+          {/* School selection - only for system admins creating non-admin users */}
+          {shouldShowSchoolSelection && (
             <div>
-              <Label htmlFor="school">School</Label>
+              <Label htmlFor="school">Assign to School *</Label>
               <Select 
                 value={userData.schoolId} 
                 onValueChange={(value) => setUserData(prev => ({ ...prev, schoolId: value }))}
@@ -187,7 +208,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           )}
 
           <div>
-            <Label htmlFor="password">Temporary Password</Label>
+            <Label htmlFor="password">Temporary Password *</Label>
             <Input
               id="password"
               type="password"
@@ -195,9 +216,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               onChange={(e) => setUserData(prev => ({ ...prev, password: e.target.value }))}
               placeholder="Enter temporary password"
               required
+              minLength={8}
             />
             <p className="text-xs text-gray-500 mt-1">
-              The user will be prompted to change this password on first login.
+              User will be prompted to change this password on first login.
             </p>
           </div>
 
