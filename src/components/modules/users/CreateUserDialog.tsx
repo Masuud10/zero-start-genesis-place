@@ -6,11 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { AdminUserService } from '@/services/adminUserService';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CreateUserDialogProps {
   children: React.ReactNode;
   onUserCreated: () => void;
+}
+
+interface CreateUserRpcResponse {
+  success?: boolean;
+  error?: string;
+  user_id?: string;
 }
 
 const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCreated }) => {
@@ -19,30 +27,76 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
+    password: 'TempPassword123!',
     role: '',
-    phone: ''
+    phone: '',
+    schoolId: ''
   });
   
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Get available schools for selection
+  const { data: schools = [] } = useQuery({
+    queryKey: ['schools'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && user?.role === 'edufam_admin'
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await AdminUserService.createUser(formData);
+      // Ensure non-admin users are assigned to a school
+      let finalSchoolId = formData.schoolId;
+      
+      if (formData.role !== 'edufam_admin') {
+        if (!finalSchoolId) {
+          // If no school selected and user is edufam_admin, require school selection
+          if (user?.role === 'edufam_admin') {
+            throw new Error('Please select a school for this user role');
+          }
+          // If current user has a school, use that
+          finalSchoolId = user?.school_id || '';
+        }
+        
+        if (!finalSchoolId) {
+          throw new Error('School assignment is required for this role');
+        }
+      }
+
+      const { data, error } = await supabase.rpc('create_admin_user', {
+        user_email: formData.email,
+        user_password: formData.password,
+        user_name: formData.name,
+        user_role: formData.role,
+        user_school_id: finalSchoolId || null
+      });
       
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "User created successfully",
-      });
+      const result = data as CreateUserRpcResponse;
+      
+      if (result && result.success) {
+        toast({
+          title: "Success",
+          description: "User created successfully with proper school assignment",
+        });
 
-      setOpen(false);
-      setFormData({ name: '', email: '', password: '', role: '', phone: '' });
-      onUserCreated();
+        setOpen(false);
+        setFormData({ name: '', email: '', password: 'TempPassword123!', role: '', phone: '', schoolId: '' });
+        onUserCreated();
+      } else {
+        throw new Error(result?.error || 'Failed to create user');
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -53,6 +107,20 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
       setLoading(false);
     }
   };
+
+  const roleOptions = [
+    { value: 'parent', label: 'Parent' },
+    { value: 'teacher', label: 'Teacher' },
+    { value: 'principal', label: 'Principal' },
+    { value: 'school_owner', label: 'School Owner' },
+    { value: 'finance_officer', label: 'Finance Officer' },
+    ...(user?.role === 'edufam_admin' ? [
+      { value: 'edufam_admin', label: 'EduFam Admin' }
+    ] : [])
+  ];
+
+  // Check if school selection should be shown
+  const shouldShowSchoolSelection = user?.role === 'edufam_admin' && formData.role !== 'edufam_admin';
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -86,16 +154,19 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
           </div>
 
           <div>
-            <Label htmlFor="password">Password *</Label>
+            <Label htmlFor="password">Temporary Password *</Label>
             <Input
               id="password"
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
               required
-              minLength={6}
-              placeholder="Minimum 6 characters"
+              minLength={8}
+              placeholder="Minimum 8 characters"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              User will be prompted to change this password on first login.
+            </p>
           </div>
 
           <div>
@@ -114,13 +185,36 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="principal">Principal</SelectItem>
-                <SelectItem value="teacher">Teacher</SelectItem>
-                <SelectItem value="finance_officer">Finance Officer</SelectItem>
-                <SelectItem value="parent">Parent</SelectItem>
+                {roleOptions.map(role => (
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* School selection - only for system admins creating non-admin users */}
+          {shouldShowSchoolSelection && (
+            <div>
+              <Label htmlFor="school">Assign to School *</Label>
+              <Select 
+                value={formData.schoolId} 
+                onValueChange={(value) => setFormData({...formData, schoolId: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select school" />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map(school => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
