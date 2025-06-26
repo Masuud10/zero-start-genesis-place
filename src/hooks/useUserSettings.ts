@@ -24,6 +24,7 @@ export const useUserSettings = () => {
     mutationFn: async (settings: Partial<UserSettings>) => {
       if (!user?.id) throw new Error('No user ID available');
 
+      // Update profile in database
       const { data, error } = await supabase
         .from('profiles')
         .update({
@@ -36,6 +37,21 @@ export const useUserSettings = () => {
         .single();
 
       if (error) throw error;
+
+      // Also update auth user metadata for immediate access
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          name: settings.name,
+          theme_preference: settings.theme_preference,
+          dashboard_preferences: settings.dashboard_preferences
+        }
+      });
+
+      if (authError) {
+        console.warn('Failed to update auth metadata:', authError);
+        // Don't throw here as the main update succeeded
+      }
+
       return data;
     },
     onSuccess: () => {

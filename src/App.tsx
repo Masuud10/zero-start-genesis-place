@@ -1,40 +1,41 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import MaintenanceCheck from "./components/maintenance/MaintenanceCheck";
-import Index from "./pages/Index";
-import { HttpsEnforcer } from "./utils/httpsEnforcer";
-import { useEffect } from "react";
+import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { SchoolProvider } from '@/contexts/SchoolContext';
+import { NavigationProvider } from '@/contexts/NavigationContext';
+import AppContent from '@/components/AppContent';
+import './App.css';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
-const App = () => {
-  useEffect(() => {
-    // Initialize security measures on app start
-    HttpsEnforcer.initializeSecurity();
-  }, []);
-
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <MaintenanceCheck>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/*" element={<Index />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </MaintenanceCheck>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <ThemeProvider>
+            <SchoolProvider>
+              <NavigationProvider>
+                <AppContent />
+                <Toaster />
+              </NavigationProvider>
+            </SchoolProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;

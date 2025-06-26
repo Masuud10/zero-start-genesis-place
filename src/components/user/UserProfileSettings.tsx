@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,11 +14,12 @@ import { User, Palette, Settings, Save } from 'lucide-react';
 
 const UserProfileSettings = () => {
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { updateUserSettings, isUpdating } = useUserSettings();
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    theme_preference: 'system',
+    theme_preference: theme,
     showGreetings: true,
     compactMode: false,
     defaultView: 'dashboard'
@@ -27,13 +29,20 @@ const UserProfileSettings = () => {
     if (user) {
       setFormData({
         name: user.name || '',
-        theme_preference: user.user_metadata?.theme_preference || 'system',
+        theme_preference: user.user_metadata?.theme_preference || theme,
         showGreetings: user.user_metadata?.dashboard_preferences?.showGreetings ?? true,
         compactMode: user.user_metadata?.dashboard_preferences?.compactMode ?? false,
         defaultView: user.user_metadata?.dashboard_preferences?.defaultView || 'dashboard'
       });
     }
-  }, [user]);
+  }, [user, theme]);
+
+  const handleThemeChange = (newTheme: string) => {
+    const themeValue = newTheme as 'light' | 'dark' | 'system';
+    setFormData(prev => ({ ...prev, theme_preference: themeValue }));
+    // Apply theme immediately for preview
+    setTheme(themeValue);
+  };
 
   const handleSave = () => {
     updateUserSettings.mutate({
@@ -73,9 +82,9 @@ const UserProfileSettings = () => {
               id="email"
               value={user?.email || ''}
               disabled
-              className="bg-gray-50"
+              className="bg-gray-50 dark:bg-gray-800"
             />
-            <p className="text-xs text-gray-500">Email cannot be changed</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Email cannot be changed</p>
           </div>
         </CardContent>
       </Card>
@@ -92,17 +101,35 @@ const UserProfileSettings = () => {
             <Label htmlFor="theme">Theme Preference</Label>
             <Select
               value={formData.theme_preference}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, theme_preference: value }))}
+              onValueChange={handleThemeChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System</SelectItem>
+                <SelectItem value="light">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    Light
+                  </div>
+                </SelectItem>
+                <SelectItem value="dark">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gray-800"></div>
+                    Dark
+                  </div>
+                </SelectItem>
+                <SelectItem value="system">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 to-gray-800"></div>
+                    System
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Choose your preferred color scheme. System will match your device settings.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -118,7 +145,7 @@ const UserProfileSettings = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="showGreetings">Show Greetings</Label>
-              <p className="text-sm text-gray-500">Display welcome message on dashboard</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Display welcome message on dashboard</p>
             </div>
             <Switch
               id="showGreetings"
@@ -132,7 +159,7 @@ const UserProfileSettings = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="compactMode">Compact Mode</Label>
-              <p className="text-sm text-gray-500">Reduce spacing and card sizes</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Reduce spacing and card sizes</p>
             </div>
             <Switch
               id="compactMode"
