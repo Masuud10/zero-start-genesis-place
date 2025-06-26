@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
@@ -49,6 +48,10 @@ export const useAccessControl = () => {
       case 'messages':
         return hasPermission(PERMISSIONS.SEND_MESSAGES);
       case 'reports':
+        // Teachers have restricted access to reports
+        if (user.role === 'teacher') {
+          return true; // Allow access but with restrictions in the component
+        }
         return hasPermission(PERMISSIONS.VIEW_REPORTS);
       case 'analytics':
         return hasPermission(PERMISSIONS.VIEW_ANALYTICS);
@@ -73,5 +76,20 @@ export const useAccessControl = () => {
     }
   }, [user, hasPermission]);
 
-  return { checkAccess, user };
+  const checkReportAccess = useCallback((reportType: string): boolean => {
+    if (!user?.role) return false;
+    
+    // Admin roles have full access
+    if (user.role === 'edufam_admin') return true;
+    
+    // Teachers can only access grade and attendance reports
+    if (user.role === 'teacher') {
+      return ['grades', 'attendance', 'grade_report', 'attendance_report'].includes(reportType);
+    }
+    
+    // Other roles have different permissions based on their general report access
+    return hasPermission(PERMISSIONS.VIEW_REPORTS);
+  }, [user, hasPermission]);
+
+  return { checkAccess, checkReportAccess, user };
 };

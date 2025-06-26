@@ -32,8 +32,8 @@ const ROLE_REPORT_OPTIONS: Record<string, { value: string, label: string, desc: 
     { value: "school_summary", label: "School Summary", desc: "Aggregate summary by term/year" },
   ],
   teacher: [
-    { value: "grades", label: "Grades Report", desc: "Your classes & subjects grades" },
-    { value: "attendance", label: "Attendance Report", desc: "Your class attendance summary" },
+    { value: "grades", label: "Grades Report", desc: "Your classes & subjects grades only" },
+    { value: "attendance", label: "Attendance Report", desc: "Your class attendance summary only" },
   ],
   parent: [
     { value: "grades", label: "Grades Report", desc: "Your child's grades" },
@@ -71,7 +71,7 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({
   const [term, setTerm] = useState(termOptions[0]);
   const [downloading, setDownloading] = useState(false);
 
-  // Get available reports for current user role
+  // Get available reports for current user role - restrict teachers to only grades and attendance
   const available = showAll || user?.role === "edufam_admin"
     ? ROLE_REPORT_OPTIONS.edufam_admin
     : ROLE_REPORT_OPTIONS[user?.role as string] || DEFAULT_REPORTS;
@@ -90,6 +90,16 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({
       toast({ 
         title: "Authentication Error", 
         description: "Please log in to generate reports.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Additional check for teachers - only allow grades and attendance reports
+    if (user?.role === 'teacher' && !['grades', 'attendance'].includes(reportType)) {
+      toast({ 
+        title: "Access Denied", 
+        description: "Teachers can only generate grade and attendance reports.", 
         variant: "destructive" 
       });
       return;
@@ -148,7 +158,16 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({
         });
 
       } else {
-        // For PDF reports (summary reports)
+        // For PDF reports (summary reports) - restrict access for teachers
+        if (user?.role === 'teacher') {
+          toast({ 
+            title: "Access Denied", 
+            description: "Teachers can only generate grade and attendance reports.", 
+            variant: "destructive" 
+          });
+          return;
+        }
+
         let apiType = "";
         switch (reportType) {
           case "school_summary":
@@ -280,6 +299,13 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({
         </div>
       )}
       
+      {user?.role === 'teacher' && (
+        <div className="flex items-center gap-2 text-blue-600 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          Teachers can only generate grade and attendance reports for their classes
+        </div>
+      )}
+      
       <Button 
         onClick={handleDownload} 
         disabled={downloading || !reportType || !user?.id} 
@@ -303,6 +329,8 @@ export const ReportDownloadPanel: React.FC<ReportPanelProps> = ({
         <CardDescription>
           {user?.role === "edufam_admin"
             ? "Generate and download analytics, billing, performance, school summaries and more for any school."
+            : user?.role === "teacher"
+            ? "Download grade and attendance reports for your classes only."
             : "Download term/year academic, attendance, or finance reports (access based on your role)."}
         </CardDescription>
       </CardHeader>
