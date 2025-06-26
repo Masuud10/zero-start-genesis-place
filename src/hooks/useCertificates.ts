@@ -100,8 +100,8 @@ export const useCertificates = () => {
 
       console.log('Certificate data received:', performanceData);
 
-      // The data from RPC is already in the correct format
-      const typedPerformanceData = performanceData as CertificatePerformance;
+      // The data from RPC is already in the correct format, but we need to properly cast it
+      const typedPerformanceData = performanceData as unknown as CertificatePerformance;
 
       // Validate the data structure has required properties
       if (!typedPerformanceData.student || !typedPerformanceData.school) {

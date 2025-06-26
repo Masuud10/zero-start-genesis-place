@@ -55,6 +55,15 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   const { schoolId } = useSchoolScopedData();
   const queryClient = useQueryClient();
 
+  // Get current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    }
+  });
+
   // Get classes
   const { data: classes = [] } = useQuery({
     queryKey: ['classes', schoolId],
@@ -134,7 +143,7 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   // Save timetable mutation
   const saveTimetableMutation = useMutation({
     mutationFn: async (entries: TimetableEntry[]) => {
-      if (!selectedClass || !schoolId) throw new Error('Missing class or school');
+      if (!selectedClass || !schoolId || !currentUser?.id) throw new Error('Missing required data');
 
       // Delete existing timetable entries
       await supabase
@@ -153,6 +162,7 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
         start_time: entry.start_time,
         end_time: entry.end_time,
         room: entry.room || null,
+        created_by_principal_id: currentUser.id,
         is_published: true
       }));
 

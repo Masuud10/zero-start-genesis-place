@@ -92,9 +92,9 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
       .from('grades')
       .select(`
         *,
-        students(name, admission_number),
-        subjects(name),
-        classes(name)
+        students!grades_student_id_fkey(name, admission_number),
+        subjects!grades_subject_id_fkey(name),
+        classes!grades_class_id_fkey(name)
       `)
       .eq('school_id', schoolId)
       .in('class_id', selectedClasses)
@@ -180,8 +180,8 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
       .from('attendance')
       .select(`
         *,
-        students(name, admission_number),
-        classes(name)
+        students!attendance_student_id_fkey(name, admission_number),
+        classes!attendance_class_id_fkey(name)
       `)
       .eq('school_id', schoolId)
       .in('class_id', selectedClasses)
@@ -285,7 +285,7 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
       .from('students')
       .select(`
         *,
-        classes(name)
+        classes!students_class_id_fkey(name)
       `)
       .eq('school_id', schoolId)
       .in('class_id', selectedClasses)
