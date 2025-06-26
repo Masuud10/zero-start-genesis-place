@@ -197,7 +197,7 @@ const ClassAnalyticsOverview: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+            <BarChart className="h-5 w-5" />
             Class Analytics Overview
           </CardTitle>
         </CardHeader>
