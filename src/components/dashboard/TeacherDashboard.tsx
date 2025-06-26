@@ -1,18 +1,19 @@
 
 import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
-import TeacherAnalyticsSummaryCard from "@/components/analytics/TeacherAnalyticsSummaryCard";
 import RoleGuard from "@/components/common/RoleGuard";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
-import { useTeacherDashboardStats } from "@/hooks/useTeacherDashboardStats";
+import { useTeacherStats } from "@/hooks/useTeacherStats";
 import TeacherStatsCards from './teacher/TeacherStatsCards';
-import TeacherActions from './teacher/TeacherActions';
+import TeacherToolsSection from './teacher/TeacherToolsSection';
+import ClassAnalyticsOverview from './teacher/ClassAnalyticsOverview';
 import MyClasses from './teacher/MyClasses';
 import CompactTeacherTimetable from './teacher/CompactTeacherTimetable';
 import BulkGradingModal from '@/components/grading/BulkGradingModal';
 import AttendanceModal from '@/components/modals/AttendanceModal';
 import GradesModal from '@/components/modals/GradesModal';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface TeacherDashboardProps {
   user: AuthUser;
@@ -21,42 +22,54 @@ interface TeacherDashboardProps {
 
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }) => {
   const { isReady } = useSchoolScopedData();
-  const { stats, loading } = useTeacherDashboardStats(user);
+  const { data: stats, isLoading } = useTeacherStats();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
-  // Modal states - managed locally for better control
+  // Modal states
   const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [gradesModalOpen, setGradesModalOpen] = useState(false);
 
-  const handleModalOpen = (modalType: string) => {
-    console.log('TeacherDashboard: Opening modal:', modalType);
+  const handleActionClick = (actionId: string) => {
+    console.log('TeacherDashboard: Action clicked:', actionId);
     
-    switch (modalType) {
-      case 'bulkGrading':
-        setBulkGradingOpen(true);
+    switch (actionId) {
+      case 'class-lists':
+        // Navigate to classes view or show classes modal
+        navigate('/classes');
         break;
-      case 'attendance':
+      case 'attendance-tracking':
         setAttendanceModalOpen(true);
         break;
-      case 'grades':
+      case 'grade-sheets':
         setGradesModalOpen(true);
         break;
-      case 'reports':
-      case 'studentAdmission':
-      case 'teacherAdmission':
-      case 'addClass':
-      case 'addSubject':
-        // Delegate to parent for these modals if available
-        if (onModalOpen) {
-          onModalOpen(modalType);
+      case 'learning-resources':
+        // Navigate to resources or show upload modal
+        toast({
+          title: "Coming Soon",
+          description: "Learning resources upload feature is being developed.",
+        });
+        break;
+      case 'assignment-manager':
+        // Navigate to assignments or show assignment modal
+        toast({
+          title: "Coming Soon",
+          description: "Assignment manager feature is being developed.",
+        });
+        break;
+      case 'class-analytics':
+        // Scroll to analytics section or navigate to detailed analytics
+        const analyticsSection = document.getElementById('class-analytics-section');
+        if (analyticsSection) {
+          analyticsSection.scrollIntoView({ behavior: 'smooth' });
         }
         break;
       default:
-        console.warn('Unknown modal type:', modalType);
-        // Try to delegate to parent if available
+        console.warn('Unknown action:', actionId);
         if (onModalOpen) {
-          onModalOpen(modalType);
+          onModalOpen(actionId);
         }
     }
   };
@@ -87,7 +100,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
     }
   };
 
-  // Prevent any render before role/school_id are ready
+  // Prevent render before role/school_id are ready
   if (!isReady) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -112,27 +125,28 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           {/* Stats Overview */}
           <div className="w-full">
-            <TeacherStatsCards stats={stats} loading={loading} />
+            <TeacherStatsCards stats={stats} loading={isLoading} />
           </div>
 
-          {/* Main Content Grid - Reorganized for cleaner layout */}
+          {/* Main Content Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Left Column - Primary Teaching Tools */}
             <div className="xl:col-span-2 space-y-6">
-              {/* Teaching Actions - Most important section first */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <TeacherActions user={user} onModalOpen={handleModalOpen} />
-              </div>
-              
-              {/* Analytics Summary */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <TeacherAnalyticsSummaryCard />
-              </div>
+              {/* Teaching Tools Section */}
+              <TeacherToolsSection 
+                user={user} 
+                onActionClick={handleActionClick}
+                stats={{
+                  classCount: stats?.classCount || 0,
+                  pendingGrades: stats?.pendingGrades || 0,
+                  todayAttendance: stats?.todayAttendance || 0
+                }}
+              />
             </div>
 
             {/* Right Column - Schedule & Classes */}
             <div className="xl:col-span-1 space-y-6">
-              {/* Timetable - Quick reference */}
+              {/* Timetable */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <CompactTeacherTimetable />
               </div>
@@ -143,15 +157,20 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
               </div>
             </div>
           </div>
+
+          {/* Class Analytics Overview Section */}
+          <div id="class-analytics-section">
+            <ClassAnalyticsOverview />
+          </div>
         </div>
 
-        {/* Local Modals - Teacher specific */}
+        {/* Local Modals */}
         {bulkGradingOpen && (
           <BulkGradingModal 
             open={bulkGradingOpen}
             onClose={() => handleModalClose('bulkGrading')}
-            classList={[]}
-            subjectList={[]}
+            classList={stats?.classes || []}
+            subjectList={stats?.subjects || []}
           />
         )}
         
