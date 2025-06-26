@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSchoolAnalytics } from '@/hooks/useSchoolAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, School, Users, GraduationCap, CalendarCheck, DollarSign, AlertTriangle, Building2 } from 'lucide-react';
+import { Loader2, AlertTriangle, Building2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import EduFamSystemAnalytics from './EduFamSystemAnalytics';
 import SchoolAnalyticsDetail from './SchoolAnalyticsDetail';
@@ -51,20 +51,29 @@ const SchoolAnalyticsOverview = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* System-wide Analytics Stats Icons */}
       <EduFamSystemAnalytics />
 
       {/* Individual School Analytics */}
-      {schoolAnalytics && schoolAnalytics.length > 0 ? (
-        <SchoolAnalyticsDetail />
-      ) : (
-        <div className="text-center py-12">
-          <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Schools Found</h3>
-          <p className="text-gray-500">No schools are registered in the system yet.</p>
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Building2 className="h-5 w-5 text-blue-600" />
+          <h2 className="text-xl font-semibold text-gray-900">Individual School Analytics</h2>
         </div>
-      )}
+        
+        {schoolAnalytics && schoolAnalytics.length > 0 ? (
+          <SchoolAnalyticsDetail />
+        ) : (
+          <Card className="text-center py-12">
+            <CardContent>
+              <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <CardTitle className="text-lg font-medium text-gray-900 mb-2">No Schools Found</CardTitle>
+              <p className="text-gray-500">No schools are registered in the system yet.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

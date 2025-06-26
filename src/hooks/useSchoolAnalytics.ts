@@ -33,114 +33,169 @@ export const useSchoolAnalytics = () => {
     queryFn: async (): Promise<SchoolAnalytics[]> => {
       console.log('🏫 Fetching school analytics data');
       
-      // First get all schools
+      // First get all schools with better error handling
       const { data: schools, error: schoolsError } = await supabase
         .from('schools')
-        .select('id, name, location')
+        .select('id, name, location, address')
         .order('name');
 
       if (schoolsError) {
         console.error('Error fetching schools:', schoolsError);
-        throw schoolsError;
+        throw new Error(`Failed to fetch schools: ${schoolsError.message}`);
       }
 
       if (!schools || schools.length === 0) {
+        console.log('No schools found in database');
         return [];
       }
 
-      // Process each school to get analytics
+      console.log(`Found ${schools.length} schools, processing analytics...`);
+
+      // Process each school to get analytics with improved queries
       const schoolAnalytics: SchoolAnalytics[] = [];
 
       for (const school of schools) {
         try {
-          // Get grades summary
-          const { data: grades, error: gradesError } = await supabase
-            .from('grades')
-            .select('score, student_id')
-            .eq('school_id', school.id)
-            .eq('status', 'released')
-            .not('score', 'is', null);
+          console.log(`Processing analytics for school: ${school.name}`);
 
-          if (gradesError) {
-            console.error(`Error fetching grades for school ${school.id}:`, gradesError);
+          // Get grades summary with better aggregation
+          const { data: gradesData, error: gradesError } = await supabase
+            .rpc('get_school_grades_summary', { school_id: school.id })
+            .single();
+
+          let gradesSummary = {
+            total_grades: 0,
+            average_grade: 0,
+            students_with_grades: 0
+          };
+
+          if (!gradesError && gradesData) {
+            gradesSummary = {
+              total_grades: gradesData.total_grades || 0,
+              average_grade: gradesData.average_grade || 0,
+              students_with_grades: gradesData.students_with_grades || 0
+            };
+          } else {
+            // Fallback to direct query if RPC doesn't exist
+            const { data: grades } = await supabase
+              .from('grades')
+              .select('score, student_id')
+              .eq('school_id', school.id)
+              .eq('status', 'released')
+              .not('score', 'is', null);
+
+            if (grades && grades.length > 0) {
+              gradesSummary = {
+                total_grades: grades.length,
+                average_grade: grades.reduce((sum, g) => sum + (g.score || 0), 0) / grades.length,
+                students_with_grades: new Set(grades.map(g => g.student_id)).size
+              };
+            }
           }
 
-          // Get attendance summary
-          const { data: attendance, error: attendanceError } = await supabase
-            .from('attendance')
-            .select('status, student_id')
-            .eq('school_id', school.id);
+          // Get attendance summary with better aggregation
+          const { data: attendanceData, error: attendanceError } = await supabase
+            .rpc('get_school_attendance_summary', { school_id: school.id })
+            .single();
 
-          if (attendanceError) {
-            console.error(`Error fetching attendance for school ${school.id}:`, attendanceError);
+          let attendanceSummary = {
+            total_records: 0,
+            attendance_rate: 0,
+            students_tracked: 0
+          };
+
+          if (!attendanceError && attendanceData) {
+            attendanceSummary = {
+              total_records: attendanceData.total_records || 0,
+              attendance_rate: attendanceData.attendance_rate || 0,
+              students_tracked: attendanceData.students_tracked || 0
+            };
+          } else {
+            // Fallback to direct query
+            const { data: attendance } = await supabase
+              .from('attendance')
+              .select('status, student_id')
+              .eq('school_id', school.id);
+
+            if (attendance && attendance.length > 0) {
+              const presentCount = attendance.filter(a => a.status === 'present').length;
+              attendanceSummary = {
+                total_records: attendance.length,
+                attendance_rate: (presentCount / attendance.length) * 100,
+                students_tracked: new Set(attendance.map(a => a.student_id)).size
+              };
+            }
           }
 
-          // Get financial summary
-          const { data: fees, error: feesError } = await supabase
-            .from('fees')
-            .select('amount, paid_amount, student_id')
-            .eq('school_id', school.id);
+          // Get financial summary with better aggregation
+          const { data: financialData, error: financialError } = await supabase
+            .rpc('get_school_financial_summary', { school_id: school.id })
+            .single();
 
-          if (feesError) {
-            console.error(`Error fetching fees for school ${school.id}:`, feesError);
+          let financialSummary = {
+            total_fees_assigned: 0,
+            total_fees_collected: 0,
+            outstanding_balance: 0,
+            students_with_fees: 0
+          };
+
+          if (!financialError && financialData) {
+            financialSummary = {
+              total_fees_assigned: financialData.total_fees_assigned || 0,
+              total_fees_collected: financialData.total_fees_collected || 0,
+              outstanding_balance: financialData.outstanding_balance || 0,
+              students_with_fees: financialData.students_with_fees || 0
+            };
+          } else {
+            // Fallback to direct query
+            const { data: fees } = await supabase
+              .from('fees')
+              .select('amount, paid_amount, student_id')
+              .eq('school_id', school.id);
+
+            if (fees && fees.length > 0) {
+              const totalAssigned = fees.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+              const totalCollected = fees.reduce((sum, f) => sum + (Number(f.paid_amount) || 0), 0);
+              financialSummary = {
+                total_fees_assigned: totalAssigned,
+                total_fees_collected: totalCollected,
+                outstanding_balance: totalAssigned - totalCollected,
+                students_with_fees: new Set(fees.map(f => f.student_id)).size
+              };
+            }
           }
-
-          // Calculate grades summary
-          const gradesData = grades || [];
-          const totalGrades = gradesData.length;
-          const averageGrade = totalGrades > 0 
-            ? gradesData.reduce((sum, g) => sum + (g.score || 0), 0) / totalGrades 
-            : 0;
-          const studentsWithGrades = new Set(gradesData.map(g => g.student_id)).size;
-
-          // Calculate attendance summary
-          const attendanceData = attendance || [];
-          const totalAttendanceRecords = attendanceData.length;
-          const presentRecords = attendanceData.filter(a => a.status === 'present').length;
-          const attendanceRate = totalAttendanceRecords > 0 
-            ? (presentRecords / totalAttendanceRecords) * 100 
-            : 0;
-          const studentsTracked = new Set(attendanceData.map(a => a.student_id)).size;
-
-          // Calculate financial summary
-          const feesData = fees || [];
-          const totalFeesAssigned = feesData.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
-          const totalFeesCollected = feesData.reduce((sum, f) => sum + (Number(f.paid_amount) || 0), 0);
-          const outstandingBalance = totalFeesAssigned - totalFeesCollected;
-          const studentsWithFees = new Set(feesData.map(f => f.student_id)).size;
 
           schoolAnalytics.push({
             school_id: school.id,
             school_name: school.name,
-            location: school.location || 'Not specified',
-            grades_summary: {
-              total_grades: totalGrades,
-              average_grade: Math.round(averageGrade * 100) / 100,
-              students_with_grades: studentsWithGrades,
-            },
-            attendance_summary: {
-              total_records: totalAttendanceRecords,
-              attendance_rate: Math.round(attendanceRate * 100) / 100,
-              students_tracked: studentsTracked,
-            },
-            financial_summary: {
-              total_fees_assigned: totalFeesAssigned,
-              total_fees_collected: totalFeesCollected,
-              outstanding_balance: outstandingBalance,
-              students_with_fees: studentsWithFees,
-            },
+            location: school.location || school.address || 'Not specified',
+            grades_summary: gradesSummary,
+            attendance_summary: attendanceSummary,
+            financial_summary: financialSummary,
           });
+
+          console.log(`✅ Processed analytics for ${school.name}`);
         } catch (error) {
-          console.error(`Error processing analytics for school ${school.id}:`, error);
-          // Continue with other schools even if one fails
+          console.error(`❌ Error processing analytics for school ${school.name}:`, error);
+          // Continue processing other schools even if one fails
+          schoolAnalytics.push({
+            school_id: school.id,
+            school_name: school.name,
+            location: school.location || school.address || 'Not specified',
+            grades_summary: { total_grades: 0, average_grade: 0, students_with_grades: 0 },
+            attendance_summary: { total_records: 0, attendance_rate: 0, students_tracked: 0 },
+            financial_summary: { total_fees_assigned: 0, total_fees_collected: 0, outstanding_balance: 0, students_with_fees: 0 },
+          });
         }
       }
 
-      console.log('🏫 School analytics data processed:', schoolAnalytics.length, 'schools');
+      console.log(`🏫 School analytics data processed: ${schoolAnalytics.length} schools`);
       return schoolAnalytics;
     },
     enabled: user?.role === 'edufam_admin',
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 10 * 60 * 1000, // 10 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    refetchOnWindowFocus: true,
   });
 };
