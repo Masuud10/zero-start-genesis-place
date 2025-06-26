@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import GradesModal from '@/components/modals/GradesModal';
 import { CBCGradesModal } from '@/components/modals/CBCGradesModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileSpreadsheet, Plus, CheckCircle, Clock, AlertTriangle, Users, BookOpen, TrendingUp } from 'lucide-react';
+import { FileSpreadsheet, Plus, CheckCircle, Clock, AlertTriangle, Users, BookOpen, TrendingUp, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 import { supabase } from '@/integrations/supabase/client';
