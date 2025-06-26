@@ -1,310 +1,158 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, BookOpen, Shuffle, Save } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useAuth } from '@/contexts/AuthContext';
+import { Calendar, Clock, Users, BookOpen, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-interface Class {
-  id: string;
-  name: string;
+interface TimetableGeneratorProps {
+  open?: boolean;
+  onClose?: () => void;
+  onTimetableGenerated?: () => void;
 }
 
-interface Subject {
-  id: string;
-  name: string;
-  code: string;
-  teacher_id?: string;
-  school_id: string;
-}
-
-interface Teacher {
-  id: string;
-  name: string;
-}
-
-interface TimetableSlot {
-  day: string;
-  period: number;
-  startTime: string;
-  endTime: string;
-  subjectId: string;
-  teacherId: string;
+interface TimetableEntry {
+  id?: string;
+  subject_id: string;
+  teacher_id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
   room?: string;
 }
 
-const TimetableGenerator = () => {
-  const { schoolId } = useSchoolScopedData();
-  const { user } = useAuth();
+const DAYS_OF_WEEK = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' }
+];
+
+const TIME_SLOTS = [
+  '08:00', '08:40', '09:20', '10:00', '10:40', '11:20', '12:00', '12:40', 
+  '13:20', '14:00', '14:40', '15:20', '16:00', '16:40'
+];
+
+const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
+  open = false,
+  onClose,
+  onTimetableGenerated
+}) => {
+  const [selectedClass, setSelectedClass] = useState('');
+  const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([]);
+  const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
+
   const { toast } = useToast();
+  const { schoolId } = useSchoolScopedData();
+  const queryClient = useQueryClient();
 
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>('');
-  const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  const timeSlots = [
-    { period: 1, startTime: '08:00', endTime: '08:40' },
-    { period: 2, startTime: '08:40', endTime: '09:20' },
-    { period: 3, startTime: '09:20', endTime: '10:00' },
-    { period: 4, startTime: '10:20', endTime: '11:00' }, // Break at 10:00-10:20
-    { period: 5, startTime: '11:00', endTime: '11:40' },
-    { period: 6, startTime: '11:40', endTime: '12:20' },
-    { period: 7, startTime: '13:20', endTime: '14:00' }, // Lunch at 12:20-13:20
-    { period: 8, startTime: '14:00', endTime: '14:40' },
-  ];
-
-  useEffect(() => {
-    if (schoolId) {
-      fetchData();
-    }
-  }, [schoolId]);
-
-  useEffect(() => {
-    if (selectedClassId) {
-      fetchExistingTimetable();
-    }
-  }, [selectedClassId]);
-
-  const fetchData = async () => {
-    if (!schoolId) return;
-
-    setLoading(true);
-    try {
-      console.log('Fetching timetable data for school:', schoolId);
-
-      // Fetch classes
-      const { data: classesData, error: classesError } = await supabase
+  // Get classes
+  const { data: classes = [] } = useQuery({
+    queryKey: ['classes', schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
         .from('classes')
-        .select('id, name')
+        .select('id, name, level, stream')
         .eq('school_id', schoolId)
         .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!schoolId
+  });
 
-      if (classesError) {
-        console.error('Classes fetch error:', classesError);
-        throw classesError;
-      }
-
-      // Fetch subjects - now with proper school_id filtering enforced by RLS
-      const { data: subjectsData, error: subjectsError } = await supabase
+  // Get subjects for selected class
+  const { data: subjects = [] } = useQuery({
+    queryKey: ['subjects', selectedClass, schoolId],
+    queryFn: async () => {
+      if (!selectedClass || !schoolId) return [];
+      const { data, error } = await supabase
         .from('subjects')
-        .select('id, name, code, teacher_id, school_id')
+        .select('id, name, code, teacher_id, profiles!subjects_teacher_id_fkey(name)')
+        .eq('class_id', selectedClass)
         .eq('school_id', schoolId)
         .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedClass && !!schoolId
+  });
 
-      if (subjectsError) {
-        console.error('Subjects fetch error:', subjectsError);
-        throw subjectsError;
-      }
-
-      // Fetch teachers
-      const { data: teachersData, error: teachersError } = await supabase
+  // Get teachers
+  const { data: teachers = [] } = useQuery({
+    queryKey: ['teachers', schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id, name')
+        .select('id, name, email')
         .eq('school_id', schoolId)
         .eq('role', 'teacher')
         .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!schoolId
+  });
 
-      if (teachersError) {
-        console.error('Teachers fetch error:', teachersError);
-        throw teachersError;
-      }
-
-      console.log('Fetched data:', {
-        classes: classesData?.length || 0,
-        subjects: subjectsData?.length || 0,
-        teachers: teachersData?.length || 0
-      });
-
-      setClasses(classesData || []);
-      setSubjects(subjectsData || []);
-      setTeachers(teachersData || []);
-
-      if (!subjectsData || subjectsData.length === 0) {
-        toast({
-          title: "No Subjects Found",
-          description: "Please create subjects first before generating timetables.",
-          variant: "destructive"
-        });
-      }
-
-    } catch (error: any) {
-      console.error('Error fetching data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load data: " + error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchExistingTimetable = async () => {
-    if (!selectedClassId || !schoolId) return;
-
-    try {
+  // Get existing timetable
+  const { data: existingTimetable = [] } = useQuery({
+    queryKey: ['timetable', selectedClass, schoolId],
+    queryFn: async () => {
+      if (!selectedClass || !schoolId) return [];
       const { data, error } = await supabase
         .from('timetables')
-        .select('*')
-        .eq('class_id', selectedClassId)
-        .eq('school_id', schoolId);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const slots = data.map(item => ({
-          day: item.day_of_week,
-          period: timeSlots.findIndex(slot => slot.startTime === item.start_time) + 1,
-          startTime: item.start_time,
-          endTime: item.end_time,
-          subjectId: item.subject_id,
-          teacherId: item.teacher_id,
-          room: item.room
-        }));
-        setTimetable(slots);
-      } else {
-        setTimetable([]);
-      }
-
-    } catch (error: any) {
-      console.error('Error fetching timetable:', error);
-    }
-  };
-
-  const generateTimetable = async () => {
-    if (!selectedClassId) {
-      toast({
-        title: "Error",
-        description: "Please select a class first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (subjects.length === 0) {
-      toast({
-        title: "Error",
-        description: "No subjects found for this school. Please create subjects first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setGenerating(true);
-    try {
-      const newTimetable: TimetableSlot[] = [];
-      const subjectDistribution = distributeSubjects(subjects);
-
-      days.forEach((day, dayIndex) => {
-        timeSlots.forEach((slot, slotIndex) => {
-          // Skip lunch and break periods
-          if (slot.period === 4 && slotIndex === 3) return; // Break
-          if (slot.period === 7 && slotIndex === 6) return; // Lunch
-
-          const subjectIndex = (dayIndex * timeSlots.length + slotIndex) % subjectDistribution.length;
-          const subject = subjectDistribution[subjectIndex];
-
-          newTimetable.push({
-            day: day.toLowerCase(),
-            period: slot.period,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            subjectId: subject.id,
-            teacherId: subject.teacher_id || '',
-            room: `Room ${Math.floor(Math.random() * 20) + 1}`
-          });
-        });
-      });
-
-      setTimetable(newTimetable);
-      toast({
-        title: "Success",
-        description: "Timetable generated successfully",
-      });
-
-    } catch (error: any) {
-      console.error('Error generating timetable:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate timetable",
-        variant: "destructive"
-      });
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const distributeSubjects = (subjects: Subject[]) => {
-    // Create a distribution where core subjects appear more frequently
-    const coreSubjects = ['Mathematics', 'English', 'Science', 'Kiswahili'];
-    const distribution: Subject[] = [];
-
-    subjects.forEach(subject => {
-      const isCore = coreSubjects.some(core => 
-        subject.name.toLowerCase().includes(core.toLowerCase())
-      );
+        .select(`
+          id, subject_id, teacher_id, day_of_week, start_time, end_time, room,
+          subjects(name),
+          profiles!timetables_teacher_id_fkey(name)
+        `)
+        .eq('class_id', selectedClass)
+        .eq('school_id', schoolId)
+        .order('day_of_week')
+        .order('start_time');
       
-      // Core subjects appear 3 times, others appear once
-      const frequency = isCore ? 3 : 1;
-      for (let i = 0; i < frequency; i++) {
-        distribution.push(subject);
-      }
-    });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedClass && !!schoolId
+  });
 
-    // Shuffle the distribution for randomness
-    return distribution.sort(() => Math.random() - 0.5);
-  };
+  // Save timetable mutation
+  const saveTimetableMutation = useMutation({
+    mutationFn: async (entries: TimetableEntry[]) => {
+      if (!selectedClass || !schoolId) throw new Error('Missing class or school');
 
-  const saveTimetable = async () => {
-    if (!selectedClassId || !schoolId || timetable.length === 0) {
-      toast({
-        title: "Error",
-        description: "No timetable to save",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!user?.id) {
-      toast({
-        title: "Error",
-        description: "User not authenticated",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      // Delete existing timetable for this class
+      // Delete existing timetable entries
       await supabase
         .from('timetables')
         .delete()
-        .eq('class_id', selectedClassId)
+        .eq('class_id', selectedClass)
         .eq('school_id', schoolId);
 
-      // Insert new timetable with the required created_by_principal_id field
-      const timetableData = timetable.map(slot => ({
+      // Insert new entries
+      const timetableData = entries.map(entry => ({
         school_id: schoolId,
-        class_id: selectedClassId,
-        subject_id: slot.subjectId,
-        teacher_id: slot.teacherId,
-        day_of_week: slot.day,
-        start_time: slot.startTime,
-        end_time: slot.endTime,
-        room: slot.room,
-        created_by_principal_id: user.id, // Add the required field
+        class_id: selectedClass,
+        subject_id: entry.subject_id,
+        teacher_id: entry.teacher_id,
+        day_of_week: entry.day_of_week,
+        start_time: entry.start_time,
+        end_time: entry.end_time,
+        room: entry.room || null,
         is_published: true
       }));
 
@@ -313,187 +161,363 @@ const TimetableGenerator = () => {
         .insert(timetableData);
 
       if (error) throw error;
-
+    },
+    onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Timetable saved successfully",
+        title: "Timetable Saved",
+        description: "Timetable has been saved successfully.",
       });
-
-    } catch (error: any) {
-      console.error('Error saving timetable:', error);
+      queryClient.invalidateQueries({ queryKey: ['timetable'] });
+      onTimetableGenerated?.();
+    },
+    onError: (error: any) => {
       toast({
-        title: "Error",
-        description: "Failed to save timetable: " + error.message,
+        title: "Save Failed",
+        description: error.message || "Failed to save timetable.",
         variant: "destructive"
       });
-    } finally {
-      setSaving(false);
     }
+  });
+
+  const addTimetableEntry = () => {
+    const newEntry: TimetableEntry = {
+      subject_id: '',
+      teacher_id: '',
+      day_of_week: 'monday',
+      start_time: '08:00',
+      end_time: '08:40',
+      room: ''
+    };
+    setTimetableEntries([...timetableEntries, newEntry]);
+    setEditingEntry(newEntry);
   };
 
-  const getSubjectName = (subjectId: string) => {
-    return subjects.find(s => s.id === subjectId)?.name || 'Unknown';
+  const updateTimetableEntry = (index: number, field: keyof TimetableEntry, value: string) => {
+    const updatedEntries = [...timetableEntries];
+    updatedEntries[index] = { ...updatedEntries[index], [field]: value };
+    setTimetableEntries(updatedEntries);
   };
 
-  const getTeacherName = (teacherId: string) => {
-    return teachers.find(t => t.id === teacherId)?.name || 'Unassigned';
+  const removeTimetableEntry = (index: number) => {
+    const updatedEntries = timetableEntries.filter((_, i) => i !== index);
+    setTimetableEntries(updatedEntries);
   };
 
-  const getTimetableSlot = (day: string, period: number) => {
-    return timetable.find(slot => 
-      slot.day === day.toLowerCase() && slot.period === period
+  const handleAutoGenerate = () => {
+    if (!subjects.length) {
+      toast({
+        title: "No Subjects",
+        description: "Please add subjects to the class first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newEntries: TimetableEntry[] = [];
+    let dayIndex = 0;
+    let timeIndex = 0;
+
+    subjects.forEach((subject, index) => {
+      if (timeIndex >= TIME_SLOTS.length - 1) {
+        dayIndex++;
+        timeIndex = 0;
+      }
+
+      if (dayIndex >= DAYS_OF_WEEK.length) {
+        dayIndex = 0;
+      }
+
+      const startTime = TIME_SLOTS[timeIndex];
+      const endTime = TIME_SLOTS[timeIndex + 1];
+
+      newEntries.push({
+        subject_id: subject.id,
+        teacher_id: subject.teacher_id || (teachers[0]?.id || ''),
+        day_of_week: DAYS_OF_WEEK[dayIndex].value,
+        start_time: startTime,
+        end_time: endTime,
+        room: `Room ${index + 1}`
+      });
+
+      timeIndex++;
+    });
+
+    setTimetableEntries(newEntries);
+    toast({
+      title: "Timetable Generated",
+      description: "Auto-generated timetable based on subjects.",
+    });
+  };
+
+  const handleSave = () => {
+    if (!timetableEntries.length) {
+      toast({
+        title: "No Entries",
+        description: "Please add timetable entries first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate entries
+    const invalidEntries = timetableEntries.filter(entry => 
+      !entry.subject_id || !entry.teacher_id || !entry.day_of_week || !entry.start_time || !entry.end_time
     );
+
+    if (invalidEntries.length > 0) {
+      toast({
+        title: "Invalid Entries",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    saveTimetableMutation.mutate(timetableEntries);
   };
 
-  if (loading) {
-    return (
-      <div className="text-center py-8">
-        <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-        Loading...
-      </div>
-    );
-  }
+  const handleClose = () => {
+    setSelectedClass('');
+    setTimetableEntries([]);
+    setEditingEntry(null);
+    onClose?.();
+  };
+
+  // Load existing timetable when class is selected
+  React.useEffect(() => {
+    if (existingTimetable.length > 0) {
+      const entries = existingTimetable.map(item => ({
+        id: item.id,
+        subject_id: item.subject_id,
+        teacher_id: item.teacher_id,
+        day_of_week: item.day_of_week,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        room: item.room || ''
+      }));
+      setTimetableEntries(entries);
+    } else {
+      setTimetableEntries([]);
+    }
+  }, [existingTimetable]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             Timetable Generator
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Generate and manage class timetables
-          </p>
-        </div>
-      </div>
+          </DialogTitle>
+          <DialogDescription>
+            Create and manage class timetables for teachers and students
+          </DialogDescription>
+        </DialogHeader>
 
-      {/* Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate Timetable</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="text-sm font-medium">Select Class</label>
-              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              onClick={generateTimetable}
-              disabled={!selectedClassId || generating || subjects.length === 0}
-            >
-              {generating ? (
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-              ) : (
-                <Shuffle className="h-4 w-4 mr-2" />
-              )}
-              Generate
-            </Button>
-            <Button
-              onClick={saveTimetable}
-              disabled={!selectedClassId || timetable.length === 0 || saving}
-              variant="outline"
-            >
-              {saving ? (
-                <div className="animate-spin h-4 w-4 border-2 border-gray-600 border-t-transparent rounded-full mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Save
-            </Button>
-          </div>
-          
-          {subjects.length === 0 && (
-            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-yellow-800 text-sm">
-                <strong>No subjects found.</strong> Please create subjects first before generating timetables.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Class Selection</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="class">Select Class</Label>
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name} {cls.stream && `- ${cls.stream}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedClass && (
+                  <div className="flex items-end gap-2">
+                    <Button onClick={handleAutoGenerate} variant="outline">
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Auto Generate
+                    </Button>
+                    <Button onClick={addTimetableEntry}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Entry
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Timetable Display */}
-      {selectedClassId && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Timetable for {classes.find(c => c.id === selectedClassId)?.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-20">Time</TableHead>
-                    {days.map(day => (
-                      <TableHead key={day} className="text-center min-w-[150px]">
-                        {day}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {timeSlots.map((slot) => (
-                    <TableRow key={slot.period}>
-                      <TableCell className="font-medium">
-                        <div className="text-sm">
-                          <div>{slot.startTime}</div>
-                          <div className="text-xs text-muted-foreground">{slot.endTime}</div>
-                        </div>
-                      </TableCell>
-                      {days.map(day => {
-                        const timetableSlot = getTimetableSlot(day, slot.period);
-                        
-                        if (!timetableSlot) {
-                          return (
-                            <TableCell key={day} className="text-center text-muted-foreground">
-                              -
+          {selectedClass && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Timetable Entries</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {timetableEntries.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No timetable entries yet. Click "Add Entry" or "Auto Generate" to start.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Teacher</TableHead>
+                          <TableHead>Day</TableHead>
+                          <TableHead>Start Time</TableHead>
+                          <TableHead>End Time</TableHead>
+                          <TableHead>Room</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {timetableEntries.map((entry, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <Select 
+                                value={entry.subject_id} 
+                                onValueChange={(value) => updateTimetableEntry(index, 'subject_id', value)}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue placeholder="Subject" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {subjects.map((subject) => (
+                                    <SelectItem key={subject.id} value={subject.id}>
+                                      {subject.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </TableCell>
-                          );
-                        }
+                            <TableCell>
+                              <Select 
+                                value={entry.teacher_id} 
+                                onValueChange={(value) => updateTimetableEntry(index, 'teacher_id', value)}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue placeholder="Teacher" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {teachers.map((teacher) => (
+                                    <SelectItem key={teacher.id} value={teacher.id}>
+                                      {teacher.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select 
+                                value={entry.day_of_week} 
+                                onValueChange={(value) => updateTimetableEntry(index, 'day_of_week', value)}
+                              >
+                                <SelectTrigger className="w-28">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {DAYS_OF_WEEK.map((day) => (
+                                    <SelectItem key={day.value} value={day.value}>
+                                      {day.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select 
+                                value={entry.start_time} 
+                                onValueChange={(value) => updateTimetableEntry(index, 'start_time', value)}
+                              >
+                                <SelectTrigger className="w-20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TIME_SLOTS.map((time) => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select 
+                                value={entry.end_time} 
+                                onValueChange={(value) => updateTimetableEntry(index, 'end_time', value)}
+                              >
+                                <SelectTrigger className="w-20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TIME_SLOTS.map((time) => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                value={entry.room || ''}
+                                onChange={(e) => updateTimetableEntry(index, 'room', e.target.value)}
+                                placeholder="Room"
+                                className="w-20"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeTimetableEntry(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-                        return (
-                          <TableCell key={day} className="text-center">
-                            <div className="space-y-1">
-                              <Badge variant="secondary" className="text-xs">
-                                {getSubjectName(timetableSlot.subjectId)}
-                              </Badge>
-                              <div className="text-xs text-muted-foreground">
-                                {getTeacherName(timetableSlot.teacherId)}
-                              </div>
-                              {timetableSlot.room && (
-                                <div className="text-xs text-muted-foreground">
-                                  {timetableSlot.room}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            {selectedClass && timetableEntries.length > 0 && (
+              <Button 
+                onClick={handleSave} 
+                disabled={saveTimetableMutation.isPending}
+              >
+                {saveTimetableMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Save Timetable
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

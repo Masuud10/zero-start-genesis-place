@@ -10,6 +10,8 @@ import CertificatesList from '@/components/certificates/CertificatesList';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
 import SubjectAssignmentModal from '@/components/modals/SubjectAssignmentModal';
 import CertificateGenerator from '@/components/certificates/CertificateGenerator';
+import TimetableGenerator from '@/components/timetable/TimetableGenerator';
+import PrincipalReportGenerator from '@/components/reports/PrincipalReportGenerator';
 import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
 import { useToast } from '@/hooks/use-toast';
 
@@ -29,7 +31,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     setActiveModal(modalType);
     
     // Delegate some modals to parent if available
-    if (onModalOpen && ['reports', 'studentAdmission', 'teacherAdmission', 'addClass'].includes(modalType)) {
+    if (onModalOpen && ['studentAdmission', 'teacherAdmission', 'addClass'].includes(modalType)) {
       onModalOpen(modalType);
     }
   };
@@ -39,29 +41,11 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     setActiveModal(null);
   };
 
-  const handleSubjectCreated = () => {
-    console.log('Subject created successfully');
+  const handleSuccess = () => {
+    console.log('Operation completed successfully');
     toast({
       title: "Success",
-      description: "Subject has been created successfully.",
-    });
-    setActiveModal(null);
-  };
-
-  const handleAssignmentCreated = () => {
-    console.log('Assignment created successfully');
-    toast({
-      title: "Success",
-      description: "Teacher assignment has been created successfully.",
-    });
-    setActiveModal(null);
-  };
-
-  const handleCertificateGenerated = () => {
-    console.log('Certificate generated successfully');
-    toast({
-      title: "Success",
-      description: "Certificate has been generated successfully.",
+      description: "Operation completed successfully.",
     });
     setActiveModal(null);
   };
@@ -119,19 +103,31 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
       <AddSubjectModal
         open={activeModal === 'add-subject'}
         onClose={handleModalClose}
-        onSubjectCreated={handleSubjectCreated}
+        onSubjectCreated={handleSuccess}
       />
 
       <SubjectAssignmentModal
         open={activeModal === 'assign-subject'}
         onClose={handleModalClose}
-        onAssignmentCreated={handleAssignmentCreated}
+        onAssignmentCreated={handleSuccess}
       />
 
       <CertificateGenerator
         open={activeModal === 'generate-certificate'}
         onClose={handleModalClose}
-        onCertificateGenerated={handleCertificateGenerated}
+        onCertificateGenerated={handleSuccess}
+      />
+
+      <TimetableGenerator
+        open={activeModal === 'generate-timetable'}
+        onClose={handleModalClose}
+        onTimetableGenerated={handleSuccess}
+      />
+
+      <PrincipalReportGenerator
+        open={activeModal === 'reports'}
+        onClose={handleModalClose}
+        onReportGenerated={handleSuccess}
       />
     </div>
   );
