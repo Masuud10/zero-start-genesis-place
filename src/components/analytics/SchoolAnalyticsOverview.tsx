@@ -50,28 +50,21 @@ const SchoolAnalyticsOverview = () => {
     );
   }
 
-  if (!schoolAnalytics || schoolAnalytics.length === 0) {
-    return (
-      <div className="space-y-6">
-        {/* System-wide Analytics Stats Icons */}
-        <EduFamSystemAnalytics />
-        
-        <div className="text-center py-12">
-          <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Schools Found</h3>
-          <p className="text-gray-500">No schools are registered in the system yet.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* System-wide Analytics Stats Icons */}
       <EduFamSystemAnalytics />
 
       {/* Individual School Analytics */}
-      <SchoolAnalyticsDetail />
+      {schoolAnalytics && schoolAnalytics.length > 0 ? (
+        <SchoolAnalyticsDetail />
+      ) : (
+        <div className="text-center py-12">
+          <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Schools Found</h3>
+          <p className="text-gray-500">No schools are registered in the system yet.</p>
+        </div>
+      )}
     </div>
   );
 };
