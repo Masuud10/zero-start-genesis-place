@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface TeacherDashboardProps {
   user: AuthUser;
-  onModalOpen: (modalType: string) => void;
+  onModalOpen?: (modalType: string) => void;
 }
 
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }) => {
@@ -47,13 +47,17 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
       case 'teacherAdmission':
       case 'addClass':
       case 'addSubject':
-        // Delegate to parent for these modals
-        onModalOpen(modalType);
+        // Delegate to parent for these modals if available
+        if (onModalOpen) {
+          onModalOpen(modalType);
+        }
         break;
       default:
         console.warn('Unknown modal type:', modalType);
-        // Try to delegate to parent
-        onModalOpen(modalType);
+        // Try to delegate to parent if available
+        if (onModalOpen) {
+          onModalOpen(modalType);
+        }
     }
   };
 

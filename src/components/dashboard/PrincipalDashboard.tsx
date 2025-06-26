@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface PrincipalDashboardProps {
   user: AuthUser;
-  onModalOpen: (modalType: string) => void;
+  onModalOpen?: (modalType: string) => void;
 }
 
 const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOpen }) => {
@@ -28,8 +28,8 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     console.log('PrincipalDashboard: Opening modal:', modalType);
     setActiveModal(modalType);
     
-    // Delegate some modals to parent
-    if (['reports', 'studentAdmission', 'teacherAdmission', 'addClass'].includes(modalType)) {
+    // Delegate some modals to parent if available
+    if (onModalOpen && ['reports', 'studentAdmission', 'teacherAdmission', 'addClass'].includes(modalType)) {
       onModalOpen(modalType);
     }
   };

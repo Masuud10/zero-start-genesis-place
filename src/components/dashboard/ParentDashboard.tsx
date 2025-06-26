@@ -9,19 +9,27 @@ import ChildrenGradesSection from './parent/ChildrenGradesSection';
 
 interface ParentDashboardProps {
   user: AuthUser;
-  onModalOpen: (modalType: string) => void;
+  onModalOpen?: (modalType: string) => void;
 }
 
 const ParentDashboard: React.FC<ParentDashboardProps> = ({ user, onModalOpen }) => {
   console.log('👨‍👩‍👧‍👦 ParentDashboard: Rendering for parent:', user.email);
   const { stats, loading } = useParentDashboardStats(user);
 
+  const handleModalOpen = (modalType: string) => {
+    console.log('ParentDashboard: Opening modal:', modalType);
+    // Delegate to parent if available
+    if (onModalOpen) {
+      onModalOpen(modalType);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ParentStatCards stats={stats} loading={loading} />
       <ChildrenGradesSection />
       <ParentFeeOverview />
-      <ParentActionButtons onModalOpen={onModalOpen} />
+      <ParentActionButtons onModalOpen={handleModalOpen} />
     </div>
   );
 };
