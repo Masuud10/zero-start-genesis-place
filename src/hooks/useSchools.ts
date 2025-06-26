@@ -41,9 +41,9 @@ interface SchoolCreationResult {
   error?: string;
 }
 
-export const useSchools = () => {
+export const useSchools = (refreshKey = 0) => {
   return useQuery({
-    queryKey: ['schools'],
+    queryKey: ['schools', refreshKey],
     queryFn: async (): Promise<School[]> => {
       console.log('🏫 Fetching schools data...');
       
@@ -81,12 +81,15 @@ export const useSchools = () => {
 
       if (error) {
         console.error('🏫 Error fetching schools:', error);
-        throw error;
+        throw new Error(`Failed to fetch schools: ${error.message}`);
       }
 
-      console.log('🏫 Schools data fetched:', data);
+      console.log('🏫 Schools data fetched successfully:', data?.length || 0, 'schools');
       return data || [];
     },
+    staleTime: 30 * 1000, // 30 seconds
+    refetchOnWindowFocus: true,
+    retry: 2,
   });
 };
 
@@ -131,7 +134,7 @@ export const useSchool = (schoolId: string) => {
 
       if (error) {
         console.error('🏫 Error fetching school:', error);
-        throw error;
+        throw new Error(`Failed to fetch school: ${error.message}`);
       }
 
       console.log('🏫 School data fetched:', data);
@@ -146,32 +149,47 @@ export const useCreateSchool = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (schoolData: any) => {
+    mutationFn: async (schoolData: any): Promise<SchoolCreationResult> => {
       console.log('🏫 Creating school via RPC:', schoolData);
       
       const { data, error } = await supabase.rpc('create_comprehensive_school', schoolData);
 
       if (error) {
         console.error('🏫 RPC Error:', error);
-        throw error;
+        throw new Error(`Database error: ${error.message}`);
       }
 
-      return data as SchoolCreationResult;
+      console.log('🏫 RPC Response:', data);
+      
+      // Handle the response properly - cast to our expected type
+      const result = data as SchoolCreationResult;
+      
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid response from server');
+      }
+
+      return result;
     },
     onSuccess: (result) => {
       console.log('🏫 School creation successful:', result);
       
       if (result?.success) {
         toast({
-          title: "Success",
-          description: result.message || "School created successfully",
+          title: "School Registered Successfully",
+          description: result.message || "School has been registered with complete setup",
         });
+        
+        // Invalidate and refetch queries
         queryClient.invalidateQueries({ queryKey: ['schools'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-schools'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        
+        // Force a refetch to get the latest data
+        queryClient.refetchQueries({ queryKey: ['schools'] });
       } else {
         toast({
-          title: "Error",
-          description: result?.error || "Failed to create school",
+          title: "Registration Failed",
+          description: result?.error || "Failed to register school",
           variant: "destructive",
         });
       }
@@ -179,8 +197,8 @@ export const useCreateSchool = () => {
     onError: (error: any) => {
       console.error('🏫 School creation error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create school",
+        title: "Registration Error",
+        description: error.message || "An unexpected error occurred during school registration",
         variant: "destructive",
       });
     },

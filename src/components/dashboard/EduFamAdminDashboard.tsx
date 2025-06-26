@@ -22,7 +22,10 @@ import {
   Mail,
   Phone,
   MapPin,
-  Loader2
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Globe
 } from 'lucide-react';
 
 // Import modals
@@ -58,7 +61,33 @@ const EduFamAdminDashboard = () => {
   }).length;
 
   const handleModalSuccess = () => {
+    console.log('🏫 Refreshing school data after successful operation...');
     refetchSchools();
+  };
+
+  const getSchoolStatusColor = (status?: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'inactive':
+        return 'bg-red-100 text-red-800';
+      case 'suspended':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getSchoolStatusIcon = (status?: string) => {
+    switch (status) {
+      case 'active':
+        return <CheckCircle className="h-3 w-3" />;
+      case 'inactive':
+      case 'suspended':
+        return <XCircle className="h-3 w-3" />;
+      default:
+        return <AlertCircle className="h-3 w-3" />;
+    }
   };
 
   return (
@@ -69,7 +98,10 @@ const EduFamAdminDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">EduFam Admin Dashboard</h1>
           <p className="text-gray-600">System overview and administrative controls</p>
         </div>
-        <Button onClick={() => setShowSchoolRegistration(true)} className="flex items-center gap-2">
+        <Button 
+          onClick={() => setShowSchoolRegistration(true)} 
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+        >
           <Plus className="h-4 w-4" />
           Register New School
         </Button>
@@ -77,29 +109,29 @@ const EduFamAdminDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="border-l-4 border-l-blue-600">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Schools</CardTitle>
             <Building2 className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{totalSchools}</div>
-            <p className="text-xs text-gray-600">Registered schools</p>
+            <p className="text-xs text-gray-600">Registered in platform</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-green-600">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Schools</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{activeSchools}</div>
-            <p className="text-xs text-gray-600">Currently active</p>
+            <p className="text-xs text-gray-600">Currently operational</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-purple-600">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New This Month</CardTitle>
             <Plus className="h-4 w-4 text-purple-600" />
@@ -110,10 +142,10 @@ const EduFamAdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-green-600">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">System Status</CardTitle>
-            <AlertCircle className="h-4 w-4 text-orange-600" />
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">Operational</div>
@@ -137,7 +169,7 @@ const EduFamAdminDashboard = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-blue-50"
               onClick={() => setShowUserManagement(true)}
             >
               <User className="h-6 w-6 text-blue-600" />
@@ -146,7 +178,7 @@ const EduFamAdminDashboard = () => {
 
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-orange-50"
               onClick={() => setShowMaintenanceMode(true)}
             >
               <Settings className="h-6 w-6 text-orange-600" />
@@ -155,7 +187,7 @@ const EduFamAdminDashboard = () => {
 
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-green-50"
               onClick={() => setShowDatabaseSettings(true)}
             >
               <Database className="h-6 w-6 text-green-600" />
@@ -164,7 +196,7 @@ const EduFamAdminDashboard = () => {
 
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-red-50"
               onClick={() => setShowSecuritySettings(true)}
             >
               <Shield className="h-6 w-6 text-red-600" />
@@ -173,7 +205,7 @@ const EduFamAdminDashboard = () => {
 
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-purple-50"
               onClick={() => setShowNotificationSettings(true)}
             >
               <Bell className="h-6 w-6 text-purple-600" />
@@ -182,7 +214,7 @@ const EduFamAdminDashboard = () => {
 
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-indigo-50"
               onClick={() => setShowCompanyDetails(true)}
             >
               <Building2 className="h-6 w-6 text-indigo-600" />
@@ -195,95 +227,162 @@ const EduFamAdminDashboard = () => {
       {/* Schools List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Registered Schools
-          </CardTitle>
-          <CardDescription>
-            Overview of all schools registered in the EduFam platform
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Registered Schools ({totalSchools})
+              </CardTitle>
+              <CardDescription>
+                Overview of all schools registered in the EduFam platform
+              </CardDescription>
+            </div>
+            <Button 
+              onClick={() => refetchSchools()} 
+              variant="outline" 
+              size="sm"
+              disabled={schoolsLoading}
+            >
+              {schoolsLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Refresh'
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {schoolsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-              <span className="ml-2">Loading schools...</span>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+                <p className="text-gray-600">Loading schools...</p>
+              </div>
             </div>
           ) : schools.length === 0 ? (
-            <div className="text-center py-8">
-              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Schools Registered</h3>
-              <p className="text-gray-600 mb-4">Get started by registering the first school</p>
-              <Button onClick={() => setShowSchoolRegistration(true)} className="flex items-center gap-2">
+            <div className="text-center py-12">
+              <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Schools Registered Yet</h3>
+              <p className="text-gray-600 mb-6">Get started by registering the first school in your platform</p>
+              <Button 
+                onClick={() => setShowSchoolRegistration(true)} 
+                className="flex items-center gap-2"
+              >
                 <Plus className="h-4 w-4" />
-                Register New School
+                Register First School
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
               {schools.map((school) => (
-                <div key={school.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                <div key={school.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="font-semibold text-lg">{school.name}</h4>
-                        <Badge variant={school.status === 'active' ? 'default' : 'secondary'}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <h4 className="font-semibold text-lg text-gray-900">{school.name}</h4>
+                        <Badge className={`${getSchoolStatusColor(school.status)} flex items-center gap-1`}>
+                          {getSchoolStatusIcon(school.status)}
                           {school.status || 'Active'}
                         </Badge>
                         {school.school_type && (
-                          <Badge variant="outline">{school.school_type}</Badge>
+                          <Badge variant="secondary" className="capitalize">
+                            {school.school_type}
+                          </Badge>
                         )}
                         {school.curriculum_type && (
-                          <Badge variant="outline">{school.curriculum_type.toUpperCase()}</Badge>
+                          <Badge variant="outline" className="uppercase font-mono text-xs">
+                            {school.curriculum_type}
+                          </Badge>
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-gray-600 mb-3">
                         <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          <span>{school.email}</span>
+                          <Mail className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{school.email}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
+                          <Phone className="h-4 w-4 flex-shrink-0" />
                           <span>{school.phone}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          <span>{school.address}</span>
+                          <MapPin className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{school.address}</span>
                         </div>
                         {school.registration_number && (
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4" />
+                            <Building2 className="h-4 w-4 flex-shrink-0" />
                             <span>Reg: {school.registration_number}</span>
                           </div>
                         )}
                         {school.year_established && (
                           <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
+                            <Calendar className="h-4 w-4 flex-shrink-0" />
                             <span>Est: {school.year_established}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
+                          <Users className="h-4 w-4 flex-shrink-0" />
                           <span>Max: {school.max_students || 1000} students</span>
                         </div>
                       </div>
 
-                      {(school.principal_name || school.principal_email) && (
-                        <div className="mt-3 pt-3 border-t">
-                          <p className="text-sm text-gray-700">
-                            <strong>Principal:</strong> {school.principal_name}
-                            {school.principal_email && ` (${school.principal_email})`}
-                          </p>
+                      {/* Additional Information */}
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                        {school.website_url && (
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-3 w-3" />
+                            <span>Website Available</span>
+                          </div>
+                        )}
+                        {school.term_structure && (
+                          <div>
+                            <span>Term: {school.term_structure}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span>Created: {new Date(school.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Principal/Owner Information */}
+                      {(school.principal_name || school.owner_id) && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            {school.principal_name && (
+                              <div>
+                                <span className="font-medium text-gray-700">Principal:</span> {school.principal_name}
+                                {school.principal_email && (
+                                  <span className="text-gray-500 ml-1">({school.principal_email})</span>
+                                )}
+                              </div>
+                            )}
+                            {school.owner_id && (
+                              <div>
+                                <span className="font-medium text-gray-700">Owner ID:</span> 
+                                <span className="font-mono text-xs text-gray-500 ml-1">
+                                  {school.owner_id.slice(0, 8)}...
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* School Branding */}
+                      {(school.motto || school.slogan) && (
+                        <div className="mt-2 text-sm italic text-gray-600">
+                          {school.motto && <div>"{school.motto}"</div>}
+                          {school.slogan && <div className="text-xs">— {school.slogan}</div>}
                         </div>
                       )}
                     </div>
 
                     <div className="flex gap-2 ml-4">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="hover:bg-blue-50">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="hover:bg-gray-50">
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
