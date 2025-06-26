@@ -64,8 +64,6 @@ Frontend: React.js + TypeScript + Tailwind CSS
 
 Backend: Supabase (PostgreSQL)
 
-State Management: React Query / Zustand
-
 Authentication: Supabase Auth
 
 Payments: MPESA Daraja API
