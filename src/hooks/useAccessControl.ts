@@ -63,7 +63,8 @@ export const useAccessControl = () => {
       case 'settings':
         return user.role === 'edufam_admin';
       case 'security':
-        return hasPermission(PERMISSIONS.MANAGE_SECURITY);
+        // ONLY EduFam Admins can access security settings
+        return user.role === 'edufam_admin';
       case 'support':
         return hasPermission(PERMISSIONS.ACCESS_SUPPORT);
       default:

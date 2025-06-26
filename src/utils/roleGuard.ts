@@ -5,11 +5,11 @@ import { UserRole } from '@/types/user';
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   edufam_admin: ['*'], // Full access
   elimisha_admin: ['*'], // Mirror edufam_admin
-  principal: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support', 'security'],
-  teacher: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports', 'security', 'support'],
-  school_owner: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'security', 'support'],
-  finance_officer: ['dashboard', 'analytics', 'finance', 'students', 'reports', 'announcements', 'messages', 'attendance', 'timetable', 'security', 'support'],
-  parent: ['dashboard', 'grades', 'attendance', 'finance', 'timetable', 'announcements', 'messages', 'security', 'support']
+  principal: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
+  teacher: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports', 'support'],
+  school_owner: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
+  finance_officer: ['dashboard', 'analytics', 'finance', 'students', 'reports', 'announcements', 'messages', 'attendance', 'timetable', 'support'],
+  parent: ['dashboard', 'grades', 'attendance', 'finance', 'timetable', 'announcements', 'messages', 'support']
 };
 
 export const hasAccess = (userRole: UserRole | undefined, section: string): boolean => {
@@ -20,6 +20,11 @@ export const hasAccess = (userRole: UserRole | undefined, section: string): bool
   
   // Admin roles have full access
   if (permissions.includes('*')) return true;
+  
+  // Security section is ONLY accessible to edufam_admin
+  if (section === 'security') {
+    return userRole === 'edufam_admin';
+  }
   
   // Check if the section is in the role's permissions
   return permissions.includes(section);
@@ -37,7 +42,7 @@ export const getAccessibleSections = (userRole: UserRole | undefined): string[] 
   
   // If admin, return all sections
   if (permissions.includes('*')) {
-    return ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support', 'settings', 'schools', 'users', 'billing', 'system-health'];
+    return ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support', 'settings', 'schools', 'users', 'billing', 'system-health', 'security'];
   }
   
   return [...permissions];

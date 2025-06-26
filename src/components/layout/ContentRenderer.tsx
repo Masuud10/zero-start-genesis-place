@@ -123,7 +123,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
         return <FinanceSettingsModule />;
 
       case 'security':
-        return <SecurityModule />;
+        // ONLY EduFam Admins can access security module
+        if (user?.role === 'edufam_admin') {
+          return <SecurityModule />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Only EduFam Administrators can access security settings</div>;
 
       case 'schools':
         return <SchoolsModule />;

@@ -62,7 +62,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // School Owner - school-wide access, including user management
+  // School Owner - school-wide access, including user management (Security removed)
   if (userRole === 'school_owner') {
     return [
       ...baseItems,
@@ -76,12 +76,11 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'timetable', label: 'School Timetables', icon: Calendar, roles: ['school_owner'] },
       { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['school_owner'] },
       { id: 'reports', label: 'School Reports', icon: FileText, roles: ['school_owner'] },
-      { id: 'security', label: 'Security', icon: Shield, roles: ['school_owner'] },
       { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['school_owner'] },
     ];
   }
 
-  // Principal - full school operational access
+  // Principal - full school operational access (Security removed)
   if (userRole === 'principal') {
     return [
       ...baseItems,
@@ -95,12 +94,11 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'timetable', label: 'Timetable Management', icon: Calendar, roles: ['principal'] },
       { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['principal'] },
       { id: 'reports', label: 'School Reports', icon: FileText, roles: ['principal'] },
-      { id: 'security', label: 'Security', icon: Shield, roles: ['principal'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['principal'] },
     ];
   }
 
-  // Teacher - class-level access only
+  // Teacher - class-level access only (Security removed)
   if (userRole === 'teacher') {
     return [
       ...baseItems,
@@ -111,12 +109,11 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'timetable', label: 'My Timetable', icon: Calendar, roles: ['teacher'] },
       { id: 'announcements', label: 'Class Announcements', icon: Megaphone, roles: ['teacher'] },
       { id: 'reports', label: 'Class Reports', icon: FileText, roles: ['teacher'] },
-      { id: 'security', label: 'Security', icon: Shield, roles: ['teacher'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['teacher'] },
     ];
   }
 
-  // Finance Officer - ONLY financial operations (removed academic sections)
+  // Finance Officer - ONLY financial operations (Security removed)
   if (userRole === 'finance_officer') {
     return [
       ...baseItems,
@@ -128,12 +125,11 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'student-accounts', label: 'Student Accounts', icon: Users, roles: ['finance_officer'] },
       { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
       { id: 'finance-settings', label: 'Finance Settings', icon: Settings, roles: ['finance_officer'] },
-      { id: 'security', label: 'Security', icon: Shield, roles: ['finance_officer'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['finance_officer'] },
     ];
   }
 
-  // Parent - student-focused access
+  // Parent - student-focused access (Security removed)
   if (userRole === 'parent') {
     return [
       ...baseItems,
@@ -143,7 +139,6 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'timetable', label: 'Class Timetable', icon: Calendar, roles: ['parent'] },
       { id: 'announcements', label: 'School News', icon: Megaphone, roles: ['parent'] },
       { id: 'reports', label: 'Progress Reports', icon: FileText, roles: ['parent'] },
-      { id: 'security', label: 'Security', icon: Shield, roles: ['parent'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['parent'] },
     ];
   }
