@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { CBCStrandGradingInterface } from '@/components/grading/CBCStrandGradingInterface';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 interface CBCGradesModalProps {
   onClose: () => void;
@@ -23,6 +24,7 @@ interface CBCGradesModalProps {
 
 export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
   const { user } = useAuth();
+  const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
   
   const [selectedClass, setSelectedClass] = useState('');
@@ -47,13 +49,13 @@ export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
   // Load classes
   useEffect(() => {
     const loadClasses = async () => {
-      if (!user?.school_id) return;
+      if (!schoolId) return;
       
       try {
         const { data, error } = await supabase
           .from('classes')
           .select('*')
-          .eq('school_id', user.school_id);
+          .eq('school_id', schoolId);
           
         if (error) throw error;
         setClasses(data || []);
@@ -63,12 +65,12 @@ export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
       }
     };
     loadClasses();
-  }, [user?.school_id]);
+  }, [schoolId]);
 
   // Load subjects
   useEffect(() => {
     const loadSubjects = async () => {
-      if (!selectedClass || !user?.school_id) {
+      if (!selectedClass || !schoolId) {
         setSubjects([]);
         return;
       }
@@ -78,9 +80,9 @@ export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
           .from('subjects')
           .select('*')
           .eq('class_id', selectedClass)
-          .eq('school_id', user.school_id);
+          .eq('school_id', schoolId);
         
-        if (user.role === 'teacher') {
+        if (user?.role === 'teacher') {
           query = query.eq('teacher_id', user.id);
         }
 
@@ -96,19 +98,19 @@ export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
     };
 
     loadSubjects();
-  }, [selectedClass, user?.school_id, user?.id, user?.role]);
+  }, [selectedClass, schoolId, user?.id, user?.role]);
 
   // Load students
   useEffect(() => {
     const loadStudents = async () => {
-      if (!selectedClass || !user?.school_id) return;
+      if (!selectedClass || !schoolId) return;
 
       try {
         const { data, error } = await supabase
           .from('students')
           .select('*')
           .eq('class_id', selectedClass)
-          .eq('school_id', user.school_id);
+          .eq('school_id', schoolId);
 
         if (error) throw error;
 
@@ -120,7 +122,7 @@ export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
     };
 
     loadStudents();
-  }, [selectedClass, user?.school_id]);
+  }, [selectedClass, schoolId]);
 
   const validateForm = () => {
     if (!selectedClass) {
@@ -158,20 +160,27 @@ export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
       return;
     }
 
+    if (!user?.id || !schoolId) {
+      setFormError("User or school information is missing");
+      return;
+    }
+
     setLoading(true);
 
     try {
       // Save CBC strand assessments
       const strandAssessments = Object.entries(cbcGradeValue.strand_scores).map(([strandName, performanceLevel]) => ({
+        school_id: schoolId,
         student_id: selectedStudent,
         subject_id: selectedSubject,
         class_id: selectedClass,
         strand_name: strandName,
-        performance_level: performanceLevel,
+        performance_level: performanceLevel as 'EM' | 'AP' | 'PR' | 'EX',
         assessment_type: cbcGradeValue.assessment_type,
         term: selectedTerm,
         teacher_remarks: cbcGradeValue.teacher_remarks,
-        academic_year: new Date().getFullYear().toString()
+        academic_year: new Date().getFullYear().toString(),
+        teacher_id: user.id
       }));
 
       if (strandAssessments.length > 0) {
@@ -186,6 +195,7 @@ export const CBCGradesModal: React.FC<CBCGradesModalProps> = ({ onClose }) => {
       const { error: gradeError } = await supabase
         .from('grades')
         .upsert({
+          school_id: schoolId,
           student_id: selectedStudent,
           subject_id: selectedSubject,
           class_id: selectedClass,

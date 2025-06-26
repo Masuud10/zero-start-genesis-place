@@ -71,3 +71,38 @@ export const CBC_ASSESSMENT_TYPES = [
   { value: 'oral_assessment', label: 'Oral Assessment' },
   { value: 'practical_work', label: 'Practical Work' }
 ] as const;
+
+// Add missing exports for other components
+export interface GradingSession {
+  id: string;
+  name: string;
+  status: string;
+  created_at: string;
+}
+
+export interface BulkGradeSubmission {
+  id: string;
+  batch_id: string;
+  status: string;
+  submitted_at: string;
+}
+
+export interface IGCSEGradeBoundaries {
+  A: number;
+  B: number;
+  C: number;
+  D: number;
+  E: number;
+  F: number;
+  G: number;
+}
+
+export interface Grade {
+  id: string;
+  student_id: string;
+  subject_id: string;
+  score: number;
+  grade: string;
+  term: string;
+  academic_year: string;
+}

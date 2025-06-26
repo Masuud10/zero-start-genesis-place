@@ -147,6 +147,16 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
     return CBC_PERFORMANCE_LEVELS.find(l => l.value === level) || CBC_PERFORMANCE_LEVELS[3];
   };
 
+  const getStrandName = (strand: any, index: number): string => {
+    if (typeof strand === 'string') {
+      return strand;
+    }
+    if (strand && typeof strand === 'object' && strand.name) {
+      return strand.name;
+    }
+    return `Strand ${index + 1}`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -234,11 +244,11 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {competency.strands.map((strand, index) => {
-                    const strandName = typeof strand === 'string' ? strand : strand.name || `Strand ${index + 1}`;
+                    const strandName = getStrandName(strand, index);
                     const currentLevel = value.strand_scores?.[strandName] || '';
                     
                     return (
-                      <div key={`${strand}_${index}`} className="space-y-2">
+                      <div key={`${strandName}_${index}`} className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
                           {strandName}
                         </label>

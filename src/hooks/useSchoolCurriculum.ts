@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
+export type CurriculumType = 'standard' | 'cbc' | 'igcse';
+
 export const useSchoolCurriculum = () => {
-  const [curriculumType, setCurriculumType] = useState<string>('standard');
+  const [curriculumType, setCurriculumType] = useState<CurriculumType>('standard');
   const [loading, setLoading] = useState(true);
   const { schoolId } = useSchoolScopedData();
 
@@ -26,7 +28,7 @@ export const useSchoolCurriculum = () => {
           console.error('Error fetching curriculum type:', error);
           setCurriculumType('standard');
         } else {
-          setCurriculumType(data?.curriculum_type || 'standard');
+          setCurriculumType((data?.curriculum_type as CurriculumType) || 'standard');
         }
       } catch (error) {
         console.error('Error fetching curriculum type:', error);

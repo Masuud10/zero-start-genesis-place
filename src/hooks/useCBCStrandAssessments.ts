@@ -3,20 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface CBCStrandAssessment {
-  id: string;
-  student_id: string;
-  subject_id: string;
-  competency_id: string;
-  strand_name: string;
-  sub_strand_name?: string;
-  assessment_type: string;
-  performance_level: 'EM' | 'AP' | 'PR' | 'EX';
-  teacher_remarks?: string;
-  term: string;
-  academic_year: string;
-}
+import { CBCStrandAssessment } from '@/types/grading';
 
 export const useCBCStrandAssessments = (
   classId: string,
@@ -43,7 +30,13 @@ export const useCBCStrandAssessments = (
 
       if (error) throw error;
 
-      setAssessments(data || []);
+      // Type assertion to ensure proper typing
+      const typedData = (data || []).map(item => ({
+        ...item,
+        performance_level: item.performance_level as 'EM' | 'AP' | 'PR' | 'EX'
+      })) as CBCStrandAssessment[];
+
+      setAssessments(typedData);
     } catch (error) {
       console.error('Error loading CBC strand assessments:', error);
       setAssessments([]);
@@ -53,14 +46,16 @@ export const useCBCStrandAssessments = (
   };
 
   const saveAssessment = async (assessment: Partial<CBCStrandAssessment>) => {
-    if (!user?.id || !schoolId) return;
+    if (!user?.id || !schoolId || !classId) return;
 
     try {
       const assessmentData = {
         ...assessment,
         school_id: schoolId,
+        class_id: classId,
         teacher_id: user.id,
         academic_year: new Date().getFullYear().toString(),
+        performance_level: assessment.performance_level as 'EM' | 'AP' | 'PR' | 'EX'
       };
 
       const { error } = await supabase
