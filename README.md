@@ -73,28 +73,6 @@ Payments: MPESA Daraja API
 Deployment: Vercel
 
 🗄️ Database Structure (Supabase)
-Schools
-
-Classes
-
-Subjects
-
-Users (Multi-role support)
-
-Grades
-
-Attendance
-
-Finance (Fees, MPESA Transactions, Expenses)
-
-Certificates
-
-Reports
-
-System Settings
-
-🛡️ License
-This project is licensed under the MIT License.
 
 📞 Contact
 Edufam Team
