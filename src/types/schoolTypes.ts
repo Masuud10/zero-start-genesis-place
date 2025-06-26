@@ -16,7 +16,7 @@ export interface CreateSchoolRequest {
   ownerEmail?: string;
   ownerName?: string;
   ownerPhone?: string;
-  curriculumType?: 'cbc' | 'igcse';
+  curriculumType?: 'cbc' | 'igcse' | 'cambridge';
 }
 
 export interface CreateSchoolResponse {
@@ -42,6 +42,14 @@ export interface SchoolData {
   term_structure?: string;
   owner_information?: string;
   curriculum_type?: string;
+  school_type?: string;
+  principal_name?: string;
+  principal_contact?: string;
+  principal_email?: string;
+  status?: string;
+  subscription_plan?: string;
+  max_students?: number;
+  timezone?: string;
   created_at: string;
   updated_at: string;
   owner_id?: string;
@@ -52,6 +60,46 @@ export interface CreateSchoolRpcResult {
   success?: boolean;
   school_id?: string;
   owner_id?: string;
+  principal_id?: string;
   message?: string;
   error?: string;
+}
+
+// Comprehensive school creation interface for the new modal
+export interface ComprehensiveSchoolData {
+  // Basic Information
+  school_name: string;
+  school_email: string;
+  school_phone: string;
+  school_address: string;
+  
+  // School Details
+  school_type: 'primary' | 'secondary' | 'college';
+  curriculum_type: 'cbc' | 'igcse' | 'cambridge';
+  term_structure: '3-term' | '2-semester' | 'other';
+  registration_number?: string;
+  year_established?: number;
+  
+  // Branding
+  logo_url?: string;
+  website_url?: string;
+  motto?: string;
+  slogan?: string;
+  
+  // Owner Information
+  owner_name?: string;
+  owner_email?: string;
+  owner_phone?: string;
+  owner_information?: string;
+  
+  // Principal Information
+  principal_name?: string;
+  principal_email?: string;
+  principal_contact?: string;
+  
+  // MPESA Configuration
+  mpesa_paybill_number?: string;
+  mpesa_consumer_key?: string;
+  mpesa_consumer_secret?: string;
+  mpesa_passkey?: string;
 }

@@ -4799,17 +4799,23 @@ export type Database = {
           id: string
           location: string | null
           logo_url: string | null
+          max_students: number | null
           motto: string | null
           name: string
           owner_id: string | null
           owner_information: string | null
           phone: string | null
           principal_contact: string | null
+          principal_email: string | null
           principal_id: string | null
           principal_name: string | null
           registration_number: string | null
+          school_type: string | null
           slogan: string | null
+          status: string | null
+          subscription_plan: string | null
           term_structure: string | null
+          timezone: string | null
           updated_at: string | null
           website_url: string | null
           year_established: number | null
@@ -4822,17 +4828,23 @@ export type Database = {
           id?: string
           location?: string | null
           logo_url?: string | null
+          max_students?: number | null
           motto?: string | null
           name: string
           owner_id?: string | null
           owner_information?: string | null
           phone?: string | null
           principal_contact?: string | null
+          principal_email?: string | null
           principal_id?: string | null
           principal_name?: string | null
           registration_number?: string | null
+          school_type?: string | null
           slogan?: string | null
+          status?: string | null
+          subscription_plan?: string | null
           term_structure?: string | null
+          timezone?: string | null
           updated_at?: string | null
           website_url?: string | null
           year_established?: number | null
@@ -4845,17 +4857,23 @@ export type Database = {
           id?: string
           location?: string | null
           logo_url?: string | null
+          max_students?: number | null
           motto?: string | null
           name?: string
           owner_id?: string | null
           owner_information?: string | null
           phone?: string | null
           principal_contact?: string | null
+          principal_email?: string | null
           principal_id?: string | null
           principal_name?: string | null
           registration_number?: string | null
+          school_type?: string | null
           slogan?: string | null
+          status?: string | null
+          subscription_plan?: string | null
           term_structure?: string | null
+          timezone?: string | null
           updated_at?: string | null
           website_url?: string | null
           year_established?: number | null
@@ -6673,6 +6691,35 @@ export type Database = {
           user_name: string
           user_role?: string
           user_school_id?: string
+        }
+        Returns: Json
+      }
+      create_comprehensive_school: {
+        Args: {
+          school_name: string
+          school_email: string
+          school_phone: string
+          school_address: string
+          school_type?: string
+          curriculum_type?: string
+          term_structure?: string
+          registration_number?: string
+          year_established?: number
+          logo_url?: string
+          website_url?: string
+          motto?: string
+          slogan?: string
+          owner_name?: string
+          owner_email?: string
+          owner_phone?: string
+          owner_information?: string
+          principal_name?: string
+          principal_email?: string
+          principal_contact?: string
+          mpesa_paybill_number?: string
+          mpesa_consumer_key?: string
+          mpesa_consumer_secret?: string
+          mpesa_passkey?: string
         }
         Returns: Json
       }

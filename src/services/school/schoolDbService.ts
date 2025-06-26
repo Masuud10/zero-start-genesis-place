@@ -17,6 +17,20 @@ export class SchoolDbService {
     return !existingSchool;
   }
 
+  static async createComprehensiveSchool(schoolData: any): Promise<CreateSchoolRpcResult> {
+    console.log('🏫 SchoolDbService: Creating comprehensive school:', schoolData);
+    
+    const { data: rpcData, error: rpcError } = await supabase.rpc('create_comprehensive_school', schoolData);
+
+    if (rpcError) {
+      console.error('🏫 SchoolDbService: Database function error:', rpcError);
+      throw rpcError;
+    }
+
+    console.log('🏫 SchoolDbService: Success result:', rpcData);
+    return rpcData as CreateSchoolRpcResult;
+  }
+
   static async createSchoolWithRpc(schoolData: CreateSchoolRequest): Promise<CreateSchoolRpcResult> {
     const { data: rpcData, error: rpcError } = await supabase.rpc('create_school', {
       school_name: schoolData.name,
@@ -62,6 +76,8 @@ export class SchoolDbService {
 
   static async getAllSchools(): Promise<{ data: SchoolData[] | null; error: any }> {
     try {
+      console.log('🏫 SchoolDbService: Fetching all schools...');
+      
       const { data, error } = await supabase
         .from('schools')
         .select(`
@@ -79,6 +95,14 @@ export class SchoolDbService {
           term_structure,
           owner_information,
           curriculum_type,
+          school_type,
+          principal_name,
+          principal_contact,
+          principal_email,
+          status,
+          subscription_plan,
+          max_students,
+          timezone,
           created_at,
           updated_at,
           owner_id,
@@ -91,6 +115,7 @@ export class SchoolDbService {
         return { data: null, error };
       }
 
+      console.log('🏫 SchoolDbService: Schools fetched:', data?.length || 0);
       const schoolsData = (data || []) as SchoolData[];
       return { data: schoolsData, error: null };
     } catch (error) {
@@ -118,6 +143,14 @@ export class SchoolDbService {
           term_structure,
           owner_information,
           curriculum_type,
+          school_type,
+          principal_name,
+          principal_contact,
+          principal_email,
+          status,
+          subscription_plan,
+          max_students,
+          timezone,
           created_at,
           updated_at,
           owner_id,
