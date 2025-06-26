@@ -93,47 +93,6 @@ Reports
 
 System Settings
 
-🔧 Setup Instructions
-Clone the repository:
-
-bash
-Copy
-Edit
-git clone https://github.com/your-username/edufam.git
-cd edufam
-Install dependencies:
-
-bash
-Copy
-Edit
-npm install
-Create a .env file with your Supabase keys and MPESA credentials:
-
-bash
-Copy
-Edit
-VITE_SUPABASE_URL=your_url
-VITE_SUPABASE_ANON_KEY=your_key
-VITE_MPESA_CONSUMER_KEY=your_consumer_key
-VITE_MPESA_CONSUMER_SECRET=your_consumer_secret
-VITE_MPESA_PAYBILL=your_paybill_number
-Run the application:
-
-bash
-Copy
-Edit
-npm run dev
-✅ To-Do / Roadmap
-Multi-tenant school support
-
-MPESA payment integration
-
-AI-powered Timetable Generator (in progress)
-
-Dynamic Notification system
-
-Mobile App (Flutter)
-
 🛡️ License
 This project is licensed under the MIT License.
 
