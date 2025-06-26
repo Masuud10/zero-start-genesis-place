@@ -133,6 +133,30 @@ export const CBCGradingSheet: React.FC<CBCGradingSheetProps> = ({
     return CBC_PERFORMANCE_LEVELS.find(l => l.value === level) || CBC_PERFORMANCE_LEVELS[3];
   };
 
+  // Generate default strands if no competencies are configured
+  const getSubjectStrands = (subjectId: string) => {
+    const subjectCompetencies = competencies.filter(comp => comp.subject_id === subjectId);
+    
+    if (subjectCompetencies.length > 0) {
+      return subjectCompetencies;
+    }
+    
+    // Default strands for subjects without configured competencies
+    return [{
+      id: `default-${subjectId}`,
+      competency_name: 'General Competency',
+      strands: ['Communication', 'Problem Solving', 'Application', 'Understanding'],
+      school_id: schoolId || '',
+      competency_code: 'GEN-001',
+      description: 'General competency assessment',
+      sub_strands: [],
+      weighting: 1.0,
+      class_id: selectedClass,
+      subject_id: subjectId,
+      assessment_types: ['observation', 'written_work', 'project_work']
+    }] as CBCCompetency[];
+  };
+
   return (
     <div className="w-full h-[600px] overflow-auto border rounded-lg bg-white">
       {/* Header Info */}
@@ -140,7 +164,7 @@ export const CBCGradingSheet: React.FC<CBCGradingSheetProps> = ({
         <div className="flex items-center gap-4 text-sm font-medium text-blue-800">
           <span>CBC Competency-Based Assessment</span>
           <span>•</span>
-          <span>Class: <strong>{selectedClass}</strong></span>
+          <span>Class: <strong>{subjects.find(s => s.id === selectedClass)?.name || selectedClass}</strong></span>
           <span>•</span>
           <span>Term: <strong>{selectedTerm}</strong></span>
           <span>•</span>
@@ -194,57 +218,51 @@ export const CBCGradingSheet: React.FC<CBCGradingSheetProps> = ({
                 {/* Subject Grade Cells */}
                 {subjects.map((subject) => {
                   const gradeValue = grades[student.id]?.[subject.id];
-                  const subjectCompetencies = competencies.filter(comp => comp.subject_id === subject.id);
+                  const subjectStrands = getSubjectStrands(subject.id);
                   
                   return (
                     <td key={`${student.id}-${subject.id}`} className="border border-gray-300 p-2">
                       <div className="space-y-3">
                         {/* Strand Assessments */}
-                        {subjectCompetencies.length > 0 ? (
-                          <div className="space-y-2">
-                            {subjectCompetencies.map((competency) => (
-                              <div key={competency.id} className="border rounded p-2 bg-gray-50">
-                                <div className="text-xs font-medium text-gray-700 mb-2">
-                                  {competency.competency_name}
-                                </div>
-                                <div className="space-y-2">
-                                  {competency.strands.map((strand: any, index: number) => {
-                                    const strandName = typeof strand === 'string' ? strand : strand.name || `Strand ${index + 1}`;
-                                    const currentLevel = gradeValue?.strand_scores?.[strandName] || '';
-                                    
-                                    return (
-                                      <div key={index} className="space-y-1">
-                                        <label className="text-xs text-gray-600">
-                                          {strandName}
-                                        </label>
-                                        <Select
-                                          value={currentLevel}
-                                          onValueChange={(level) => handleStrandScoreChange(student.id, subject.id, strandName, level)}
-                                          disabled={isReadOnly}
-                                        >
-                                          <SelectTrigger className="h-8 text-xs">
-                                            <SelectValue placeholder="Select level" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {CBC_PERFORMANCE_LEVELS.map((level) => (
-                                              <SelectItem key={level.value} value={level.value}>
-                                                {level.value} - {level.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
+                        <div className="space-y-2">
+                          {subjectStrands.map((competency) => (
+                            <div key={competency.id} className="border rounded p-2 bg-gray-50">
+                              <div className="text-xs font-medium text-gray-700 mb-2">
+                                {competency.competency_name}
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500 italic text-center py-4">
-                            No competencies configured for this subject
-                          </div>
-                        )}
+                              <div className="space-y-2">
+                                {competency.strands.map((strand: any, index: number) => {
+                                  const strandName = typeof strand === 'string' ? strand : strand.name || `Strand ${index + 1}`;
+                                  const currentLevel = gradeValue?.strand_scores?.[strandName] || '';
+                                  
+                                  return (
+                                    <div key={index} className="space-y-1">
+                                      <label className="text-xs text-gray-600">
+                                        {strandName}
+                                      </label>
+                                      <Select
+                                        value={currentLevel}
+                                        onValueChange={(level) => handleStrandScoreChange(student.id, subject.id, strandName, level)}
+                                        disabled={isReadOnly}
+                                      >
+                                        <SelectTrigger className="h-8 text-xs">
+                                          <SelectValue placeholder="Select level" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {CBC_PERFORMANCE_LEVELS.map((level) => (
+                                            <SelectItem key={level.value} value={level.value}>
+                                              {level.value} - {level.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
                         {/* Overall Performance Level */}
                         {gradeValue?.performance_level && (

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -114,7 +113,7 @@ const TeacherGradesManager: React.FC = () => {
       });
       return;
     }
-    console.log('Opening improved grading sheet for teacher');
+    console.log('Opening grading sheet for teacher:', curriculumType);
     setShowImprovedSheet(true);
   };
 
@@ -156,6 +155,40 @@ const TeacherGradesManager: React.FC = () => {
     }
   };
 
+  const getAssessmentTypeOptions = () => {
+    if (curriculumType === 'cbc') {
+      return (
+        <>
+          <SelectItem value="observation">Observation</SelectItem>
+          <SelectItem value="written_work">Written Work</SelectItem>
+          <SelectItem value="project_work">Project Work</SelectItem>
+          <SelectItem value="group_activity">Group Activity</SelectItem>
+          <SelectItem value="oral_assessment">Oral Assessment</SelectItem>
+          <SelectItem value="practical_work">Practical Work</SelectItem>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <SelectItem value="OPENER">Opener</SelectItem>
+          <SelectItem value="MID_TERM">Mid Term</SelectItem>
+          <SelectItem value="END_TERM">End Term</SelectItem>
+        </>
+      );
+    }
+  };
+
+  if (curriculumLoading) {
+    return (
+      <Card className="h-full">
+        <CardContent className="p-8 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Loading curriculum settings...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -184,7 +217,7 @@ const TeacherGradesManager: React.FC = () => {
               disabled={!selectedClass || !selectedTerm || !selectedExamType}
             >
               <FileSpreadsheet className="h-4 w-4" />
-              Grade Sheet
+              {curriculumType === 'cbc' ? 'Assessment Sheet' : 'Grade Sheet'}
             </Button>
           </div>
         </div>
@@ -193,7 +226,9 @@ const TeacherGradesManager: React.FC = () => {
         {/* Class and Term Selection */}
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
-            <h4 className="font-medium text-blue-900 mb-3">Grade Sheet Configuration</h4>
+            <h4 className="font-medium text-blue-900 mb-3">
+              {curriculumType === 'cbc' ? 'Assessment Configuration' : 'Grade Sheet Configuration'}
+            </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-blue-800">Class</label>
@@ -224,28 +259,15 @@ const TeacherGradesManager: React.FC = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-blue-800">Assessment Type</label>
+                <label className="text-xs font-medium text-blue-800">
+                  {curriculumType === 'cbc' ? 'Assessment Type' : 'Exam Type'}
+                </label>
                 <Select value={selectedExamType} onValueChange={setSelectedExamType}>
                   <SelectTrigger className="h-9 bg-white">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {curriculumType === 'cbc' ? (
-                      <>
-                        <SelectItem value="observation">Observation</SelectItem>
-                        <SelectItem value="written_work">Written Work</SelectItem>
-                        <SelectItem value="project_work">Project Work</SelectItem>
-                        <SelectItem value="group_activity">Group Activity</SelectItem>
-                        <SelectItem value="oral_assessment">Oral Assessment</SelectItem>
-                        <SelectItem value="practical_work">Practical Work</SelectItem>
-                      </>
-                    ) : (
-                      <>
-                        <SelectItem value="OPENER">Opener</SelectItem>
-                        <SelectItem value="MID_TERM">Mid Term</SelectItem>
-                        <SelectItem value="END_TERM">End Term</SelectItem>
-                      </>
-                    )}
+                    {getAssessmentTypeOptions()}
                   </SelectContent>
                 </Select>
               </div>
@@ -264,7 +286,7 @@ const TeacherGradesManager: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="flex items-center justify-between p-3 border rounded-lg bg-yellow-25 border-yellow-200">
                 <div>
-                  <p className="text-sm font-medium text-yellow-800">Draft Grades</p>
+                  <p className="text-sm font-medium text-yellow-800">Draft {curriculumType === 'cbc' ? 'Assessments' : 'Grades'}</p>
                   <p className="text-2xl font-bold text-yellow-600">{draftGrades.length}</p>
                   <p className="text-xs text-yellow-600">Need submission</p>
                 </div>
@@ -317,7 +339,9 @@ const TeacherGradesManager: React.FC = () => {
             {/* Quick Actions */}
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-900">Grading Tools</h4>
+                <h4 className="font-medium text-gray-900">
+                  {curriculumType === 'cbc' ? 'Assessment Tools' : 'Grading Tools'}
+                </h4>
                 {getCurriculumBadge()}
               </div>
               
@@ -330,11 +354,13 @@ const TeacherGradesManager: React.FC = () => {
                 >
                   <FileSpreadsheet className="h-5 w-5 mr-3" />
                   <div className="text-left">
-                    <div className="font-medium">Open Grade Sheet</div>
+                    <div className="font-medium">
+                      Open {curriculumType === 'cbc' ? 'Assessment Sheet' : 'Grade Sheet'}
+                    </div>
                     <div className="text-xs opacity-90">
                       {selectedClass && selectedTerm && selectedExamType 
                         ? `${selectedTerm} - ${selectedExamType}` 
-                        : 'Select class, term & assessment type'}
+                        : `Select class, term & ${curriculumType === 'cbc' ? 'assessment' : 'exam'} type`}
                     </div>
                   </div>
                   <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-800">
@@ -363,7 +389,9 @@ const TeacherGradesManager: React.FC = () => {
       <Dialog open={showImprovedSheet} onOpenChange={setShowImprovedSheet}>
         <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Grade Sheet - {classes.find(c => c.id === selectedClass)?.name}</DialogTitle>
+            <DialogTitle>
+              {curriculumType === 'cbc' ? 'CBC Assessment Sheet' : 'Grade Sheet'} - {classes.find(c => c.id === selectedClass)?.name}
+            </DialogTitle>
           </DialogHeader>
           {showImprovedSheet && (
             <ImprovedGradeSheet
