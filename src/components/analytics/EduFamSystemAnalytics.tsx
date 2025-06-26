@@ -68,116 +68,64 @@ const EduFamSystemAnalytics = () => {
 
   return (
     <div className="space-y-6">
-      {/* Overall System Statistics */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-6">System-Wide Analytics Overview</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Grades Summary */}
-          <Card className="border-l-4 border-l-blue-500">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overall Grades</CardTitle>
-              <GraduationCap className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {analyticsData.grades.average_grade.toFixed(1)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Average across {analyticsData.grades.schools_with_grades} schools
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {analyticsData.grades.total_grades.toLocaleString()} total grades
-              </p>
-            </CardContent>
-          </Card>
+      {/* Overall System Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Grades Summary */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overall Grades</CardTitle>
+            <GraduationCap className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {analyticsData.grades.average_grade.toFixed(1)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Average across {analyticsData.grades.schools_with_grades} schools
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analyticsData.grades.total_grades.toLocaleString()} total grades
+            </p>
+          </CardContent>
+        </Card>
 
-          {/* Attendance Summary */}
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overall Attendance</CardTitle>
-              <CalendarCheck className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatPercentage(analyticsData.attendance.average_attendance_rate)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Average across {analyticsData.attendance.schools_with_attendance} schools
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {analyticsData.attendance.total_records.toLocaleString()} total records
-              </p>
-            </CardContent>
-          </Card>
+        {/* Attendance Summary */}
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overall Attendance</CardTitle>
+            <CalendarCheck className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatPercentage(analyticsData.attendance.average_attendance_rate)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Average across {analyticsData.attendance.schools_with_attendance} schools
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analyticsData.attendance.total_records.toLocaleString()} total records
+            </p>
+          </CardContent>
+        </Card>
 
-          {/* Finance Summary */}
-          <Card className="border-l-4 border-l-purple-500">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Financial Overview</CardTitle>
-              <DollarSign className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {formatCurrency(analyticsData.finance.total_collected)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Collected across {analyticsData.finance.schools_with_finance} schools
-              </p>
-              <p className="text-xs text-red-600 mt-1">
-                {formatCurrency(analyticsData.finance.total_outstanding)} outstanding
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Individual School Analytics */}
-      <div>
-        <h3 className="text-xl font-semibold mb-4">Individual School Performance</h3>
-        <div className="text-center py-8 bg-gray-50 rounded-lg">
-          <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600">
-            Individual school analytics are available in the detailed Schools Analytics section.
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            Navigate to the Schools Analytics page for comprehensive per-school breakdowns.
-          </p>
-        </div>
-      </div>
-
-      {/* System Health Indicators */}
-      <div>
-        <h3 className="text-xl font-semibold mb-4">System Health</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Active Schools</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">
-                {analyticsData.schools.active_schools}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                of {analyticsData.schools.total_schools} total schools
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">System Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">
-                {analyticsData.system.uptime_percentage.toFixed(1)}%
-              </div>
-              <p className="text-sm text-muted-foreground">
-                System uptime
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Finance Summary */}
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Financial Overview</CardTitle>
+            <DollarSign className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {formatCurrency(analyticsData.finance.total_collected)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Collected across {analyticsData.finance.schools_with_finance} schools
+            </p>
+            <p className="text-xs text-red-600 mt-1">
+              {formatCurrency(analyticsData.finance.total_outstanding)} outstanding
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
