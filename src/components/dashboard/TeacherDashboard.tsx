@@ -84,28 +84,19 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
             <TeacherStatsCards stats={stats} loading={isLoading} />
           </div>
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Left Column - Schedule & Classes */}
-            <div className="space-y-6">
-              {/* Timetable */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <CompactTeacherTimetable />
-              </div>
-              
-              {/* My Classes */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <MyClasses />
-              </div>
-            </div>
+          {/* Class Analytics Overview Section */}
+          <div id="class-analytics-section">
+            <ClassAnalyticsOverview />
+          </div>
 
-            {/* Right Column - Analytics */}
-            <div className="space-y-6">
-              {/* Class Analytics Overview Section */}
-              <div id="class-analytics-section">
-                <ClassAnalyticsOverview />
-              </div>
-            </div>
+          {/* My Assignments Section */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <MyClasses />
+          </div>
+
+          {/* My Timetable Section */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <CompactTeacherTimetable />
           </div>
         </div>
 
