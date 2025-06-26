@@ -8,10 +8,12 @@ import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useOptimizedGradeQuery } from '@/hooks/useOptimizedGradeQuery';
 import { ImprovedGradeSheet } from '@/components/grading/ImprovedGradeSheet';
 import GradesModal from '@/components/modals/GradesModal';
+import { CBCGradesModal } from '@/components/modals/CBCGradesModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileSpreadsheet, Plus, CheckCircle, Clock, AlertTriangle, Users, BookOpen, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 
@@ -23,8 +25,10 @@ interface ClassOption {
 const TeacherGradesManager: React.FC = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
+  const { curriculumType, loading: curriculumLoading } = useSchoolCurriculum();
   const { toast } = useToast();
   const [showGradesModal, setShowGradesModal] = useState(false);
+  const [showCBCModal, setShowCBCModal] = useState(false);
   const [showImprovedSheet, setShowImprovedSheet] = useState(false);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
@@ -116,11 +120,16 @@ const TeacherGradesManager: React.FC = () => {
 
   const handleSingleGrade = () => {
     console.log('Opening single grade modal for teacher');
-    setShowGradesModal(true);
+    if (curriculumType === 'cbc') {
+      setShowCBCModal(true);
+    } else {
+      setShowGradesModal(true);
+    }
   };
 
   const handleModalClose = () => {
     setShowGradesModal(false);
+    setShowCBCModal(false);
     setShowImprovedSheet(false);
     // Refresh grades data
     refetch();
@@ -134,14 +143,30 @@ const TeacherGradesManager: React.FC = () => {
     handleModalClose();
   };
 
+  const getCurriculumBadge = () => {
+    if (curriculumLoading) return null;
+    
+    switch (curriculumType) {
+      case 'cbc':
+        return <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">CBC Curriculum</Badge>;
+      case 'igcse':
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">IGCSE Curriculum</Badge>;
+      default:
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">Standard Curriculum</Badge>;
+    }
+  };
+
   return (
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Grade Management System
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Grade Management System
+            </CardTitle>
+            {getCurriculumBadge()}
+          </div>
           <div className="flex gap-2">
             <Button 
               size="sm" 
@@ -150,7 +175,7 @@ const TeacherGradesManager: React.FC = () => {
               className="flex items-center gap-1"
             >
               <Plus className="h-4 w-4" />
-              Single Grade
+              {curriculumType === 'cbc' ? 'CBC Assessment' : 'Single Grade'}
             </Button>
             <Button 
               size="sm"
@@ -199,15 +224,28 @@ const TeacherGradesManager: React.FC = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-blue-800">Exam Type</label>
+                <label className="text-xs font-medium text-blue-800">Assessment Type</label>
                 <Select value={selectedExamType} onValueChange={setSelectedExamType}>
                   <SelectTrigger className="h-9 bg-white">
-                    <SelectValue placeholder="Select exam" />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="OPENER">Opener</SelectItem>
-                    <SelectItem value="MID_TERM">Mid Term</SelectItem>
-                    <SelectItem value="END_TERM">End Term</SelectItem>
+                    {curriculumType === 'cbc' ? (
+                      <>
+                        <SelectItem value="observation">Observation</SelectItem>
+                        <SelectItem value="written_work">Written Work</SelectItem>
+                        <SelectItem value="project_work">Project Work</SelectItem>
+                        <SelectItem value="group_activity">Group Activity</SelectItem>
+                        <SelectItem value="oral_assessment">Oral Assessment</SelectItem>
+                        <SelectItem value="practical_work">Practical Work</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="OPENER">Opener</SelectItem>
+                        <SelectItem value="MID_TERM">Mid Term</SelectItem>
+                        <SelectItem value="END_TERM">End Term</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -280,9 +318,7 @@ const TeacherGradesManager: React.FC = () => {
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium text-gray-900">Grading Tools</h4>
-                <Badge variant="outline" className="text-xs">
-                  Multi-Curriculum Support
-                </Badge>
+                {getCurriculumBadge()}
               </div>
               
               <div className="grid grid-cols-1 gap-3">
@@ -298,7 +334,7 @@ const TeacherGradesManager: React.FC = () => {
                     <div className="text-xs opacity-90">
                       {selectedClass && selectedTerm && selectedExamType 
                         ? `${selectedTerm} - ${selectedExamType}` 
-                        : 'Select class, term & exam type'}
+                        : 'Select class, term & assessment type'}
                     </div>
                   </div>
                   <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-800">
@@ -312,7 +348,7 @@ const TeacherGradesManager: React.FC = () => {
                   onClick={handleSingleGrade}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Individual Grade
+                  {curriculumType === 'cbc' ? 'Add Individual CBC Assessment' : 'Add Individual Grade'}
                   <Badge variant="secondary" className="ml-auto">
                     Single Entry
                   </Badge>
@@ -340,11 +376,18 @@ const TeacherGradesManager: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Single Grade Modal */}
+      {/* Standard Grade Modal */}
       {showGradesModal && (
         <GradesModal 
           onClose={() => setShowGradesModal(false)} 
           userRole={user?.role || 'teacher'} 
+        />
+      )}
+
+      {/* CBC Grade Modal */}
+      {showCBCModal && (
+        <CBCGradesModal 
+          onClose={() => setShowCBCModal(false)} 
         />
       )}
     </Card>

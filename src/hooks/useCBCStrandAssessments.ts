@@ -55,7 +55,8 @@ export const useCBCStrandAssessments = (
         class_id: classId,
         teacher_id: user.id,
         academic_year: new Date().getFullYear().toString(),
-        performance_level: assessment.performance_level as 'EM' | 'AP' | 'PR' | 'EX'
+        performance_level: assessment.performance_level as 'EM' | 'AP' | 'PR' | 'EX',
+        assessment_type: assessment.assessment_type || 'observation'
       };
 
       const { error } = await supabase

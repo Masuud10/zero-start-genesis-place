@@ -72,12 +72,16 @@ export const CBC_ASSESSMENT_TYPES = [
   { value: 'practical_work', label: 'Practical Work' }
 ] as const;
 
-// Add missing exports for other components
+// Fixed interfaces for existing components
 export interface GradingSession {
   id: string;
   name: string;
   status: string;
   created_at: string;
+  examType: string;
+  term: string;
+  maxScore: number;
+  students: any[];
 }
 
 export interface BulkGradeSubmission {
@@ -85,9 +89,19 @@ export interface BulkGradeSubmission {
   batch_id: string;
   status: string;
   submitted_at: string;
+  classId: string;
+  subjectId: string;
+  term: string;
+  examType: string;
+  gradesEntered: number;
+  totalStudents: number;
+  submittedAt: string;
+  principalNotes?: string;
+  releasedAt?: string;
 }
 
 export interface IGCSEGradeBoundaries {
+  'A*': number;
   A: number;
   B: number;
   C: number;
@@ -102,7 +116,10 @@ export interface Grade {
   student_id: string;
   subject_id: string;
   score: number;
+  maxScore: number;
   grade: string;
   term: string;
   academic_year: string;
+  status: string;
+  submittedBy: string;
 }
