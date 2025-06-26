@@ -94,11 +94,11 @@ const TeacherStatsCards: React.FC<TeacherStatsCardsProps> = ({ stats, loading })
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <card.icon className={`h-4 w-4 ${card.color}`} />
+                <card.icon className={`h-3.5 w-3.5 ${card.color}`} />
                 {card.title}
               </span>
               {card.urgent && (
-                <AlertCircle className="h-4 w-4 text-red-500" />
+                <AlertCircle className="h-3.5 w-3.5 text-red-500" />
               )}
             </CardTitle>
           </CardHeader>
