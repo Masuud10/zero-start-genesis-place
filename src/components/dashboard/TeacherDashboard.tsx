@@ -5,7 +5,6 @@ import RoleGuard from "@/components/common/RoleGuard";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { useTeacherStats } from "@/hooks/useTeacherStats";
 import TeacherStatsCards from './teacher/TeacherStatsCards';
-import TeacherToolsSection from './teacher/TeacherToolsSection';
 import ClassAnalyticsOverview from './teacher/ClassAnalyticsOverview';
 import MyClasses from './teacher/MyClasses';
 import CompactTeacherTimetable from './teacher/CompactTeacherTimetable';
@@ -30,49 +29,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [gradesModalOpen, setGradesModalOpen] = useState(false);
-
-  const handleActionClick = (actionId: string) => {
-    console.log('TeacherDashboard: Action clicked:', actionId);
-    
-    switch (actionId) {
-      case 'class-lists':
-        // Navigate to classes view or show classes modal
-        navigate('/classes');
-        break;
-      case 'attendance-tracking':
-        setAttendanceModalOpen(true);
-        break;
-      case 'grade-sheets':
-        setGradesModalOpen(true);
-        break;
-      case 'learning-resources':
-        // Navigate to resources or show upload modal
-        toast({
-          title: "Coming Soon",
-          description: "Learning resources upload feature is being developed.",
-        });
-        break;
-      case 'assignment-manager':
-        // Navigate to assignments or show assignment modal
-        toast({
-          title: "Coming Soon",
-          description: "Assignment manager feature is being developed.",
-        });
-        break;
-      case 'class-analytics':
-        // Scroll to analytics section or navigate to detailed analytics
-        const analyticsSection = document.getElementById('class-analytics-section');
-        if (analyticsSection) {
-          analyticsSection.scrollIntoView({ behavior: 'smooth' });
-        }
-        break;
-      default:
-        console.warn('Unknown action:', actionId);
-        if (onModalOpen) {
-          onModalOpen(actionId);
-        }
-    }
-  };
 
   const handleModalClose = (modalType: string) => {
     console.log('TeacherDashboard: Closing modal:', modalType);
@@ -129,23 +85,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* Left Column - Primary Teaching Tools */}
-            <div className="xl:col-span-2 space-y-6">
-              {/* Teaching Tools Section */}
-              <TeacherToolsSection 
-                user={user} 
-                onActionClick={handleActionClick}
-                stats={{
-                  classCount: stats?.classCount || 0,
-                  pendingGrades: stats?.pendingGrades || 0,
-                  todayAttendance: stats?.todayAttendance || 0
-                }}
-              />
-            </div>
-
-            {/* Right Column - Schedule & Classes */}
-            <div className="xl:col-span-1 space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Left Column - Schedule & Classes */}
+            <div className="space-y-6">
               {/* Timetable */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <CompactTeacherTimetable />
@@ -156,11 +98,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
                 <MyClasses />
               </div>
             </div>
-          </div>
 
-          {/* Class Analytics Overview Section */}
-          <div id="class-analytics-section">
-            <ClassAnalyticsOverview />
+            {/* Right Column - Analytics */}
+            <div className="space-y-6">
+              {/* Class Analytics Overview Section */}
+              <div id="class-analytics-section">
+                <ClassAnalyticsOverview />
+              </div>
+            </div>
           </div>
         </div>
 
