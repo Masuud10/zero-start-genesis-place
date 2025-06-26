@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Users, BookOpen, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, BookOpen, Calendar, Loader2, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,35 +39,59 @@ const ClassAnalyticsOverview: React.FC = () => {
         throw new Error('User ID and School ID are required');
       }
 
-      // Get teacher's classes
-      const { data: teacherClasses } = await supabase
-        .from('teacher_classes')
+      console.log('Fetching class analytics for teacher:', user.id);
+
+      // Get teacher's assigned classes with proper filtering
+      const { data: teacherAssignments, error: assignmentsError } = await supabase
+        .from('subject_teacher_assignments')
         .select(`
           class_id,
-          classes!inner(id, name)
+          classes!inner(id, name, level, stream)
         `)
         .eq('teacher_id', user.id)
-        .eq('school_id', schoolId);
+        .eq('school_id', schoolId)
+        .eq('is_active', true);
 
-      const classIds = teacherClasses?.map(tc => tc.class_id) || [];
+      if (assignmentsError) {
+        console.error('Error fetching teacher assignments:', assignmentsError);
+        throw assignmentsError;
+      }
+
+      const uniqueClasses = teacherAssignments
+        ?.filter(ta => ta.classes)
+        .map(ta => ta.classes)
+        .filter((cls, index, self) => 
+          index === self.findIndex(c => c.id === cls.id)
+        ) || [];
+
+      const classIds = uniqueClasses.map(c => c.id);
+
+      if (classIds.length === 0) {
+        return {
+          classPerformance: [],
+          attendanceTrend: [],
+          gradeDistribution: []
+        };
+      }
 
       // Get class performance data
       const classPerformance = [];
-      for (const classItem of teacherClasses || []) {
-        // Get average grades for this class
+      for (const classItem of uniqueClasses) {
+        // Get average grades for this class (only approved grades)
         const { data: grades } = await supabase
           .from('grades')
-          .select('percentage')
-          .eq('class_id', classItem.class_id)
+          .select('percentage, score, max_score')
+          .eq('class_id', classItem.id)
           .eq('school_id', schoolId)
-          .eq('status', 'approved')
+          .in('status', ['approved', 'released'])
           .not('percentage', 'is', null);
 
         // Get student count
         const { count: studentCount } = await supabase
           .from('students')
           .select('*', { count: 'exact', head: true })
-          .eq('class_id', classItem.class_id)
+          .eq('class_id', classItem.id)
+          .eq('school_id', schoolId)
           .eq('is_active', true);
 
         // Get attendance rate for last 30 days
@@ -77,9 +101,9 @@ const ClassAnalyticsOverview: React.FC = () => {
         const { data: attendance } = await supabase
           .from('attendance')
           .select('status')
-          .eq('class_id', classItem.class_id)
-          .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-          .eq('school_id', schoolId);
+          .eq('class_id', classItem.id)
+          .eq('school_id', schoolId)
+          .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
 
         const attendanceRate = attendance && attendance.length > 0 
           ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100)
@@ -90,7 +114,7 @@ const ClassAnalyticsOverview: React.FC = () => {
           : 0;
 
         classPerformance.push({
-          className: classItem.classes?.name || 'Unknown',
+          className: classItem.name || 'Unknown Class',
           averageGrade,
           studentCount: studentCount || 0,
           attendanceRate
@@ -121,19 +145,20 @@ const ClassAnalyticsOverview: React.FC = () => {
         });
       }
 
-      // Get grade distribution
+      // Get grade distribution (only for approved/released grades)
       const { data: allGrades } = await supabase
         .from('grades')
-        .select('letter_grade')
+        .select('letter_grade, cbc_performance_level, curriculum_type')
         .in('class_id', classIds)
         .eq('school_id', schoolId)
-        .eq('status', 'approved')
-        .not('letter_grade', 'is', null);
+        .in('status', ['approved', 'released'])
+        .or('letter_grade.not.is.null,cbc_performance_level.not.is.null');
 
       const gradeCounts: { [key: string]: number } = {};
       allGrades?.forEach(g => {
-        if (g.letter_grade) {
-          gradeCounts[g.letter_grade] = (gradeCounts[g.letter_grade] || 0) + 1;
+        const grade = g.curriculum_type === 'cbc' ? g.cbc_performance_level : g.letter_grade;
+        if (grade) {
+          gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
         }
       });
 
@@ -151,7 +176,8 @@ const ClassAnalyticsOverview: React.FC = () => {
       };
     },
     enabled: !!user?.id && !!schoolId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2
   });
 
   const chartConfig = {
@@ -166,26 +192,64 @@ const ClassAnalyticsOverview: React.FC = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Class Analytics Overview</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart className="h-5 w-5" />
+            Class Analytics Overview
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              <span className="text-gray-600">Loading analytics...</span>
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (error || !analyticsData) {
+  if (error) {
+    console.error('Class analytics error:', error);
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Class Analytics Overview</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart className="h-5 w-5" />
+            Class Analytics Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-48 text-red-600">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+              <p>Unable to load analytics data</p>
+              {process.env.NODE_ENV === 'development' && (
+                <p className="text-xs mt-1 text-gray-500">
+                  {error instanceof Error ? error.message : 'Unknown error'}
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!analyticsData || analyticsData.classPerformance.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart className="h-5 w-5" />
+            Class Analytics Overview
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center text-muted-foreground py-8">
-            Unable to load analytics data
+            <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No class data available</p>
+            <p className="text-sm mt-1">Analytics will appear once you have assigned classes with students and grades</p>
           </div>
         </CardContent>
       </Card>
@@ -197,7 +261,7 @@ const ClassAnalyticsOverview: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart className="h-5 w-5" />
+            <TrendingUp className="h-5 w-5" />
             Class Analytics Overview
           </CardTitle>
         </CardHeader>
@@ -209,20 +273,26 @@ const ClassAnalyticsOverview: React.FC = () => {
                 <BookOpen className="h-4 w-4" />
                 Class Performance
               </h3>
-              {analyticsData.classPerformance.length > 0 ? (
-                <ChartContainer config={chartConfig} className="h-64">
-                  <BarChart data={analyticsData.classPerformance}>
-                    <XAxis dataKey="className" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="averageGrade" fill="var(--color-averageGrade)" name="Average Grade %" />
-                  </BarChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  No performance data available
-                </div>
-              )}
+              <ChartContainer config={chartConfig} className="h-64">
+                <BarChart data={analyticsData.classPerformance}>
+                  <XAxis 
+                    dataKey="className" 
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar 
+                    dataKey="averageGrade" 
+                    fill="var(--color-averageGrade)" 
+                    name="Average Grade %" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
             </div>
 
             {/* Attendance Trend Chart */}
@@ -231,26 +301,21 @@ const ClassAnalyticsOverview: React.FC = () => {
                 <Calendar className="h-4 w-4" />
                 Attendance Trends (7 Days)
               </h3>
-              {analyticsData.attendanceTrend.length > 0 ? (
-                <ChartContainer config={chartConfig} className="h-64">
-                  <LineChart data={analyticsData.attendanceTrend}>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="rate" 
-                      stroke="var(--color-rate)" 
-                      strokeWidth={2}
-                      name="Attendance Rate %"
-                    />
-                  </LineChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  No attendance data available
-                </div>
-              )}
+              <ChartContainer config={chartConfig} className="h-64">
+                <LineChart data={analyticsData.attendanceTrend}>
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="rate" 
+                    stroke="var(--color-rate)" 
+                    strokeWidth={3}
+                    name="Attendance Rate %"
+                    dot={{ fill: 'var(--color-rate)', strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ChartContainer>
             </div>
           </div>
 
@@ -286,38 +351,40 @@ const ClassAnalyticsOverview: React.FC = () => {
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  No grade distribution data available
+                  <div className="text-center">
+                    <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No grade data available</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Quick Summary */}
+            {/* Performance Summary */}
             <div>
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Performance Summary
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-64 overflow-y-auto">
                 {analyticsData.classPerformance.map((classData, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{classData.className}</p>
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{classData.className}</p>
                       <p className="text-sm text-muted-foreground">
                         {classData.studentCount} students
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          {classData.averageGrade}% avg
-                        </Badge>
-                        <Badge 
-                          variant={classData.attendanceRate >= 90 ? "default" : 
-                                  classData.attendanceRate >= 80 ? "secondary" : "destructive"}
-                        >
-                          {classData.attendanceRate}% attendance
-                        </Badge>
-                      </div>
+                    <div className="text-right flex flex-col gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {classData.averageGrade}% avg
+                      </Badge>
+                      <Badge 
+                        variant={classData.attendanceRate >= 90 ? "default" : 
+                                classData.attendanceRate >= 80 ? "secondary" : "destructive"}
+                        className="text-xs"
+                      >
+                        {classData.attendanceRate}% attendance
+                      </Badge>
                     </div>
                   </div>
                 ))}

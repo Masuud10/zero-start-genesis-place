@@ -7,6 +7,7 @@ import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Users, 
   BookOpen, 
@@ -14,7 +15,9 @@ import {
   CheckCircle,
   ClipboardList,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Loader2,
+  Clock
 } from 'lucide-react';
 
 const TeacherDashboard = () => {
@@ -28,28 +31,49 @@ const TeacherDashboard = () => {
       if (!user?.id || !schoolId) return null;
 
       try {
-        // Get classes taught by this teacher
-        const { data: classes } = await supabase
-          .from('classes')
-          .select('id, name')
-          .eq('teacher_id', user.id)
-          .eq('school_id', schoolId);
+        console.log('Fetching teacher stats for:', user.id, schoolId);
 
-        const classIds = classes?.map(c => c.id) || [];
+        // Get teacher's assigned classes
+        const { data: teacherAssignments, error: assignmentsError } = await supabase
+          .from('subject_teacher_assignments')
+          .select(`
+            class_id,
+            subject_id,
+            classes!inner(id, name, level, stream),
+            subjects!inner(id, name, code)
+          `)
+          .eq('teacher_id', user.id)
+          .eq('school_id', schoolId)
+          .eq('is_active', true);
+
+        if (assignmentsError) {
+          console.error('Error fetching teacher assignments:', assignmentsError);
+          throw assignmentsError;
+        }
+
+        const uniqueClasses = teacherAssignments
+          ?.filter(ta => ta.classes)
+          .map(ta => ta.classes)
+          .filter((cls, index, self) => 
+            index === self.findIndex(c => c.id === cls.id)
+          ) || [];
+
+        const uniqueSubjects = teacherAssignments
+          ?.filter(ta => ta.subjects)
+          .map(ta => ta.subjects)
+          .filter((sub, index, self) => 
+            index === self.findIndex(s => s.id === sub.id)
+          ) || [];
+
+        const classIds = uniqueClasses.map(c => c.id);
 
         // Get total students in teacher's classes
         const { count: studentCount } = await supabase
           .from('students')
           .select('*', { count: 'exact', head: true })
           .in('class_id', classIds)
+          .eq('school_id', schoolId)
           .eq('is_active', true);
-
-        // Get subjects taught
-        const { data: subjects } = await supabase
-          .from('subjects')
-          .select('id, name')
-          .eq('teacher_id', user.id)
-          .eq('school_id', schoolId);
 
         // Get today's attendance submissions
         const today = new Date().toISOString().split('T')[0];
@@ -57,6 +81,7 @@ const TeacherDashboard = () => {
           .from('attendance')
           .select('*', { count: 'exact', head: true })
           .eq('submitted_by', user.id)
+          .eq('school_id', schoolId)
           .eq('date', today);
 
         // Get pending grade submissions
@@ -64,55 +89,81 @@ const TeacherDashboard = () => {
           .from('grades')
           .select('*', { count: 'exact', head: true })
           .eq('submitted_by', user.id)
+          .eq('school_id', schoolId)
           .eq('status', 'draft');
 
+        // Get recent announcements for the teacher
+        const { data: announcements } = await supabase
+          .from('announcements')
+          .select('*')
+          .eq('school_id', schoolId)
+          .contains('target_audience', ['teacher'])
+          .eq('is_archived', false)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
         return {
-          classCount: classes?.length || 0,
+          classCount: uniqueClasses.length,
           studentCount: studentCount || 0,
-          subjectCount: subjects?.length || 0,
+          subjectCount: uniqueSubjects.length,
           todayAttendance: todayAttendance || 0,
           pendingGrades: pendingGrades || 0,
-          classes: classes || [],
-          subjects: subjects || []
+          classes: uniqueClasses,
+          subjects: uniqueSubjects,
+          announcements: announcements || []
         };
       } catch (error) {
         console.error('Error fetching teacher stats:', error);
-        return {
-          classCount: 0,
-          studentCount: 0,
-          subjectCount: 0,
-          todayAttendance: 0,
-          pendingGrades: 0,
-          classes: [],
-          subjects: []
-        };
+        throw error;
       }
     },
-    enabled: !!user?.id && !!schoolId
+    enabled: !!user?.id && !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 10 * 60 * 1000 // 10 minutes
   });
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <span className="text-gray-600">Loading dashboard...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
+    console.error('Teacher dashboard error:', error);
     return (
       <div className="p-6">
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-600 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Error Loading Dashboard
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-600">Unable to load teacher dashboard data. Please try refreshing the page.</p>
-          </CardContent>
-        </Card>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Unable to load teacher dashboard data. Please try refreshing the page.
+            {process.env.NODE_ENV === 'development' && (
+              <details className="mt-2">
+                <summary>Debug Info</summary>
+                <pre className="text-xs mt-1 whitespace-pre-wrap">
+                  {error instanceof Error ? error.message : 'Unknown error'}
+                </pre>
+              </details>
+            )}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!teacherStats) {
+    return (
+      <div className="p-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No teaching assignments found. Please contact your administrator to assign classes and subjects.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -142,7 +193,8 @@ const TeacherDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-700 text-sm font-medium">My Classes</p>
-                <p className="text-2xl font-bold text-blue-900">{teacherStats?.classCount || 0}</p>
+                <p className="text-2xl font-bold text-blue-900">{teacherStats.classCount}</p>
+                <p className="text-xs text-blue-600">Active assignments</p>
               </div>
               <BookOpen className="h-8 w-8 text-blue-600" />
             </div>
@@ -154,7 +206,8 @@ const TeacherDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-700 text-sm font-medium">My Students</p>
-                <p className="text-2xl font-bold text-green-900">{teacherStats?.studentCount || 0}</p>
+                <p className="text-2xl font-bold text-green-900">{teacherStats.studentCount}</p>
+                <p className="text-xs text-green-600">Total learners</p>
               </div>
               <Users className="h-8 w-8 text-green-600" />
             </div>
@@ -166,7 +219,8 @@ const TeacherDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-700 text-sm font-medium">Subjects</p>
-                <p className="text-2xl font-bold text-purple-900">{teacherStats?.subjectCount || 0}</p>
+                <p className="text-2xl font-bold text-purple-900">{teacherStats.subjectCount}</p>
+                <p className="text-xs text-purple-600">Teaching areas</p>
               </div>
               <ClipboardList className="h-8 w-8 text-purple-600" />
             </div>
@@ -178,7 +232,8 @@ const TeacherDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-700 text-sm font-medium">Today's Attendance</p>
-                <p className="text-2xl font-bold text-orange-900">{teacherStats?.todayAttendance || 0}</p>
+                <p className="text-2xl font-bold text-orange-900">{teacherStats.todayAttendance}</p>
+                <p className="text-xs text-orange-600">Classes recorded</p>
               </div>
               <CheckCircle className="h-8 w-8 text-orange-600" />
             </div>
@@ -191,14 +246,24 @@ const TeacherDashboard = () => {
         {/* My Classes */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">My Classes</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              My Classes
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {teacherStats?.classes?.length > 0 ? (
+              {teacherStats.classes.length > 0 ? (
                 teacherStats.classes.map((cls) => (
                   <div key={cls.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                    <span className="font-medium text-gray-900">{cls.name}</span>
+                    <div>
+                      <span className="font-medium text-gray-900">{cls.name}</span>
+                      {(cls.level || cls.stream) && (
+                        <p className="text-sm text-gray-600">
+                          {cls.level} {cls.stream && `- ${cls.stream}`}
+                        </p>
+                      )}
+                    </div>
                     <Badge variant="secondary">Active</Badge>
                   </div>
                 ))
@@ -215,14 +280,22 @@ const TeacherDashboard = () => {
         {/* My Subjects */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">My Subjects</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
+              My Subjects
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {teacherStats?.subjects?.length > 0 ? (
+              {teacherStats.subjects.length > 0 ? (
                 teacherStats.subjects.map((subject) => (
                   <div key={subject.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                    <span className="font-medium text-gray-900">{subject.name}</span>
+                    <div>
+                      <span className="font-medium text-gray-900">{subject.name}</span>
+                      {subject.code && (
+                        <p className="text-sm text-gray-600">Code: {subject.code}</p>
+                      )}
+                    </div>
                     <Badge variant="outline">Teaching</Badge>
                   </div>
                 ))
@@ -240,35 +313,60 @@ const TeacherDashboard = () => {
       {/* Tasks and Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Pending Tasks</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Pending Tasks & Updates
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {teacherStats?.pendingGrades > 0 && (
+            {teacherStats.pendingGrades > 0 && (
               <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <TrendingUp className="h-5 w-5 text-yellow-600 flex-shrink-0" />
                 <div className="flex-1">
                   <span className="text-gray-900">You have {teacherStats.pendingGrades} pending grade submissions</span>
+                  <p className="text-sm text-yellow-700 mt-1">Submit grades for principal approval</p>
                 </div>
                 <Badge variant="outline" className="text-yellow-700 border-yellow-300">Action Required</Badge>
               </div>
             )}
             
-            {teacherStats?.todayAttendance === 0 && (
+            {teacherStats.todayAttendance === 0 && (
               <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0" />
                 <div className="flex-1">
                   <span className="text-gray-900">Today's attendance not yet recorded</span>
+                  <p className="text-sm text-blue-700 mt-1">Record attendance for your classes</p>
                 </div>
                 <Badge variant="outline" className="text-blue-700 border-blue-300">Pending</Badge>
               </div>
             )}
 
-            {teacherStats?.pendingGrades === 0 && teacherStats?.todayAttendance > 0 && (
+            {/* Show recent announcements */}
+            {teacherStats.announcements.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-medium text-gray-900">Recent Announcements</h4>
+                {teacherStats.announcements.slice(0, 3).map((announcement) => (
+                  <div key={announcement.id} className="flex items-start gap-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <AlertCircle className="h-4 w-4 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-indigo-900 truncate">{announcement.title}</p>
+                      <p className="text-sm text-indigo-700 line-clamp-2">{announcement.content}</p>
+                    </div>
+                    <Badge variant="outline" className="text-indigo-700 border-indigo-300 text-xs">
+                      {announcement.priority}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {teacherStats.pendingGrades === 0 && teacherStats.todayAttendance > 0 && teacherStats.announcements.length === 0 && (
               <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                 <div className="flex-1">
                   <span className="text-gray-900">All tasks completed for today!</span>
+                  <p className="text-sm text-green-700 mt-1">Great work staying on top of your responsibilities</p>
                 </div>
                 <Badge variant="outline" className="text-green-700 border-green-300">Up to date</Badge>
               </div>

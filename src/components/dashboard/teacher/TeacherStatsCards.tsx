@@ -1,15 +1,15 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Users, 
   BookOpen, 
-  GraduationCap,
-  CalendarCheck,
-  ClipboardList,
+  ClipboardList, 
+  CheckCircle, 
+  AlertTriangle,
   TrendingUp,
-  AlertCircle
+  Calendar
 } from 'lucide-react';
 
 interface TeacherStats {
@@ -18,117 +18,195 @@ interface TeacherStats {
   subjectCount: number;
   todayAttendance: number;
   pendingGrades: number;
-  submittedGrades: number;
-  approvedGrades: number;
-  attendancePercentage: number;
-  classes: any[];
-  subjects: any[];
+  classes: Array<{
+    id: string;
+    name: string;
+    level?: string;
+    stream?: string;
+  }>;
+  subjects: Array<{
+    id: string;
+    name: string;
+    code?: string;
+  }>;
 }
 
 interface TeacherStatsCardsProps {
-  stats: TeacherStats | null | undefined;
+  stats: TeacherStats | null;
   loading: boolean;
 }
 
 const TeacherStatsCards: React.FC<TeacherStatsCardsProps> = ({ stats, loading }) => {
-  const statCards = [
-    {
-      title: 'My Classes',
-      value: stats?.classCount || 0,
-      icon: BookOpen,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      description: stats?.classCount === 0 ? 'No classes assigned' : 'Active classes'
-    },
-    {
-      title: 'Total Students',
-      value: stats?.studentCount || 0,
-      icon: Users,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      description: stats?.studentCount === 0 ? 'No students' : 'Across all classes'
-    },
-    {
-      title: 'My Subjects',
-      value: stats?.subjectCount || 0,
-      icon: ClipboardList,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      description: stats?.subjectCount === 0 ? 'No subjects assigned' : 'Teaching subjects'
-    },
-    {
-      title: 'Attendance Rate',
-      value: `${stats?.attendancePercentage || 0}%`,
-      icon: CalendarCheck,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      description: 'Last 30 days average',
-      badge: stats?.attendancePercentage && stats.attendancePercentage >= 90 ? 'Excellent' : 
-             stats?.attendancePercentage && stats.attendancePercentage >= 80 ? 'Good' : 
-             stats?.attendancePercentage && stats.attendancePercentage > 0 ? 'Needs Improvement' : null
-    },
-    {
-      title: 'Pending Grades',
-      value: stats?.pendingGrades || 0,
-      icon: GraduationCap,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      description: stats?.pendingGrades === 0 ? 'All up to date' : 'Require attention',
-      urgent: (stats?.pendingGrades || 0) > 0
-    },
-    {
-      title: "Today's Attendance",
-      value: stats?.todayAttendance || 0,
-      icon: TrendingUp,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
-      description: stats?.todayAttendance === 0 ? 'Not recorded' : 'Classes marked',
-      urgent: (stats?.todayAttendance || 0) === 0
-    }
-  ];
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-8 bg-gray-200 rounded w-12"></div>
+                  <div className="h-3 bg-gray-200 rounded w-16"></div>
+                </div>
+                <div className="h-8 w-8 bg-gray-200 rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { title: 'My Classes', value: 0, icon: BookOpen, color: 'blue' },
+          { title: 'My Students', value: 0, icon: Users, color: 'green' },
+          { title: 'Subjects', value: 0, icon: ClipboardList, color: 'purple' },
+          { title: 'Today\'s Attendance', value: 0, icon: CheckCircle, color: 'orange' }
+        ].map((stat, index) => (
+          <Card key={index} className={`bg-gradient-to-br from-${stat.color}-50 to-${stat.color}-100 border-${stat.color}-200`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-${stat.color}-700 text-sm font-medium`}>{stat.title}</p>
+                  <p className={`text-2xl font-bold text-${stat.color}-900`}>{stat.value}</p>
+                  <p className={`text-xs text-${stat.color}-600`}>Not assigned</p>
+                </div>
+                <stat.icon className={`h-8 w-8 text-${stat.color}-600`} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {statCards.map((card, index) => (
-        <Card key={index} className={`${card.bgColor} border-2 transition-all duration-200 hover:shadow-md`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <card.icon className={`h-3 w-3 ${card.color}`} />
-                {card.title}
-              </span>
-              {card.urgent && (
-                <AlertCircle className="h-3 w-3 text-red-500" />
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${card.color} mb-1`}>
-              {loading ? (
-                <span className="animate-pulse">...</span>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* My Classes */}
+      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-700 text-sm font-medium">My Classes</p>
+              <p className="text-2xl font-bold text-blue-900">{stats.classCount}</p>
+              <p className="text-xs text-blue-600">
+                {stats.classCount === 0 ? 'No assignments' : 'Active assignments'}
+              </p>
+            </div>
+            <BookOpen className="h-8 w-8 text-blue-600" />
+          </div>
+          {stats.classCount > 0 && (
+            <div className="mt-2">
+              <Badge variant="outline" className="text-blue-700 border-blue-300 text-xs">
+                Teaching {stats.classCount} {stats.classCount === 1 ? 'class' : 'classes'}
+              </Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* My Students */}
+      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-700 text-sm font-medium">My Students</p>
+              <p className="text-2xl font-bold text-green-900">{stats.studentCount}</p>
+              <p className="text-xs text-green-600">
+                {stats.studentCount === 0 ? 'No students' : 'Total learners'}
+              </p>
+            </div>
+            <Users className="h-8 w-8 text-green-600" />
+          </div>
+          {stats.studentCount > 0 && (
+            <div className="mt-2">
+              <Badge variant="outline" className="text-green-700 border-green-300 text-xs">
+                Across {stats.classCount} {stats.classCount === 1 ? 'class' : 'classes'}
+              </Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Subjects */}
+      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-700 text-sm font-medium">Subjects</p>
+              <p className="text-2xl font-bold text-purple-900">{stats.subjectCount}</p>
+              <p className="text-xs text-purple-600">
+                {stats.subjectCount === 0 ? 'No subjects' : 'Teaching areas'}
+              </p>
+            </div>
+            <ClipboardList className="h-8 w-8 text-purple-600" />
+          </div>
+          {stats.subjectCount > 0 && (
+            <div className="mt-2">
+              <Badge variant="outline" className="text-purple-700 border-purple-300 text-xs">
+                {stats.subjectCount} {stats.subjectCount === 1 ? 'subject' : 'subjects'}
+              </Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Today's Attendance */}
+      <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-orange-700 text-sm font-medium">Today's Attendance</p>
+              <p className="text-2xl font-bold text-orange-900">{stats.todayAttendance}</p>
+              <p className="text-xs text-orange-600">
+                {stats.todayAttendance === 0 ? 'Not recorded' : 'Classes recorded'}
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              {stats.todayAttendance > 0 ? (
+                <CheckCircle className="h-8 w-8 text-orange-600" />
               ) : (
-                card.value
+                <Calendar className="h-8 w-8 text-orange-400" />
               )}
             </div>
+          </div>
+          {stats.todayAttendance === 0 && stats.classCount > 0 && (
+            <div className="mt-2">
+              <Badge variant="outline" className="text-orange-700 border-orange-300 text-xs">
+                Pending for today
+              </Badge>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pending Grades Alert (if any) */}
+      {stats.pendingGrades > 0 && (
+        <Card className="col-span-full bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                {loading ? "" : card.description}
-              </p>
-              {card.badge && !loading && (
-                <Badge 
-                  variant={
-                    card.badge === 'Excellent' ? 'default' : 
-                    card.badge === 'Good' ? 'secondary' : 'destructive'
-                  }
-                  className="text-xs"
-                >
-                  {card.badge}
-                </Badge>
-              )}
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                <div>
+                  <p className="text-yellow-800 font-medium">
+                    {stats.pendingGrades} Pending Grade Submissions
+                  </p>
+                  <p className="text-sm text-yellow-700">
+                    Complete and submit grades for principal approval
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-50">
+                Action Required
+              </Badge>
             </div>
           </CardContent>
         </Card>
-      ))}
+      )}
     </div>
   );
 };

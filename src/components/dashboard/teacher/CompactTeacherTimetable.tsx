@@ -1,35 +1,132 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock } from 'lucide-react';
-import { useTeacherTimetable } from '@/hooks/useTeacherTimetable';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  BookOpen,
+  Loader2,
+  AlertCircle
+} from 'lucide-react';
 
-const DAYS_OF_WEEK = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-];
+interface TimetableEntry {
+  id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  subject: {
+    name: string;
+    code?: string;
+  };
+  class: {
+    name: string;
+  };
+  room?: string;
+}
 
-const CompactTeacherTimetable = () => {
-  const { data: timetable, isLoading, error } = useTeacherTimetable();
-  const [selectedDay, setSelectedDay] = useState<string>(() => {
-    const today = new Date();
-    return DAYS_OF_WEEK[today.getDay() === 0 ? 6 : today.getDay() - 1]; // Convert Sunday=0 to Saturday=6
+const CompactTeacherTimetable: React.FC = () => {
+  const { user } = useAuth();
+  const { schoolId } = useSchoolScopedData();
+
+  const { data: timetable, isLoading, error } = useQuery({
+    queryKey: ['teacher-timetable', user?.id, schoolId],
+    queryFn: async () => {
+      if (!user?.id || !schoolId) return [];
+
+      console.log('Fetching teacher timetable for:', user.id);
+
+      const { data, error: timetableError } = await supabase
+        .from('timetables')
+        .select(`
+          id,
+          day_of_week,
+          start_time,
+          end_time,
+          room,
+          subjects!inner(name, code),
+          classes!inner(name)
+        `)
+        .eq('teacher_id', user.id)
+        .eq('school_id', schoolId)
+        .eq('is_published', true)
+        .order('day_of_week')
+        .order('start_time');
+
+      if (timetableError) {
+        console.error('Error fetching timetable:', timetableError);
+        throw timetableError;
+      }
+
+      return data?.map(entry => ({
+        id: entry.id,
+        day_of_week: entry.day_of_week,
+        start_time: entry.start_time,
+        end_time: entry.end_time,
+        room: entry.room,
+        subject: entry.subjects,
+        class: entry.classes
+      })) || [];
+    },
+    enabled: !!user?.id && !!schoolId,
+    staleTime: 10 * 60 * 1000 // 10 minutes
   });
+
+  const formatTime = (timeString: string) => {
+    try {
+      const time = new Date(`1970-01-01T${timeString}`);
+      return time.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch {
+      return timeString;
+    }
+  };
+
+  const getDayName = (day: string) => {
+    const days: { [key: string]: string } = {
+      'monday': 'Mon',
+      'tuesday': 'Tue', 
+      'wednesday': 'Wed',
+      'thursday': 'Thu',
+      'friday': 'Fri',
+      'saturday': 'Sat',
+      'sunday': 'Sun'
+    };
+    return days[day.toLowerCase()] || day;
+  };
+
+  const getCurrentDay = () => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[new Date().getDay()];
+  };
+
+  const todaySchedule = timetable?.filter(entry => 
+    entry.day_of_week.toLowerCase() === getCurrentDay()
+  ) || [];
 
   if (isLoading) {
     return (
-      <Card className="h-80">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             My Timetable
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
-            <span className="ml-2 text-sm">Loading timetable...</span>
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              <span className="text-gray-600">Loading timetable...</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -37,84 +134,160 @@ const CompactTeacherTimetable = () => {
   }
 
   if (error) {
+    console.error('Timetable error:', error);
     return (
-      <Card className="h-80">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             My Timetable
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">Failed to load timetable</p>
-            <p className="text-xs mt-1">Please try refreshing the page</p>
+          <div className="flex items-center justify-center py-8 text-red-600">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+              <p>Unable to load timetable</p>
+              {process.env.NODE_ENV === 'development' && (
+                <p className="text-xs mt-1 text-gray-500">
+                  {error instanceof Error ? error.message : 'Unknown error'}
+                </p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const daySchedule = timetable?.filter(entry => entry.day_of_week === selectedDay) || [];
-  const sortedSchedule = daySchedule.sort((a, b) => a.start_time.localeCompare(b.start_time));
+  if (!timetable || timetable.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            My Timetable
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-gray-500">
+            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="font-medium">No Timetable Available</p>
+            <p className="text-sm mt-1">Your teaching timetable hasn't been published yet.</p>
+            <p className="text-sm text-blue-600 mt-2">Contact your administrator for timetable setup.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="h-80">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Calendar className="h-5 w-5" />
-          My Timetable
-        </CardTitle>
-        <div className="pt-2">
-          <Select value={selectedDay} onValueChange={setSelectedDay}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DAYS_OF_WEEK.map((day) => (
-                <SelectItem key={day} value={day}>
-                  {day}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <Card>
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            My Timetable
+          </CardTitle>
+          <Badge variant="outline" className="text-xs">
+            {timetable.length} Scheduled Classes
+          </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 h-48 overflow-y-auto">
-        {sortedSchedule.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <p className="text-sm">No classes scheduled</p>
-            <p className="text-xs">for {selectedDay}</p>
-          </div>
-        ) : (
-          sortedSchedule.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span className="font-medium">
-                    {entry.start_time} - {entry.end_time}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {entry.subject.name}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground truncate">
-                      {entry.class.name}
-                    </span>
+      <CardContent>
+        {/* Today's Schedule Highlight */}
+        {todaySchedule.length > 0 && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="h-4 w-4 text-blue-600" />
+              <h3 className="font-semibold text-blue-900">Today's Schedule</h3>
+              <Badge variant="default" className="bg-blue-600 text-xs">
+                {todaySchedule.length} {todaySchedule.length === 1 ? 'Class' : 'Classes'}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              {todaySchedule.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between p-2 bg-white border rounded text-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="text-blue-600 font-medium">
+                      {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                    </div>
+                    <div>
+                      <span className="font-medium">{entry.subject.name}</span>
+                      <span className="text-gray-500 ml-1">• {entry.class.name}</span>
+                    </div>
                   </div>
                   {entry.room && (
-                    <span className="text-xs text-muted-foreground">
-                      Room {entry.room}
-                    </span>
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {entry.room}
+                    </Badge>
                   )}
                 </div>
-              </div>
+              ))}
             </div>
-          ))
+          </div>
         )}
+
+        {/* Weekly Overview */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Weekly Schedule
+          </h3>
+          
+          {['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].map((day) => {
+            const daySchedule = timetable.filter(entry => 
+              entry.day_of_week.toLowerCase() === day
+            );
+            
+            if (daySchedule.length === 0) return null;
+
+            return (
+              <div key={day} className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-900 capitalize">{day}</h4>
+                  <Badge variant="secondary" className="text-xs">
+                    {daySchedule.length} {daySchedule.length === 1 ? 'Class' : 'Classes'}
+                  </Badge>
+                </div>
+                <div className="grid gap-2">
+                  {daySchedule.map((entry) => (
+                    <div key={entry.id} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600 font-mono text-xs">
+                          {formatTime(entry.start_time)}
+                        </span>
+                        <span className="font-medium">{entry.subject.name}</span>
+                        <span className="text-gray-500">({entry.class.name})</span>
+                      </div>
+                      {entry.room && (
+                        <span className="text-gray-500 text-xs">{entry.room}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Summary */}
+        <div className="mt-6 pt-4 border-t bg-gray-50 -m-4 p-4 rounded-b-lg">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-4">
+              <span className="text-gray-700">
+                <strong>{timetable.length}</strong> Total Classes
+              </span>
+              <span className="text-gray-700">
+                <strong>{todaySchedule.length}</strong> Today
+              </span>
+            </div>
+            <Badge variant="default">
+              Published Schedule
+            </Badge>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
