@@ -49,14 +49,23 @@ export const useCBCStrandAssessments = (
     if (!user?.id || !schoolId || !classId) return;
 
     try {
+      // Ensure all required fields are provided
       const assessmentData = {
-        ...assessment,
         school_id: schoolId,
         class_id: classId,
         teacher_id: user.id,
         academic_year: new Date().getFullYear().toString(),
+        assessment_type: assessment.assessment_type || 'observation',
+        strand_name: assessment.strand_name || 'General Assessment',
         performance_level: assessment.performance_level as 'EM' | 'AP' | 'PR' | 'EX',
-        assessment_type: assessment.assessment_type || 'observation'
+        student_id: assessment.student_id,
+        subject_id: assessment.subject_id,
+        competency_id: assessment.competency_id,
+        sub_strand_name: assessment.sub_strand_name,
+        teacher_remarks: assessment.teacher_remarks,
+        term: assessment.term,
+        assessment_date: assessment.assessment_date,
+        id: assessment.id
       };
 
       const { error } = await supabase

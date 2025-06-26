@@ -109,6 +109,7 @@ export interface IGCSEGradeBoundaries {
   E: number;
   F: number;
   G: number;
+  U: number;
 }
 
 export interface Grade {

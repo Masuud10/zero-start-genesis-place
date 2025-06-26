@@ -8,6 +8,7 @@ export type CurriculumType = 'standard' | 'cbc' | 'igcse';
 export const useSchoolCurriculum = () => {
   const [curriculumType, setCurriculumType] = useState<CurriculumType>('standard');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { schoolId } = useSchoolScopedData();
 
   useEffect(() => {
@@ -18,20 +19,23 @@ export const useSchoolCurriculum = () => {
       }
 
       try {
-        const { data, error } = await supabase
+        setError(null);
+        const { data, error: fetchError } = await supabase
           .from('schools')
           .select('curriculum_type')
           .eq('id', schoolId)
           .single();
 
-        if (error) {
-          console.error('Error fetching curriculum type:', error);
+        if (fetchError) {
+          console.error('Error fetching curriculum type:', fetchError);
+          setError('Failed to fetch curriculum type');
           setCurriculumType('standard');
         } else {
           setCurriculumType((data?.curriculum_type as CurriculumType) || 'standard');
         }
       } catch (error) {
         console.error('Error fetching curriculum type:', error);
+        setError('Failed to fetch curriculum type');
         setCurriculumType('standard');
       } finally {
         setLoading(false);
@@ -41,5 +45,5 @@ export const useSchoolCurriculum = () => {
     fetchCurriculumType();
   }, [schoolId]);
 
-  return { curriculumType, loading };
+  return { curriculumType, loading, error };
 };
