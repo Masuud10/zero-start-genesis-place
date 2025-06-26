@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertCircle, Shield, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingScreen from './LoadingScreen';
+import DeactivatedAccountMessage from '@/components/auth/DeactivatedAccountMessage';
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -39,6 +40,11 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
 
   // Handle authentication errors
   if (error) {
+    // Check if the error is related to account deactivation
+    if (error.includes('deactivated') || error.includes('inactive')) {
+      return <DeactivatedAccountMessage />;
+    }
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="border-red-200 bg-red-50 max-w-md">
@@ -72,6 +78,12 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
       return <LoadingScreen />;
     }
     return fallback || <LoadingScreen />;
+  }
+
+  // Check if user account is deactivated
+  if (user && user.user_metadata?.status === 'inactive') {
+    console.log('🛡️ RoleGuard: User account is deactivated');
+    return <DeactivatedAccountMessage />;
   }
 
   // Check if user has valid role

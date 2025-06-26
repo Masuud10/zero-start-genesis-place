@@ -5,6 +5,7 @@ import LandingPage from '@/components/LandingPage';
 import ElimshaLayout from '@/components/ElimshaLayout';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import LoginForm from '@/components/LoginForm';
+import DeactivatedAccountMessage from '@/components/auth/DeactivatedAccountMessage';
 import { ErrorState } from '@/components/common/LoadingStates';
 import { NavigationProvider } from '@/contexts/NavigationContext';
 import { SchoolProvider } from '@/contexts/SchoolContext';
@@ -76,6 +77,12 @@ const AppContent: React.FC = () => {
   // Handle auth errors
   if (authError) {
     console.log('🎯 AppContent: Auth error:', authError);
+    
+    // Check if the error is related to account deactivation
+    if (authError.includes('deactivated') || authError.includes('inactive')) {
+      return <DeactivatedAccountMessage />;
+    }
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -93,6 +100,12 @@ const AppContent: React.FC = () => {
     console.log('🎯 AppContent: No user - LandingPage or LoginForm');
     if (showLogin) return <LoginForm />;
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+  }
+
+  // Check if user account is deactivated
+  if (user && user.user_metadata?.status === 'inactive') {
+    console.log('🎯 AppContent: User account is deactivated');
+    return <DeactivatedAccountMessage />;
   }
 
   // User authenticated but missing role

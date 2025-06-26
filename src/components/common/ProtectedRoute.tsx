@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoadingScreen from './LoadingScreen';
+import DeactivatedAccountMessage from '@/components/auth/DeactivatedAccountMessage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -39,6 +40,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Handle authentication errors
   if (error) {
+    // Check if the error is related to account deactivation
+    if (error.includes('deactivated') || error.includes('inactive')) {
+      return <DeactivatedAccountMessage />;
+    }
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="border-red-200 bg-red-50 max-w-md">
@@ -67,6 +73,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     console.log('🔒 ProtectedRoute: No user found, redirecting to login');
     window.location.href = '/';
     return <LoadingScreen />;
+  }
+
+  // Check if user account is deactivated
+  if (user && user.user_metadata?.status === 'inactive') {
+    console.log('🔒 ProtectedRoute: User account is deactivated');
+    return <DeactivatedAccountMessage />;
   }
 
   // Check if user has valid role
