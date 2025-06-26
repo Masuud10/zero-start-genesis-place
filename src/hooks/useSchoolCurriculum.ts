@@ -1,94 +1,43 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
-export type CurriculumType = 'cbc' | 'igcse' | 'standard';
-
-interface UseSchoolCurriculumReturn {
-  curriculumType: CurriculumType;
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-export const useSchoolCurriculum = (): UseSchoolCurriculumReturn => {
-  const { user } = useAuth();
-  const [curriculumType, setCurriculumType] = useState<CurriculumType>('standard');
+export const useSchoolCurriculum = () => {
+  const [curriculumType, setCurriculumType] = useState<string>('standard');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchSchoolCurriculum = async () => {
-    if (!user?.school_id) {
-      console.log('🎓 No school_id found for user, defaulting to standard curriculum');
-      setCurriculumType('standard');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('🎓 Fetching curriculum for school:', user.school_id);
-
-      const { data: school, error: schoolError } = await supabase
-        .from('schools')
-        .select('curriculum_type')
-        .eq('id', user.school_id)
-        .single();
-
-      if (schoolError) {
-        console.error('Error fetching school curriculum:', schoolError);
-        setError('Failed to fetch school curriculum type');
-        setCurriculumType('standard'); // fallback
-        return;
-      }
-
-      if (!school) {
-        console.warn('🎓 No school found with ID:', user.school_id);
-        setError('School not found');
-        setCurriculumType('standard');
-        return;
-      }
-
-      // Map database values to our curriculum types with strict validation
-      const dbCurriculumType = school?.curriculum_type?.toLowerCase();
-      let detectedCurriculum: CurriculumType = 'standard';
-
-      // Strict curriculum type mapping
-      if (dbCurriculumType === 'cbc') {
-        detectedCurriculum = 'cbc';
-      } else if (dbCurriculumType === 'igcse') {
-        detectedCurriculum = 'igcse';
-      } else if (dbCurriculumType === 'standard' || dbCurriculumType === 'traditional') {
-        detectedCurriculum = 'standard';
-      } else {
-        // If unrecognized curriculum type, log it and default to standard
-        console.warn('🎓 Unrecognized curriculum type:', dbCurriculumType, 'defaulting to standard');
-        detectedCurriculum = 'standard';
-      }
-
-      console.log('🎓 School curriculum detected:', detectedCurriculum, 'from DB value:', dbCurriculumType);
-      setCurriculumType(detectedCurriculum);
-
-    } catch (err: any) {
-      console.error('Error in fetchSchoolCurriculum:', err);
-      setError(err.message || 'Failed to fetch curriculum type');
-      setCurriculumType('standard'); // fallback
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { schoolId } = useSchoolScopedData();
 
   useEffect(() => {
-    fetchSchoolCurriculum();
-  }, [user?.school_id]);
+    const fetchCurriculumType = async () => {
+      if (!schoolId) {
+        setLoading(false);
+        return;
+      }
 
-  return {
-    curriculumType,
-    loading,
-    error,
-    refetch: fetchSchoolCurriculum
-  };
+      try {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('curriculum_type')
+          .eq('id', schoolId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching curriculum type:', error);
+          setCurriculumType('standard');
+        } else {
+          setCurriculumType(data?.curriculum_type || 'standard');
+        }
+      } catch (error) {
+        console.error('Error fetching curriculum type:', error);
+        setCurriculumType('standard');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCurriculumType();
+  }, [schoolId]);
+
+  return { curriculumType, loading };
 };
