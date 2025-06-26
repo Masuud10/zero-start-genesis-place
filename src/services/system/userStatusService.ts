@@ -93,4 +93,24 @@ export class UserStatusService {
       };
     }
   }
+
+  static async logUserStatusChange(targetUserId: string, oldStatus: string, newStatus: string, targetUserDetails: any) {
+    try {
+      await supabase.rpc('log_audit_action', {
+        p_action: `User ${newStatus === 'active' ? 'Activated' : 'Deactivated'}`,
+        p_target_entity: `user_id: ${targetUserId}`,
+        p_old_value: { status: oldStatus },
+        p_new_value: { status: newStatus },
+        p_metadata: {
+          target_user_email: targetUserDetails.email,
+          target_user_name: targetUserDetails.name,
+          action_timestamp: new Date().toISOString(),
+          action_type: 'user_status_change'
+        }
+      });
+    } catch (auditError) {
+      console.error('❌ Failed to log user status change:', auditError);
+      // Don't throw error as this shouldn't break the main functionality
+    }
+  }
 }

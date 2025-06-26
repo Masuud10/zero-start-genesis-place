@@ -128,39 +128,48 @@ serve(async (req) => {
       );
     }
 
-    // Also update auth.users table to prevent login if inactive
-    if (new_status === 'inactive') {
-      const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
-        target_user_id,
-        { 
-          user_metadata: { 
-            status: 'inactive',
-            deactivated_at: new Date().toISOString(),
-            deactivated_by: user.id
-          }
-        }
-      );
+    // Update auth.users metadata to enforce authentication restrictions
+    const userMetadata = {
+      status: new_status,
+      is_active: new_status === 'active',
+      ...(new_status === 'inactive' ? {
+        deactivated_at: new Date().toISOString(),
+        deactivated_by: user.id
+      } : {
+        reactivated_at: new Date().toISOString(),
+        reactivated_by: user.id
+      })
+    };
 
-      if (authUpdateError) {
-        console.error('Error updating auth user:', authUpdateError);
-        // Continue anyway as profile update succeeded
+    const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
+      target_user_id,
+      { 
+        user_metadata: userMetadata
       }
-    } else {
-      // Reactivate user
-      const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
-        target_user_id,
-        { 
-          user_metadata: { 
-            status: 'active',
-            reactivated_at: new Date().toISOString(),
-            reactivated_by: user.id
-          }
-        }
-      );
+    );
 
-      if (authUpdateError) {
-        console.error('Error updating auth user:', authUpdateError);
-      }
+    if (authUpdateError) {
+      console.error('Error updating auth user metadata:', authUpdateError);
+      // Continue anyway as profile update succeeded
+    }
+
+    // Log the action for audit purposes
+    try {
+      await supabase.rpc('log_audit_action', {
+        p_action: `User ${new_status === 'active' ? 'Activated' : 'Deactivated'}`,
+        p_target_entity: `user_id: ${target_user_id}`,
+        p_old_value: { status: new_status === 'active' ? 'inactive' : 'active' },
+        p_new_value: { status: new_status },
+        p_metadata: {
+          target_user_email: targetUserProfile.email,
+          target_user_name: targetUserProfile.name,
+          performed_by: user.email,
+          action_timestamp: new Date().toISOString()
+        }
+      });
+    } catch (auditError) {
+      console.error('Failed to log audit action:', auditError);
+      // Don't fail the main operation for audit logging issues
     }
 
     return new Response(

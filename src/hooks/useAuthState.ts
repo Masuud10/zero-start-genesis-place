@@ -70,6 +70,21 @@ export const useAuthState = () => {
         return;
       }
 
+      // Check if user is active from metadata first
+      const userMetadata = authUser.user_metadata || {};
+      const isActiveFromMetadata = userMetadata.is_active !== false && userMetadata.status !== 'inactive';
+
+      if (!isActiveFromMetadata) {
+        console.log('🔐 AuthState: User is inactive, signing out');
+        await supabase.auth.signOut();
+        if (isMountedRef.current) {
+          setUser(null);
+          setError('Your account has been deactivated. Please contact your administrator.');
+          setIsLoading(false);
+        }
+        return;
+      }
+
       // Fetch profile with timeout
       const profile = await Promise.race([
         fetchProfile(authUser.id),
@@ -79,6 +94,18 @@ export const useAuthState = () => {
       ]).catch(() => null);
 
       if (!isMountedRef.current) return;
+
+      // Check profile status as well
+      if (profile && profile.status === 'inactive') {
+        console.log('🔐 AuthState: User profile is inactive, signing out');
+        await supabase.auth.signOut();
+        if (isMountedRef.current) {
+          setUser(null);
+          setError('Your account has been deactivated. Please contact your administrator.');
+          setIsLoading(false);
+        }
+        return;
+      }
 
       // Create user data with proper role handling - CRITICAL FIX
       let resolvedRole = profile?.role;

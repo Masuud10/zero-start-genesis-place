@@ -20,6 +20,7 @@ interface UserActivationToggleProps {
   userName: string;
   currentStatus: string;
   userRole: string;
+  userEmail?: string;
   onStatusChanged?: () => void;
 }
 
@@ -28,6 +29,7 @@ const UserActivationToggle = ({
   userName, 
   currentStatus, 
   userRole,
+  userEmail,
   onStatusChanged 
 }: UserActivationToggleProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -52,6 +54,13 @@ const UserActivationToggle = ({
     
     try {
       const newStatus = isActive ? 'inactive' : 'active';
+      const oldStatus = isActive ? 'active' : 'inactive';
+      
+      // Log the action attempt for audit purposes
+      await UserStatusService.logUserStatusChange(userId, oldStatus, newStatus, {
+        email: userEmail,
+        name: userName
+      });
       
       const result = await UserStatusService.updateUserStatus(userId, newStatus);
 
@@ -120,7 +129,7 @@ const UserActivationToggle = ({
               <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
                 <strong className="text-yellow-800">Warning:</strong> 
                 <span className="text-yellow-700 ml-1">
-                  Deactivating this user will immediately prevent them from logging in and accessing any system features.
+                  Deactivating this user will immediately prevent them from logging in and accessing any system features. All active sessions will be terminated.
                 </span>
               </div>
             )}
