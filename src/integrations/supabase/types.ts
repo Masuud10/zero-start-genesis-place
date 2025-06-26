@@ -950,6 +950,7 @@ export type Database = {
       }
       cbc_competencies: {
         Row: {
+          assessment_types: string[] | null
           class_id: string | null
           competency_code: string
           competency_name: string
@@ -958,11 +959,13 @@ export type Database = {
           id: string
           school_id: string
           strands: Json | null
+          sub_strands: Json | null
           subject_id: string | null
           updated_at: string | null
           weighting: number | null
         }
         Insert: {
+          assessment_types?: string[] | null
           class_id?: string | null
           competency_code: string
           competency_name: string
@@ -971,11 +974,13 @@ export type Database = {
           id?: string
           school_id: string
           strands?: Json | null
+          sub_strands?: Json | null
           subject_id?: string | null
           updated_at?: string | null
           weighting?: number | null
         }
         Update: {
+          assessment_types?: string[] | null
           class_id?: string | null
           competency_code?: string
           competency_name?: string
@@ -984,6 +989,7 @@ export type Database = {
           id?: string
           school_id?: string
           strands?: Json | null
+          sub_strands?: Json | null
           subject_id?: string | null
           updated_at?: string | null
           weighting?: number | null
@@ -1246,6 +1252,131 @@ export type Database = {
             columns: ["learning_area_id"]
             isOneToOne: false
             referencedRelation: "cbc_learning_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cbc_performance_summary: {
+        Row: {
+          academic_year: string
+          areas_for_improvement: string[] | null
+          areas_of_strength: string[] | null
+          class_id: string
+          competency_levels: Json | null
+          created_at: string | null
+          id: string
+          overall_performance_level: string | null
+          school_id: string
+          student_id: string
+          subject_id: string
+          teacher_general_remarks: string | null
+          teacher_id: string
+          term: string
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year: string
+          areas_for_improvement?: string[] | null
+          areas_of_strength?: string[] | null
+          class_id: string
+          competency_levels?: Json | null
+          created_at?: string | null
+          id?: string
+          overall_performance_level?: string | null
+          school_id: string
+          student_id: string
+          subject_id: string
+          teacher_general_remarks?: string | null
+          teacher_id: string
+          term: string
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          areas_for_improvement?: string[] | null
+          areas_of_strength?: string[] | null
+          class_id?: string
+          competency_levels?: Json | null
+          created_at?: string | null
+          id?: string
+          overall_performance_level?: string | null
+          school_id?: string
+          student_id?: string
+          subject_id?: string
+          teacher_general_remarks?: string | null
+          teacher_id?: string
+          term?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      cbc_strand_assessments: {
+        Row: {
+          academic_year: string
+          assessment_date: string | null
+          assessment_type: string
+          class_id: string
+          competency_id: string | null
+          created_at: string | null
+          id: string
+          performance_level: string
+          school_id: string
+          strand_name: string
+          student_id: string
+          sub_strand_name: string | null
+          subject_id: string
+          submitted_at: string | null
+          teacher_id: string
+          teacher_remarks: string | null
+          term: string
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year?: string
+          assessment_date?: string | null
+          assessment_type: string
+          class_id: string
+          competency_id?: string | null
+          created_at?: string | null
+          id?: string
+          performance_level: string
+          school_id: string
+          strand_name: string
+          student_id: string
+          sub_strand_name?: string | null
+          subject_id: string
+          submitted_at?: string | null
+          teacher_id: string
+          teacher_remarks?: string | null
+          term: string
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year?: string
+          assessment_date?: string | null
+          assessment_type?: string
+          class_id?: string
+          competency_id?: string | null
+          created_at?: string | null
+          id?: string
+          performance_level?: string
+          school_id?: string
+          strand_name?: string
+          student_id?: string
+          sub_strand_name?: string | null
+          subject_id?: string
+          submitted_at?: string | null
+          teacher_id?: string
+          teacher_remarks?: string | null
+          term?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cbc_strand_assessments_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "cbc_competencies"
             referencedColumns: ["id"]
           },
         ]
