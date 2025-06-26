@@ -1,11 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useSchoolAnalytics } from '@/hooks/useSchoolAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, School, Users, GraduationCap, CalendarCheck, DollarSign, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, GraduationCap, CalendarCheck, DollarSign, AlertTriangle, Building2, Users, TrendingUp, MapPin } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const SchoolAnalyticsDetail = () => {
@@ -20,7 +18,7 @@ const SchoolAnalyticsDetail = () => {
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-600">Access Denied</AlertTitle>
           <AlertDescription className="text-red-700">
-            Only EduFam Admins can access detailed school analytics.
+            Only EduFam Admins can access school analytics.
           </AlertDescription>
         </Alert>
       </div>
@@ -43,7 +41,7 @@ const SchoolAnalyticsDetail = () => {
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-600">Analytics Error</AlertTitle>
           <AlertDescription className="text-red-700">
-            Failed to load detailed school analytics data. Please try again.
+            Failed to load detailed school analytics. Please try again.
           </AlertDescription>
         </Alert>
       </div>
@@ -53,7 +51,7 @@ const SchoolAnalyticsDetail = () => {
   if (!schoolAnalytics || schoolAnalytics.length === 0) {
     return (
       <div className="text-center py-12">
-        <School className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+        <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Schools Found</h3>
         <p className="text-gray-500">No schools are registered in the system yet.</p>
       </div>
@@ -68,226 +66,130 @@ const SchoolAnalyticsDetail = () => {
     return `${rate.toFixed(1)}%`;
   };
 
-  const getPerformanceColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getCollectionRate = (collected: number, assigned: number) => {
-    if (assigned === 0) return 0;
-    return (collected / assigned) * 100;
-  };
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">Detailed School Analytics</h2>
-        <p className="text-muted-foreground">
-          Comprehensive performance metrics for all registered schools
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-8">
-        {schoolAnalytics.map((school) => {
-          const collectionRate = getCollectionRate(
-            school.financial_summary.total_fees_collected,
-            school.financial_summary.total_fees_assigned
-          );
-
-          return (
-            <Card key={school.school_id} className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center justify-between">
+        <h3 className="text-xl font-semibold mb-6">Individual School Analytics</h3>
+        
+        <div className="space-y-6">
+          {schoolAnalytics.map((school) => (
+            <Card key={school.school_id} className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-blue-100">
-                      <School className="h-8 w-8 text-blue-600" />
-                    </div>
+                    <Building2 className="h-6 w-6 text-blue-600" />
                     <div>
-                      <h3 className="text-2xl font-semibold text-gray-900">{school.school_name}</h3>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {school.location}
-                      </p>
+                      <CardTitle className="text-lg text-blue-900">
+                        {school.school_name}
+                      </CardTitle>
+                      <div className="flex items-center gap-2 mt-1">
+                        <MapPin className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm text-blue-700">
+                          {school.location}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    ID: {school.school_id.slice(0, 8)}...
-                  </Badge>
-                </CardTitle>
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Academic Performance Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <GraduationCap className="h-5 w-5 text-purple-600" />
-                      <h4 className="font-semibold text-gray-900">Academic Performance</h4>
+              
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Grade Summary */}
+                  <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                    <div className="flex items-center gap-2 mb-3">
+                      <GraduationCap className="h-5 w-5 text-blue-600" />
+                      <h4 className="font-semibold text-blue-900">Grade Summary</h4>
                     </div>
-                    
-                    <div className="space-y-4">
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-gray-700">Average Grade</span>
-                          <span className={`text-lg font-bold ${getPerformanceColor(school.grades_summary.average_grade)}`}>
-                            {school.grades_summary.average_grade.toFixed(1)}%
-                          </span>
-                        </div>
-                        <Progress 
-                          value={school.grades_summary.average_grade} 
-                          className="h-2" 
-                        />
+                    <div className="space-y-2">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {school.grades_summary.average_grade.toFixed(1)}
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xl font-bold text-gray-900">
-                            {school.grades_summary.total_grades}
-                          </div>
-                          <p className="text-xs text-gray-600">Total Grades</p>
-                        </div>
-                        
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xl font-bold text-gray-900">
-                            {school.grades_summary.students_with_grades}
-                          </div>
-                          <p className="text-xs text-gray-600">Students Assessed</p>
-                        </div>
+                      <p className="text-sm text-blue-700">Average Grade</p>
+                      <div className="text-sm text-blue-600">
+                        <div>{school.grades_summary.total_grades} total grades</div>
+                        <div>{school.grades_summary.students_with_grades} students assessed</div>
                       </div>
-
-                      {school.grades_summary.average_grade > 0 && (
-                        <div className="flex items-center gap-2 text-sm">
-                          {school.grades_summary.average_grade >= 70 ? (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-green-600" />
-                              <span className="text-green-600">Good Performance</span>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-red-600" />
-                              <span className="text-red-600">Needs Improvement</span>
-                            </>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {/* Attendance Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 pb-2 border-b">
+                  {/* Attendance Summary */}
+                  <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+                    <div className="flex items-center gap-2 mb-3">
                       <CalendarCheck className="h-5 w-5 text-green-600" />
-                      <h4 className="font-semibold text-gray-900">Attendance Overview</h4>
+                      <h4 className="font-semibold text-green-900">Attendance Summary</h4>
                     </div>
-                    
-                    <div className="space-y-4">
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-gray-700">Attendance Rate</span>
-                          <span className={`text-lg font-bold ${getPerformanceColor(school.attendance_summary.attendance_rate)}`}>
-                            {formatPercentage(school.attendance_summary.attendance_rate)}
-                          </span>
-                        </div>
-                        <Progress 
-                          value={school.attendance_summary.attendance_rate} 
-                          className="h-2" 
-                        />
+                    <div className="space-y-2">
+                      <div className="text-2xl font-bold text-green-600">
+                        {formatPercentage(school.attendance_summary.attendance_rate)}
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xl font-bold text-gray-900">
-                            {school.attendance_summary.total_records}
-                          </div>
-                          <p className="text-xs text-gray-600">Total Records</p>
-                        </div>
-                        
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xl font-bold text-gray-900">
-                            {school.attendance_summary.students_tracked}
-                          </div>
-                          <p className="text-xs text-gray-600">Students Tracked</p>
-                        </div>
+                      <p className="text-sm text-green-700">Attendance Rate</p>
+                      <div className="text-sm text-green-600">
+                        <div>{school.attendance_summary.total_records.toLocaleString()} total records</div>
+                        <div>{school.attendance_summary.students_tracked} students tracked</div>
                       </div>
-
-                      {school.attendance_summary.attendance_rate > 0 && (
-                        <div className="flex items-center gap-2 text-sm">
-                          {school.attendance_summary.attendance_rate >= 85 ? (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-green-600" />
-                              <span className="text-green-600">Excellent Attendance</span>
-                            </>
-                          ) : school.attendance_summary.attendance_rate >= 75 ? (
-                            <>
-                              <span className="text-yellow-600">Good Attendance</span>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingDown className="h-4 w-4 text-red-600" />
-                              <span className="text-red-600">Poor Attendance</span>
-                            </>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {/* Financial Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <DollarSign className="h-5 w-5 text-blue-600" />
-                      <h4 className="font-semibold text-gray-900">Financial Overview</h4>
+                  {/* Financial Summary */}
+                  <div className="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+                    <div className="flex items-center gap-2 mb-3">
+                      <DollarSign className="h-5 w-5 text-purple-600" />
+                      <h4 className="font-semibold text-purple-900">Financial Summary</h4>
                     </div>
-                    
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium text-gray-700">Collection Rate</span>
-                          <span className={`text-lg font-bold ${getPerformanceColor(collectionRate)}`}>
-                            {formatPercentage(collectionRate)}
-                          </span>
-                        </div>
-                        <Progress 
-                          value={collectionRate} 
-                          className="h-2" 
-                        />
+                    <div className="space-y-2">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {formatCurrency(school.financial_summary.total_fees_collected)}
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-600">Total Assigned</span>
-                          <span className="font-semibold text-gray-900">
-                            {formatCurrency(school.financial_summary.total_fees_assigned)}
-                          </span>
+                      <p className="text-sm text-purple-700">Total Collected</p>
+                      <div className="text-sm text-purple-600">
+                        <div className="text-red-600">
+                          {formatCurrency(school.financial_summary.outstanding_balance)} outstanding
                         </div>
-                        
-                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                          <span className="text-sm text-gray-600">Total Collected</span>
-                          <span className="font-semibold text-green-700">
-                            {formatCurrency(school.financial_summary.total_fees_collected)}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                          <span className="text-sm text-gray-600">Outstanding</span>
-                          <span className="font-semibold text-red-700">
-                            {formatCurrency(school.financial_summary.outstanding_balance)}
-                          </span>
-                        </div>
-                        
-                        <div className="text-center p-2 bg-gray-100 rounded-lg">
-                          <span className="text-xs text-gray-600">
-                            {school.financial_summary.students_with_fees} students with fees
-                          </span>
-                        </div>
+                        <div>{school.financial_summary.students_with_fees} students with fees</div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Metrics */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="text-center">
+                      <Users className="h-4 w-4 mx-auto mb-1 text-gray-600" />
+                      <div className="font-semibold text-gray-900">
+                        {school.grades_summary.students_with_grades}
+                      </div>
+                      <div className="text-gray-600">Students</div>
+                    </div>
+                    <div className="text-center">
+                      <GraduationCap className="h-4 w-4 mx-auto mb-1 text-gray-600" />
+                      <div className="font-semibold text-gray-900">
+                        {school.grades_summary.total_grades}
+                      </div>
+                      <div className="text-gray-600">Grades</div>
+                    </div>
+                    <div className="text-center">
+                      <CalendarCheck className="h-4 w-4 mx-auto mb-1 text-gray-600" />
+                      <div className="font-semibold text-gray-900">
+                        {school.attendance_summary.total_records}
+                      </div>
+                      <div className="text-gray-600">Records</div>
+                    </div>
+                    <div className="text-center">
+                      <DollarSign className="h-4 w-4 mx-auto mb-1 text-gray-600" />
+                      <div className="font-semibold text-gray-900">
+                        {school.financial_summary.students_with_fees}
+                      </div>
+                      <div className="text-gray-600">Fee Accounts</div>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
