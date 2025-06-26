@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { AuthUser } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AuthUser } from '@/types/auth';
 import { Building2, Loader2 } from 'lucide-react';
 
 interface CompanyDetailsModalProps {
@@ -24,9 +25,9 @@ const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({
   currentUser
 }) => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [details, setDetails] = useState({
+  const queryClient = useQueryClient();
+  
+  const [formData, setFormData] = useState({
     company_name: 'EduFam',
     company_slogan: '',
     company_motto: '',
@@ -34,85 +35,90 @@ const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({
     support_email: 'support@edufam.com',
     contact_phone: '',
     headquarters_address: '',
-    registration_number: '',
     year_established: 2024,
-    company_type: 'EdTech SaaS'
+    registration_number: '',
+    company_type: 'EdTech SaaS',
+    incorporation_details: ''
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchCompanyDetails();
-    }
-  }, [isOpen]);
-
-  const fetchCompanyDetails = async () => {
-    try {
-      setLoading(true);
+  // Fetch company details
+  const { data: companyData, isLoading } = useQuery({
+    queryKey: ['company-details'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('company_details')
         .select('*')
-        .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (error) {
-        console.error('Error fetching company details:', error);
-      } else if (data) {
-        setDetails({
-          company_name: data.company_name || 'EduFam',
-          company_slogan: data.company_slogan || '',
-          company_motto: data.company_motto || '',
-          website_url: data.website_url || 'https://edufam.com',
-          support_email: data.support_email || 'support@edufam.com',
-          contact_phone: data.contact_phone || '',
-          headquarters_address: data.headquarters_address || '',
-          registration_number: data.registration_number || '',
-          year_established: data.year_established || 2024,
-          company_type: data.company_type || 'EdTech SaaS'
-        });
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      
-      const { error } = await supabase
-        .from('company_details')
-        .upsert([details], {
-          onConflict: 'id'
-        });
-
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
+      
+      return data;
+    },
+    enabled: isOpen
+  });
 
+  useEffect(() => {
+    if (companyData) {
+      setFormData({
+        company_name: companyData.company_name || 'EduFam',
+        company_slogan: companyData.company_slogan || '',
+        company_motto: companyData.company_motto || '',
+        website_url: companyData.website_url || 'https://edufam.com',
+        support_email: companyData.support_email || 'support@edufam.com',
+        contact_phone: companyData.contact_phone || '',
+        headquarters_address: companyData.headquarters_address || '',
+        year_established: companyData.year_established || 2024,
+        registration_number: companyData.registration_number || '',
+        company_type: companyData.company_type || 'EdTech SaaS',
+        incorporation_details: companyData.incorporation_details || ''
+      });
+    }
+  }, [companyData]);
+
+  const updateCompanyDetails = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const { error } = await supabase
+        .from('company_details')
+        .upsert({
+          ...data,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
       toast({
         title: "Success",
         description: "Company details updated successfully",
       });
+      queryClient.invalidateQueries({ queryKey: ['company-details'] });
       onSuccess();
       onClose();
-    } catch (error: any) {
-      console.error('Error updating company details:', error);
+    },
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to update company details",
+        description: error.message || "Failed to update company details",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateCompanyDetails.mutate(formData);
   };
 
-  if (loading) {
+  const handleInputChange = (field: string, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <div className="flex items-center justify-center p-6">
             <Loader2 className="h-8 w-8 animate-spin" />
             <span className="ml-2">Loading company details...</span>
@@ -124,125 +130,146 @@ const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             Company Details
           </DialogTitle>
           <DialogDescription>
-            Manage company information and settings
+            Manage EduFam company information and branding
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="company_name">Company Name</Label>
-              <Input
-                id="company_name"
-                value={details.company_name}
-                onChange={(e) => setDetails(prev => ({ ...prev, company_name: e.target.value }))}
-                placeholder="Company name"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6 max-h-96 overflow-y-auto">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h4 className="font-medium">Basic Information</h4>
             
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="company_name">Company Name</Label>
+                <Input
+                  id="company_name"
+                  value={formData.company_name}
+                  onChange={(e) => handleInputChange('company_name', e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="company_type">Company Type</Label>
+                <Input
+                  id="company_type"
+                  value={formData.company_type}
+                  onChange={(e) => handleInputChange('company_type', e.target.value)}
+                />
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="company_type">Company Type</Label>
+              <Label htmlFor="company_slogan">Company Slogan</Label>
               <Input
-                id="company_type"
-                value={details.company_type}
-                onChange={(e) => setDetails(prev => ({ ...prev, company_type: e.target.value }))}
-                placeholder="e.g., EdTech SaaS"
+                id="company_slogan"
+                value={formData.company_slogan}
+                onChange={(e) => handleInputChange('company_slogan', e.target.value)}
+                placeholder="Your company slogan"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="company_motto">Company Motto</Label>
+              <Textarea
+                id="company_motto"
+                value={formData.company_motto}
+                onChange={(e) => handleInputChange('company_motto', e.target.value)}
+                placeholder="Your company motto or mission statement"
+                rows={2}
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="company_slogan">Company Slogan</Label>
-            <Input
-              id="company_slogan"
-              value={details.company_slogan}
-              onChange={(e) => setDetails(prev => ({ ...prev, company_slogan: e.target.value }))}
-              placeholder="Company slogan"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="company_motto">Company Motto</Label>
-            <Textarea
-              id="company_motto"
-              value={details.company_motto}
-              onChange={(e) => setDetails(prev => ({ ...prev, company_motto: e.target.value }))}
-              placeholder="Company motto or mission statement"
-              rows={2}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="website_url">Website URL</Label>
-              <Input
-                id="website_url"
-                type="url"
-                value={details.website_url}
-                onChange={(e) => setDetails(prev => ({ ...prev, website_url: e.target.value }))}
-                placeholder="https://example.com"
-              />
-            </div>
+          {/* Contact Information */}
+          <div className="space-y-4">
+            <h4 className="font-medium">Contact Information</h4>
             
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="website_url">Website URL</Label>
+                <Input
+                  id="website_url"
+                  type="url"
+                  value={formData.website_url}
+                  onChange={(e) => handleInputChange('website_url', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="support_email">Support Email</Label>
+                <Input
+                  id="support_email"
+                  type="email"
+                  value={formData.support_email}
+                  onChange={(e) => handleInputChange('support_email', e.target.value)}
+                />
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="support_email">Support Email</Label>
+              <Label htmlFor="contact_phone">Contact Phone</Label>
               <Input
-                id="support_email"
-                type="email"
-                value={details.support_email}
-                onChange={(e) => setDetails(prev => ({ ...prev, support_email: e.target.value }))}
-                placeholder="support@example.com"
+                id="contact_phone"
+                value={formData.contact_phone}
+                onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                placeholder="+254 xxx xxx xxx"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="headquarters_address">Headquarters Address</Label>
+              <Textarea
+                id="headquarters_address"
+                value={formData.headquarters_address}
+                onChange={(e) => handleInputChange('headquarters_address', e.target.value)}
+                placeholder="Physical address of headquarters"
+                rows={2}
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="contact_phone">Contact Phone</Label>
-            <Input
-              id="contact_phone"
-              value={details.contact_phone}
-              onChange={(e) => setDetails(prev => ({ ...prev, contact_phone: e.target.value }))}
-              placeholder="Phone number"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="headquarters_address">Headquarters Address</Label>
-            <Textarea
-              id="headquarters_address"
-              value={details.headquarters_address}
-              onChange={(e) => setDetails(prev => ({ ...prev, headquarters_address: e.target.value }))}
-              placeholder="Full address"
-              rows={2}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="registration_number">Registration Number</Label>
-              <Input
-                id="registration_number"
-                value={details.registration_number}
-                onChange={(e) => setDetails(prev => ({ ...prev, registration_number: e.target.value }))}
-                placeholder="Company registration number"
-              />
-            </div>
+          {/* Legal Information */}
+          <div className="space-y-4">
+            <h4 className="font-medium">Legal Information</h4>
             
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="year_established">Year Established</Label>
+                <Input
+                  id="year_established"
+                  type="number"
+                  value={formData.year_established}
+                  onChange={(e) => handleInputChange('year_established', parseInt(e.target.value) || 2024)}
+                  min="1900"
+                  max={new Date().getFullYear()}
+                />
+              </div>
+              <div>
+                <Label htmlFor="registration_number">Registration Number</Label>
+                <Input
+                  id="registration_number"
+                  value={formData.registration_number}
+                  onChange={(e) => handleInputChange('registration_number', e.target.value)}
+                  placeholder="Business registration number"
+                />
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="year_established">Year Established</Label>
-              <Input
-                id="year_established"
-                type="number"
-                value={details.year_established}
-                onChange={(e) => setDetails(prev => ({ ...prev, year_established: parseInt(e.target.value) || 2024 }))}
-                placeholder="2024"
+              <Label htmlFor="incorporation_details">Incorporation Details</Label>
+              <Textarea
+                id="incorporation_details"
+                value={formData.incorporation_details}
+                onChange={(e) => handleInputChange('incorporation_details', e.target.value)}
+                placeholder="Additional incorporation or legal details"
+                rows={2}
               />
             </div>
           </div>
@@ -252,21 +279,14 @@ const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({
               Cancel
             </Button>
             <Button 
-              onClick={handleSave} 
-              disabled={saving}
+              type="submit" 
+              disabled={updateCompanyDetails.isPending}
               className="flex-1"
             >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Details'
-              )}
+              {updateCompanyDetails.isPending ? 'Updating...' : 'Save Details'}
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

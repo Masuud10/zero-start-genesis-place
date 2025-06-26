@@ -7,8 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { AuthUser } from '@/types/auth';
-import { SystemSettingsService } from '@/services/system/systemSettingsService';
 import { Shield, AlertTriangle, CheckCircle, Activity, Loader2 } from 'lucide-react';
+import { useSecuritySettings } from '@/hooks/useSystemSettings';
 
 interface SecuritySettingsModalProps {
   isOpen: boolean;
@@ -24,33 +24,20 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
   currentUser
 }) => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [securityData, setSecurityData] = useState<any>(null);
+  const { 
+    data: securityData, 
+    isLoading: securityLoading, 
+    error: securityError,
+    refetch: refetchSecurity
+  } = useSecuritySettings();
 
   useEffect(() => {
     if (isOpen) {
-      fetchSecurityData();
+      refetchSecurity();
     }
-  }, [isOpen]);
+  }, [isOpen, refetchSecurity]);
 
-  const fetchSecurityData = async () => {
-    try {
-      setLoading(true);
-      const { data } = await SystemSettingsService.getSecuritySettings();
-      setSecurityData(data);
-    } catch (error) {
-      console.error('Error fetching security data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch security settings",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (securityLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl">
@@ -72,7 +59,7 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
             Security Settings
           </DialogTitle>
           <DialogDescription>
-            Monitor system security and audit logs
+            Monitor system security status and recent events
           </DialogDescription>
         </DialogHeader>
         
@@ -104,7 +91,7 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
 
           {/* Recent Security Events */}
           <div>
-            <h4 className="font-medium mb-2">Recent Security Events</h4>
+            <h4 className="font-medium mb-3">Recent Security Events</h4>
             {securityData?.recent_audit_logs?.length > 0 ? (
               <Table>
                 <TableHeader>
@@ -131,17 +118,39 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
                 </TableBody>
               </Table>
             ) : (
-              <Alert>
-                <AlertDescription>No recent security events</AlertDescription>
-              </Alert>
+              <p className="text-muted-foreground text-center py-4">No recent security events</p>
             )}
           </div>
+
+          {/* Active Rate Limits */}
+          <div>
+            <h4 className="font-medium mb-3">Active Rate Limits</h4>
+            {securityData?.active_rate_limits?.length > 0 ? (
+              <div className="space-y-2">
+                {securityData.active_rate_limits.map((limit: any) => (
+                  <div key={limit.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm">{limit.ip_address || 'System'}</span>
+                    <Badge variant="secondary">Active</Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No active rate limits</p>
+            )}
+          </div>
+
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>
+              Security monitoring is active. All events are logged and monitored in real-time.
+            </AlertDescription>
+          </Alert>
 
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Close
             </Button>
-            <Button onClick={fetchSecurityData} variant="outline">
+            <Button onClick={() => refetchSecurity()} variant="outline">
               Refresh
             </Button>
           </div>
