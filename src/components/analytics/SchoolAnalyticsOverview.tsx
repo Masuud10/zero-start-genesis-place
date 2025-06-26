@@ -62,17 +62,8 @@ const SchoolAnalyticsOverview = () => {
           <h2 className="text-xl font-semibold text-gray-900">Individual School Analytics</h2>
         </div>
         
-        {schoolAnalytics && schoolAnalytics.length > 0 ? (
-          <SchoolAnalyticsDetail />
-        ) : (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <CardTitle className="text-lg font-medium text-gray-900 mb-2">No Schools Found</CardTitle>
-              <p className="text-gray-500">No schools are registered in the system yet.</p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Always render SchoolAnalyticsDetail - it handles its own loading and error states */}
+        <SchoolAnalyticsDetail />
       </div>
     </div>
   );
