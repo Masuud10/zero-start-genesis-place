@@ -791,6 +791,33 @@ export type Database = {
           },
         ]
       }
+      billing_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_transactions: {
         Row: {
           amount: number
@@ -4894,6 +4921,102 @@ export type Database = {
           },
         ]
       }
+      school_billing_records: {
+        Row: {
+          amount: number
+          billing_period_end: string | null
+          billing_period_start: string | null
+          billing_type: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string | null
+          paid_date: string | null
+          payment_method: string | null
+          school_id: string
+          status: string
+          student_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          billing_type: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          school_id: string
+          status?: string
+          student_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          billing_type?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          school_id?: string
+          status?: string
+          student_count?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_billing_records_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_billing_records_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_billing_records_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_billing_records_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_billing_records_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_mpesa_config: {
         Row: {
           business_shortcode: string | null
@@ -6878,6 +7001,10 @@ export type Database = {
         }
         Returns: string
       }
+      calculate_school_subscription_fee: {
+        Args: { p_school_id: string }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: {
           p_identifier: string
@@ -6948,6 +7075,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_monthly_subscription_fees: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       create_school: {
         Args: {
           school_name: string
@@ -6959,6 +7090,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_setup_fee_record: {
+        Args: { p_school_id: string }
+        Returns: string
+      }
       generate_finance_report: {
         Args: {
           p_report_type: string
@@ -6969,6 +7104,10 @@ export type Database = {
           p_term?: string
         }
         Returns: Json
+      }
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       generate_timetable: {
         Args: { p_school_id: string; p_class_id: string; p_created_by: string }
