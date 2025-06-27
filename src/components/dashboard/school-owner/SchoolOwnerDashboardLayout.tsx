@@ -23,6 +23,28 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
   <div className="space-y-6">
     <SchoolOwnerStatsCards metrics={metrics} loading={loading} />
 
+    {/* Analytics Overview Section */}
+    <AnalyticsSecurityGuard
+      requiredPermission="school"
+      schoolId={schoolId}
+      fallbackMessage="You need school owner permissions to view analytics."
+    >
+      <Card className="shadow-lg border-0">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <BarChart3 className="h-6 w-6" />
+            Analytics Overview
+          </CardTitle>
+          <CardDescription className="text-blue-100">
+            Real-time insights and performance data for your school
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <SchoolOwnerAnalytics filters={{ term: 'current', class: 'all' }} />
+        </CardContent>
+      </Card>
+    </AnalyticsSecurityGuard>
+
     <div className="rounded-lg bg-white/75 border shadow-sm">
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2 font-semibold text-lg">
@@ -35,27 +57,6 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
         <SchoolManagementActions onAction={onManagementAction} />
       </div>
     </div>
-
-    <AnalyticsSecurityGuard
-      requiredPermission="school"
-      schoolId={schoolId}
-      fallbackMessage="You need school owner permissions to view analytics."
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            School Performance Analytics
-          </CardTitle>
-          <CardDescription>
-            Real-time insights into your school's performance and financial data
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SchoolOwnerAnalytics filters={{ term: 'current', class: 'all' }} />
-        </CardContent>
-      </Card>
-    </AnalyticsSecurityGuard>
   </div>
 );
 
