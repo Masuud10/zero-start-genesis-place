@@ -1,17 +1,17 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  Users, 
-  GraduationCap, 
-  BookOpen, 
   UserPlus, 
+  Users, 
+  School, 
+  Plus, 
+  Award,
   Calendar,
   FileText,
-  Award,
-  ClipboardList,
-  Plus
+  BookOpen,
+  Settings
 } from 'lucide-react';
 
 interface PrincipalActionButtonsProps {
@@ -21,82 +21,89 @@ interface PrincipalActionButtonsProps {
 const PrincipalActionButtons: React.FC<PrincipalActionButtonsProps> = ({ onModalOpen }) => {
   const actionButtons = [
     {
-      id: 'studentAdmission',
-      label: 'Add Student',
+      title: "Add Student",
+      description: "Register new students",
       icon: UserPlus,
-      description: 'Register new students',
-      color: 'text-blue-600 hover:bg-blue-50'
+      color: "bg-blue-600 hover:bg-blue-700",
+      action: () => onModalOpen('studentAdmission')
     },
     {
-      id: 'teacherAdmission',
-      label: 'Add Teacher',
+      title: "Add Teacher",
+      description: "Register new teachers",
       icon: Users,
-      description: 'Add teaching staff',
-      color: 'text-green-600 hover:bg-green-50'
+      color: "bg-green-600 hover:bg-green-700",
+      action: () => onModalOpen('teacherAdmission')
     },
     {
-      id: 'addClass',
-      label: 'Add Class',
-      icon: GraduationCap,
-      description: 'Create new classes',
-      color: 'text-purple-600 hover:bg-purple-50'
+      title: "Add Class",
+      description: "Create new classes",
+      icon: School,
+      color: "bg-purple-600 hover:bg-purple-700",
+      action: () => onModalOpen('addClass')
     },
     {
-      id: 'add-subject',
-      label: 'Add Subject',
+      title: "Add Subject",
+      description: "Add new subjects",
       icon: BookOpen,
-      description: 'Add new subjects',
-      color: 'text-orange-600 hover:bg-orange-50'
+      color: "bg-orange-600 hover:bg-orange-700",
+      action: () => onModalOpen('add-subject')
     },
     {
-      id: 'assign-subject',
-      label: 'Assign Teacher',
-      icon: ClipboardList,
-      description: 'Assign teachers to subjects',
-      color: 'text-indigo-600 hover:bg-indigo-50'
+      title: "Assign Subjects",
+      description: "Assign subjects to teachers",
+      icon: Settings,
+      color: "bg-indigo-600 hover:bg-indigo-700",
+      action: () => onModalOpen('assign-subject')
     },
     {
-      id: 'generate-timetable',
-      label: 'Generate Timetable',
-      icon: Calendar,
-      description: 'Create class timetables',
-      color: 'text-teal-600 hover:bg-teal-50'
-    },
-    {
-      id: 'generate-certificate',
-      label: 'Generate Certificate',
+      title: "Generate Certificate",
+      description: "Create student certificates",
       icon: Award,
-      description: 'Create student certificates',
-      color: 'text-yellow-600 hover:bg-yellow-50'
+      color: "bg-yellow-600 hover:bg-yellow-700",
+      action: () => onModalOpen('generate-certificate')
     },
     {
-      id: 'reports',
-      label: 'Generate Reports',
+      title: "Generate Timetable",
+      description: "Create class timetables",
+      icon: Calendar,
+      color: "bg-teal-600 hover:bg-teal-700",
+      action: () => onModalOpen('generate-timetable')
+    },
+    {
+      title: "Generate Reports",
+      description: "Create school reports",
       icon: FileText,
-      description: 'Create PDF reports',
-      color: 'text-red-600 hover:bg-red-50'
+      color: "bg-pink-600 hover:bg-pink-700",
+      action: () => onModalOpen('reports')
     }
   ];
 
   return (
-    <CardContent className="p-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {actionButtons.map((button) => {
-          const IconComponent = button.icon;
-          return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Plus className="h-5 w-5" />
+          Quick Actions
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {actionButtons.map((button, index) => (
             <Button
-              key={button.id}
-              variant="outline"
-              className={`h-20 flex flex-col items-center gap-2 ${button.color} border-gray-200 transition-all duration-200`}
-              onClick={() => onModalOpen(button.id)}
+              key={index}
+              onClick={button.action}
+              className={`${button.color} text-white h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-transform`}
             >
-              <IconComponent className="h-6 w-6" />
-              <span className="text-sm font-medium">{button.label}</span>
+              <button.icon className="h-6 w-6" />
+              <div className="text-center">
+                <div className="font-medium text-sm">{button.title}</div>
+                <div className="text-xs opacity-90">{button.description}</div>
+              </div>
             </Button>
-          );
-        })}
-      </div>
-    </CardContent>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

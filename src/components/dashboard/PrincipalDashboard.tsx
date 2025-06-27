@@ -12,7 +12,11 @@ import CertificateGenerator from '@/components/certificates/CertificateGenerator
 import TimetableGenerator from '@/components/timetable/TimetableGenerator';
 import PrincipalReportGenerator from '@/components/reports/PrincipalReportGenerator';
 import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
+import PrincipalGradesManager from './principal/PrincipalGradesManager';
 import { useToast } from '@/hooks/use-toast';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 interface PrincipalDashboardProps {
   user: AuthUser;
@@ -21,9 +25,36 @@ interface PrincipalDashboardProps {
 
 const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOpen }) => {
   console.log('🎓 PrincipalDashboard: Rendering for principal:', user.email);
-  const { stats, loading, error } = usePrincipalDashboardData(0);
+  
+  const { schoolId, isReady } = useSchoolScopedData();
+  const { stats, loading, error } = usePrincipalDashboardData(schoolId);
   const { toast } = useToast();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+
+  // Ensure school assignment for principals
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!schoolId) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            No school assignment found. Please contact your administrator to assign you to a school.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const handleModalOpen = (modalType: string) => {
     console.log('PrincipalDashboard: Opening modal:', modalType);
@@ -67,6 +98,14 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
           </div>
         </section>
 
+        {/* Grade Management Section */}
+        <section>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Grade Management</h2>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <PrincipalGradesManager />
+          </div>
+        </section>
+
         {/* Timetable Management Section */}
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Timetable Management</h2>
@@ -93,35 +132,45 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
       </div>
       
       {/* Modals */}
-      <AddSubjectModal
-        open={activeModal === 'add-subject'}
-        onClose={handleModalClose}
-        onSubjectCreated={handleSuccess}
-      />
+      {activeModal === 'add-subject' && (
+        <AddSubjectModal
+          open={true}
+          onClose={handleModalClose}
+          onSubjectCreated={handleSuccess}
+        />
+      )}
 
-      <SubjectAssignmentModal
-        open={activeModal === 'assign-subject'}
-        onClose={handleModalClose}
-        onAssignmentCreated={handleSuccess}
-      />
+      {activeModal === 'assign-subject' && (
+        <SubjectAssignmentModal
+          open={true}
+          onClose={handleModalClose}
+          onAssignmentCreated={handleSuccess}
+        />
+      )}
 
-      <CertificateGenerator
-        open={activeModal === 'generate-certificate'}
-        onClose={handleModalClose}
-        onCertificateGenerated={handleSuccess}
-      />
+      {activeModal === 'generate-certificate' && (
+        <CertificateGenerator
+          open={true}
+          onClose={handleModalClose}
+          onCertificateGenerated={handleSuccess}
+        />
+      )}
 
-      <TimetableGenerator
-        open={activeModal === 'generate-timetable'}
-        onClose={handleModalClose}
-        onTimetableGenerated={handleSuccess}
-      />
+      {activeModal === 'generate-timetable' && (
+        <TimetableGenerator
+          open={true}
+          onClose={handleModalClose}
+          onTimetableGenerated={handleSuccess}
+        />
+      )}
 
-      <PrincipalReportGenerator
-        open={activeModal === 'reports'}
-        onClose={handleModalClose}
-        onReportGenerated={handleSuccess}
-      />
+      {activeModal === 'reports' && (
+        <PrincipalReportGenerator
+          open={true}
+          onClose={handleModalClose}
+          onReportGenerated={handleSuccess}
+        />
+      )}
     </div>
   );
 };

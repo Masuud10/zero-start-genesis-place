@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Settings, AlertTriangle } from 'lucide-react';
 
 interface PendingGradeApprovalsSectionProps {
   pendingGrades: any[];
@@ -21,53 +21,39 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
 }) => {
   if (pendingGrades.length === 0) return null;
 
-  // Group grades by class and subject for better overview
-  const groupedGrades = pendingGrades.reduce((acc: Record<string, any[]>, grade: any) => {
-    const key = `${grade.classes?.name || 'Unknown Class'} - ${grade.subjects?.name || 'Unknown Subject'}`;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(grade);
-    return acc;
-  }, {} as Record<string, any[]>);
-
   return (
     <div className="border-t pt-4">
       <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-        <Clock className="h-4 w-4 text-blue-500" />
+        <AlertTriangle className="h-4 w-4 text-yellow-500" />
         Pending Approvals ({pendingGrades.length})
       </h4>
       
       <div className="space-y-3 mb-4">
-        {Object.entries(groupedGrades).map(([classSubject, grades]: [string, any[]]) => (
-          <div key={classSubject} className="bg-gray-50 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h5 className="font-medium text-sm">{classSubject}</h5>
-                <p className="text-xs text-gray-600">
-                  {grades.length} student{grades.length !== 1 ? 's' : ''} • 
-                  Submitted by {grades[0]?.profiles?.name || 'Unknown Teacher'}
-                </p>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                {grades[0]?.term} {grades[0]?.exam_type}
-              </Badge>
+        {pendingGrades.slice(0, 3).map((grade) => (
+          <div key={grade.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div>
+              <p className="font-medium text-gray-900">{grade.students?.name || 'Unknown Student'}</p>
+              <p className="text-sm text-gray-600">
+                {grade.subjects?.name || 'Unknown Subject'} • {grade.classes?.name || 'Unknown Class'}
+              </p>
+              <p className="text-xs text-gray-500">
+                Score: {grade.score}/{grade.max_score} • Submitted: {new Date(grade.submitted_at).toLocaleDateString()}
+              </p>
             </div>
+            <Badge variant="outline" className="border-yellow-300 text-yellow-700">
+              Pending
+            </Badge>
           </div>
         ))}
+        
+        {pendingGrades.length > 3 && (
+          <p className="text-sm text-gray-600 text-center">
+            +{pendingGrades.length - 3} more grades pending approval
+          </p>
+        )}
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <Button
-          size="sm"
-          onClick={onDetailedReview}
-          variant="outline"
-          className="flex items-center gap-1"
-        >
-          <Eye className="h-4 w-4" />
-          Detailed Review
-        </Button>
-        
         <Button
           size="sm"
           onClick={onApproveAll}
@@ -76,7 +62,7 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
         >
           {processing === 'approve' ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               Approving...
             </>
           ) : (
@@ -89,13 +75,13 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
         
         <Button
           size="sm"
+          variant="destructive"
           onClick={onRejectAll}
           disabled={processing === 'reject'}
-          variant="destructive"
         >
           {processing === 'reject' ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               Rejecting...
             </>
           ) : (
@@ -104,6 +90,15 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
               Reject All
             </>
           )}
+        </Button>
+        
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onDetailedReview}
+        >
+          <Settings className="h-4 w-4 mr-1" />
+          Detailed Review
         </Button>
       </div>
     </div>
