@@ -39,7 +39,7 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
       </h4>
       
       <div className="space-y-3 mb-4">
-        {Object.entries(groupedGrades).map(([classSubject, grades]) => (
+        {Object.entries(groupedGrades).map(([classSubject, grades]: [string, any[]]) => (
           <div key={classSubject} className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center justify-between">
               <div>
