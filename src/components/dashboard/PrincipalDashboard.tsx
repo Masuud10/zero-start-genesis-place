@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
@@ -25,12 +26,12 @@ interface PrincipalDashboardProps {
 const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOpen }) => {
   console.log('🎓 PrincipalDashboard: Rendering for principal:', user.email);
   
-  const { schoolId, isReady } = useSchoolScopedData();
-  const { stats, loading, error } = usePrincipalDashboardData(schoolId);
+  const { schoolId, isReady, validateSchoolAccess } = useSchoolScopedData();
+  const { stats, loading, error, refetch } = usePrincipalDashboardData(schoolId);
   const { toast } = useToast();
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
-  // Ensure school assignment for principals
+  // Enhanced school assignment validation
   if (!isReady) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -43,6 +44,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
   }
 
   if (!schoolId) {
+    console.error('❌ Principal Dashboard: No school assignment found for user:', user.email);
     return (
       <div className="p-6">
         <Alert variant="destructive">
@@ -55,28 +57,68 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     );
   }
 
+  // Validate user has access to this school
+  if (!validateSchoolAccess(schoolId)) {
+    console.error('❌ Principal Dashboard: Access denied to school:', schoolId);
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Access denied. You do not have permission to view this school's data.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   const handleModalOpen = (modalType: string) => {
-    console.log('PrincipalDashboard: Opening modal:', modalType);
+    console.log('🎭 PrincipalDashboard: Opening modal:', modalType, 'for school:', schoolId);
+    
+    // Validate modal access based on school context
+    if (!schoolId) {
+      toast({
+        title: "Access Error",
+        description: "Cannot open modal - no school context available.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setActiveModal(modalType);
     
-    // Delegate some modals to parent if available
+    // Delegate specific modals to parent if available
     if (onModalOpen && ['studentAdmission', 'teacherAdmission', 'addClass'].includes(modalType)) {
       onModalOpen(modalType);
     }
   };
 
   const handleModalClose = () => {
-    console.log('PrincipalDashboard: Closing modal:', activeModal);
+    console.log('🎭 PrincipalDashboard: Closing modal:', activeModal);
     setActiveModal(null);
   };
 
-  const handleSuccess = () => {
-    console.log('Operation completed successfully');
+  const handleSuccess = (message?: string) => {
+    console.log('✅ PrincipalDashboard: Operation completed successfully');
     toast({
       title: "Success",
-      description: "Operation completed successfully.",
+      description: message || "Operation completed successfully.",
     });
     setActiveModal(null);
+    
+    // Refresh dashboard data after successful operations
+    if (refetch) {
+      refetch();
+    }
+  };
+
+  const handleError = (error: string) => {
+    console.error('❌ PrincipalDashboard: Operation failed:', error);
+    toast({
+      title: "Operation Failed",
+      description: error || "An error occurred while processing your request.",
+      variant: "destructive"
+    });
   };
 
   return (
@@ -86,14 +128,20 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         {/* Key Statistics Overview */}
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">School Overview</h2>
-          <PrincipalStatsCards stats={stats} loading={loading} error={error} />
+          <PrincipalStatsCards 
+            stats={stats} 
+            loading={loading} 
+            error={error}
+            schoolId={schoolId}
+            onRefresh={refetch}
+          />
         </section>
         
         {/* School Analytics Overview Section */}
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">School Analytics Overview</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalAnalyticsOverview />
+            <PrincipalAnalyticsOverview schoolId={schoolId} />
           </div>
         </section>
 
@@ -101,7 +149,10 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Grade Management</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalGradesManager />
+            <PrincipalGradesManager 
+              schoolId={schoolId}
+              onModalOpen={handleModalOpen}
+            />
           </div>
         </section>
 
@@ -109,7 +160,10 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Timetable Management</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalTimetableCard />
+            <PrincipalTimetableCard 
+              schoolId={schoolId}
+              onModalOpen={handleModalOpen}
+            />
           </div>
         </section>
 
@@ -117,7 +171,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Financial Summary</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <FinancialOverviewReadOnly />
+            <FinancialOverviewReadOnly schoolId={schoolId} />
           </div>
         </section>
         
@@ -125,17 +179,19 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Certificates & Documents</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <CertificatesList />
+            <CertificatesList schoolId={schoolId} />
           </div>
         </section>
       </div>
       
-      {/* Modals */}
+      {/* Enhanced Modal Management with School Context */}
       {activeModal === 'add-subject' && (
         <AddSubjectModal
           open={true}
           onClose={handleModalClose}
-          onSubjectCreated={handleSuccess}
+          onSubjectCreated={(subject) => handleSuccess(`Subject "${subject.name}" created successfully`)}
+          onError={handleError}
+          schoolId={schoolId}
         />
       )}
 
@@ -143,7 +199,9 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <SubjectAssignmentModal
           open={true}
           onClose={handleModalClose}
-          onAssignmentCreated={handleSuccess}
+          onAssignmentCreated={(assignment) => handleSuccess(`Subject assignment created successfully`)}
+          onError={handleError}
+          schoolId={schoolId}
         />
       )}
 
@@ -151,7 +209,9 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <CertificateGenerator
           open={true}
           onClose={handleModalClose}
-          onCertificateGenerated={handleSuccess}
+          onCertificateGenerated={(certificate) => handleSuccess(`Certificate generated successfully`)}
+          onError={handleError}
+          schoolId={schoolId}
         />
       )}
 
@@ -159,7 +219,9 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <TimetableGenerator
           open={true}
           onClose={handleModalClose}
-          onTimetableGenerated={handleSuccess}
+          onTimetableGenerated={(timetable) => handleSuccess(`Timetable generated successfully`)}
+          onError={handleError}
+          schoolId={schoolId}
         />
       )}
 
@@ -167,7 +229,9 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <PrincipalReportGenerator
           open={true}
           onClose={handleModalClose}
-          onReportGenerated={handleSuccess}
+          onReportGenerated={(report) => handleSuccess(`Report generated successfully`)}
+          onError={handleError}
+          schoolId={schoolId}
         />
       )}
     </div>

@@ -2,6 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
   ChartTooltip,
@@ -9,14 +10,21 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { usePrincipalAnalyticsData } from "@/hooks/usePrincipalAnalyticsData";
-import { Loader2, AlertCircle, TrendingUp } from "lucide-react";
+import { Loader2, AlertCircle, TrendingUp, RefreshCw } from "lucide-react";
 import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const PrincipalAnalytics = () => {
-  const { schoolId, isReady } = useSchoolScopedData();
-  const { data, isLoading, error } = usePrincipalAnalyticsData();
-  const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(schoolId);
+interface PrincipalAnalyticsProps {
+  schoolId?: string;
+}
+
+const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({ schoolId: propSchoolId }) => {
+  const { schoolId: contextSchoolId, isReady, validateSchoolAccess } = useSchoolScopedData();
+  const effectiveSchoolId = propSchoolId || contextSchoolId;
+  
+  const { data, isLoading, error, refetch } = usePrincipalAnalyticsData(effectiveSchoolId);
+  const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(effectiveSchoolId);
 
   const chartConfig = {
     average: { label: "Average Score", color: "#3b82f6" },
@@ -24,7 +32,39 @@ const PrincipalAnalytics = () => {
     improvement: { label: "Improvement", color: "#8b5cf6" },
   };
 
-  if (!isReady || isLoading || academicInfoLoading) {
+  // Enhanced validation
+  if (!isReady) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading Analytics...</span>
+      </div>
+    );
+  }
+
+  if (!effectiveSchoolId) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          No school context available for analytics. Please refresh the page.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!validateSchoolAccess(effectiveSchoolId)) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Access denied. You do not have permission to view this school's analytics.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (isLoading || academicInfoLoading) {
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -34,6 +74,7 @@ const PrincipalAnalytics = () => {
   }
 
   if (error) {
+    console.error('❌ PrincipalAnalytics: Error loading analytics:', error);
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle className="h-12 w-12 text-red-500" />
@@ -41,6 +82,14 @@ const PrincipalAnalytics = () => {
         <p className="text-muted-foreground mt-2">
           {error?.message || "Unknown error occurred"}
         </p>
+        <Button 
+          variant="outline" 
+          className="mt-4" 
+          onClick={() => refetch()}
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
       </Card>
     );
   }
@@ -53,6 +102,14 @@ const PrincipalAnalytics = () => {
         <p className="text-muted-foreground mt-2">
           Analytics will appear as you add students, classes, and start recording grades and attendance.
         </p>
+        <Button 
+          variant="outline" 
+          className="mt-4" 
+          onClick={() => refetch()}
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh Data
+        </Button>
       </Card>
     );
   }
@@ -69,21 +126,33 @@ const PrincipalAnalytics = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>School Analytics Overview</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Displaying data for term:{" "}
-            <span className="font-semibold text-primary">
-              {academicInfo.term || "Current Term"}
-            </span>
-            , year:{" "}
-            <span className="font-semibold text-primary">
-              {academicInfo.year || new Date().getFullYear()}
-            </span>
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>School Analytics Overview</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Displaying data for term:{" "}
+                <span className="font-semibold text-primary">
+                  {academicInfo?.term || "Current Term"}
+                </span>
+                , year:{" "}
+                <span className="font-semibold text-primary">
+                  {academicInfo?.year || new Date().getFullYear()}
+                </span>
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetch()}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </CardHeader>
       </Card>
 
-      {/* Key Metrics */}
+      {/* Key Metrics with enhanced validation */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -93,7 +162,7 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {keyMetrics.totalStudents || 0}
+              {keyMetrics?.totalStudents || 0}
             </div>
             <p className="text-xs text-muted-foreground">Across all classes</p>
           </CardContent>
@@ -107,7 +176,7 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {keyMetrics.schoolAverage ? keyMetrics.schoolAverage.toFixed(1) : '0.0'}%
+              {keyMetrics?.schoolAverage ? keyMetrics.schoolAverage.toFixed(1) : '0.0'}%
             </div>
             <p className="text-xs text-muted-foreground">
               Overall performance
@@ -123,7 +192,7 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {keyMetrics.attendanceRate ? keyMetrics.attendanceRate.toFixed(1) : '0.0'}%
+              {keyMetrics?.attendanceRate ? keyMetrics.attendanceRate.toFixed(1) : '0.0'}%
             </div>
             <p className="text-xs text-muted-foreground">Current term</p>
           </CardContent>
@@ -137,15 +206,15 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {keyMetrics.resultsReleased || 0}/{subjectPerformance.length || 0}
+              {keyMetrics?.resultsReleased || 0}/{subjectPerformance?.length || 0}
             </div>
             <p className="text-xs text-muted-foreground">Subjects published</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Class Performance Overview */}
-      {classPerformance.length > 0 ? (
+      {/* Class Performance Overview with enhanced error handling */}
+      {classPerformance && classPerformance.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>Class Performance Overview</CardTitle>
@@ -177,6 +246,7 @@ const PrincipalAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-muted-foreground">
+              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No class performance data available.</p>
               <p className="text-sm">Add students and grades to see performance metrics.</p>
             </div>
@@ -185,21 +255,21 @@ const PrincipalAnalytics = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subject Performance */}
+        {/* Subject Performance with enhanced validation */}
         <Card>
           <CardHeader>
             <CardTitle>Subject Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {subjectPerformance.length > 0 ? (
+              {subjectPerformance && subjectPerformance.length > 0 ? (
                 subjectPerformance.map((subject, index) => (
                   <div
                     key={`${subject.subject}-${index}`}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div>
-                      <p className="font-medium">{subject.subject}</p>
+                      <p className="font-medium">{subject.subject || 'Unknown Subject'}</p>
                       <p className="text-sm text-muted-foreground">
                         Average: {subject.average ? subject.average.toFixed(1) : '0.0'}%
                       </p>
@@ -228,22 +298,23 @@ const PrincipalAnalytics = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-center text-muted-foreground py-4">
-                  No subject performance data available.
-                </p>
+                <div className="text-center text-muted-foreground py-4">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No subject performance data available.</p>
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Top Students */}
+        {/* Top Students with enhanced validation */}
         <Card>
           <CardHeader>
             <CardTitle>Top Student Rankings</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {studentRankings.length > 0 ? (
+              {studentRankings && studentRankings.length > 0 ? (
                 studentRankings.map((student, index) => (
                   <div
                     key={`${student.name}-${index}`}
@@ -254,9 +325,9 @@ const PrincipalAnalytics = () => {
                         {student.position || index + 1}
                       </div>
                       <div>
-                        <p className="font-medium">{student.name}</p>
+                        <p className="font-medium">{student.name || 'Unknown Student'}</p>
                         <p className="text-sm text-muted-foreground">
-                          {student.class}
+                          {student.class || 'Unknown Class'}
                         </p>
                       </div>
                     </div>
@@ -268,30 +339,31 @@ const PrincipalAnalytics = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-center text-muted-foreground py-4">
-                  No student ranking data available.
-                </p>
+                <div className="text-center text-muted-foreground py-4">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No student ranking data available.</p>
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Teacher Activity Logs */}
+      {/* Teacher Activity Logs with enhanced validation */}
       <Card>
         <CardHeader>
           <CardTitle>Teacher Grading Activity</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {teacherActivity.length > 0 ? (
+            {teacherActivity && teacherActivity.length > 0 ? (
               teacherActivity.map((teacher, index) => (
                 <div
                   key={`${teacher.teacher}-${index}`}
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div>
-                    <p className="font-medium">{teacher.teacher}</p>
+                    <p className="font-medium">{teacher.teacher || 'Unknown Teacher'}</p>
                     <p className="text-sm text-muted-foreground">
                       {teacher.grades || 0} grades submitted
                     </p>
@@ -311,9 +383,10 @@ const PrincipalAnalytics = () => {
                 </div>
               ))
             ) : (
-              <p className="text-center text-muted-foreground py-4">
-                No teacher activity data available.
-              </p>
+              <div className="text-center text-muted-foreground py-4">
+                <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No teacher activity data available.</p>
+              </div>
             )}
           </div>
         </CardContent>

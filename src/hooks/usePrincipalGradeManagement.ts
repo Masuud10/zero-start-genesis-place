@@ -8,11 +8,11 @@ import { useToast } from '@/hooks/use-toast';
 
 export const usePrincipalGradeManagement = () => {
   const { user } = useAuth();
-  const { schoolId } = useSchoolScopedData();
+  const { schoolId, validateSchoolAccess } = useSchoolScopedData();
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
 
-  // Fixed grade fetching with proper error handling and relationship specification
+  // Enhanced grade fetching with comprehensive error handling and validation
   const { data: grades = [], isLoading, refetch, error } = useQuery({
     queryKey: ['principal-grades-approval', user?.id, schoolId],
     queryFn: async () => {
@@ -21,10 +21,22 @@ export const usePrincipalGradeManagement = () => {
         return [];
       }
 
+      // Validate user role
+      if (user.role !== 'principal') {
+        console.error('❌ User is not a principal:', user.role);
+        throw new Error('Unauthorized: Only principals can access grade management');
+      }
+
+      // Validate school access
+      if (!validateSchoolAccess(schoolId)) {
+        console.error('❌ Invalid school access for user:', user.id, 'school:', schoolId);
+        throw new Error('Access denied: Cannot access this school\'s data');
+      }
+
       console.log('🔍 Fetching grades for principal approval:', { schoolId, userId: user.id });
 
       try {
-        // Fixed query with explicit foreign key specification to avoid ambiguity
+        // Optimized query with comprehensive joins and error handling
         const { data: gradeData, error: gradeError } = await supabase
           .from('grades')
           .select(`
@@ -57,18 +69,32 @@ export const usePrincipalGradeManagement = () => {
           .eq('school_id', schoolId)
           .in('status', ['submitted', 'approved', 'rejected', 'released'])
           .order('submitted_at', { ascending: false })
-          .limit(200);
+          .limit(500); // Prevent excessive data loading
 
         if (gradeError) {
           console.error('❌ Error fetching grade data:', gradeError);
-          throw gradeError;
+          throw new Error(`Database error: ${gradeError.message} (Code: ${gradeError.code})`);
         }
 
-        console.log('✅ Fetched grades for principal:', gradeData?.length || 0);
-        return gradeData || [];
-      } catch (err) {
+        if (!gradeData) {
+          console.warn('⚠️ No grade data returned from query');
+          return [];
+        }
+
+        // Validate that all grades belong to the correct school
+        const invalidGrades = gradeData.filter(grade => 
+          !grade.students || !grade.subjects || !grade.classes
+        );
+
+        if (invalidGrades.length > 0) {
+          console.warn('⚠️ Found grades with missing related data:', invalidGrades.length);
+        }
+
+        console.log('✅ Fetched grades for principal:', gradeData.length);
+        return gradeData;
+      } catch (err: any) {
         console.error('❌ Failed to fetch grades:', err);
-        throw err;
+        throw new Error(err.message || 'Failed to load grades');
       }
     },
     enabled: !!user?.id && !!schoolId && user.role === 'principal',
@@ -79,7 +105,13 @@ export const usePrincipalGradeManagement = () => {
   });
 
   const handleApproveGrades = async (gradeIds: string[]) => {
-    if (!user?.id || gradeIds.length === 0) return;
+    if (!user?.id || gradeIds.length === 0) {
+      throw new Error('Invalid request parameters');
+    }
+
+    if (!validateSchoolAccess(schoolId)) {
+      throw new Error('Access denied: Cannot approve grades for this school');
+    }
     
     setProcessing('approve');
     try {
@@ -94,9 +126,13 @@ export const usePrincipalGradeManagement = () => {
           approved_at: new Date().toISOString()
         })
         .in('id', gradeIds)
-        .eq('school_id', schoolId); // Ensure school isolation
+        .eq('school_id', schoolId) // Ensure school isolation
+        .eq('status', 'submitted'); // Only approve submitted grades
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Grade approval failed:', error);
+        throw new Error(`Failed to approve grades: ${error.message}`);
+      }
 
       toast({
         title: "Grades Approved",
@@ -106,18 +142,20 @@ export const usePrincipalGradeManagement = () => {
       await refetch();
     } catch (error: any) {
       console.error('❌ Grade approval failed:', error);
-      toast({
-        title: "Approval Failed",
-        description: error.message || "Failed to approve grades.",
-        variant: "destructive"
-      });
+      throw error;
     } finally {
       setProcessing(null);
     }
   };
 
   const handleRejectGrades = async (gradeIds: string[]) => {
-    if (!user?.id || gradeIds.length === 0) return;
+    if (!user?.id || gradeIds.length === 0) {
+      throw new Error('Invalid request parameters');
+    }
+
+    if (!validateSchoolAccess(schoolId)) {
+      throw new Error('Access denied: Cannot reject grades for this school');
+    }
     
     setProcessing('reject');
     try {
@@ -132,9 +170,13 @@ export const usePrincipalGradeManagement = () => {
           approved_at: new Date().toISOString()
         })
         .in('id', gradeIds)
-        .eq('school_id', schoolId); // Ensure school isolation
+        .eq('school_id', schoolId) // Ensure school isolation
+        .eq('status', 'submitted'); // Only reject submitted grades
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Grade rejection failed:', error);
+        throw new Error(`Failed to reject grades: ${error.message}`);
+      }
 
       toast({
         title: "Grades Rejected",
@@ -144,18 +186,20 @@ export const usePrincipalGradeManagement = () => {
       await refetch();
     } catch (error: any) {
       console.error('❌ Grade rejection failed:', error);
-      toast({
-        title: "Rejection Failed",
-        description: error.message || "Failed to reject grades.",
-        variant: "destructive"
-      });
+      throw error;
     } finally {
       setProcessing(null);
     }
   };
 
   const handleReleaseGrades = async (gradeIds: string[]) => {
-    if (!user?.id || gradeIds.length === 0) return;
+    if (!user?.id || gradeIds.length === 0) {
+      throw new Error('Invalid request parameters');
+    }
+
+    if (!validateSchoolAccess(schoolId)) {
+      throw new Error('Access denied: Cannot release grades for this school');
+    }
     
     setProcessing('release');
     try {
@@ -174,7 +218,10 @@ export const usePrincipalGradeManagement = () => {
         .eq('approved_by_principal', true) // Only release approved grades
         .eq('school_id', schoolId); // Ensure school isolation
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Grade release failed:', error);
+        throw new Error(`Failed to release grades: ${error.message}`);
+      }
 
       toast({
         title: "Grades Released",
@@ -184,11 +231,7 @@ export const usePrincipalGradeManagement = () => {
       await refetch();
     } catch (error: any) {
       console.error('❌ Grade release failed:', error);
-      toast({
-        title: "Release Failed",
-        description: error.message || "Failed to release grades.",
-        variant: "destructive"
-      });
+      throw error;
     } finally {
       setProcessing(null);
     }
