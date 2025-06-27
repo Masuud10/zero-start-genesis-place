@@ -1,139 +1,75 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, Users, BookOpen, Calendar } from 'lucide-react';
+import { Clock, MapPin, User } from 'lucide-react';
+
+interface ScheduleItem {
+  id: string;
+  className: string;
+  subjectName: string;
+  teacherName: string;
+  startTime: string;
+  endTime: string;
+  room: string;
+}
 
 interface TodayScheduleProps {
-  schedule: Array<{
-    id: string;
-    className: string;
-    subjectName: string;
-    teacherName: string;
-    startTime: string;
-    endTime: string;
-    room: string;
-  }>;
+  schedule: ScheduleItem[];
 }
 
 const TodaySchedule: React.FC<TodayScheduleProps> = ({ schedule }) => {
-  const formatTime = (timeString: string) => {
+  const formatTime = (time: string) => {
     try {
-      const time = new Date(`1970-01-01T${timeString}`);
-      return time.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      });
-    } catch {
-      return timeString.substring(0, 5);
+      const [hours, minutes] = time.split(':');
+      const date = new Date();
+      date.setHours(parseInt(hours), parseInt(minutes));
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      return time;
     }
   };
 
-  const getCurrentTimeStatus = (startTime: string, endTime: string) => {
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
-    
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    
-    if (currentTime < startMinutes) return 'upcoming';
-    if (currentTime >= startMinutes && currentTime <= endMinutes) return 'current';
-    return 'completed';
-  };
-
-  if (schedule.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-700">
-            <Clock className="h-5 w-5" />
-            Today's Schedule
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-6 text-gray-500">
-            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="font-medium">No Classes Today</p>
-            <p className="text-sm mt-1">All classes are free or it's a holiday.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-gray-700">
-            <Clock className="h-5 w-5" />
-            Today's Schedule
-          </CardTitle>
-          <Badge variant="outline" className="text-xs">
-            {schedule.length} {schedule.length === 1 ? 'Class' : 'Classes'}
-          </Badge>
-        </div>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium text-gray-900 flex items-center gap-2">
+          <Clock className="h-4 w-4" />
+          Today's Schedule
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {schedule.map((item) => {
-            const timeStatus = getCurrentTimeStatus(item.startTime, item.endTime);
-            return (
-              <div 
-                key={item.id} 
-                className={`flex items-center justify-between p-3 rounded-lg border ${
-                  timeStatus === 'current' 
-                    ? 'bg-blue-50 border-blue-200' 
-                    : timeStatus === 'upcoming'
-                    ? 'bg-gray-50 border-gray-200'
-                    : 'bg-gray-100 border-gray-300 opacity-75'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`text-sm font-mono font-semibold ${
-                    timeStatus === 'current' ? 'text-blue-600' : 'text-gray-600'
-                  }`}>
-                    {formatTime(item.startTime)} - {formatTime(item.endTime)}
+      <CardContent className="pt-0">
+        {schedule.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-4">
+            No classes scheduled for today
+          </p>
+        ) : (
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {schedule.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm">{item.className}</span>
+                    <span className="text-xs text-gray-500">•</span>
+                    <span className="text-sm text-gray-600">{item.subjectName}</span>
                   </div>
-                  
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium text-gray-900">{item.subjectName}</span>
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {item.teacherName}
                     </div>
-                    <div className="flex items-center gap-4 mt-1">
-                      <div className="flex items-center gap-1 text-xs text-gray-600">
-                        <Users className="h-3 w-3" />
-                        {item.className}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {item.teacherName}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {item.room && (
-                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                    <div className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
                       {item.room}
-                    </Badge>
-                  )}
-                  {timeStatus === 'current' && (
-                    <Badge className="bg-blue-600 text-xs">Live</Badge>
-                  )}
-                  {timeStatus === 'upcoming' && (
-                    <Badge variant="secondary" className="text-xs">Upcoming</Badge>
-                  )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xs font-medium text-blue-600">
+                  {formatTime(item.startTime)} - {formatTime(item.endTime)}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

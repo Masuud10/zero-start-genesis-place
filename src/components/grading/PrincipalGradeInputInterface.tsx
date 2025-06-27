@@ -4,55 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { Edit, Save, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { 
-  GraduationCap, 
-  Save, 
-  Plus, 
-  Users, 
-  BookOpen,
-  AlertCircle,
-  CheckCircle
-} from 'lucide-react';
-
-interface Student {
-  id: string;
-  name: string;
-  admission_number: string;
-}
-
-interface Subject {
-  id: string;
-  name: string;
-  code: string;
-}
-
-interface Class {
-  id: string;
-  name: string;
-  level: string;
-}
-
-interface GradeEntry {
-  studentId: string;
-  score: string;
-  comments: string;
-  cbcLevel?: string;
-}
 
 const PrincipalGradeInputInterface: React.FC = () => {
   const { user } = useAuth();
@@ -60,261 +20,254 @@ const PrincipalGradeInputInterface: React.FC = () => {
   const { curriculumType } = useSchoolCurriculum();
   const { toast } = useToast();
 
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedSubject, setSelectedSubject] = useState<string>('');
-  const [selectedTerm, setSelectedTerm] = useState<string>('');
-  const [selectedExamType, setSelectedExamType] = useState<string>('');
-  const [maxScore, setMaxScore] = useState<string>('100');
-  const [gradeEntries, setGradeEntries] = useState<Record<string, GradeEntry>>({});
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedExamType, setSelectedExamType] = useState('');
+  
+  // Standard curriculum fields
+  const [score, setScore] = useState('');
+  const [maxScore, setMaxScore] = useState('100');
+  
+  // CBC curriculum fields
+  const [cbcLevel, setCbcLevel] = useState('');
+  
+  const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
 
   const isCBC = curriculumType === 'cbc';
-  const cbcLevels = ['EX', 'PR', 'AP', 'EM'];
-  const terms = ['Term 1', 'Term 2', 'Term 3'];
-  const examTypes = ['CAT 1', 'CAT 2', 'Mid Term', 'End Term', 'Final Exam'];
 
+  // Load classes
   useEffect(() => {
-    if (schoolId) {
-      fetchClasses();
-    }
-  }, [schoolId]);
-
-  useEffect(() => {
-    if (selectedClass) {
-      fetchSubjects();
-      fetchStudents();
-    }
-  }, [selectedClass]);
-
-  const fetchClasses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('id, name, level')
-        .eq('school_id', schoolId)
-        .order('name');
-
-      if (error) throw error;
-      setClasses(data || []);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load classes",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const fetchSubjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('id, name, code')
-        .eq('school_id', schoolId)
-        .eq('class_id', selectedClass)
-        .order('name');
-
-      if (error) throw error;
-      setSubjects(data || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-      toast({
-        title: "Error",  
-        description: "Failed to load subjects",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('id, name, admission_number')
-        .eq('school_id', schoolId)
-        .eq('class_id', selectedClass)
-        .order('name');
-
-      if (error) throw error;
-      setStudents(data || []);
+    const loadClasses = async () => {
+      if (!schoolId) return;
       
-      // Initialize grade entries for all students
-      const initialEntries: Record<string, GradeEntry> = {};
-      data?.forEach(student => {
-        initialEntries[student.id] = {
-          studentId: student.id,
-          score: '',
-          comments: '',
-          cbcLevel: isCBC ? 'AP' : undefined
-        };
-      });
-      setGradeEntries(initialEntries);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load students", 
-        variant: "destructive"
-      });
-    }
-  };
-
-  const updateGradeEntry = (studentId: string, field: keyof GradeEntry, value: string) => {
-    setGradeEntries(prev => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        [field]: value
-      }
-    }));
-  };
-
-  const handleSaveGrades = async () => {
-    if (!selectedClass || !selectedSubject || !selectedTerm || !selectedExamType) {
-      toast({
-        title: "Error",
-        description: "Please select class, subject, term, and exam type",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate entries
-    const validEntries = Object.values(gradeEntries).filter(entry => 
-      isCBC ? entry.cbcLevel : (entry.score && !isNaN(parseFloat(entry.score)))
-    );
-
-    if (validEntries.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please enter at least one grade",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const gradesToInsert = validEntries.map(entry => {
-        const baseGrade = {
-          student_id: entry.studentId,
-          subject_id: selectedSubject,
-          class_id: selectedClass,
-          school_id: schoolId,
-          term: selectedTerm,
-          exam_type: selectedExamType,
-          submitted_by: user?.id,
-          submitted_at: new Date().toISOString(),
-          status: 'approved', // Principal entries are pre-approved
-          approved_by_principal: true,
-          approved_by: user?.id,
-          approved_at: new Date().toISOString(),
-          comments: entry.comments || null,
-          curriculum_type: curriculumType
-        };
-
-        if (isCBC) {
-          return {
-            ...baseGrade,
-            cbc_performance_level: entry.cbcLevel,
-            performance_level: entry.cbcLevel,
-            competency_level: entry.cbcLevel
-          };
-        } else {
-          const score = parseFloat(entry.score);
-          const maxScoreNum = parseFloat(maxScore) || 100;
-          const percentage = (score / maxScoreNum) * 100;
+      try {
+        const { data, error } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('name');
           
-          return {
-            ...baseGrade,
-            score: score,
-            max_score: maxScoreNum,
-            percentage: percentage,
-            raw_score: score
-          };
-        }
+        if (error) throw error;
+        setClasses(data || []);
+      } catch (error: any) {
+        console.error('Error loading classes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load classes.",
+          variant: "destructive"
+        });
+      }
+    };
+    loadClasses();
+  }, [schoolId, toast]);
+
+  // Load subjects for selected class
+  useEffect(() => {
+    const loadSubjects = async () => {
+      if (!selectedClass || !schoolId) {
+        setSubjects([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('subjects')
+          .select('*')
+          .eq('class_id', selectedClass)
+          .eq('school_id', schoolId)
+          .order('name');
+
+        if (error) throw error;
+        setSubjects(data || []);
+      } catch (error: any) {
+        console.error('Error loading subjects:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load subjects.",
+          variant: "destructive"
+        });
+      }
+    };
+    loadSubjects();
+  }, [selectedClass, schoolId, toast]);
+
+  // Load students for selected class
+  useEffect(() => {
+    const loadStudents = async () => {
+      if (!selectedClass || !schoolId) {
+        setStudents([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('*')
+          .eq('class_id', selectedClass)
+          .eq('school_id', schoolId)
+          .order('name');
+
+        if (error) throw error;
+        setStudents(data || []);
+      } catch (error: any) {
+        console.error('Error loading students:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load students.",
+          variant: "destructive"
+        });
+      }
+    };
+    loadStudents();
+  }, [selectedClass, schoolId, toast]);
+
+  const validateForm = () => {
+    if (!selectedClass || !selectedSubject || !selectedStudent || !selectedTerm || !selectedExamType) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
       });
+      return false;
+    }
+
+    if (isCBC && !cbcLevel) {
+      toast({
+        title: "Missing CBC Level",
+        description: "Please select a CBC performance level.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!isCBC && (!score || !maxScore)) {
+      toast({
+        title: "Missing Score",
+        description: "Please enter both score and maximum score.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!isCBC && parseFloat(score) > parseFloat(maxScore)) {
+      toast({
+        title: "Invalid Score",
+        description: "Score cannot be greater than maximum score.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm() || !user?.id || !schoolId) return;
+
+    setLoading(true);
+    try {
+      const gradeData = {
+        student_id: selectedStudent,
+        subject_id: selectedSubject,
+        class_id: selectedClass,
+        school_id: schoolId,
+        term: selectedTerm,
+        exam_type: selectedExamType.toUpperCase(),
+        status: 'approved', // Principal entries are auto-approved
+        submitted_by: user.id,
+        approved_by: user.id,
+        approved_by_principal: true,
+        submitted_at: new Date().toISOString(),
+        approved_at: new Date().toISOString(),
+        curriculum_type: curriculumType || 'standard',
+        comments: comments || null,
+        ...(isCBC
+          ? { 
+              cbc_performance_level: cbcLevel,
+              score: null,
+              max_score: null,
+              percentage: null
+            }
+          : { 
+              score: parseFloat(score),
+              max_score: parseFloat(maxScore),
+              percentage: (parseFloat(score) / parseFloat(maxScore)) * 100,
+              cbc_performance_level: null
+            }
+        )
+      };
 
       const { error } = await supabase
         .from('grades')
-        .insert(gradesToInsert);
+        .upsert(gradeData, {
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
+          ignoreDuplicates: false
+        });
 
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: `${validEntries.length} grades saved successfully`,
+        title: "Grade Saved",
+        description: `Grade has been successfully saved and approved using ${curriculumType?.toUpperCase() || 'STANDARD'} curriculum.`,
       });
 
       // Reset form
-      setGradeEntries(prev => {
-        const reset: Record<string, GradeEntry> = {};
-        Object.keys(prev).forEach(studentId => {
-          reset[studentId] = {
-            studentId,
-            score: '',
-            comments: '',
-            cbcLevel: isCBC ? 'AP' : undefined
-          };
-        });
-        return reset;
-      });
+      setSelectedStudent('');
+      setScore('');
+      setMaxScore('100');
+      setCbcLevel('');
+      setComments('');
 
     } catch (error: any) {
-      console.error('Error saving grades:', error);
+      console.error('Grade submission error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save grades",
+        description: error.message || "Failed to save grade.",
         variant: "destructive"
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const getCBCBadgeColor = (level: string) => {
-    switch (level) {
-      case 'EX': return 'bg-green-100 text-green-800';
-      case 'PR': return 'bg-blue-100 text-blue-800';
-      case 'AP': return 'bg-yellow-100 text-yellow-800';
-      case 'EM': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const cbcLevels = [
+    { value: 'exceeding_expectations', label: 'Exceeding Expectations (EE)' },
+    { value: 'meeting_expectations', label: 'Meeting Expectations (ME)' },
+    { value: 'approaching_expectations', label: 'Approaching Expectations (AE)' },
+    { value: 'below_expectations', label: 'Below Expectations (BE)' }
+  ];
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
+            <Edit className="h-5 w-5" />
             Principal Grade Input
-            <Badge className={`ml-2 ${isCBC ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+            <Badge className={isCBC ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}>
               {isCBC ? 'CBC' : 'Standard'} Curriculum
             </Badge>
           </CardTitle>
-          <p className="text-sm text-gray-600">
-            Enter grades directly as a principal. These grades will be automatically approved.
-          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Selection Controls */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Class</label>
+              <Label htmlFor="class">Class *</Label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map(cls => (
+                  {classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
+                      {cls.name} {cls.stream && `(${cls.stream})`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -322,13 +275,13 @@ const PrincipalGradeInputInterface: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Subject</label>
+              <Label htmlFor="subject">Subject *</Label>
               <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={!selectedClass}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects.map(subject => (
+                  {subjects.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
                       {subject.name}
                     </SelectItem>
@@ -338,15 +291,15 @@ const PrincipalGradeInputInterface: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Term</label>
-              <Select value={selectedTerm} onValueChange={setSelectedTerm}>
+              <Label htmlFor="student">Student *</Label>
+              <Select value={selectedStudent} onValueChange={setSelectedStudent} disabled={!selectedClass}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select term" />
+                  <SelectValue placeholder="Select student" />
                 </SelectTrigger>
                 <SelectContent>
-                  {terms.map(term => (
-                    <SelectItem key={term} value={term}>
-                      {term}
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name} ({student.admission_number})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -354,167 +307,107 @@ const PrincipalGradeInputInterface: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Exam Type</label>
+              <Label htmlFor="term">Term *</Label>
+              <Select value={selectedTerm} onValueChange={setSelectedTerm}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select term" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Term 1">Term 1</SelectItem>
+                  <SelectItem value="Term 2">Term 2</SelectItem>
+                  <SelectItem value="Term 3">Term 3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="examType">Exam Type *</Label>
               <Select value={selectedExamType} onValueChange={setSelectedExamType}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select exam type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {examTypes.map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="CAT">CAT</SelectItem>
+                  <SelectItem value="MID_TERM">Mid Term</SelectItem>
+                  <SelectItem value="END_TERM">End Term</SelectItem>
+                  <SelectItem value="MOCK">Mock Exam</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {isCBC ? (
+              <div>
+                <Label htmlFor="cbcLevel">CBC Performance Level *</Label>
+                <Select value={cbcLevel} onValueChange={setCbcLevel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select performance level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cbcLevels.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="score">Score *</Label>
+                  <Input
+                    id="score"
+                    type="number"
+                    value={score}
+                    onChange={(e) => setScore(e.target.value)}
+                    placeholder="Enter score"
+                    min="0"
+                    max={maxScore}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="maxScore">Maximum Score *</Label>
+                  <Input
+                    id="maxScore"
+                    type="number"
+                    value={maxScore}
+                    onChange={(e) => setMaxScore(e.target.value)}
+                    placeholder="Enter maximum score"
+                    min="1"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
-          {!isCBC && (
-            <div className="w-32">
-              <label className="text-sm font-medium mb-2 block">Max Score</label>
-              <Input
-                type="number"
-                value={maxScore}
-                onChange={(e) => setMaxScore(e.target.value)}
-                min="1"
-                max="1000"
-              />
-            </div>
-          )}
+          <div>
+            <Label htmlFor="comments">Comments (Optional)</Label>
+            <Textarea
+              id="comments"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              placeholder="Add any additional comments about the student's performance..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Grade
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Grade Entry Table */}
-      {students.length > 0 && selectedClass && selectedSubject && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Grade Entry Sheet
-              <Badge variant="outline" className="ml-2">
-                {students.length} Students
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Admission No.</TableHead>
-                    {isCBC ? (
-                      <TableHead>Performance Level</TableHead>
-                    ) : (
-                      <TableHead>Score (/{maxScore})</TableHead>
-                    )}
-                    <TableHead>Comments</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {students.map(student => (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>{student.admission_number}</TableCell>
-                      <TableCell>
-                        {isCBC ? (
-                          <Select
-                            value={gradeEntries[student.id]?.cbcLevel || 'AP'}
-                            onValueChange={(value) => updateGradeEntry(student.id, 'cbcLevel', value)}
-                          >
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {cbcLevels.map(level => (
-                                <SelectItem key={level} value={level}>
-                                  <Badge className={getCBCBadgeColor(level)}>
-                                    {level}
-                                  </Badge>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            type="number"
-                            value={gradeEntries[student.id]?.score || ''}
-                            onChange={(e) => updateGradeEntry(student.id, 'score', e.target.value)}
-                            min="0"
-                            max={maxScore}
-                            step="0.5"
-                            className="w-20"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Textarea
-                          value={gradeEntries[student.id]?.comments || ''}
-                          onChange={(e) => updateGradeEntry(student.id, 'comments', e.target.value)}
-                          placeholder="Optional comments"
-                          rows={1}
-                          className="min-h-[40px]"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-              <Button
-                onClick={() => {
-                  // Reset all entries
-                  setGradeEntries(prev => {
-                    const reset: Record<string, GradeEntry> = {};
-                    Object.keys(prev).forEach(studentId => {
-                      reset[studentId] = {
-                        studentId,
-                        score: '',
-                        comments: '',
-                        cbcLevel: isCBC ? 'AP' : undefined
-                      };
-                    });
-                    return reset;
-                  });
-                }}
-                variant="outline"
-                disabled={saving}
-              >
-                Clear All
-              </Button>
-              <Button
-                onClick={handleSaveGrades}
-                disabled={saving || !selectedClass || !selectedSubject || !selectedTerm || !selectedExamType}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {saving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Grades
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {students.length === 0 && selectedClass && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-500">No students found in selected class</p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

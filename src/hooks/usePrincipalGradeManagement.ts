@@ -12,7 +12,7 @@ export const usePrincipalGradeManagement = () => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
 
-  // Fixed grade fetching with explicit relationship specification
+  // Fixed grade fetching with proper error handling and relationship specification
   const { data: grades = [], isLoading, refetch, error } = useQuery({
     queryKey: ['principal-grades-approval', user?.id, schoolId],
     queryFn: async () => {
@@ -46,6 +46,9 @@ export const usePrincipalGradeManagement = () => {
             created_at,
             approved_by_principal,
             released_to_parents,
+            curriculum_type,
+            cbc_performance_level,
+            comments,
             students!grades_student_id_fkey(id, name, admission_number),
             subjects!grades_subject_id_fkey(id, name, code),
             classes!grades_class_id_fkey(id, name),
@@ -54,7 +57,7 @@ export const usePrincipalGradeManagement = () => {
           .eq('school_id', schoolId)
           .in('status', ['submitted', 'approved', 'rejected', 'released'])
           .order('submitted_at', { ascending: false })
-          .limit(100);
+          .limit(200);
 
         if (gradeError) {
           console.error('❌ Error fetching grade data:', gradeError);
@@ -71,11 +74,12 @@ export const usePrincipalGradeManagement = () => {
     enabled: !!user?.id && !!schoolId && user.role === 'principal',
     staleTime: 30000,
     refetchInterval: 60000,
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const handleApproveGrades = async (gradeIds: string[]) => {
-    if (!user?.id) return;
+    if (!user?.id || gradeIds.length === 0) return;
     
     setProcessing('approve');
     try {
@@ -89,7 +93,8 @@ export const usePrincipalGradeManagement = () => {
           approved_by: user.id,
           approved_at: new Date().toISOString()
         })
-        .in('id', gradeIds);
+        .in('id', gradeIds)
+        .eq('school_id', schoolId); // Ensure school isolation
 
       if (error) throw error;
 
@@ -98,7 +103,7 @@ export const usePrincipalGradeManagement = () => {
         description: `${gradeIds.length} grades have been approved successfully.`,
       });
 
-      refetch();
+      await refetch();
     } catch (error: any) {
       console.error('❌ Grade approval failed:', error);
       toast({
@@ -112,7 +117,7 @@ export const usePrincipalGradeManagement = () => {
   };
 
   const handleRejectGrades = async (gradeIds: string[]) => {
-    if (!user?.id) return;
+    if (!user?.id || gradeIds.length === 0) return;
     
     setProcessing('reject');
     try {
@@ -126,7 +131,8 @@ export const usePrincipalGradeManagement = () => {
           approved_by: user.id,
           approved_at: new Date().toISOString()
         })
-        .in('id', gradeIds);
+        .in('id', gradeIds)
+        .eq('school_id', schoolId); // Ensure school isolation
 
       if (error) throw error;
 
@@ -135,7 +141,7 @@ export const usePrincipalGradeManagement = () => {
         description: `${gradeIds.length} grades have been rejected and sent back to teacher.`,
       });
 
-      refetch();
+      await refetch();
     } catch (error: any) {
       console.error('❌ Grade rejection failed:', error);
       toast({
@@ -149,7 +155,7 @@ export const usePrincipalGradeManagement = () => {
   };
 
   const handleReleaseGrades = async (gradeIds: string[]) => {
-    if (!user?.id) return;
+    if (!user?.id || gradeIds.length === 0) return;
     
     setProcessing('release');
     try {
@@ -161,10 +167,12 @@ export const usePrincipalGradeManagement = () => {
           status: 'released',
           released_to_parents: true,
           released_by: user.id,
-          released_at: new Date().toISOString()
+          released_at: new Date().toISOString(),
+          is_released: true
         })
         .in('id', gradeIds)
-        .eq('approved_by_principal', true);
+        .eq('approved_by_principal', true) // Only release approved grades
+        .eq('school_id', schoolId); // Ensure school isolation
 
       if (error) throw error;
 
@@ -173,7 +181,7 @@ export const usePrincipalGradeManagement = () => {
         description: `${gradeIds.length} grades have been released to students and parents.`,
       });
 
-      refetch();
+      await refetch();
     } catch (error: any) {
       console.error('❌ Grade release failed:', error);
       toast({
