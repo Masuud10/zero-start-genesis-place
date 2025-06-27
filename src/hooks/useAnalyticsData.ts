@@ -43,16 +43,47 @@ export const useAnalyticsData = (schoolId?: string) => {
         throw new Error('School ID is required');
       }
 
-      // Fetch basic counts
+      console.log('🔍 Fetching analytics data for school:', effectiveSchoolId);
+
+      // Fetch basic counts with proper school isolation
       const [studentsRes, teachersRes, classesRes, subjectsRes] = await Promise.all([
-        supabase.from('students').select('id', { count: 'exact' }).eq('school_id', effectiveSchoolId).eq('is_active', true),
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('school_id', effectiveSchoolId).eq('role', 'teacher'),
-        supabase.from('classes').select('id', { count: 'exact' }).eq('school_id', effectiveSchoolId),
-        supabase.from('subjects').select('id', { count: 'exact' }).eq('school_id', effectiveSchoolId)
+        supabase
+          .from('students')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId)
+          .eq('is_active', true),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId)
+          .eq('role', 'teacher'),
+        supabase
+          .from('classes')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId),
+        supabase
+          .from('subjects')
+          .select('id', { count: 'exact' })
+          .eq('school_id', effectiveSchoolId)
+          .eq('is_active', true)
       ]);
 
-      // Fetch grades data with proper subject join
-      const { data: gradesData } = await supabase
+      // Handle potential errors in basic counts
+      if (studentsRes.error) {
+        console.error('Error fetching students:', studentsRes.error);
+      }
+      if (teachersRes.error) {
+        console.error('Error fetching teachers:', teachersRes.error);
+      }
+      if (classesRes.error) {
+        console.error('Error fetching classes:', classesRes.error);
+      }
+      if (subjectsRes.error) {
+        console.error('Error fetching subjects:', subjectsRes.error);
+      }
+
+      // Fetch grades data with proper school isolation and subject join
+      const { data: gradesData, error: gradesError } = await supabase
         .from('grades')
         .select(`
           score,
@@ -66,21 +97,33 @@ export const useAnalyticsData = (schoolId?: string) => {
         .eq('status', 'released')
         .not('score', 'is', null);
 
-      // Fetch attendance data
-      const { data: attendanceData } = await supabase
+      if (gradesError) {
+        console.error('Error fetching grades:', gradesError);
+      }
+
+      // Fetch attendance data with proper school isolation
+      const { data: attendanceData, error: attendanceError } = await supabase
         .from('attendance')
         .select('status, date')
         .eq('school_id', effectiveSchoolId)
         .gte('date', new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]);
 
-      // Fetch fees data
-      const { data: feesData } = await supabase
+      if (attendanceError) {
+        console.error('Error fetching attendance:', attendanceError);
+      }
+
+      // Fetch fees data with proper school isolation
+      const { data: feesData, error: feesError } = await supabase
         .from('fees')
         .select('amount, paid_amount, status')
         .eq('school_id', effectiveSchoolId)
         .eq('academic_year', new Date().getFullYear().toString());
 
-      // Calculate averages and trends
+      if (feesError) {
+        console.error('Error fetching fees:', feesError);
+      }
+
+      // Calculate metrics
       const totalStudents = studentsRes.count || 0;
       const totalTeachers = teachersRes.count || 0;
       const totalClasses = classesRes.count || 0;
@@ -92,7 +135,7 @@ export const useAnalyticsData = (schoolId?: string) => {
       const attendanceRate = attendanceData?.length ?
         (attendanceData.filter(a => a.status === 'present').length / attendanceData.length) * 100 : 0;
 
-      // Subject performance
+      // Subject performance with null safety
       const subjectPerformance = new Map<string, number[]>();
       gradesData?.forEach(grade => {
         const subjectName = (grade.subjects as any)?.name || 'Unknown';
@@ -104,11 +147,11 @@ export const useAnalyticsData = (schoolId?: string) => {
 
       const academicPerformance = Array.from(subjectPerformance.entries()).map(([subject, scores]) => ({
         subject,
-        average: scores.reduce((sum, score) => sum + score, 0) / scores.length,
-        trend: 'stable' as const // Simplified for now
+        average: scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0,
+        trend: 'stable' as const // Simplified for now - could be enhanced with historical data
       }));
 
-      // Grade distribution
+      // Grade distribution with null safety
       const gradeDistribution = new Map<string, number>();
       gradesData?.forEach(grade => {
         const letter = grade.letter_grade || 'N/A';
@@ -121,7 +164,7 @@ export const useAnalyticsData = (schoolId?: string) => {
         percentage: gradesData?.length ? (count / gradesData.length) * 100 : 0
       }));
 
-      // Monthly attendance (last 6 months)
+      // Monthly attendance (last 6 months) with proper date handling
       const monthlyAttendance = [];
       for (let i = 5; i >= 0; i--) {
         const date = new Date();
@@ -143,10 +186,19 @@ export const useAnalyticsData = (schoolId?: string) => {
         });
       }
 
-      // Fee collection
-      const totalExpected = feesData?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
-      const totalCollected = feesData?.reduce((sum, fee) => sum + fee.paid_amount, 0) || 0;
-      const feeCollectionRate = totalExpected ? (totalCollected / totalExpected) * 100 : 0;
+      // Fee collection with null safety
+      const totalExpected = feesData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+      const totalCollected = feesData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+      const feeCollectionRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0;
+
+      console.log('📊 Analytics data processed:', {
+        totalStudents,
+        totalTeachers,
+        averageGrade: averageGrade.toFixed(1),
+        attendanceRate: attendanceRate.toFixed(1),
+        feeCollectionRate: feeCollectionRate.toFixed(1),
+        academicPerformanceCount: academicPerformance.length
+      });
 
       return {
         totalStudents,
@@ -167,7 +219,10 @@ export const useAnalyticsData = (schoolId?: string) => {
       };
     },
     enabled: !!effectiveSchoolId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 10 * 60 * 1000, // 10 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes - reduced for more real-time updates
+    refetchInterval: 5 * 60 * 1000, // 5 minutes - auto refresh
+    refetchOnWindowFocus: true,
+    retry: 2,
+    retryDelay: 1000,
   });
 };
