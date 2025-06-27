@@ -47,12 +47,26 @@ const SubjectManagementTab = () => {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
 
+  // Map CurriculumType to form curriculum options
+  const getFormCurriculumValue = (curriculumType: string) => {
+    switch (curriculumType) {
+      case 'cbc':
+        return 'cbc';
+      case 'igcse':
+        return 'igcse';
+      case 'standard':
+        return 'cbc'; // default to CBC for standard
+      default:
+        return 'cbc';
+    }
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     code: '',
     class_id: '',
     teacher_id: '',
-    curriculum: curriculumType || 'cbc',
+    curriculum: getFormCurriculumValue(curriculumType || 'standard'),
     category: 'core',
     credit_hours: 1,
     description: ''
@@ -68,7 +82,7 @@ const SubjectManagementTab = () => {
 
   useEffect(() => {
     if (curriculumType) {
-      setFormData(prev => ({ ...prev, curriculum: curriculumType }));
+      setFormData(prev => ({ ...prev, curriculum: getFormCurriculumValue(curriculumType) }));
     }
   }, [curriculumType]);
 
@@ -205,7 +219,7 @@ const SubjectManagementTab = () => {
         school_id: schoolId!,
         class_id: formData.class_id || null,
         teacher_id: formData.teacher_id || null,
-        curriculum: formData.curriculum || curriculumType || 'cbc',
+        curriculum: formData.curriculum || getFormCurriculumValue(curriculumType || 'standard'),
         category: formData.category || 'core',
         credit_hours: formData.credit_hours || 1,
         description: formData.description?.trim() || null,
@@ -250,7 +264,7 @@ const SubjectManagementTab = () => {
         code: '', 
         class_id: '', 
         teacher_id: '', 
-        curriculum: curriculumType || 'cbc',
+        curriculum: getFormCurriculumValue(curriculumType || 'standard'),
         category: 'core',
         credit_hours: 1,
         description: ''
@@ -277,7 +291,7 @@ const SubjectManagementTab = () => {
       code: subject.code,
       class_id: subject.class_id || '',
       teacher_id: subject.teacher_id || '',
-      curriculum: subject.curriculum || curriculumType || 'cbc',
+      curriculum: subject.curriculum || getFormCurriculumValue(curriculumType || 'standard'),
       category: subject.category || 'core',
       credit_hours: subject.credit_hours || 1,
       description: subject.description || ''
@@ -326,7 +340,7 @@ const SubjectManagementTab = () => {
       code: '', 
       class_id: '', 
       teacher_id: '', 
-      curriculum: curriculumType || 'cbc',
+      curriculum: getFormCurriculumValue(curriculumType || 'standard'),
       category: 'core',
       credit_hours: 1,
       description: ''
