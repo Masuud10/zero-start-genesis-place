@@ -11,6 +11,7 @@ import { Award, Download, Eye, Trash2, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import CertificateViewer from './CertificateViewer';
+import { CertificatePerformance } from '@/types/certificate';
 
 const CertificatesList = () => {
   const { user } = useAuth();
@@ -97,6 +98,24 @@ const CertificatesList = () => {
   const handleDownload = (certificate: any) => {
     // This would trigger the PDF download from CertificateViewer
     handleView(certificate);
+  };
+
+  // Helper function to safely access performance data
+  const getPerformanceData = (certificate: any): CertificatePerformance | null => {
+    try {
+      if (typeof certificate.performance === 'string') {
+        return JSON.parse(certificate.performance);
+      }
+      return certificate.performance as CertificatePerformance;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper function to get school name from performance data
+  const getSchoolName = (certificate: any): string => {
+    const performanceData = getPerformanceData(certificate);
+    return performanceData?.school?.name || 'Unknown School';
   };
 
   // Access control check - only allowed roles can view certificates
@@ -225,7 +244,7 @@ const CertificatesList = () => {
                       {user?.role === 'edufam_admin' && (
                         <TableCell>
                           <div className="text-sm text-gray-700">
-                            {certificate.performance?.school?.name || 'Unknown School'}
+                            {getSchoolName(certificate)}
                           </div>
                         </TableCell>
                       )}
