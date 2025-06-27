@@ -22,6 +22,8 @@ export default {
       fontFamily: {
         'playfair': ['Playfair Display', 'serif'],
         'open-sans': ['Open Sans', 'sans-serif'],
+        'great-vibes': ['Great Vibes', 'cursive'],
+        'cinzel': ['Cinzel', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
