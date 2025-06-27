@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Calendar, Clock, Users, BookOpen, Loader2, Plus, Trash2, Download, Send, Eye } from 'lucide-react';
+import { Calendar, Clock, Users, BookOpen, Loader2, Plus, Trash2, Download, Send, Eye, AlertTriangle, CheckCircle, Save } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import TimetablePreview from './TimetablePreview';
@@ -50,6 +50,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
   const [conflicts, setConflicts] = useState<{ [key: number]: ConflictCheck }>({});
   const [showPreview, setShowPreview] = useState(false);
   const [currentTerm, setCurrentTerm] = useState('Term 1');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { toast } = useToast();
   const { schoolId } = useSchoolScopedData();
@@ -81,14 +82,14 @@ const EnhancedTimetableGenerator: React.FC = () => {
     enabled: !!schoolId
   });
 
-  // Get classes
+  // Get classes for the school
   const { data: classes = [] } = useQuery({
     queryKey: ['classes', schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
       const { data, error } = await supabase
         .from('classes')
-        .select('id, name, level, stream')
+        .select('id, name, level, stream, capacity')
         .eq('school_id', schoolId)
         .order('name');
       
@@ -98,20 +99,20 @@ const EnhancedTimetableGenerator: React.FC = () => {
     enabled: !!schoolId
   });
 
-  // Get subjects for selected class
+  // Get subjects for selected class with teacher assignments
   const { data: subjects = [] } = useQuery({
     queryKey: ['class-subjects', selectedClass, schoolId],
     queryFn: async () => {
       if (!selectedClass || !schoolId) return [];
       
-      // Get subjects assigned to this class through subject_teacher_assignments
       const { data, error } = await supabase
         .from('subject_teacher_assignments')
         .select(`
+          id,
           subject_id,
           teacher_id,
           subjects!inner(id, name, code),
-          profiles!subject_teacher_assignments_teacher_id_fkey(id, name)
+          profiles!subject_teacher_assignments_teacher_id_fkey(id, name, email)
         `)
         .eq('class_id', selectedClass)
         .eq('school_id', schoolId)
@@ -123,7 +124,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
     enabled: !!selectedClass && !!schoolId
   });
 
-  // Get teachers
+  // Get all teachers for the school
   const { data: teachers = [] } = useQuery({
     queryKey: ['teachers', schoolId],
     queryFn: async () => {
@@ -149,9 +150,9 @@ const EnhancedTimetableGenerator: React.FC = () => {
       const { data, error } = await supabase
         .from('timetables')
         .select(`
-          id, subject_id, teacher_id, day_of_week, start_time, end_time, room,
-          subjects(name, code),
-          profiles!timetables_teacher_id_fkey(name)
+          id, subject_id, teacher_id, day_of_week, start_time, end_time, room, is_published,
+          subjects(id, name, code),
+          profiles!timetables_teacher_id_fkey(id, name, email)
         `)
         .eq('class_id', selectedClass)
         .eq('school_id', schoolId)
@@ -165,7 +166,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
     enabled: !!selectedClass && !!schoolId
   });
 
-  // Check for conflicts
+  // Check for conflicts in timetable entries
   const checkConflicts = (entry: TimetableEntry, index: number): ConflictCheck => {
     const daySlotEntries = timetableEntries.filter((e, i) => 
       i !== index && 
@@ -184,7 +185,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
     }
 
     // Check room conflict (if rooms are specified)
-    if (entry.room) {
+    if (entry.room && entry.room.trim() !== '') {
       const roomConflict = daySlotEntries.find(e => e.room === entry.room);
       if (roomConflict) {
         return {
@@ -198,53 +199,104 @@ const EnhancedTimetableGenerator: React.FC = () => {
     return { hasConflict: false };
   };
 
-  // Auto-generate timetable
-  const handleAutoGenerate = () => {
+  // Smart auto-generate timetable
+  const handleAutoGenerate = async () => {
     if (!subjects.length) {
       toast({
-        title: "No Subjects",
-        description: "Please ensure subjects are assigned to this class first.",
+        title: "No Subjects Available",
+        description: "Please ensure subjects are assigned to teachers for this class first.",
         variant: "destructive"
       });
       return;
     }
 
-    const entries: TimetableEntry[] = [];
-    const periodsPerDay = 8;
-    const daysPerWeek = 5;
+    setIsGenerating(true);
     
-    subjects.forEach((subjectAssignment, index) => {
-      const dayIndex = Math.floor(index / periodsPerDay) % daysPerWeek;
-      const periodIndex = index % periodsPerDay;
+    try {
+      const entries: TimetableEntry[] = [];
+      const usedSlots = new Set<string>();
+      const teacherSchedule = new Map<string, Set<string>>();
       
-      if (dayIndex < DAYS_OF_WEEK.length && periodIndex < TIME_SLOTS.length - 1) {
-        const startTime = TIME_SLOTS[periodIndex];
-        const endTime = TIME_SLOTS[periodIndex + 1];
+      // Create balanced distribution
+      let currentDay = 0;
+      let currentPeriod = 0;
+      const maxPeriodsPerDay = 8;
+      
+      subjects.forEach((subjectAssignment) => {
+        let placed = false;
+        let attempts = 0;
         
-        entries.push({
-          subject_id: subjectAssignment.subject_id,
-          teacher_id: subjectAssignment.teacher_id,
-          day_of_week: DAYS_OF_WEEK[dayIndex].value,
-          start_time: startTime,
-          end_time: endTime,
-          room: `Room ${(index % 10) + 1}`
-        });
-      }
-    });
+        while (!placed && attempts < 50) {
+          const dayOfWeek = DAYS_OF_WEEK[currentDay % DAYS_OF_WEEK.length].value;
+          const startTime = TIME_SLOTS[currentPeriod];
+          const endTime = TIME_SLOTS[currentPeriod + 1];
+          
+          if (!endTime) {
+            currentDay++;
+            currentPeriod = 0;
+            attempts++;
+            continue;
+          }
+          
+          const slotKey = `${dayOfWeek}-${startTime}`;
+          const teacherSlotKey = `${subjectAssignment.teacher_id}-${dayOfWeek}-${startTime}`;
+          
+          // Check if slot is available and teacher is free
+          if (!usedSlots.has(slotKey) && !teacherSchedule.get(subjectAssignment.teacher_id)?.has(`${dayOfWeek}-${startTime}`)) {
+            entries.push({
+              subject_id: subjectAssignment.subject_id,
+              teacher_id: subjectAssignment.teacher_id,
+              day_of_week: dayOfWeek,
+              start_time: startTime,
+              end_time: endTime,
+              room: `Room ${Math.floor(Math.random() * 20) + 1}`
+            });
+            
+            usedSlots.add(slotKey);
+            
+            // Track teacher's schedule
+            if (!teacherSchedule.has(subjectAssignment.teacher_id)) {
+              teacherSchedule.set(subjectAssignment.teacher_id, new Set());
+            }
+            teacherSchedule.get(subjectAssignment.teacher_id)?.add(`${dayOfWeek}-${startTime}`);
+            
+            placed = true;
+          }
+          
+          currentPeriod++;
+          if (currentPeriod >= maxPeriodsPerDay - 1) {
+            currentDay++;
+            currentPeriod = 0;
+          }
+          
+          attempts++;
+        }
+      });
 
-    setTimetableEntries(entries);
-    
-    // Check conflicts for all entries
-    const newConflicts: { [key: number]: ConflictCheck } = {};
-    entries.forEach((entry, index) => {
-      newConflicts[index] = checkConflicts(entry, index);
-    });
-    setConflicts(newConflicts);
+      setTimetableEntries(entries);
+      
+      // Check conflicts for all entries
+      const newConflicts: { [key: number]: ConflictCheck } = {};
+      entries.forEach((entry, index) => {
+        newConflicts[index] = checkConflicts(entry, index);
+      });
+      setConflicts(newConflicts);
 
-    toast({
-      title: "Timetable Generated",
-      description: "Auto-generated timetable based on assigned subjects and teachers.",
-    });
+      toast({
+        title: "Timetable Generated Successfully",
+        description: `Generated ${entries.length} timetable entries with smart conflict resolution.`,
+      });
+      
+    } catch (error) {
+      console.error('Error generating timetable:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate timetable. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Save timetable mutation
@@ -293,8 +345,8 @@ const EnhancedTimetableGenerator: React.FC = () => {
     },
     onSuccess: () => {
       toast({
-        title: "Timetable Saved",
-        description: "Timetable has been saved and published successfully.",
+        title: "Timetable Saved Successfully",
+        description: "Timetable has been saved and published. Teachers can now view their schedules.",
       });
       queryClient.invalidateQueries({ queryKey: ['timetable'] });
       refetchTimetable();
@@ -316,21 +368,35 @@ const EnhancedTimetableGenerator: React.FC = () => {
       // Get unique teacher IDs from current timetable
       const teacherIds = [...new Set(existingTimetable.map(entry => entry.teacher_id))];
       
-      // Here you would typically send notifications to teachers
-      // For now, we'll just show a success message
-      console.log('Sending timetable to teachers:', teacherIds);
+      // Create notifications for teachers
+      const notifications = teacherIds.map(teacherId => ({
+        school_id: schoolId,
+        title: 'New Timetable Available',
+        content: `Your timetable for ${classes.find(c => c.id === selectedClass)?.name} - ${currentTerm} has been updated.`,
+        target_audience: ['teacher'],
+        created_by: currentUser?.id,
+        is_global: false
+      }));
+
+      if (notifications.length > 0) {
+        const { error } = await supabase
+          .from('announcements')
+          .insert(notifications);
+
+        if (error) throw error;
+      }
       
-      return { teacherIds };
+      return { teacherIds, classId: selectedClass };
     },
     onSuccess: (data) => {
       toast({
-        title: "Timetable Sent",
-        description: `Timetable has been sent to ${data.teacherIds.length} teacher(s).`,
+        title: "Timetable Distributed Successfully",
+        description: `Timetable has been sent to ${data.teacherIds.length} teacher(s). They will receive notifications on their dashboard.`,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Send Failed",
+        title: "Distribution Failed",
         description: error.message || "Failed to send timetable to teachers.",
         variant: "destructive"
       });
@@ -352,6 +418,15 @@ const EnhancedTimetableGenerator: React.FC = () => {
   const updateTimetableEntry = (index: number, field: keyof TimetableEntry, value: string) => {
     const updatedEntries = [...timetableEntries];
     updatedEntries[index] = { ...updatedEntries[index], [field]: value };
+    
+    // Auto-calculate end time when start time changes
+    if (field === 'start_time') {
+      const startIndex = TIME_SLOTS.indexOf(value);
+      if (startIndex !== -1 && startIndex < TIME_SLOTS.length - 1) {
+        updatedEntries[index].end_time = TIME_SLOTS[startIndex + 1];
+      }
+    }
+    
     setTimetableEntries(updatedEntries);
 
     // Check conflicts for this entry
@@ -363,16 +438,18 @@ const EnhancedTimetableGenerator: React.FC = () => {
     const updatedEntries = timetableEntries.filter((_, i) => i !== index);
     setTimetableEntries(updatedEntries);
     
-    // Remove conflict for this index
-    const newConflicts = { ...conflicts };
-    delete newConflicts[index];
+    // Remove conflict for this index and reindex remaining conflicts
+    const newConflicts: { [key: number]: ConflictCheck } = {};
+    updatedEntries.forEach((entry, newIndex) => {
+      newConflicts[newIndex] = checkConflicts(entry, newIndex);
+    });
     setConflicts(newConflicts);
   };
 
   const handleSave = () => {
     if (!timetableEntries.length) {
       toast({
-        title: "No Entries",
+        title: "No Entries to Save",
         description: "Please add timetable entries first.",
         variant: "destructive"
       });
@@ -386,8 +463,8 @@ const EnhancedTimetableGenerator: React.FC = () => {
 
     if (invalidEntries.length > 0) {
       toast({
-        title: "Invalid Entries",
-        description: "Please fill in all required fields.",
+        title: "Incomplete Entries",
+        description: "Please fill in all required fields for all entries.",
         variant: "destructive"
       });
       return;
@@ -409,13 +486,25 @@ const EnhancedTimetableGenerator: React.FC = () => {
         room: item.room || ''
       }));
       setTimetableEntries(entries);
+      
+      // Check conflicts for existing entries
+      const newConflicts: { [key: number]: ConflictCheck } = {};
+      entries.forEach((entry, index) => {
+        newConflicts[index] = checkConflicts(entry, index);
+      });
+      setConflicts(newConflicts);
     } else {
       setTimetableEntries([]);
+      setConflicts({});
     }
   }, [existingTimetable]);
 
   const selectedClassData = classes.find(c => c.id === selectedClass);
   const hasConflicts = Object.values(conflicts).some(c => c.hasConflict);
+  const totalEntries = timetableEntries.length;
+  const validEntries = timetableEntries.filter(entry => 
+    entry.subject_id && entry.teacher_id && entry.day_of_week && entry.start_time && entry.end_time
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -445,7 +534,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="term">Term</Label>
+              <Label htmlFor="term">Academic Term</Label>
               <Select value={currentTerm} onValueChange={setCurrentTerm}>
                 <SelectTrigger>
                   <SelectValue />
@@ -459,16 +548,45 @@ const EnhancedTimetableGenerator: React.FC = () => {
             </div>
           </div>
 
+          {/* Progress Indicator */}
+          {selectedClass && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-blue-800">Timetable Progress</span>
+                <span className="text-sm text-blue-600">{validEntries}/{totalEntries} entries complete</span>
+              </div>
+              <div className="w-full bg-blue-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: totalEntries > 0 ? `${(validEntries / totalEntries) * 100}%` : '0%' }}
+                ></div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           {selectedClass && (
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleAutoGenerate} variant="outline">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Auto Generate
+              <Button 
+                onClick={handleAutoGenerate} 
+                disabled={isGenerating}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Smart Generate
+                  </>
+                )}
               </Button>
-              <Button onClick={addTimetableEntry}>
+              <Button onClick={addTimetableEntry} variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Entry
+                Add Manual Entry
               </Button>
               <Button 
                 onClick={() => setShowPreview(!showPreview)} 
@@ -482,9 +600,13 @@ const EnhancedTimetableGenerator: React.FC = () => {
                   <Button 
                     onClick={() => sendToTeachersMutation.mutate()}
                     disabled={sendToTeachersMutation.isPending}
-                    variant="outline"
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
-                    <Send className="mr-2 h-4 w-4" />
+                    {sendToTeachersMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-4 w-4" />
+                    )}
                     Send to Teachers
                   </Button>
                   <TimetablePDFExport 
@@ -498,11 +620,22 @@ const EnhancedTimetableGenerator: React.FC = () => {
             </div>
           )}
 
+          {/* Subject Availability Info */}
+          {selectedClass && subjects.length === 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                No subjects found for this class. Please assign subjects and teachers to this class first.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Conflict Alert */}
           {hasConflicts && (
             <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                There are scheduling conflicts in your timetable. Please resolve them before saving.
+                <strong>Scheduling Conflicts Detected!</strong> Please resolve all conflicts before saving the timetable.
               </AlertDescription>
             </Alert>
           )}
@@ -511,7 +644,22 @@ const EnhancedTimetableGenerator: React.FC = () => {
           {selectedClass && timetableEntries.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Timetable Entries</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Timetable Entries</span>
+                  <div className="flex items-center gap-2">
+                    {hasConflicts ? (
+                      <div className="flex items-center gap-1 text-red-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-sm">Conflicts</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <CheckCircle className="h-4 w-4" />
+                        <span className="text-sm">No Conflicts</span>
+                      </div>
+                    )}
+                  </div>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -521,8 +669,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
                         <TableHead>Subject</TableHead>
                         <TableHead>Teacher</TableHead>
                         <TableHead>Day</TableHead>
-                        <TableHead>Start Time</TableHead>
-                        <TableHead>End Time</TableHead>
+                        <TableHead>Time</TableHead>
                         <TableHead>Room</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
@@ -532,15 +679,15 @@ const EnhancedTimetableGenerator: React.FC = () => {
                       {timetableEntries.map((entry, index) => (
                         <TableRow 
                           key={index}
-                          className={conflicts[index]?.hasConflict ? 'bg-red-50' : ''}
+                          className={conflicts[index]?.hasConflict ? 'bg-red-50 border-red-200' : ''}
                         >
                           <TableCell>
                             <Select 
                               value={entry.subject_id} 
                               onValueChange={(value) => updateTimetableEntry(index, 'subject_id', value)}
                             >
-                              <SelectTrigger className="w-32">
-                                <SelectValue placeholder="Subject" />
+                              <SelectTrigger className="w-36">
+                                <SelectValue placeholder="Select Subject" />
                               </SelectTrigger>
                               <SelectContent>
                                 {subjects.map((subjectAssignment) => (
@@ -556,8 +703,8 @@ const EnhancedTimetableGenerator: React.FC = () => {
                               value={entry.teacher_id} 
                               onValueChange={(value) => updateTimetableEntry(index, 'teacher_id', value)}
                             >
-                              <SelectTrigger className="w-32">
-                                <SelectValue placeholder="Teacher" />
+                              <SelectTrigger className="w-36">
+                                <SelectValue placeholder="Select Teacher" />
                               </SelectTrigger>
                               <SelectContent>
                                 {teachers.map((teacher) => (
@@ -573,7 +720,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
                               value={entry.day_of_week} 
                               onValueChange={(value) => updateTimetableEntry(index, 'day_of_week', value)}
                             >
-                              <SelectTrigger className="w-28">
+                              <SelectTrigger className="w-32">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -586,54 +733,49 @@ const EnhancedTimetableGenerator: React.FC = () => {
                             </Select>
                           </TableCell>
                           <TableCell>
-                            <Select 
-                              value={entry.start_time} 
-                              onValueChange={(value) => updateTimetableEntry(index, 'start_time', value)}
-                            >
-                              <SelectTrigger className="w-20">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {TIME_SLOTS.map((time) => (
-                                  <SelectItem key={time} value={time}>
-                                    {time}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Select 
-                              value={entry.end_time} 
-                              onValueChange={(value) => updateTimetableEntry(index, 'end_time', value)}
-                            >
-                              <SelectTrigger className="w-20">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {TIME_SLOTS.map((time) => (
-                                  <SelectItem key={time} value={time}>
-                                    {time}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="flex items-center gap-1">
+                              <Select 
+                                value={entry.start_time} 
+                                onValueChange={(value) => updateTimetableEntry(index, 'start_time', value)}
+                              >
+                                <SelectTrigger className="w-20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TIME_SLOTS.slice(0, -1).map((time) => (
+                                    <SelectItem key={time} value={time}>
+                                      {time}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <span className="text-xs text-gray-500">-</span>
+                              <span className="text-xs font-mono">{entry.end_time}</span>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Input
                               value={entry.room || ''}
                               onChange={(e) => updateTimetableEntry(index, 'room', e.target.value)}
                               placeholder="Room"
-                              className="w-20"
+                              className="w-24"
                             />
                           </TableCell>
                           <TableCell>
                             {conflicts[index]?.hasConflict ? (
-                              <span className="text-red-600 text-xs">
-                                {conflicts[index].conflictDetails}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="text-red-600 text-xs font-medium">
+                                  {conflicts[index].conflictType === 'teacher' ? 'Teacher Conflict' : 'Room Conflict'}
+                                </span>
+                                <span className="text-red-500 text-xs">
+                                  {conflicts[index].conflictDetails}
+                                </span>
+                              </div>
                             ) : (
-                              <span className="text-green-600 text-xs">OK</span>
+                              <span className="text-green-600 text-xs font-medium flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Valid
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -641,6 +783,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => removeTimetableEntry(index)}
+                              className="text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -669,6 +812,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
               <Button 
                 onClick={handleSave} 
                 disabled={saveTimetableMutation.isPending || hasConflicts}
+                className="bg-green-600 hover:bg-green-700"
               >
                 {saveTimetableMutation.isPending ? (
                   <>
@@ -677,7 +821,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Clock className="mr-2 h-4 w-4" />
+                    <Save className="mr-2 h-4 w-4" />
                     Save & Publish Timetable
                   </>
                 )}
