@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,9 +45,10 @@ const DataPipelineMonitor: React.FC = () => {
             canViewSystemAnalytics ? 'elimisha_admin' : undefined
           );
           
-          // Calculate total events from school metrics
+          // Calculate total events from school metrics with proper type checking
           const totalEventsFromSchools = Object.values(systemData.schoolMetrics || {}).reduce((sum: number, school: any) => {
-            return sum + (school.totalGrades || 0);
+            const schoolGrades = typeof school?.totalGrades === 'number' ? school.totalGrades : 0;
+            return sum + schoolGrades;
           }, 0);
           
           return {
@@ -70,8 +70,8 @@ const DataPipelineMonitor: React.FC = () => {
             analyticsScope
           );
           
-          // Use totalGrades as totalEvents for school-specific data
-          const totalEvents = schoolData.totalGrades || 0;
+          // Use totalGrades as totalEvents for school-specific data with proper type checking
+          const totalEvents = typeof schoolData.totalGrades === 'number' ? schoolData.totalGrades : 0;
           
           return {
             totalEvents: totalEvents,
