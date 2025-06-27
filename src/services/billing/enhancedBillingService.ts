@@ -137,8 +137,11 @@ export class EnhancedBillingService {
         throw error;
       }
 
+      // Type assertion to ensure proper typing
+      const typedData = data as SchoolBillingRecord[];
+
       console.log('📊 EnhancedBillingService: Billing records fetched successfully');
-      return { data: data || [], error: null };
+      return { data: typedData || [], error: null };
 
     } catch (error: any) {
       console.error('📊 EnhancedBillingService: Error fetching billing records:', error);
