@@ -55,7 +55,7 @@ const PrincipalGradesManager: React.FC<PrincipalGradesManagerProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={refetch} 
+            onClick={() => refetch()} 
             className="ml-2"
           >
             Retry
@@ -115,6 +115,10 @@ const PrincipalGradesManager: React.FC<PrincipalGradesManagerProps> = ({
     }
   };
 
+  const handleRefresh = () => {
+    refetch();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -144,7 +148,7 @@ const PrincipalGradesManager: React.FC<PrincipalGradesManagerProps> = ({
           </Button>
           <Button
             variant="outline"
-            onClick={refetch}
+            onClick={handleRefresh}
             disabled={isLoading}
           >
             Refresh

@@ -132,7 +132,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
             stats={stats} 
             loading={loading} 
             error={error}
-            schoolId={schoolId}
             onRefresh={refetch}
           />
         </section>
@@ -141,7 +140,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">School Analytics Overview</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalAnalyticsOverview schoolId={schoolId} />
+            <PrincipalAnalyticsOverview />
           </div>
         </section>
 
@@ -161,7 +160,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Timetable Management</h2>
           <div className="bg-white rounded-lg border shadow-sm">
             <PrincipalTimetableCard 
-              schoolId={schoolId}
               onModalOpen={handleModalOpen}
             />
           </div>
@@ -171,7 +169,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Financial Summary</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <FinancialOverviewReadOnly schoolId={schoolId} />
+            <FinancialOverviewReadOnly />
           </div>
         </section>
         
@@ -179,7 +177,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Certificates & Documents</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <CertificatesList schoolId={schoolId} />
+            <CertificatesList />
           </div>
         </section>
       </div>
@@ -189,7 +187,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <AddSubjectModal
           open={true}
           onClose={handleModalClose}
-          onSubjectCreated={(subject) => handleSuccess(`Subject "${subject.name}" created successfully`)}
+          onSubjectCreated={() => handleSuccess("Subject created successfully")}
           onError={handleError}
           schoolId={schoolId}
         />
@@ -199,7 +197,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <SubjectAssignmentModal
           open={true}
           onClose={handleModalClose}
-          onAssignmentCreated={(assignment) => handleSuccess(`Subject assignment created successfully`)}
+          onAssignmentCreated={() => handleSuccess("Subject assignment created successfully")}
           onError={handleError}
           schoolId={schoolId}
         />
@@ -209,7 +207,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <CertificateGenerator
           open={true}
           onClose={handleModalClose}
-          onCertificateGenerated={(certificate) => handleSuccess(`Certificate generated successfully`)}
+          onCertificateGenerated={() => handleSuccess("Certificate generated successfully")}
           onError={handleError}
           schoolId={schoolId}
         />
@@ -219,7 +217,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <TimetableGenerator
           open={true}
           onClose={handleModalClose}
-          onTimetableGenerated={(timetable) => handleSuccess(`Timetable generated successfully`)}
+          onTimetableGenerated={() => handleSuccess("Timetable generated successfully")}
           onError={handleError}
           schoolId={schoolId}
         />
@@ -229,7 +227,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <PrincipalReportGenerator
           open={true}
           onClose={handleModalClose}
-          onReportGenerated={(report) => handleSuccess(`Report generated successfully`)}
+          onReportGenerated={() => handleSuccess("Report generated successfully")}
           onError={handleError}
           schoolId={schoolId}
         />

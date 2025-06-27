@@ -23,7 +23,7 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({ schoolId: propS
   const { schoolId: contextSchoolId, isReady, validateSchoolAccess } = useSchoolScopedData();
   const effectiveSchoolId = propSchoolId || contextSchoolId;
   
-  const { data, isLoading, error, refetch } = usePrincipalAnalyticsData(effectiveSchoolId);
+  const { data, isLoading, error, refetch } = usePrincipalAnalyticsData();
   const { academicInfo, loading: academicInfoLoading } = useCurrentAcademicInfo(effectiveSchoolId);
 
   const chartConfig = {

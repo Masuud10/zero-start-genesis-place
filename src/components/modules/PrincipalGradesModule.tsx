@@ -6,10 +6,24 @@ import PrincipalGradesManager from '@/components/dashboard/principal/PrincipalGr
 import PrincipalBulkGradingInterface from '@/components/grading/PrincipalBulkGradingInterface';
 import PrincipalGradingModule from '@/components/grading/PrincipalGradingModule';
 import PrincipalGradeInputInterface from '@/components/grading/PrincipalGradeInputInterface';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { GraduationCap, ClipboardList, Plus, CheckCircle, Edit } from 'lucide-react';
 
 const PrincipalGradesModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('approval');
+  const { schoolId } = useSchoolScopedData();
+
+  if (!schoolId) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">
+            <p>No school context available for grade management.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -58,7 +72,7 @@ const PrincipalGradesModule: React.FC = () => {
           </div>
 
           <TabsContent value="approval" className="mt-0 p-6">
-            <PrincipalGradesManager />
+            <PrincipalGradesManager schoolId={schoolId} />
           </TabsContent>
 
           <TabsContent value="input" className="mt-0 p-6">
