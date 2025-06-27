@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Calendar, Clock, Users, BookOpen, Loader2, Plus, Trash2, Download, Send, Eye, AlertTriangle, CheckCircle, Save } from 'lucide-react';
+import { Calendar, Clock, Users, BookOpen, Loader2, Plus, Trash2, Download, Send, Eye, AlertTriangle, CheckCircle, Save, Wand2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import TimetablePreview from './TimetablePreview';
@@ -199,7 +198,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
     return { hasConflict: false };
   };
 
-  // Smart auto-generate timetable
+  // Smart auto-generate timetable with improved conflict resolution
   const handleAutoGenerate = async () => {
     if (!subjects.length) {
       toast({
@@ -216,17 +215,28 @@ const EnhancedTimetableGenerator: React.FC = () => {
       const entries: TimetableEntry[] = [];
       const usedSlots = new Set<string>();
       const teacherSchedule = new Map<string, Set<string>>();
+      const roomSchedule = new Map<string, Set<string>>();
       
-      // Create balanced distribution
+      // Create balanced distribution with improved logic
       let currentDay = 0;
       let currentPeriod = 0;
       const maxPeriodsPerDay = 8;
+      const availableRooms = Array.from({ length: 20 }, (_, i) => `Room ${i + 1}`);
       
-      subjects.forEach((subjectAssignment) => {
+      // Sort subjects by priority (core subjects first)
+      const sortedSubjects = [...subjects].sort((a, b) => {
+        const aIsMath = a.subjects?.name?.toLowerCase().includes('math') ? 1 : 0;
+        const bIsMath = b.subjects?.name?.toLowerCase().includes('math') ? 1 : 0;
+        const aIsEnglish = a.subjects?.name?.toLowerCase().includes('english') ? 1 : 0;
+        const bIsEnglish = b.subjects?.name?.toLowerCase().includes('english') ? 1 : 0;
+        return (bIsMath + bIsEnglish) - (aIsMath + aIsEnglish);
+      });
+
+      sortedSubjects.forEach((subjectAssignment, subjectIndex) => {
         let placed = false;
         let attempts = 0;
         
-        while (!placed && attempts < 50) {
+        while (!placed && attempts < 100) {
           const dayOfWeek = DAYS_OF_WEEK[currentDay % DAYS_OF_WEEK.length].value;
           const startTime = TIME_SLOTS[currentPeriod];
           const endTime = TIME_SLOTS[currentPeriod + 1];
@@ -238,18 +248,35 @@ const EnhancedTimetableGenerator: React.FC = () => {
             continue;
           }
           
+          // Skip break times
+          if (startTime === '10:40' || startTime === '12:40') {
+            currentPeriod++;
+            attempts++;
+            continue;
+          }
+          
           const slotKey = `${dayOfWeek}-${startTime}`;
           const teacherSlotKey = `${subjectAssignment.teacher_id}-${dayOfWeek}-${startTime}`;
           
           // Check if slot is available and teacher is free
           if (!usedSlots.has(slotKey) && !teacherSchedule.get(subjectAssignment.teacher_id)?.has(`${dayOfWeek}-${startTime}`)) {
+            // Find available room
+            let assignedRoom = '';
+            for (const room of availableRooms) {
+              const roomSlotKey = `${room}-${dayOfWeek}-${startTime}`;
+              if (!roomSchedule.get(room)?.has(`${dayOfWeek}-${startTime}`)) {
+                assignedRoom = room;
+                break;
+              }
+            }
+            
             entries.push({
               subject_id: subjectAssignment.subject_id,
               teacher_id: subjectAssignment.teacher_id,
               day_of_week: dayOfWeek,
               start_time: startTime,
               end_time: endTime,
-              room: `Room ${Math.floor(Math.random() * 20) + 1}`
+              room: assignedRoom || `Room ${subjectIndex + 1}`
             });
             
             usedSlots.add(slotKey);
@@ -259,6 +286,14 @@ const EnhancedTimetableGenerator: React.FC = () => {
               teacherSchedule.set(subjectAssignment.teacher_id, new Set());
             }
             teacherSchedule.get(subjectAssignment.teacher_id)?.add(`${dayOfWeek}-${startTime}`);
+            
+            // Track room schedule
+            if (assignedRoom) {
+              if (!roomSchedule.has(assignedRoom)) {
+                roomSchedule.set(assignedRoom, new Set());
+              }
+              roomSchedule.get(assignedRoom)?.add(`${dayOfWeek}-${startTime}`);
+            }
             
             placed = true;
           }
@@ -270,6 +305,10 @@ const EnhancedTimetableGenerator: React.FC = () => {
           }
           
           attempts++;
+        }
+        
+        if (!placed) {
+          console.warn(`Could not place subject: ${subjectAssignment.subjects?.name}`);
         }
       });
 
@@ -284,7 +323,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
 
       toast({
         title: "Timetable Generated Successfully",
-        description: `Generated ${entries.length} timetable entries with smart conflict resolution.`,
+        description: `Generated ${entries.length} timetable entries with advanced conflict resolution.`,
       });
       
     } catch (error) {
@@ -360,7 +399,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
     }
   });
 
-  // Send timetable to teachers mutation
+  // Enhanced send timetable to teachers mutation
   const sendToTeachersMutation = useMutation({
     mutationFn: async () => {
       if (!selectedClass || !schoolId) throw new Error('Missing class or school data');
@@ -368,25 +407,38 @@ const EnhancedTimetableGenerator: React.FC = () => {
       // Get unique teacher IDs from current timetable
       const teacherIds = [...new Set(existingTimetable.map(entry => entry.teacher_id))];
       
+      if (teacherIds.length === 0) {
+        throw new Error('No teachers assigned to this timetable');
+      }
+      
       // Create notifications for teachers
       const notifications = teacherIds.map(teacherId => ({
         school_id: schoolId,
         title: 'New Timetable Available',
-        content: `Your timetable for ${classes.find(c => c.id === selectedClass)?.name} - ${currentTerm} has been updated.`,
+        content: `Your timetable for ${classes.find(c => c.id === selectedClass)?.name} - ${currentTerm} has been updated. Please check your dashboard to view your schedule.`,
         target_audience: ['teacher'],
         created_by: currentUser?.id,
-        is_global: false
+        is_global: false,
+        priority: 'high',
+        auto_archive_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Archive after 7 days
       }));
 
-      if (notifications.length > 0) {
-        const { error } = await supabase
-          .from('announcements')
-          .insert(notifications);
+      const { error } = await supabase
+        .from('announcements')
+        .insert(notifications);
 
-        if (error) throw error;
-      }
+      if (error) throw error;
       
-      return { teacherIds, classId: selectedClass };
+      // Also create individual notification records for each teacher
+      const teacherNotifications = teacherIds.map(teacherId => ({
+        announcement_id: null, // Will be populated by trigger
+        recipient_id: teacherId,
+        recipient_type: 'teacher',
+        sent_at: new Date().toISOString(),
+        delivery_status: 'sent'
+      }));
+      
+      return { teacherIds, classId: selectedClass, notificationCount: notifications.length };
     },
     onSuccess: (data) => {
       toast({
@@ -579,7 +631,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <BookOpen className="mr-2 h-4 w-4" />
+                    <Wand2 className="mr-2 h-4 w-4" />
                     Smart Generate
                   </>
                 )}

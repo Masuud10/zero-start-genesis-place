@@ -62,6 +62,9 @@ const TimetablePDFExport: React.FC<TimetablePDFExportProps> = ({
               background: white;
               color: #333;
               line-height: 1.4;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
             }
             
             .header {
@@ -101,6 +104,10 @@ const TimetablePDFExport: React.FC<TimetablePDFExportProps> = ({
               font-size: 16px;
               color: #6b7280;
               font-weight: 500;
+            }
+            
+            .content {
+              flex: 1;
             }
             
             .timetable-container {
@@ -182,24 +189,6 @@ const TimetablePDFExport: React.FC<TimetablePDFExportProps> = ({
               background: #fafafa;
             }
             
-            .footer {
-              margin-top: 30px;
-              text-align: center;
-              font-size: 11px;
-              color: #6b7280;
-              border-top: 1px solid #e5e7eb;
-              padding-top: 20px;
-            }
-            
-            .generation-info {
-              margin-bottom: 10px;
-              font-weight: 500;
-            }
-            
-            .contact-info {
-              margin-top: 10px;
-            }
-            
             .break-row {
               background: #fef3c7 !important;
             }
@@ -208,6 +197,35 @@ const TimetablePDFExport: React.FC<TimetablePDFExportProps> = ({
               color: #d97706;
               font-weight: 600;
               font-size: 11px;
+            }
+            
+            .footer {
+              margin-top: auto;
+              padding-top: 30px;
+              text-align: center;
+              font-size: 11px;
+              color: #6b7280;
+              border-top: 1px solid #e5e7eb;
+            }
+            
+            .generation-info {
+              margin-bottom: 15px;
+              font-weight: 500;
+            }
+            
+            .contact-info {
+              margin-bottom: 15px;
+            }
+            
+            .edufam-branding {
+              background: linear-gradient(135deg, #2563eb, #1d4ed8);
+              color: white;
+              padding: 12px;
+              border-radius: 8px;
+              font-weight: 600;
+              font-size: 14px;
+              letter-spacing: 0.5px;
+              margin-top: 20px;
             }
             
             @media print {
@@ -224,6 +242,15 @@ const TimetablePDFExport: React.FC<TimetablePDFExportProps> = ({
               tr {
                 page-break-inside: avoid;
               }
+              .footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                padding: 20px;
+                border-top: 1px solid #e5e7eb;
+              }
             }
             
             @page {
@@ -233,108 +260,110 @@ const TimetablePDFExport: React.FC<TimetablePDFExportProps> = ({
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="logo-section">
-              ${schoolData?.logo_url ? `<img src="${schoolData.logo_url}" alt="School Logo" style="height: 60px; margin-bottom: 10px;">` : ''}
+          <div class="content">
+            <div class="header">
+              <div class="logo-section">
+                ${schoolData?.logo_url ? `<img src="${schoolData.logo_url}" alt="School Logo" style="height: 60px; margin-bottom: 10px;">` : ''}
+              </div>
+              <div class="school-name">${schoolData?.name || 'School Name'}</div>
+              <div class="school-details">
+                ${schoolData?.address ? `${schoolData.address}` : ''}
+                ${schoolData?.phone ? ` | Tel: ${schoolData.phone}` : ''}
+                ${schoolData?.email ? ` | Email: ${schoolData.email}` : ''}
+              </div>
+              <div class="timetable-title">Class Timetable - ${classData?.name || 'Class Name'}</div>
+              <div class="term-info">
+                ${term} | Academic Year ${new Date().getFullYear()} | 
+                ${schoolData?.curriculum_type ? `Curriculum: ${schoolData.curriculum_type.toUpperCase()}` : ''}
+              </div>
             </div>
-            <div class="school-name">${schoolData?.name || 'School Name'}</div>
-            <div class="school-details">
-              ${schoolData?.address ? `${schoolData.address}` : ''}
-              ${schoolData?.phone ? ` | Tel: ${schoolData.phone}` : ''}
-              ${schoolData?.email ? ` | Email: ${schoolData.email}` : ''}
+            
+            <div class="timetable-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="time-slot">Time Period</th>
+                    ${days.map(day => `<th style="text-transform: capitalize; min-width: 120px;">${day}</th>`).join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${timeSlots.slice(0, -1).map((startTime, index) => {
+                    const endTime = timeSlots[index + 1];
+                    
+                    // Add break periods
+                    if (startTime === '10:40') {
+                      return `
+                        <tr class="break-row">
+                          <td class="time-slot">10:40 - 11:00</td>
+                          <td colspan="5">☕ TEA BREAK</td>
+                        </tr>
+                        <tr>
+                          <td class="time-slot">${formatTime(startTime)}<br/>-<br/>${formatTime(endTime)}</td>
+                          ${days.map(day => {
+                            const entry = getTimetableEntry(day, startTime);
+                            if (entry) {
+                              return `
+                                <td class="subject-cell">
+                                  <div class="subject">${entry.subjects?.name || 'Subject'}</div>
+                                  <div class="teacher">${entry.profiles?.name || 'Teacher'}</div>
+                                  ${entry.room ? `<div class="room">${entry.room}</div>` : ''}
+                                </td>
+                              `;
+                            } else {
+                              return '<td class="empty-cell">Free Period</td>';
+                            }
+                          }).join('')}
+                        </tr>
+                      `;
+                    } else if (startTime === '12:40') {
+                      return `
+                        <tr class="break-row">
+                          <td class="time-slot">12:40 - 13:20</td>
+                          <td colspan="5">🍽️ LUNCH BREAK</td>
+                        </tr>
+                        <tr>
+                          <td class="time-slot">${formatTime(startTime)}<br/>-<br/>${formatTime(endTime)}</td>
+                          ${days.map(day => {
+                            const entry = getTimetableEntry(day, startTime);
+                            if (entry) {
+                              return `
+                                <td class="subject-cell">
+                                  <div class="subject">${entry.subjects?.name || 'Subject'}</div>
+                                  <div class="teacher">${entry.profiles?.name || 'Teacher'}</div>
+                                  ${entry.room ? `<div class="room">${entry.room}</div>` : ''}
+                                </td>
+                              `;
+                            } else {
+                              return '<td class="empty-cell">Free Period</td>';
+                            }
+                          }).join('')}
+                        </tr>
+                      `;
+                    } else {
+                      return `
+                        <tr>
+                          <td class="time-slot">${formatTime(startTime)}<br/>-<br/>${formatTime(endTime)}</td>
+                          ${days.map(day => {
+                            const entry = getTimetableEntry(day, startTime);
+                            if (entry) {
+                              return `
+                                <td class="subject-cell">
+                                  <div class="subject">${entry.subjects?.name || 'Subject'}</div>
+                                  <div class="teacher">${entry.profiles?.name || 'Teacher'}</div>
+                                  ${entry.room ? `<div class="room">${entry.room}</div>` : ''}
+                                </td>
+                              `;
+                            } else {
+                              return '<td class="empty-cell">Free Period</td>';
+                            }
+                          }).join('')}
+                        </tr>
+                      `;
+                    }
+                  }).join('')}
+                </tbody>
+              </table>
             </div>
-            <div class="timetable-title">Class Timetable - ${classData?.name || 'Class Name'}</div>
-            <div class="term-info">
-              ${term} | Academic Year ${new Date().getFullYear()} | 
-              ${schoolData?.curriculum_type ? `Curriculum: ${schoolData.curriculum_type.toUpperCase()}` : ''}
-            </div>
-          </div>
-          
-          <div class="timetable-container">
-            <table>
-              <thead>
-                <tr>
-                  <th class="time-slot">Time Period</th>
-                  ${days.map(day => `<th style="text-transform: capitalize; min-width: 120px;">${day}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>
-                ${timeSlots.slice(0, -1).map((startTime, index) => {
-                  const endTime = timeSlots[index + 1];
-                  
-                  // Add break periods
-                  if (startTime === '10:40') {
-                    return `
-                      <tr class="break-row">
-                        <td class="time-slot">10:40 - 11:00</td>
-                        <td colspan="5">☕ TEA BREAK</td>
-                      </tr>
-                      <tr>
-                        <td class="time-slot">${formatTime(startTime)}<br/>-<br/>${formatTime(endTime)}</td>
-                        ${days.map(day => {
-                          const entry = getTimetableEntry(day, startTime);
-                          if (entry) {
-                            return `
-                              <td class="subject-cell">
-                                <div class="subject">${entry.subjects?.name || 'Subject'}</div>
-                                <div class="teacher">${entry.profiles?.name || 'Teacher'}</div>
-                                ${entry.room ? `<div class="room">${entry.room}</div>` : ''}
-                              </td>
-                            `;
-                          } else {
-                            return '<td class="empty-cell">Free Period</td>';
-                          }
-                        }).join('')}
-                      </tr>
-                    `;
-                  } else if (startTime === '12:40') {
-                    return `
-                      <tr class="break-row">
-                        <td class="time-slot">12:40 - 13:20</td>
-                        <td colspan="5">🍽️ LUNCH BREAK</td>
-                      </tr>
-                      <tr>
-                        <td class="time-slot">${formatTime(startTime)}<br/>-<br/>${formatTime(endTime)}</td>
-                        ${days.map(day => {
-                          const entry = getTimetableEntry(day, startTime);
-                          if (entry) {
-                            return `
-                              <td class="subject-cell">
-                                <div class="subject">${entry.subjects?.name || 'Subject'}</div>
-                                <div class="teacher">${entry.profiles?.name || 'Teacher'}</div>
-                                ${entry.room ? `<div class="room">${entry.room}</div>` : ''}
-                              </td>
-                            `;
-                          } else {
-                            return '<td class="empty-cell">Free Period</td>';
-                          }
-                        }).join('')}
-                      </tr>
-                    `;
-                  } else {
-                    return `
-                      <tr>
-                        <td class="time-slot">${formatTime(startTime)}<br/>-<br/>${formatTime(endTime)}</td>
-                        ${days.map(day => {
-                          const entry = getTimetableEntry(day, startTime);
-                          if (entry) {
-                            return `
-                              <td class="subject-cell">
-                                <div class="subject">${entry.subjects?.name || 'Subject'}</div>
-                                <div class="teacher">${entry.profiles?.name || 'Teacher'}</div>
-                                ${entry.room ? `<div class="room">${entry.room}</div>` : ''}
-                              </td>
-                            `;
-                          } else {
-                            return '<td class="empty-cell">Free Period</td>';
-                          }
-                        }).join('')}
-                      </tr>
-                    `;
-                  }
-                }).join('')}
-              </tbody>
-            </table>
           </div>
           
           <div class="footer">
@@ -350,11 +379,13 @@ const TimetablePDFExport: React.FC<TimetablePDFExportProps> = ({
               })}
             </div>
             <div class="contact-info">
-              <p><strong>School Management System:</strong> EduFam</p>
               ${schoolData?.motto ? `<p><em>"${schoolData.motto}"</em></p>` : ''}
               <p style="margin-top: 10px; font-size: 10px; color: #9ca3af;">
                 This timetable is computer-generated and subject to changes. Please verify with the administration for any updates.
               </p>
+            </div>
+            <div class="edufam-branding">
+              🎓 Powered by EduFam
             </div>
           </div>
           
