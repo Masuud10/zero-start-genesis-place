@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -20,7 +19,7 @@ interface SchoolOwnerAnalyticsProps {
 
 const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
   const { schoolId, isReady } = useSchoolScopedData();
-  const { stats, loading: principalLoading, error: principalError } = usePrincipalDashboardData(0);
+  const { stats, loading: principalLoading, error: principalError } = usePrincipalDashboardData(schoolId);
   const { data: financeData, isLoading: financeLoading, error: financeError } = useFinanceOfficerAnalytics(filters);
   const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useAnalyticsData(schoolId);
 

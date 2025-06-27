@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { StatsType } from "@/hooks/usePrincipalDashboardData";
+import { PrincipalStats } from "@/hooks/usePrincipalDashboardData";
 
 interface PreviewPanelProps {
   title: string;
@@ -76,7 +77,7 @@ interface EntityPreviewPanelsProps {
   subjectList: any[];
   teacherList: any[];
   parentList: any[];
-  stats: StatsType;
+  stats: PrincipalStats;
   loading: boolean;
   error: string | null;
   onAddSubject: () => void;

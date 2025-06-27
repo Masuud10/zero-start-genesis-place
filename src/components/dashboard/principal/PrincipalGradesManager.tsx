@@ -37,13 +37,14 @@ const PrincipalGradesManager: React.FC = () => {
 
   // Error state
   if (error) {
+    const errorMessage = typeof error === 'string' ? error : error.message || 'An error occurred';
     return (
       <Card>
         <CardHeader>
           <CardTitle>Grade Approvals</CardTitle>
         </CardHeader>
         <CardContent>
-          <GradeApprovalErrorState error={error} onRetry={() => refetch()} />
+          <GradeApprovalErrorState error={errorMessage} onRetry={() => refetch()} />
         </CardContent>
       </Card>
     );
