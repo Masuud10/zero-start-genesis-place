@@ -2,21 +2,23 @@
 import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
-import PrincipalStatsCards from './principal/PrincipalStatsCards';
-import PrincipalAnalyticsOverview from './principal/PrincipalAnalyticsOverview';
-import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
-import CertificatesList from '@/components/certificates/CertificatesList';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
 import SubjectAssignmentModal from '@/components/modals/SubjectAssignmentModal';
 import CertificateGenerator from '@/components/certificates/CertificateGenerator';
 import TimetableGenerator from '@/components/timetable/TimetableGenerator';
 import PrincipalReportGenerator from '@/components/reports/PrincipalReportGenerator';
-import PrincipalTimetableCard from './principal/PrincipalTimetableCard';
-import PrincipalGradesManager from './principal/PrincipalGradesManager';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+
+// Section components
+import PrincipalStatsSection from './principal/sections/PrincipalStatsSection';
+import PrincipalAnalyticsSection from './principal/sections/PrincipalAnalyticsSection';
+import PrincipalGradesSection from './principal/sections/PrincipalGradesSection';
+import PrincipalTimetableSection from './principal/sections/PrincipalTimetableSection';
+import PrincipalFinanceSection from './principal/sections/PrincipalFinanceSection';
+import PrincipalCertificatesSection from './principal/sections/PrincipalCertificatesSection';
 
 interface PrincipalDashboardProps {
   user: AuthUser;
@@ -112,71 +114,28 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
     }
   };
 
-  const handleError = (error: string) => {
-    console.error('❌ PrincipalDashboard: Operation failed:', error);
-    toast({
-      title: "Operation Failed",
-      description: error || "An error occurred while processing your request.",
-      variant: "destructive"
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-
-        {/* Key Statistics Overview */}
-        <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">School Overview</h2>
-          <PrincipalStatsCards 
-            stats={stats} 
-            loading={loading} 
-            error={error}
-          />
-        </section>
         
-        {/* School Analytics Overview Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">School Analytics Overview</h2>
-          <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalAnalyticsOverview />
-          </div>
-        </section>
-
-        {/* Grade Management Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Grade Management</h2>
-          <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalGradesManager 
-              schoolId={schoolId}
-              onModalOpen={handleModalOpen}
-            />
-          </div>
-        </section>
-
-        {/* Timetable Management Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Timetable Management</h2>
-          <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalTimetableCard />
-          </div>
-        </section>
-
-        {/* Financial Overview Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Financial Summary</h2>
-          <div className="bg-white rounded-lg border shadow-sm">
-            <FinancialOverviewReadOnly />
-          </div>
-        </section>
+        <PrincipalStatsSection 
+          stats={stats}
+          loading={loading}
+          error={error}
+        />
         
-        {/* Certificates Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Certificates & Documents</h2>
-          <div className="bg-white rounded-lg border shadow-sm">
-            <CertificatesList />
-          </div>
-        </section>
+        <PrincipalAnalyticsSection />
+
+        <PrincipalGradesSection 
+          schoolId={schoolId}
+          onModalOpen={handleModalOpen}
+        />
+
+        <PrincipalTimetableSection />
+
+        <PrincipalFinanceSection />
+        
+        <PrincipalCertificatesSection />
       </div>
       
       {/* Enhanced Modal Management with School Context */}
