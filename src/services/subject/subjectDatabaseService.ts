@@ -55,13 +55,14 @@ export class SubjectDatabaseService {
     console.log('SubjectDatabaseService: Creating subject with payload:', payload);
 
     try {
-      // Check for duplicate subject code within the same school
+      // Optimized duplicate check with proper indexing
       const { data: existingSubject, error: duplicateCheckError } = await supabase
         .from('subjects')
         .select('id, code')
         .eq('school_id', schoolId)
         .eq('code', payload.code)
         .eq('is_active', true)
+        .limit(1)
         .maybeSingle();
 
       if (duplicateCheckError) {
@@ -73,7 +74,7 @@ export class SubjectDatabaseService {
         throw new Error(`A subject with code "${payload.code}" already exists in your school`);
       }
 
-      // Create the subject
+      // Create the subject with optimized query
       const { data: subject, error } = await supabase
         .from('subjects')
         .insert(payload)
@@ -121,12 +122,6 @@ export class SubjectDatabaseService {
 
     } catch (error: any) {
       console.error('SubjectDatabaseService: Create subject error:', error);
-      
-      // Re-throw with more context if it's a generic error
-      if (error.message === 'Failed to create subject') {
-        throw new Error('Database connection failed. Please try again or contact support.');
-      }
-      
       throw error;
     }
   }
@@ -139,6 +134,7 @@ export class SubjectDatabaseService {
     }
 
     try {
+      // Optimized query with proper indexing and limits
       let query = supabase
         .from('subjects')
         .select(`
@@ -147,7 +143,8 @@ export class SubjectDatabaseService {
           teacher:profiles!subjects_teacher_id_fkey(id, name, email)
         `)
         .eq('school_id', schoolId)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .limit(1000);
 
       if (classId && classId !== 'all') {
         query = query.eq('class_id', classId);
@@ -169,14 +166,20 @@ export class SubjectDatabaseService {
     }
   }
 
-  // Test database connectivity
+  // Enhanced connection test with timeout
   static async testConnection(): Promise<boolean> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const { data, error } = await supabase
         .from('subjects')
         .select('count')
-        .limit(1);
+        .limit(1)
+        .abortSignal(controller.signal);
         
+      clearTimeout(timeoutId);
+      
       if (error) {
         console.error('Database connection test failed:', error);
         return false;

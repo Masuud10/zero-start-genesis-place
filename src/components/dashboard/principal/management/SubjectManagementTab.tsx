@@ -103,62 +103,81 @@ const SubjectManagementTab = () => {
     try {
       console.log('Fetching data for school:', schoolId);
 
-      // Fetch subjects with better error handling
-      const subjectsQuery = supabase
-        .from('subjects')
-        .select('*')
-        .eq('school_id', schoolId)
-        .eq('is_active', true)
-        .order('name');
+      // Create a timeout for the entire operation
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000);
+      });
 
-      const classesQuery = supabase
-        .from('classes')
-        .select('id, name')
-        .eq('school_id', schoolId)
-        .order('name');
-
-      const teachersQuery = supabase
-        .from('profiles')
-        .select('id, name, email')
-        .eq('school_id', schoolId)
-        .eq('role', 'teacher')
-        .order('name');
-
-      const [subjectsRes, classesRes, teachersRes] = await Promise.all([
-        subjectsQuery,
-        classesQuery,
-        teachersQuery
+      // Optimized parallel queries with better error isolation
+      const fetchPromise = Promise.all([
+        supabase
+          .from('subjects')
+          .select('*')
+          .eq('school_id', schoolId)
+          .eq('is_active', true)
+          .order('name')
+          .limit(1000),
+        supabase
+          .from('classes')
+          .select('id, name, level, stream')
+          .eq('school_id', schoolId)
+          .order('name')
+          .limit(500),
+        supabase
+          .from('profiles')
+          .select('id, name, email')
+          .eq('school_id', schoolId)
+          .eq('role', 'teacher')
+          .order('name')
+          .limit(500)
       ]);
 
-      // Handle subjects response
+      const [subjectsRes, classesRes, teachersRes] = await Promise.race([
+        fetchPromise,
+        timeoutPromise
+      ]) as any[];
+
+      // Enhanced error handling for each query
       if (subjectsRes.error) {
         console.error('Subjects fetch error:', subjectsRes.error);
-        throw new Error(`Failed to fetch subjects: ${subjectsRes.error.message}`);
+        throw new Error(`Failed to load subjects: ${subjectsRes.error.message}`);
       }
 
-      // Handle classes response
       if (classesRes.error) {
         console.error('Classes fetch error:', classesRes.error);
-        throw new Error(`Failed to fetch classes: ${classesRes.error.message}`);
+        throw new Error(`Failed to load classes: ${classesRes.error.message}`);
       }
 
-      // Handle teachers response
       if (teachersRes.error) {
         console.error('Teachers fetch error:', teachersRes.error);
-        throw new Error(`Failed to fetch teachers: ${teachersRes.error.message}`);
+        throw new Error(`Failed to load teachers: ${teachersRes.error.message}`);
       }
 
-      console.log('Fetched subjects:', subjectsRes.data?.length || 0);
-      console.log('Fetched classes:', classesRes.data?.length || 0);
-      console.log('Fetched teachers:', teachersRes.data?.length || 0);
+      console.log('Successfully loaded:', {
+        subjects: subjectsRes.data?.length || 0,
+        classes: classesRes.data?.length || 0,
+        teachers: teachersRes.data?.length || 0
+      });
 
       setSubjects(subjectsRes.data || []);
       setClasses(classesRes.data || []);
       setTeachers(teachersRes.data || []);
 
     } catch (error: any) {
-      console.error('Error fetching data:', error);
-      const errorMessage = error?.message || 'Unknown error occurred while fetching data';
+      console.error('Data fetch error:', error);
+      
+      let errorMessage = 'Failed to load data';
+      
+      if (error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. The server may be experiencing high load. Please try again.';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Network connection error. Please check your internet connection and try again.';
+      } else if (error.code === 'PGRST301') {
+        errorMessage = 'Database connection issue. Please contact support if this persists.';
+      } else {
+        errorMessage = error.message || 'Unknown error occurred while loading data';
+      }
+      
       setError(errorMessage);
       
       toast({
@@ -466,6 +485,9 @@ const SubjectManagementTab = () => {
       <div className="text-center py-8">
         <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
         <p>Loading subjects...</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          This should take less than 10 seconds. If it takes longer, there may be a connection issue.
+        </p>
       </div>
     );
   }
