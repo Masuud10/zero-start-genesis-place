@@ -19,18 +19,28 @@ interface SchoolOwnerAnalyticsProps {
 }
 
 const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
-  const { schoolId } = useSchoolScopedData();
+  const { schoolId, isReady } = useSchoolScopedData();
   const { stats, loading: principalLoading, error: principalError } = usePrincipalDashboardData(0);
   const { data: financeData, isLoading: financeLoading, error: financeError } = useFinanceOfficerAnalytics(filters);
   const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useAnalyticsData(schoolId);
+
+  // Ensure we have the school context ready
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+        <p className="ml-2 text-gray-600">Loading school context...</p>
+      </div>
+    );
+  }
 
   const loading = principalLoading || financeLoading || analyticsLoading;
   const error = principalError || financeError || analyticsError;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
         <p className="ml-2 text-gray-600">Loading analytics data...</p>
       </div>
     );
@@ -49,6 +59,15 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
     );
   }
 
+  // Ensure we have basic stats data
+  const safeStats = {
+    totalStudents: stats?.totalStudents || 0,
+    totalTeachers: stats?.totalTeachers || 0,
+    totalSubjects: stats?.totalSubjects || 0,
+    totalClasses: stats?.totalClasses || 0,
+    totalParents: stats?.totalParents || 0
+  };
+
   const chartConfig = {
     students: { label: 'Students', color: '#3b82f6' },
     teachers: { label: 'Teachers', color: '#10b981' },
@@ -60,11 +79,11 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
 
   // Student Performance Data (Bar Chart)
   const performanceData = [
-    { subject: 'Mathematics', average: analytics?.averageGrade || 75, students: Math.floor(stats.totalStudents * 0.8) },
-    { subject: 'English', average: (analytics?.averageGrade || 75) + 5, students: Math.floor(stats.totalStudents * 0.85) },
-    { subject: 'Science', average: (analytics?.averageGrade || 75) - 3, students: Math.floor(stats.totalStudents * 0.78) },
-    { subject: 'Social Studies', average: (analytics?.averageGrade || 75) + 2, students: Math.floor(stats.totalStudents * 0.82) },
-    { subject: 'Kiswahili', average: (analytics?.averageGrade || 75) + 8, students: Math.floor(stats.totalStudents * 0.88) },
+    { subject: 'Mathematics', average: analytics?.averageGrade || 75, students: Math.floor(safeStats.totalStudents * 0.8) },
+    { subject: 'English', average: (analytics?.averageGrade || 75) + 5, students: Math.floor(safeStats.totalStudents * 0.85) },
+    { subject: 'Science', average: (analytics?.averageGrade || 75) - 3, students: Math.floor(safeStats.totalStudents * 0.78) },
+    { subject: 'Social Studies', average: (analytics?.averageGrade || 75) + 2, students: Math.floor(safeStats.totalStudents * 0.82) },
+    { subject: 'Kiswahili', average: (analytics?.averageGrade || 75) + 8, students: Math.floor(safeStats.totalStudents * 0.88) },
   ];
 
   // Attendance Trends (Line Graph)
@@ -72,41 +91,39 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
     month: item.month,
     attendance: item.rate,
     target: 90,
-    students: stats.totalStudents - (index * 2), // Simulate slight enrollment changes
+    students: safeStats.totalStudents - (index * 2),
   })) || [
-    { month: 'Jan', attendance: 92, target: 90, students: stats.totalStudents },
-    { month: 'Feb', attendance: 88, target: 90, students: stats.totalStudents - 2 },
-    { month: 'Mar', attendance: 94, target: 90, students: stats.totalStudents - 1 },
-    { month: 'Apr', attendance: 89, target: 90, students: stats.totalStudents - 3 },
-    { month: 'May', attendance: 91, target: 90, students: stats.totalStudents - 2 },
-    { month: 'Jun', attendance: 87, target: 90, students: stats.totalStudents - 4 },
+    { month: 'Jan', attendance: 92, target: 90, students: safeStats.totalStudents },
+    { month: 'Feb', attendance: 88, target: 90, students: safeStats.totalStudents - 2 },
+    { month: 'Mar', attendance: 94, target: 90, students: safeStats.totalStudents - 1 },
+    { month: 'Apr', attendance: 89, target: 90, students: safeStats.totalStudents - 3 },
+    { month: 'May', attendance: 91, target: 90, students: safeStats.totalStudents - 2 },
+    { month: 'Jun', attendance: 87, target: 90, students: safeStats.totalStudents - 4 },
   ];
 
   // Financial Breakdown (Pie Chart)
   const financialBreakdown = [
     { 
       category: 'Tuition Fees', 
-      amount: financeData?.keyMetrics?.totalCollected * 0.7 || 350000,
+      amount: (financeData?.keyMetrics?.totalCollected || 500000) * 0.7,
       color: '#3b82f6'
     },
     { 
       category: 'Activity Fees', 
-      amount: financeData?.keyMetrics?.totalCollected * 0.15 || 75000,
+      amount: (financeData?.keyMetrics?.totalCollected || 500000) * 0.15,
       color: '#10b981'
     },
     { 
       category: 'Transport Fees', 
-      amount: financeData?.keyMetrics?.totalCollected * 0.1 || 50000,
+      amount: (financeData?.keyMetrics?.totalCollected || 500000) * 0.1,
       color: '#f59e0b'
     },
     { 
       category: 'Other Fees', 
-      amount: financeData?.keyMetrics?.totalCollected * 0.05 || 25000,
+      amount: (financeData?.keyMetrics?.totalCollected || 500000) * 0.05,
       color: '#ef4444'
     },
   ];
-
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
   return (
     <div className="space-y-8">
@@ -266,7 +283,7 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
-                {((analytics?.averageGrade || 75) / 100 * stats.totalStudents).toFixed(0)}
+                {((analytics?.averageGrade || 75) / 100 * safeStats.totalStudents).toFixed(0)}
               </div>
               <div className="text-sm text-blue-500 mt-1">High Performers</div>
               <div className="text-xs text-gray-500">Above 80% average</div>
@@ -290,7 +307,7 @@ const SchoolOwnerAnalytics = ({ filters }: SchoolOwnerAnalyticsProps) => {
             
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
-                {stats.totalTeachers > 0 ? Math.round(stats.totalStudents / stats.totalTeachers) : 0}:1
+                {safeStats.totalTeachers > 0 ? Math.round(safeStats.totalStudents / safeStats.totalTeachers) : 0}:1
               </div>
               <div className="text-sm text-orange-500 mt-1">Student-Teacher Ratio</div>
               <div className="text-xs text-gray-500">Current academic year</div>
