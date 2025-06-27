@@ -33,7 +33,19 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
       
       const { data, error } = await supabase
         .from('subjects')
-        .select('id, name, code, class_id, teacher_id, curriculum, category, is_active')
+        .select(`
+          id, 
+          name, 
+          code, 
+          class_id, 
+          teacher_id, 
+          curriculum, 
+          category, 
+          is_active,
+          credit_hours,
+          assessment_weight,
+          description
+        `)
         .eq('school_id', schoolId)
         .eq('is_active', true)
         .order('name');

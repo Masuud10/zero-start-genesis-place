@@ -47,6 +47,8 @@ interface GeneratedTimetableEntry {
   subject: string;
   teacher: string;
   room?: string;
+  subject_id?: string;
+  teacher_id?: string;
 }
 
 const EnhancedTimetableGenerator = () => {
@@ -81,6 +83,7 @@ const EnhancedTimetableGenerator = () => {
   ]);
   const [generatedTimetable, setGeneratedTimetable] = useState<GeneratedTimetableEntry[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<{day: string, time: string} | null>(null);
 
   const totalSteps = 6;
   const progress = (currentStep / totalSteps) * 100;
@@ -102,12 +105,12 @@ const EnhancedTimetableGenerator = () => {
       setSubjectTeacherAssignments([]);
       setGeneratedTimetable([]);
       setCurrentStep(2);
+      setReloadKey(prev => prev + 1);
     }
   }, [selectedClass]);
 
-  // Filter subjects by selected class - Fixed logic to properly filter subjects
+  // Filter subjects by selected class - Fixed logic
   const classSubjects = subjectList.filter(subject => {
-    // If no class is selected, return empty array
     if (!selectedClass) return false;
     
     // If subject has a specific class_id, it must match the selected class
@@ -176,7 +179,7 @@ const EnhancedTimetableGenerator = () => {
       });
 
       if (result) {
-        // Generate mock timetable for UI display
+        // Generate mock timetable for UI display with editing capability
         const mockTimetable: GeneratedTimetableEntry[] = [];
         const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         
@@ -188,7 +191,9 @@ const EnhancedTimetableGenerator = () => {
               time: `${slot.start} - ${slot.end}`,
               subject: assignment.subject_name,
               teacher: assignment.teacher_name,
-              room: `Room ${(index % 20) + 1}`
+              room: `Room ${(index % 20) + 1}`,
+              subject_id: assignment.subject_id,
+              teacher_id: assignment.teacher_id
             });
           });
         });
@@ -199,6 +204,31 @@ const EnhancedTimetableGenerator = () => {
     } catch (error) {
       console.error('Timetable generation error:', error);
     }
+  };
+
+  const handleSlotEdit = (day: string, time: string, field: string, value: string) => {
+    setGeneratedTimetable(prev => prev.map(entry => {
+      if (entry.day === day && entry.time === time) {
+        if (field === 'subject_id') {
+          const subject = subjectList.find(s => s.id === value);
+          return { 
+            ...entry, 
+            subject_id: value, 
+            subject: subject?.name || entry.subject 
+          };
+        } else if (field === 'teacher_id') {
+          const teacher = teacherList.find(t => t.id === value);
+          return { 
+            ...entry, 
+            teacher_id: value, 
+            teacher: teacher?.name || entry.teacher 
+          };
+        } else {
+          return { ...entry, [field]: value };
+        }
+      }
+      return entry;
+    }));
   };
 
   const handleDownloadPDF = () => {
@@ -495,9 +525,52 @@ const EnhancedTimetableGenerator = () => {
                               <td key={day} className="p-2 border text-center">
                                 {entry ? (
                                   <div className="text-xs">
-                                    <div className="font-medium">{entry.subject}</div>
-                                    <div className="text-muted-foreground">{entry.teacher}</div>
-                                    <div className="text-muted-foreground">{entry.room}</div>
+                                    {isEditing ? (
+                                      <div className="space-y-1">
+                                        <Select
+                                          value={entry.subject_id || ''}
+                                          onValueChange={(value) => handleSlotEdit(day, entry.time, 'subject_id', value)}
+                                        >
+                                          <SelectTrigger className="h-6 text-xs">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {classSubjects.map(subject => (
+                                              <SelectItem key={subject.id} value={subject.id}>
+                                                {subject.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <Select
+                                          value={entry.teacher_id || ''}
+                                          onValueChange={(value) => handleSlotEdit(day, entry.time, 'teacher_id', value)}
+                                        >
+                                          <SelectTrigger className="h-6 text-xs">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {teacherList.map(teacher => (
+                                              <SelectItem key={teacher.id} value={teacher.id}>
+                                                {teacher.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <Input
+                                          value={entry.room || ''}
+                                          onChange={(e) => handleSlotEdit(day, entry.time, 'room', e.target.value)}
+                                          placeholder="Room"
+                                          className="h-6 text-xs"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="font-medium">{entry.subject}</div>
+                                        <div className="text-muted-foreground">{entry.teacher}</div>
+                                        <div className="text-muted-foreground">{entry.room}</div>
+                                      </>
+                                    )}
                                   </div>
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
