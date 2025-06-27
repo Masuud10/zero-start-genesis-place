@@ -7,8 +7,7 @@ import { Badge, BadgeProps } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Filter, Download, Loader2, Eye } from 'lucide-react';
+import { FileText, Filter, Download, Loader2, Eye, Receipt, Plus } from 'lucide-react';
 import { useSchoolBillingRecords, useBillingActions } from '@/hooks/useEnhancedBilling';
 import { format } from 'date-fns';
 
@@ -22,7 +21,7 @@ const EnhancedBillingRecords: React.FC = () => {
   });
 
   const { data: records, isLoading, refetch } = useSchoolBillingRecords(filters);
-  const { updateRecordStatus } = useBillingActions();
+  const { updateRecordStatus, generateInvoice, createSetupFee } = useBillingActions();
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, BadgeProps['variant']> = {
@@ -31,7 +30,19 @@ const EnhancedBillingRecords: React.FC = () => {
       overdue: 'destructive',
       cancelled: 'outline'
     };
-    return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>;
+    
+    const colors: Record<string, string> = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      paid: 'bg-green-100 text-green-800',
+      overdue: 'bg-red-100 text-red-800',
+      cancelled: 'bg-gray-100 text-gray-800'
+    };
+    
+    return (
+      <Badge variant={variants[status] || 'secondary'} className={colors[status]}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   const getBillingTypeBadge = (type: string) => {
@@ -54,6 +65,10 @@ const EnhancedBillingRecords: React.FC = () => {
     });
   };
 
+  const handleGenerateInvoice = (recordId: string) => {
+    generateInvoice.mutate(recordId);
+  };
+
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -66,6 +81,10 @@ const EnhancedBillingRecords: React.FC = () => {
       date_from: '',
       date_to: ''
     });
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'KES') => {
+    return `${currency} ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
   };
 
   if (isLoading) {
@@ -177,70 +196,83 @@ const EnhancedBillingRecords: React.FC = () => {
               <p className="text-gray-500">No billing records found</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>School</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {records.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-mono text-sm">{record.invoice_number}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{record.school?.name || 'Unknown School'}</div>
-                        {record.school?.location && (
-                          <div className="text-sm text-muted-foreground">{record.school.location}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getBillingTypeBadge(record.billing_type)}</TableCell>
-                    <TableCell className="font-mono">
-                      {record.currency} {record.amount.toLocaleString()}
-                      {record.student_count && (
-                        <div className="text-sm text-muted-foreground">
-                          {record.student_count} students
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice #</TableHead>
+                    <TableHead>School</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {records.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-mono text-sm">
+                        {record.invoice_number}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{record.school?.name || 'Unknown School'}</div>
+                          {record.school?.location && (
+                            <div className="text-sm text-muted-foreground">{record.school.location}</div>
+                          )}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(record.status)}</TableCell>
-                    <TableCell>{format(new Date(record.due_date), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{format(new Date(record.created_at), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {record.status === 'pending' && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleStatusUpdate(record.id, 'paid')}
-                            disabled={updateRecordStatus.isPending}
-                          >
-                            Mark Paid
-                          </Button>
+                      </TableCell>
+                      <TableCell>{getBillingTypeBadge(record.billing_type)}</TableCell>
+                      <TableCell className="font-mono">
+                        {formatCurrency(record.amount, record.currency)}
+                        {record.student_count && (
+                          <div className="text-sm text-muted-foreground">
+                            {record.student_count} students
+                          </div>
                         )}
-                        {record.status === 'paid' && (
+                      </TableCell>
+                      <TableCell>{getStatusBadge(record.status)}</TableCell>
+                      <TableCell>{format(new Date(record.due_date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{format(new Date(record.created_at), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleStatusUpdate(record.id, 'pending')}
-                            disabled={updateRecordStatus.isPending}
+                            onClick={() => handleGenerateInvoice(record.id)}
+                            disabled={generateInvoice.isPending}
                           >
-                            Mark Pending
+                            <Receipt className="h-3 w-3 mr-1" />
+                            Invoice
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          {record.status === 'pending' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleStatusUpdate(record.id, 'paid')}
+                              disabled={updateRecordStatus.isPending}
+                            >
+                              Mark Paid
+                            </Button>
+                          )}
+                          {record.status === 'paid' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleStatusUpdate(record.id, 'pending')}
+                              disabled={updateRecordStatus.isPending}
+                            >
+                              Mark Pending
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

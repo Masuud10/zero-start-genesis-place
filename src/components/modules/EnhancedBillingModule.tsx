@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useEnhancedBillingSummary, useBillingActions } from '@/hooks/useEnhancedBilling';
-import { DollarSign, TrendingUp, AlertCircle, RefreshCw, Loader2, Building2, CreditCard, Calendar, Settings } from 'lucide-react';
+import { DollarSign, TrendingUp, AlertCircle, RefreshCw, Loader2, Building2, CreditCard, Calendar, Settings, Plus } from 'lucide-react';
 import BillingSettingsPanel from '@/components/billing/BillingSettingsPanel';
 import EnhancedBillingRecords from '@/components/billing/EnhancedBillingRecords';
 
@@ -26,6 +26,11 @@ const EnhancedBillingModule = () => {
 
   const handleCreateSubscriptions = () => {
     createMonthlySubscriptions.mutate();
+  };
+
+  const formatCurrency = (amount: number | undefined, currency: string = 'KES') => {
+    if (amount === undefined || amount === null) return `${currency} 0.00`;
+    return `${currency} ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
   };
 
   if (summaryError) {
@@ -116,55 +121,55 @@ const EnhancedBillingModule = () => {
         <TabsContent value="overview" className="space-y-6">
           {/* Financial Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
+            <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-green-800">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {billingSummary?.currency} {billingSummary?.total_revenue?.toLocaleString() || 0}
+                <div className="text-2xl font-bold text-green-900">
+                  {formatCurrency(billingSummary?.total_revenue, billingSummary?.currency)}
                 </div>
-                <p className="text-xs text-muted-foreground">From all billing records</p>
+                <p className="text-xs text-green-700">From all paid billing records</p>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Amount</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-yellow-800">Pending Amount</CardTitle>
+                <TrendingUp className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {billingSummary?.currency} {billingSummary?.pending_amount?.toLocaleString() || 0}
+                <div className="text-2xl font-bold text-yellow-900">
+                  {formatCurrency(billingSummary?.pending_amount, billingSummary?.currency)}
                 </div>
-                <p className="text-xs text-muted-foreground">Awaiting payment</p>
+                <p className="text-xs text-yellow-700">Awaiting payment</p>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Overdue Amount</CardTitle>
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-red-800">Overdue Amount</CardTitle>
+                <AlertCircle className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {billingSummary?.currency} {billingSummary?.overdue_amount?.toLocaleString() || 0}
+                <div className="text-2xl font-bold text-red-900">
+                  {formatCurrency(billingSummary?.overdue_amount, billingSummary?.currency)}
                 </div>
-                <p className="text-xs text-muted-foreground">Past due date</p>
+                <p className="text-xs text-red-700">Past due date</p>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Schools</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-blue-800">Active Schools</CardTitle>
+                <Building2 className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-blue-900">
                   {billingSummary?.total_schools || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">Schools with billing records</p>
+                <p className="text-xs text-blue-700">Schools with billing records</p>
               </CardContent>
             </Card>
           </div>
@@ -180,23 +185,26 @@ const EnhancedBillingModule = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                     <span className="text-sm font-medium">Setup Fees</span>
-                    <span className="text-sm font-mono">
-                      {billingSummary?.currency} {billingSummary?.setup_fees_total?.toLocaleString() || 0}
+                    <span className="text-sm font-mono font-bold">
+                      {formatCurrency(billingSummary?.setup_fees_total, billingSummary?.currency)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                     <span className="text-sm font-medium">Subscription Fees</span>
-                    <span className="text-sm font-mono">
-                      {billingSummary?.currency} {billingSummary?.subscription_fees_total?.toLocaleString() || 0}
+                    <span className="text-sm font-mono font-bold">
+                      {formatCurrency(billingSummary?.subscription_fees_total, billingSummary?.currency)}
                     </span>
                   </div>
-                  <hr />
-                  <div className="flex justify-between items-center font-semibold">
-                    <span>Total</span>
+                  <hr className="my-2" />
+                  <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg font-semibold">
+                    <span>Total Revenue</span>
                     <span className="font-mono">
-                      {billingSummary?.currency} {((billingSummary?.setup_fees_total || 0) + (billingSummary?.subscription_fees_total || 0)).toLocaleString()}
+                      {formatCurrency(
+                        (billingSummary?.setup_fees_total || 0) + (billingSummary?.subscription_fees_total || 0),
+                        billingSummary?.currency
+                      )}
                     </span>
                   </div>
                 </div>
@@ -225,6 +233,11 @@ const EnhancedBillingModule = () => {
                     Subscription rate: {billingSummary?.total_schools > 0 
                       ? Math.round(((billingSummary?.active_subscriptions || 0) / billingSummary.total_schools) * 100)
                       : 0}%
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600">
+                    <strong>Fee Structure:</strong><br />
+                    Setup Fee: KES 5,000 (one-time)<br />
+                    Subscription: KES 50 per student/month
                   </div>
                 </div>
               </CardContent>

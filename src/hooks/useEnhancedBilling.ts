@@ -63,6 +63,33 @@ export const useBillingActions = () => {
     },
   });
 
+  const createSetupFee = useMutation({
+    mutationFn: (schoolId: string) => EnhancedBillingService.createSetupFeeForSchool(schoolId),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast({
+          title: "Setup Fee Created",
+          description: "Setup fee has been created for the school.",
+        });
+        queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
+        queryClient.invalidateQueries({ queryKey: ['enhanced-billing-summary'] });
+      } else {
+        toast({
+          title: "Setup Fee Creation Failed",
+          description: result.error || "Failed to create setup fee.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Setup Fee Creation Failed",
+        description: error.message || "Failed to create setup fee.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createMonthlySubscriptions = useMutation({
     mutationFn: () => EnhancedBillingService.createMonthlySubscriptionFees(),
     onSuccess: (result) => {
@@ -102,9 +129,47 @@ export const useBillingActions = () => {
     },
   });
 
+  const calculateSubscriptionFee = useMutation({
+    mutationFn: (schoolId: string) => EnhancedBillingService.calculateSchoolSubscriptionFee(schoolId),
+    onSuccess: (result) => {
+      console.log('Subscription fee calculated:', result.data);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Calculation Failed",
+        description: error.message || "Failed to calculate subscription fee.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateInvoice = useMutation({
+    mutationFn: (recordId: string) => EnhancedBillingService.generateInvoiceData(recordId),
+    onSuccess: (result) => {
+      if (result.data) {
+        toast({
+          title: "Invoice Generated",
+          description: "Invoice data has been generated successfully.",
+        });
+        // Here you could trigger a download or display the invoice
+        console.log('Invoice data:', result.data);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Invoice Generation Failed",
+        description: error.message || "Failed to generate invoice.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     updateBillingSettings,
+    createSetupFee,
     createMonthlySubscriptions,
-    updateRecordStatus
+    updateRecordStatus,
+    calculateSubscriptionFee,
+    generateInvoice
   };
 };

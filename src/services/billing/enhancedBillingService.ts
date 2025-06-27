@@ -208,6 +208,45 @@ export class EnhancedBillingService {
     }
   }
 
+  static async createSetupFeeForSchool(schoolId: string): Promise<{ success: boolean; recordId?: string; error?: any }> {
+    try {
+      console.log('📊 EnhancedBillingService: Creating setup fee for school:', schoolId);
+
+      // Check if setup fee already exists for this school
+      const { data: existingFee, error: checkError } = await supabase
+        .from('school_billing_records')
+        .select('id')
+        .eq('school_id', schoolId)
+        .eq('billing_type', 'setup_fee')
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingFee) {
+        return { success: false, error: 'Setup fee already exists for this school' };
+      }
+
+      // Call the database function to create setup fee
+      const { data, error } = await supabase.rpc('create_setup_fee_record', {
+        p_school_id: schoolId
+      });
+
+      if (error) {
+        console.error('Error creating setup fee:', error);
+        throw error;
+      }
+
+      console.log('📊 EnhancedBillingService: Setup fee created successfully');
+      return { success: true, recordId: data };
+
+    } catch (error: any) {
+      console.error('📊 EnhancedBillingService: Error creating setup fee:', error);
+      return { success: false, error };
+    }
+  }
+
   static async createMonthlySubscriptionFees(): Promise<{ success: boolean; recordsCreated: number; error?: any }> {
     try {
       console.log('📊 EnhancedBillingService: Creating monthly subscription fees');
@@ -281,6 +320,66 @@ export class EnhancedBillingService {
 
     } catch (error: any) {
       console.error('📊 EnhancedBillingService: Error calculating subscription fee:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async generateInvoiceData(recordId: string): Promise<{ data: any | null; error: any }> {
+    try {
+      console.log('📊 EnhancedBillingService: Generating invoice data for record:', recordId);
+
+      const { data: record, error } = await supabase
+        .from('school_billing_records')
+        .select(`
+          *,
+          school:schools(
+            id, name, email, phone, address, logo_url,
+            principal_name, principal_contact
+          )
+        `)
+        .eq('id', recordId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching billing record for invoice:', error);
+        throw error;
+      }
+
+      // Format invoice data
+      const invoiceData = {
+        invoice_number: record.invoice_number,
+        invoice_date: record.created_at,
+        due_date: record.due_date,
+        school: record.school,
+        billing_details: {
+          type: record.billing_type,
+          description: record.description,
+          amount: record.amount,
+          currency: record.currency,
+          student_count: record.student_count,
+          billing_period: record.billing_period_start && record.billing_period_end ? {
+            start: record.billing_period_start,
+            end: record.billing_period_end
+          } : null
+        },
+        payment_info: {
+          status: record.status,
+          paid_date: record.paid_date,
+          payment_method: record.payment_method
+        },
+        company_info: {
+          name: 'EduFam',
+          address: 'Nairobi, Kenya',
+          email: 'billing@edufam.com',
+          phone: '+254-XXX-XXXX'
+        }
+      };
+
+      console.log('📊 EnhancedBillingService: Invoice data generated successfully');
+      return { data: invoiceData, error: null };
+
+    } catch (error: any) {
+      console.error('📊 EnhancedBillingService: Error generating invoice data:', error);
       return { data: null, error };
     }
   }
