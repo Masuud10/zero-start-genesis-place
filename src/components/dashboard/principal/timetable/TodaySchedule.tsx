@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, Users, BookOpen } from 'lucide-react';
+import { Clock, MapPin, Users, BookOpen, Calendar } from 'lucide-react';
 
 interface TodayScheduleProps {
   schedule: Array<{
