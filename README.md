@@ -70,9 +70,9 @@ Payments: MPESA Daraja API
 
 Deployment: Vercel
 
-🗄️ Database Structure (Supabase)
+Database Structure (Supabase)
 
-📞 Contact
+Contact
 Edufam Team
 Email: info@edufam.org
 Website: https://edufam.org
