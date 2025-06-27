@@ -158,9 +158,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <section>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Timetable Management</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalTimetableCard 
-              onModalOpen={handleModalOpen}
-            />
+            <PrincipalTimetableCard />
           </div>
         </section>
 
