@@ -31,13 +31,13 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
           minHeight: '210mm',
           fontFamily: "'Open Sans', sans-serif",
           background: '#ffffff',
-          padding: '25mm',
+          padding: '20mm',
           boxSizing: 'border-box'
         }}
       >
         {/* Professional Certificate Border */}
         <div 
-          className="absolute inset-6 border-4 rounded-lg shadow-lg"
+          className="absolute inset-5 border-4 rounded-lg"
           style={{ 
             borderColor: '#1e40af',
             borderWidth: '3px',
@@ -46,35 +46,36 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
         >
           {/* Inner decorative border */}
           <div 
-            className="absolute inset-4 border-2 rounded-md"
+            className="absolute inset-3 border-2 rounded-md"
             style={{ 
               borderColor: '#3b82f6',
               borderWidth: '1px',
               borderStyle: 'solid',
-              opacity: 0.5
+              opacity: 0.3
             }}
           ></div>
         </div>
 
         {/* Serial Number - Top Right Corner */}
         <div 
-          className="absolute top-8 right-8 text-sm font-mono"
+          className="absolute top-6 right-8 text-sm font-mono"
           style={{ 
             color: '#374151',
             fontFamily: "'Courier New', monospace",
-            fontSize: '12px',
-            fontWeight: 'bold'
+            fontSize: '11px',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px'
           }}
         >
           Serial No: {serialNumber}
         </div>
 
         {/* Header Section - School Information */}
-        <div className="text-center mb-8 relative z-10">
-          <div className="flex items-center justify-center gap-6 mb-6">
+        <div className="text-center mb-10 relative z-10" style={{ marginTop: '15mm' }}>
+          <div className="flex items-center justify-center gap-8 mb-8">
             {school?.logo_url && (
               <div 
-                className="w-20 h-20 rounded-full border-3 p-2 bg-white shadow-md"
+                className="w-24 h-24 rounded-full border-3 p-2 bg-white shadow-lg"
                 style={{ borderColor: '#1e40af' }}
               >
                 <img 
@@ -86,21 +87,23 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
             )}
             <div className="text-center">
               <h1 
-                className="text-3xl font-bold mb-2 tracking-wide"
+                className="text-4xl font-bold mb-3 tracking-wide"
                 style={{ 
                   fontFamily: "'Playfair Display', serif",
                   color: '#1e40af',
-                  fontSize: '36px'
+                  fontSize: '42px',
+                  lineHeight: '1.2'
                 }}
               >
                 {school?.name || 'SCHOOL NAME'}
               </h1>
               {school?.motto && (
                 <p 
-                  className="text-lg italic mb-2"
+                  className="text-lg italic mb-3"
                   style={{ 
                     color: '#6b7280',
-                    fontFamily: "'Playfair Display', serif"
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: '18px'
                   }}
                 >
                   "{school.motto}"
@@ -118,14 +121,15 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
         </div>
 
         {/* Certificate Title */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           <h2 
-            className="text-5xl font-bold mb-3 tracking-widest"
+            className="text-5xl font-bold mb-4 tracking-widest"
             style={{ 
               fontFamily: "'Playfair Display', serif",
               color: '#1e40af',
-              fontSize: '48px',
-              letterSpacing: '0.1em'
+              fontSize: '52px',
+              letterSpacing: '0.15em',
+              lineHeight: '1.1'
             }}
           >
             CERTIFICATE
@@ -135,7 +139,7 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
             style={{ 
               color: '#374151',
               fontFamily: "'Playfair Display', serif",
-              fontSize: '24px'
+              fontSize: '26px'
             }}
           >
             OF ACADEMIC ACHIEVEMENT
@@ -143,26 +147,28 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
         </div>
 
         {/* Student Name - Highlight Section */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-12">
           <p 
-            className="text-lg mb-6"
+            className="text-lg mb-8"
             style={{ 
               color: '#374151',
-              fontFamily: "'Open Sans', sans-serif"
+              fontFamily: "'Open Sans', sans-serif",
+              fontSize: '18px'
             }}
           >
             This is to certify that
           </p>
           
-          <div className="mb-6">
+          <div className="mb-8">
             <h3 
-              className="text-4xl font-bold mb-3 inline-block px-12 pb-3"
+              className="text-5xl font-bold mb-4 inline-block px-16 pb-4"
               style={{ 
                 fontFamily: "'Great Vibes', cursive",
                 color: '#1e40af',
-                fontSize: '42px',
+                fontSize: '48px',
                 borderBottom: '3px solid #1e40af',
-                fontWeight: 'normal'
+                fontWeight: 'normal',
+                lineHeight: '1.2'
               }}
             >
               {student.name}
@@ -171,11 +177,12 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
 
           {/* Certification Text */}
           <p 
-            className="text-lg mb-6 px-12 leading-relaxed"
+            className="text-lg mb-8 px-16 leading-relaxed"
             style={{ 
               color: '#374151',
               fontFamily: "'Open Sans', sans-serif",
-              lineHeight: '1.8'
+              lineHeight: '1.8',
+              fontSize: '18px'
             }}
           >
             Has successfully completed the requirements of the Academic Year {certificate.academic_year} 
@@ -184,51 +191,52 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
 
           {/* Performance Summary */}
           <div 
-            className="border-2 rounded-lg p-6 mb-6 mx-16"
+            className="border-2 rounded-lg p-8 mb-8 mx-20"
             style={{ 
               background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-              borderColor: '#cbd5e1'
+              borderColor: '#cbd5e1',
+              marginBottom: '40px'
             }}
           >
-            <div className="grid grid-cols-3 gap-8 text-center">
+            <div className="grid grid-cols-3 gap-12 text-center">
               <div>
                 <p 
-                  className="text-2xl font-bold mb-2"
-                  style={{ color: '#1e40af' }}
+                  className="text-3xl font-bold mb-3"
+                  style={{ color: '#1e40af', fontSize: '28px' }}
                 >
                   {studentPerformance.average_score?.toFixed(1) || '0'}%
                 </p>
                 <p 
                   className="text-sm font-medium"
-                  style={{ color: '#6b7280' }}
+                  style={{ color: '#6b7280', fontSize: '14px' }}
                 >
                   Overall Average
                 </p>
               </div>
               <div>
                 <p 
-                  className="text-2xl font-bold mb-2"
-                  style={{ color: '#1e40af' }}
+                  className="text-3xl font-bold mb-3"
+                  style={{ color: '#1e40af', fontSize: '28px' }}
                 >
                   {studentPerformance.grade_letter || 'A'}
                 </p>
                 <p 
                   className="text-sm font-medium"
-                  style={{ color: '#6b7280' }}
+                  style={{ color: '#6b7280', fontSize: '14px' }}
                 >
                   Grade Achieved
                 </p>
               </div>
               <div>
                 <p 
-                  className="text-2xl font-bold mb-2"
-                  style={{ color: '#1e40af' }}
+                  className="text-3xl font-bold mb-3"
+                  style={{ color: '#1e40af', fontSize: '28px' }}
                 >
                   {attendance.attendance_percentage?.toFixed(1) || '95'}%
                 </p>
                 <p 
                   className="text-sm font-medium"
-                  style={{ color: '#6b7280' }}
+                  style={{ color: '#6b7280', fontSize: '14px' }}
                 >
                   Attendance Rate
                 </p>
@@ -237,18 +245,19 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
           </div>
         </div>
 
-        {/* Bottom Section - Footer */}
-        <div className="absolute bottom-16 left-0 right-0">
-          <div className="flex justify-between items-end px-12">
+        {/* Bottom Section - Properly Spaced Footer */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ bottom: '25mm', height: '35mm' }}>
+          {/* Signatures Section */}
+          <div className="flex justify-between items-start px-16 mb-8">
             {/* Left Bottom Corner - Date of Issue */}
-            <div className="text-left">
+            <div className="text-left" style={{ width: '200px' }}>
               <div 
                 className="w-48 h-px mb-4"
                 style={{ backgroundColor: '#6b7280' }}
               ></div>
               <p 
-                className="text-lg font-semibold mb-1"
-                style={{ color: '#374151' }}
+                className="text-lg font-semibold mb-2"
+                style={{ color: '#374151', fontSize: '16px' }}
               >
                 {new Date(certificate.generated_at).toLocaleDateString('en-US', {
                   year: 'numeric',
@@ -258,62 +267,63 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
               </p>
               <p 
                 className="text-sm"
-                style={{ color: '#6b7280' }}
+                style={{ color: '#6b7280', fontSize: '12px' }}
               >
                 Date of Issue
               </p>
             </div>
             
             {/* Right Bottom Corner - Principal's Signature */}
-            <div className="text-right">
+            <div className="text-right" style={{ width: '200px' }}>
               <div 
-                className="w-48 h-px mb-4"
+                className="w-48 h-px mb-4 ml-auto"
                 style={{ backgroundColor: '#6b7280' }}
               ></div>
               <p 
-                className="text-lg font-semibold mb-1"
-                style={{ color: '#374151' }}
+                className="text-lg font-semibold mb-2"
+                style={{ color: '#374151', fontSize: '16px' }}
               >
                 {school?.principal_name || 'Principal'}
               </p>
               <p 
                 className="text-sm"
-                style={{ color: '#6b7280' }}
+                style={{ color: '#6b7280', fontSize: '12px' }}
               >
                 Principal's Signature
               </p>
             </div>
           </div>
+
+          {/* Center Bottom - Edufam Footer with proper spacing */}
+          <div className="text-center" style={{ marginTop: '20px' }}>
+            <p 
+              className="text-sm font-medium"
+              style={{ 
+                color: '#9ca3af',
+                fontFamily: "'Open Sans', sans-serif",
+                fontSize: '12px'
+              }}
+            >
+              Powered by <span className="font-semibold">Edufam</span>
+            </p>
+          </div>
         </div>
 
-        {/* Center Bottom - Edufam Footer */}
-        <div className="absolute bottom-8 left-0 right-0 text-center">
-          <p 
-            className="text-sm font-medium"
-            style={{ 
-              color: '#9ca3af',
-              fontFamily: "'Open Sans', sans-serif"
-            }}
-          >
-            Powered by <span className="font-semibold">Edufam</span>
-          </p>
-        </div>
-
-        {/* Decorative Corner Elements */}
+        {/* Decorative Corner Elements - Subtle and Well-Positioned */}
         <div 
-          className="absolute top-8 left-8 w-16 h-16 border-l-3 border-t-3 opacity-30"
+          className="absolute top-6 left-6 w-12 h-12 border-l-2 border-t-2 opacity-25"
           style={{ borderColor: '#3b82f6' }}
         ></div>
         <div 
-          className="absolute top-8 right-8 w-16 h-16 border-r-3 border-t-3 opacity-30"
+          className="absolute top-6 right-6 w-12 h-12 border-r-2 border-t-2 opacity-25"
           style={{ borderColor: '#3b82f6' }}
         ></div>
         <div 
-          className="absolute bottom-24 left-8 w-16 h-16 border-l-3 border-b-3 opacity-30"
+          className="absolute bottom-6 left-6 w-12 h-12 border-l-2 border-b-2 opacity-25"
           style={{ borderColor: '#3b82f6' }}
         ></div>
         <div 
-          className="absolute bottom-24 right-8 w-16 h-16 border-r-3 border-b-3 opacity-30"
+          className="absolute bottom-6 right-6 w-12 h-12 border-r-2 border-b-2 opacity-25"
           style={{ borderColor: '#3b82f6' }}
         ></div>
       </div>
