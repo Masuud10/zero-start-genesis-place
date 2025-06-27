@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { FileText, Filter, Download, Loader2, Eye, Receipt, Plus } from 'lucide-react';
 import { useSchoolBillingRecords, useBillingActions } from '@/hooks/useEnhancedBilling';
 import { format } from 'date-fns';
+import ManualFeeCreateDialog from './ManualFeeCreateDialog';
 
 const EnhancedBillingRecords: React.FC = () => {
   const [filters, setFilters] = useState({
@@ -107,6 +107,7 @@ const EnhancedBillingRecords: React.FC = () => {
           <p className="text-muted-foreground">Manage school billing records and invoices</p>
         </div>
         <div className="flex gap-2">
+          <ManualFeeCreateDialog />
           <Button variant="outline" onClick={() => refetch()}>
             <Eye className="h-4 w-4 mr-2" />
             Refresh

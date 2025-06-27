@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EnhancedBillingService } from '@/services/billing/enhancedBillingService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -164,12 +163,46 @@ export const useBillingActions = () => {
     },
   });
 
+  const createManualFee = useMutation({
+    mutationFn: (data: {
+      school_id: string;
+      billing_type: 'setup_fee' | 'subscription_fee';
+      amount: number;
+      description: string;
+      due_date: string;
+    }) => EnhancedBillingService.createManualFeeRecord(data),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast({
+          title: "Manual Fee Created",
+          description: "Fee record has been created successfully.",
+        });
+        queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
+        queryClient.invalidateQueries({ queryKey: ['enhanced-billing-summary'] });
+      } else {
+        toast({
+          title: "Failed to Create Fee",
+          description: result.error || "Failed to create fee record.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Create Fee",
+        description: error.message || "Failed to create fee record.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     updateBillingSettings,
     createSetupFee,
     createMonthlySubscriptions,
     updateRecordStatus,
     calculateSubscriptionFee,
-    generateInvoice
+    generateInvoice,
+    createManualFee
   };
 };

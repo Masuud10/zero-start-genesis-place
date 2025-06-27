@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface BillingSettings {
@@ -205,6 +204,107 @@ export class EnhancedBillingService {
     } catch (error: any) {
       console.error('📊 EnhancedBillingService: Error calculating billing summary:', error);
       return { data: null, error };
+    }
+  }
+
+  static async createManualFeeRecord(data: {
+    school_id: string;
+    billing_type: 'setup_fee' | 'subscription_fee';
+    amount: number;
+    description: string;
+    due_date: string;
+  }): Promise<{ success: boolean; recordId?: string; error?: any }> {
+    try {
+      console.log('📊 EnhancedBillingService: Creating manual fee record:', data);
+
+      // For subscription fees, calculate based on student count
+      let finalAmount = data.amount;
+      let studentCount = 0;
+
+      if (data.billing_type === 'subscription_fee') {
+        // Get student count for the school
+        const { data: students, error: studentsError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('school_id', data.school_id);
+
+        if (studentsError) {
+          console.error('Error fetching student count:', studentsError);
+          throw studentsError;
+        }
+
+        studentCount = students?.length || 0;
+        
+        // If amount is 0, use default per-student rate (KES 50)
+        if (data.amount === 0) {
+          finalAmount = studentCount * 50; // KES 50 per student
+        } else {
+          // Use the manual amount as per-student rate
+          finalAmount = studentCount * data.amount;
+        }
+      }
+
+      // Generate invoice number
+      const invoiceNumber = await this.generateInvoiceNumber();
+
+      // Create the billing record
+      const { data: record, error } = await supabase
+        .from('school_billing_records')
+        .insert({
+          school_id: data.school_id,
+          billing_type: data.billing_type,
+          amount: finalAmount,
+          currency: 'KES',
+          student_count: data.billing_type === 'subscription_fee' ? studentCount : null,
+          billing_period_start: data.billing_type === 'subscription_fee' ? new Date().toISOString().split('T')[0] : null,
+          billing_period_end: data.billing_type === 'subscription_fee' ? 
+            new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0] : null,
+          status: 'pending',
+          invoice_number: invoiceNumber,
+          description: data.description,
+          due_date: data.due_date,
+          created_by: 'manual_entry',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating manual fee record:', error);
+        throw error;
+      }
+
+      console.log('📊 EnhancedBillingService: Manual fee record created successfully');
+      return { success: true, recordId: record.id };
+
+    } catch (error: any) {
+      console.error('📊 EnhancedBillingService: Error creating manual fee record:', error);
+      return { success: false, error };
+    }
+  }
+
+  static async generateInvoiceNumber(): Promise<string> {
+    try {
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      
+      // Get count of records for this month
+      const { data: records, error } = await supabase
+        .from('school_billing_records')
+        .select('id')
+        .gte('created_at', `${year}-${month}-01`)
+        .lt('created_at', `${year}-${month === '12' ? year + 1 : year}-${month === '12' ? '01' : String(parseInt(month) + 1).padStart(2, '0')}-01`);
+
+      if (error) throw error;
+
+      const sequence = String((records?.length || 0) + 1).padStart(4, '0');
+      return `EF-${year}${month}-${sequence}`;
+    } catch (error) {
+      console.error('Error generating invoice number:', error);
+      // Fallback to timestamp-based number
+      return `EF-${Date.now()}`;
     }
   }
 
