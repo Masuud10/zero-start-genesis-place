@@ -1,3 +1,4 @@
+
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions, PERMISSIONS } from '@/utils/permissions';
 import { UserRole } from '@/types/user';
@@ -28,11 +29,14 @@ export const useAccessControl = () => {
         console.log('🔒 useAccessControl: School management access:', hasSchoolManagementAccess);
         return hasSchoolManagementAccess;
       case 'certificates':
-        // Principals and EduFam admins can generate certificates, school owners can only view
+        // Principals can generate certificates, school owners and EduFam admins can view
         return user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
       case 'certificate-generation':
         // Only principals and EduFam admins can generate certificates
         return user.role === 'principal' || user.role === 'edufam_admin';
+      case 'certificate-viewing':
+        // Principals, school owners, and EduFam admins can view certificates
+        return user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
       case 'grades':
         return hasPermission(PERMISSIONS.VIEW_GRADEBOOK);
       case 'attendance':

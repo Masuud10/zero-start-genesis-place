@@ -30,7 +30,8 @@ import {
   ClipboardList,
   ChevronDown,
   Bell,
-  Wrench
+  Wrench,
+  Award
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -108,6 +109,12 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       label: 'Fee Management',
       icon: Coins,
       roles: ['finance_officer']
+    },
+    {
+      id: 'certificates',
+      label: 'Certificates',
+      icon: Award,
+      roles: ['principal', 'school_owner', 'edufam_admin']
     },
     {
       id: 'timetable',

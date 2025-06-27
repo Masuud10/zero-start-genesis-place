@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ const CertificatesList = () => {
   const [showViewer, setShowViewer] = useState(false);
 
   const { data: certificates, isLoading, refetch } = useQuery({
-    queryKey: ['certificates', schoolId],
+    queryKey: ['certificates', schoolId, user?.role],
     queryFn: async () => {
       let query = supabase
         .from('certificates')
@@ -35,10 +34,15 @@ const CertificatesList = () => {
 
       // Access control based on user role
       if (user?.role === 'principal') {
+        // Principals can see certificates for their school only
         query = query.eq('school_id', schoolId);
       } else if (user?.role === 'school_owner') {
+        // School owners can view certificates for their school only
         query = query.eq('school_id', schoolId);
-      } else if (user?.role !== 'edufam_admin') {
+      } else if (user?.role === 'edufam_admin') {
+        // EduFam admins can view all certificates across all schools
+        // No additional filter needed
+      } else {
         // Other roles shouldn't see certificates
         return [];
       }
@@ -52,10 +56,11 @@ const CertificatesList = () => {
   });
 
   const handleDelete = async (certificateId: string) => {
-    if (user?.role !== 'principal' && user?.role !== 'edufam_admin') {
+    // Only principals can delete certificates
+    if (user?.role !== 'principal') {
       toast({
         title: "Access Denied",
-        description: "You don't have permission to delete certificates.",
+        description: "Only principals can delete certificates.",
         variant: "destructive"
       });
       return;
@@ -94,8 +99,8 @@ const CertificatesList = () => {
     handleView(certificate);
   };
 
-  // Access control check
-  if (user?.role !== 'principal' && user?.role !== 'school_owner' && user?.role !== 'edufam_admin') {
+  // Access control check - only allowed roles can view certificates
+  if (!['principal', 'school_owner', 'edufam_admin'].includes(user?.role || '')) {
     return (
       <div className="p-6">
         <Card className="border-red-200 bg-red-50 shadow-sm">
@@ -125,24 +130,57 @@ const CertificatesList = () => {
     );
   }
 
+  // Role-based title and description
+  const getPageTitle = () => {
+    switch (user?.role) {
+      case 'principal':
+        return 'Certificate Management';
+      case 'school_owner':
+        return 'School Certificates';
+      case 'edufam_admin':
+        return 'All System Certificates';
+      default:
+        return 'Certificates';
+    }
+  };
+
+  const getPageDescription = () => {
+    switch (user?.role) {
+      case 'principal':
+        return 'Generate and manage academic certificates for students';
+      case 'school_owner':
+        return 'View generated certificates for your school';
+      case 'edufam_admin':
+        return 'View all certificates across the system';
+      default:
+        return 'View certificates';
+    }
+  };
+
   return (
     <>
       <div className="p-6">
         <CardHeader className="px-0 pb-4">
           <CardTitle className="flex items-center gap-2 text-gray-900">
             <Award className="h-5 w-5" />
-            Generated Certificates
+            {getPageTitle()}
             <Badge variant="secondary" className="ml-auto bg-gray-100 text-gray-700">
               {certificates?.length || 0} Total
             </Badge>
           </CardTitle>
+          <p className="text-gray-600 text-sm">{getPageDescription()}</p>
         </CardHeader>
         <CardContent className="px-0">
           {!certificates || certificates.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
               <Award className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-xl font-medium text-gray-800 mb-2">No certificates generated yet</h3>
-              <p className="text-gray-600">Generate academic certificates for students to get started.</p>
+              <h3 className="text-xl font-medium text-gray-800 mb-2">No certificates found</h3>
+              <p className="text-gray-600">
+                {user?.role === 'principal' 
+                  ? 'Generate academic certificates for students to get started.'
+                  : 'No certificates have been generated yet.'
+                }
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
@@ -152,6 +190,9 @@ const CertificatesList = () => {
                     <TableHead className="font-medium text-gray-700">Student</TableHead>
                     <TableHead className="font-medium text-gray-700">Class</TableHead>
                     <TableHead className="font-medium text-gray-700">Academic Year</TableHead>
+                    {user?.role === 'edufam_admin' && (
+                      <TableHead className="font-medium text-gray-700">School</TableHead>
+                    )}
                     <TableHead className="font-medium text-gray-700">Generated By</TableHead>
                     <TableHead className="font-medium text-gray-700">Generated Date</TableHead>
                     <TableHead className="font-medium text-gray-700">Actions</TableHead>
@@ -181,6 +222,13 @@ const CertificatesList = () => {
                           {certificate.academic_year}
                         </Badge>
                       </TableCell>
+                      {user?.role === 'edufam_admin' && (
+                        <TableCell>
+                          <div className="text-sm text-gray-700">
+                            {certificate.performance?.school?.name || 'Unknown School'}
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="text-sm text-gray-700">
                           {certificate.generated_by_profile?.name || 'Unknown'}
@@ -213,7 +261,7 @@ const CertificatesList = () => {
                             <Download className="h-4 w-4 mr-1" />
                             PDF
                           </Button>
-                          {(user?.role === 'principal' || user?.role === 'edufam_admin') && (
+                          {user?.role === 'principal' && (
                             <Button
                               size="sm"
                               variant="outline"
