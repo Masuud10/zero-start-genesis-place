@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import TimetableStats from './timetable/TimetableStats';
 import TodaySchedule from './timetable/TodaySchedule';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import TimetableGenerator from '@/components/timetable/TimetableGenerator';
+import EnhancedTimetableGenerator from '@/components/timetable/EnhancedTimetableGenerator';
 
 interface TimetableData {
   totalSchedules: number;
@@ -53,7 +53,7 @@ const PrincipalTimetableCard = () => {
       const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const todayName = dayNames[today.getDay()];
 
-      // Fetch timetable data
+      // Fetch timetable data with proper joins
       const { data: timetableRecords, error: timetableError } = await supabase
         .from('timetables')
         .select(`
@@ -63,9 +63,9 @@ const PrincipalTimetableCard = () => {
           end_time,
           room,
           is_published,
-          classes!inner(name),
-          subjects!inner(name),
-          profiles!timetables_teacher_id_fkey(name)
+          classes!inner(id, name),
+          subjects!inner(id, name),
+          profiles!timetables_teacher_id_fkey(id, name)
         `)
         .eq('school_id', schoolId);
 
@@ -79,7 +79,7 @@ const PrincipalTimetableCard = () => {
 
       // Filter today's schedule
       const todaySchedule = (timetableRecords || [])
-        .filter(record => record.day_of_week === todayName)
+        .filter(record => record.day_of_week === todayName && record.is_published)
         .map(record => ({
           id: record.id,
           className: record.classes?.name || 'Unknown Class',
@@ -88,7 +88,8 @@ const PrincipalTimetableCard = () => {
           startTime: record.start_time,
           endTime: record.end_time,
           room: record.room || 'TBA'
-        }));
+        }))
+        .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
       setTimetableData({
         totalSchedules,
@@ -143,14 +144,15 @@ const PrincipalTimetableCard = () => {
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  Manage Timetables
+                  Generate Timetables
                 </Button>
                 <Button 
                   variant="outline" 
                   className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={fetchTimetableData}
                 >
                   <Clock className="h-4 w-4 mr-2" />
-                  View Full Schedule
+                  Refresh Data
                 </Button>
               </div>
             </>
@@ -158,13 +160,13 @@ const PrincipalTimetableCard = () => {
         </CardContent>
       </div>
 
-      {/* Timetable Generator Dialog */}
+      {/* Enhanced Timetable Generator Dialog */}
       <Dialog open={showGenerator} onOpenChange={setShowGenerator}>
-        <DialogContent className="max-w-6xl h-[90vh] overflow-y-auto bg-white">
+        <DialogContent className="max-w-7xl h-[90vh] overflow-y-auto bg-white">
           <DialogHeader>
-            <DialogTitle className="text-gray-900">Timetable Generator</DialogTitle>
+            <DialogTitle className="text-gray-900">Enhanced Timetable Generator</DialogTitle>
           </DialogHeader>
-          <TimetableGenerator />
+          <EnhancedTimetableGenerator />
         </DialogContent>
       </Dialog>
     </>
