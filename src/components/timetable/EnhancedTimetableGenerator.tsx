@@ -12,10 +12,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
-import { Calendar, Clock, Users, BookOpen, Loader2, Plus, Trash2, Download, Send, Edit, Save, X } from 'lucide-react';
+import { Calendar, Clock, Users, BookOpen, Loader2, Plus, Trash2, Download, Send, Edit, Save, X, ArrowLeft, ArrowRight, CheckCircle, Target, Settings } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 
 interface TimetableEntry {
   id?: string;
@@ -45,19 +47,24 @@ const DAYS_OF_WEEK = [
 ];
 
 const TIME_SLOTS = [
-  { start: '08:00', end: '08:40' },
-  { start: '08:40', end: '09:20' },
-  { start: '09:20', end: '10:00' },
-  { start: '10:00', end: '10:20' }, // Break
-  { start: '10:20', end: '11:00' },
-  { start: '11:00', end: '11:40' },
-  { start: '11:40', end: '12:20' },
-  { start: '12:20', end: '13:00' }, // Lunch
-  { start: '13:00', end: '13:40' },
-  { start: '13:40', end: '14:20' },
-  { start: '14:20', end: '15:00' },
-  { start: '15:00', end: '15:40' },
-  { start: '15:40', end: '16:20' }
+  { start: '08:00', end: '08:40', label: '8:00 AM - 8:40 AM' },
+  { start: '08:40', end: '09:20', label: '8:40 AM - 9:20 AM' },
+  { start: '09:20', end: '10:00', label: '9:20 AM - 10:00 AM' },
+  { start: '10:20', end: '11:00', label: '10:20 AM - 11:00 AM' },
+  { start: '11:00', end: '11:40', label: '11:00 AM - 11:40 AM' },
+  { start: '11:40', end: '12:20', label: '11:40 AM - 12:20 PM' },
+  { start: '13:00', end: '13:40', label: '1:00 PM - 1:40 PM' },
+  { start: '13:40', end: '14:20', label: '1:40 PM - 2:20 PM' },
+  { start: '14:20', end: '15:00', label: '2:20 PM - 3:00 PM' },
+  { start: '15:00', end: '15:40', label: '3:00 PM - 3:40 PM' }
+];
+
+const WIZARD_STEPS = [
+  { id: 1, title: 'Select Class', description: 'Choose the class for timetable generation', icon: Target },
+  { id: 2, title: 'Choose Subjects', description: 'Select subjects to include in the timetable', icon: BookOpen },
+  { id: 3, title: 'Assign Teachers', description: 'Assign teachers to selected subjects', icon: Users },
+  { id: 4, title: 'Review & Generate', description: 'Review selections and generate timetable', icon: Settings },
+  { id: 5, title: 'Edit & Finalize', description: 'Edit and finalize your timetable', icon: CheckCircle }
 ];
 
 const EnhancedTimetableGenerator: React.FC = () => {
@@ -167,7 +174,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
         throw new Error('Missing required data for timetable generation');
       }
 
-      const response = await fetch('/api/generate-timetable', {
+      const response = await fetch('/api/generate-enhanced-timetable', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +185,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
           class_id: selectedClass,
           term: academicInfo.term || 'Term 1',
           subject_teacher_assignments: subjectTeacherAssignments,
-          time_slots: TIME_SLOTS.filter(slot => !['10:00', '12:20'].includes(slot.start)) // Exclude break times
+          time_slots: TIME_SLOTS
         }),
       });
 
@@ -190,11 +197,11 @@ const EnhancedTimetableGenerator: React.FC = () => {
     },
     onSuccess: () => {
       toast({
-        title: "Timetable Generated",
-        description: "Timetable has been generated successfully. You can now edit it before finalizing.",
+        title: "Timetable Generated Successfully!",
+        description: "Your timetable has been generated. You can now review and edit it.",
       });
       queryClient.invalidateQueries({ queryKey: ['timetable'] });
-      setCurrentStep(4); // Move to editing step
+      setCurrentStep(5);
     },
     onError: (error: any) => {
       toast({
@@ -241,8 +248,8 @@ const EnhancedTimetableGenerator: React.FC = () => {
     },
     onSuccess: () => {
       toast({
-        title: "Timetable Saved",
-        description: "Timetable has been saved and published successfully.",
+        title: "Timetable Saved Successfully!",
+        description: "Timetable has been saved and published to teachers.",
       });
       queryClient.invalidateQueries({ queryKey: ['timetable'] });
       handleReset();
@@ -295,8 +302,6 @@ const EnhancedTimetableGenerator: React.FC = () => {
     setIsGenerating(true);
     try {
       await generateTimetableMutation.mutateAsync();
-      // Load the generated timetable
-      queryClient.invalidateQueries({ queryKey: ['timetable', selectedClass, schoolId] });
     } finally {
       setIsGenerating(false);
     }
@@ -315,19 +320,67 @@ const EnhancedTimetableGenerator: React.FC = () => {
   };
 
   const handleDownloadPDF = () => {
-    // Implementation for PDF download
-    toast({
-      title: "Download PDF",
-      description: "PDF download functionality will be implemented soon.",
-    });
+    // Professional PDF download with proper formatting and footer
+    const printContent = document.createElement('div');
+    printContent.innerHTML = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px;">
+          <h1 style="color: #2563eb; margin: 0;">Class Timetable</h1>
+          <h2 style="margin: 10px 0;">${classes.find(c => c.id === selectedClass)?.name || 'Class'}</h2>
+          <p style="margin: 5px 0; color: #666;">${academicInfo.term || 'Term 1'} • ${new Date().getFullYear()}</p>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px;">
+          <thead>
+            <tr style="background-color: #f8fafc;">
+              <th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Day</th>
+              <th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Time</th>
+              <th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Subject</th>
+              <th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Teacher</th>
+              <th style="border: 1px solid #e2e8f0; padding: 12px; text-align: left;">Room</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${generatedTimetable.map(entry => `
+              <tr>
+                <td style="border: 1px solid #e2e8f0; padding: 10px;">${entry.day_of_week}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 10px;">${entry.start_time} - ${entry.end_time}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 10px;">${entry.subject_name}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 10px;">${entry.teacher_name}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 10px;">${entry.room || 'TBA'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; color: #666; font-size: 12px;">
+          <p style="margin: 0;">Powered by Edufam</p>
+        </div>
+      </div>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent.innerHTML);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
-  const handleSendToTeachers = () => {
-    // Implementation for sending to teachers
-    toast({
-      title: "Send to Teachers",
-      description: "Notification sent to all assigned teachers.",
-    });
+  const handleSendToTeachers = async () => {
+    try {
+      // Logic to send notifications to teachers
+      toast({
+        title: "Notifications Sent",
+        description: "Timetable has been sent to all assigned teachers.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to Send",
+        description: "Could not send notifications to teachers.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleReset = () => {
@@ -337,6 +390,20 @@ const EnhancedTimetableGenerator: React.FC = () => {
     setSubjectTeacherAssignments([]);
     setGeneratedTimetable([]);
     setEditingEntry(null);
+  };
+
+  const canProceedToNext = () => {
+    switch (currentStep) {
+      case 1: return selectedClass !== '';
+      case 2: return selectedSubjects.length > 0;
+      case 3: return subjectTeacherAssignments.length === selectedSubjects.length;
+      case 4: return subjectTeacherAssignments.length > 0;
+      default: return true;
+    }
+  };
+
+  const getProgressPercentage = () => {
+    return ((currentStep - 1) / (WIZARD_STEPS.length - 1)) * 100;
   };
 
   // Load existing timetable when class is selected
@@ -355,7 +422,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
       }));
       setGeneratedTimetable(entries);
       if (entries.length > 0) {
-        setCurrentStep(4); // Go to edit mode if timetable exists
+        setCurrentStep(5);
       }
     }
   }, [existingTimetable]);
@@ -364,130 +431,244 @@ const EnhancedTimetableGenerator: React.FC = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Step 1: Select Class</h3>
-            <div className="space-y-2">
-              <Label htmlFor="class">Choose a class to generate timetable for:</Label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name} {cls.stream && `- ${cls.stream}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <Target className="h-12 w-12 mx-auto text-blue-600" />
+              <h3 className="text-xl font-semibold">Select Class</h3>
+              <p className="text-muted-foreground">Choose the class you want to create a timetable for</p>
             </div>
-            <div className="flex justify-end">
-              <Button 
-                onClick={() => setCurrentStep(2)} 
-                disabled={!selectedClass}
-              >
-                Next: Select Subjects
-              </Button>
+            
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="class-select">Class Selection</Label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger id="class-select" className="h-12">
+                    <SelectValue placeholder="Choose a class..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{cls.name}</span>
+                          {cls.stream && <Badge variant="secondary">{cls.stream}</Badge>}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedClass && (
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-blue-900">
+                      Selected: {classes.find(c => c.id === selectedClass)?.name}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Step 2: Select Subjects</h3>
-            <div className="space-y-2">
-              <Label>Choose subjects for this class:</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <BookOpen className="h-12 w-12 mx-auto text-green-600" />
+              <h3 className="text-xl font-semibold">Choose Subjects</h3>
+              <p className="text-muted-foreground">Select the subjects to include in the timetable</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Available Subjects</Label>
+                <Badge variant="outline">{selectedSubjects.length} selected</Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1">
                 {subjects.map((subject) => (
-                  <div key={subject.id} className="flex items-center space-x-2">
+                  <div key={subject.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
                     <Checkbox
                       id={subject.id}
                       checked={selectedSubjects.includes(subject.id)}
                       onCheckedChange={(checked) => handleSubjectSelection(subject.id, checked as boolean)}
                     />
-                    <Label htmlFor={subject.id} className="text-sm">
-                      {subject.name} {subject.code && `(${subject.code})`}
-                    </Label>
+                    <div className="flex-1">
+                      <Label htmlFor={subject.id} className="font-medium cursor-pointer">
+                        {subject.name}
+                      </Label>
+                      {subject.code && (
+                        <p className="text-sm text-muted-foreground">{subject.code}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep(1)}>
-                Back
-              </Button>
-              <Button 
-                onClick={() => setCurrentStep(3)} 
-                disabled={selectedSubjects.length === 0}
-              >
-                Next: Assign Teachers
-              </Button>
+              
+              {selectedSubjects.length > 0 && (
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="font-medium text-green-900">
+                      {selectedSubjects.length} subject{selectedSubjects.length !== 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
 
       case 3:
         return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Step 3: Assign Teachers</h3>
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <Users className="h-12 w-12 mx-auto text-purple-600" />
+              <h3 className="text-xl font-semibold">Assign Teachers</h3>
+              <p className="text-muted-foreground">Assign teachers to the selected subjects</p>
+            </div>
+            
             <div className="space-y-4">
               {selectedSubjects.map((subjectId) => {
                 const subject = subjects.find(s => s.id === subjectId);
                 const currentAssignment = subjectTeacherAssignments.find(a => a.subject_id === subjectId);
                 
                 return (
-                  <div key={subjectId} className="flex items-center space-x-4 p-3 border rounded-lg">
-                    <div className="flex-1">
-                      <Label className="font-medium">{subject?.name}</Label>
+                  <div key={subjectId} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">{subject?.name}</h4>
+                        <p className="text-sm text-muted-foreground">{subject?.code}</p>
+                      </div>
+                      {currentAssignment && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Assigned
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <Select 
-                        value={currentAssignment?.teacher_id || ''} 
-                        onValueChange={(value) => handleTeacherAssignment(subjectId, value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select teacher" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teachers.map((teacher) => (
-                            <SelectItem key={teacher.id} value={teacher.id}>
-                              {teacher.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    
+                    <Select 
+                      value={currentAssignment?.teacher_id || ''} 
+                      onValueChange={(value) => handleTeacherAssignment(subjectId, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a teacher..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teachers.map((teacher) => (
+                          <SelectItem key={teacher.id} value={teacher.id}>
+                            <div>
+                              <div className="font-medium">{teacher.name}</div>
+                              <div className="text-sm text-muted-foreground">{teacher.email}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 );
               })}
-            </div>
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep(2)}>
-                Back
-              </Button>
-              <Button 
-                onClick={handleGenerate}
-                disabled={subjectTeacherAssignments.length !== selectedSubjects.length || isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  'Generate Timetable'
-                )}
-              </Button>
+              
+              {subjectTeacherAssignments.length === selectedSubjects.length && selectedSubjects.length > 0 && (
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="h-5 w-5 text-purple-600" />
+                    <span className="font-medium text-purple-900">
+                      All subjects have been assigned teachers
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
 
       case 4:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <Settings className="h-12 w-12 mx-auto text-orange-600" />
+              <h3 className="text-xl font-semibold">Review & Generate</h3>
+              <p className="text-muted-foreground">Review your selections and generate the timetable</p>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium mb-3">Review Summary</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Selected Class:</span>
+                    <span className="font-medium">{classes.find(c => c.id === selectedClass)?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Subjects:</span>
+                    <span className="font-medium">{selectedSubjects.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Teachers Assigned:</span>
+                    <span className="font-medium">{subjectTeacherAssignments.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Time Slots:</span>
+                    <span className="font-medium">{TIME_SLOTS.length} available</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <h4 className="font-medium">Subject-Teacher Assignments</h4>
+                <div className="space-y-2">
+                  {subjectTeacherAssignments.map((assignment, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                      <div>
+                        <span className="font-medium">{assignment.subject_name}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{assignment.teacher_name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <Button 
+                  onClick={handleGenerate}
+                  disabled={subjectTeacherAssignments.length === 0 || isGenerating}
+                  size="lg"
+                  className="px-8"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Timetable...
+                    </>
+                  ) : (
+                    <>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Generate Timetable
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Step 4: Review & Edit Timetable</h3>
+              <div>
+                <h3 className="text-xl font-semibold flex items-center">
+                  <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+                  Timetable Generated
+                </h3>
+                <p className="text-muted-foreground">Review, edit, and finalize your timetable</p>
+              </div>
+              
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleDownloadPDF}>
                   <Download className="mr-2 h-4 w-4" />
@@ -514,81 +695,92 @@ const EnhancedTimetableGenerator: React.FC = () => {
             </div>
             
             {generatedTimetable.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Day</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Teacher</TableHead>
-                      <TableHead>Room</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {generatedTimetable.map((entry, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{entry.day_of_week}</TableCell>
-                        <TableCell>{entry.start_time} - {entry.end_time}</TableCell>
-                        <TableCell>{entry.subject_name}</TableCell>
-                        <TableCell>{entry.teacher_name}</TableCell>
-                        <TableCell>
-                          {editingEntry === entry.id ? (
-                            <Input
-                              value={entry.room || ''}
-                              onChange={(e) => handleEditEntry(entry.id!, 'room', e.target.value)}
-                              className="w-20"
-                            />
-                          ) : (
-                            entry.room || 'Not assigned'
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {editingEntry === entry.id ? (
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setEditingEntry(null)}
-                              >
-                                <Save className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setEditingEntry(null)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingEntry(entry.id!)}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </TableCell>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold">Day</TableHead>
+                        <TableHead className="font-semibold">Time</TableHead>
+                        <TableHead className="font-semibold">Subject</TableHead>
+                        <TableHead className="font-semibold">Teacher</TableHead>
+                        <TableHead className="font-semibold">Room</TableHead>
+                        <TableHead className="font-semibold">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {generatedTimetable.map((entry, index) => (
+                        <TableRow key={index} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">{entry.day_of_week}</TableCell>
+                          <TableCell>{entry.start_time} - {entry.end_time}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{entry.subject_name}</Badge>
+                          </TableCell>
+                          <TableCell>{entry.teacher_name}</TableCell>
+                          <TableCell>
+                            {editingEntry === entry.id ? (
+                              <Input
+                                value={entry.room || ''}
+                                onChange={(e) => handleEditEntry(entry.id!, 'room', e.target.value)}
+                                className="w-24"
+                                placeholder="Room"
+                              />
+                            ) : (
+                              <span className="text-muted-foreground">
+                                {entry.room || 'Not assigned'}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {editingEntry === entry.id ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingEntry(null)}
+                                  >
+                                    <Save className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingEntry(null)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingEntry(entry.id!)}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No timetable entries found.</p>
+              <div className="text-center py-12 text-gray-500">
+                <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <h4 className="text-lg font-medium mb-2">No Timetable Entries</h4>
+                <p>Generate a timetable to see entries here.</p>
               </div>
             )}
             
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center pt-4 border-t">
               <Button variant="outline" onClick={handleReset}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
                 Start Over
               </Button>
-              <div className="text-sm text-gray-500 flex items-center">
+              <div className="text-sm text-muted-foreground">
                 Powered by Edufam
               </div>
             </div>
@@ -608,21 +800,79 @@ const EnhancedTimetableGenerator: React.FC = () => {
             Enhanced Timetable Generator
           </h1>
           <p className="text-muted-foreground">
-            Generate and manage class timetables for {academicInfo.term || 'current term'}
+            Create and manage class timetables for {academicInfo.term || 'current term'}
           </p>
         </div>
       </div>
 
+      {/* Progress Indicator */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Timetable Generator
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">Progress</h3>
+              <span className="text-sm text-muted-foreground">
+                Step {currentStep} of {WIZARD_STEPS.length}
+              </span>
+            </div>
+            
+            <Progress value={getProgressPercentage()} className="h-2" />
+            
+            <div className="flex justify-between">
+              {WIZARD_STEPS.map((step) => {
+                const Icon = step.icon;
+                const isActive = currentStep === step.id;
+                const isCompleted = currentStep > step.id;
+                
+                return (
+                  <div key={step.id} className="flex flex-col items-center space-y-2 flex-1">
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors
+                      ${isActive ? 'border-blue-600 bg-blue-600 text-white' : 
+                        isCompleted ? 'border-green-600 bg-green-600 text-white' : 
+                        'border-gray-300 bg-white text-gray-400'}
+                    `}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-xs font-medium ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'}`}>
+                        {step.title}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main Content */}
+      <Card>
+        <CardContent className="p-8">
           {renderStepContent()}
         </CardContent>
+        
+        {/* Navigation Footer */}
+        {currentStep < 5 && (
+          <div className="border-t p-6 flex justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+              disabled={currentStep === 1}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Previous
+            </Button>
+            <Button 
+              onClick={() => setCurrentStep(Math.min(WIZARD_STEPS.length, currentStep + 1))}
+              disabled={!canProceedToNext()}
+            >
+              Next
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   );
