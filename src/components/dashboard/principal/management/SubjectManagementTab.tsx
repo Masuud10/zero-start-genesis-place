@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface Subject {
   curriculum?: string;
   category?: string;
   credit_hours?: number;
+  assessment_weight?: number;
   description?: string;
   created_at: string;
 }
@@ -47,8 +49,8 @@ const SubjectManagementTab = () => {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Map CurriculumType to form curriculum options
-  const getFormCurriculumValue = (curriculumType: string) => {
+  // Map CurriculumType to form curriculum string values
+  const getFormCurriculumValue = (curriculumType: string): string => {
     switch (curriculumType) {
       case 'cbc':
         return 'cbc';
@@ -69,6 +71,7 @@ const SubjectManagementTab = () => {
     curriculum: getFormCurriculumValue(curriculumType || 'standard'),
     category: 'core',
     credit_hours: 1,
+    assessment_weight: 100,
     description: ''
   });
 
@@ -178,6 +181,24 @@ const SubjectManagementTab = () => {
       return false;
     }
 
+    if (!formData.credit_hours || formData.credit_hours < 1) {
+      toast({
+        title: "Validation Error",
+        description: "Credit hours must be at least 1",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.assessment_weight || formData.assessment_weight < 1 || formData.assessment_weight > 100) {
+      toast({
+        title: "Validation Error",
+        description: "Assessment weight must be between 1 and 100",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     if (!schoolId) {
       toast({
         title: "Validation Error",
@@ -222,6 +243,7 @@ const SubjectManagementTab = () => {
         curriculum: formData.curriculum || getFormCurriculumValue(curriculumType || 'standard'),
         category: formData.category || 'core',
         credit_hours: formData.credit_hours || 1,
+        assessment_weight: formData.assessment_weight || 100,
         description: formData.description?.trim() || null,
         is_active: true
       };
@@ -267,6 +289,7 @@ const SubjectManagementTab = () => {
         curriculum: getFormCurriculumValue(curriculumType || 'standard'),
         category: 'core',
         credit_hours: 1,
+        assessment_weight: 100,
         description: ''
       });
       setEditingId(null);
@@ -294,6 +317,7 @@ const SubjectManagementTab = () => {
       curriculum: subject.curriculum || getFormCurriculumValue(curriculumType || 'standard'),
       category: subject.category || 'core',
       credit_hours: subject.credit_hours || 1,
+      assessment_weight: subject.assessment_weight || 100,
       description: subject.description || ''
     });
     setEditingId(subject.id);
@@ -343,6 +367,7 @@ const SubjectManagementTab = () => {
       curriculum: getFormCurriculumValue(curriculumType || 'standard'),
       category: 'core',
       credit_hours: 1,
+      assessment_weight: 100,
       description: ''
     });
     setEditingId(null);
@@ -497,6 +522,30 @@ const SubjectManagementTab = () => {
                 </Select>
               </div>
               <div>
+                <Label htmlFor="credit-hours">Credit Hours *</Label>
+                <Input
+                  id="credit-hours"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={formData.credit_hours}
+                  onChange={(e) => setFormData(prev => ({ ...prev, credit_hours: parseInt(e.target.value) || 1 }))}
+                  disabled={creating}
+                />
+              </div>
+              <div>
+                <Label htmlFor="assessment-weight">Assessment Weight (%) *</Label>
+                <Input
+                  id="assessment-weight"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={formData.assessment_weight}
+                  onChange={(e) => setFormData(prev => ({ ...prev, assessment_weight: parseInt(e.target.value) || 100 }))}
+                  disabled={creating}
+                />
+              </div>
+              <div>
                 <Label htmlFor="class-select">Class (Optional)</Label>
                 <Select
                   value={formData.class_id}
@@ -536,6 +585,16 @@ const SubjectManagementTab = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief description of the subject"
+                disabled={creating}
+              />
             </div>
             <div className="flex gap-2">
               <Button type="submit" disabled={creating}>

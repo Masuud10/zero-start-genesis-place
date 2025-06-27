@@ -25,6 +25,7 @@ export interface SubjectCreationData {
   curriculum?: string;
   category?: string;
   credit_hours?: number;
+  assessment_weight?: number;
   description?: string;
 }
 

@@ -17,7 +17,7 @@ export class SubjectDatabaseService {
       throw new Error('User authentication required');
     }
 
-    // Prepare the payload with proper data structure
+    // Prepare the payload with proper data structure and validation
     const payload = {
       name: data.name.trim(),
       code: data.code.trim().toUpperCase(),
@@ -26,10 +26,31 @@ export class SubjectDatabaseService {
       curriculum: data.curriculum || 'cbc',
       category: data.category || 'core', 
       credit_hours: data.credit_hours || 1,
+      assessment_weight: data.assessment_weight || 100,
       description: data.description?.trim() || null,
       school_id: schoolId,
       is_active: true
     };
+
+    // Validate required fields
+    if (!payload.name) {
+      throw new Error('Subject name is required');
+    }
+    if (!payload.code) {
+      throw new Error('Subject code is required');
+    }
+    if (!payload.curriculum) {
+      throw new Error('Curriculum type is required');
+    }
+    if (!payload.category) {
+      throw new Error('Subject category is required');
+    }
+    if (payload.credit_hours < 1) {
+      throw new Error('Credit hours must be at least 1');
+    }
+    if (payload.assessment_weight && (payload.assessment_weight < 1 || payload.assessment_weight > 100)) {
+      throw new Error('Assessment weight must be between 1 and 100');
+    }
 
     console.log('SubjectDatabaseService: Creating subject with payload:', payload);
 
