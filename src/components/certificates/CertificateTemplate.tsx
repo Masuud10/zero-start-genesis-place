@@ -18,186 +18,168 @@ const CertificateTemplate = forwardRef<HTMLDivElement, CertificateTemplateProps>
     return (
       <div 
         ref={ref}
-        className={`bg-white p-8 max-w-4xl mx-auto border-4 border-blue-600 relative ${className}`}
-        style={{ minHeight: '800px', fontFamily: 'serif' }}
+        className={`bg-white p-12 max-w-4xl mx-auto relative ${className}`}
+        style={{ 
+          minHeight: '800px', 
+          maxHeight: '800px',
+          fontFamily: 'serif',
+          background: 'linear-gradient(145deg, #ffffff 0%, #f8f9ff 100%)'
+        }}
       >
-        {/* Decorative Border Pattern */}
-        <div className="absolute inset-4 border-2 border-blue-300 pointer-events-none"></div>
-        <div className="absolute inset-6 border border-blue-200 pointer-events-none"></div>
+        {/* Elegant Border Frame */}
+        <div className="absolute inset-6 border-4 border-blue-800 shadow-inner"></div>
+        <div className="absolute inset-8 border-2 border-blue-600 opacity-60"></div>
+        <div className="absolute inset-10 border border-blue-400 opacity-40"></div>
 
-        {/* Header */}
-        <div className="text-center border-b-2 border-blue-600 pb-6 mb-8 relative z-10">
-          <div className="flex items-center justify-center gap-6 mb-4">
+        {/* Decorative Corner Elements */}
+        <div className="absolute top-6 left-6 w-16 h-16 border-l-4 border-t-4 border-blue-800"></div>
+        <div className="absolute top-6 right-6 w-16 h-16 border-r-4 border-t-4 border-blue-800"></div>
+        <div className="absolute bottom-6 left-6 w-16 h-16 border-l-4 border-b-4 border-blue-800"></div>
+        <div className="absolute bottom-6 right-6 w-16 h-16 border-r-4 border-b-4 border-blue-800"></div>
+
+        {/* Header Section */}
+        <div className="text-center mb-8 relative z-10">
+          <div className="flex items-center justify-center gap-6 mb-6">
             {school?.logo_url && (
-              <img 
-                src={school.logo_url} 
-                alt={`${school.name} Logo`}
-                className="w-20 h-20 object-contain"
-              />
+              <div className="w-24 h-24 rounded-full border-4 border-blue-800 p-2 bg-white shadow-lg">
+                <img 
+                  src={school.logo_url} 
+                  alt={`${school.name} Logo`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
             )}
             <div className="text-center">
-              <h1 className="text-4xl font-bold text-blue-900 mb-2">{school?.name || 'School'}</h1>
+              <h1 className="text-3xl font-bold text-blue-900 mb-2 tracking-wide">
+                {school?.name || 'SCHOOL NAME'}
+              </h1>
               {school?.motto && (
-                <p className="text-lg italic text-blue-700 mb-1">"{school.motto}"</p>
+                <p className="text-lg italic text-blue-700 mb-2">"{school.motto}"</p>
               )}
-              {school?.slogan && (
-                <p className="text-sm text-blue-600">{school.slogan}</p>
-              )}
-              <div className="text-sm text-gray-600 mt-2">
-                {school?.address && <p>{school.address}</p>}
-                <div className="flex justify-center gap-4 mt-1">
+              <div className="text-sm text-gray-600">
+                {school?.address && <p className="mb-1">{school.address}</p>}
+                <div className="flex justify-center gap-4">
                   {school?.phone && <span>Tel: {school.phone}</span>}
                   {school?.email && <span>Email: {school.email}</span>}
                 </div>
-                {school?.website_url && (
-                  <p className="text-blue-600">Website: {school.website_url}</p>
-                )}
               </div>
             </div>
+          </div>
+          
+          {/* Decorative Line */}
+          <div className="flex items-center justify-center mb-6">
+            <div className="w-20 h-px bg-blue-800"></div>
+            <div className="w-3 h-3 bg-blue-800 rounded-full mx-4"></div>
+            <div className="w-20 h-px bg-blue-800"></div>
           </div>
         </div>
 
         {/* Certificate Title */}
         <div className="text-center mb-8">
-          <div className="inline-block">
-            <h2 className="text-5xl font-bold text-blue-800 mb-2 tracking-wide">
-              CERTIFICATE
-            </h2>
-            <h3 className="text-2xl font-semibold text-blue-700 mb-4">
-              OF ACADEMIC ACHIEVEMENT
-            </h3>
-            <div className="w-32 h-1 bg-gradient-to-r from-blue-600 to-blue-400 mx-auto"></div>
-          </div>
-          <p className="text-lg text-gray-700 mt-4">Academic Year {certificate.academic_year}</p>
+          <h2 className="text-5xl font-bold text-blue-900 mb-4 tracking-widest" style={{ fontFamily: 'serif' }}>
+            CERTIFICATE
+          </h2>
+          <h3 className="text-xl font-semibold text-blue-800 mb-2 tracking-wide">
+            OF ACADEMIC EXCELLENCE
+          </h3>
+          <p className="text-base text-gray-700">Academic Year {certificate.academic_year}</p>
         </div>
 
         {/* Main Content */}
-        <div className="space-y-8">
-          {/* Student Information */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-l-4 border-blue-600">
-            <h3 className="text-2xl font-bold text-blue-800 mb-4 text-center">Student Information</h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Student Name</p>
-                <p className="text-2xl font-bold text-blue-900">{student.name}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Admission Number</p>
-                <p className="text-xl font-semibold text-blue-900">{student.admission_number}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Academic Year</p>
-                <p className="text-xl font-semibold text-blue-900">{certificate.academic_year}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-1">Class Position</p>
-                <p className="text-xl font-semibold text-blue-900">
-                  {studentPerformance.class_position ? `${studentPerformance.class_position}` : 'Not Available'}
-                </p>
-              </div>
-            </div>
+        <div className="text-center mb-8 px-8">
+          <p className="text-lg text-gray-800 mb-6 leading-relaxed">
+            This is to certify that
+          </p>
+          
+          <div className="mb-8">
+            <h3 className="text-4xl font-bold text-blue-900 mb-2 tracking-wide border-b-2 border-blue-800 pb-2 inline-block px-8">
+              {student.name}
+            </h3>
+            <p className="text-sm text-gray-600 mt-2">Admission Number: {student.admission_number}</p>
           </div>
 
-          {/* Academic Performance */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border-l-4 border-green-600">
-            <h3 className="text-2xl font-bold text-green-800 mb-4 text-center">Academic Performance Summary</h3>
-            <div className="grid grid-cols-3 gap-6 mb-6">
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Total Marks</p>
-                <p className="text-3xl font-bold text-green-700">
-                  {studentPerformance.total_marks || 0}/{studentPerformance.possible_marks || 0}
+          <p className="text-lg text-gray-800 mb-8 leading-relaxed">
+            has successfully completed the academic requirements and demonstrated excellence 
+            in their studies with outstanding performance during the academic year {certificate.academic_year}
+          </p>
+
+          {/* Performance Summary Box */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6 mb-8 mx-8">
+            <div className="grid grid-cols-3 gap-6 text-center">
+              <div>
+                <p className="text-2xl font-bold text-blue-800">
+                  {studentPerformance.average_score?.toFixed(1) || '0'}%
                 </p>
+                <p className="text-sm text-gray-600">Overall Average</p>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Average Score</p>
-                <p className="text-3xl font-bold text-green-700">
-                  {studentPerformance.average_score?.toFixed(1) || 0}%
-                </p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Overall Grade</p>
-                <p className="text-3xl font-bold text-green-700">
+              <div>
+                <p className="text-2xl font-bold text-blue-800">
                   {studentPerformance.grade_letter || 'N/A'}
                 </p>
+                <p className="text-sm text-gray-600">Grade Achieved</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-blue-800">
+                  {attendance.attendance_percentage?.toFixed(1) || '0'}%
+                </p>
+                <p className="text-sm text-gray-600">Attendance Rate</p>
               </div>
             </div>
-            
-            {/* Subject Performance */}
-            {studentPerformance.subjects_performance && studentPerformance.subjects_performance.length > 0 && (
-              <div>
-                <h4 className="text-lg font-semibold text-green-800 mb-3 text-center">Subject Performance</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {studentPerformance.subjects_performance.map((subject, index) => (
-                    <div key={index} className="flex justify-between items-center bg-white p-3 rounded border">
-                      <span className="font-medium text-gray-800">{subject.subject_name}</span>
-                      <div className="text-right">
-                        <span className="text-green-700 font-semibold">
-                          {subject.score}/{subject.max_score}
-                        </span>
-                        <span className="text-green-600 ml-2 text-xs">
-                          ({subject.grade})
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Attendance Summary */}
-          <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-6 rounded-lg border-l-4 border-orange-600">
-            <h3 className="text-2xl font-bold text-orange-800 mb-4 text-center">Attendance Summary</h3>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Total School Days</p>
-                <p className="text-2xl font-bold text-orange-700">{attendance.total_days || 0}</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Days Present</p>
-                <p className="text-2xl font-bold text-orange-700">{attendance.present_days || 0}</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Attendance Rate</p>
-                <p className="text-2xl font-bold text-orange-700">
-                  {attendance.attendance_percentage?.toFixed(1) || 0}%
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="text-lg text-gray-800 mb-8">
+            In recognition of this achievement, this certificate is awarded on this day
+          </p>
         </div>
 
-        {/* Footer */}
-        <div className="mt-12 border-t-2 border-blue-600 pt-8">
+        {/* Footer Section */}
+        <div className="absolute bottom-20 left-12 right-12">
           <div className="flex justify-between items-end">
-            <div className="text-left">
-              <p className="text-sm text-gray-600 mb-2">Date of Issue:</p>
-              <p className="font-semibold text-lg">{new Date(certificate.generated_at).toLocaleDateString()}</p>
+            <div className="text-center">
+              <p className="text-base font-semibold text-gray-800 mb-2">
+                {new Date(certificate.generated_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+              <div className="w-32 h-px bg-gray-600 mb-2"></div>
+              <p className="text-sm text-gray-600">Date of Issue</p>
             </div>
             
             <div className="text-center">
-              <div className="border-t-2 border-gray-400 w-64 mb-3"></div>
-              <p className="text-sm font-semibold text-gray-700">Principal's Signature</p>
-              {school?.principal_name && (
-                <p className="text-sm text-gray-600 mt-1">{school.principal_name}</p>
-              )}
+              {/* Official Seal Placeholder */}
+              <div className="w-20 h-20 border-4 border-blue-800 rounded-full mb-2 mx-auto flex items-center justify-center bg-blue-50">
+                <div className="w-12 h-12 border-2 border-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-bold text-blue-800">SEAL</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600">Official School Seal</p>
             </div>
-          </div>
-          
-          {/* Powered by EduFam */}
-          <div className="text-right mt-8">
-            <p className="text-xs text-gray-500">
-              Powered by <span className="font-semibold text-blue-600">EduFam</span>
-            </p>
-            <p className="text-xs text-gray-400">www.edufam.co.ke</p>
+            
+            <div className="text-center">
+              <div className="w-48 h-px bg-gray-600 mb-6"></div>
+              <p className="text-base font-semibold text-gray-800">
+                {school?.principal_name || 'Principal'}
+              </p>
+              <p className="text-sm text-gray-600">Principal</p>
+            </div>
           </div>
         </div>
 
-        {/* Decorative elements */}
-        <div className="absolute top-8 left-8 w-8 h-8 border-4 border-blue-300 rounded-full pointer-events-none"></div>
-        <div className="absolute top-8 right-8 w-8 h-8 border-4 border-blue-300 rounded-full pointer-events-none"></div>
-        <div className="absolute bottom-8 left-8 w-8 h-8 border-4 border-blue-300 rounded-full pointer-events-none"></div>
-        <div className="absolute bottom-8 right-8 w-8 h-8 border-4 border-blue-300 rounded-full pointer-events-none"></div>
+        {/* Powered by EduFam Footer */}
+        <div className="absolute bottom-6 right-12 text-right">
+          <p className="text-xs text-gray-500">
+            Powered by <span className="font-semibold text-blue-600">EduFam</span>
+          </p>
+          <p className="text-xs text-gray-400">www.edufam.co.ke</p>
+        </div>
+
+        {/* Decorative Elements */}
+        <div className="absolute top-20 left-20 w-2 h-2 bg-blue-600 rounded-full opacity-60"></div>
+        <div className="absolute top-20 right-20 w-2 h-2 bg-blue-600 rounded-full opacity-60"></div>
+        <div className="absolute bottom-40 left-20 w-2 h-2 bg-blue-600 rounded-full opacity-60"></div>
+        <div className="absolute bottom-40 right-20 w-2 h-2 bg-blue-600 rounded-full opacity-60"></div>
       </div>
     );
   }
