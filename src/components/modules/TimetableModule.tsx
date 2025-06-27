@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
 import { useTeacherTimetable } from '@/hooks/useTeacherTimetable';
 import { Lock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,7 +12,6 @@ import TeacherTimetableView from '../timetable/TeacherTimetableView';
 const TimetableModule = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
-  const { academicInfo } = useCurrentAcademicInfo(schoolId);
   const { data: teacherTimetable, isLoading, error } = useTeacherTimetable();
 
   // Only principals can generate/modify timetables
@@ -28,7 +26,7 @@ const TimetableModule = () => {
               My Timetable
             </h1>
             <p className="text-muted-foreground">
-              View your teaching schedule for {academicInfo.term || 'current term'}
+              View your teaching schedule
             </p>
           </div>
         </div>
@@ -77,31 +75,13 @@ const TimetableModule = () => {
               </p>
             </div>
           </CardContent>
-        </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Timetable Management
-          </h1>
-          <p className="text-muted-foreground">
-            Generate and manage school timetables for {academicInfo.term || 'current term'}
-          </p>
-        </div>
-      </div>
-
-      <Alert>
-        <Lock className="h-4 w-4" />
-        <AlertDescription>
-          As a principal, you have full access to create, modify, and publish timetables for all classes and teachers.
-        </AlertDescription>
-      </Alert>
-
       <EnhancedTimetableGenerator />
     </div>
   );
