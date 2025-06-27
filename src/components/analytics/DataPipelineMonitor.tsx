@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,13 +52,13 @@ const DataPipelineMonitor: React.FC = () => {
           }, 0);
           
           return {
-            totalEvents: totalEventsFromSchools,
-            processedEvents: totalEventsFromSchools,
-            failedEvents: Math.floor(totalEventsFromSchools * 0.02),
+            totalEvents: Number(totalEventsFromSchools) || 0,
+            processedEvents: Number(totalEventsFromSchools) || 0,
+            failedEvents: Math.floor(Number(totalEventsFromSchools) * 0.02) || 0,
             averageProcessingTime: 1.2,
             lastProcessedAt: systemData.lastUpdated,
             queueSize: Math.floor(Math.random() * 50),
-            throughput: totalEventsFromSchools,
+            throughput: Number(totalEventsFromSchools) || 0,
             schoolCount: systemData.totalSchools
           };
         } else if (allowedSchoolIds && allowedSchoolIds.length > 0) {
@@ -75,13 +74,13 @@ const DataPipelineMonitor: React.FC = () => {
           const totalEvents = (schoolData && typeof schoolData.totalGrades === 'number') ? schoolData.totalGrades : 0;
           
           return {
-            totalEvents: totalEvents,
-            processedEvents: totalEvents,
-            failedEvents: Math.floor(totalEvents * 0.01),
+            totalEvents: Number(totalEvents) || 0,
+            processedEvents: Number(totalEvents) || 0,
+            failedEvents: Math.floor(Number(totalEvents) * 0.01) || 0,
             averageProcessingTime: 0.8,
             lastProcessedAt: new Date().toISOString(),
             queueSize: Math.floor(Math.random() * 10),
-            throughput: totalEvents
+            throughput: Number(totalEvents) || 0
           };
         }
         
