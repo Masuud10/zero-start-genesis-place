@@ -105,9 +105,9 @@ const EnhancedTimetableGenerator = () => {
     }
   }, [selectedClass]);
 
-  // Filter subjects by selected class
+  // Filter subjects by selected class - Fix the property access
   const classSubjects = subjectList.filter(subject => 
-    selectedClass ? subject.class_id === selectedClass : false
+    selectedClass ? subject.id === selectedClass : false
   );
 
   const handleSubjectSelection = (subjectId: string, checked: boolean) => {

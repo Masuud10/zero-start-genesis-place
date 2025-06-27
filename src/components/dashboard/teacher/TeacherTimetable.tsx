@@ -65,8 +65,8 @@ const TeacherTimetable = () => {
                                 {slots.map(slot => (
                                     <TableRow key={slot.id}>
                                         <TableCell className="font-mono text-sm">{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</TableCell>
-                                        <TableCell>{slot.class.name}</TableCell>
-                                        <TableCell><Badge variant="outline">{slot.subject.name}</Badge></TableCell>
+                                        <TableCell>{slot.classes.name}</TableCell>
+                                        <TableCell><Badge variant="outline">{slot.subjects.name}</Badge></TableCell>
                                         <TableCell>{slot.room ?? '-'}</TableCell>
                                     </TableRow>
                                 ))}
