@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Send, AlertCircle } from 'lucide-react';
 import { usePrincipalGradeManagement } from '@/hooks/usePrincipalGradeManagement';
 import { useToast } from '@/hooks/use-toast';
