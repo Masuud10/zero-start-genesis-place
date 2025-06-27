@@ -46,14 +46,19 @@ const DataPipelineMonitor: React.FC = () => {
             canViewSystemAnalytics ? 'elimisha_admin' : undefined
           );
           
+          // Calculate total events from school metrics
+          const totalEventsFromSchools = Object.values(systemData.schoolMetrics || {}).reduce((sum: number, school: any) => {
+            return sum + (school.totalGrades || 0);
+          }, 0);
+          
           return {
-            totalEvents: systemData.totalEvents,
-            processedEvents: systemData.totalEvents,
-            failedEvents: Math.floor(systemData.totalEvents * 0.02),
+            totalEvents: totalEventsFromSchools,
+            processedEvents: totalEventsFromSchools,
+            failedEvents: Math.floor(totalEventsFromSchools * 0.02),
             averageProcessingTime: 1.2,
             lastProcessedAt: systemData.lastUpdated,
             queueSize: Math.floor(Math.random() * 50),
-            throughput: systemData.totalEvents,
+            throughput: totalEventsFromSchools,
             schoolCount: systemData.totalSchools
           };
         } else if (allowedSchoolIds && allowedSchoolIds.length > 0) {
@@ -65,14 +70,17 @@ const DataPipelineMonitor: React.FC = () => {
             analyticsScope
           );
           
+          // Use totalGrades as totalEvents for school-specific data
+          const totalEvents = schoolData.totalGrades || 0;
+          
           return {
-            totalEvents: schoolData.totalEvents,
-            processedEvents: schoolData.totalEvents,
-            failedEvents: Math.floor(schoolData.totalEvents * 0.01),
+            totalEvents: totalEvents,
+            processedEvents: totalEvents,
+            failedEvents: Math.floor(totalEvents * 0.01),
             averageProcessingTime: 0.8,
             lastProcessedAt: new Date().toISOString(),
             queueSize: Math.floor(Math.random() * 10),
-            throughput: schoolData.totalEvents
+            throughput: totalEvents
           };
         }
         
