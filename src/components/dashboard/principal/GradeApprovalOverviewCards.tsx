@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { CheckCircle, XCircle, Eye, Clock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Clock, CheckCircle, Eye, XCircle } from 'lucide-react';
 
 interface GradeApprovalOverviewCardsProps {
   pendingCount: number;
@@ -15,47 +16,57 @@ export const GradeApprovalOverviewCards: React.FC<GradeApprovalOverviewCardsProp
   releasedCount,
   rejectedCount
 }) => {
+  const cards = [
+    {
+      title: 'Pending Approval',
+      count: pendingCount,
+      icon: Clock,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      title: 'Approved',
+      count: approvedCount,
+      icon: CheckCircle,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
+    },
+    {
+      title: 'Released',
+      count: releasedCount,
+      icon: Eye,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50'
+    },
+    {
+      title: 'Rejected',
+      count: rejectedCount,
+      icon: XCircle,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50'
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-orange-800">Pending Approval</p>
-            <p className="text-lg font-bold text-orange-600">{pendingCount}</p>
-          </div>
-          <Clock className="h-5 w-5 text-orange-500" />
-        </div>
-      </div>
-
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-green-800">Approved</p>
-            <p className="text-lg font-bold text-green-600">{approvedCount}</p>
-          </div>
-          <CheckCircle className="h-5 w-5 text-green-500" />
-        </div>
-      </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-blue-800">Released</p>
-            <p className="text-lg font-bold text-blue-600">{releasedCount}</p>
-          </div>
-          <Eye className="h-5 w-5 text-blue-500" />
-        </div>
-      </div>
-
-      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-red-800">Rejected</p>
-            <p className="text-lg font-bold text-red-600">{rejectedCount}</p>
-          </div>
-          <XCircle className="h-5 w-5 text-red-500" />
-        </div>
-      </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {cards.map((card) => {
+        const Icon = card.icon;
+        return (
+          <Card key={card.title}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{card.title}</p>
+                  <p className="text-2xl font-bold text-gray-900">{card.count}</p>
+                </div>
+                <div className={`p-2 rounded-lg ${card.bgColor}`}>
+                  <Icon className={`h-5 w-5 ${card.color}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

@@ -2,8 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Settings, AlertTriangle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
 
 interface PendingGradeApprovalsSectionProps {
   pendingGrades: any[];
@@ -16,62 +15,68 @@ interface PendingGradeApprovalsSectionProps {
 export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSectionProps> = ({
   pendingGrades,
   processing,
-  onApproveAll,
+  onAppraveAll,
   onRejectAll,
   onDetailedReview
 }) => {
   if (pendingGrades.length === 0) return null;
 
+  // Group grades by class and subject for better overview
+  const groupedGrades = pendingGrades.reduce((acc, grade) => {
+    const key = `${grade.classes?.name || 'Unknown Class'} - ${grade.subjects?.name || 'Unknown Subject'}`;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(grade);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   return (
     <div className="border-t pt-4">
       <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <Clock className="h-4 w-4 text-blue-500" />
         Pending Approvals ({pendingGrades.length})
       </h4>
       
-      <Alert className="mb-4">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          Teachers have submitted {pendingGrades.length} grades for your review and approval.
-        </AlertDescription>
-      </Alert>
-
-      {/* Show recent submissions */}
-      <div className="mb-4 max-h-40 overflow-y-auto">
-        <div className="space-y-2">
-          {pendingGrades.slice(0, 5).map((grade: any) => (
-            <div key={grade.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+      <div className="space-y-3 mb-4">
+        {Object.entries(groupedGrades).map(([classSubject, grades]) => (
+          <div key={classSubject} className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center justify-between">
               <div>
-                <span className="font-medium">{grade.students?.name || 'Unknown Student'}</span>
-                <span className="text-gray-500 ml-2">• {grade.subjects?.name || 'Unknown Subject'}</span>
-                <span className="text-gray-500 ml-2">• {grade.classes?.name || 'Unknown Class'}</span>
+                <h5 className="font-medium text-sm">{classSubject}</h5>
+                <p className="text-xs text-gray-600">
+                  {grades.length} student{grades.length !== 1 ? 's' : ''} • 
+                  Submitted by {grades[0]?.profiles?.name || 'Unknown Teacher'}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">{grade.score}/{grade.max_score}</span>
-                <Badge variant="outline" className="text-xs">
-                  {grade.term} {grade.exam_type}
-                </Badge>
-              </div>
+              <Badge variant="outline" className="text-xs">
+                {grades[0]?.term} {grades[0]?.exam_type}
+              </Badge>
             </div>
-          ))}
-          {pendingGrades.length > 5 && (
-            <p className="text-sm text-gray-500 text-center">
-              +{pendingGrades.length - 5} more grades pending...
-            </p>
-          )}
-        </div>
+          </div>
+        ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button
           size="sm"
-          onClick={onApproveAll}
+          onClick={onDetailedReview}
+          variant="outline"
+          className="flex items-center gap-1"
+        >
+          <Eye className="h-4 w-4" />
+          Detailed Review
+        </Button>
+        
+        <Button
+          size="sm"
+          onClick={onAppraveAll}
           disabled={processing === 'approve'}
           className="bg-green-600 hover:bg-green-700"
         >
           {processing === 'approve' ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
               Approving...
             </>
           ) : (
@@ -81,16 +86,16 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
             </>
           )}
         </Button>
-
+        
         <Button
           size="sm"
-          variant="destructive"
           onClick={onRejectAll}
           disabled={processing === 'reject'}
+          variant="destructive"
         >
           {processing === 'reject' ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
               Rejecting...
             </>
           ) : (
@@ -99,16 +104,6 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
               Reject All
             </>
           )}
-        </Button>
-
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onDetailedReview}
-          className="ml-2"
-        >
-          <Settings className="h-4 w-4 mr-1" />
-          Detailed Review
         </Button>
       </div>
     </div>
