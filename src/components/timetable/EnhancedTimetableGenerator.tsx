@@ -13,6 +13,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+interface TimetableGenerationResult {
+  success?: boolean;
+  error?: string;
+  message?: string;
+}
+
 const EnhancedTimetableGenerator: React.FC = () => {
   const { schoolId } = useSchoolScopedData();
   const { user } = useAuth();
@@ -126,7 +132,7 @@ const EnhancedTimetableGenerator: React.FC = () => {
       setProgress(60);
       setGenerationStep('Generating new timetable...');
 
-      const { data, error } = await supabase.rpc('generate_timetable', {
+      const { data: result, error } = await supabase.rpc('generate_timetable', {
         p_school_id: schoolId,
         p_class_id: selectedClass,
         p_created_by: user.id
@@ -134,8 +140,11 @@ const EnhancedTimetableGenerator: React.FC = () => {
 
       if (error) throw error;
 
-      if (data?.error) {
-        throw new Error(data.error);
+      // Type-safe check for the result
+      const generationResult = result as TimetableGenerationResult;
+      
+      if (generationResult && typeof generationResult === 'object' && 'error' in generationResult) {
+        throw new Error(generationResult.error);
       }
 
       // Step 4: Complete

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, CheckCircle, Eye, XCircle } from 'lucide-react';
+import { Clock, CheckCircle, Send, XCircle } from 'lucide-react';
 
 interface GradeApprovalOverviewCardsProps {
   pendingCount: number;
@@ -16,31 +16,31 @@ export const GradeApprovalOverviewCards: React.FC<GradeApprovalOverviewCardsProp
   releasedCount,
   rejectedCount
 }) => {
-  const cards = [
+  const stats = [
     {
       title: 'Pending Approval',
-      count: pendingCount,
+      value: pendingCount,
       icon: Clock,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-50'
     },
     {
       title: 'Approved',
-      count: approvedCount,
+      value: approvedCount,
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
       title: 'Released',
-      count: releasedCount,
-      icon: Eye,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      value: releasedCount,
+      icon: Send,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
     },
     {
       title: 'Rejected',
-      count: rejectedCount,
+      value: rejectedCount,
       icon: XCircle,
       color: 'text-red-600',
       bgColor: 'bg-red-50'
@@ -49,18 +49,18 @@ export const GradeApprovalOverviewCards: React.FC<GradeApprovalOverviewCardsProp
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {cards.map((card) => {
-        const Icon = card.icon;
+      {stats.map((stat) => {
+        const Icon = stat.icon;
         return (
-          <Card key={card.title}>
+          <Card key={stat.title}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{card.count}</p>
+                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
                 </div>
-                <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                  <Icon className={`h-5 w-5 ${card.color}`} />
+                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                  <Icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
               </div>
             </CardContent>
