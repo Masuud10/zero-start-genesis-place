@@ -4,7 +4,6 @@ import { AuthUser } from '@/types/auth';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
 import PrincipalStatsCards from './principal/PrincipalStatsCards';
 import PrincipalActionButtons from './principal/PrincipalActionButtons';
-import PrincipalGradesModule from '@/components/modules/PrincipalGradesModule';
 import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
 import CertificatesList from '@/components/certificates/CertificatesList';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
@@ -68,17 +67,11 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
           </div>
         </section>
 
-        {/* Academic Management Grid */}
+        {/* Timetable Management Section */}
         <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Academic Management</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Grade Management */}
-            <PrincipalGradesModule />
-            
-            {/* Timetable Management */}
-            <div className="bg-white rounded-lg border shadow-sm">
-              <PrincipalTimetableCard />
-            </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Timetable Management</h2>
+          <div className="bg-white rounded-lg border shadow-sm">
+            <PrincipalTimetableCard />
           </div>
         </section>
 

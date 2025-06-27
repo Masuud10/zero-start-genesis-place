@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PrincipalGradesManager from '@/components/dashboard/principal/PrincipalGradesManager';
 import PrincipalBulkGradingInterface from '@/components/grading/PrincipalBulkGradingInterface';
 import PrincipalGradingModule from '@/components/grading/PrincipalGradingModule';
-import { GraduationCap, ClipboardList, Plus, CheckCircle } from 'lucide-react';
+import PrincipalGradeInputInterface from '@/components/grading/PrincipalGradeInputInterface';
+import { GraduationCap, ClipboardList, Plus, CheckCircle, Edit } from 'lucide-react';
 
 const PrincipalGradesModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('approval');
@@ -15,13 +16,16 @@ const PrincipalGradesModule: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <GraduationCap className="h-5 w-5 text-blue-600" />
-          Grade Management
+          Grade Management Center
         </CardTitle>
+        <p className="text-sm text-gray-600">
+          Comprehensive grade management including approvals, input, and summaries
+        </p>
       </CardHeader>
       <CardContent className="p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="border-b px-6">
-            <TabsList className="grid w-full grid-cols-3 bg-transparent">
+            <TabsList className="grid w-full grid-cols-4 bg-transparent">
               <TabsTrigger 
                 value="approval" 
                 className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
@@ -30,15 +34,22 @@ const PrincipalGradesModule: React.FC = () => {
                 Grade Approvals
               </TabsTrigger>
               <TabsTrigger 
-                value="entry" 
+                value="input" 
                 className="flex items-center gap-2 data-[state=active]:bg-green-50 data-[state=active]:text-green-700"
               >
+                <Edit className="h-4 w-4" />
+                Grade Input
+              </TabsTrigger>
+              <TabsTrigger 
+                value="bulk" 
+                className="flex items-center gap-2 data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700"
+              >
                 <Plus className="h-4 w-4" />
-                Grade Entry
+                Bulk Entry
               </TabsTrigger>
               <TabsTrigger 
                 value="summary" 
-                className="flex items-center gap-2 data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700"
+                className="flex items-center gap-2 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700"
               >
                 <ClipboardList className="h-4 w-4" />
                 Grade Summary
@@ -50,7 +61,11 @@ const PrincipalGradesModule: React.FC = () => {
             <PrincipalGradesManager />
           </TabsContent>
 
-          <TabsContent value="entry" className="mt-0 p-6">
+          <TabsContent value="input" className="mt-0 p-6">
+            <PrincipalGradeInputInterface />
+          </TabsContent>
+
+          <TabsContent value="bulk" className="mt-0 p-6">
             <PrincipalBulkGradingInterface />
           </TabsContent>
 
