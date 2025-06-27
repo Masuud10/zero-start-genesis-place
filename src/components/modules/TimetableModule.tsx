@@ -75,7 +75,7 @@ const TimetableModule = () => {
               </p>
             </div>
           </CardContent>
-        </div>
+        </Card>
       </div>
     );
   }
