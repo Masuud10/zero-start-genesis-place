@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -416,11 +417,14 @@ const EnhancedTimetableGenerator: React.FC = () => {
         school_id: schoolId,
         title: 'New Timetable Available',
         content: `Your timetable for ${classes.find(c => c.id === selectedClass)?.name} - ${currentTerm} has been updated. Please check your dashboard to view your schedule.`,
-        target_audience: 'teacher',
+        target_audience: ['teacher'], // Fixed: should be an array
         created_by: currentUser?.id,
         is_global: false,
         priority: 'high',
-        auto_archive_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // Archive after 7 days
+        auto_archive_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Fixed: convert to ISO string
+        delivery_channels: ['dashboard'], // Added required field
+        read_count: 0, // Added required field
+        total_recipients: 1 // Added required field
       }));
 
       const { error } = await supabase
