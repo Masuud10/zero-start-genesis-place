@@ -416,11 +416,11 @@ const EnhancedTimetableGenerator: React.FC = () => {
         school_id: schoolId,
         title: 'New Timetable Available',
         content: `Your timetable for ${classes.find(c => c.id === selectedClass)?.name} - ${currentTerm} has been updated. Please check your dashboard to view your schedule.`,
-        target_audience: ['teacher'],
+        target_audience: 'teacher',
         created_by: currentUser?.id,
         is_global: false,
         priority: 'high',
-        auto_archive_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Archive after 7 days
+        auto_archive_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // Archive after 7 days
       }));
 
       const { error } = await supabase
@@ -428,15 +428,6 @@ const EnhancedTimetableGenerator: React.FC = () => {
         .insert(notifications);
 
       if (error) throw error;
-      
-      // Also create individual notification records for each teacher
-      const teacherNotifications = teacherIds.map(teacherId => ({
-        announcement_id: null, // Will be populated by trigger
-        recipient_id: teacherId,
-        recipient_type: 'teacher',
-        sent_at: new Date().toISOString(),
-        delivery_status: 'sent'
-      }));
       
       return { teacherIds, classId: selectedClass, notificationCount: notifications.length };
     },
