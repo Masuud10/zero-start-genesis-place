@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
 import PrincipalStatsCards from './principal/PrincipalStatsCards';
-import PrincipalActionButtons from './principal/PrincipalActionButtons';
+import PrincipalAnalyticsOverview from './principal/PrincipalAnalyticsOverview';
 import FinancialOverviewReadOnly from './shared/FinancialOverviewReadOnly';
 import CertificatesList from '@/components/certificates/CertificatesList';
 import AddSubjectModal from '@/components/modals/AddSubjectModal';
@@ -90,11 +89,11 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
           <PrincipalStatsCards stats={stats} loading={loading} error={error} />
         </section>
         
-        {/* Quick Actions Section */}
+        {/* School Analytics Overview Section */}
         <section>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">School Analytics Overview</h2>
           <div className="bg-white rounded-lg border shadow-sm">
-            <PrincipalActionButtons onModalOpen={handleModalOpen} />
+            <PrincipalAnalyticsOverview />
           </div>
         </section>
 
