@@ -47,7 +47,7 @@ export const usePrincipalFinancialData = () => {
         setIsLoading(true);
         setError(null);
 
-        // Fetch fees data
+        // Fetch fees data with proper joins
         const { data: feesData, error: feesError } = await supabase
           .from('fees')
           .select(`
@@ -56,7 +56,12 @@ export const usePrincipalFinancialData = () => {
             status,
             due_date,
             student_id,
-            students!inner(name, admission_number, class_id, classes!inner(name))
+            students!fees_student_id_fkey(
+              name, 
+              admission_number, 
+              class_id,
+              classes!students_class_id_fkey(name)
+            )
           `)
           .eq('school_id', schoolId);
 
@@ -80,13 +85,15 @@ export const usePrincipalFinancialData = () => {
         // Group by class for fee collection data
         const classMap = new Map();
         feesData?.forEach(fee => {
-          const className = fee.students?.classes?.name || 'Unknown';
-          if (!classMap.has(className)) {
-            classMap.set(className, { collected: 0, expected: 0 });
+          if (fee.students && fee.students.classes) {
+            const className = fee.students.classes.name || 'Unknown';
+            if (!classMap.has(className)) {
+              classMap.set(className, { collected: 0, expected: 0 });
+            }
+            const classData = classMap.get(className);
+            classData.collected += fee.paid_amount || 0;
+            classData.expected += fee.amount || 0;
           }
-          const classData = classMap.get(className);
-          classData.collected += fee.paid_amount || 0;
-          classData.expected += fee.amount || 0;
         });
 
         const feeCollectionData = Array.from(classMap.entries()).map(([className, data]) => ({
