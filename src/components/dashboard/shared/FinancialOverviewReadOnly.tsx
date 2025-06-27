@@ -3,14 +3,13 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, TrendingDown, Users, AlertCircle } from 'lucide-react';
-import { useFinanceOfficerAnalytics } from '@/hooks/useFinanceOfficerAnalytics';
+import { usePrincipalFinancialData } from '@/hooks/usePrincipalFinancialData';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, LineChart, Line, ResponsiveContainer } from 'recharts';
 import { Loader2 } from 'lucide-react';
 
 const FinancialOverviewReadOnly: React.FC = () => {
-  const filters = { term: 'current', class: 'all' };
-  const { data, isLoading, error } = useFinanceOfficerAnalytics(filters);
+  const { data, isLoading, error } = usePrincipalFinancialData();
 
   if (isLoading) {
     return (
@@ -42,7 +41,7 @@ const FinancialOverviewReadOnly: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-red-600">
-            Error loading financial data. Please contact the finance department.
+            Unable to load financial data. Please try again later.
           </div>
         </CardContent>
       </Card>
