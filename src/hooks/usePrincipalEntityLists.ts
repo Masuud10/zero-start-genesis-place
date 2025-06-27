@@ -17,7 +17,10 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
         .eq('school_id', schoolId)
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching classes:', error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!schoolId,
@@ -30,12 +33,15 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
       
       const { data, error } = await supabase
         .from('subjects')
-        .select('id, name, code')
+        .select('id, name, code, class_id, teacher_id, curriculum, category, is_active')
         .eq('school_id', schoolId)
         .eq('is_active', true)
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching subjects:', error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!schoolId,
@@ -53,7 +59,10 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
         .eq('role', 'teacher')
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching teachers:', error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!schoolId,
@@ -71,7 +80,10 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
         .eq('role', 'parent')
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching parents:', error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!schoolId,

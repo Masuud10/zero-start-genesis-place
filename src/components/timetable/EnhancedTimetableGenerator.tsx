@@ -105,10 +105,19 @@ const EnhancedTimetableGenerator = () => {
     }
   }, [selectedClass]);
 
-  // Filter subjects by selected class - Fix the property access
-  const classSubjects = subjectList.filter(subject => 
-    selectedClass ? subject.id === selectedClass : false
-  );
+  // Filter subjects by selected class - Fixed logic to properly filter subjects
+  const classSubjects = subjectList.filter(subject => {
+    // If no class is selected, return empty array
+    if (!selectedClass) return false;
+    
+    // If subject has a specific class_id, it must match the selected class
+    if (subject.class_id) {
+      return subject.class_id === selectedClass;
+    }
+    
+    // If subject has no class_id, it's available to all classes
+    return true;
+  });
 
   const handleSubjectSelection = (subjectId: string, checked: boolean) => {
     if (checked) {
@@ -310,27 +319,37 @@ const EnhancedTimetableGenerator = () => {
               <BookOpen className="h-5 w-5 text-blue-600" />
               <h3 className="text-lg font-semibold">Choose Subjects</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-              {classSubjects.map(subject => (
-                <div key={subject.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={subject.id}
-                    checked={selectedSubjects.includes(subject.id)}
-                    onCheckedChange={(checked) => 
-                      handleSubjectSelection(subject.id, checked as boolean)
-                    }
-                  />
-                  <label htmlFor={subject.id} className="text-sm font-medium">
-                    {subject.name} ({subject.code})
-                  </label>
+            {classSubjects.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No subjects found for this class.</p>
+                <p className="text-sm">Please create subjects first in School Management.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                  {classSubjects.map(subject => (
+                    <div key={subject.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={subject.id}
+                        checked={selectedSubjects.includes(subject.id)}
+                        onCheckedChange={(checked) => 
+                          handleSubjectSelection(subject.id, checked as boolean)
+                        }
+                      />
+                      <label htmlFor={subject.id} className="text-sm font-medium">
+                        {subject.name} ({subject.code})
+                      </label>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">
-                Selected: {selectedSubjects.length} subjects
-              </p>
-            </div>
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {selectedSubjects.length} subjects
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         );
 

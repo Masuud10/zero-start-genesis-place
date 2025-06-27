@@ -55,20 +55,25 @@ export class SubjectDatabaseService {
     console.log('SubjectDatabaseService: Creating subject with payload:', payload);
 
     try {
-      // First, let's check if we can access the subjects table
-      const { data: testAccess, error: accessError } = await supabase
+      // Check for duplicate subject code within the same school
+      const { data: existingSubject, error: duplicateCheckError } = await supabase
         .from('subjects')
-        .select('id')
-        .limit(1);
+        .select('id, code')
+        .eq('school_id', schoolId)
+        .eq('code', payload.code)
+        .eq('is_active', true)
+        .maybeSingle();
 
-      if (accessError) {
-        console.error('SubjectDatabaseService: Table access error:', accessError);
-        throw new Error(`Database access denied: ${accessError.message}`);
+      if (duplicateCheckError) {
+        console.error('Error checking for duplicate subject:', duplicateCheckError);
+        throw new Error(`Failed to validate subject uniqueness: ${duplicateCheckError.message}`);
       }
 
-      console.log('SubjectDatabaseService: Table access confirmed, proceeding with insert');
+      if (existingSubject) {
+        throw new Error(`A subject with code "${payload.code}" already exists in your school`);
+      }
 
-      // Create the subject with explicit RLS bypass if needed
+      // Create the subject
       const { data: subject, error } = await supabase
         .from('subjects')
         .insert(payload)
@@ -85,11 +90,7 @@ export class SubjectDatabaseService {
         // Handle specific database constraint errors
         if (error.code === '23505') {
           // Unique constraint violation
-          if (error.message.includes('subjects_name_school_id_key') || error.message.includes('name')) {
-            throw new Error(`A subject with the name "${data.name}" already exists in your school`);
-          } else if (error.message.includes('subjects_code_school_id_key') || error.message.includes('code')) {
-            throw new Error(`A subject with the code "${data.code}" already exists in your school`);
-          } else if (error.message.includes('unique_subject_code_per_school')) {
+          if (error.message.includes('unique_subject_code_per_school')) {
             throw new Error(`Subject code "${data.code}" is already used in your school`);
           }
           throw new Error('A subject with this information already exists in your school');
