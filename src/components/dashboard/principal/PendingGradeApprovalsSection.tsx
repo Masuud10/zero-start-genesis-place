@@ -15,14 +15,14 @@ interface PendingGradeApprovalsSectionProps {
 export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSectionProps> = ({
   pendingGrades,
   processing,
-  onAppraveAll,
+  onApproveAll,
   onRejectAll,
   onDetailedReview
 }) => {
   if (pendingGrades.length === 0) return null;
 
   // Group grades by class and subject for better overview
-  const groupedGrades = pendingGrades.reduce((acc, grade) => {
+  const groupedGrades = pendingGrades.reduce((acc: Record<string, any[]>, grade: any) => {
     const key = `${grade.classes?.name || 'Unknown Class'} - ${grade.subjects?.name || 'Unknown Subject'}`;
     if (!acc[key]) {
       acc[key] = [];
@@ -70,7 +70,7 @@ export const PendingGradeApprovalsSection: React.FC<PendingGradeApprovalsSection
         
         <Button
           size="sm"
-          onClick={onAppraveAll}
+          onClick={onApproveAll}
           disabled={processing === 'approve'}
           className="bg-green-600 hover:bg-green-700"
         >
