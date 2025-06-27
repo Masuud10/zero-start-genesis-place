@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Edit, Plus, BookOpen } from 'lucide-react';
+import { Trash2, Edit, Plus, BookOpen, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Subject {
   id: string;
@@ -48,6 +49,7 @@ const SubjectManagementTab = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Map CurriculumType to form curriculum string values
   const getFormCurriculumValue = (curriculumType: string): string => {
@@ -91,38 +93,64 @@ const SubjectManagementTab = () => {
 
   const fetchData = async () => {
     if (!schoolId) {
-      toast({
-        title: "Error",
-        description: "No school assignment found. Please contact your administrator.",
-        variant: "destructive"
-      });
+      setError('No school assignment found. Please contact your administrator.');
       return;
     }
 
     setLoading(true);
+    setError(null);
+    
     try {
+      console.log('Fetching data for school:', schoolId);
+
+      // Fetch subjects with better error handling
+      const subjectsQuery = supabase
+        .from('subjects')
+        .select('*')
+        .eq('school_id', schoolId)
+        .eq('is_active', true)
+        .order('name');
+
+      const classesQuery = supabase
+        .from('classes')
+        .select('id, name')
+        .eq('school_id', schoolId)
+        .order('name');
+
+      const teachersQuery = supabase
+        .from('profiles')
+        .select('id, name, email')
+        .eq('school_id', schoolId)
+        .eq('role', 'teacher')
+        .order('name');
+
       const [subjectsRes, classesRes, teachersRes] = await Promise.all([
-        supabase
-          .from('subjects')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('name'),
-        supabase
-          .from('classes')
-          .select('id, name')
-          .eq('school_id', schoolId)
-          .order('name'),
-        supabase
-          .from('profiles')
-          .select('id, name, email')
-          .eq('school_id', schoolId)
-          .eq('role', 'teacher')
-          .order('name')
+        subjectsQuery,
+        classesQuery,
+        teachersQuery
       ]);
 
-      if (subjectsRes.error) throw new Error(`Failed to fetch subjects: ${subjectsRes.error.message}`);
-      if (classesRes.error) throw new Error(`Failed to fetch classes: ${classesRes.error.message}`);
-      if (teachersRes.error) throw new Error(`Failed to fetch teachers: ${teachersRes.error.message}`);
+      // Handle subjects response
+      if (subjectsRes.error) {
+        console.error('Subjects fetch error:', subjectsRes.error);
+        throw new Error(`Failed to fetch subjects: ${subjectsRes.error.message}`);
+      }
+
+      // Handle classes response
+      if (classesRes.error) {
+        console.error('Classes fetch error:', classesRes.error);
+        throw new Error(`Failed to fetch classes: ${classesRes.error.message}`);
+      }
+
+      // Handle teachers response
+      if (teachersRes.error) {
+        console.error('Teachers fetch error:', teachersRes.error);
+        throw new Error(`Failed to fetch teachers: ${teachersRes.error.message}`);
+      }
+
+      console.log('Fetched subjects:', subjectsRes.data?.length || 0);
+      console.log('Fetched classes:', classesRes.data?.length || 0);
+      console.log('Fetched teachers:', teachersRes.data?.length || 0);
 
       setSubjects(subjectsRes.data || []);
       setClasses(classesRes.data || []);
@@ -130,12 +158,16 @@ const SubjectManagementTab = () => {
 
     } catch (error: any) {
       console.error('Error fetching data:', error);
+      const errorMessage = error?.message || 'Unknown error occurred while fetching data';
+      setError(errorMessage);
+      
       toast({
         title: "Error Loading Data",
-        description: error.message || 'Unknown error occurred while fetching data',
+        description: errorMessage,
         variant: "destructive"
       });
 
+      // Set empty arrays on error to prevent infinite loading
       setSubjects([]);
       setClasses([]);
       setTeachers([]);
@@ -416,6 +448,19 @@ const SubjectManagementTab = () => {
     return <Badge variant="outline">{categoryMap[category] || category}</Badge>;
   };
 
+  if (!schoolId) {
+    return (
+      <div className="text-center py-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No school assignment found. Please contact your administrator.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -425,10 +470,23 @@ const SubjectManagementTab = () => {
     );
   }
 
-  if (!schoolId) {
+  if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600">No school assignment found. Please contact your administrator.</p>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={fetchData} 
+              className="ml-2"
+            >
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -622,12 +680,13 @@ const SubjectManagementTab = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Existing Subjects</CardTitle>
+          <CardTitle>Existing Subjects ({subjects.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {subjects.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No subjects found. Create your first subject above.
+              <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No subjects found. Create your first subject above.</p>
             </div>
           ) : (
             <div className="border rounded-lg">
