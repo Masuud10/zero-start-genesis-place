@@ -75,16 +75,16 @@ export const useAuthActions = () => {
       }
       console.log('✅ AuthActions: Logout completed');
 
-      // Force page reload for clean state
+      // Force redirect to login page instead of landing page
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/login';
       }, 100);
 
     } catch (error: any) {
       console.error('❌ AuthActions: Logout error:', error);
-      // Fallback hard reload
+      // Fallback hard reload to login
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/login';
       }, 100);
     }
   }, []);

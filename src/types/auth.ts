@@ -24,6 +24,7 @@ export interface AuthState {
   user: AuthUser | null;
   isLoading: boolean;
   error: string | null;
+  isInitialized?: boolean;
 }
 
 export interface LoginCredentials {
@@ -41,6 +42,7 @@ export interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   error: string | null;
+  isInitialized?: boolean;
   signIn: (credentials: LoginCredentials) => Promise<{ error?: string }>;
   signUp: (credentials: SignupCredentials) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;

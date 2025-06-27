@@ -8,6 +8,7 @@ export const useAuthState = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
@@ -57,6 +58,7 @@ export const useAuthState = () => {
           setUser(null);
           setError(null);
           setIsLoading(false);
+          setIsInitialized(true);
         }
         return;
       }
@@ -66,6 +68,7 @@ export const useAuthState = () => {
         if (isMountedRef.current) {
           setError('User account is missing email address');
           setIsLoading(false);
+          setIsInitialized(true);
         }
         return;
       }
@@ -81,6 +84,7 @@ export const useAuthState = () => {
           setUser(null);
           setError('Your account has been deactivated. Please contact your administrator.');
           setIsLoading(false);
+          setIsInitialized(true);
         }
         return;
       }
@@ -103,6 +107,7 @@ export const useAuthState = () => {
           setUser(null);
           setError('Your account has been deactivated. Please contact your administrator.');
           setIsLoading(false);
+          setIsInitialized(true);
         }
         return;
       }
@@ -217,11 +222,13 @@ export const useAuthState = () => {
       setUser(userData);
       setError(null);
       setIsLoading(false);
+      setIsInitialized(true);
     } catch (err: any) {
       console.error('🔐 AuthState: User processing failed:', err);
       if (isMountedRef.current) {
         setError('User processing failed: ' + (err.message || 'Unknown error'));
         setIsLoading(false);
+        setIsInitialized(true);
       }
     }
   }, [fetchProfile]);
@@ -242,21 +249,7 @@ export const useAuthState = () => {
           subscriptionRef.current = null;
         }
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            console.log('🔐 AuthState: Auth event:', event, !!session);
-            if (!isMountedRef.current) return;
-            
-            if (event === 'SIGNED_OUT' || !session) {
-              await processUser(null);
-            } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-              await processUser(session.user);
-            }
-          }
-        );
-        subscriptionRef.current = subscription;
-
-        // Get initial session
+        // Get initial session FIRST for faster loading
         console.log('🔐 AuthState: Getting initial session');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -264,20 +257,44 @@ export const useAuthState = () => {
 
         if (sessionError) {
           console.error('🔐 AuthState: Session error:', sessionError);
-          throw sessionError;
+          setIsLoading(false);
+          setIsInitialized(true);
+          return;
         }
 
+        // Process initial session immediately
         if (session?.user) {
           await processUser(session.user);
         } else {
           setUser(null);
           setIsLoading(false);
+          setIsInitialized(true);
         }
+
+        // THEN set up auth listener for future changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('🔐 AuthState: Auth event:', event, !!session);
+            if (!isMountedRef.current) return;
+            
+            if (event === 'SIGNED_OUT' || !session) {
+              setUser(null);
+              setError(null);
+              setIsLoading(false);
+              setIsInitialized(true);
+            } else if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+              await processUser(session.user);
+            }
+          }
+        );
+        subscriptionRef.current = subscription;
+
       } catch (err: any) {
         console.error('🔐 AuthState: Auth initialization failed:', err);
         if (isMountedRef.current) {
           setError('Authentication failed - please refresh the page');
           setIsLoading(false);
+          setIsInitialized(true);
         }
       }
     };
@@ -289,5 +306,6 @@ export const useAuthState = () => {
     user,
     isLoading,
     error,
+    isInitialized,
   };
 };

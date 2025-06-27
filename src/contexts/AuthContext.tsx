@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user: authState.user,
     isLoading: authState.isLoading,
     error: authState.error,
+    isInitialized: authState.isInitialized,
     signIn: authActions.signIn,
     signUp: authActions.signUp,
     signOut: authActions.signOut
@@ -32,7 +33,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading: value.isLoading,
     hasError: !!value.error,
     userRole: value.user?.role,
-    userEmail: value.user?.email
+    userEmail: value.user?.email,
+    isInitialized: value.isInitialized
   });
 
   return (

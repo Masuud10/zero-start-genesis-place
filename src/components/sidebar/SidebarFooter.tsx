@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SidebarFooter as ShadcnSidebarFooter } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ const SidebarFooter = () => {
       cleanupAuthState();
 
       await signOut();
-      console.log('✅ Sidebar: Logout completed');
+      console.log('✅ Sidebar: Logout completed, redirecting to login');
     } catch (error) {
       console.error('❌ Sidebar: Logout error:', error);
       toast({
@@ -32,9 +33,9 @@ const SidebarFooter = () => {
         description: "You have been signed out successfully.",
         variant: "default",
       });
-      // Force redirect as fallback
+      // Force redirect to login as fallback
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/login';
       }, 1000);
     }
   };

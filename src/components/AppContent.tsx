@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LandingPage from '@/components/LandingPage';
@@ -12,7 +11,6 @@ import { SchoolProvider } from '@/contexts/SchoolContext';
 
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
-  const [initializationComplete, setInitializationComplete] = useState(false);
 
   console.log('🎯 AppContent: Render start');
 
@@ -49,27 +47,18 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const { user, isLoading: authLoading, error: authError } = authState;
+  const { user, isLoading: authLoading, error: authError, isInitialized } = authState;
   console.log('🎯 AppContent: State:', { 
     authLoading, 
     authError, 
     hasUser: !!user, 
     role: user?.role, 
     email: user?.email,
-    initializationComplete
+    isInitialized
   });
 
-  // Set initialization complete after a brief delay to prevent immediate timeout
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setInitializationComplete(true);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Show loading only for a reasonable time
-  if (authLoading && initializationComplete) {
+  // Show loading only if not initialized yet
+  if (!isInitialized && authLoading) {
     console.log('🎯 AppContent: Loading auth...');
     return <LoadingScreen />;
   }
@@ -95,10 +84,19 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // No user authenticated
+  // No user authenticated - show login/landing based on URL or state
   if (!user) {
-    console.log('🎯 AppContent: No user - LandingPage or LoginForm');
-    if (showLogin) return <LoginForm />;
+    console.log('🎯 AppContent: No user - checking URL path');
+    
+    // Check current path to determine what to show
+    const currentPath = window.location.pathname;
+    
+    // If user is on login path or has requested login, show login form
+    if (currentPath === '/login' || showLogin) {
+      return <LoginForm />;
+    }
+    
+    // Otherwise show landing page
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
