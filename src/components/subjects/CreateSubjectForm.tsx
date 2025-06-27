@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useSubjectService } from '@/hooks/useSubjectService';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
+import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 import { AlertCircle, BookOpen, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SubjectCreationData } from '@/types/subject';
@@ -22,6 +23,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
   onClose,
   onSuccess
 }) => {
+  const { curriculumType, loading: curriculumLoading } = useSchoolCurriculum();
   const [formData, setFormData] = useState<SubjectCreationData>({
     name: '',
     code: '',
@@ -37,6 +39,13 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
 
   const { createSubject, loading } = useSubjectService();
   const { classList, teacherList, loadingEntities } = usePrincipalEntityLists(0);
+
+  // Update curriculum when school curriculum is loaded
+  useEffect(() => {
+    if (curriculumType && !curriculumLoading) {
+      setFormData(prev => ({ ...prev, curriculum: curriculumType }));
+    }
+  }, [curriculumType, curriculumLoading]);
 
   const validateForm = () => {
     setError(null);
@@ -71,6 +80,16 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
       return false;
     }
 
+    if (!formData.curriculum) {
+      setError("Curriculum type is required");
+      return false;
+    }
+
+    if (!formData.category) {
+      setError("Subject category is required");
+      return false;
+    }
+
     return true;
   };
 
@@ -91,7 +110,10 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
         ...formData,
         code: formData.code.toUpperCase().trim(),
         name: formData.name.trim(),
-        description: formData.description?.trim() || ''
+        description: formData.description?.trim() || '',
+        curriculum: formData.curriculum || curriculumType || 'cbc',
+        category: formData.category || 'core',
+        credit_hours: formData.credit_hours || 1
       };
 
       console.log('CreateSubjectForm: Submitting subject creation:', submissionData);
@@ -123,7 +145,7 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
       code: '',
       class_id: undefined,
       teacher_id: undefined,
-      curriculum: 'cbc',
+      curriculum: curriculumType || 'cbc',
       category: 'core',
       credit_hours: 1,
       description: ''
@@ -151,7 +173,12 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
     setSuccess(null);
   };
 
-  const isFormValid = Boolean(formData.name.trim() && formData.code.trim());
+  const isFormValid = Boolean(
+    formData.name.trim() && 
+    formData.code.trim() && 
+    formData.curriculum && 
+    formData.category
+  );
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -207,7 +234,30 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-gray-700">Category</Label>
+            <Label className="text-gray-700">Curriculum System *</Label>
+            <Select
+              value={formData.curriculum}
+              onValueChange={(value) => {
+                setFormData({ ...formData, curriculum: value });
+                clearMessages();
+              }}
+              disabled={loading || curriculumLoading}
+            >
+              <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                <SelectValue placeholder="Select curriculum" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cbc">CBC (Competency Based Curriculum)</SelectItem>
+                <SelectItem value="igcse">IGCSE (International)</SelectItem>
+                <SelectItem value="8-4-4">8-4-4 System</SelectItem>
+                <SelectItem value="ib">International Baccalaureate</SelectItem>
+                <SelectItem value="other">Other System</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-gray-700">Category *</Label>
             <Select
               value={formData.category}
               onValueChange={(value) => {
@@ -221,8 +271,36 @@ const CreateSubjectForm: React.FC<CreateSubjectFormProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="core">Core Subject</SelectItem>
+                <SelectItem value="science">Science</SelectItem>
+                <SelectItem value="arts">Arts & Humanities</SelectItem>
+                <SelectItem value="languages">Languages</SelectItem>
+                <SelectItem value="technical">Technical/Vocational</SelectItem>
+                <SelectItem value="sports">Physical Education</SelectItem>
                 <SelectItem value="elective">Elective</SelectItem>
                 <SelectItem value="optional">Optional</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-gray-700">Credit Hours</Label>
+            <Select
+              value={formData.credit_hours?.toString() || "1"}
+              onValueChange={(value) => {
+                setFormData({ ...formData, credit_hours: parseInt(value) || 1 });
+                clearMessages();
+              }}
+              disabled={loading}
+            >
+              <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                <SelectValue placeholder="Select credit hours" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6].map((hours) => (
+                  <SelectItem key={hours} value={hours.toString()}>
+                    {hours} {hours === 1 ? 'Hour' : 'Hours'}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

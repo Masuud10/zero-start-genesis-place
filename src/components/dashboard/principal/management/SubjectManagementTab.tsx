@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Trash2, Edit, Plus, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
 
 interface Subject {
   id: string;
@@ -19,6 +19,10 @@ interface Subject {
   class_id?: string;
   teacher_id?: string;
   school_id: string;
+  curriculum?: string;
+  category?: string;
+  credit_hours?: number;
+  description?: string;
   created_at: string;
 }
 
@@ -34,6 +38,7 @@ interface Teacher {
 
 const SubjectManagementTab = () => {
   const { schoolId } = useSchoolScopedData();
+  const { curriculumType } = useSchoolCurriculum();
   const { toast } = useToast();
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -46,7 +51,11 @@ const SubjectManagementTab = () => {
     name: '',
     code: '',
     class_id: '',
-    teacher_id: ''
+    teacher_id: '',
+    curriculum: curriculumType || 'cbc',
+    category: 'core',
+    credit_hours: 1,
+    description: ''
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,6 +65,12 @@ const SubjectManagementTab = () => {
       fetchData();
     }
   }, [schoolId]);
+
+  useEffect(() => {
+    if (curriculumType) {
+      setFormData(prev => ({ ...prev, curriculum: curriculumType }));
+    }
+  }, [curriculumType]);
 
   const fetchData = async () => {
     if (!schoolId) {
@@ -131,6 +146,24 @@ const SubjectManagementTab = () => {
       return false;
     }
 
+    if (!formData.curriculum?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Curriculum type is required",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.category?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Subject category is required",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     if (!schoolId) {
       toast({
         title: "Validation Error",
@@ -172,6 +205,10 @@ const SubjectManagementTab = () => {
         school_id: schoolId!,
         class_id: formData.class_id || null,
         teacher_id: formData.teacher_id || null,
+        curriculum: formData.curriculum || curriculumType || 'cbc',
+        category: formData.category || 'core',
+        credit_hours: formData.credit_hours || 1,
+        description: formData.description?.trim() || null,
         is_active: true
       };
 
@@ -208,7 +245,16 @@ const SubjectManagementTab = () => {
         description: editingId ? "Subject updated successfully" : "Subject created successfully",
       });
 
-      setFormData({ name: '', code: '', class_id: '', teacher_id: '' });
+      setFormData({ 
+        name: '', 
+        code: '', 
+        class_id: '', 
+        teacher_id: '', 
+        curriculum: curriculumType || 'cbc',
+        category: 'core',
+        credit_hours: 1,
+        description: ''
+      });
       setEditingId(null);
       await fetchData();
 
@@ -230,7 +276,11 @@ const SubjectManagementTab = () => {
       name: subject.name,
       code: subject.code,
       class_id: subject.class_id || '',
-      teacher_id: subject.teacher_id || ''
+      teacher_id: subject.teacher_id || '',
+      curriculum: subject.curriculum || curriculumType || 'cbc',
+      category: subject.category || 'core',
+      credit_hours: subject.credit_hours || 1,
+      description: subject.description || ''
     });
     setEditingId(subject.id);
   };
@@ -271,7 +321,16 @@ const SubjectManagementTab = () => {
   };
 
   const cancelEdit = () => {
-    setFormData({ name: '', code: '', class_id: '', teacher_id: '' });
+    setFormData({ 
+      name: '', 
+      code: '', 
+      class_id: '', 
+      teacher_id: '', 
+      curriculum: curriculumType || 'cbc',
+      category: 'core',
+      credit_hours: 1,
+      description: ''
+    });
     setEditingId(null);
   };
 
@@ -285,6 +344,37 @@ const SubjectManagementTab = () => {
     if (!teacherId) return 'Unassigned';
     const foundTeacher = teachers.find(t => t.id === teacherId);
     return foundTeacher?.name || 'Unknown Teacher';
+  };
+
+  const getCurriculumBadge = (curriculum?: string) => {
+    if (!curriculum) return <Badge variant="outline">Not Set</Badge>;
+    
+    const curriculumMap: { [key: string]: string } = {
+      'cbc': 'CBC',
+      'igcse': 'IGCSE',
+      '8-4-4': '8-4-4',
+      'ib': 'IB',
+      'other': 'Other'
+    };
+    
+    return <Badge variant="secondary">{curriculumMap[curriculum] || curriculum.toUpperCase()}</Badge>;
+  };
+
+  const getCategoryBadge = (category?: string) => {
+    if (!category) return <Badge variant="outline">Not Set</Badge>;
+    
+    const categoryMap: { [key: string]: string } = {
+      'core': 'Core',
+      'science': 'Science',
+      'arts': 'Arts',
+      'languages': 'Languages',
+      'technical': 'Technical',
+      'sports': 'Sports',
+      'elective': 'Elective',
+      'optional': 'Optional'
+    };
+    
+    return <Badge variant="outline">{categoryMap[category] || category}</Badge>;
   };
 
   if (loading) {
@@ -350,6 +440,47 @@ const SubjectManagementTab = () => {
                   disabled={creating}
                   maxLength={10}
                 />
+              </div>
+              <div>
+                <Label htmlFor="curriculum-select">Curriculum *</Label>
+                <Select
+                  value={formData.curriculum}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, curriculum: value }))}
+                  disabled={creating}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select curriculum" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cbc">CBC (Competency Based)</SelectItem>
+                    <SelectItem value="igcse">IGCSE (International)</SelectItem>
+                    <SelectItem value="8-4-4">8-4-4 System</SelectItem>
+                    <SelectItem value="ib">International Baccalaureate</SelectItem>
+                    <SelectItem value="other">Other System</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="category-select">Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  disabled={creating}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="core">Core Subject</SelectItem>
+                    <SelectItem value="science">Science</SelectItem>
+                    <SelectItem value="arts">Arts & Humanities</SelectItem>
+                    <SelectItem value="languages">Languages</SelectItem>
+                    <SelectItem value="technical">Technical/Vocational</SelectItem>
+                    <SelectItem value="sports">Physical Education</SelectItem>
+                    <SelectItem value="elective">Elective</SelectItem>
+                    <SelectItem value="optional">Optional</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="class-select">Class (Optional)</Label>
@@ -432,6 +563,8 @@ const SubjectManagementTab = () => {
                   <TableRow>
                     <TableHead>Subject Name</TableHead>
                     <TableHead>Code</TableHead>
+                    <TableHead>Curriculum</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Teacher</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -444,6 +577,8 @@ const SubjectManagementTab = () => {
                       <TableCell>
                         <Badge variant="secondary">{subject.code}</Badge>
                       </TableCell>
+                      <TableCell>{getCurriculumBadge(subject.curriculum)}</TableCell>
+                      <TableCell>{getCategoryBadge(subject.category)}</TableCell>
                       <TableCell>{getClassName(subject.class_id)}</TableCell>
                       <TableCell>{getTeacherName(subject.teacher_id)}</TableCell>
                       <TableCell className="text-right">
