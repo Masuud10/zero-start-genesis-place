@@ -132,7 +132,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
             stats={stats} 
             loading={loading} 
             error={error}
-            onRefresh={refetch}
           />
         </section>
         
@@ -187,9 +186,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <AddSubjectModal
           open={true}
           onClose={handleModalClose}
-          onSubjectCreated={() => handleSuccess("Subject created successfully")}
-          onError={handleError}
-          schoolId={schoolId}
+          onSubjectCreated={handleSuccess}
         />
       )}
 
@@ -197,9 +194,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <SubjectAssignmentModal
           open={true}
           onClose={handleModalClose}
-          onAssignmentCreated={() => handleSuccess("Subject assignment created successfully")}
-          onError={handleError}
-          schoolId={schoolId}
+          onAssignmentCreated={handleSuccess}
         />
       )}
 
@@ -207,9 +202,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <CertificateGenerator
           open={true}
           onClose={handleModalClose}
-          onCertificateGenerated={() => handleSuccess("Certificate generated successfully")}
-          onError={handleError}
-          schoolId={schoolId}
+          onCertificateGenerated={handleSuccess}
         />
       )}
 
@@ -217,9 +210,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <TimetableGenerator
           open={true}
           onClose={handleModalClose}
-          onTimetableGenerated={() => handleSuccess("Timetable generated successfully")}
-          onError={handleError}
-          schoolId={schoolId}
+          onTimetableGenerated={handleSuccess}
         />
       )}
 
@@ -227,9 +218,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
         <PrincipalReportGenerator
           open={true}
           onClose={handleModalClose}
-          onReportGenerated={() => handleSuccess("Report generated successfully")}
-          onError={handleError}
-          schoolId={schoolId}
+          onReportGenerated={handleSuccess}
         />
       )}
     </div>
