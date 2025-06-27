@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Send, Eye, FileText, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Send, AlertCircle } from 'lucide-react';
 import { usePrincipalGradeManagement } from '@/hooks/usePrincipalGradeManagement';
-import { PrincipalGradeApprovalInterface } from '@/components/grading/PrincipalGradeApprovalInterface';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { GradeManagerHeader } from './grades/GradeManagerHeader';
+import { PendingGradesTab } from './grades/PendingGradesTab';
+import { ApprovedGradesTab } from './grades/ApprovedGradesTab';
+import { ReleasedGradesTab } from './grades/ReleasedGradesTab';
+import { RejectedGradesTab } from './grades/RejectedGradesTab';
 
 interface PrincipalGradesManagerProps {
   schoolId: string;
@@ -130,31 +131,11 @@ const PrincipalGradesManager: React.FC<PrincipalGradesManagerProps> = ({
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold">Grade Management</h3>
-          <p className="text-sm text-muted-foreground">
-            Review, approve, and release student grades
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleGenerateReports}
-            className="flex items-center gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            Generate Reports
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            Refresh
-          </Button>
-        </div>
-      </div>
+      <GradeManagerHeader
+        onGenerateReports={handleGenerateReports}
+        onRefresh={handleRefresh}
+        isLoading={isLoading}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
@@ -177,98 +158,39 @@ const PrincipalGradesManager: React.FC<PrincipalGradesManagerProps> = ({
         </TabsList>
 
         <TabsContent value="pending" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Grades Pending Approval</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pendingGrades.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No grades pending approval</p>
-                </div>
-              ) : (
-                <PrincipalGradeApprovalInterface
-                  grades={pendingGrades}
-                  onBulkAction={handleBulkAction}
-                  processing={processing}
-                  schoolId={schoolId}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <PendingGradesTab
+            grades={pendingGrades}
+            onBulkAction={handleBulkAction}
+            processing={processing}
+            schoolId={schoolId}
+          />
         </TabsContent>
 
         <TabsContent value="approved" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Approved Grades</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {approvedGrades.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No approved grades</p>
-                </div>
-              ) : (
-                <PrincipalGradeApprovalInterface
-                  grades={approvedGrades}
-                  onBulkAction={handleBulkAction}
-                  processing={processing}
-                  schoolId={schoolId}
-                  allowRelease={true}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <ApprovedGradesTab
+            grades={approvedGrades}
+            onBulkAction={handleBulkAction}
+            processing={processing}
+            schoolId={schoolId}
+          />
         </TabsContent>
 
         <TabsContent value="released" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Released Grades</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {releasedGrades.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Send className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No grades have been released yet</p>
-                </div>
-              ) : (
-                <PrincipalGradeApprovalInterface
-                  grades={releasedGrades}
-                  onBulkAction={handleBulkAction}
-                  processing={processing}
-                  schoolId={schoolId}
-                  readOnly={true}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <ReleasedGradesTab
+            grades={releasedGrades}
+            onBulkAction={handleBulkAction}
+            processing={processing}
+            schoolId={schoolId}
+          />
         </TabsContent>
 
         <TabsContent value="rejected" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rejected Grades</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {rejectedGrades.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No rejected grades</p>
-                </div>
-              ) : (
-                <PrincipalGradeApprovalInterface
-                  grades={rejectedGrades}
-                  onBulkAction={handleBulkAction}
-                  processing={processing}
-                  schoolId={schoolId}
-                  readOnly={true}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <RejectedGradesTab
+            grades={rejectedGrades}
+            onBulkAction={handleBulkAction}
+            processing={processing}
+            schoolId={schoolId}
+          />
         </TabsContent>
       </Tabs>
     </div>
