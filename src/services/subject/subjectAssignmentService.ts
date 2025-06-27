@@ -4,47 +4,78 @@ import { SubjectAssignment, CreateAssignmentData } from '@/types/subject';
 
 export class SubjectAssignmentService {
   static async createAssignment(data: CreateAssignmentData, schoolId: string): Promise<SubjectAssignment> {
-    const payload = {
-      subject_id: data.subject_id,
-      teacher_id: data.teacher_id,
-      class_id: data.class_id,
-      school_id: schoolId,
-      assigned_by: (await supabase.auth.getUser()).data.user?.id,
-      assigned_at: new Date().toISOString(),
-      is_active: true
-    };
+    console.log('SubjectAssignmentService.createAssignment called with:', { data, schoolId });
 
-    console.log('Creating subject assignment with payload:', payload);
-
-    const { data: assignment, error } = await supabase
-      .from('subject_teacher_assignments')
-      .insert(payload)
-      .select(`
-        *,
-        subject:subjects(id, name, code),
-        teacher:profiles!subject_teacher_assignments_teacher_id_fkey(id, name, email),
-        class:classes(id, name)
-      `)
-      .single();
-
-    if (error) {
-      console.error('Assignment creation error:', error);
-      
-      if (error.code === '23505') {
-        throw new Error('This teacher is already assigned to this subject and class');
-      }
-      if (error.code === '23503') {
-        throw new Error('Invalid reference - check that subject, teacher, and class exist');
-      }
-      
-      throw new Error(error.message || 'Failed to create assignment');
+    if (!schoolId) {
+      throw new Error('School ID is required for assignment creation');
     }
 
-    console.log('Assignment created successfully:', assignment);
-    return assignment;
+    // Get current user context
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('User authentication required');
+    }
+
+    try {
+      // Check if assignment already exists
+      const { data: existing, error: checkError } = await supabase
+        .from('subject_teacher_assignments')
+        .select('id')
+        .eq('school_id', schoolId)
+        .eq('subject_id', data.subject_id)
+        .eq('teacher_id', data.teacher_id)
+        .eq('class_id', data.class_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (checkError) {
+        throw new Error(`Failed to check existing assignments: ${checkError.message}`);
+      }
+
+      if (existing) {
+        throw new Error('This teacher is already assigned to this subject for this class');
+      }
+
+      // Create the assignment
+      const { data: assignment, error } = await supabase
+        .from('subject_teacher_assignments')
+        .insert({
+          school_id: schoolId,
+          subject_id: data.subject_id,
+          teacher_id: data.teacher_id,
+          class_id: data.class_id,
+          assigned_by: user.id,
+          is_active: true
+        })
+        .select(`
+          *,
+          subject:subjects(id, name, code),
+          teacher:profiles!subject_teacher_assignments_teacher_id_fkey(id, name, email),
+          class:classes(id, name)
+        `)
+        .single();
+
+      if (error) {
+        console.error('SubjectAssignmentService: Database error:', error);
+        throw new Error(`Failed to create assignment: ${error.message}`);
+      }
+
+      if (!assignment) {
+        throw new Error('Assignment was not created - no data returned');
+      }
+
+      console.log('SubjectAssignmentService: Assignment created successfully');
+      return assignment;
+
+    } catch (error: any) {
+      console.error('SubjectAssignmentService.createAssignment error:', error);
+      throw error;
+    }
   }
 
   static async getAssignments(schoolId: string, classId?: string): Promise<SubjectAssignment[]> {
+    console.log('SubjectAssignmentService.getAssignments called with:', { schoolId, classId });
+
     if (!schoolId) {
       throw new Error('School ID is required');
     }
@@ -65,14 +96,14 @@ export class SubjectAssignmentService {
         query = query.eq('class_id', classId);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query.order('assigned_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching assignments:', error);
-        throw new Error(error.message || 'Failed to fetch assignments');
+        console.error('SubjectAssignmentService: Error fetching assignments:', error);
+        throw new Error(`Failed to fetch assignments: ${error.message}`);
       }
 
-      console.log('Assignments fetched successfully:', data?.length || 0);
+      console.log('SubjectAssignmentService: Assignments fetched successfully:', data?.length || 0);
       return data || [];
 
     } catch (error: any) {
@@ -82,16 +113,24 @@ export class SubjectAssignmentService {
   }
 
   static async removeAssignment(assignmentId: string): Promise<void> {
-    const { error } = await supabase
-      .from('subject_teacher_assignments')
-      .update({ is_active: false })
-      .eq('id', assignmentId);
+    console.log('SubjectAssignmentService.removeAssignment called with:', assignmentId);
 
-    if (error) {
-      console.error('Assignment removal error:', error);
-      throw new Error(error.message || 'Failed to remove assignment');
+    try {
+      const { error } = await supabase
+        .from('subject_teacher_assignments')
+        .update({ is_active: false })
+        .eq('id', assignmentId);
+
+      if (error) {
+        console.error('SubjectAssignmentService: Error removing assignment:', error);
+        throw new Error(`Failed to remove assignment: ${error.message}`);
+      }
+
+      console.log('SubjectAssignmentService: Assignment removed successfully');
+
+    } catch (error: any) {
+      console.error('SubjectAssignmentService.removeAssignment error:', error);
+      throw error;
     }
-
-    console.log('Assignment removed successfully');
   }
 }
