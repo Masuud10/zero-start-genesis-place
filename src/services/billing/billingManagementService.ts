@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BillingRecordsService } from './billingRecordsService';
+import { FeeCreationService } from './feeCreationService';
 
 export interface BillingRecord {
   id: string;
@@ -13,6 +13,7 @@ export interface BillingRecord {
   created_at: string;
   updated_at: string;
   invoice_number?: string;
+  description?: string;
   student_count?: number;
   school?: {
     id: string;
@@ -51,14 +52,32 @@ export class BillingManagementService {
         return { data: null, error: 'Database connection failed' };
       }
 
-      const { data: stats, error } = await supabase.rpc('get_billing_stats');
-      
-      if (error) {
-        console.error('❌ Error getting billing stats:', error);
-        return { data: null, error: error.message };
+      // Calculate stats manually since RPC function doesn't exist
+      const { data: records, error: recordsError } = await supabase
+        .from('school_billing_records')
+        .select('amount, status, billing_type, school_id')
+        .limit(1000);
+
+      if (recordsError) {
+        console.error('❌ Error getting billing records for stats:', recordsError);
+        return { data: null, error: recordsError.message };
       }
 
-      console.log('✅ BillingManagementService: Successfully fetched billing stats');
+      // Calculate basic stats
+      const totalAmount = records?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
+      const paidAmount = records?.filter(r => r.status === 'paid').reduce((sum, record) => sum + Number(record.amount), 0) || 0;
+      const pendingAmount = records?.filter(r => r.status === 'pending').reduce((sum, record) => sum + Number(record.amount), 0) || 0;
+      const uniqueSchools = new Set(records?.map(r => r.school_id)).size || 0;
+
+      const stats = {
+        total_amount: totalAmount,
+        paid_amount: paidAmount,
+        pending_amount: pendingAmount,
+        total_schools: uniqueSchools,
+        total_records: records?.length || 0
+      };
+
+      console.log('✅ BillingManagementService: Successfully calculated billing stats');
       return { data: stats, error: null };
     } catch (error: any) {
       console.error('❌ BillingManagementService: Critical error getting billing stats:', error);
@@ -302,5 +321,15 @@ export class BillingManagementService {
       console.error('❌ BillingManagementService: Critical error checking billing data:', error);
       return { hasData: false, recordCount: 0, error: error.message };
     }
+  }
+
+  static async calculateSubscriptionFee(schoolId: string): Promise<{ data: any | null; error: any }> {
+    console.log('📊 BillingManagementService: Calculating subscription fee');
+    return FeeCreationService.calculateSubscriptionFee(schoolId);
+  }
+
+  static async createManualFeeRecord(data: any): Promise<{ success: boolean; recordId?: string; error?: any }> {
+    console.log('📊 BillingManagementService: Creating manual fee record');
+    return FeeCreationService.createManualFeeRecord(data);
   }
 }
