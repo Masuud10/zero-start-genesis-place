@@ -1,13 +1,13 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Plus, RefreshCw } from 'lucide-react';
+import { Eye, Plus, RefreshCw, Calendar } from 'lucide-react';
 import { useBillingRecords, useBillingActions } from '@/hooks/useBillingManagement';
 import { BillingRecord } from '@/services/billing/billingManagementService';
 import { format } from 'date-fns';
+import CreateMonthlySubscriptionModal from './CreateMonthlySubscriptionModal';
 
 interface SchoolBillingListProps {
   onSelectSchool: (schoolId: string) => void;
@@ -22,6 +22,7 @@ const SchoolBillingList: React.FC<SchoolBillingListProps> = ({
   const { updateBillingStatus, createSetupFee, createMonthlySubscriptions } = useBillingActions();
 
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -64,6 +65,10 @@ const SchoolBillingList: React.FC<SchoolBillingListProps> = ({
 
   const handleCreateMonthlySubscriptions = () => {
     createMonthlySubscriptions.mutate();
+  };
+
+  const handleCreateModalSuccess = () => {
+    refetch(); // Refresh the billing records list
   };
 
   const filteredRecords = records?.filter(record => 
@@ -118,12 +123,21 @@ const SchoolBillingList: React.FC<SchoolBillingListProps> = ({
                 Refresh
               </Button>
               <Button 
+                onClick={() => setIsCreateModalOpen(true)}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Create Monthly Subscription
+              </Button>
+              <Button 
                 onClick={handleCreateMonthlySubscriptions}
+                variant="outline"
                 size="sm"
                 disabled={createMonthlySubscriptions.isPending}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Create Monthly Subscriptions
+                Bulk Create Monthly
               </Button>
             </div>
           </div>
@@ -236,17 +250,33 @@ const SchoolBillingList: React.FC<SchoolBillingListProps> = ({
         <Card>
           <CardContent className="text-center py-8">
             <p className="text-gray-500">No billing records found</p>
-            <Button 
-              onClick={handleCreateMonthlySubscriptions}
-              className="mt-4"
-              disabled={createMonthlySubscriptions.isPending}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Monthly Subscriptions
-            </Button>
+            <div className="flex gap-2 justify-center mt-4">
+              <Button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Create Monthly Subscription
+              </Button>
+              <Button 
+                onClick={handleCreateMonthlySubscriptions}
+                variant="outline"
+                disabled={createMonthlySubscriptions.isPending}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Bulk Create Monthly
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Create Monthly Subscription Modal */}
+      <CreateMonthlySubscriptionModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleCreateModalSuccess}
+      />
     </div>
   );
 };
