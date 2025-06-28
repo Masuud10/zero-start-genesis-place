@@ -14,12 +14,18 @@ export const useBillingRecords = (filters?: {
   
   return useQuery({
     queryKey: ['billing-records', filters],
-    queryFn: () => BillingManagementService.getAllBillingRecords(filters),
+    queryFn: async () => {
+      const result = await BillingManagementService.getAllBillingRecords(filters);
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to fetch billing records');
+      }
+      return result.data;
+    },
     enabled: user?.role === 'edufam_admin',
     staleTime: 2 * 60 * 1000, // 2 minutes
-    select: (response) => response.data,
-    refetchOnWindowFocus: true,
-    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Prevent excessive refetching
+    retry: 2, // Limit retry attempts
+    refetchInterval: false, // Disable auto-refetch to prevent loading loops
   });
 };
 
@@ -28,11 +34,18 @@ export const useSchoolBillingRecords = (schoolId?: string) => {
   
   return useQuery({
     queryKey: ['school-billing-records', schoolId],
-    queryFn: () => BillingManagementService.getSchoolBillingRecords(schoolId!),
+    queryFn: async () => {
+      if (!schoolId) throw new Error('School ID is required');
+      const result = await BillingManagementService.getSchoolBillingRecords(schoolId);
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to fetch school billing records');
+      }
+      return result.data;
+    },
     enabled: user?.role === 'edufam_admin' && !!schoolId,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    select: (response) => response.data,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    retry: 2,
   });
 };
 
@@ -41,12 +54,18 @@ export const useBillingStats = () => {
   
   return useQuery({
     queryKey: ['billing-stats'],
-    queryFn: () => BillingManagementService.getBillingStats(),
+    queryFn: async () => {
+      const result = await BillingManagementService.getBillingStats();
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to fetch billing statistics');
+      }
+      return result.data;
+    },
     enabled: user?.role === 'edufam_admin',
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    select: (response) => response.data,
-    refetchOnWindowFocus: true,
-    refetchInterval: 3 * 60 * 1000, // 3 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes for stats
+    refetchOnWindowFocus: false,
+    retry: 2,
+    refetchInterval: false,
   });
 };
 
@@ -55,11 +74,17 @@ export const useSchoolBillingSummaries = () => {
   
   return useQuery({
     queryKey: ['school-billing-summaries'],
-    queryFn: () => BillingManagementService.getSchoolBillingSummaries(),
+    queryFn: async () => {
+      const result = await BillingManagementService.getSchoolBillingSummaries();
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to fetch school billing summaries');
+      }
+      return result.data;
+    },
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
-    select: (response) => response.data,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    retry: 2,
   });
 };
 
@@ -68,10 +93,17 @@ export const usePaymentHistory = (schoolId?: string) => {
   
   return useQuery({
     queryKey: ['payment-history', schoolId],
-    queryFn: () => BillingManagementService.getPaymentHistory(schoolId),
+    queryFn: async () => {
+      const result = await BillingManagementService.getPaymentHistory(schoolId);
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to fetch payment history');
+      }
+      return result.data;
+    },
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
-    select: (response) => response.data,
+    refetchOnWindowFocus: false,
+    retry: 2,
   });
 };
 
@@ -80,10 +112,17 @@ export const useAllSchools = () => {
   
   return useQuery({
     queryKey: ['all-schools'],
-    queryFn: () => BillingManagementService.getAllSchools(),
+    queryFn: async () => {
+      const result = await BillingManagementService.getAllSchools();
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to fetch schools');
+      }
+      return result.data;
+    },
     enabled: user?.role === 'edufam_admin',
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    select: (response) => response.data,
+    staleTime: 10 * 60 * 1000, // 10 minutes - schools don't change often
+    refetchOnWindowFocus: false,
+    retry: 2,
   });
 };
 
@@ -92,10 +131,18 @@ export const useInvoiceData = (recordId?: string) => {
   
   return useQuery({
     queryKey: ['invoice-data', recordId],
-    queryFn: () => BillingManagementService.generateInvoiceData(recordId!),
+    queryFn: async () => {
+      if (!recordId) throw new Error('Record ID is required');
+      const result = await BillingManagementService.generateInvoiceData(recordId);
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to generate invoice data');
+      }
+      return result.data;
+    },
     enabled: user?.role === 'edufam_admin' && !!recordId,
     staleTime: 10 * 60 * 1000, // 10 minutes
-    select: (response) => response.data,
+    refetchOnWindowFocus: false,
+    retry: 2,
   });
 };
 
@@ -104,14 +151,19 @@ export const useBillingActions = () => {
   const { toast } = useToast();
 
   const updateBillingStatus = useMutation({
-    mutationFn: ({ recordId, status, paymentMethod }: { recordId: string; status: string; paymentMethod?: string }) => 
-      BillingManagementService.updateBillingStatus(recordId, status, paymentMethod),
+    mutationFn: async ({ recordId, status, paymentMethod }: { recordId: string; status: string; paymentMethod?: string }) => {
+      const result = await BillingManagementService.updateBillingStatus(recordId, status, paymentMethod);
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to update billing status');
+      }
+      return result;
+    },
     onSuccess: () => {
       toast({
         title: "Status Updated",
         description: "Billing record status has been updated successfully.",
       });
-      // Invalidate all related queries to refresh data
+      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
       queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
@@ -128,25 +180,23 @@ export const useBillingActions = () => {
   });
 
   const createSetupFee = useMutation({
-    mutationFn: (schoolId: string) => BillingManagementService.createSetupFee(schoolId),
-    onSuccess: (result) => {
-      if (result.success) {
-        toast({
-          title: "Setup Fee Created",
-          description: "Setup fee has been created for the school.",
-        });
-        // Invalidate all related queries
-        queryClient.invalidateQueries({ queryKey: ['billing-records'] });
-        queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
-        queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
-        queryClient.invalidateQueries({ queryKey: ['school-billing-summaries'] });
-      } else {
-        toast({
-          title: "Setup Fee Creation Failed",
-          description: result.error || "Failed to create setup fee.",
-          variant: "destructive",
-        });
+    mutationFn: async (schoolId: string) => {
+      const result = await BillingManagementService.createSetupFee(schoolId);
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to create setup fee');
       }
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Setup Fee Created",
+        description: "Setup fee has been created for the school.",
+      });
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['billing-records'] });
+      queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
+      queryClient.invalidateQueries({ queryKey: ['school-billing-summaries'] });
     },
     onError: (error: any) => {
       toast({
@@ -158,13 +208,19 @@ export const useBillingActions = () => {
   });
 
   const createMonthlySubscriptions = useMutation({
-    mutationFn: () => BillingManagementService.createMonthlySubscriptions(),
+    mutationFn: async () => {
+      const result = await BillingManagementService.createMonthlySubscriptions();
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to create monthly subscriptions');
+      }
+      return result;
+    },
     onSuccess: (result) => {
       toast({
         title: "Subscription Fees Created",
         description: `Created ${result.recordsCreated} subscription fee records.`,
       });
-      // Invalidate all related queries
+      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
       queryClient.invalidateQueries({ queryKey: ['school-billing-summaries'] });
@@ -179,14 +235,19 @@ export const useBillingActions = () => {
   });
 
   const updateBillingRecord = useMutation({
-    mutationFn: ({ recordId, updates }: { recordId: string; updates: any }) => 
-      BillingManagementService.updateBillingRecord(recordId, updates),
+    mutationFn: async ({ recordId, updates }: { recordId: string; updates: any }) => {
+      const result = await BillingManagementService.updateBillingRecord(recordId, updates);
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Failed to update billing record');
+      }
+      return result;
+    },
     onSuccess: () => {
       toast({
         title: "Record Updated",
         description: "Billing record has been updated successfully.",
       });
-      // Invalidate all related queries
+      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
       queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
