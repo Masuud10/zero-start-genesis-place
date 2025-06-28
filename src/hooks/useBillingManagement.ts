@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BillingManagementService } from '@/services/billing/billingManagementService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -290,7 +289,7 @@ export const useBillingActions = () => {
         const errorMessage = typeof result.error === 'string' 
           ? result.error 
           : result.error?.message || 'Failed to update billing record';
-        throw new Error(errorMessage;
+        throw new Error(errorMessage);
       }
       return result;
     },
