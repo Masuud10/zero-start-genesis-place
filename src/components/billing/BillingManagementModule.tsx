@@ -5,6 +5,7 @@ import BillingStatsCards from './BillingStatsCards';
 import SchoolBillingList from './SchoolBillingList';
 import SchoolBillingDetails from './SchoolBillingDetails';
 import BillingLoadingFallback from './BillingLoadingFallback';
+import BillingEmptyState from './BillingEmptyState';
 
 const BillingManagementModule: React.FC = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>();
@@ -41,8 +42,13 @@ const BillingManagementModule: React.FC = () => {
     refetchStats();
   };
 
-  // Show loading/error fallback if needed
-  if (isLoading || error) {
+  const handleCreateRecords = () => {
+    console.log('📝 BillingManagementModule: Create billing records clicked');
+    // TODO: Implement create billing records logic
+  };
+
+  // Show loading fallback if needed
+  if (isLoading) {
     return (
       <BillingLoadingFallback
         isLoading={isLoading}
@@ -53,6 +59,21 @@ const BillingManagementModule: React.FC = () => {
     );
   }
 
+  // Show error fallback if there's an error
+  if (error) {
+    return (
+      <BillingLoadingFallback
+        isLoading={false}
+        error={error}
+        onRetry={handleRetry}
+        title="Billing Management"
+      />
+    );
+  }
+
+  // Check if we have no billing records
+  const hasNoBillingRecords = !billingRecords || billingRecords.length === 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -62,9 +83,20 @@ const BillingManagementModule: React.FC = () => {
         </p>
       </div>
 
-      <BillingStatsCards />
+      {/* Always show stats cards if we have stats data */}
+      {billingStats && <BillingStatsCards />}
 
-      {selectedSchoolId ? (
+      {/* Show empty state if no billing records exist */}
+      {hasNoBillingRecords ? (
+        <BillingEmptyState
+          title="No Billing Records Found"
+          description="There are no billing records in the system yet. This could mean the database is empty, or there might be permission issues. Try refreshing or creating some billing records."
+          showCreateButton={true}
+          onCreateClick={handleCreateRecords}
+          onRefreshClick={handleRetry}
+          isRefreshing={isLoading}
+        />
+      ) : selectedSchoolId ? (
         <SchoolBillingDetails 
           schoolId={selectedSchoolId} 
           onBack={handleBackToList}

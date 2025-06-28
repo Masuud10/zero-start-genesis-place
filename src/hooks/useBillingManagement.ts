@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BillingManagementService } from '@/services/billing/billingManagementService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,11 +22,9 @@ export const useBillingRecords = (filters?: {
         console.log('✅ useBillingRecords: Service returned:', { success: !result.error, dataLength: result.data?.length });
         
         if (result.error) {
-          const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-            ? (result.error as Error).message 
-            : typeof result.error === 'string' 
+          const errorMessage = typeof result.error === 'string' 
             ? result.error 
-            : 'Failed to fetch billing records';
+            : result.error?.message || 'Failed to fetch billing records';
           console.error('❌ useBillingRecords: Service error:', errorMessage);
           throw new Error(errorMessage);
         }
@@ -57,11 +56,9 @@ export const useSchoolBillingRecords = (schoolId?: string) => {
       if (!schoolId) throw new Error('School ID is required');
       const result = await BillingManagementService.getSchoolBillingRecords(schoolId);
       if (result.error) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to fetch school billing records';
+          : result.error?.message || 'Failed to fetch school billing records';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -81,11 +78,9 @@ export const useBillingStats = () => {
     queryFn: async () => {
       const result = await BillingManagementService.getBillingStats();
       if (result.error) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to fetch billing statistics';
+          : result.error?.message || 'Failed to fetch billing statistics';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -106,11 +101,9 @@ export const useSchoolBillingSummaries = () => {
     queryFn: async () => {
       const result = await BillingManagementService.getSchoolBillingSummaries();
       if (result.error) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to fetch school billing summaries';
+          : result.error?.message || 'Failed to fetch school billing summaries';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -130,11 +123,9 @@ export const usePaymentHistory = (schoolId?: string) => {
     queryFn: async () => {
       const result = await BillingManagementService.getPaymentHistory(schoolId);
       if (result.error) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to fetch payment history';
+          : result.error?.message || 'Failed to fetch payment history';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -154,11 +145,9 @@ export const useAllSchools = () => {
     queryFn: async () => {
       const result = await BillingManagementService.getAllSchools();
       if (result.error) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to fetch schools';
+          : result.error?.message || 'Failed to fetch schools';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -179,11 +168,9 @@ export const useInvoiceData = (recordId?: string) => {
       if (!recordId) throw new Error('Record ID is required');
       const result = await BillingManagementService.generateInvoiceData(recordId);
       if (result.error) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to generate invoice data';
+          : result.error?.message || 'Failed to generate invoice data';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -203,11 +190,9 @@ export const useBillingActions = () => {
     mutationFn: async ({ recordId, status, paymentMethod }: { recordId: string; status: string; paymentMethod?: string }) => {
       const result = await BillingManagementService.updateBillingStatus(recordId, status, paymentMethod);
       if (!result.success) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to update billing status';
+          : result.error?.message || 'Failed to update billing status';
         throw new Error(errorMessage);
       }
       return result;
@@ -237,11 +222,9 @@ export const useBillingActions = () => {
     mutationFn: async (schoolId: string) => {
       const result = await BillingManagementService.createSetupFee(schoolId);
       if (!result.success) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to create setup fee';
+          : result.error?.message || 'Failed to create setup fee';
         throw new Error(errorMessage);
       }
       return result;
@@ -270,19 +253,17 @@ export const useBillingActions = () => {
     mutationFn: async () => {
       const result = await BillingManagementService.createMonthlySubscriptions();
       if (!result.success) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to create monthly subscriptions';
+          : result.error?.message || 'Failed to create monthly subscriptions';
         throw new Error(errorMessage);
       }
       return result;
     },
     onSuccess: (result) => {
-      // FIXED: Add proper null check and type assertion
+      // Fixed: Add proper null check and safer property access
       const recordsCreated = result && typeof result === 'object' && 'recordsCreated' in result 
-        ? (result.recordsCreated as number) || 0 
+        ? Number(result.recordsCreated) || 0 
         : 0;
       toast({
         title: "Subscription Fees Created",
@@ -306,12 +287,10 @@ export const useBillingActions = () => {
     mutationFn: async ({ recordId, updates }: { recordId: string; updates: any }) => {
       const result = await BillingManagementService.updateBillingRecord(recordId, updates);
       if (!result.success) {
-        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
-          ? (result.error as Error).message 
-          : typeof result.error === 'string' 
+        const errorMessage = typeof result.error === 'string' 
           ? result.error 
-          : 'Failed to update billing record';
-        throw new Error(errorMessage);
+          : result.error?.message || 'Failed to update billing record';
+        throw new Error(errorMessage;
       }
       return result;
     },
