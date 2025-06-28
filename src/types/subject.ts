@@ -4,17 +4,17 @@ export interface Subject {
   name: string;
   code: string;
   school_id: string;
-  class_id?: string;
-  teacher_id?: string;
-  curriculum?: string;
-  category?: string;
-  credit_hours?: number;
-  assessment_weight?: number;
-  prerequisites?: string[];
-  description?: string;
-  is_active?: boolean;
+  class_id: string | null;
+  teacher_id: string | null;
+  curriculum: string;
+  category: string;
+  credit_hours: number | null;
+  assessment_weight: number | null;
+  prerequisites: string[] | null;
+  description: string | null;
+  is_active: boolean;
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export interface SubjectCreationData {

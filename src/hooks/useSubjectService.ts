@@ -28,7 +28,7 @@ export const useSubjectService = () => {
       const completeData: SubjectCreationData = {
         name: data.name.trim(),
         code: data.code.trim().toUpperCase(),
-        curriculum: data.curriculum || 'cbc',
+        curriculum: data.curriculum?.toLowerCase() || 'cbc', // Normalize curriculum
         category: data.category || 'core',
         credit_hours: data.credit_hours || 1,
         class_id: data.class_id || undefined,
@@ -50,6 +50,7 @@ export const useSubjectService = () => {
         throw new Error('Subject category is required');
       }
 
+      // Fix: Use correct function signature with two parameters
       const result = await SubjectService.createSubject(completeData, schoolId);
       
       console.log('useSubjectService: Subject created successfully:', result);

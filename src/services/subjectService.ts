@@ -1,18 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-
-export interface Subject {
-  id: string;
-  name: string;
-  code: string;
-  class_id: string | null;
-  teacher_id: string | null;
-  school_id: string;
-  curriculum: string;
-  category: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Subject, SubjectCreationData } from '@/types/subject';
 
 export class SubjectService {
   static async getSubjects(schoolId: string, classId?: string): Promise<Subject[]> {
@@ -49,8 +37,14 @@ export class SubjectService {
         return [];
       }
 
-      console.log('✅ SubjectService: Successfully fetched', data.length, 'subjects');
-      return data as Subject[];
+      // CRITICAL FIX: Normalize curriculum field to lowercase to fix data inconsistency
+      const normalizedData = data.map(subject => ({
+        ...subject,
+        curriculum: subject.curriculum?.toLowerCase() || 'cbc'
+      })) as Subject[];
+
+      console.log('✅ SubjectService: Successfully fetched', normalizedData.length, 'subjects');
+      return normalizedData;
 
     } catch (error: any) {
       console.error('❌ SubjectService: Critical error:', error);
@@ -58,15 +52,7 @@ export class SubjectService {
     }
   }
 
-  static async createSubject(subjectData: {
-    name: string;
-    code: string;
-    school_id: string;
-    class_id?: string;
-    teacher_id?: string;
-    curriculum?: string;
-    category?: string;
-  }): Promise<Subject> {
+  static async createSubject(subjectData: SubjectCreationData, schoolId: string): Promise<Subject> {
     try {
       console.log('📚 SubjectService: Creating subject:', subjectData);
 
@@ -74,8 +60,12 @@ export class SubjectService {
         .from('subjects')
         .insert({
           ...subjectData,
-          curriculum: subjectData.curriculum || 'CBC',
-          category: subjectData.category || 'Core',
+          school_id: schoolId,
+          curriculum: subjectData.curriculum?.toLowerCase() || 'cbc', // Normalize curriculum
+          category: subjectData.category || 'core',
+          credit_hours: subjectData.credit_hours || 1,
+          assessment_weight: subjectData.assessment_weight || 100,
+          is_active: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -100,12 +90,19 @@ export class SubjectService {
     try {
       console.log('📚 SubjectService: Updating subject:', id);
 
+      const updateData = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+
+      // Normalize curriculum if it's being updated
+      if (updateData.curriculum) {
+        updateData.curriculum = updateData.curriculum.toLowerCase();
+      }
+
       const { data, error } = await supabase
         .from('subjects')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();

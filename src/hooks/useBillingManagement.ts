@@ -280,10 +280,11 @@ export const useBillingActions = () => {
       return result;
     },
     onSuccess: (result) => {
-      const recordsCreated = result && typeof result === 'object' && 'recordsCreated' in result ? result.recordsCreated : 0;
+      // Fix: Add null check for result and recordsCreated property
+      const recordsCreated = result && typeof result === 'object' && 'recordsCreated' in result && result.recordsCreated !== null ? result.recordsCreated : 0;
       toast({
         title: "Subscription Fees Created",
-        description: `Created ${recordsCreated || 0} subscription fee records.`,
+        description: `Created ${recordsCreated} subscription fee records.`,
       });
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
