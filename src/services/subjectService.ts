@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Subject, SubjectCreationData } from '@/types/subject';
 
@@ -34,13 +35,13 @@ export class SubjectService {
         throw new Error(`Failed to fetch subjects: ${result.error.message}`);
       }
 
-      if (!result.data || result.data.length === 0) {
+      if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
         console.log('📚 SubjectService: No subjects found');
         return [];
       }
 
       // CRITICAL FIX: Normalize curriculum field to lowercase to fix data inconsistency
-      const normalizedData = result.data.map(subject => ({
+      const normalizedData = result.data.map((subject: any) => ({
         ...subject,
         curriculum: subject.curriculum?.toLowerCase() || 'cbc'
       })) as Subject[];

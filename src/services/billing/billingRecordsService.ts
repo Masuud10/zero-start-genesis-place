@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { BillingRecord, BillingFilters } from './types';
 
@@ -52,8 +53,8 @@ export class BillingRecordsService {
           return { data: [], error: 'Error filtering schools. Please try again.' };
         }
         
-        if (schoolsQuery.data && schoolsQuery.data.length > 0) {
-          const schoolIds = schoolsQuery.data.map(s => s.id);
+        if (schoolsQuery.data && Array.isArray(schoolsQuery.data) && schoolsQuery.data.length > 0) {
+          const schoolIds = schoolsQuery.data.map((s: any) => s.id);
           query = query.in('school_id', schoolIds);
         } else {
           console.log('📊 No schools match the name filter');
@@ -86,19 +87,19 @@ export class BillingRecordsService {
         return { data: [], error: `Database query failed: ${result.error.message}` };
       }
 
-      if (!result.data || result.data.length === 0) {
+      if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
         console.log('📊 BillingRecordsService: No billing records found');
         return { data: [], error: null };
       }
 
       // PERFORMANCE FIX: More efficient student count handling
-      const schoolIds = [...new Set(result.data.map(record => record.school_id).filter(Boolean))];
+      const schoolIds = [...new Set(result.data.map((record: any) => record.school_id).filter(Boolean))];
       console.log('📊 BillingRecordsService: Fetching student counts for schools:', schoolIds.length);
       
       const studentCounts = await this.getStudentCountsBatch(schoolIds);
 
       // Process and type the records properly
-      const recordsWithStudentCounts = result.data.map(record => ({
+      const recordsWithStudentCounts = result.data.map((record: any) => ({
         ...record,
         billing_type: record.billing_type as 'setup_fee' | 'subscription_fee',
         school: record.school ? {
@@ -151,7 +152,7 @@ export class BillingRecordsService {
         return { data: [], error: `Database error: ${result.error.message}` };
       }
 
-      if (!result.data) {
+      if (!result.data || !Array.isArray(result.data)) {
         console.log('📊 BillingRecordsService: No billing records found for school:', schoolId);
         return { data: [], error: null };
       }
@@ -160,7 +161,7 @@ export class BillingRecordsService {
       const studentCounts = await this.getStudentCountsBatch([schoolId]);
       
       // Process records with proper typing
-      const recordsWithStudentCount = result.data.map(record => ({
+      const recordsWithStudentCount = result.data.map((record: any) => ({
         ...record,
         billing_type: record.billing_type as 'setup_fee' | 'subscription_fee',
         school: record.school ? {
@@ -284,8 +285,8 @@ export class BillingRecordsService {
       const counts: Record<string, number> = {};
       schoolIds.forEach(id => counts[id] = 0);
       
-      if (result.data) {
-        result.data.forEach(student => {
+      if (result.data && Array.isArray(result.data)) {
+        result.data.forEach((student: any) => {
           if (counts[student.school_id] !== undefined) {
             counts[student.school_id]++;
           }
