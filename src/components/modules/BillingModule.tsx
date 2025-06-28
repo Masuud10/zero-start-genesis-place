@@ -1,9 +1,9 @@
 
 import React from 'react';
-import EnhancedBillingModule from './EnhancedBillingModule';
+import BillingManagementModule from '@/components/billing/BillingManagementModule';
 
 const BillingModule = () => {
-  return <EnhancedBillingModule />;
+  return <BillingManagementModule />;
 };
 
 export default BillingModule;
