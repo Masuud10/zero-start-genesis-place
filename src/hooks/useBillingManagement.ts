@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BillingManagementService } from '@/services/billing/billingManagementService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +21,7 @@ export const useBillingRecords = (filters?: {
         console.log('✅ useBillingRecords: Service returned:', { success: !result.error, dataLength: result.data?.length });
         
         if (result.error) {
-          const errorMessage = typeof result.error === 'object' && result.error !== null && 'message' in result.error 
+          const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
             ? (result.error as Error).message 
             : typeof result.error === 'string' 
             ? result.error 
@@ -204,7 +203,7 @@ export const useBillingActions = () => {
     mutationFn: async ({ recordId, status, paymentMethod }: { recordId: string; status: string; paymentMethod?: string }) => {
       const result = await BillingManagementService.updateBillingStatus(recordId, status, paymentMethod);
       if (!result.success) {
-        const errorMessage = typeof result.error === 'object' && result.error !== null && 'message' in result.error
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error
           ? (result.error as Error).message 
           : typeof result.error === 'string' 
           ? result.error 
@@ -281,9 +280,10 @@ export const useBillingActions = () => {
       return result;
     },
     onSuccess: (result) => {
+      const recordsCreated = result && typeof result === 'object' && 'recordsCreated' in result ? result.recordsCreated : 0;
       toast({
         title: "Subscription Fees Created",
-        description: `Created ${result.recordsCreated || 0} subscription fee records.`,
+        description: `Created ${recordsCreated || 0} subscription fee records.`,
       });
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
