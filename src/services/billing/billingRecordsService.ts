@@ -57,14 +57,15 @@ export class BillingRecordsService {
       const schoolIds = [...new Set(data?.map(record => record.school_id) || [])];
       const studentCounts = await this.getStudentCounts(schoolIds);
 
-      // Merge student counts with billing records
+      // Merge student counts with billing records and ensure proper typing
       const recordsWithStudentCounts = (data || []).map(record => ({
         ...record,
+        billing_type: record.billing_type as 'setup_fee' | 'subscription_fee',
         school: record.school ? {
           ...record.school,
           student_count: studentCounts[record.school_id] || 0
         } : undefined
-      }));
+      })) as BillingRecord[];
 
       console.log('📊 BillingRecordsService: Billing records fetched successfully');
       return { data: recordsWithStudentCounts, error: null };
@@ -96,14 +97,15 @@ export class BillingRecordsService {
       // Get student count for this school
       const studentCounts = await this.getStudentCounts([schoolId]);
       
-      // Merge student count with records
+      // Merge student count with records and ensure proper typing
       const recordsWithStudentCount = (data || []).map(record => ({
         ...record,
+        billing_type: record.billing_type as 'setup_fee' | 'subscription_fee',
         school: record.school ? {
           ...record.school,
           student_count: studentCounts[schoolId] || 0
         } : undefined
-      }));
+      })) as BillingRecord[];
 
       console.log('📊 BillingRecordsService: School billing records fetched successfully');
       return { data: recordsWithStudentCount, error: null };
