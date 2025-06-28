@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BillingManagementService } from '@/services/billing/billingManagementService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,20 +14,37 @@ export const useBillingRecords = (filters?: {
   return useQuery({
     queryKey: ['billing-records', filters],
     queryFn: async () => {
-      const result = await BillingManagementService.getAllBillingRecords(filters);
-      if (result.error) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to fetch billing records';
-        throw new Error(errorMessage);
+      console.log('🔄 useBillingRecords: Starting fetch with filters:', filters);
+      
+      try {
+        const result = await BillingManagementService.getAllBillingRecords(filters);
+        console.log('✅ useBillingRecords: Service returned:', { success: !result.error, dataLength: result.data?.length });
+        
+        if (result.error) {
+          const errorMessage = typeof result.error === 'object' && result.error !== null && 'message' in result.error 
+            ? (result.error as Error).message 
+            : typeof result.error === 'string' 
+            ? result.error 
+            : 'Failed to fetch billing records';
+          console.error('❌ useBillingRecords: Service error:', errorMessage);
+          throw new Error(errorMessage);
+        }
+        
+        console.log('✅ useBillingRecords: Successfully processed data');
+        return result.data || [];
+      } catch (error) {
+        console.error('❌ useBillingRecords: Query function error:', error);
+        throw error;
       }
-      return result.data;
     },
     enabled: user?.role === 'edufam_admin',
     staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: false, // Prevent excessive refetching
-    retry: 2, // Limit retry attempts
-    refetchInterval: false, // Disable auto-refetch to prevent loading loops
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      console.log(`🔄 useBillingRecords: Retry attempt ${failureCount}`, error);
+      return failureCount < 2; // Limit retry attempts
+    },
+    refetchInterval: false,
   });
 };
 
@@ -175,9 +191,11 @@ export const useBillingActions = () => {
     mutationFn: async ({ recordId, status, paymentMethod }: { recordId: string; status: string; paymentMethod?: string }) => {
       const result = await BillingManagementService.updateBillingStatus(recordId, status, paymentMethod);
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to update billing status';
+        const errorMessage = typeof result.error === 'object' && result.error !== null && 'message' in result.error
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to update billing status';
         throw new Error(errorMessage);
       }
       return result;

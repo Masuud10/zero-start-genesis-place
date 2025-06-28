@@ -129,18 +129,20 @@ export class SubjectDatabaseService {
   static async getSubjects(schoolId: string, classId?: string): Promise<Subject[]> {
     console.log('📚 SubjectDatabaseService.getSubjects called with:', { schoolId, classId });
 
-    if (!schoolId) {
+    if (!schoolId || schoolId.trim() === '') {
+      console.error('❌ School ID is required and cannot be empty');
       throw new Error('School ID is required');
     }
 
     try {
-      // Test connection first
+      // Test connection first with shorter timeout
       const connectionTest = await this.testConnection();
       if (!connectionTest) {
-        throw new Error('Database connection failed');
+        console.error('❌ Database connection test failed');
+        throw new Error('Database connection failed. Please try again.');
       }
 
-      // Optimized query with proper indexing and limits
+      // Build query with proper validation
       let query = supabase
         .from('subjects')
         .select(`
@@ -150,25 +152,28 @@ export class SubjectDatabaseService {
         `)
         .eq('school_id', schoolId)
         .eq('is_active', true)
-        .limit(1000);
+        .order('name')
+        .limit(500); // Add reasonable limit
 
-      if (classId && classId !== 'all') {
+      // Apply class filter if provided and valid
+      if (classId && classId !== 'all' && classId.trim() !== '') {
+        console.log('📚 SubjectDatabaseService: Filtering by class_id:', classId);
         query = query.eq('class_id', classId);
       }
 
-      const { data, error } = await query.order('name');
+      console.log('📚 SubjectDatabaseService: Executing query...');
+      const { data, error } = await query;
 
       if (error) {
-        console.error('❌ SubjectDatabaseService: Error fetching subjects:', error);
+        console.error('❌ SubjectDatabaseService: Database error:', error);
         
         // Handle specific database errors
         if (error.code === 'PGRST116') {
-          // No rows found - this is not actually an error
-          console.log('📚 SubjectDatabaseService: No subjects found for the given criteria');
+          console.log('📚 SubjectDatabaseService: No subjects found (PGRST116)');
           return [];
         }
         
-        throw new Error(`Failed to fetch subjects: ${error.message}`);
+        throw new Error(`Database error: ${error.message}`);
       }
 
       if (!data) {
@@ -176,30 +181,34 @@ export class SubjectDatabaseService {
         return [];
       }
 
-      console.log('✅ SubjectDatabaseService: Subjects fetched successfully, count:', data.length);
+      console.log('✅ SubjectDatabaseService: Successfully fetched', data.length, 'subjects');
       return data;
 
     } catch (error: any) {
       console.error('❌ SubjectDatabaseService.getSubjects error:', error);
       
-      // Don't throw errors for empty results
-      if (error.message?.includes('No subjects found') || error.message?.includes('not found')) {
+      // Don't throw errors for empty results - return empty array instead
+      if (error.message?.includes('No subjects found') || 
+          error.message?.includes('not found') ||
+          error.message?.includes('PGRST116')) {
+        console.log('📚 SubjectDatabaseService: Returning empty array for "not found" scenario');
         return [];
       }
       
+      // Re-throw actual errors
       throw error;
     }
   }
 
-  // Enhanced connection test with timeout
+  // Enhanced connection test with better error handling and shorter timeout
   static async testConnection(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // Reduced timeout to 2 seconds
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('subjects')
-        .select('count')
+        .select('id')
         .limit(1)
         .abortSignal(controller.signal);
         
@@ -213,7 +222,11 @@ export class SubjectDatabaseService {
       console.log('✅ Database connection test successful');
       return true;
     } catch (error) {
-      console.error('❌ Database connection test error:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('❌ Database connection test timed out');
+      } else {
+        console.error('❌ Database connection test error:', error);
+      }
       return false;
     }
   }
