@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface BillingRecord {
@@ -49,8 +48,11 @@ export class BillingManagementService {
         throw error;
       }
 
+      // Type assertion to ensure proper typing
+      const typedData = data as BillingRecord[];
+
       console.log('📊 BillingManagementService: Billing records fetched successfully');
-      return { data: data || [], error: null };
+      return { data: typedData || [], error: null };
 
     } catch (error: any) {
       console.error('📊 BillingManagementService: Error fetching billing records:', error);
@@ -76,8 +78,11 @@ export class BillingManagementService {
         throw error;
       }
 
+      // Type assertion to ensure proper typing
+      const typedData = data as BillingRecord[];
+
       console.log('📊 BillingManagementService: School billing records fetched successfully');
-      return { data: data || [], error: null };
+      return { data: typedData || [], error: null };
 
     } catch (error: any) {
       console.error('📊 BillingManagementService: Error fetching school billing records:', error);
