@@ -13,13 +13,22 @@ export const useSubjects = (classId?: string) => {
   const { toast } = useToast();
 
   const fetchSubjects = useCallback(async () => {
+    // Prevent multiple simultaneous fetches
+    if (loading) {
+      console.log('📚 useSubjects: Fetch already in progress, skipping');
+      return;
+    }
+
     if (!schoolId && !isSystemAdmin) {
+      console.log('📚 useSubjects: No school context and not system admin');
       setSubjects([]);
       setLoading(false);
+      setError(null);
       return;
     }
 
     if (!schoolId) {
+      console.error('📚 useSubjects: No school context found');
       setError('No school context found');
       setSubjects([]);
       setLoading(false);
@@ -30,37 +39,57 @@ export const useSubjects = (classId?: string) => {
     setError(null);
     
     try {
-      console.log('Fetching subjects with params:', { classId, isSystemAdmin, schoolId });
+      console.log('📚 useSubjects: Fetching subjects with params:', { classId, isSystemAdmin, schoolId });
       
       const data = await SubjectService.getSubjects(schoolId, classId);
       
-      console.log('Fetched subjects:', data?.length || 0);
+      console.log('📚 useSubjects: Fetched subjects successfully, count:', data?.length || 0);
       setSubjects(data || []);
       setError(null);
       
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch subjects data';
-      console.error('Error fetching subjects:', err);
+      console.error('❌ useSubjects: Error fetching subjects:', err);
       setError(message);
       setSubjects([]);
-      toast({
-        title: "Subjects Fetch Error",
-        description: message,
-        variant: "destructive",
-      });
+      
+      // Only show toast for actual errors, not when no data is found
+      if (!message.includes('not found') && !message.includes('No subjects')) {
+        toast({
+          title: "Subjects Fetch Error",
+          description: message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, [classId, isSystemAdmin, schoolId, toast]);
+  }, [classId, isSystemAdmin, schoolId, toast, loading]);
 
   useEffect(() => {
-    if (schoolId !== null || isSystemAdmin) {
-      fetchSubjects();
-    } else {
-      setSubjects([]);
-      setLoading(false);
-    }
-  }, [classId, isSystemAdmin, schoolId, fetchSubjects]);
+    let isMounted = true;
+    
+    const loadSubjects = async () => {
+      if (schoolId !== null || isSystemAdmin) {
+        // Only fetch if component is still mounted
+        if (isMounted) {
+          await fetchSubjects();
+        }
+      } else {
+        if (isMounted) {
+          setSubjects([]);
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSubjects();
+
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+    };
+  }, [classId, isSystemAdmin, schoolId]); // Remove fetchSubjects from dependencies to prevent infinite loop
 
   return {
     subjects,

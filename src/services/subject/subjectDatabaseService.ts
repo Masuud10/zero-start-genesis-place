@@ -4,7 +4,7 @@ import { Subject, SubjectCreationData } from '@/types/subject';
 
 export class SubjectDatabaseService {
   static async createSubject(data: SubjectCreationData, schoolId: string): Promise<Subject> {
-    console.log('SubjectDatabaseService.createSubject called with:', { data, schoolId });
+    console.log('📚 SubjectDatabaseService.createSubject called with:', { data, schoolId });
 
     if (!schoolId) {
       throw new Error('School ID is required for subject creation');
@@ -13,7 +13,7 @@ export class SubjectDatabaseService {
     // Get current user context to ensure proper authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error('Authentication error:', authError);
+      console.error('❌ Authentication error:', authError);
       throw new Error('User authentication required');
     }
 
@@ -52,7 +52,7 @@ export class SubjectDatabaseService {
       throw new Error('Assessment weight must be between 1 and 100');
     }
 
-    console.log('SubjectDatabaseService: Creating subject with payload:', payload);
+    console.log('📚 SubjectDatabaseService: Creating subject with payload:', payload);
 
     try {
       // Optimized duplicate check with proper indexing
@@ -66,7 +66,7 @@ export class SubjectDatabaseService {
         .maybeSingle();
 
       if (duplicateCheckError) {
-        console.error('Error checking for duplicate subject:', duplicateCheckError);
+        console.error('❌ Error checking for duplicate subject:', duplicateCheckError);
         throw new Error(`Failed to validate subject uniqueness: ${duplicateCheckError.message}`);
       }
 
@@ -86,7 +86,7 @@ export class SubjectDatabaseService {
         .single();
 
       if (error) {
-        console.error('SubjectDatabaseService: Database error:', error);
+        console.error('❌ SubjectDatabaseService: Database error:', error);
         
         // Handle specific database constraint errors
         if (error.code === '23505') {
@@ -117,23 +117,29 @@ export class SubjectDatabaseService {
         throw new Error('Subject was not created - no data returned from database');
       }
 
-      console.log('SubjectDatabaseService: Subject created successfully:', subject);
+      console.log('✅ SubjectDatabaseService: Subject created successfully:', subject);
       return subject;
 
     } catch (error: any) {
-      console.error('SubjectDatabaseService: Create subject error:', error);
+      console.error('❌ SubjectDatabaseService: Create subject error:', error);
       throw error;
     }
   }
 
   static async getSubjects(schoolId: string, classId?: string): Promise<Subject[]> {
-    console.log('SubjectDatabaseService.getSubjects called with:', { schoolId, classId });
+    console.log('📚 SubjectDatabaseService.getSubjects called with:', { schoolId, classId });
 
     if (!schoolId) {
       throw new Error('School ID is required');
     }
 
     try {
+      // Test connection first
+      const connectionTest = await this.testConnection();
+      if (!connectionTest) {
+        throw new Error('Database connection failed');
+      }
+
       // Optimized query with proper indexing and limits
       let query = supabase
         .from('subjects')
@@ -153,15 +159,34 @@ export class SubjectDatabaseService {
       const { data, error } = await query.order('name');
 
       if (error) {
-        console.error('SubjectDatabaseService: Error fetching subjects:', error);
+        console.error('❌ SubjectDatabaseService: Error fetching subjects:', error);
+        
+        // Handle specific database errors
+        if (error.code === 'PGRST116') {
+          // No rows found - this is not actually an error
+          console.log('📚 SubjectDatabaseService: No subjects found for the given criteria');
+          return [];
+        }
+        
         throw new Error(`Failed to fetch subjects: ${error.message}`);
       }
 
-      console.log('SubjectDatabaseService: Subjects fetched successfully:', data?.length || 0);
-      return data || [];
+      if (!data) {
+        console.log('📚 SubjectDatabaseService: No data returned from query');
+        return [];
+      }
+
+      console.log('✅ SubjectDatabaseService: Subjects fetched successfully, count:', data.length);
+      return data;
 
     } catch (error: any) {
-      console.error('SubjectDatabaseService.getSubjects error:', error);
+      console.error('❌ SubjectDatabaseService.getSubjects error:', error);
+      
+      // Don't throw errors for empty results
+      if (error.message?.includes('No subjects found') || error.message?.includes('not found')) {
+        return [];
+      }
+      
       throw error;
     }
   }
@@ -172,7 +197,7 @@ export class SubjectDatabaseService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('subjects')
         .select('count')
         .limit(1)
@@ -181,14 +206,14 @@ export class SubjectDatabaseService {
       clearTimeout(timeoutId);
       
       if (error) {
-        console.error('Database connection test failed:', error);
+        console.error('❌ Database connection test failed:', error);
         return false;
       }
       
-      console.log('Database connection test successful');
+      console.log('✅ Database connection test successful');
       return true;
     } catch (error) {
-      console.error('Database connection test error:', error);
+      console.error('❌ Database connection test error:', error);
       return false;
     }
   }
