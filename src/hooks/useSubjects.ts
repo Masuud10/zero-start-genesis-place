@@ -9,14 +9,15 @@ export const useSubjects = (classId?: string) => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
-  const fetchSubjects = useCallback(async () => {
-    console.log('📚 useSubjects: fetchSubjects called with:', { classId, isSystemAdmin, schoolId, currentlyLoading: loading });
+  const fetchSubjects = useCallback(async (isRetry = false) => {
+    console.log('📚 useSubjects: fetchSubjects called with:', { classId, isSystemAdmin, schoolId, currentlyLoading: loading, retryCount });
     
     // Prevent multiple simultaneous fetches
-    if (loading) {
+    if (loading && !isRetry) {
       console.log('📚 useSubjects: Fetch already in progress, skipping');
       return;
     }
@@ -49,6 +50,7 @@ export const useSubjects = (classId?: string) => {
       console.log('📚 useSubjects: Fetch completed successfully, count:', data?.length || 0);
       setSubjects(data || []);
       setError(null);
+      setRetryCount(0); // Reset retry count on success
       
     } catch (err: any) {
       const message = err?.message || 'Failed to fetch subjects data';
@@ -56,18 +58,35 @@ export const useSubjects = (classId?: string) => {
       setError(message);
       setSubjects([]);
       
-      // Only show toast for actual errors, not when no data is found
-      if (!message.includes('not found') && !message.includes('No subjects')) {
+      // Implement retry logic for timeout errors
+      if (message.includes('timed out') && retryCount < 2) {
+        console.log('⚠️ useSubjects: Timeout detected, scheduling retry...', retryCount + 1);
+        setRetryCount(prev => prev + 1);
+        
+        // Retry after 2 seconds
+        setTimeout(() => {
+          fetchSubjects(true);
+        }, 2000);
+        
         toast({
-          title: "Subjects Fetch Error", 
-          description: message,
+          title: "Connection Timeout", 
+          description: `Retrying... (${retryCount + 1}/2)`,
           variant: "destructive",
         });
+      } else {
+        // Only show toast for actual errors, not when no data is found
+        if (!message.includes('not found') && !message.includes('No subjects')) {
+          toast({
+            title: "Subjects Fetch Error", 
+            description: message,
+            variant: "destructive",
+          });
+        }
       }
     } finally {
       setLoading(false);
     }
-  }, [classId, isSystemAdmin, schoolId, toast]); // Removed loading from dependencies
+  }, [classId, isSystemAdmin, schoolId, toast, retryCount]); // Include retryCount in dependencies
 
   useEffect(() => {
     let isMounted = true;
@@ -85,6 +104,7 @@ export const useSubjects = (classId?: string) => {
           setSubjects([]);
           setLoading(false);
           setError(null);
+          setRetryCount(0);
         }
       }
     };
@@ -98,10 +118,16 @@ export const useSubjects = (classId?: string) => {
     };
   }, [classId, isSystemAdmin, schoolId]); // Keep dependencies minimal
 
+  const retry = useCallback(() => {
+    console.log('📚 useSubjects: Manual retry triggered');
+    setRetryCount(0); // Reset retry count for manual retries
+    fetchSubjects(true);
+  }, [fetchSubjects]);
+
   return {
     subjects,
     loading,
     error,
-    retry: fetchSubjects
+    retry
   };
 };

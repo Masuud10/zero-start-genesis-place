@@ -6,6 +6,7 @@ import SchoolBillingList from './SchoolBillingList';
 import SchoolBillingDetails from './SchoolBillingDetails';
 import BillingLoadingFallback from './BillingLoadingFallback';
 import BillingEmptyState from './BillingEmptyState';
+import BillingErrorBoundary from './BillingErrorBoundary';
 
 const BillingManagementModule: React.FC = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>();
@@ -55,6 +56,7 @@ const BillingManagementModule: React.FC = () => {
         error={error}
         onRetry={handleRetry}
         title="Billing Management"
+        timeout={30000} // 30 second timeout
       />
     );
   }
@@ -75,39 +77,41 @@ const BillingManagementModule: React.FC = () => {
   const hasNoBillingRecords = !billingRecords || billingRecords.length === 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Billing Management</h2>
-        <p className="text-muted-foreground">
-          Manage setup fees and subscription fees for all schools
-        </p>
+    <BillingErrorBoundary>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Billing Management</h2>
+          <p className="text-muted-foreground">
+            Manage setup fees and subscription fees for all schools
+          </p>
+        </div>
+
+        {/* Always show stats cards if we have stats data */}
+        {billingStats && <BillingStatsCards />}
+
+        {/* Show empty state if no billing records exist */}
+        {hasNoBillingRecords ? (
+          <BillingEmptyState
+            title="No Billing Records Found"
+            description="There are no billing records in the system yet. This could mean the database is empty, or there might be permission issues. Try refreshing or creating some billing records."
+            showCreateButton={true}
+            onCreateClick={handleCreateRecords}
+            onRefreshClick={handleRetry}
+            isRefreshing={isLoading}
+          />
+        ) : selectedSchoolId ? (
+          <SchoolBillingDetails 
+            schoolId={selectedSchoolId} 
+            onBack={handleBackToList}
+          />
+        ) : (
+          <SchoolBillingList 
+            onSelectSchool={handleSelectSchool}
+            selectedSchoolId={selectedSchoolId}
+          />
+        )}
       </div>
-
-      {/* Always show stats cards if we have stats data */}
-      {billingStats && <BillingStatsCards />}
-
-      {/* Show empty state if no billing records exist */}
-      {hasNoBillingRecords ? (
-        <BillingEmptyState
-          title="No Billing Records Found"
-          description="There are no billing records in the system yet. This could mean the database is empty, or there might be permission issues. Try refreshing or creating some billing records."
-          showCreateButton={true}
-          onCreateClick={handleCreateRecords}
-          onRefreshClick={handleRetry}
-          isRefreshing={isLoading}
-        />
-      ) : selectedSchoolId ? (
-        <SchoolBillingDetails 
-          schoolId={selectedSchoolId} 
-          onBack={handleBackToList}
-        />
-      ) : (
-        <SchoolBillingList 
-          onSelectSchool={handleSelectSchool}
-          selectedSchoolId={selectedSchoolId}
-        />
-      )}
-    </div>
+    </BillingErrorBoundary>
   );
 };
 

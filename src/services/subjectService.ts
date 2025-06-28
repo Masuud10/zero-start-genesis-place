@@ -1,14 +1,16 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Subject, SubjectCreationData } from '@/types/subject';
 
 export class SubjectService {
+  private static readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
+  private static readonly CONNECTION_TIMEOUT = 5000; // 5 seconds
+
   static async getSubjects(schoolId: string, classId?: string): Promise<Subject[]> {
     try {
       console.log('📚 SubjectService: Fetching subjects for school:', schoolId, 'class:', classId);
 
       // Test connection first with timeout
-      const connectionTest = await this.testConnection();
+      const connectionTest = await this.testConnectionWithTimeout();
       if (!connectionTest) {
         throw new Error('Database connection failed. Please check your network connection.');
       }
@@ -25,20 +27,20 @@ export class SubjectService {
         query = query.eq('class_id', classId);
       }
 
-      const { data, error } = await query;
+      const result = await this.executeWithTimeout(query, this.DEFAULT_TIMEOUT);
 
-      if (error) {
-        console.error('❌ Error fetching subjects:', error);
-        throw new Error(`Failed to fetch subjects: ${error.message}`);
+      if (result.error) {
+        console.error('❌ Error fetching subjects:', result.error);
+        throw new Error(`Failed to fetch subjects: ${result.error.message}`);
       }
 
-      if (!data || data.length === 0) {
+      if (!result.data || result.data.length === 0) {
         console.log('📚 SubjectService: No subjects found');
         return [];
       }
 
       // CRITICAL FIX: Normalize curriculum field to lowercase to fix data inconsistency
-      const normalizedData = data.map(subject => ({
+      const normalizedData = result.data.map(subject => ({
         ...subject,
         curriculum: subject.curriculum?.toLowerCase() || 'cbc'
       })) as Subject[];
@@ -48,6 +50,9 @@ export class SubjectService {
 
     } catch (error: any) {
       console.error('❌ SubjectService: Critical error:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
       throw new Error(error.message || 'Failed to fetch subjects');
     }
   }
@@ -56,7 +61,7 @@ export class SubjectService {
     try {
       console.log('📚 SubjectService: Creating subject:', subjectData);
 
-      const { data, error } = await supabase
+      const query = supabase
         .from('subjects')
         .insert({
           ...subjectData,
@@ -72,16 +77,21 @@ export class SubjectService {
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Error creating subject:', error);
-        throw new Error(`Failed to create subject: ${error.message}`);
+      const result = await this.executeWithTimeout(query, this.DEFAULT_TIMEOUT);
+
+      if (result.error) {
+        console.error('❌ Error creating subject:', result.error);
+        throw new Error(`Failed to create subject: ${result.error.message}`);
       }
 
       console.log('✅ SubjectService: Subject created successfully');
-      return data as Subject;
+      return result.data as Subject;
 
     } catch (error: any) {
       console.error('❌ SubjectService: Critical error creating subject:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Create request timed out. Please try again.');
+      }
       throw new Error(error.message || 'Failed to create subject');
     }
   }
@@ -100,23 +110,28 @@ export class SubjectService {
         updateData.curriculum = updateData.curriculum.toLowerCase();
       }
 
-      const { data, error } = await supabase
+      const query = supabase
         .from('subjects')
         .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Error updating subject:', error);
-        throw new Error(`Failed to update subject: ${error.message}`);
+      const result = await this.executeWithTimeout(query, this.DEFAULT_TIMEOUT);
+
+      if (result.error) {
+        console.error('❌ Error updating subject:', result.error);
+        throw new Error(`Failed to update subject: ${result.error.message}`);
       }
 
       console.log('✅ SubjectService: Subject updated successfully');
-      return data as Subject;
+      return result.data as Subject;
 
     } catch (error: any) {
       console.error('❌ SubjectService: Critical error updating subject:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Update request timed out. Please try again.');
+      }
       throw new Error(error.message || 'Failed to update subject');
     }
   }
@@ -125,45 +140,61 @@ export class SubjectService {
     try {
       console.log('📚 SubjectService: Deleting subject:', id);
 
-      const { error } = await supabase
+      const query = supabase
         .from('subjects')
         .delete()
         .eq('id', id);
 
-      if (error) {
-        console.error('❌ Error deleting subject:', error);
-        throw new Error(`Failed to delete subject: ${error.message}`);
+      const result = await this.executeWithTimeout(query, this.DEFAULT_TIMEOUT);
+
+      if (result.error) {
+        console.error('❌ Error deleting subject:', result.error);
+        throw new Error(`Failed to delete subject: ${result.error.message}`);
       }
 
       console.log('✅ SubjectService: Subject deleted successfully');
 
     } catch (error: any) {
       console.error('❌ SubjectService: Critical error deleting subject:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Delete request timed out. Please try again.');
+      }
       throw new Error(error.message || 'Failed to delete subject');
     }
   }
 
-  // Enhanced connection test with better error handling and timeout
-  static async testConnection(): Promise<boolean> {
+  // NEW: Execute query with timeout
+  private static async executeWithTimeout<T>(query: any, timeoutMs: number): Promise<{ data: T | null; error: any }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log(`⏰ Query timeout after ${timeoutMs}ms`);
+      controller.abort();
+    }, timeoutMs);
+
+    try {
+      const result = await query.abortSignal(controller.signal);
+      clearTimeout(timeoutId);
+      return result;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+
+  // Enhanced connection test with better timeout handling
+  static async testConnectionWithTimeout(): Promise<boolean> {
     try {
       console.log('🔍 SubjectService: Testing database connection...');
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('⏰ Connection test timeout after 3 seconds');
-        controller.abort();
-      }, 3000); // 3 second timeout
-      
-      const { error } = await supabase
+      const query = supabase
         .from('subjects')
         .select('id')
-        .limit(1)
-        .abortSignal(controller.signal);
+        .limit(1);
         
-      clearTimeout(timeoutId);
+      const result = await this.executeWithTimeout(query, this.CONNECTION_TIMEOUT);
       
-      if (error) {
-        console.error('❌ Database connection test failed:', error);
+      if (result.error) {
+        console.error('❌ Database connection test failed:', result.error);
         return false;
       }
       
@@ -177,5 +208,10 @@ export class SubjectService {
       }
       return false;
     }
+  }
+
+  // Keep existing testConnection for backward compatibility
+  static async testConnection(): Promise<boolean> {
+    return this.testConnectionWithTimeout();
   }
 }

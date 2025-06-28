@@ -40,9 +40,17 @@ export const useBillingRecords = (filters?: {
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       console.log(`🔄 useBillingRecords: Retry attempt ${failureCount}`, error);
+      // Don't retry timeout errors more than once
+      if (error?.message?.includes('timed out') && failureCount >= 1) {
+        return false;
+      }
       return failureCount < 2; // Limit retry attempts
     },
     refetchInterval: false,
+    // Add timeout handling at query level
+    meta: {
+      timeout: 30000 // 30 second timeout
+    }
   });
 };
 
@@ -215,6 +223,10 @@ export const useBillingActions = () => {
         variant: "destructive",
       });
     },
+    // Add timeout for mutations
+    meta: {
+      timeout: 30000
+    }
   });
 
   const createSetupFee = useMutation({
@@ -246,6 +258,9 @@ export const useBillingActions = () => {
         variant: "destructive",
       });
     },
+    meta: {
+      timeout: 30000
+    }
   });
 
   const createMonthlySubscriptions = useMutation({
@@ -280,6 +295,9 @@ export const useBillingActions = () => {
         variant: "destructive",
       });
     },
+    meta: {
+      timeout: 30000
+    }
   });
 
   const updateBillingRecord = useMutation({
@@ -311,6 +329,9 @@ export const useBillingActions = () => {
         variant: "destructive",
       });
     },
+    meta: {
+      timeout: 30000
+    }
   });
 
   return {
