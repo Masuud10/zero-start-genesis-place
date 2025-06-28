@@ -280,8 +280,10 @@ export const useBillingActions = () => {
       return result;
     },
     onSuccess: (result) => {
-      // Fix: Add null check for result and recordsCreated property
-      const recordsCreated = result && typeof result === 'object' && 'recordsCreated' in result && result.recordsCreated !== null ? result.recordsCreated : 0;
+      // FIXED: Add proper null check and type assertion
+      const recordsCreated = result && typeof result === 'object' && 'recordsCreated' in result 
+        ? (result.recordsCreated as number) || 0 
+        : 0;
       toast({
         title: "Subscription Fees Created",
         description: `Created ${recordsCreated} subscription fee records.`,

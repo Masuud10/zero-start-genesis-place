@@ -6,11 +6,11 @@ export class BillingRecordsService {
     try {
       console.log('📊 BillingRecordsService: Starting getAllBillingRecords with filters:', filters);
 
-      // CRITICAL FIX: Add pagination to prevent massive data queries
-      const limit = 50; // Reasonable page size
-      const offset = 0; // Start from beginning for now
+      // CRITICAL FIX: Implement strict pagination to prevent timeout
+      const limit = 25; // Reduced from 50 for better performance
+      const offset = 0;
 
-      // Test connection first with timeout
+      // Test connection first with shorter timeout
       const connectionTest = await this.testConnection();
       if (!connectionTest) {
         console.error('❌ Database connection failed');
@@ -25,26 +25,21 @@ export class BillingRecordsService {
         `)
         .order('created_at', { ascending: false });
 
-      // PERFORMANCE FIX: Add pagination and limit large queries
-      if (!filters || Object.keys(filters).length === 0) {
-        // If no filters, apply strict pagination to prevent timeout
-        query = query.limit(limit).range(offset, offset + limit - 1);
-      } else {
-        // With filters, still apply reasonable limits
-        query = query.limit(200); // Higher limit with filters but still reasonable
-      }
+      // PERFORMANCE FIX: Always apply pagination to prevent massive queries
+      query = query.limit(limit).range(offset, offset + limit - 1);
 
-      // Apply filters with proper validation
+      // Apply filters with enhanced validation
       if (filters?.status && filters.status !== 'all' && filters.status.trim() !== '') {
         query = query.eq('status', filters.status);
       }
 
       if (filters?.school_name && filters.school_name.trim() !== '') {
+        // Optimize school name search with stricter limits
         const schoolsQuery = await supabase
           .from('schools')
           .select('id')
           .ilike('name', `%${filters.school_name}%`)
-          .limit(50); // Limit school lookup too
+          .limit(20); // Reduced limit for school lookup
         
         if (schoolsQuery.error) {
           console.error('❌ Error filtering schools:', schoolsQuery.error);
@@ -77,7 +72,7 @@ export class BillingRecordsService {
         }
       }
 
-      console.log('📊 BillingRecordsService: Executing paginated query...');
+      console.log('📊 BillingRecordsService: Executing optimized paginated query...');
       const { data, error } = await query;
 
       if (error) {
@@ -90,7 +85,7 @@ export class BillingRecordsService {
         return { data: [], error: null };
       }
 
-      // PERFORMANCE FIX: Batch student count queries more efficiently
+      // PERFORMANCE FIX: More efficient student count handling
       const schoolIds = [...new Set(data.map(record => record.school_id).filter(Boolean))];
       console.log('📊 BillingRecordsService: Fetching student counts for schools:', schoolIds.length);
       
@@ -138,7 +133,7 @@ export class BillingRecordsService {
         `)
         .eq('school_id', schoolId)
         .order('created_at', { ascending: false })
-        .limit(100); // Add reasonable limit for single school
+        .limit(50); // Reasonable limit for single school
 
       if (error) {
         console.error('❌ Error fetching school billing records:', error);
@@ -241,19 +236,28 @@ export class BillingRecordsService {
     }
   }
 
-  // PERFORMANCE FIX: Optimized batch student count query
+  // PERFORMANCE FIX: Optimized batch student count query with better error handling
   private static async getStudentCountsBatch(schoolIds: string[]): Promise<Record<string, number>> {
     if (schoolIds.length === 0) return {};
 
     try {
       console.log('📊 BillingRecordsService: Fetching student counts for', schoolIds.length, 'schools');
 
-      // Use aggregation query for better performance
+      // CRITICAL: Add timeout and better error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Student count query timeout after 10 seconds');
+        controller.abort();
+      }, 10000); // 10 second timeout
+
       const { data, error } = await supabase
         .from('students')
         .select('school_id')
         .in('school_id', schoolIds)
-        .limit(5000); // Reasonable limit to prevent timeout
+        .limit(2000) // Stricter limit to prevent timeout
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error('❌ Error fetching student counts:', error);
@@ -275,21 +279,25 @@ export class BillingRecordsService {
       console.log('✅ BillingRecordsService: Student counts calculated');
       return counts;
     } catch (error) {
-      console.error('❌ Error in getStudentCountsBatch:', error);
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+        console.error('❌ Student count query timed out');
+      } else {
+        console.error('❌ Error in getStudentCountsBatch:', error);
+      }
       return {};
     }
   }
 
-  // Enhanced connection test with better error handling and timeout
+  // Enhanced connection test with better timeout handling
   static async testConnection(): Promise<boolean> {
     try {
       console.log('🔍 BillingRecordsService: Testing database connection...');
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.log('⏰ Connection test timeout after 5 seconds');
+        console.log('⏰ Connection test timeout after 3 seconds');
         controller.abort();
-      }, 5000); // 5 second timeout
+      }, 3000); // Reduced to 3 second timeout
       
       const { error } = await supabase
         .from('schools')
