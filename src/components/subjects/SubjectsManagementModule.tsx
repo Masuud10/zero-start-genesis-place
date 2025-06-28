@@ -107,16 +107,16 @@ const SubjectsManagementModule: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {subject.class && (
+                  {subject.class_id && (
                     <div className="flex items-center gap-2">
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{subject.class.name}</span>
+                      <span className="text-sm">Class ID: {subject.class_id}</span>
                     </div>
                   )}
-                  {subject.teacher && (
+                  {subject.teacher_id && (
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{subject.teacher.name}</span>
+                      <span className="text-sm">Teacher ID: {subject.teacher_id}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">

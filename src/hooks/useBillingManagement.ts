@@ -283,7 +283,7 @@ export const useBillingActions = () => {
     onSuccess: (result) => {
       toast({
         title: "Subscription Fees Created",
-        description: `Created ${result.recordsCreated} subscription fee records.`,
+        description: `Created ${result.recordsCreated || 0} subscription fee records.`,
       });
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
