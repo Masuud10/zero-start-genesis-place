@@ -68,8 +68,6 @@ Authentication: Supabase Auth
 
 Payments: MPESA Daraja API
 
-Deployment: Vercel
-
 Database Structure (Supabase)
 
 Contact
