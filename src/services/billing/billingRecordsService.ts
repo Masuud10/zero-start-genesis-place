@@ -10,7 +10,7 @@ export class BillingRecordsService {
       const connectionTest = await this.testConnection();
       if (!connectionTest) {
         console.error('❌ Database connection failed');
-        return { data: [], error: 'Database connection failed. Please try again.' };
+        return { data: [], error: 'Database connection failed. Please check your network connection and try again.' };
       }
 
       let query = supabase
@@ -20,7 +20,7 @@ export class BillingRecordsService {
           school:schools(id, name)
         `)
         .order('created_at', { ascending: false })
-        .limit(1000); // Add reasonable limit
+        .limit(1000);
 
       // Apply filters with proper validation
       if (filters?.status && filters.status !== 'all' && filters.status.trim() !== '') {
@@ -36,7 +36,7 @@ export class BillingRecordsService {
         
         if (schoolsQuery.error) {
           console.error('❌ Error filtering schools:', schoolsQuery.error);
-          return { data: [], error: 'Error filtering schools' };
+          return { data: [], error: 'Error filtering schools. Please try again.' };
         }
         
         if (schoolsQuery.data && schoolsQuery.data.length > 0) {
@@ -69,7 +69,7 @@ export class BillingRecordsService {
 
       if (error) {
         console.error('❌ Error fetching billing records:', error);
-        return { data: [], error: `Database error: ${error.message}` };
+        return { data: [], error: 'Failed to fetch billing records. Please try again.' };
       }
 
       if (!data || data.length === 0) {
@@ -98,7 +98,7 @@ export class BillingRecordsService {
 
     } catch (error: any) {
       console.error('❌ BillingRecordsService: Critical error:', error);
-      return { data: [], error: `Service error: ${error.message || 'Unknown error'}` };
+      return { data: [], error: 'An unexpected error occurred while fetching billing records. Please try again.' };
     }
   }
 
@@ -269,7 +269,7 @@ export class BillingRecordsService {
   static async testConnection(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       
       const { error } = await supabase
         .from('schools')
@@ -287,7 +287,11 @@ export class BillingRecordsService {
       console.log('✅ Database connection test successful');
       return true;
     } catch (error) {
-      console.error('❌ Database connection test error:', error);
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+        console.error('❌ Database connection test timed out');
+      } else {
+        console.error('❌ Database connection test error:', error);
+      }
       return false;
     }
   }

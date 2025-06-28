@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BillingManagementService } from '@/services/billing/billingManagementService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,9 +58,11 @@ export const useSchoolBillingRecords = (schoolId?: string) => {
       if (!schoolId) throw new Error('School ID is required');
       const result = await BillingManagementService.getSchoolBillingRecords(schoolId);
       if (result.error) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to fetch school billing records';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to fetch school billing records';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -79,9 +82,11 @@ export const useBillingStats = () => {
     queryFn: async () => {
       const result = await BillingManagementService.getBillingStats();
       if (result.error) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to fetch billing statistics';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to fetch billing statistics';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -102,9 +107,11 @@ export const useSchoolBillingSummaries = () => {
     queryFn: async () => {
       const result = await BillingManagementService.getSchoolBillingSummaries();
       if (result.error) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to fetch school billing summaries';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to fetch school billing summaries';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -124,9 +131,11 @@ export const usePaymentHistory = (schoolId?: string) => {
     queryFn: async () => {
       const result = await BillingManagementService.getPaymentHistory(schoolId);
       if (result.error) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to fetch payment history';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to fetch payment history';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -146,9 +155,11 @@ export const useAllSchools = () => {
     queryFn: async () => {
       const result = await BillingManagementService.getAllSchools();
       if (result.error) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to fetch schools';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to fetch schools';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -169,9 +180,11 @@ export const useInvoiceData = (recordId?: string) => {
       if (!recordId) throw new Error('Record ID is required');
       const result = await BillingManagementService.generateInvoiceData(recordId);
       if (result.error) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to generate invoice data';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to generate invoice data';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -225,9 +238,11 @@ export const useBillingActions = () => {
     mutationFn: async (schoolId: string) => {
       const result = await BillingManagementService.createSetupFee(schoolId);
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to create setup fee';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to create setup fee';
         throw new Error(errorMessage);
       }
       return result;
@@ -256,9 +271,11 @@ export const useBillingActions = () => {
     mutationFn: async () => {
       const result = await BillingManagementService.createMonthlySubscriptions();
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to create monthly subscriptions';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to create monthly subscriptions';
         throw new Error(errorMessage);
       }
       return result;
@@ -286,9 +303,11 @@ export const useBillingActions = () => {
     mutationFn: async ({ recordId, updates }: { recordId: string; updates: any }) => {
       const result = await BillingManagementService.updateBillingRecord(recordId, updates);
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                            typeof result.error === 'string' ? result.error : 
-                            'Failed to update billing record';
+        const errorMessage = result.error && typeof result.error === 'object' && 'message' in result.error 
+          ? (result.error as Error).message 
+          : typeof result.error === 'string' 
+          ? result.error 
+          : 'Failed to update billing record';
         throw new Error(errorMessage);
       }
       return result;
