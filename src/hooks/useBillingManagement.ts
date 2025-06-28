@@ -4,12 +4,17 @@ import { BillingManagementService } from '@/services/billing/billingManagementSe
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-export const useBillingRecords = () => {
+export const useBillingRecords = (filters?: {
+  status?: string;
+  school_name?: string;
+  month?: string;
+  year?: string;
+}) => {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['billing-records'],
-    queryFn: () => BillingManagementService.getAllBillingRecords(),
+    queryKey: ['billing-records', filters],
+    queryFn: () => BillingManagementService.getAllBillingRecords(filters),
     enabled: user?.role === 'edufam_admin',
     staleTime: 2 * 60 * 1000, // 2 minutes
     select: (response) => response.data,
@@ -45,6 +50,31 @@ export const useBillingStats = () => {
   });
 };
 
+export const useSchoolBillingSummaries = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['school-billing-summaries'],
+    queryFn: () => BillingManagementService.getSchoolBillingSummaries(),
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    select: (response) => response.data,
+    refetchOnWindowFocus: true,
+  });
+};
+
+export const usePaymentHistory = (schoolId?: string) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['payment-history', schoolId],
+    queryFn: () => BillingManagementService.getPaymentHistory(schoolId),
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    select: (response) => response.data,
+  });
+};
+
 export const useAllSchools = () => {
   const { user } = useAuth();
   
@@ -53,6 +83,18 @@ export const useAllSchools = () => {
     queryFn: () => BillingManagementService.getAllSchools(),
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
+    select: (response) => response.data,
+  });
+};
+
+export const useInvoiceData = (recordId?: string) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['invoice-data', recordId],
+    queryFn: () => BillingManagementService.generateInvoiceData(recordId!),
+    enabled: user?.role === 'edufam_admin' && !!recordId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
     select: (response) => response.data,
   });
 };
@@ -73,6 +115,8 @@ export const useBillingActions = () => {
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
       queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
+      queryClient.invalidateQueries({ queryKey: ['school-billing-summaries'] });
+      queryClient.invalidateQueries({ queryKey: ['payment-history'] });
     },
     onError: (error: any) => {
       toast({
@@ -95,6 +139,7 @@ export const useBillingActions = () => {
         queryClient.invalidateQueries({ queryKey: ['billing-records'] });
         queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
         queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
+        queryClient.invalidateQueries({ queryKey: ['school-billing-summaries'] });
       } else {
         toast({
           title: "Setup Fee Creation Failed",
@@ -122,6 +167,7 @@ export const useBillingActions = () => {
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['school-billing-summaries'] });
     },
     onError: (error: any) => {
       toast({
@@ -132,9 +178,33 @@ export const useBillingActions = () => {
     },
   });
 
+  const updateBillingRecord = useMutation({
+    mutationFn: ({ recordId, updates }: { recordId: string; updates: any }) => 
+      BillingManagementService.updateBillingRecord(recordId, updates),
+    onSuccess: () => {
+      toast({
+        title: "Record Updated",
+        description: "Billing record has been updated successfully.",
+      });
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['billing-records'] });
+      queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
+      queryClient.invalidateQueries({ queryKey: ['school-billing-summaries'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update billing record.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     updateBillingStatus,
     createSetupFee,
-    createMonthlySubscriptions
+    createMonthlySubscriptions,
+    updateBillingRecord
   };
 };
