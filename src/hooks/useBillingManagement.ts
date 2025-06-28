@@ -13,6 +13,8 @@ export const useBillingRecords = () => {
     enabled: user?.role === 'edufam_admin',
     staleTime: 2 * 60 * 1000, // 2 minutes
     select: (response) => response.data,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000, // 5 minutes
   });
 };
 
@@ -25,6 +27,7 @@ export const useSchoolBillingRecords = (schoolId?: string) => {
     enabled: user?.role === 'edufam_admin' && !!schoolId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     select: (response) => response.data,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -34,6 +37,20 @@ export const useBillingStats = () => {
   return useQuery({
     queryKey: ['billing-stats'],
     queryFn: () => BillingManagementService.getBillingStats(),
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    select: (response) => response.data,
+    refetchOnWindowFocus: true,
+    refetchInterval: 3 * 60 * 1000, // 3 minutes
+  });
+};
+
+export const useAllSchools = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['all-schools'],
+    queryFn: () => BillingManagementService.getAllSchools(),
     enabled: user?.role === 'edufam_admin',
     staleTime: 5 * 60 * 1000, // 5 minutes
     select: (response) => response.data,
@@ -52,6 +69,7 @@ export const useBillingActions = () => {
         title: "Status Updated",
         description: "Billing record status has been updated successfully.",
       });
+      // Invalidate all related queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
       queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
@@ -73,6 +91,7 @@ export const useBillingActions = () => {
           title: "Setup Fee Created",
           description: "Setup fee has been created for the school.",
         });
+        // Invalidate all related queries
         queryClient.invalidateQueries({ queryKey: ['billing-records'] });
         queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
         queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
@@ -100,6 +119,7 @@ export const useBillingActions = () => {
         title: "Subscription Fees Created",
         description: `Created ${result.recordsCreated} subscription fee records.`,
       });
+      // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
     },

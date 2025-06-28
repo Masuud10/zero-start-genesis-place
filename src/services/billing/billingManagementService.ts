@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface BillingRecord {
@@ -230,6 +231,57 @@ export class BillingManagementService {
     } catch (error: any) {
       console.error('📊 BillingManagementService: Error calculating subscription fee:', error);
       return { data: null, error };
+    }
+  }
+
+  static async getAllSchools(): Promise<{ data: any[] | null; error: any }> {
+    try {
+      console.log('📊 BillingManagementService: Fetching all schools');
+
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name, email, phone, address, created_at, status')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching schools:', error);
+        throw error;
+      }
+
+      console.log('📊 BillingManagementService: Schools fetched successfully');
+      return { data: data || [], error: null };
+
+    } catch (error: any) {
+      console.error('📊 BillingManagementService: Error fetching schools:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateBillingRecord(recordId: string, updates: Partial<BillingRecord>): Promise<{ success: boolean; error?: any }> {
+    try {
+      console.log('📊 BillingManagementService: Updating billing record:', recordId);
+
+      const updateData = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('school_billing_records')
+        .update(updateData)
+        .eq('id', recordId);
+
+      if (error) {
+        console.error('Error updating billing record:', error);
+        throw error;
+      }
+
+      console.log('📊 BillingManagementService: Billing record updated successfully');
+      return { success: true };
+
+    } catch (error: any) {
+      console.error('📊 BillingManagementService: Error updating billing record:', error);
+      return { success: false, error };
     }
   }
 }

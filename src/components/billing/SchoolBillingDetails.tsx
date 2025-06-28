@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calculator, RefreshCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Calculator, RefreshCw, Edit, Save, X } from 'lucide-react';
 import { useSchoolBillingRecords, useBillingActions } from '@/hooks/useBillingManagement';
 import { BillingManagementService } from '@/services/billing/billingManagementService';
 import { format } from 'date-fns';
@@ -23,6 +24,8 @@ const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
   const { updateBillingStatus } = useBillingActions();
   const [subscriptionCalculation, setSubscriptionCalculation] = useState<any>(null);
   const [calculatingSubscription, setCalculatingSubscription] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState<number>(0);
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -57,6 +60,26 @@ const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
       status: newStatus,
       paymentMethod: newStatus === 'paid' ? 'manual' : undefined
     });
+  };
+
+  const handleEditRecord = (recordId: string, currentAmount: number) => {
+    setEditingRecord(recordId);
+    setEditAmount(currentAmount);
+  };
+
+  const handleSaveEdit = async (recordId: string) => {
+    try {
+      await BillingManagementService.updateBillingRecord(recordId, { amount: editAmount });
+      setEditingRecord(null);
+      refetch();
+    } catch (error) {
+      console.error('Error updating record:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRecord(null);
+    setEditAmount(0);
   };
 
   const calculateSubscriptionFee = async () => {
@@ -250,7 +273,42 @@ const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono">{formatCurrency(record.amount)}</TableCell>
+                  <TableCell>
+                    {editingRecord === record.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={editAmount}
+                          onChange={(e) => setEditAmount(Number(e.target.value))}
+                          className="w-24"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleSaveEdit(record.id)}
+                        >
+                          <Save className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">{formatCurrency(record.amount)}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditRecord(record.id, record.amount)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>{getStatusBadge(record.status)}</TableCell>
                   <TableCell>{format(new Date(record.due_date), 'MMM dd, yyyy')}</TableCell>
                   <TableCell>
