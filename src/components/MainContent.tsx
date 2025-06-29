@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import ProjectHubModule from './modules/ProjectHubModule';
 import AnalyticsDashboard from './analytics/AnalyticsDashboard';
 import SchoolAnalyticsOverview from './analytics/SchoolAnalyticsOverview';
+import SchoolAnalyticsList from './analytics/SchoolAnalyticsList';
 import GradesModule from './modules/GradesModule';
 import AttendanceModule from './modules/AttendanceModule';
 import StudentsModule from './modules/StudentsModule';
@@ -64,6 +64,12 @@ const MainContent: React.FC = () => {
         return <ProjectHubModule />;
       case 'analytics':
         return <AnalyticsDashboard />;
+      case 'school-analytics':
+        // Show individual school analytics for EduFam admins
+        if (user?.role === 'edufam_admin') {
+          return <SchoolAnalyticsList />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Insufficient permissions</div>;
       case 'schools-analytics':
         return <SchoolAnalyticsOverview />;
       case 'grades':

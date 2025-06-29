@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -44,6 +43,7 @@ const EduFamAnalyticsOverview = () => {
         </div>
       </div>
 
+      {/* System Overview Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Schools & Users Growth Chart */}
         <SystemGrowthChart 
@@ -70,7 +70,7 @@ const EduFamAnalyticsOverview = () => {
         />
       </div>
 
-      {/* Individual School Analytics */}
+      {/* Individual School Analytics - This is the key addition */}
       <SchoolAnalyticsDetail />
     </div>
   );

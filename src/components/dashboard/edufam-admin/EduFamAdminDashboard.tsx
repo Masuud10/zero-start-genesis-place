@@ -13,7 +13,8 @@ import {
   Shield,
   Building2,
   Globe,
-  RefreshCw
+  RefreshCw,
+  TrendingUp
 } from 'lucide-react';
 import EduFamDashboardOverview from '../EduFamDashboardOverview';
 import EduFamCertificateManagement from '@/components/certificates/EduFamCertificateManagement';
@@ -22,6 +23,7 @@ import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import SettingsModule from '@/components/modules/SettingsModule';
 import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
+import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
 import AdministrativeHub from './AdministrativeHub';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -64,6 +66,12 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
       label: 'Dashboard Overview',
       icon: BarChart3,
       component: <EduFamDashboardOverview />
+    },
+    {
+      id: 'school-analytics',
+      label: 'Schools Analytics',
+      icon: TrendingUp,
+      component: <SchoolAnalyticsList />
     },
     {
       id: 'company-management',
@@ -144,7 +152,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
         <Card className="shadow-lg">
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 h-auto p-2 bg-gray-50">
+              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 h-auto p-2 bg-gray-50">
                 {navigationTabs.map((tab) => (
                   <TabsTrigger
                     key={tab.id}

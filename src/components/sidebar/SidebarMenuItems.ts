@@ -47,7 +47,8 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     return [
       ...baseItems,
       { id: 'project-hub', label: 'Project Hub', icon: FolderKanban, roles: ['edufam_admin'] },
-      { id: 'analytics', label: 'Schools Analytics', icon: BarChart3, roles: ['edufam_admin'] },
+      { id: 'analytics', label: 'System Analytics', icon: BarChart3, roles: ['edufam_admin'] },
+      { id: 'school-analytics', label: 'Schools Analytics', icon: TrendingUp, roles: ['edufam_admin'] },
       { id: 'schools', label: 'Schools Management', icon: Building2, roles: ['edufam_admin'] },
       { id: 'company-management', label: 'Company Management', icon: Globe, roles: ['edufam_admin'] },
       { id: 'users', label: 'User Management', icon: UserCheck, roles: ['edufam_admin'] },
