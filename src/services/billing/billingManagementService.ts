@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BillingRecordsService } from './billingRecordsService';
 import { FeeCreationService } from './feeCreationService';
@@ -47,12 +46,10 @@ export class BillingManagementService {
     try {
       console.log('📊 BillingManagementService: Getting billing stats');
 
-      // Test connection first with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       try {
-        // Get basic billing records with timeout
         const { data: records, error: recordsError } = await supabase
           .from('school_billing_records')
           .select('amount, status, billing_type, school_id')
@@ -80,7 +77,6 @@ export class BillingManagementService {
           };
         }
 
-        // Calculate basic stats safely
         const totalAmount = records.reduce((sum, record) => {
           const amount = Number(record?.amount) || 0;
           return sum + amount;
@@ -136,14 +132,13 @@ export class BillingManagementService {
     try {
       console.log('📊 BillingManagementService: Getting school billing summaries');
 
-      // Test connection first
       const connectionTest = await BillingRecordsService.testConnection();
       if (!connectionTest) {
         return { data: [], error: 'Database connection failed' };
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
         const { data, error } = await supabase
@@ -276,6 +271,12 @@ export class BillingManagementService {
     try {
       console.log('📊 BillingManagementService: Creating setup fee for school:', schoolId);
 
+      const { data: school } = await supabase
+        .from('schools')
+        .select('name')
+        .eq('id', schoolId)
+        .single();
+
       const { data, error } = await supabase
         .from('school_billing_records')
         .insert({
@@ -285,12 +286,13 @@ export class BillingManagementService {
           currency: 'KES',
           status: 'pending',
           due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          invoice_number: `SF-${Date.now()}`
+          invoice_number: `SF-${Date.now()}`,
+          description: `Setup fee for ${school?.name || 'School'}`
         });
 
       if (error) {
         console.error('❌ Error creating setup fee:', error);
-        return { success: false, error };
+        return { success: false, error: error.message };
       }
 
       console.log('✅ BillingManagementService: Setup fee created successfully');
@@ -298,7 +300,7 @@ export class BillingManagementService {
 
     } catch (error: any) {
       console.error('❌ BillingManagementService: Critical error creating setup fee:', error);
-      return { success: false, error };
+      return { success: false, error: error.message };
     }
   }
 
@@ -306,23 +308,21 @@ export class BillingManagementService {
     try {
       console.log('📊 BillingManagementService: Creating monthly subscriptions');
 
-      // Get all schools
       const { data: schools, error: schoolsError } = await supabase
         .from('schools')
-        .select('id')
+        .select('id, name')
         .limit(100);
 
       if (schoolsError) {
         console.error('❌ Error fetching schools for subscriptions:', schoolsError);
-        return { success: false, error: schoolsError };
+        return { success: false, error: schoolsError.message };
       }
 
-      if (!schools || schools.length === 0) {
+      if (!schools || !Array.isArray(schools) || schools.length === 0) {
         console.log('📊 No schools found for subscription creation');
         return { success: true, recordsCreated: 0 };
       }
 
-      // Create subscription records for each school
       const subscriptionRecords = schools.map(school => ({
         school_id: school.id,
         billing_type: 'subscription_fee' as const,
@@ -330,7 +330,8 @@ export class BillingManagementService {
         currency: 'KES',
         status: 'pending',
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        invoice_number: `SUB-${Date.now()}-${school.id.slice(0, 8)}`
+        invoice_number: `SUB-${Date.now()}-${school.id.slice(0, 8)}`,
+        description: `Monthly subscription fee for ${school.name}`
       }));
 
       const { error: insertError } = await supabase
@@ -339,7 +340,7 @@ export class BillingManagementService {
 
       if (insertError) {
         console.error('❌ Error creating subscription records:', insertError);
-        return { success: false, error: insertError };
+        return { success: false, error: insertError.message };
       }
 
       console.log('✅ BillingManagementService: Monthly subscriptions created successfully');
@@ -347,7 +348,7 @@ export class BillingManagementService {
 
     } catch (error: any) {
       console.error('❌ BillingManagementService: Critical error creating monthly subscriptions:', error);
-      return { success: false, error };
+      return { success: false, error: error.message || 'Failed to create monthly subscriptions' };
     }
   }
 
@@ -356,7 +357,6 @@ export class BillingManagementService {
     return BillingRecordsService.updateBillingRecord(recordId, updates);
   }
 
-  // Diagnostic method to check if billing data exists
   static async checkBillingDataExists(): Promise<{ hasData: boolean; recordCount: number; error?: any }> {
     try {
       console.log('🔍 BillingManagementService: Checking if billing data exists');
@@ -389,7 +389,6 @@ export class BillingManagementService {
     try {
       console.log('📊 BillingManagementService: Calculating subscription fee for school:', schoolId);
 
-      // Get student count for the school
       const { count: studentCount, error: countError } = await supabase
         .from('students')
         .select('*', { count: 'exact', head: true })
@@ -400,7 +399,7 @@ export class BillingManagementService {
         return { data: null, error: countError.message };
       }
 
-      const perStudentRate = 50; // KES 50 per student per month
+      const perStudentRate = 50;
       const calculatedAmount = (studentCount || 0) * perStudentRate;
 
       const result = {
