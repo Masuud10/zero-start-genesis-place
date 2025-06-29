@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import SchoolOwnerStatsCards, { SchoolMetrics } from "./SchoolOwnerStatsCards";
 import SchoolManagementActions from "./SchoolManagementActions";
 import AnalyticsSecurityGuard from "../../analytics/AnalyticsSecurityGuard";
-import SchoolOwnerAnalytics from "../../analytics/SchoolOwnerAnalytics";
+import SecureSchoolOwnerAnalytics from "../../analytics/SecureSchoolOwnerAnalytics";
 
 interface SchoolOwnerDashboardLayoutProps {
   metrics: SchoolMetrics;
@@ -23,7 +23,7 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
   <div className="space-y-6">
     <SchoolOwnerStatsCards metrics={metrics} loading={loading} />
 
-    {/* Analytics Overview Section */}
+    {/* Secure Analytics Overview Section */}
     <AnalyticsSecurityGuard
       requiredPermission="school"
       schoolId={schoolId}
@@ -33,14 +33,14 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
         <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
           <CardTitle className="flex items-center gap-3 text-xl">
             <BarChart3 className="h-6 w-6" />
-            Analytics Overview
+            Secure Analytics Overview
           </CardTitle>
           <CardDescription className="text-blue-100">
-            Real-time insights and performance data for your school
+            Real-time insights and performance data with enhanced security
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <SchoolOwnerAnalytics filters={{ term: 'current', class: 'all' }} />
+          <SecureSchoolOwnerAnalytics filters={{ term: 'current', class: 'all' }} />
         </CardContent>
       </Card>
     </AnalyticsSecurityGuard>
