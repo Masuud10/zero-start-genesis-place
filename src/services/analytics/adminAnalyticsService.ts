@@ -1,286 +1,269 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export interface UserGrowthData {
-  month: string;
-  count: number;
-}
-
-export interface SchoolGrowthData {
-  month: string;
-  count: number;
-}
-
-export interface EnrollmentBySchoolData {
-  school_name: string;
-  student_count: number;
-}
-
-export interface UserRoleDistributionData {
-  role: string;
-  count: number;
-}
-
-export interface CurriculumDistributionData {
-  curriculum_type: string;
-  count: number;
-  percentage: number;
-}
-
-export interface FinancialSummaryData {
-  plan_type: string;
-  revenue: number;
-  percentage: number;
-}
-
 export class AdminAnalyticsService {
-  static async getUserGrowthData(): Promise<UserGrowthData[]> {
+  static async getUserGrowthData() {
     try {
-      console.log('🔄 Fetching user growth data...');
+      console.log('📊 AdminAnalyticsService: Fetching user growth data...');
       
-      // Get user registrations for the last 12 months
       const { data, error } = await supabase
-        .from('profiles')
+        .from('user_profiles')
         .select('created_at')
-        .gte('created_at', new Date(Date.now() - 12 * 30 * 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('❌ Error fetching user growth data:', error);
-        throw error;
+        console.error('❌ AdminAnalyticsService: User growth fetch error:', error);
+        throw new Error(`Failed to fetch user growth data: ${error.message}`);
       }
 
-      // Group by month and count
-      const monthlyData = new Map<string, number>();
-      
-      // Initialize last 12 months
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-        monthlyData.set(monthKey, 0);
+      if (!data || !Array.isArray(data)) {
+        console.warn('📊 AdminAnalyticsService: No user growth data available');
+        return [];
       }
 
-      // Count actual registrations
-      data?.forEach(user => {
-        if (user.created_at) {
+      // Group users by month
+      const monthlyGrowth = data.reduce((acc: Record<string, number>, user) => {
+        if (!user.created_at) return acc;
+        
+        try {
           const date = new Date(user.created_at);
-          const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-          monthlyData.set(monthKey, (monthlyData.get(monthKey) || 0) + 1);
+          const monthKey = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short' 
+          });
+          acc[monthKey] = (acc[monthKey] || 0) + 1;
+        } catch (error) {
+          console.warn('📊 AdminAnalyticsService: Invalid date for user:', user.created_at);
         }
-      });
+        
+        return acc;
+      }, {});
 
-      const result = Array.from(monthlyData.entries()).map(([month, count]) => ({
-        month,
-        count
-      }));
+      const result = Object.entries(monthlyGrowth)
+        .map(([month, count]) => ({ month, count }))
+        .slice(-12); // Last 12 months
 
-      console.log('✅ User growth data fetched successfully:', result.length, 'months');
+      console.log('✅ AdminAnalyticsService: User growth data processed:', result.length);
       return result;
+
     } catch (error) {
-      console.error('❌ Failed to fetch user growth data:', error);
+      console.error('❌ AdminAnalyticsService: getUserGrowthData error:', error);
       throw error;
     }
   }
 
-  static async getSchoolGrowthData(): Promise<SchoolGrowthData[]> {
+  static async getSchoolGrowthData() {
     try {
-      console.log('🔄 Fetching school growth data...');
+      console.log('📊 AdminAnalyticsService: Fetching school growth data...');
       
       const { data, error } = await supabase
         .from('schools')
         .select('created_at')
-        .gte('created_at', new Date(Date.now() - 12 * 30 * 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('❌ Error fetching school growth data:', error);
-        throw error;
+        console.error('❌ AdminAnalyticsService: School growth fetch error:', error);
+        throw new Error(`Failed to fetch school growth data: ${error.message}`);
       }
 
-      // Group by month and count
-      const monthlyData = new Map<string, number>();
-      
-      // Initialize last 12 months
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-        monthlyData.set(monthKey, 0);
+      if (!data || !Array.isArray(data)) {
+        console.warn('📊 AdminAnalyticsService: No school growth data available');
+        return [];
       }
 
-      // Count actual school registrations
-      data?.forEach(school => {
-        if (school.created_at) {
+      // Group schools by month
+      const monthlyGrowth = data.reduce((acc: Record<string, number>, school) => {
+        if (!school.created_at) return acc;
+        
+        try {
           const date = new Date(school.created_at);
-          const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-          monthlyData.set(monthKey, (monthlyData.get(monthKey) || 0) + 1);
+          const monthKey = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short' 
+          });
+          acc[monthKey] = (acc[monthKey] || 0) + 1;
+        } catch (error) {
+          console.warn('📊 AdminAnalyticsService: Invalid date for school:', school.created_at);
         }
-      });
+        
+        return acc;
+      }, {});
 
-      const result = Array.from(monthlyData.entries()).map(([month, count]) => ({
-        month,
-        count
-      }));
+      const result = Object.entries(monthlyGrowth)
+        .map(([month, count]) => ({ month, count }))
+        .slice(-12); // Last 12 months
 
-      console.log('✅ School growth data fetched successfully:', result.length, 'months');
+      console.log('✅ AdminAnalyticsService: School growth data processed:', result.length);
       return result;
+
     } catch (error) {
-      console.error('❌ Failed to fetch school growth data:', error);
+      console.error('❌ AdminAnalyticsService: getSchoolGrowthData error:', error);
       throw error;
     }
   }
 
-  static async getEnrollmentBySchoolData(): Promise<EnrollmentBySchoolData[]> {
+  static async getEnrollmentBySchoolData() {
     try {
-      console.log('🔄 Fetching enrollment by school data...');
+      console.log('📊 AdminAnalyticsService: Fetching enrollment by school data...');
       
       const { data, error } = await supabase
         .from('schools')
         .select(`
+          id,
           name,
-          students!inner(id)
+          students:user_profiles!school_id(count)
         `)
         .limit(10);
 
       if (error) {
-        console.error('❌ Error fetching enrollment data:', error);
-        throw error;
+        console.error('❌ AdminAnalyticsService: Enrollment fetch error:', error);
+        throw new Error(`Failed to fetch enrollment data: ${error.message}`);
       }
 
-      const result = (data || [])
+      if (!data || !Array.isArray(data)) {
+        console.warn('📊 AdminAnalyticsService: No enrollment data available');
+        return [];
+      }
+
+      const result = data
         .map(school => ({
-          school_name: school.name,
-          student_count: school.students?.length || 0
+          school: school.name || 'Unknown School',
+          students: school.students?.[0]?.count || 0
         }))
-        .sort((a, b) => b.student_count - a.student_count)
+        .sort((a, b) => b.students - a.students)
         .slice(0, 10);
 
-      console.log('✅ Enrollment by school data fetched successfully:', result.length, 'schools');
+      console.log('✅ AdminAnalyticsService: Enrollment data processed:', result.length);
       return result;
+
     } catch (error) {
-      console.error('❌ Failed to fetch enrollment data:', error);
-      // Return fallback data if query fails
-      return [];
-    }
-  }
-
-  static async getUserRoleDistributionData(): Promise<UserRoleDistributionData[]> {
-    try {
-      console.log('🔄 Fetching user role distribution data...');
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role');
-
-      if (error) {
-        console.error('❌ Error fetching user role data:', error);
-        throw error;
-      }
-
-      // Count roles
-      const roleCounts = new Map<string, number>();
-      data?.forEach(user => {
-        const role = user.role || 'unknown';
-        const displayRole = role.replace('_', ' ').split(' ').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' ');
-        roleCounts.set(displayRole, (roleCounts.get(displayRole) || 0) + 1);
-      });
-
-      const result = Array.from(roleCounts.entries()).map(([role, count]) => ({
-        role,
-        count
-      }));
-
-      console.log('✅ User role distribution data fetched successfully:', result.length, 'roles');
-      return result;
-    } catch (error) {
-      console.error('❌ Failed to fetch user role distribution data:', error);
+      console.error('❌ AdminAnalyticsService: getEnrollmentBySchoolData error:', error);
       throw error;
     }
   }
 
-  static async getCurriculumDistributionData(): Promise<CurriculumDistributionData[]> {
+  static async getUserRoleDistributionData() {
     try {
-      console.log('🔄 Fetching curriculum distribution data...');
+      console.log('📊 AdminAnalyticsService: Fetching user role distribution...');
+      
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('role');
+
+      if (error) {
+        console.error('❌ AdminAnalyticsService: Role distribution fetch error:', error);
+        throw new Error(`Failed to fetch user role data: ${error.message}`);
+      }
+
+      if (!data || !Array.isArray(data)) {
+        console.warn('📊 AdminAnalyticsService: No role distribution data available');
+        return [];
+      }
+
+      const roleCount = data.reduce((acc: Record<string, number>, user) => {
+        const role = user.role || 'Unknown';
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      }, {});
+
+      const result = Object.entries(roleCount)
+        .map(([role, count]) => ({ role, count }))
+        .sort((a, b) => b.count - a.count);
+
+      console.log('✅ AdminAnalyticsService: Role distribution processed:', result.length);
+      return result;
+
+    } catch (error) {
+      console.error('❌ AdminAnalyticsService: getUserRoleDistributionData error:', error);
+      throw error;
+    }
+  }
+
+  static async getCurriculumDistributionData() {
+    try {
+      console.log('📊 AdminAnalyticsService: Fetching curriculum distribution...');
       
       const { data, error } = await supabase
         .from('schools')
         .select('curriculum_type');
 
       if (error) {
-        console.error('❌ Error fetching curriculum data:', error);
-        throw error;
+        console.error('❌ AdminAnalyticsService: Curriculum distribution fetch error:', error);
+        throw new Error(`Failed to fetch curriculum data: ${error.message}`);
       }
 
-      // Count curriculum types
-      const curriculumCounts = new Map<string, number>();
-      const total = data?.length || 0;
+      if (!data || !Array.isArray(data)) {
+        console.warn('📊 AdminAnalyticsService: No curriculum data available');
+        return [];
+      }
 
-      data?.forEach(school => {
-        const curriculum = school.curriculum_type || 'Unknown';
-        const displayCurriculum = curriculum.toUpperCase();
-        curriculumCounts.set(displayCurriculum, (curriculumCounts.get(displayCurriculum) || 0) + 1);
-      });
+      const curriculumCount = data.reduce((acc: Record<string, number>, school) => {
+        const curriculum = school.curriculum_type || 'Standard';
+        acc[curriculum] = (acc[curriculum] || 0) + 1;
+        return acc;
+      }, {});
 
-      const result = Array.from(curriculumCounts.entries()).map(([curriculum_type, count]) => ({
-        curriculum_type,
-        count,
-        percentage: total > 0 ? (count / total) * 100 : 0
-      }));
+      const total = Object.values(curriculumCount).reduce((sum, count) => sum + count, 0);
+      
+      const result = Object.entries(curriculumCount)
+        .map(([curriculum, count]) => ({
+          curriculum,
+          count,
+          percentage: total > 0 ? Math.round((count / total) * 100) : 0
+        }))
+        .sort((a, b) => b.count - a.count);
 
-      console.log('✅ Curriculum distribution data fetched successfully:', result.length, 'types');
+      console.log('✅ AdminAnalyticsService: Curriculum distribution processed:', result.length);
       return result;
+
     } catch (error) {
-      console.error('❌ Failed to fetch curriculum distribution data:', error);
+      console.error('❌ AdminAnalyticsService: getCurriculumDistributionData error:', error);
       throw error;
     }
   }
 
-  static async getFinancialSummaryData(): Promise<FinancialSummaryData[]> {
+  static async getFinancialSummaryData() {
     try {
-      console.log('🔄 Fetching financial summary data...');
+      console.log('📊 AdminAnalyticsService: Fetching financial summary...');
       
       const { data, error } = await supabase
-        .from('school_billing_records')
-        .select('amount, billing_type, status')
-        .eq('status', 'paid');
+        .from('subscriptions')
+        .select('plan_type, amount, status')
+        .eq('status', 'active');
 
       if (error) {
-        console.error('❌ Error fetching financial data:', error);
-        throw error;
+        console.error('❌ AdminAnalyticsService: Financial summary fetch error:', error);
+        throw new Error(`Failed to fetch financial data: ${error.message}`);
       }
 
-      // Group by billing type and sum amounts
-      const typeRevenue = new Map<string, number>();
-      let totalRevenue = 0;
+      if (!data || !Array.isArray(data)) {
+        console.warn('📊 AdminAnalyticsService: No financial data available');
+        return [];
+      }
 
-      data?.forEach(record => {
-        if (record.amount) {
-          const amount = parseFloat(record.amount.toString());
-          const type = record.billing_type || 'Unknown';
-          const displayType = type.replace('_', ' ').split(' ').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-          ).join(' ');
-          
-          typeRevenue.set(displayType, (typeRevenue.get(displayType) || 0) + amount);
-          totalRevenue += amount;
-        }
-      });
+      const planRevenue = data.reduce((acc: Record<string, number>, subscription) => {
+        const plan = subscription.plan_type || 'Unknown';
+        const amount = subscription.amount || 0;
+        acc[plan] = (acc[plan] || 0) + amount;
+        return acc;
+      }, {});
 
-      const result = Array.from(typeRevenue.entries()).map(([plan_type, revenue]) => ({
-        plan_type,
-        revenue,
-        percentage: totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0
-      }));
+      const total = Object.values(planRevenue).reduce((sum, amount) => sum + amount, 0);
+      
+      const result = Object.entries(planRevenue)
+        .map(([plan, amount]) => ({
+          plan,
+          amount,
+          percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+        }))
+        .sort((a, b) => b.amount - a.amount);
 
-      console.log('✅ Financial summary data fetched successfully:', result.length, 'types');
+      console.log('✅ AdminAnalyticsService: Financial summary processed:', result.length);
       return result;
+
     } catch (error) {
-      console.error('❌ Failed to fetch financial summary data:', error);
-      // Return empty array if no billing data
-      return [];
+      console.error('❌ AdminAnalyticsService: getFinancialSummaryData error:', error);
+      throw error;
     }
   }
 }

@@ -49,24 +49,34 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
-      if (schools.length === 0) return;
+      console.log('🏫 SchoolsTable: Starting subscription fetch for schools:', schools.length);
+      
+      if (schools.length === 0) {
+        console.log('🏫 SchoolsTable: No schools to fetch subscriptions for');
+        return;
+      }
 
       setSubscriptionsLoading(true);
       setSubscriptionsError(null);
 
       try {
+        const schoolIds = schools.map(s => s.id).filter(Boolean);
+        console.log('🏫 SchoolsTable: Fetching subscriptions for school IDs:', schoolIds);
+
         const { data: subscriptions, error } = await supabase
           .from('subscriptions')
           .select('*')
-          .in('school_id', schools.map(s => s.id));
+          .in('school_id', schoolIds);
 
         if (error) {
-          console.error('Error fetching subscriptions:', error);
+          console.error('🏫 SchoolsTable: Subscription fetch error:', error);
           setSubscriptionsError('Failed to load subscription data');
           // Still show schools without subscription data
           setSchoolsWithSubscriptions(schools.map(school => ({ ...school, subscriptions: [] })));
           return;
         }
+
+        console.log('🏫 SchoolsTable: Successfully fetched subscriptions:', subscriptions?.length || 0);
 
         const schoolsWithSubs = schools.map(school => {
           const schoolSubscriptions = subscriptions?.filter(sub => sub.school_id === school.id) || [];
@@ -76,9 +86,10 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
           };
         });
 
+        console.log('🏫 SchoolsTable: Schools with subscriptions mapped:', schoolsWithSubs.length);
         setSchoolsWithSubscriptions(schoolsWithSubs);
       } catch (error) {
-        console.error('Error processing subscriptions:', error);
+        console.error('🏫 SchoolsTable: Error processing subscriptions:', error);
         setSubscriptionsError('Failed to process subscription data');
         setSchoolsWithSubscriptions(schools.map(school => ({ ...school, subscriptions: [] })));
       } finally {
@@ -100,17 +111,29 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
   };
 
   const handleViewSchool = (school: School) => {
-    console.log('Opening school details for:', school.name);
+    console.log('🏫 SchoolsTable: Opening school details for:', {
+      id: school.id,
+      name: school.name,
+      hasSubscriptionData: !!school
+    });
+    
+    if (!school || !school.id) {
+      console.error('🏫 SchoolsTable: Invalid school data for modal:', school);
+      return;
+    }
+    
     setSelectedSchool(school);
     setIsDetailsModalOpen(true);
   };
 
   const handleCloseModal = () => {
+    console.log('🏫 SchoolsTable: Closing school details modal');
     setIsDetailsModalOpen(false);
     setSelectedSchool(null);
   };
 
   if (loading) {
+    console.log('🏫 SchoolsTable: Showing loading state');
     return (
       <Card>
         <CardHeader>
@@ -132,6 +155,7 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
   }
 
   if (schoolsWithSubscriptions.length === 0) {
+    console.log('🏫 SchoolsTable: Showing empty state');
     return (
       <Card>
         <CardHeader>
@@ -148,6 +172,8 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
       </Card>
     );
   }
+
+  console.log('🏫 SchoolsTable: Rendering table with schools:', schoolsWithSubscriptions.length);
 
   return (
     <>
@@ -184,7 +210,7 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
                   <TableRow key={school.id}>
                     <TableCell className="font-medium">
                       <div>
-                        <p className="font-medium">{school.name}</p>
+                        <p className="font-medium">{school.name || 'Unnamed School'}</p>
                         {school.registration_number && (
                           <p className="text-xs text-gray-500">Reg: {school.registration_number}</p>
                         )}
@@ -214,7 +240,11 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleViewSchool(school)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleViewSchool(school);
+                          }}
                           className="hover:bg-blue-50"
                         >
                           <Eye className="w-4 h-4" />
@@ -235,11 +265,13 @@ const SchoolsTable = ({ schools, loading }: SchoolsTableProps) => {
         </CardContent>
       </Card>
 
-      <SchoolDetailsModal
-        school={selectedSchool}
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseModal}
-      />
+      {selectedSchool && (
+        <SchoolDetailsModal
+          school={selectedSchool}
+          isOpen={isDetailsModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
     </>
   );
 };

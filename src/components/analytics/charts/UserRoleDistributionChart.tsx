@@ -25,7 +25,7 @@ const UserRoleDistributionChart = () => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            <div className="text-sm text-muted-foreground">Loading user role data...</div>
+            <div className="text-sm text-muted-foreground">Loading role distribution...</div>
           </div>
         </CardContent>
       </Card>
@@ -33,6 +33,7 @@ const UserRoleDistributionChart = () => {
   }
 
   if (error || !data) {
+    console.error('📊 UserRoleDistributionChart: Error or no data:', error);
     return (
       <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -41,17 +42,19 @@ const UserRoleDistributionChart = () => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            <div className="text-sm text-red-500">Failed to load user role data</div>
+            <div className="text-sm text-red-500">Failed to load role distribution</div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  console.log('📊 UserRoleDistributionChart: Rendering with data:', data.length);
+
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">User Role Distribution</CardTitle>
+        <CardTitle className="text-sm font-medium">System Users by Role</CardTitle>
         <Users className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
@@ -65,7 +68,7 @@ const UserRoleDistributionChart = () => {
                 axisLine={false}
                 angle={-45}
                 textAnchor="end"
-                height={80}
+                height={60}
               />
               <YAxis 
                 fontSize={12}

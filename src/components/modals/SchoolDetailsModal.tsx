@@ -21,50 +21,72 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
   isOpen,
   onClose
 }) => {
-  if (!school) return null;
+  console.log('🏫 SchoolDetailsModal: Rendering with school:', {
+    hasSchool: !!school,
+    schoolId: school?.id,
+    schoolName: school?.name,
+    isOpen
+  });
+
+  if (!school) {
+    console.warn('🏫 SchoolDetailsModal: No school data provided');
+    return null;
+  }
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      if (!dateString) {
+        console.warn('🏫 SchoolDetailsModal: Empty date string provided');
+        return 'Unknown date';
+      }
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn('🏫 SchoolDetailsModal: Invalid date string:', dateString);
+        return 'Invalid date';
+      }
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       });
-    } catch {
+    } catch (error) {
+      console.error('🏫 SchoolDetailsModal: Date formatting error:', error);
       return 'Unknown date';
     }
   };
 
   const formatCurriculumType = (type?: string) => {
-    switch (type) {
-      case 'cbc':
-        return 'CBC';
-      case 'igcse':
-        return 'IGCSE';
-      case 'cambridge':
-        return 'Cambridge';
-      case 'ib':
-        return 'International Baccalaureate';
-      default:
-        return type || 'Standard';
-    }
+    if (!type) return 'Standard';
+    
+    const curriculumMap: Record<string, string> = {
+      'cbc': 'CBC',
+      'igcse': 'IGCSE',
+      'cambridge': 'Cambridge',
+      'ib': 'International Baccalaureate'
+    };
+    
+    return curriculumMap[type.toLowerCase()] || type;
   };
 
   const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-red-100 text-red-800';
-      case 'suspended':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    if (!status) return 'bg-gray-100 text-gray-800';
+    
+    const statusColors: Record<string, string> = {
+      'active': 'bg-green-100 text-green-800',
+      'inactive': 'bg-red-100 text-red-800',
+      'suspended': 'bg-yellow-100 text-yellow-800'
+    };
+    
+    return statusColors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  };
+
+  const handleClose = () => {
+    console.log('🏫 SchoolDetailsModal: Closing modal');
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
@@ -74,6 +96,7 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
                 alt={`${school.name} logo`}
                 className="w-12 h-12 rounded-lg object-cover border"
                 onError={(e) => {
+                  console.warn('🏫 SchoolDetailsModal: Logo failed to load:', school.logo_url);
                   e.currentTarget.style.display = 'none';
                 }}
               />
@@ -83,7 +106,7 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
               </div>
             )}
             <div className="flex-1">
-              <h2 className="text-xl font-bold">{school.name}</h2>
+              <h2 className="text-xl font-bold">{school.name || 'Unnamed School'}</h2>
               {school.motto && (
                 <p className="text-sm text-blue-600 italic">"{school.motto}"</p>
               )}
@@ -224,6 +247,9 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline"
+                        onClick={(e) => {
+                          console.log('🏫 SchoolDetailsModal: Website link clicked:', school.website_url);
+                        }}
                       >
                         Visit Website
                       </a>
@@ -281,13 +307,19 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
             </Card>
           )}
 
-          {/* Error State for Missing Data */}
-          {!school.name && (
+          {/* Debug Information - Only show in development */}
+          {process.env.NODE_ENV === 'development' && (
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-amber-600">
+                <div className="flex items-center gap-2 text-amber-600 mb-2">
                   <AlertCircle className="h-4 w-4" />
-                  <p className="text-sm">Some school information may be incomplete or unavailable.</p>
+                  <h3 className="font-semibold">Debug Information</h3>
+                </div>
+                <div className="text-xs bg-gray-100 p-2 rounded">
+                  <p><strong>School ID:</strong> {school.id}</p>
+                  <p><strong>Created:</strong> {school.created_at}</p>
+                  <p><strong>Updated:</strong> {school.updated_at}</p>
+                  <p><strong>Owner ID:</strong> {school.owner_id || 'None'}</p>
                 </div>
               </CardContent>
             </Card>

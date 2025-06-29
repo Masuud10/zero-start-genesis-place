@@ -51,37 +51,96 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const recentSchools = React.useMemo(() => {
-    if (!Array.isArray(schoolsData)) return [];
-    return schoolsData
-      .filter(school => school && school.id && school.name)
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    console.log('🏫 RecentSchoolsSection: Processing schools data:', {
+      isArray: Array.isArray(schoolsData),
+      length: schoolsData?.length || 0,
+      firstSchool: schoolsData?.[0]
+    });
+    
+    if (!Array.isArray(schoolsData)) {
+      console.warn('🏫 RecentSchoolsSection: schoolsData is not an array:', typeof schoolsData);
+      return [];
+    }
+    
+    const validSchools = schoolsData.filter(school => {
+      if (!school) {
+        console.warn('🏫 RecentSchoolsSection: Found null/undefined school');
+        return false;
+      }
+      if (!school.id) {
+        console.warn('🏫 RecentSchoolsSection: Found school without ID:', school);
+        return false;
+      }
+      if (!school.name) {
+        console.warn('🏫 RecentSchoolsSection: Found school without name:', school);
+        return false;
+      }
+      return true;
+    });
+
+    console.log('🏫 RecentSchoolsSection: Valid schools:', validSchools.length);
+    
+    return validSchools
+      .sort((a, b) => {
+        try {
+          const dateA = new Date(a.created_at || '').getTime();
+          const dateB = new Date(b.created_at || '').getTime();
+          return dateB - dateA;
+        } catch (error) {
+          console.error('🏫 RecentSchoolsSection: Date sorting error:', error);
+          return 0;
+        }
+      })
       .slice(0, 5);
   }, [schoolsData]);
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      if (!dateString) {
+        console.warn('🏫 RecentSchoolsSection: Empty date string provided');
+        return 'Unknown date';
+      }
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn('🏫 RecentSchoolsSection: Invalid date string:', dateString);
+        return 'Invalid date';
+      }
+      return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       });
-    } catch {
+    } catch (error) {
+      console.error('🏫 RecentSchoolsSection: Date formatting error:', error);
       return 'Unknown date';
     }
   };
 
   const handleViewSchool = (school: School) => {
-    console.log('Opening school details for:', school.name);
+    console.log('🏫 RecentSchoolsSection: Opening school details for:', {
+      id: school.id,
+      name: school.name,
+      hasEmail: !!school.email,
+      hasPhone: !!school.phone
+    });
+    
+    if (!school || !school.id) {
+      console.error('🏫 RecentSchoolsSection: Invalid school data for modal:', school);
+      return;
+    }
+    
     setSelectedSchool(school);
     setIsDetailsModalOpen(true);
   };
 
   const handleCloseModal = () => {
+    console.log('🏫 RecentSchoolsSection: Closing school details modal');
     setIsDetailsModalOpen(false);
     setSelectedSchool(null);
   };
 
   if (schoolsError) {
+    console.error('🏫 RecentSchoolsSection: Schools error:', schoolsError);
     return (
       <Card>
         <CardHeader>
@@ -120,7 +179,10 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
               {schoolsLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
             </div>
             <Button 
-              onClick={() => onModalOpen('manage-schools')} 
+              onClick={() => {
+                console.log('🏫 RecentSchoolsSection: Add School button clicked');
+                onModalOpen('manage-schools');
+              }} 
               size="sm"
               variant="outline"
             >
@@ -175,7 +237,11 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleViewSchool(school)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleViewSchool(school);
+                      }}
                       className="hover:bg-blue-50"
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -184,7 +250,7 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
                   </div>
                 </div>
               ))}
-              {recentSchools.length > 0 && (
+              {recentSchools.length > 0 && schoolsData && Array.isArray(schoolsData) && (
                 <div className="pt-2 border-t">
                   <Button 
                     variant="outline" 
@@ -201,11 +267,13 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
         </CardContent>
       </Card>
 
-      <SchoolDetailsModal
-        school={selectedSchool}
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseModal}
-      />
+      {selectedSchool && (
+        <SchoolDetailsModal
+          school={selectedSchool}
+          isOpen={isDetailsModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
     </>
   );
 };

@@ -6,32 +6,28 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { DollarSign } from 'lucide-react';
 import { useFinancialSummaryData } from '@/hooks/useAdminAnalytics';
 
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))'
+];
+
 const FinancialSummaryPieChart = () => {
   const { data, isLoading, error } = useFinancialSummaryData();
 
-  const COLORS = [
-    'hsl(var(--chart-1))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
-  ];
-
-  const chartConfig = React.useMemo(() => {
-    return (data || []).reduce((config, item, index) => {
-      config[item.plan_type.toLowerCase()] = {
-        label: item.plan_type,
-        color: COLORS[index % COLORS.length],
-      };
-      return config;
-    }, {} as any);
-  }, [data]);
+  const chartConfig = {
+    amount: {
+      label: "Revenue",
+    },
+  };
 
   if (isLoading) {
     return (
       <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Financial Summary</CardTitle>
+          <CardTitle className="text-sm font-medium">Revenue Distribution</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground animate-pulse" />
         </CardHeader>
         <CardContent>
@@ -44,25 +40,64 @@ const FinancialSummaryPieChart = () => {
   }
 
   if (error || !data || data.length === 0) {
+    console.error('📊 FinancialSummaryPieChart: Error or no data:', error);
     return (
       <Card className="h-full">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Financial Summary</CardTitle>
+          <CardTitle className="text-sm font-medium">Revenue Distribution</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            <div className="text-sm text-muted-foreground">No financial data available</div>
+            <div className="text-sm text-amber-600">No financial data available</div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  console.log('📊 FinancialSummaryPieChart: Rendering with data:', data.length);
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-2 border rounded shadow">
+          <p className="font-medium">{data.plan}</p>
+          <p className="text-sm text-gray-600">${data.amount.toLocaleString()} ({data.percentage}%)</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percentage }: any) => {
+    if (percentage < 5) return null; // Don't show labels for small slices
+    
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight="bold"
+      >
+        {`${percentage}%`}
+      </text>
+    );
+  };
+
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Revenue by Type</CardTitle>
+        <CardTitle className="text-sm font-medium">Revenue by Subscription Plan</CardTitle>
         <DollarSign className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
@@ -74,23 +109,24 @@ const FinancialSummaryPieChart = () => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ plan_type, percentage }) => `${plan_type}: ${percentage.toFixed(1)}%`}
+                label={CustomLabel}
                 outerRadius={80}
                 fill="#8884d8"
-                dataKey="revenue"
+                dataKey="amount"
               >
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]} 
+                  />
                 ))}
               </Pie>
-              <ChartTooltip 
-                content={<ChartTooltipContent />}
-                formatter={(value, name) => [
-                  `KES ${Number(value).toLocaleString()}`,
-                  name
-                ]}
+              <ChartTooltip content={<CustomTooltip />} />
+              <Legend 
+                verticalAlign="bottom" 
+                height={36}
+                formatter={(value, entry) => `${entry.payload.plan} ($${entry.payload.amount.toLocaleString()})`}
               />
-              <Legend />
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
