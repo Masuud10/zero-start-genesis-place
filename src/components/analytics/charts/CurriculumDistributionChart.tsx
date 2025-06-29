@@ -21,7 +21,12 @@ const CurriculumDistributionChart = ({ data }: CurriculumDistributionChartProps)
     'hsl(var(--chart-4))',
   ];
 
-  const chartConfig = data.reduce((config, item, index) => {
+  // Ensure we have data to display
+  const chartData = data && data.length > 0 ? data : [
+    { type: 'No Data', count: 1, percentage: 100 }
+  ];
+
+  const chartConfig = chartData.reduce((config, item, index) => {
     config[item.type.toLowerCase()] = {
       label: item.type,
       color: COLORS[index % COLORS.length],
@@ -40,7 +45,7 @@ const CurriculumDistributionChart = ({ data }: CurriculumDistributionChartProps)
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={chartData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -49,7 +54,7 @@ const CurriculumDistributionChart = ({ data }: CurriculumDistributionChartProps)
                 fill="#8884d8"
                 dataKey="count"
               >
-                {data.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

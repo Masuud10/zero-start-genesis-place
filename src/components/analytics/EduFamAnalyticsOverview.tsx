@@ -110,27 +110,33 @@ const EduFamAnalyticsOverview = () => {
             
             {/* Line Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <UserLoginChart data={systemAnalytics.userLogins} />
-              <PerformanceTrendsChart data={systemAnalytics.performanceTrends} />
+              <UserLoginChart data={systemAnalytics.userLogins || []} />
+              <PerformanceTrendsChart data={systemAnalytics.performanceTrends || []} />
             </div>
 
             {/* Bar Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <SchoolsOnboardedChart data={systemAnalytics.schoolsOnboarded} />
+              <SchoolsOnboardedChart data={systemAnalytics.schoolsOnboarded || []} />
               <div className="bg-white p-6 rounded-lg border shadow-sm">
                 <h5 className="text-sm font-medium mb-4 text-gray-900">Financial Summary</h5>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                     <span className="text-sm text-gray-600">Total Subscriptions:</span>
-                    <span className="font-semibold text-green-600">KES {systemAnalytics.financeSummary.total_subscriptions.toLocaleString()}</span>
+                    <span className="font-semibold text-green-600">
+                      KES {(systemAnalytics.financeSummary?.total_subscriptions || 0).toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                     <span className="text-sm text-gray-600">Setup Fees:</span>
-                    <span className="font-semibold text-blue-600">KES {systemAnalytics.financeSummary.setup_fees.toLocaleString()}</span>
+                    <span className="font-semibold text-blue-600">
+                      KES {(systemAnalytics.financeSummary?.setup_fees || 0).toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                     <span className="text-sm text-gray-600">Monthly Revenue:</span>
-                    <span className="font-semibold text-purple-600">KES {systemAnalytics.financeSummary.monthly_revenue.toLocaleString()}</span>
+                    <span className="font-semibold text-purple-600">
+                      KES {(systemAnalytics.financeSummary?.monthly_revenue || 0).toLocaleString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -138,8 +144,8 @@ const EduFamAnalyticsOverview = () => {
 
             {/* Pie Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <UserDistributionChart data={systemAnalytics.userDistribution} />
-              <CurriculumDistributionChart data={systemAnalytics.curriculumTypes} />
+              <UserDistributionChart data={systemAnalytics.userDistribution || []} />
+              <CurriculumDistributionChart data={systemAnalytics.curriculumTypes || []} />
             </div>
 
             {/* Additional Analytics Cards */}
@@ -148,7 +154,7 @@ const EduFamAnalyticsOverview = () => {
               <div className="bg-white p-6 rounded-lg border shadow-sm">
                 <h5 className="text-sm font-medium mb-4 text-gray-900">Top 5 Most Active Schools</h5>
                 <div className="space-y-3">
-                  {systemAnalytics.topActiveSchools.length > 0 ? (
+                  {systemAnalytics.topActiveSchools && systemAnalytics.topActiveSchools.length > 0 ? (
                     systemAnalytics.topActiveSchools.map((school, index) => (
                       <div key={index} className="flex justify-between items-center text-sm">
                         <span className="truncate text-gray-700">{school.school_name}</span>
@@ -167,15 +173,21 @@ const EduFamAnalyticsOverview = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-2 bg-green-50 rounded">
                     <span className="text-sm text-green-700">Approved:</span>
-                    <span className="font-semibold text-green-600">{systemAnalytics.gradeApprovalStats.approved}</span>
+                    <span className="font-semibold text-green-600">
+                      {systemAnalytics.gradeApprovalStats?.approved || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center p-2 bg-yellow-50 rounded">
                     <span className="text-sm text-yellow-700">Pending:</span>
-                    <span className="font-semibold text-yellow-600">{systemAnalytics.gradeApprovalStats.pending}</span>
+                    <span className="font-semibold text-yellow-600">
+                      {systemAnalytics.gradeApprovalStats?.pending || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center p-2 bg-red-50 rounded">
                     <span className="text-sm text-red-700">Rejected:</span>
-                    <span className="font-semibold text-red-600">{systemAnalytics.gradeApprovalStats.rejected}</span>
+                    <span className="font-semibold text-red-600">
+                      {systemAnalytics.gradeApprovalStats?.rejected || 0}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -184,7 +196,7 @@ const EduFamAnalyticsOverview = () => {
               <div className="bg-white p-6 rounded-lg border shadow-sm">
                 <h5 className="text-sm font-medium mb-4 text-gray-900">Recent Announcement Engagement</h5>
                 <div className="space-y-3">
-                  {systemAnalytics.announcementEngagement.length > 0 ? (
+                  {systemAnalytics.announcementEngagement && systemAnalytics.announcementEngagement.length > 0 ? (
                     systemAnalytics.announcementEngagement.slice(-3).map((item, index) => (
                       <div key={index} className="flex justify-between items-center text-sm">
                         <span className="text-gray-700">{item.month}:</span>

@@ -20,6 +20,11 @@ const SchoolsOnboardedChart = ({ data }: SchoolsOnboardedChartProps) => {
     },
   };
 
+  // Ensure we have data to display
+  const chartData = data && data.length > 0 ? data : [
+    { month: 'No Data', count: 0 }
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -29,9 +34,18 @@ const SchoolsOnboardedChart = ({ data }: SchoolsOnboardedChartProps) => {
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <XAxis dataKey="month" fontSize={12} />
-              <YAxis fontSize={12} />
+            <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <XAxis 
+                dataKey="month" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar 
                 dataKey="count" 

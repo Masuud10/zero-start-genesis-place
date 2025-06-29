@@ -23,7 +23,12 @@ const UserDistributionChart = ({ data }: UserDistributionChartProps) => {
     'hsl(var(--chart-6))',
   ];
 
-  const chartConfig = data.reduce((config, item, index) => {
+  // Ensure we have data to display
+  const chartData = data && data.length > 0 ? data : [
+    { role: 'No Data', count: 1, percentage: 100 }
+  ];
+
+  const chartConfig = chartData.reduce((config, item, index) => {
     config[item.role.toLowerCase().replace(' ', '_')] = {
       label: item.role,
       color: COLORS[index % COLORS.length],
@@ -42,7 +47,7 @@ const UserDistributionChart = ({ data }: UserDistributionChartProps) => {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={chartData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -51,7 +56,7 @@ const UserDistributionChart = ({ data }: UserDistributionChartProps) => {
                 fill="#8884d8"
                 dataKey="count"
               >
-                {data.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

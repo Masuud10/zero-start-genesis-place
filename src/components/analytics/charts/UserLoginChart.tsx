@@ -45,6 +45,11 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
     },
   };
 
+  // Ensure we have data to display
+  const chartData = data && data.length > 0 ? data : [
+    { date: new Date().toISOString().split('T')[0], admin: 0, teacher: 0, principal: 0, parent: 0, finance_officer: 0, school_owner: 0 }
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -54,21 +59,69 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <XAxis 
                 dataKey="date" 
                 tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 fontSize={12}
+                tickLine={false}
+                axisLine={false}
               />
-              <YAxis fontSize={12} />
+              <YAxis 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Legend />
-              <Line type="monotone" dataKey="admin" stroke="var(--color-admin)" strokeWidth={2} dot={{ fill: "var(--color-admin)", strokeWidth: 2, r: 3 }} />
-              <Line type="monotone" dataKey="teacher" stroke="var(--color-teacher)" strokeWidth={2} dot={{ fill: "var(--color-teacher)", strokeWidth: 2, r: 3 }} />
-              <Line type="monotone" dataKey="principal" stroke="var(--color-principal)" strokeWidth={2} dot={{ fill: "var(--color-principal)", strokeWidth: 2, r: 3 }} />
-              <Line type="monotone" dataKey="parent" stroke="var(--color-parent)" strokeWidth={2} dot={{ fill: "var(--color-parent)", strokeWidth: 2, r: 3 }} />
-              <Line type="monotone" dataKey="finance_officer" stroke="var(--color-finance_officer)" strokeWidth={2} dot={{ fill: "var(--color-finance_officer)", strokeWidth: 2, r: 3 }} />
-              <Line type="monotone" dataKey="school_owner" stroke="var(--color-school_owner)" strokeWidth={2} dot={{ fill: "var(--color-school_owner)", strokeWidth: 2, r: 3 }} />
+              <Line 
+                type="monotone" 
+                dataKey="admin" 
+                stroke="var(--color-admin)" 
+                strokeWidth={2} 
+                dot={{ fill: "var(--color-admin)", strokeWidth: 2, r: 3 }} 
+                connectNulls={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="teacher" 
+                stroke="var(--color-teacher)" 
+                strokeWidth={2} 
+                dot={{ fill: "var(--color-teacher)", strokeWidth: 2, r: 3 }} 
+                connectNulls={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="principal" 
+                stroke="var(--color-principal)" 
+                strokeWidth={2} 
+                dot={{ fill: "var(--color-principal)", strokeWidth: 2, r: 3 }} 
+                connectNulls={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="parent" 
+                stroke="var(--color-parent)" 
+                strokeWidth={2} 
+                dot={{ fill: "var(--color-parent)", strokeWidth: 2, r: 3 }} 
+                connectNulls={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="finance_officer" 
+                stroke="var(--color-finance_officer)" 
+                strokeWidth={2} 
+                dot={{ fill: "var(--color-finance_officer)", strokeWidth: 2, r: 3 }} 
+                connectNulls={false}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="school_owner" 
+                stroke="var(--color-school_owner)" 
+                strokeWidth={2} 
+                dot={{ fill: "var(--color-school_owner)", strokeWidth: 2, r: 3 }} 
+                connectNulls={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartContainer>
