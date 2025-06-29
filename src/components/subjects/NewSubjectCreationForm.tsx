@@ -11,15 +11,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, Save, X, Loader2, AlertCircle } from 'lucide-react';
+import { BookOpen, Save, X, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { SubjectDatabaseService } from '@/services/subject/subjectDatabaseService';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const subjectSchema = z.object({
-  name: z.string().min(2, 'Subject name must be at least 2 characters'),
-  code: z.string().min(2, 'Subject code must be at least 2 characters').max(20, 'Subject code must be 20 characters or less'),
+  name: z.string()
+    .min(2, 'Subject name must be at least 2 characters')
+    .max(100, 'Subject name must be 100 characters or less')
+    .regex(/^[a-zA-Z0-9\s\-&()]+$/, 'Subject name contains invalid characters'),
+  code: z.string()
+    .min(2, 'Subject code must be at least 2 characters')
+    .max(20, 'Subject code must be 20 characters or less')
+    .regex(/^[A-Z0-9]+$/, 'Subject code must contain only uppercase letters and numbers'),
   curriculum: z.enum(['cbc', 'igcse'], {
     required_error: 'Please select a curriculum type'
   }),
@@ -28,9 +34,13 @@ const subjectSchema = z.object({
   }),
   class_id: z.string().optional(),
   teacher_id: z.string().optional(),
-  credit_hours: z.number().min(1, 'Credit hours must be at least 1').max(10, 'Credit hours cannot exceed 10'),
-  assessment_weight: z.number().min(1, 'Assessment weight must be at least 1%').max(100, 'Assessment weight cannot exceed 100%'),
-  description: z.string().optional(),
+  credit_hours: z.number()
+    .min(1, 'Credit hours must be at least 1')
+    .max(10, 'Credit hours cannot exceed 10'),
+  assessment_weight: z.number()
+    .min(1, 'Assessment weight must be at least 1%')
+    .max(100, 'Assessment weight cannot exceed 100%'),
+  description: z.string().max(500, 'Description must be 500 characters or less').optional(),
   is_active: z.boolean()
 });
 
@@ -51,6 +61,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const { toast } = useToast();
   const { schoolId } = useSchoolScopedData();
 
@@ -60,7 +71,8 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
     formState: { errors },
     setValue,
     watch,
-    reset
+    reset,
+    setError
   } = useForm<SubjectFormData>({
     resolver: zodResolver(subjectSchema),
     defaultValues: {
@@ -74,20 +86,77 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
 
   const watchedValues = watch();
 
+  // Transform code to uppercase on change
+  React.useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name === 'code' && value.code) {
+        setValue('code', value.code.toUpperCase(), { shouldValidate: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, setValue]);
+
+  const validateUniqueSubject = async (name: string, code: string) => {
+    try {
+      // Check for existing subjects with same name or code
+      const existingSubjects = await SubjectDatabaseService.getSubjects(schoolId!);
+      
+      const duplicateName = existingSubjects.find(subject => 
+        subject.name.toLowerCase() === name.toLowerCase()
+      );
+      
+      const duplicateCode = existingSubjects.find(subject => 
+        subject.code.toUpperCase() === code.toUpperCase()
+      );
+
+      if (duplicateName) {
+        setError('name', { 
+          type: 'validate', 
+          message: `Subject with name "${name}" already exists in your school` 
+        });
+        return false;
+      }
+
+      if (duplicateCode) {
+        setError('code', { 
+          type: 'validate', 
+          message: `Subject with code "${code}" already exists in your school` 
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error validating unique subject:', error);
+      return true; // Allow submission if validation fails
+    }
+  };
+
   const onSubmit = async (data: SubjectFormData) => {
     if (!schoolId) {
-      setSubmitError('No school context found. Please refresh the page.');
+      setSubmitError('No school context found. Please refresh the page and try again.');
       return;
     }
 
     setIsSubmitting(true);
     setSubmitError(null);
+    setSubmitSuccess(false);
     
-    console.log('📚 NewSubjectCreationForm: Submitting subject data:', data);
+    console.log('📚 NewSubjectCreationForm: Starting subject creation:', {
+      schoolId,
+      subjectData: data
+    });
 
     try {
-      // Use the SubjectDatabaseService for creation
-      const newSubject = await SubjectDatabaseService.createSubject(schoolId, {
+      // Validate uniqueness
+      const isUnique = await validateUniqueSubject(data.name.trim(), data.code.trim());
+      if (!isUnique) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Prepare data for submission
+      const subjectData = {
         name: data.name.trim(),
         code: data.code.trim().toUpperCase(),
         curriculum: data.curriculum,
@@ -98,27 +167,54 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
         assessment_weight: data.assessment_weight,
         description: data.description?.trim() || undefined,
         is_active: data.is_active
-      });
+      };
+
+      console.log('📚 NewSubjectCreationForm: Submitting validated data:', subjectData);
+
+      // Create the subject using the database service
+      const newSubject = await SubjectDatabaseService.createSubject(schoolId, subjectData);
 
       console.log('✅ Subject created successfully:', newSubject);
       
+      // Show success state briefly
+      setSubmitSuccess(true);
+      
+      // Show success toast
       toast({
         title: "Subject Created Successfully!",
         description: `${newSubject.name} (${newSubject.code}) has been created and is now available.`,
+        variant: "default"
       });
 
-      // Reset form and call success callback
-      reset();
-      onSuccess?.();
+      // Reset form after short delay
+      setTimeout(() => {
+        reset();
+        setSubmitSuccess(false);
+        onSuccess?.();
+      }, 1500);
 
     } catch (error: any) {
       console.error('❌ Error creating subject:', error);
       
-      const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      
+      // Handle specific error types
+      if (error.message) {
+        if (error.message.includes('already exists')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('connection') || error.message.includes('network')) {
+          errorMessage = 'Network connection error. Please check your internet connection and try again.';
+        } else if (error.message.includes('permission') || error.message.includes('access')) {
+          errorMessage = 'You do not have permission to create subjects. Please contact your administrator.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       setSubmitError(errorMessage);
       
       toast({
-        title: "Creation Failed",
+        title: "Subject Creation Failed",
         description: errorMessage,
         variant: "destructive"
       });
@@ -127,17 +223,33 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
     }
   };
 
+  const handleCancel = () => {
+    if (!isSubmitting) {
+      reset();
+      setSubmitError(null);
+      setSubmitSuccess(false);
+      onCancel?.();
+    }
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
         <CardTitle className="flex items-center gap-3 text-xl">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-white" />
+            {submitSuccess ? (
+              <CheckCircle className="w-5 h-5 text-white" />
+            ) : (
+              <BookOpen className="w-5 h-5 text-white" />
+            )}
           </div>
-          Create New Subject
+          {submitSuccess ? 'Subject Created Successfully!' : 'Create New Subject'}
         </CardTitle>
         <p className="text-gray-600 ml-11">
-          Add a new subject to your school's curriculum
+          {submitSuccess 
+            ? 'The subject has been added to your school curriculum'
+            : 'Add a new subject to your school\'s curriculum'
+          }
         </p>
       </CardHeader>
       
@@ -146,6 +258,15 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
+        )}
+
+        {submitSuccess && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Subject created successfully! Redirecting...
+            </AlertDescription>
           </Alert>
         )}
 
@@ -177,6 +298,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                   {...register('code')}
                   className={errors.code ? 'border-red-500' : ''}
                   disabled={isSubmitting}
+                  style={{ textTransform: 'uppercase' }}
                 />
                 {errors.code && (
                   <p className="text-sm text-red-600">{errors.code.message}</p>
@@ -327,7 +449,11 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 rows={3}
                 {...register('description')}
                 disabled={isSubmitting}
+                maxLength={500}
               />
+              <p className="text-xs text-gray-500">
+                {watchedValues.description?.length || 0}/500 characters
+              </p>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -348,7 +474,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
             <Button
               type="button"
               variant="outline"
-              onClick={onCancel}
+              onClick={handleCancel}
               disabled={isSubmitting}
             >
               <X className="w-4 h-4 mr-2" />
@@ -356,13 +482,18 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || submitSuccess}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Creating...
+                </>
+              ) : submitSuccess ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Created!
                 </>
               ) : (
                 <>

@@ -75,11 +75,11 @@ export class SubjectDatabaseService {
         is_active: item.is_active,
         created_at: item.created_at,
         updated_at: item.updated_at,
-        class: item.class ? {
+        class: item.class && typeof item.class === 'object' && 'id' in item.class ? {
           id: item.class.id,
           name: item.class.name
         } : undefined,
-        teacher: item.teacher ? {
+        teacher: item.teacher && typeof item.teacher === 'object' && 'id' in item.teacher ? {
           id: item.teacher.id,
           name: item.teacher.name,
           email: item.teacher.email
@@ -121,28 +121,89 @@ export class SubjectDatabaseService {
         throw new Error('Database connection failed. Please try again.');
       }
 
+      // Validate subject data
+      if (!subjectData.name?.trim()) {
+        throw new Error('Subject name is required');
+      }
+      
+      if (!subjectData.code?.trim()) {
+        throw new Error('Subject code is required');
+      }
+
+      // Format and validate the code
+      const formattedCode = subjectData.code.trim().toUpperCase();
+      if (!/^[A-Z0-9]+$/.test(formattedCode)) {
+        throw new Error('Subject code must contain only uppercase letters and numbers');
+      }
+
       // Check for duplicate subject code within the school
-      const { data: existingSubject, error: duplicateError } = await supabase
+      const { data: existingCodeSubject, error: duplicateCodeError } = await supabase
         .from('subjects')
         .select('id, code')
         .eq('school_id', schoolId)
-        .eq('code', subjectData.code.toUpperCase())
+        .eq('code', formattedCode)
         .eq('is_active', true)
         .maybeSingle();
 
-      if (duplicateError) {
-        console.error('❌ Error checking for duplicate subject:', duplicateError);
-        throw new Error('Failed to validate subject uniqueness');
+      if (duplicateCodeError && duplicateCodeError.code !== 'PGRST116') {
+        console.error('❌ Error checking for duplicate subject code:', duplicateCodeError);
+        throw new Error('Failed to validate subject code uniqueness');
       }
 
-      if (existingSubject) {
-        throw new Error(`A subject with code "${subjectData.code.toUpperCase()}" already exists in your school.`);
+      if (existingCodeSubject) {
+        throw new Error(`A subject with code "${formattedCode}" already exists in your school.`);
+      }
+
+      // Check for duplicate subject name within the school (case-insensitive)
+      const { data: existingNameSubject, error: duplicateNameError } = await supabase
+        .from('subjects')
+        .select('id, name')
+        .eq('school_id', schoolId)
+        .ilike('name', subjectData.name.trim())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (duplicateNameError && duplicateNameError.code !== 'PGRST116') {
+        console.error('❌ Error checking for duplicate subject name:', duplicateNameError);
+        throw new Error('Failed to validate subject name uniqueness');
+      }
+
+      if (existingNameSubject) {
+        throw new Error(`A subject with name "${subjectData.name.trim()}" already exists in your school.`);
+      }
+
+      // Validate class and teacher references if provided
+      if (subjectData.class_id) {
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select('id, school_id')
+          .eq('id', subjectData.class_id)
+          .eq('school_id', schoolId)
+          .single();
+
+        if (classError || !classData) {
+          throw new Error('Selected class does not exist or does not belong to your school');
+        }
+      }
+
+      if (subjectData.teacher_id) {
+        const { data: teacherData, error: teacherError } = await supabase
+          .from('profiles')
+          .select('id, school_id, role')
+          .eq('id', subjectData.teacher_id)
+          .eq('school_id', schoolId)
+          .eq('role', 'teacher')
+          .single();
+
+        if (teacherError || !teacherData) {
+          throw new Error('Selected teacher does not exist or does not belong to your school');
+        }
       }
 
       // Prepare subject data for insertion
       const insertData = {
         name: subjectData.name.trim(),
-        code: subjectData.code.trim().toUpperCase(),
+        code: formattedCode,
         curriculum: subjectData.curriculum,
         category: subjectData.category,
         class_id: subjectData.class_id || null,
@@ -197,11 +258,11 @@ export class SubjectDatabaseService {
         is_active: newSubject.is_active,
         created_at: newSubject.created_at,
         updated_at: newSubject.updated_at,
-        class: newSubject.class ? {
+        class: newSubject.class && typeof newSubject.class === 'object' && 'id' in newSubject.class ? {
           id: newSubject.class.id,
           name: newSubject.class.name
         } : undefined,
-        teacher: newSubject.teacher ? {
+        teacher: newSubject.teacher && typeof newSubject.teacher === 'object' && 'id' in newSubject.teacher ? {
           id: newSubject.teacher.id,
           name: newSubject.teacher.name,
           email: newSubject.teacher.email
