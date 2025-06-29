@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SystemAnalyticsData {
@@ -57,111 +56,67 @@ export class SystemAnalyticsService {
     try {
       console.log('🔄 Fetching comprehensive system analytics...');
 
-      // Fetch user login data for the last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      // Parallel data fetching for better performance
+      const [
+        loginDataResult,
+        gradesDataResult,
+        schoolsDataResult,
+        billingDataResult,
+        usersDataResult,
+        curriculumDataResult,
+        activeSchoolsDataResult,
+        gradeStatsDataResult,
+        announcementDataResult
+      ] = await Promise.allSettled([
+        this.fetchUserLoginData(),
+        this.fetchPerformanceData(),
+        this.fetchSchoolsData(),
+        this.fetchBillingData(),
+        this.fetchUsersData(),
+        this.fetchCurriculumData(),
+        this.fetchActiveSchoolsData(),
+        this.fetchGradeStatsData(),
+        this.fetchAnnouncementData()
+      ]);
 
-      const { data: loginData, error: loginError } = await supabase
-        .from('profiles')
-        .select('role, last_login_at, created_at')
-        .gte('last_login_at', thirtyDaysAgo.toISOString());
+      // Process results with fallbacks
+      const userLogins = loginDataResult.status === 'fulfilled' 
+        ? this.processDailyLogins(loginDataResult.value) 
+        : this.getDefaultUserLogins();
 
-      if (loginError) throw loginError;
+      const performanceTrends = gradesDataResult.status === 'fulfilled' 
+        ? this.processPerformanceTrends(gradesDataResult.value) 
+        : [];
 
-      // Process daily login data
-      const userLogins = this.processDailyLogins(loginData || []);
+      const schoolsOnboarded = schoolsDataResult.status === 'fulfilled' 
+        ? this.processSchoolsOnboarded(schoolsDataResult.value) 
+        : [];
 
-      // Fetch performance trends for the last 6 months
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const financeSummary = billingDataResult.status === 'fulfilled' 
+        ? this.processFinanceSummary(billingDataResult.value) 
+        : { total_subscriptions: 0, setup_fees: 0, monthly_revenue: 0 };
 
-      const { data: gradesData, error: gradesError } = await supabase
-        .from('grades')
-        .select('percentage, created_at')
-        .gte('created_at', sixMonthsAgo.toISOString())
-        .eq('status', 'released')
-        .not('percentage', 'is', null);
+      const userDistribution = usersDataResult.status === 'fulfilled' 
+        ? this.processUserDistribution(usersDataResult.value) 
+        : [];
 
-      if (gradesError) throw gradesError;
+      const curriculumTypes = curriculumDataResult.status === 'fulfilled' 
+        ? this.processCurriculumTypes(curriculumDataResult.value) 
+        : [];
 
-      const performanceTrends = this.processPerformanceTrends(gradesData || []);
+      const topActiveSchools = activeSchoolsDataResult.status === 'fulfilled' 
+        ? this.processTopActiveSchools(activeSchoolsDataResult.value) 
+        : [];
 
-      // Fetch schools onboarded by month
-      const { data: schoolsData, error: schoolsError } = await supabase
-        .from('schools')
-        .select('created_at, status')
-        .eq('status', 'active')
-        .gte('created_at', sixMonthsAgo.toISOString());
+      const gradeApprovalStats = gradeStatsDataResult.status === 'fulfilled' 
+        ? this.processGradeApprovalStats(gradeStatsDataResult.value) 
+        : { approved: 0, pending: 0, rejected: 0 };
 
-      if (schoolsError) throw schoolsError;
+      const announcementEngagement = announcementDataResult.status === 'fulfilled' 
+        ? this.processAnnouncementEngagement(announcementDataResult.value) 
+        : [];
 
-      const schoolsOnboarded = this.processSchoolsOnboarded(schoolsData || []);
-
-      // Fetch financial data
-      const { data: billingData, error: billingError } = await supabase
-        .from('school_billing_records')
-        .select('amount, status, billing_type')
-        .eq('status', 'paid');
-
-      if (billingError) throw billingError;
-
-      const financeSummary = this.processFinanceSummary(billingData || []);
-
-      // Fetch user distribution
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('status', 'active');
-
-      if (usersError) throw usersError;
-
-      const userDistribution = this.processUserDistribution(usersData || []);
-
-      // Fetch curriculum distribution
-      const { data: curriculumData, error: curriculumError } = await supabase
-        .from('schools')
-        .select('curriculum_type')
-        .eq('status', 'active');
-
-      if (curriculumError) throw curriculumError;
-
-      const curriculumTypes = this.processCurriculumTypes(curriculumData || []);
-
-      // Fetch top active schools
-      const { data: activeSchoolsData, error: activeSchoolsError } = await supabase
-        .from('schools')
-        .select(`
-          id,
-          name,
-          profiles!school_id(count)
-        `)
-        .eq('status', 'active')
-        .limit(5);
-
-      if (activeSchoolsError) throw activeSchoolsError;
-
-      const topActiveSchools = this.processTopActiveSchools(activeSchoolsData || []);
-
-      // Fetch grade approval stats
-      const { data: gradeStatsData, error: gradeStatsError } = await supabase
-        .from('grades')
-        .select('status')
-        .gte('created_at', thirtyDaysAgo.toISOString());
-
-      if (gradeStatsError) throw gradeStatsError;
-
-      const gradeApprovalStats = this.processGradeApprovalStats(gradeStatsData || []);
-
-      // Fetch announcement engagement
-      const { data: announcementData, error: announcementError } = await supabase
-        .from('announcements')
-        .select('created_at, read_count, total_recipients')
-        .gte('created_at', sixMonthsAgo.toISOString());
-
-      if (announcementError) throw announcementError;
-
-      const announcementEngagement = this.processAnnouncementEngagement(announcementData || []);
-
+      console.log('✅ System analytics processed successfully');
       return {
         userLogins,
         performanceTrends,
@@ -178,6 +133,138 @@ export class SystemAnalyticsService {
       console.error('❌ Error fetching system analytics:', error);
       throw error;
     }
+  }
+
+  private static async fetchUserLoginData() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role, last_login_at, created_at')
+      .gte('last_login_at', thirtyDaysAgo.toISOString())
+      .eq('status', 'active');
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchPerformanceData() {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const { data, error } = await supabase
+      .from('grades')
+      .select('percentage, created_at')
+      .gte('created_at', sixMonthsAgo.toISOString())
+      .eq('status', 'released')
+      .not('percentage', 'is', null);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchSchoolsData() {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const { data, error } = await supabase
+      .from('schools')
+      .select('created_at, status')
+      .eq('status', 'active')
+      .gte('created_at', sixMonthsAgo.toISOString());
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchBillingData() {
+    const { data, error } = await supabase
+      .from('school_billing_records')
+      .select('amount, status, billing_type')
+      .eq('status', 'paid');
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchUsersData() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('status', 'active');
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchCurriculumData() {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('curriculum_type')
+      .eq('status', 'active');
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchActiveSchoolsData() {
+    const { data, error } = await supabase
+      .from('schools')
+      .select(`
+        id,
+        name,
+        profiles!school_id(count)
+      `)
+      .eq('status', 'active')
+      .limit(5);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchGradeStatsData() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data, error } = await supabase
+      .from('grades')
+      .select('status')
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static async fetchAnnouncementData() {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('created_at, read_count, total_recipients')
+      .gte('created_at', sixMonthsAgo.toISOString());
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private static getDefaultUserLogins() {
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
+
+    return last30Days.map(date => ({
+      date,
+      admin: 0,
+      teacher: 0,
+      principal: 0,
+      parent: 0,
+      finance_officer: 0,
+      school_owner: 0
+    }));
   }
 
   private static processDailyLogins(data: any[]): SystemAnalyticsData['userLogins'] {

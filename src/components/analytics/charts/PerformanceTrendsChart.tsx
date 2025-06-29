@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Bar, BarChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ComposedChart, Bar } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 
 interface PerformanceTrendsChartProps {
@@ -25,6 +25,11 @@ const PerformanceTrendsChart = ({ data }: PerformanceTrendsChartProps) => {
     },
   };
 
+  // Ensure we have data to display
+  const chartData = data && data.length > 0 ? data : [
+    { month: 'No Data', average_grade: 0, total_grades: 0 }
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -34,10 +39,27 @@ const PerformanceTrendsChart = ({ data }: PerformanceTrendsChartProps) => {
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <XAxis dataKey="month" fontSize={12} />
-              <YAxis yAxisId="left" orientation="left" fontSize={12} />
-              <YAxis yAxisId="right" orientation="right" fontSize={12} />
+            <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <XAxis 
+                dataKey="month" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis 
+                yAxisId="left" 
+                orientation="left" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis 
+                yAxisId="right" 
+                orientation="right" 
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Line 
                 yAxisId="left"
@@ -46,14 +68,16 @@ const PerformanceTrendsChart = ({ data }: PerformanceTrendsChartProps) => {
                 stroke="var(--color-average_grade)" 
                 strokeWidth={3}
                 dot={{ fill: "var(--color-average_grade)", strokeWidth: 2, r: 4 }}
+                connectNulls={false}
               />
               <Bar 
                 yAxisId="right"
                 dataKey="total_grades" 
                 fill="var(--color-total_grades)"
-                opacity={0.6}
+                opacity={0.3}
+                radius={[2, 2, 0, 0]}
               />
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
