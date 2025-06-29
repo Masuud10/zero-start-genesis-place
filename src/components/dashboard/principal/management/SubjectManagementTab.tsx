@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, BookOpen, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, BookOpen, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
 import NewSubjectCreationModal from '@/components/subjects/NewSubjectCreationModal';
@@ -25,14 +25,24 @@ const SubjectManagementTab = () => {
   } = usePrincipalEntityLists(reloadKey);
 
   const handleCreateSuccess = () => {
-    console.log('✅ Subject created successfully, reloading data...');
+    console.log('✅ Subject created successfully, refreshing data...');
+    
+    // Force reload of all data
     setReloadKey(prev => prev + 1);
     retry(); // Refresh subjects list
-    setShowCreateModal(false); // Close modal
+    
+    // Close modal
+    setShowCreateModal(false);
   };
 
   const handleRetry = () => {
     console.log('🔄 Retrying data fetch...');
+    setReloadKey(prev => prev + 1);
+    retry();
+  };
+
+  const handleRefresh = () => {
+    console.log('🔄 Manual refresh triggered...');
     setReloadKey(prev => prev + 1);
     retry();
   };
@@ -46,10 +56,16 @@ const SubjectManagementTab = () => {
             {subjectsError || errorEntities}
           </AlertDescription>
         </Alert>
-        <Button onClick={handleRetry} variant="outline">
-          <Loader2 className="w-4 h-4 mr-2" />
-          Try Again
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleRetry} variant="outline">
+            <Loader2 className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
     );
   }
@@ -71,14 +87,25 @@ const SubjectManagementTab = () => {
                 </p>
               </div>
             </div>
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              disabled={entitiesLoading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Subject
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="sm"
+                disabled={subjectsLoading || entitiesLoading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${subjectsLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                disabled={entitiesLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Subject
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>

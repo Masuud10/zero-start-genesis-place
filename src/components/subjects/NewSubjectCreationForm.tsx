@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, Save, X, Loader2 } from 'lucide-react';
+import { BookOpen, Save, X, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { supabase } from '@/integrations/supabase/client';
+import { SubjectDatabaseService } from '@/services/subject/subjectDatabaseService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const subjectSchema = z.object({
   name: z.string().min(2, 'Subject name must be at least 2 characters'),
@@ -49,6 +50,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
   teachers
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const { toast } = useToast();
   const { schoolId } = useSchoolScopedData();
 
@@ -74,94 +76,29 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
 
   const onSubmit = async (data: SubjectFormData) => {
     if (!schoolId) {
-      toast({
-        title: "Error",
-        description: "No school context found. Please refresh the page.",
-        variant: "destructive"
-      });
+      setSubmitError('No school context found. Please refresh the page.');
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
+    
     console.log('📚 NewSubjectCreationForm: Submitting subject data:', data);
 
     try {
-      // Check for duplicate subject code within the school
-      const { data: existingSubject, error: duplicateError } = await supabase
-        .from('subjects')
-        .select('id, code')
-        .eq('school_id', schoolId)
-        .eq('code', data.code.toUpperCase())
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (duplicateError) {
-        console.error('❌ Error checking for duplicate subject:', duplicateError);
-        throw new Error('Failed to validate subject uniqueness');
-      }
-
-      if (existingSubject) {
-        toast({
-          title: "Duplicate Subject Code",
-          description: `A subject with code "${data.code.toUpperCase()}" already exists in your school.`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Prepare subject data for insertion
-      const subjectData = {
+      // Use the SubjectDatabaseService for creation
+      const newSubject = await SubjectDatabaseService.createSubject(schoolId, {
         name: data.name.trim(),
         code: data.code.trim().toUpperCase(),
         curriculum: data.curriculum,
         category: data.category,
-        class_id: data.class_id || null,
-        teacher_id: data.teacher_id || null,
+        class_id: data.class_id || undefined,
+        teacher_id: data.teacher_id || undefined,
         credit_hours: data.credit_hours,
         assessment_weight: data.assessment_weight,
-        description: data.description?.trim() || null,
-        is_active: data.is_active,
-        school_id: schoolId
-      };
-
-      console.log('📚 Inserting subject data:', subjectData);
-
-      // Insert the new subject
-      const { data: newSubject, error: insertError } = await supabase
-        .from('subjects')
-        .insert(subjectData)
-        .select(`
-          *,
-          class:classes!subjects_class_id_fkey(id, name),
-          teacher:profiles!subjects_teacher_id_fkey(id, name, email)
-        `)
-        .single();
-
-      if (insertError) {
-        console.error('❌ Error creating subject:', insertError);
-        
-        // Handle specific database errors
-        if (insertError.code === '23505') {
-          toast({
-            title: "Duplicate Subject",
-            description: "A subject with this code already exists in your school.",
-            variant: "destructive"
-          });
-        } else if (insertError.code === '23503') {
-          toast({
-            title: "Invalid Reference",
-            description: "Please check that the selected class and teacher exist.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Creation Failed",
-            description: insertError.message || "Failed to create subject. Please try again.",
-            variant: "destructive"
-          });
-        }
-        return;
-      }
+        description: data.description?.trim() || undefined,
+        is_active: data.is_active
+      });
 
       console.log('✅ Subject created successfully:', newSubject);
       
@@ -175,10 +112,14 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
       onSuccess?.();
 
     } catch (error: any) {
-      console.error('❌ Unexpected error creating subject:', error);
+      console.error('❌ Error creating subject:', error);
+      
+      const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
+      setSubmitError(errorMessage);
+      
       toast({
-        title: "Unexpected Error",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        title: "Creation Failed",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -201,6 +142,13 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
       </CardHeader>
       
       <CardContent className="p-6">
+        {submitError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Information Section */}
           <div className="space-y-4">
