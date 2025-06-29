@@ -96,6 +96,28 @@ export const useSchoolBillingRecords = (schoolId?: string) => {
   });
 };
 
+export const useAllSchools = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['all-schools'],
+    queryFn: async () => {
+      const result = await BillingManagementService.getAllSchools();
+      if (result.error) {
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : result.error?.message || 'Failed to fetch schools';
+        throw new Error(errorMessage);
+      }
+      return result.data;
+    },
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 2,
+  });
+};
+
 export const useBillingActions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();

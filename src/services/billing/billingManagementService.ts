@@ -132,7 +132,7 @@ export class BillingManagementService {
     try {
       console.log('📊 BillingManagementService: Getting school billing summaries');
 
-      const connectionTest = await BillingRecordsService.testConnection();
+      const connectionTest = await BillingRecordsService.testConnectionWithTimeout();
       if (!connectionTest) {
         return { data: [], error: 'Database connection failed' };
       }
