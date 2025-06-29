@@ -1,4 +1,3 @@
-
 export interface Subject {
   id: string;
   name: string;
@@ -15,6 +14,15 @@ export interface Subject {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  class?: {
+    id: string;
+    name: string;
+  };
+  teacher?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export interface SubjectAssignment {
@@ -46,4 +54,18 @@ export interface CreateAssignmentData {
   subject_id: string;
   teacher_id: string;
   class_id: string;
+}
+
+// New interface for the form data
+export interface NewSubjectFormData {
+  name: string;
+  code: string;
+  curriculum: 'cbc' | 'igcse';
+  category: 'core' | 'elective' | 'optional';
+  class_id?: string;
+  teacher_id?: string;
+  credit_hours: number;
+  assessment_weight: number;
+  description?: string;
+  is_active: boolean;
 }
