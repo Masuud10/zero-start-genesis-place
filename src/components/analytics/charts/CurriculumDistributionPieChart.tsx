@@ -125,7 +125,10 @@ const CurriculumDistributionPieChart = () => {
               <Legend 
                 verticalAlign="bottom" 
                 height={36}
-                formatter={(value, entry) => `${entry.payload.curriculum} (${entry.payload.count})`}
+                formatter={(value: string) => {
+                  const item = data.find(d => d.curriculum === value);
+                  return item ? `${item.curriculum} (${item.count})` : value;
+                }}
               />
             </PieChart>
           </ResponsiveContainer>

@@ -125,7 +125,10 @@ const FinancialSummaryPieChart = () => {
               <Legend 
                 verticalAlign="bottom" 
                 height={36}
-                formatter={(value, entry) => `${entry.payload.plan} ($${entry.payload.amount.toLocaleString()})`}
+                formatter={(value: string) => {
+                  const item = data.find(d => d.plan === value);
+                  return item ? `${item.plan} ($${item.amount.toLocaleString()})` : value;
+                }}
               />
             </PieChart>
           </ResponsiveContainer>

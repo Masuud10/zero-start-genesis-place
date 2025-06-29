@@ -7,7 +7,7 @@ export class AdminAnalyticsService {
       console.log('📊 AdminAnalyticsService: Fetching user growth data...');
       
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('created_at')
         .order('created_at', { ascending: true });
 
@@ -106,35 +106,44 @@ export class AdminAnalyticsService {
     try {
       console.log('📊 AdminAnalyticsService: Fetching enrollment by school data...');
       
-      const { data, error } = await supabase
+      // Get schools with student count via separate queries to avoid complex joins
+      const { data: schools, error: schoolsError } = await supabase
         .from('schools')
-        .select(`
-          id,
-          name,
-          students:user_profiles!school_id(count)
-        `)
+        .select('id, name')
         .limit(10);
 
-      if (error) {
-        console.error('❌ AdminAnalyticsService: Enrollment fetch error:', error);
-        throw new Error(`Failed to fetch enrollment data: ${error.message}`);
+      if (schoolsError) {
+        console.error('❌ AdminAnalyticsService: Schools fetch error:', schoolsError);
+        throw new Error(`Failed to fetch schools: ${schoolsError.message}`);
       }
 
-      if (!data || !Array.isArray(data)) {
-        console.warn('📊 AdminAnalyticsService: No enrollment data available');
+      if (!schools || !Array.isArray(schools)) {
+        console.warn('📊 AdminAnalyticsService: No schools data available');
         return [];
       }
 
-      const result = data
-        .map(school => ({
-          school: school.name || 'Unknown School',
-          students: school.students?.[0]?.count || 0
-        }))
+      // Get student counts for each school
+      const result = [];
+      for (const school of schools) {
+        const { data: students, error: studentsError } = await supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', school.id);
+
+        if (!studentsError) {
+          result.push({
+            school: school.name || 'Unknown School',
+            students: students || 0
+          });
+        }
+      }
+
+      const sortedResult = result
         .sort((a, b) => b.students - a.students)
         .slice(0, 10);
 
-      console.log('✅ AdminAnalyticsService: Enrollment data processed:', result.length);
-      return result;
+      console.log('✅ AdminAnalyticsService: Enrollment data processed:', sortedResult.length);
+      return sortedResult;
 
     } catch (error) {
       console.error('❌ AdminAnalyticsService: getEnrollmentBySchoolData error:', error);
@@ -147,7 +156,7 @@ export class AdminAnalyticsService {
       console.log('📊 AdminAnalyticsService: Fetching user role distribution...');
       
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('role');
 
       if (error) {
