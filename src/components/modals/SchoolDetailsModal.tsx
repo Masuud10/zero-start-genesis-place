@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Building2, MapPin, Phone, Mail, Calendar, Users, GraduationCap, Hash } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Calendar, Users, GraduationCap, Hash, AlertCircle } from 'lucide-react';
 
 interface SchoolDetailsModalProps {
   school: any;
@@ -41,14 +41,31 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
         return 'CBC';
       case 'igcse':
         return 'IGCSE';
+      case 'cambridge':
+        return 'Cambridge';
+      case 'ib':
+        return 'International Baccalaureate';
       default:
         return type || 'Standard';
     }
   };
 
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'inactive':
+        return 'bg-red-100 text-red-800';
+      case 'suspended':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {school.logo_url ? (
@@ -56,16 +73,24 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
                 src={school.logo_url} 
                 alt={`${school.name} logo`}
                 className="w-12 h-12 rounded-lg object-cover border"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             ) : (
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Building2 className="h-6 w-6 text-blue-600" />
               </div>
             )}
-            <div>
+            <div className="flex-1">
               <h2 className="text-xl font-bold">{school.name}</h2>
               {school.motto && (
                 <p className="text-sm text-blue-600 italic">"{school.motto}"</p>
+              )}
+              {school.status && (
+                <Badge className={`mt-1 ${getStatusColor(school.status)}`}>
+                  {school.status.charAt(0).toUpperCase() + school.status.slice(1)}
+                </Badge>
               )}
             </div>
           </DialogTitle>
@@ -81,54 +106,74 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Address</p>
-                      <p className="text-sm text-gray-600">{school.address}</p>
+                  {school.address && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Address</p>
+                        <p className="text-sm text-gray-600">{school.address}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium">Phone</p>
-                      <p className="text-sm text-gray-600">{school.phone}</p>
+                  {school.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Phone</p>
+                        <p className="text-sm text-gray-600">{school.phone}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium">Email</p>
-                      <p className="text-sm text-gray-600">{school.email}</p>
+                  {school.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Email</p>
+                        <p className="text-sm text-gray-600">{school.email}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <div>
                       <p className="text-sm font-medium">Registration Date</p>
                       <p className="text-sm text-gray-600">{formatDate(school.created_at)}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium">Curriculum Type</p>
-                      <Badge variant="outline">{formatCurriculumType(school.curriculum_type)}</Badge>
+                  {school.curriculum_type && (
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Curriculum Type</p>
+                        <Badge variant="outline">{formatCurriculumType(school.curriculum_type)}</Badge>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
                   {school.registration_number && (
                     <div className="flex items-center gap-2">
-                      <Hash className="h-4 w-4 text-gray-500" />
+                      <Hash className="h-4 w-4 text-gray-500 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium">Registration Number</p>
                         <p className="text-sm text-gray-600">{school.registration_number}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {school.school_type && (
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">School Type</p>
+                        <Badge variant="outline">
+                          {school.school_type.charAt(0).toUpperCase() + school.school_type.slice(1)}
+                        </Badge>
                       </div>
                     </div>
                   )}
@@ -138,7 +183,7 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
           </Card>
 
           {/* Additional Details */}
-          {(school.year_established || school.principal_name || school.website_url) && (
+          {(school.year_established || school.principal_name || school.website_url || school.max_students || school.subscription_plan) && (
             <Card>
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-3">Additional Information</h3>
@@ -154,6 +199,20 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
                     <div>
                       <p className="text-sm font-medium">Principal</p>
                       <p className="text-sm text-gray-600">{school.principal_name}</p>
+                    </div>
+                  )}
+
+                  {school.principal_contact && (
+                    <div>
+                      <p className="text-sm font-medium">Principal Contact</p>
+                      <p className="text-sm text-gray-600">{school.principal_contact}</p>
+                    </div>
+                  )}
+
+                  {school.principal_email && (
+                    <div>
+                      <p className="text-sm font-medium">Principal Email</p>
+                      <p className="text-sm text-gray-600">{school.principal_email}</p>
                     </div>
                   )}
                   
@@ -177,6 +236,36 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
                       <p className="text-sm text-gray-600">{school.slogan}</p>
                     </div>
                   )}
+
+                  {school.max_students && (
+                    <div>
+                      <p className="text-sm font-medium">Maximum Students</p>
+                      <p className="text-sm text-gray-600">{school.max_students.toLocaleString()}</p>
+                    </div>
+                  )}
+
+                  {school.subscription_plan && (
+                    <div>
+                      <p className="text-sm font-medium">Subscription Plan</p>
+                      <Badge variant="outline">
+                        {school.subscription_plan.charAt(0).toUpperCase() + school.subscription_plan.slice(1)}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {school.timezone && (
+                    <div>
+                      <p className="text-sm font-medium">Timezone</p>
+                      <p className="text-sm text-gray-600">{school.timezone}</p>
+                    </div>
+                  )}
+
+                  {school.term_structure && (
+                    <div>
+                      <p className="text-sm font-medium">Term Structure</p>
+                      <p className="text-sm text-gray-600">{school.term_structure}</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -188,6 +277,18 @@ const SchoolDetailsModal: React.FC<SchoolDetailsModalProps> = ({
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-3">Owner Information</h3>
                 <p className="text-sm text-gray-600">{school.owner_information}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Error State for Missing Data */}
+          {!school.name && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-amber-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <p className="text-sm">Some school information may be incomplete or unavailable.</p>
+                </div>
               </CardContent>
             </Card>
           )}

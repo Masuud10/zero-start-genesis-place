@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,15 @@ interface School {
   motto?: string;
   slogan?: string;
   principal_name?: string;
+  principal_contact?: string;
+  principal_email?: string;
   owner_information?: string;
+  school_type?: string;
+  status?: string;
+  subscription_plan?: string;
+  max_students?: number;
+  timezone?: string;
+  term_structure?: string;
 }
 
 interface RecentSchoolsSectionProps {
@@ -62,6 +71,7 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
   };
 
   const handleViewSchool = (school: School) => {
+    console.log('Opening school details for:', school.name);
     setSelectedSchool(school);
     setIsDetailsModalOpen(true);
   };
@@ -166,6 +176,7 @@ const RecentSchoolsSection: React.FC<RecentSchoolsSectionProps> = ({
                       variant="ghost" 
                       size="sm"
                       onClick={() => handleViewSchool(school)}
+                      className="hover:bg-blue-50"
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       View
