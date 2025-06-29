@@ -5,15 +5,21 @@ import PerformanceTrendsChart from '../charts/PerformanceTrendsChart';
 import SchoolsOnboardedChart from '../charts/SchoolsOnboardedChart';
 import UserDistributionChart from '../charts/UserDistributionChart';
 import CurriculumDistributionChart from '../charts/CurriculumDistributionChart';
+import { SystemAnalyticsData } from '@/services/analytics/systemAnalyticsService';
 
 interface EnhancedSystemAnalyticsSectionProps {
-  systemAnalytics: any;
+  systemAnalytics: SystemAnalyticsData;
 }
 
 const EnhancedSystemAnalyticsSection = ({ systemAnalytics }: EnhancedSystemAnalyticsSectionProps) => {
   if (!systemAnalytics) {
     console.warn('⚠️ EnhancedSystemAnalyticsSection: No system analytics data provided');
-    return null;
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <h4 className="text-lg font-semibold text-yellow-800 mb-2">Charts Loading...</h4>
+        <p className="text-yellow-700">System analytics data is being processed. Charts will appear shortly.</p>
+      </div>
+    );
   }
 
   // Debug logging for chart data

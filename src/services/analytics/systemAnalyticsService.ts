@@ -1,7 +1,8 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SystemAnalyticsData {
-  userLogins: {
+  userLogins: Array<{
     date: string;
     admin: number;
     teacher: number;
@@ -9,322 +10,199 @@ export interface SystemAnalyticsData {
     parent: number;
     finance_officer: number;
     school_owner: number;
-  }[];
-  performanceTrends: {
+  }>;
+  performanceTrends: Array<{
     month: string;
     average_grade: number;
     total_grades: number;
-  }[];
-  schoolsOnboarded: {
+  }>;
+  schoolsOnboarded: Array<{
     month: string;
     count: number;
-  }[];
+  }>;
+  userDistribution: Array<{
+    role: string;
+    count: number;
+    percentage: number;
+  }>;
+  curriculumTypes: Array<{
+    type: string;
+    count: number;
+    percentage: number;
+  }>;
   financeSummary: {
     total_subscriptions: number;
     setup_fees: number;
     monthly_revenue: number;
   };
-  userDistribution: {
-    role: string;
-    count: number;
-    percentage: number;
-  }[];
-  curriculumTypes: {
-    type: string;
-    count: number;
-    percentage: number;
-  }[];
-  topActiveSchools: {
-    school_name: string;
-    activity_score: number;
-    total_users: number;
-  }[];
-  gradeApprovalStats: {
-    approved: number;
-    pending: number;
-    rejected: number;
-  };
-  announcementEngagement: {
-    month: string;
-    total_announcements: number;
-    engagement_rate: number;
-  }[];
 }
 
 export class SystemAnalyticsService {
   static async getComprehensiveAnalytics(): Promise<SystemAnalyticsData> {
     try {
-      console.log('🔄 Fetching comprehensive system analytics...');
+      console.log('🔄 SystemAnalyticsService: Fetching comprehensive analytics...');
 
-      // Parallel data fetching for better performance
-      const [
-        loginDataResult,
-        gradesDataResult,
-        schoolsDataResult,
-        billingDataResult,
-        usersDataResult,
-        curriculumDataResult,
-        activeSchoolsDataResult,
-        gradeStatsDataResult,
-        announcementDataResult
-      ] = await Promise.allSettled([
-        this.fetchUserLoginData(),
-        this.fetchPerformanceData(),
-        this.fetchSchoolsData(),
-        this.fetchBillingData(),
-        this.fetchUsersData(),
-        this.fetchCurriculumData(),
-        this.fetchActiveSchoolsData(),
-        this.fetchGradeStatsData(),
-        this.fetchAnnouncementData()
-      ]);
+      // Fetch user login data (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: loginData, error: loginError } = await supabase
+        .from('profiles')
+        .select('role, last_login_at')
+        .gte('last_login_at', thirtyDaysAgo.toISOString());
 
-      // Process results with fallbacks
-      const userLogins = loginDataResult.status === 'fulfilled' 
-        ? this.processDailyLogins(loginDataResult.value) 
-        : this.getDefaultUserLogins();
+      if (loginError) {
+        console.error('❌ Error fetching login data:', loginError);
+        throw loginError;
+      }
 
-      const performanceTrends = gradesDataResult.status === 'fulfilled' 
-        ? this.processPerformanceTrends(gradesDataResult.value) 
-        : [];
+      // Process user login data by date and role
+      const userLogins = this.processUserLoginData(loginData || []);
 
-      const schoolsOnboarded = schoolsDataResult.status === 'fulfilled' 
-        ? this.processSchoolsOnboarded(schoolsDataResult.value) 
-        : [];
+      // Fetch performance trends (grades data)
+      const { data: gradesData, error: gradesError } = await supabase
+        .from('grades')
+        .select('score, created_at')
+        .order('created_at', { ascending: true });
 
-      const financeSummary = billingDataResult.status === 'fulfilled' 
-        ? this.processFinanceSummary(billingDataResult.value) 
-        : { total_subscriptions: 0, setup_fees: 0, monthly_revenue: 0 };
+      if (gradesError) {
+        console.error('❌ Error fetching grades data:', gradesError);
+      }
 
-      const userDistribution = usersDataResult.status === 'fulfilled' 
-        ? this.processUserDistribution(usersDataResult.value) 
-        : [];
+      const performanceTrends = this.processPerformanceData(gradesData || []);
 
-      const curriculumTypes = curriculumDataResult.status === 'fulfilled' 
-        ? this.processCurriculumTypes(curriculumDataResult.value) 
-        : [];
+      // Fetch schools onboarded data
+      const { data: schoolsData, error: schoolsError } = await supabase
+        .from('schools')
+        .select('created_at')
+        .order('created_at', { ascending: true });
 
-      const topActiveSchools = activeSchoolsDataResult.status === 'fulfilled' 
-        ? this.processTopActiveSchools(activeSchoolsDataResult.value) 
-        : [];
+      if (schoolsError) {
+        console.error('❌ Error fetching schools data:', schoolsError);
+      }
 
-      const gradeApprovalStats = gradeStatsDataResult.status === 'fulfilled' 
-        ? this.processGradeApprovalStats(gradeStatsDataResult.value) 
-        : { approved: 0, pending: 0, rejected: 0 };
+      const schoolsOnboarded = this.processSchoolsData(schoolsData || []);
 
-      const announcementEngagement = announcementDataResult.status === 'fulfilled' 
-        ? this.processAnnouncementEngagement(announcementDataResult.value) 
-        : [];
+      // Fetch user distribution
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('role');
 
-      console.log('✅ System analytics processed successfully');
-      return {
+      if (usersError) {
+        console.error('❌ Error fetching users data:', usersError);
+      }
+
+      const userDistribution = this.processUserDistribution(usersData || []);
+
+      // Fetch curriculum types distribution
+      const { data: curriculumData, error: curriculumError } = await supabase
+        .from('schools')
+        .select('curriculum_type');
+
+      if (curriculumError) {
+        console.error('❌ Error fetching curriculum data:', curriculumError);
+      }
+
+      const curriculumTypes = this.processCurriculumData(curriculumData || []);
+
+      // Fetch financial summary
+      const { data: billingData, error: billingError } = await supabase
+        .from('school_billing_records')
+        .select('amount, billing_type, status');
+
+      if (billingError) {
+        console.error('❌ Error fetching billing data:', billingError);
+      }
+
+      const financeSummary = this.processFinancialData(billingData || []);
+
+      const result: SystemAnalyticsData = {
         userLogins,
         performanceTrends,
         schoolsOnboarded,
-        financeSummary,
         userDistribution,
         curriculumTypes,
-        topActiveSchools,
-        gradeApprovalStats,
-        announcementEngagement
+        financeSummary
       };
 
+      console.log('✅ SystemAnalyticsService: Analytics data processed successfully');
+      return result;
+
     } catch (error) {
-      console.error('❌ Error fetching system analytics:', error);
+      console.error('❌ SystemAnalyticsService: Failed to fetch analytics:', error);
       throw error;
     }
   }
 
-  private static async fetchUserLoginData() {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('role, last_login_at, created_at')
-      .gte('last_login_at', thirtyDaysAgo.toISOString())
-      .eq('status', 'active');
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchPerformanceData() {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const { data, error } = await supabase
-      .from('grades')
-      .select('percentage, created_at')
-      .gte('created_at', sixMonthsAgo.toISOString())
-      .eq('status', 'released')
-      .not('percentage', 'is', null);
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchSchoolsData() {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const { data, error } = await supabase
-      .from('schools')
-      .select('created_at, status')
-      .eq('status', 'active')
-      .gte('created_at', sixMonthsAgo.toISOString());
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchBillingData() {
-    const { data, error } = await supabase
-      .from('school_billing_records')
-      .select('amount, status, billing_type')
-      .eq('status', 'paid');
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchUsersData() {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('status', 'active');
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchCurriculumData() {
-    const { data, error } = await supabase
-      .from('schools')
-      .select('curriculum_type')
-      .eq('status', 'active');
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchActiveSchoolsData() {
-    const { data, error } = await supabase
-      .from('schools')
-      .select(`
-        id,
-        name,
-        profiles!school_id(count)
-      `)
-      .eq('status', 'active')
-      .limit(5);
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchGradeStatsData() {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const { data, error } = await supabase
-      .from('grades')
-      .select('status')
-      .gte('created_at', thirtyDaysAgo.toISOString());
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static async fetchAnnouncementData() {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('created_at, read_count, total_recipients')
-      .gte('created_at', sixMonthsAgo.toISOString());
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  private static getDefaultUserLogins() {
-    const last30Days = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date.toISOString().split('T')[0];
-    }).reverse();
-
-    return last30Days.map(date => ({
-      date,
-      admin: 0,
-      teacher: 0,
-      principal: 0,
-      parent: 0,
-      finance_officer: 0,
-      school_owner: 0
-    }));
-  }
-
-  private static processDailyLogins(data: any[]): SystemAnalyticsData['userLogins'] {
-    const last30Days = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date.toISOString().split('T')[0];
-    }).reverse();
-
-    return last30Days.map(date => {
-      const dayLogins = data.filter(user => 
-        user.last_login_at && user.last_login_at.startsWith(date)
-      );
-
-      return {
-        date,
-        admin: dayLogins.filter(u => u.role === 'edufam_admin' || u.role === 'elimisha_admin').length,
-        teacher: dayLogins.filter(u => u.role === 'teacher').length,
-        principal: dayLogins.filter(u => u.role === 'principal').length,
-        parent: dayLogins.filter(u => u.role === 'parent').length,
-        finance_officer: dayLogins.filter(u => u.role === 'finance_officer').length,
-        school_owner: dayLogins.filter(u => u.role === 'school_owner').length
-      };
-    });
-  }
-
-  private static processPerformanceTrends(data: any[]): SystemAnalyticsData['performanceTrends'] {
-    const monthlyData = new Map();
+  private static processUserLoginData(data: any[]): SystemAnalyticsData['userLogins'] {
+    const roleMap = new Map<string, Map<string, number>>();
     
-    data.forEach(grade => {
-      const month = new Date(grade.created_at).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short' 
-      });
+    // Initialize last 14 days
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
       
-      if (!monthlyData.has(month)) {
-        monthlyData.set(month, { total: 0, sum: 0, count: 0 });
+      roleMap.set(dateStr, new Map([
+        ['admin', 0],
+        ['teacher', 0],
+        ['principal', 0],
+        ['parent', 0],
+        ['finance_officer', 0],
+        ['school_owner', 0]
+      ]));
+    }
+
+    // Process actual data
+    data.forEach(user => {
+      if (user.last_login_at) {
+        const loginDate = new Date(user.last_login_at).toISOString().split('T')[0];
+        const roleData = roleMap.get(loginDate);
+        if (roleData && roleData.has(user.role)) {
+          roleData.set(user.role, (roleData.get(user.role) || 0) + 1);
+        }
       }
-      
-      const monthStats = monthlyData.get(month);
-      monthStats.sum += grade.percentage;
-      monthStats.count += 1;
     });
 
-    return Array.from(monthlyData.entries()).map(([month, stats]) => ({
-      month,
-      average_grade: stats.count > 0 ? stats.sum / stats.count : 0,
-      total_grades: stats.count
+    return Array.from(roleMap.entries()).map(([date, roles]) => ({
+      date,
+      admin: roles.get('admin') || 0,
+      teacher: roles.get('teacher') || 0,
+      principal: roles.get('principal') || 0,
+      parent: roles.get('parent') || 0,
+      finance_officer: roles.get('finance_officer') || 0,
+      school_owner: roles.get('school_owner') || 0
     }));
   }
 
-  private static processSchoolsOnboarded(data: any[]): SystemAnalyticsData['schoolsOnboarded'] {
-    const monthlyCount = new Map();
-    
+  private static processPerformanceData(data: any[]): SystemAnalyticsData['performanceTrends'] {
+    const monthlyData = new Map<string, { total: number; sum: number }>();
+
+    data.forEach(grade => {
+      if (grade.score && grade.created_at) {
+        const month = new Date(grade.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        const current = monthlyData.get(month) || { total: 0, sum: 0 };
+        current.total += 1;
+        current.sum += parseFloat(grade.score);
+        monthlyData.set(month, current);
+      }
+    });
+
+    return Array.from(monthlyData.entries()).map(([month, data]) => ({
+      month,
+      average_grade: data.sum / data.total,
+      total_grades: data.total
+    }));
+  }
+
+  private static processSchoolsData(data: any[]): SystemAnalyticsData['schoolsOnboarded'] {
+    const monthlyCount = new Map<string, number>();
+
     data.forEach(school => {
-      const month = new Date(school.created_at).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short' 
-      });
-      monthlyCount.set(month, (monthlyCount.get(month) || 0) + 1);
+      if (school.created_at) {
+        const month = new Date(school.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        monthlyCount.set(month, (monthlyCount.get(month) || 0) + 1);
+      }
     });
 
     return Array.from(monthlyCount.entries()).map(([month, count]) => ({
@@ -333,91 +211,61 @@ export class SystemAnalyticsService {
     }));
   }
 
-  private static processFinanceSummary(data: any[]): SystemAnalyticsData['financeSummary'] {
-    const subscriptions = data.filter(record => record.billing_type === 'subscription');
-    const setupFees = data.filter(record => record.billing_type === 'setup');
-    
-    return {
-      total_subscriptions: subscriptions.reduce((sum, record) => sum + Number(record.amount), 0),
-      setup_fees: setupFees.reduce((sum, record) => sum + Number(record.amount), 0),
-      monthly_revenue: data.reduce((sum, record) => sum + Number(record.amount), 0) / 12
-    };
-  }
-
   private static processUserDistribution(data: any[]): SystemAnalyticsData['userDistribution'] {
-    const roleCounts = new Map();
+    const roleCounts = new Map<string, number>();
     const total = data.length;
-    
+
     data.forEach(user => {
-      roleCounts.set(user.role, (roleCounts.get(user.role) || 0) + 1);
+      const role = user.role || 'unknown';
+      roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
     });
 
     return Array.from(roleCounts.entries()).map(([role, count]) => ({
-      role: role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      role: role.replace('_', ' ').toUpperCase(),
       count,
       percentage: total > 0 ? (count / total) * 100 : 0
     }));
   }
 
-  private static processCurriculumTypes(data: any[]): SystemAnalyticsData['curriculumTypes'] {
-    const typeCounts = new Map();
+  private static processCurriculumData(data: any[]): SystemAnalyticsData['curriculumTypes'] {
+    const curriculumCounts = new Map<string, number>();
     const total = data.length;
-    
+
     data.forEach(school => {
-      const type = school.curriculum_type || 'Unknown';
-      typeCounts.set(type, (typeCounts.get(type) || 0) + 1);
+      const curriculum = school.curriculum_type || 'unknown';
+      curriculumCounts.set(curriculum, (curriculumCounts.get(curriculum) || 0) + 1);
     });
 
-    return Array.from(typeCounts.entries()).map(([type, count]) => ({
+    return Array.from(curriculumCounts.entries()).map(([type, count]) => ({
       type: type.toUpperCase(),
       count,
       percentage: total > 0 ? (count / total) * 100 : 0
     }));
   }
 
-  private static processTopActiveSchools(data: any[]): SystemAnalyticsData['topActiveSchools'] {
-    return data.map(school => ({
-      school_name: school.name,
-      activity_score: Math.random() * 100, // This would be calculated based on actual activity metrics
-      total_users: Array.isArray(school.profiles) ? school.profiles.length : 0
-    }))
-    .sort((a, b) => b.activity_score - a.activity_score)
-    .slice(0, 5);
-  }
+  private static processFinancialData(data: any[]): SystemAnalyticsData['financeSummary'] {
+    let totalSubscriptions = 0;
+    let setupFees = 0;
+    let monthlyRevenue = 0;
 
-  private static processGradeApprovalStats(data: any[]): SystemAnalyticsData['gradeApprovalStats'] {
-    const stats = {
-      approved: data.filter(g => g.status === 'approved' || g.status === 'released').length,
-      pending: data.filter(g => g.status === 'submitted' || g.status === 'draft').length,
-      rejected: data.filter(g => g.status === 'rejected').length
-    };
-
-    return stats;
-  }
-
-  private static processAnnouncementEngagement(data: any[]): SystemAnalyticsData['announcementEngagement'] {
-    const monthlyEngagement = new Map();
-    
-    data.forEach(announcement => {
-      const month = new Date(announcement.created_at).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short' 
-      });
-      
-      if (!monthlyEngagement.has(month)) {
-        monthlyEngagement.set(month, { total: 0, totalReads: 0, totalRecipients: 0 });
+    data.forEach(record => {
+      if (record.status === 'paid' && record.amount) {
+        const amount = parseFloat(record.amount);
+        if (record.billing_type === 'subscription') {
+          totalSubscriptions += amount;
+        } else if (record.billing_type === 'setup_fee') {
+          setupFees += amount;
+        }
+        
+        // Calculate monthly revenue (last 30 days)
+        monthlyRevenue += amount;
       }
-      
-      const monthStats = monthlyEngagement.get(month);
-      monthStats.total += 1;
-      monthStats.totalReads += announcement.read_count || 0;
-      monthStats.totalRecipients += announcement.total_recipients || 0;
     });
 
-    return Array.from(monthlyEngagement.entries()).map(([month, stats]) => ({
-      month,
-      total_announcements: stats.total,
-      engagement_rate: stats.totalRecipients > 0 ? (stats.totalReads / stats.totalRecipients) * 100 : 0
-    }));
+    return {
+      total_subscriptions: totalSubscriptions,
+      setup_fees: setupFees,
+      monthly_revenue: monthlyRevenue
+    };
   }
 }

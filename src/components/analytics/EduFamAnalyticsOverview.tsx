@@ -13,9 +13,9 @@ import AnalyticsErrorState from './sections/AnalyticsErrorState';
 import SchoolAnalyticsDetail from './SchoolAnalyticsDetail';
 
 const EduFamAnalyticsOverview = () => {
-  const { data: schoolsData = [], isLoading: schoolsLoading } = useAdminSchoolsData(0);
-  const { data: usersData = [], isLoading: usersLoading } = useAdminUsersData(0);
-  const { data: analyticsData, isLoading: analyticsLoading } = useEduFamAnalyticsData();
+  const { data: schoolsData = [], isLoading: schoolsLoading, error: schoolsError } = useAdminSchoolsData(0);
+  const { data: usersData = [], isLoading: usersLoading, error: usersError } = useAdminUsersData(0);
+  const { data: analyticsData, isLoading: analyticsLoading, error: analyticsError } = useEduFamAnalyticsData();
   const { 
     data: systemAnalytics, 
     isLoading: systemAnalyticsLoading, 
@@ -24,14 +24,19 @@ const EduFamAnalyticsOverview = () => {
   } = useSystemAnalytics();
 
   const isLoading = schoolsLoading || usersLoading || analyticsLoading || systemAnalyticsLoading;
+  const hasError = schoolsError || usersError || analyticsError || systemAnalyticsError;
 
   // Debug logging
-  console.log('📊 EduFamAnalyticsOverview - Analytics Data:', {
+  console.log('📊 EduFamAnalyticsOverview - Analytics Data State:', {
     schoolsCount: schoolsData.length,
     usersCount: usersData.length,
     analyticsData: analyticsData ? 'Available' : 'Not Available',
     systemAnalytics: systemAnalytics ? 'Available' : 'Not Available',
     isLoading,
+    hasError: !!hasError,
+    schoolsError,
+    usersError,
+    analyticsError,
     systemAnalyticsError
   });
 
@@ -39,7 +44,14 @@ const EduFamAnalyticsOverview = () => {
     return <AnalyticsLoadingState />;
   }
 
-  if (systemAnalyticsError) {
+  if (hasError) {
+    console.error('❌ EduFamAnalyticsOverview: Error state detected:', {
+      schoolsError,
+      usersError,
+      analyticsError,
+      systemAnalyticsError
+    });
+    
     return <AnalyticsErrorState onRetry={() => refetchSystemAnalytics()} />;
   }
 
@@ -62,18 +74,23 @@ const EduFamAnalyticsOverview = () => {
 
       {/* Charts Container - This is where all charts should render */}
       <div id="charts-container" className="space-y-6">
-        {systemAnalytics && (
+        {systemAnalytics ? (
           <>
             <EnhancedSystemAnalyticsSection systemAnalytics={systemAnalytics} />
             <AdditionalAnalyticsCardsSection systemAnalytics={systemAnalytics} />
           </>
-        )}
-
-        {/* Fallback when no system analytics available */}
-        {!systemAnalytics && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-yellow-800 mb-2">Charts Loading...</h4>
-            <p className="text-yellow-700">System analytics data is being processed. Charts will appear shortly.</p>
+        ) : (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h4 className="text-lg font-semibold text-blue-800 mb-2">Charts Loading...</h4>
+            <p className="text-blue-700">System analytics data is being processed. Charts will appear shortly.</p>
+            <div className="mt-4">
+              <button 
+                onClick={() => refetchSystemAnalytics()}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Retry Loading Charts
+              </button>
+            </div>
           </div>
         )}
       </div>
