@@ -24,7 +24,7 @@ export class SubjectDatabaseService {
         .from('subjects')
         .select(`
           *,
-          class:classes(id, name),
+          class:classes!subjects_class_id_fkey(id, name),
           teacher:profiles!subjects_teacher_id_fkey(id, name, email)
         `)
         .eq('school_id', schoolId)
@@ -58,8 +58,36 @@ export class SubjectDatabaseService {
         return [];
       }
 
-      console.log('✅ SubjectDatabaseService: Successfully fetched', data.length, 'subjects');
-      return data;
+      // Transform the data to match the Subject interface
+      const transformedData: Subject[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        code: item.code,
+        school_id: item.school_id,
+        class_id: item.class_id,
+        teacher_id: item.teacher_id,
+        curriculum: item.curriculum,
+        category: item.category,
+        credit_hours: item.credit_hours,
+        assessment_weight: item.assessment_weight,
+        prerequisites: item.prerequisites,
+        description: item.description,
+        is_active: item.is_active,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        class: item.class ? {
+          id: item.class.id,
+          name: item.class.name
+        } : undefined,
+        teacher: item.teacher ? {
+          id: item.teacher.id,
+          name: item.teacher.name,
+          email: item.teacher.email
+        } : undefined
+      }));
+
+      console.log('✅ SubjectDatabaseService: Successfully fetched', transformedData.length, 'subjects');
+      return transformedData;
 
     } catch (error: any) {
       console.error('❌ SubjectDatabaseService.getSubjects error:', error);
