@@ -20,8 +20,9 @@ export const useFinanceMetrics = () => {
   const { user } = useAuth();
 
   const fetchMetrics = async () => {
-    if (!user?.school_id) {
-      console.log('No school_id available for finance metrics');
+    // Validate school ID before making queries
+    if (!user?.school_id || user.school_id === 'null' || user.school_id === 'undefined') {
+      console.warn('No valid school_id available for finance metrics:', user?.school_id);
       setMetrics({
         totalRevenue: 0,
         totalCollected: 0,
@@ -35,13 +36,34 @@ export const useFinanceMetrics = () => {
       return;
     }
 
+    // Additional UUID format validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(user.school_id)) {
+      console.error('Invalid UUID format for school ID:', user.school_id);
+      setError(new Error('Invalid school ID format'));
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
 
       console.log('Fetching finance metrics for school:', user.school_id);
 
-      // Fetch fees data
+      // Verify school exists first
+      const { data: schoolCheck, error: schoolCheckError } = await supabase
+        .from('schools')
+        .select('id')
+        .eq('id', user.school_id)
+        .single();
+
+      if (schoolCheckError || !schoolCheck) {
+        console.error('School not found or access denied:', schoolCheckError);
+        throw new Error('School not found or access denied');
+      }
+
+      // Fetch fees data with proper error handling
       const { data: feesData, error: feesError } = await supabase
         .from('fees')
         .select('amount, paid_amount, due_date, status')
@@ -52,7 +74,7 @@ export const useFinanceMetrics = () => {
         throw feesError;
       }
 
-      // Fetch students count
+      // Fetch students count with proper error handling
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('id')
@@ -60,11 +82,11 @@ export const useFinanceMetrics = () => {
         .eq('is_active', true);
 
       if (studentsError) {
-        console.error('Error fetching students:', studentsError);
+        console.warn('Error fetching students:', studentsError);
         // Don't throw, just log and continue with empty array
       }
 
-      // Fetch MPESA transactions
+      // Fetch MPESA transactions with proper error handling
       const { data: mpesaData, error: mpesaError } = await supabase
         .from('financial_transactions')
         .select('amount')
@@ -72,7 +94,7 @@ export const useFinanceMetrics = () => {
         .eq('payment_method', 'mpesa');
 
       if (mpesaError) {
-        console.error('Error fetching MPESA data:', mpesaError);
+        console.warn('Error fetching MPESA data:', mpesaError);
         // Don't throw, just log and continue with empty array
       }
 
@@ -104,6 +126,7 @@ export const useFinanceMetrics = () => {
       // Find defaulters (fees past due date with outstanding amounts)
       const today = new Date();
       const defaultersList = fees.filter(fee => {
+        if (!fee.due_date) return false;
         const dueDate = new Date(fee.due_date);
         const isPastDue = dueDate < today;
         const feeAmount = Number(fee.amount || 0);
@@ -122,7 +145,7 @@ export const useFinanceMetrics = () => {
         defaultersCount: defaultersList.length
       };
 
-      console.log('Finance metrics calculated:', calculatedMetrics);
+      console.log('Finance metrics calculated successfully:', calculatedMetrics);
       setMetrics(calculatedMetrics);
 
     } catch (err: any) {

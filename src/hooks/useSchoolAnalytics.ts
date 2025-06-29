@@ -55,16 +55,33 @@ export const useSchoolAnalytics = () => {
       const schoolAnalytics: SchoolAnalytics[] = [];
 
       for (const school of schools) {
+        // Validate school ID before processing
+        if (!school.id || school.id === 'null' || school.id === 'undefined') {
+          console.warn('Invalid school ID found, skipping:', school.id);
+          continue;
+        }
+
+        // Additional UUID format validation
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(school.id)) {
+          console.warn('Invalid UUID format for school ID, skipping:', school.id);
+          continue;
+        }
+
         try {
           console.log(`Processing analytics for school: ${school.name}`);
 
-          // Get grades summary with direct query
-          const { data: grades } = await supabase
+          // Get grades summary with direct query and proper error handling
+          const { data: grades, error: gradesError } = await supabase
             .from('grades')
             .select('score, student_id')
             .eq('school_id', school.id)
             .eq('status', 'released')
             .not('score', 'is', null);
+
+          if (gradesError) {
+            console.warn(`Error fetching grades for school ${school.name}:`, gradesError);
+          }
 
           let gradesSummary = {
             total_grades: 0,
@@ -76,15 +93,19 @@ export const useSchoolAnalytics = () => {
             gradesSummary = {
               total_grades: grades.length,
               average_grade: grades.reduce((sum, g) => sum + (g.score || 0), 0) / grades.length,
-              students_with_grades: new Set(grades.map(g => g.student_id)).size
+              students_with_grades: new Set(grades.map(g => g.student_id).filter(id => id)).size
             };
           }
 
-          // Get attendance summary with direct query
-          const { data: attendance } = await supabase
+          // Get attendance summary with direct query and proper error handling
+          const { data: attendance, error: attendanceError } = await supabase
             .from('attendance')
             .select('status, student_id')
             .eq('school_id', school.id);
+
+          if (attendanceError) {
+            console.warn(`Error fetching attendance for school ${school.name}:`, attendanceError);
+          }
 
           let attendanceSummary = {
             total_records: 0,
@@ -97,15 +118,19 @@ export const useSchoolAnalytics = () => {
             attendanceSummary = {
               total_records: attendance.length,
               attendance_rate: (presentCount / attendance.length) * 100,
-              students_tracked: new Set(attendance.map(a => a.student_id)).size
+              students_tracked: new Set(attendance.map(a => a.student_id).filter(id => id)).size
             };
           }
 
-          // Get financial summary with direct query
-          const { data: fees } = await supabase
+          // Get financial summary with direct query and proper error handling
+          const { data: fees, error: feesError } = await supabase
             .from('fees')
             .select('amount, paid_amount, student_id')
             .eq('school_id', school.id);
+
+          if (feesError) {
+            console.warn(`Error fetching fees for school ${school.name}:`, feesError);
+          }
 
           let financialSummary = {
             total_fees_assigned: 0,
@@ -121,7 +146,7 @@ export const useSchoolAnalytics = () => {
               total_fees_assigned: totalAssigned,
               total_fees_collected: totalCollected,
               outstanding_balance: totalAssigned - totalCollected,
-              students_with_fees: new Set(fees.map(f => f.student_id)).size
+              students_with_fees: new Set(fees.map(f => f.student_id).filter(id => id)).size
             };
           }
 
