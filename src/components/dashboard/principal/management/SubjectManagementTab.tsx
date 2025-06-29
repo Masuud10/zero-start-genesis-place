@@ -28,6 +28,7 @@ const SubjectManagementTab = () => {
     console.log('✅ Subject created successfully, reloading data...');
     setReloadKey(prev => prev + 1);
     retry(); // Refresh subjects list
+    setShowCreateModal(false); // Close modal
   };
 
   const handleRetry = () => {

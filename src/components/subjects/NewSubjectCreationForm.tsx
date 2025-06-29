@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, Save, X } from 'lucide-react';
+import { BookOpen, Save, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import { supabase } from '@/integrations/supabase/client';
 
 const subjectSchema = z.object({
   name: z.string().min(2, 'Subject name must be at least 2 characters'),
@@ -24,8 +25,8 @@ const subjectSchema = z.object({
   category: z.enum(['core', 'elective', 'optional'], {
     required_error: 'Please select a category'
   }),
-  class_id: z.string().min(1, 'Please select a class').optional(),
-  teacher_id: z.string().min(1, 'Please select a teacher').optional(),
+  class_id: z.string().optional(),
+  teacher_id: z.string().optional(),
   credit_hours: z.number().min(1, 'Credit hours must be at least 1').max(10, 'Credit hours cannot exceed 10'),
   assessment_weight: z.number().min(1, 'Assessment weight must be at least 1%').max(100, 'Assessment weight cannot exceed 100%'),
   description: z.string().optional(),
@@ -85,9 +86,6 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
     console.log('📚 NewSubjectCreationForm: Submitting subject data:', data);
 
     try {
-      // Import supabase here to avoid dependency issues
-      const { supabase } = await import('@/integrations/supabase/client');
-
       // Check for duplicate subject code within the school
       const { data: existingSubject, error: duplicateError } = await supabase
         .from('subjects')
@@ -126,13 +124,15 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
         school_id: schoolId
       };
 
+      console.log('📚 Inserting subject data:', subjectData);
+
       // Insert the new subject
       const { data: newSubject, error: insertError } = await supabase
         .from('subjects')
         .insert(subjectData)
         .select(`
           *,
-          class:classes(id, name),
+          class:classes!subjects_class_id_fkey(id, name),
           teacher:profiles!subjects_teacher_id_fkey(id, name, email)
         `)
         .single();
@@ -166,8 +166,8 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
       console.log('✅ Subject created successfully:', newSubject);
       
       toast({
-        title: "Subject Created!",
-        description: `${newSubject.name} (${newSubject.code}) has been created successfully.`
+        title: "Subject Created Successfully!",
+        description: `${newSubject.name} (${newSubject.code}) has been created and is now available.`,
       });
 
       // Reset form and call success callback
@@ -214,6 +214,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                   placeholder="e.g., Mathematics"
                   {...register('name')}
                   className={errors.name ? 'border-red-500' : ''}
+                  disabled={isSubmitting}
                 />
                 {errors.name && (
                   <p className="text-sm text-red-600">{errors.name.message}</p>
@@ -227,6 +228,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                   placeholder="e.g., MATH101"
                   {...register('code')}
                   className={errors.code ? 'border-red-500' : ''}
+                  disabled={isSubmitting}
                 />
                 {errors.code && (
                   <p className="text-sm text-red-600">{errors.code.message}</p>
@@ -240,6 +242,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 <Select
                   value={watchedValues.curriculum}
                   onValueChange={(value) => setValue('curriculum', value as 'cbc' | 'igcse')}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger className={errors.curriculum ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select curriculum" />
@@ -259,6 +262,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 <Select
                   value={watchedValues.category}
                   onValueChange={(value) => setValue('category', value as 'core' | 'elective' | 'optional')}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select category" />
@@ -288,6 +292,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 <Select
                   value={watchedValues.class_id || ''}
                   onValueChange={(value) => setValue('class_id', value || undefined)}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a class" />
@@ -308,6 +313,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 <Select
                   value={watchedValues.teacher_id || ''}
                   onValueChange={(value) => setValue('teacher_id', value || undefined)}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a teacher" />
@@ -341,6 +347,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                   max="10"
                   {...register('credit_hours', { valueAsNumber: true })}
                   className={errors.credit_hours ? 'border-red-500' : ''}
+                  disabled={isSubmitting}
                 />
                 {errors.credit_hours && (
                   <p className="text-sm text-red-600">{errors.credit_hours.message}</p>
@@ -356,6 +363,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                   max="100"
                   {...register('assessment_weight', { valueAsNumber: true })}
                   className={errors.assessment_weight ? 'border-red-500' : ''}
+                  disabled={isSubmitting}
                 />
                 {errors.assessment_weight && (
                   <p className="text-sm text-red-600">{errors.assessment_weight.message}</p>
@@ -370,6 +378,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 placeholder="Enter subject description, objectives, or notes..."
                 rows={3}
                 {...register('description')}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -378,6 +387,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 id="is_active"
                 checked={watchedValues.is_active}
                 onCheckedChange={(checked) => setValue('is_active', checked)}
+                disabled={isSubmitting}
               />
               <Label htmlFor="is_active">Subject is Active</Label>
             </div>
@@ -401,8 +411,17 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
               disabled={isSubmitting}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              <Save className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Creating...' : 'Create Subject'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Create Subject
+                </>
+              )}
             </Button>
           </div>
         </form>

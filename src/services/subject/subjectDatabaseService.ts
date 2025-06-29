@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Subject } from '@/types/subject';
+import { Subject, NewSubjectFormData } from '@/types/subject';
 
 export class SubjectDatabaseService {
   static async getSubjects(schoolId: string, classId?: string): Promise<Subject[]> {
@@ -101,6 +101,118 @@ export class SubjectDatabaseService {
       }
       
       // Re-throw actual errors
+      throw error;
+    }
+  }
+
+  static async createSubject(schoolId: string, subjectData: NewSubjectFormData): Promise<Subject> {
+    console.log('📚 SubjectDatabaseService.createSubject called with:', { schoolId, subjectData });
+
+    if (!schoolId || schoolId.trim() === '') {
+      console.error('❌ School ID is required and cannot be empty');
+      throw new Error('School ID is required');
+    }
+
+    try {
+      // Test connection first
+      const connectionTest = await this.testConnection();
+      if (!connectionTest) {
+        console.error('❌ Database connection test failed');
+        throw new Error('Database connection failed. Please try again.');
+      }
+
+      // Check for duplicate subject code within the school
+      const { data: existingSubject, error: duplicateError } = await supabase
+        .from('subjects')
+        .select('id, code')
+        .eq('school_id', schoolId)
+        .eq('code', subjectData.code.toUpperCase())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (duplicateError) {
+        console.error('❌ Error checking for duplicate subject:', duplicateError);
+        throw new Error('Failed to validate subject uniqueness');
+      }
+
+      if (existingSubject) {
+        throw new Error(`A subject with code "${subjectData.code.toUpperCase()}" already exists in your school.`);
+      }
+
+      // Prepare subject data for insertion
+      const insertData = {
+        name: subjectData.name.trim(),
+        code: subjectData.code.trim().toUpperCase(),
+        curriculum: subjectData.curriculum,
+        category: subjectData.category,
+        class_id: subjectData.class_id || null,
+        teacher_id: subjectData.teacher_id || null,
+        credit_hours: subjectData.credit_hours,
+        assessment_weight: subjectData.assessment_weight,
+        description: subjectData.description?.trim() || null,
+        is_active: subjectData.is_active,
+        school_id: schoolId
+      };
+
+      console.log('📚 SubjectDatabaseService: Inserting subject data:', insertData);
+
+      // Insert the new subject
+      const { data: newSubject, error: insertError } = await supabase
+        .from('subjects')
+        .insert(insertData)
+        .select(`
+          *,
+          class:classes!subjects_class_id_fkey(id, name),
+          teacher:profiles!subjects_teacher_id_fkey(id, name, email)
+        `)
+        .single();
+
+      if (insertError) {
+        console.error('❌ Error creating subject:', insertError);
+        
+        // Handle specific database errors
+        if (insertError.code === '23505') {
+          throw new Error('A subject with this code already exists in your school.');
+        } else if (insertError.code === '23503') {
+          throw new Error('Please check that the selected class and teacher exist.');
+        } else {
+          throw new Error(insertError.message || 'Failed to create subject. Please try again.');
+        }
+      }
+
+      // Transform the response to match Subject interface
+      const transformedSubject: Subject = {
+        id: newSubject.id,
+        name: newSubject.name,
+        code: newSubject.code,
+        school_id: newSubject.school_id,
+        class_id: newSubject.class_id,
+        teacher_id: newSubject.teacher_id,
+        curriculum: newSubject.curriculum,
+        category: newSubject.category,
+        credit_hours: newSubject.credit_hours,
+        assessment_weight: newSubject.assessment_weight,
+        prerequisites: newSubject.prerequisites,
+        description: newSubject.description,
+        is_active: newSubject.is_active,
+        created_at: newSubject.created_at,
+        updated_at: newSubject.updated_at,
+        class: newSubject.class ? {
+          id: newSubject.class.id,
+          name: newSubject.class.name
+        } : undefined,
+        teacher: newSubject.teacher ? {
+          id: newSubject.teacher.id,
+          name: newSubject.teacher.name,
+          email: newSubject.teacher.email
+        } : undefined
+      };
+
+      console.log('✅ SubjectDatabaseService: Subject created successfully:', transformedSubject);
+      return transformedSubject;
+
+    } catch (error: any) {
+      console.error('❌ SubjectDatabaseService.createSubject error:', error);
       throw error;
     }
   }
