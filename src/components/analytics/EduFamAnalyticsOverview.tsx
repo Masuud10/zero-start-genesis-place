@@ -9,6 +9,7 @@ import GradeDistributionChart from './charts/GradeDistributionChart';
 import RevenueTrendsChart from './charts/RevenueTrendsChart';
 import AttendanceAnalyticsChart from './charts/AttendanceAnalyticsChart';
 import SystemHealthCard from './cards/SystemHealthCard';
+import SchoolAnalyticsDetail from './SchoolAnalyticsDetail';
 
 const EduFamAnalyticsOverview = () => {
   const { data: schoolsData = [], isLoading: schoolsLoading } = useAdminSchoolsData(0);
@@ -68,6 +69,9 @@ const EduFamAnalyticsOverview = () => {
           usersCount={usersData.length} 
         />
       </div>
+
+      {/* Individual School Analytics */}
+      <SchoolAnalyticsDetail />
     </div>
   );
 };
