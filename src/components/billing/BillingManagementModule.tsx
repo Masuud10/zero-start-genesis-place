@@ -7,9 +7,11 @@ import SchoolBillingDetails from './SchoolBillingDetails';
 import BillingLoadingFallback from './BillingLoadingFallback';
 import BillingEmptyState from './BillingEmptyState';
 import BillingErrorBoundary from './BillingErrorBoundary';
+import CreateBillingRecordModal from './CreateBillingRecordModal';
 
 const BillingManagementModule: React.FC = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   
   // Fetch billing data with enhanced error handling
   const { 
@@ -55,8 +57,15 @@ const BillingManagementModule: React.FC = () => {
   };
 
   const handleCreateRecords = () => {
-    console.log('📝 BillingManagementModule: Create billing records clicked');
-    // TODO: Implement create billing records logic
+    console.log('📝 BillingManagementModule: Opening create billing records modal');
+    setShowCreateModal(true);
+  };
+
+  const handleCreateSuccess = () => {
+    console.log('✅ BillingManagementModule: Billing record created successfully');
+    setShowCreateModal(false);
+    refetchRecords();
+    refetchStats();
   };
 
   // Show loading fallback if needed
@@ -121,6 +130,13 @@ const BillingManagementModule: React.FC = () => {
             selectedSchoolId={selectedSchoolId}
           />
         )}
+
+        {/* Create Billing Record Modal */}
+        <CreateBillingRecordModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={handleCreateSuccess}
+        />
       </div>
     </BillingErrorBoundary>
   );

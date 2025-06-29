@@ -418,7 +418,13 @@ export class BillingManagementService {
     }
   }
 
-  static async createManualFeeRecord(data: any): Promise<{ success: boolean; recordId?: string; error?: any }> {
+  static async createManualFeeRecord(data: {
+    school_id: string;
+    billing_type: 'setup_fee' | 'subscription_fee';
+    amount: number;
+    description: string;
+    due_date: string;
+  }): Promise<{ success: boolean; recordId?: string; error?: any }> {
     try {
       console.log('📊 BillingManagementService: Creating manual fee record:', data);
 
@@ -428,11 +434,13 @@ export class BillingManagementService {
           school_id: data.school_id,
           billing_type: data.billing_type,
           amount: data.amount,
-          currency: data.currency || 'KES',
-          status: data.status || 'pending',
+          currency: 'KES',
+          status: 'pending',
           due_date: data.due_date,
           description: data.description,
-          invoice_number: `MAN-${Date.now()}`
+          invoice_number: `MAN-${Date.now()}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
