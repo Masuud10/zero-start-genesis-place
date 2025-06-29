@@ -424,9 +424,29 @@ export class BillingManagementService {
     amount: number;
     description: string;
     due_date: string;
+    billing_period?: 'monthly' | 'termly' | 'annually';
+    student_count?: number;
+    remarks?: string;
   }): Promise<{ success: boolean; recordId?: string; error?: any }> {
     try {
       console.log('📊 BillingManagementService: Creating manual fee record:', data);
+
+      // Generate invoice number based on type and date
+      const now = new Date();
+      const prefix = data.billing_type === 'setup_fee' ? 'SF' : 'SUB';
+      const invoiceNumber = `${prefix}-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}-${Date.now()}`;
+
+      // Prepare enhanced description with billing period info
+      let enhancedDescription = data.description;
+      if (data.billing_type === 'subscription_fee' && data.billing_period) {
+        enhancedDescription += ` (${data.billing_period.charAt(0).toUpperCase() + data.billing_period.slice(1)} billing)`;
+      }
+      if (data.student_count) {
+        enhancedDescription += ` - ${data.student_count} students`;
+      }
+      if (data.remarks) {
+        enhancedDescription += ` | Remarks: ${data.remarks}`;
+      }
 
       const { data: result, error } = await supabase
         .from('school_billing_records')
@@ -437,8 +457,11 @@ export class BillingManagementService {
           currency: 'KES',
           status: 'pending',
           due_date: data.due_date,
-          description: data.description,
-          invoice_number: `MAN-${Date.now()}`,
+          description: enhancedDescription,
+          invoice_number: invoiceNumber,
+          student_count: data.student_count || null,
+          billing_period_start: data.billing_type === 'subscription_fee' ? new Date().toISOString().split('T')[0] : null,
+          billing_period_end: data.billing_type === 'subscription_fee' ? this.calculateBillingPeriodEnd(data.billing_period || 'monthly') : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -457,5 +480,24 @@ export class BillingManagementService {
       console.error('❌ BillingManagementService: Critical error creating manual fee record:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  private static calculateBillingPeriodEnd(billingPeriod: 'monthly' | 'termly' | 'annually'): string {
+    const now = new Date();
+    let endDate = new Date(now);
+    
+    switch (billingPeriod) {
+      case 'monthly':
+        endDate.setMonth(endDate.getMonth() + 1);
+        break;
+      case 'termly':
+        endDate.setMonth(endDate.getMonth() + 3);
+        break;
+      case 'annually':
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        break;
+    }
+    
+    return endDate.toISOString().split('T')[0];
   }
 }

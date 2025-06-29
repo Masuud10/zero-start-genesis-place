@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Calculator, DollarSign, School, Users } from 'lucide-react';
+import { Calculator, DollarSign, School, Users, Calendar } from 'lucide-react';
 import { useAllSchools, useBillingActions } from '@/hooks/useBillingManagement';
 import { BillingManagementService } from '@/services/billing/billingManagementService';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,8 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'termly' | 'annually'>('monthly');
+  const [remarks, setRemarks] = useState<string>('');
   const [studentCount, setStudentCount] = useState<number>(0);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -45,20 +47,20 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
       
       if (billingType === 'setup_fee') {
         setAmount('5000');
-        setDescription('One-time setup fee for school onboarding');
+        setDescription('One-time setup fee for school onboarding and system configuration');
       } else {
         setAmount('');
-        setDescription('Monthly subscription fee based on student count');
+        setDescription(`${billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)} subscription fee based on student enrollment`);
       }
     }
-  }, [isOpen, billingType]);
+  }, [isOpen, billingType, billingPeriod]);
 
-  // Calculate subscription fee when school changes
+  // Calculate subscription fee when school or billing period changes
   React.useEffect(() => {
     if (selectedSchoolId && billingType === 'subscription_fee') {
       calculateSubscriptionFee();
     }
-  }, [selectedSchoolId, billingType]);
+  }, [selectedSchoolId, billingType, billingPeriod]);
 
   const calculateSubscriptionFee = async () => {
     if (!selectedSchoolId) return;
@@ -68,12 +70,27 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
       const result = await BillingManagementService.calculateSubscriptionFee(selectedSchoolId);
       if (result.data) {
         setStudentCount(result.data.student_count || 0);
-        const calculatedAmount = (result.data.student_count || 0) * 50; // 50 KES per student
+        
+        // Calculate amount based on billing period
+        let baseAmount = (result.data.student_count || 0) * 50; // 50 KES per student per month
+        let calculatedAmount = baseAmount;
+        
+        switch (billingPeriod) {
+          case 'termly':
+            calculatedAmount = baseAmount * 3; // 3 months per term
+            break;
+          case 'annually':
+            calculatedAmount = baseAmount * 12; // 12 months per year
+            break;
+          default:
+            calculatedAmount = baseAmount; // monthly
+        }
+        
         setAmount(calculatedAmount.toString());
         
         const school = schools?.find(s => s.id === selectedSchoolId);
         if (school) {
-          setDescription(`Monthly subscription fee for ${school.name} - ${result.data.student_count} students @ KES 50 per student`);
+          setDescription(`${billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)} subscription fee for ${school.name} - ${result.data.student_count} students @ KES 50 per student per month`);
         }
       }
     } catch (error) {
@@ -126,14 +143,14 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
       return;
     }
 
-    // Check for duplicate billing records
+    // Check for duplicate billing records - especially setup fees
     if (billingType === 'setup_fee') {
       try {
         const existingRecords = await BillingManagementService.getSchoolBillingRecords(selectedSchoolId);
         if (existingRecords.data && existingRecords.data.some(record => record.billing_type === 'setup_fee')) {
           toast({
             title: "Duplicate Record",
-            description: "A setup fee record already exists for this school.",
+            description: "A setup fee record already exists for this school. Setup fees are one-time charges.",
             variant: "destructive",
           });
           return;
@@ -145,18 +162,25 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const result = await BillingManagementService.createManualFeeRecord({
+      // Create the billing record with enhanced data
+      const billingData = {
         school_id: selectedSchoolId,
         billing_type: billingType,
         amount: parseFloat(amount),
         description: description.trim(),
-        due_date: dueDate
-      });
+        due_date: dueDate,
+        // Add additional metadata
+        billing_period: billingType === 'subscription_fee' ? billingPeriod : undefined,
+        student_count: billingType === 'subscription_fee' ? studentCount : undefined,
+        remarks: remarks.trim() || undefined
+      };
+
+      const result = await BillingManagementService.createManualFeeRecord(billingData);
 
       if (result.success) {
         toast({
           title: "Success",
-          description: "Billing record created successfully.",
+          description: `${billingType === 'setup_fee' ? 'Setup fee' : 'Subscription fee'} record created successfully.`,
         });
         onSuccess();
         resetForm();
@@ -181,6 +205,8 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
     setAmount('');
     setDescription('');
     setDueDate('');
+    setBillingPeriod('monthly');
+    setRemarks('');
     setStudentCount(0);
   };
 
@@ -193,7 +219,7 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -235,10 +261,30 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="setup_fee">Setup Fee (One-time)</SelectItem>
-                <SelectItem value="subscription_fee">Subscription Fee (Monthly)</SelectItem>
+                <SelectItem value="subscription_fee">Subscription Fee (Recurring)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {/* Billing Period - Only for subscription fees */}
+          {billingType === 'subscription_fee' && (
+            <div className="space-y-2">
+              <Label htmlFor="billingPeriod" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Billing Period *
+              </Label>
+              <Select value={billingPeriod} onValueChange={(value: 'monthly' | 'termly' | 'annually') => setBillingPeriod(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="termly">Termly (3 months)</SelectItem>
+                  <SelectItem value="annually">Annually (12 months)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Subscription Calculation Card */}
           {billingType === 'subscription_fee' && selectedSchoolId && (
@@ -260,14 +306,18 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Rate per Student:</span>
+                  <span className="text-sm">Rate per Student (Monthly):</span>
                   <span className="font-medium">KES 50</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Billing Period:</span>
+                  <span className="font-medium capitalize">{billingPeriod}</span>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between font-semibold">
                   <span>Total Amount:</span>
                   <span className="text-blue-600">
-                    KES {(studentCount * 50).toLocaleString('en-KE')}
+                    KES {amount ? parseFloat(amount).toLocaleString('en-KE') : '0'}
                   </span>
                 </div>
               </CardContent>
@@ -289,7 +339,7 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
             />
             {billingType === 'setup_fee' && (
               <p className="text-xs text-muted-foreground">
-                Standard setup fee is KES 5,000
+                Standard setup fee is KES 5,000 (one-time charge)
               </p>
             )}
           </div>
@@ -317,6 +367,18 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
             />
           </div>
 
+          {/* Optional Remarks */}
+          <div className="space-y-2">
+            <Label htmlFor="remarks">Additional Remarks (Optional)</Label>
+            <Textarea
+              id="remarks"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Enter any additional notes or remarks..."
+              rows={2}
+            />
+          </div>
+
           {/* Summary */}
           {selectedSchool && amount && (
             <Card className="bg-green-50 border-green-200">
@@ -325,11 +387,14 @@ const CreateBillingRecordModal: React.FC<CreateBillingRecordModalProps> = ({
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
                 <div><strong>School:</strong> {selectedSchool.name}</div>
-                <div><strong>Type:</strong> {billingType === 'setup_fee' ? 'Setup Fee (One-time)' : 'Subscription Fee (Monthly)'}</div>
+                <div><strong>Type:</strong> {billingType === 'setup_fee' ? 'Setup Fee (One-time)' : `Subscription Fee (${billingPeriod.charAt(0).toUpperCase() + billingPeriod.slice(1)})`}</div>
                 <div><strong>Amount:</strong> KES {parseFloat(amount || '0').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</div>
                 <div><strong>Due Date:</strong> {dueDate ? new Date(dueDate).toLocaleDateString() : 'Not set'}</div>
                 {billingType === 'subscription_fee' && (
                   <div><strong>Students:</strong> {studentCount}</div>
+                )}
+                {remarks && (
+                  <div><strong>Remarks:</strong> {remarks}</div>
                 )}
               </CardContent>
             </Card>

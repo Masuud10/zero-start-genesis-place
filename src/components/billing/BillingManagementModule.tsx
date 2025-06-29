@@ -8,6 +8,8 @@ import BillingLoadingFallback from './BillingLoadingFallback';
 import BillingEmptyState from './BillingEmptyState';
 import BillingErrorBoundary from './BillingErrorBoundary';
 import CreateBillingRecordModal from './CreateBillingRecordModal';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 const BillingManagementModule: React.FC = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>();
@@ -68,67 +70,80 @@ const BillingManagementModule: React.FC = () => {
     refetchStats();
   };
 
-  // Show loading fallback if needed
-  if (isLoading) {
-    return (
-      <BillingLoadingFallback
-        isLoading={isLoading}
-        error={null}
-        onRetry={handleRetry}
-        title="Billing Management"
-        timeout={30000}
-      />
-    );
-  }
-
-  // Show error fallback if there's an error
-  if (hasError) {
-    return (
-      <BillingLoadingFallback
-        isLoading={false}
-        error={errorMessage}
-        onRetry={handleRetry}
-        title="Billing Management"
-      />
-    );
-  }
-
   // Check if we have no billing records
   const hasNoBillingRecords = !billingRecords || billingRecords.length === 0;
 
   return (
     <BillingErrorBoundary>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Billing Management</h2>
-          <p className="text-muted-foreground">
-            Manage setup fees and subscription fees for all schools
-          </p>
+        {/* Header Section - Always Visible */}
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Billing Management</h2>
+            <p className="text-muted-foreground">
+              Manage setup fees and subscription fees for all schools
+            </p>
+          </div>
+          
+          {/* Create Billing Records Button - Always Visible */}
+          <Button 
+            onClick={handleCreateRecords}
+            className="flex items-center gap-2"
+            size="default"
+          >
+            <Plus className="h-4 w-4" />
+            Create Billing Records
+          </Button>
         </div>
 
-        {/* Always show stats cards if we have stats data */}
-        {billingStats && <BillingStatsCards />}
+        {/* Show loading fallback if needed */}
+        {isLoading && (
+          <BillingLoadingFallback
+            isLoading={isLoading}
+            error={null}
+            onRetry={handleRetry}
+            title="Billing Management"
+            timeout={30000}
+          />
+        )}
 
-        {/* Show empty state if no billing records exist */}
-        {hasNoBillingRecords ? (
-          <BillingEmptyState
-            title="No Billing Records Found"
-            description="There are no billing records in the system yet. This could mean the database is empty, or there might be permission issues. Try refreshing or creating some billing records."
-            showCreateButton={true}
-            onCreateClick={handleCreateRecords}
-            onRefreshClick={handleRetry}
-            isRefreshing={isLoading}
+        {/* Show error fallback if there's an error */}
+        {hasError && !isLoading && (
+          <BillingLoadingFallback
+            isLoading={false}
+            error={errorMessage}
+            onRetry={handleRetry}
+            title="Billing Management"
           />
-        ) : selectedSchoolId ? (
-          <SchoolBillingDetails 
-            schoolId={selectedSchoolId} 
-            onBack={handleBackToList}
-          />
-        ) : (
-          <SchoolBillingList 
-            onSelectSchool={handleSelectSchool}
-            selectedSchoolId={selectedSchoolId}
-          />
+        )}
+
+        {/* Main Content - Only show when not loading or in error state */}
+        {!isLoading && !hasError && (
+          <>
+            {/* Always show stats cards if we have stats data */}
+            {billingStats && <BillingStatsCards />}
+
+            {/* Show empty state if no billing records exist */}
+            {hasNoBillingRecords ? (
+              <BillingEmptyState
+                title="No Billing Records Found"
+                description="There are no billing records in the system yet. Click the 'Create Billing Records' button above to add billing records for schools."
+                showCreateButton={false} // Button is already in header
+                onRefreshClick={handleRetry}
+                isRefreshing={isLoading}
+              />
+            ) : selectedSchoolId ? (
+              <SchoolBillingDetails 
+                schoolId={selectedSchoolId} 
+                onBack={handleBackToList}
+              />
+            ) : (
+              <SchoolBillingList 
+                onSelectSchool={handleSelectSchool}
+                selectedSchoolId={selectedSchoolId}
+              />
+            )}
+          </>
         )}
 
         {/* Create Billing Record Modal */}
