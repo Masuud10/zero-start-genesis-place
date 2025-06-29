@@ -20,13 +20,26 @@ const SchoolsOnboardedChart = ({ data }: SchoolsOnboardedChartProps) => {
     },
   };
 
-  // Ensure we have data to display
-  const chartData = data && data.length > 0 ? data : [
-    { month: 'No Data', count: 0 }
-  ];
+  // Process and validate data
+  const chartData = React.useMemo(() => {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('⚠️ SchoolsOnboardedChart: No data provided, using fallback');
+      return [
+        { month: 'No Data', count: 0 }
+      ];
+    }
+
+    const processedData = data.map(item => ({
+      ...item,
+      count: Number(item.count) || 0,
+    }));
+
+    console.log('📊 SchoolsOnboardedChart: Processed data:', processedData);
+    return processedData;
+  }, [data]);
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Schools Onboarded by Month</CardTitle>
         <Building2 className="h-4 w-4 text-muted-foreground" />

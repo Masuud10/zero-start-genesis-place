@@ -21,21 +21,37 @@ const CurriculumDistributionChart = ({ data }: CurriculumDistributionChartProps)
     'hsl(var(--chart-4))',
   ];
 
-  // Ensure we have data to display
-  const chartData = data && data.length > 0 ? data : [
-    { type: 'No Data', count: 1, percentage: 100 }
-  ];
+  // Process and validate data
+  const chartData = React.useMemo(() => {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('⚠️ CurriculumDistributionChart: No data provided, using fallback');
+      return [
+        { type: 'No Data', count: 1, percentage: 100 }
+      ];
+    }
 
-  const chartConfig = chartData.reduce((config, item, index) => {
-    config[item.type.toLowerCase()] = {
-      label: item.type,
-      color: COLORS[index % COLORS.length],
-    };
-    return config;
-  }, {} as any);
+    const processedData = data.map(item => ({
+      ...item,
+      count: Number(item.count) || 0,
+      percentage: Number(item.percentage) || 0,
+    }));
+
+    console.log('📊 CurriculumDistributionChart: Processed data:', processedData);
+    return processedData;
+  }, [data]);
+
+  const chartConfig = React.useMemo(() => {
+    return chartData.reduce((config, item, index) => {
+      config[item.type.toLowerCase()] = {
+        label: item.type,
+        color: COLORS[index % COLORS.length],
+      };
+      return config;
+    }, {} as any);
+  }, [chartData]);
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Curriculum Types Distribution</CardTitle>
         <BookOpen className="h-4 w-4 text-muted-foreground" />

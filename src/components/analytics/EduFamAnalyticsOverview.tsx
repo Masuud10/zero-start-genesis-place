@@ -25,6 +25,16 @@ const EduFamAnalyticsOverview = () => {
 
   const isLoading = schoolsLoading || usersLoading || analyticsLoading || systemAnalyticsLoading;
 
+  // Debug logging
+  console.log('📊 EduFamAnalyticsOverview - Analytics Data:', {
+    schoolsCount: schoolsData.length,
+    usersCount: usersData.length,
+    analyticsData: analyticsData ? 'Available' : 'Not Available',
+    systemAnalytics: systemAnalytics ? 'Available' : 'Not Available',
+    isLoading,
+    systemAnalyticsError
+  });
+
   if (isLoading) {
     return <AnalyticsLoadingState />;
   }
@@ -50,13 +60,23 @@ const EduFamAnalyticsOverview = () => {
         analyticsData={analyticsData}
       />
 
-      {/* Enhanced Visual Analytics Section */}
-      {systemAnalytics && (
-        <>
-          <EnhancedSystemAnalyticsSection systemAnalytics={systemAnalytics} />
-          <AdditionalAnalyticsCardsSection systemAnalytics={systemAnalytics} />
-        </>
-      )}
+      {/* Charts Container - This is where all charts should render */}
+      <div id="charts-container" className="space-y-6">
+        {systemAnalytics && (
+          <>
+            <EnhancedSystemAnalyticsSection systemAnalytics={systemAnalytics} />
+            <AdditionalAnalyticsCardsSection systemAnalytics={systemAnalytics} />
+          </>
+        )}
+
+        {/* Fallback when no system analytics available */}
+        {!systemAnalytics && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h4 className="text-lg font-semibold text-yellow-800 mb-2">Charts Loading...</h4>
+            <p className="text-yellow-700">System analytics data is being processed. Charts will appear shortly.</p>
+          </div>
+        )}
+      </div>
 
       {/* Individual School Analytics Section */}
       <SchoolAnalyticsDetail />

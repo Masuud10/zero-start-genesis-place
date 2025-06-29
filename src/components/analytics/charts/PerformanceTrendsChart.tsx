@@ -21,13 +21,27 @@ const PerformanceTrendsChart = ({ data }: PerformanceTrendsChartProps) => {
     },
   };
 
-  // Ensure we have data to display
-  const chartData = data && data.length > 0 ? data : [
-    { month: 'No Data', average_grade: 0, total_grades: 0 }
-  ];
+  // Process and validate data
+  const chartData = React.useMemo(() => {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('⚠️ PerformanceTrendsChart: No data provided, using fallback');
+      return [
+        { month: 'No Data', average_grade: 0, total_grades: 0 }
+      ];
+    }
+
+    const processedData = data.map(item => ({
+      ...item,
+      average_grade: Number(item.average_grade) || 0,
+      total_grades: Number(item.total_grades) || 0,
+    }));
+
+    console.log('📊 PerformanceTrendsChart: Processed data:', processedData);
+    return processedData;
+  }, [data]);
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Performance Trends</CardTitle>
         <TrendingUp className="h-4 w-4 text-muted-foreground" />

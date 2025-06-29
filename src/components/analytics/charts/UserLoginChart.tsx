@@ -37,13 +37,32 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
     },
   };
 
-  // Ensure we have data to display
-  const chartData = data && data.length > 0 ? data.slice(-14) : [
-    { date: 'No Data', admin: 0, teacher: 0, principal: 0, parent: 0, finance_officer: 0, school_owner: 0 }
-  ];
+  // Process and validate data
+  const chartData = React.useMemo(() => {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('⚠️ UserLoginChart: No data provided, using fallback');
+      return [
+        { date: 'No Data', admin: 0, teacher: 0, principal: 0, parent: 0, finance_officer: 0, school_owner: 0 }
+      ];
+    }
+    
+    // Take last 14 days and ensure data is valid
+    const processedData = data.slice(-14).map(item => ({
+      ...item,
+      admin: Number(item.admin) || 0,
+      teacher: Number(item.teacher) || 0,
+      principal: Number(item.principal) || 0,
+      parent: Number(item.parent) || 0,
+      finance_officer: Number(item.finance_officer) || 0,
+      school_owner: Number(item.school_owner) || 0,
+    }));
+    
+    console.log('📊 UserLoginChart: Processed data:', processedData);
+    return processedData;
+  }, [data]);
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Daily User Logins (Last 14 Days)</CardTitle>
         <Users className="h-4 w-4 text-muted-foreground" />

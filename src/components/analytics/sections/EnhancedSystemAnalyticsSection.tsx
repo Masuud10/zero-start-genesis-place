@@ -11,7 +11,20 @@ interface EnhancedSystemAnalyticsSectionProps {
 }
 
 const EnhancedSystemAnalyticsSection = ({ systemAnalytics }: EnhancedSystemAnalyticsSectionProps) => {
-  if (!systemAnalytics) return null;
+  if (!systemAnalytics) {
+    console.warn('⚠️ EnhancedSystemAnalyticsSection: No system analytics data provided');
+    return null;
+  }
+
+  // Debug logging for chart data
+  console.log('📊 EnhancedSystemAnalyticsSection - Chart Data:', {
+    userLogins: systemAnalytics.userLogins?.length || 0,
+    performanceTrends: systemAnalytics.performanceTrends?.length || 0,
+    schoolsOnboarded: systemAnalytics.schoolsOnboarded?.length || 0,
+    userDistribution: systemAnalytics.userDistribution?.length || 0,
+    curriculumTypes: systemAnalytics.curriculumTypes?.length || 0,
+    financeSummary: systemAnalytics.financeSummary ? 'Available' : 'Not Available'
+  });
 
   return (
     <div className="space-y-6">
@@ -20,13 +33,19 @@ const EnhancedSystemAnalyticsSection = ({ systemAnalytics }: EnhancedSystemAnaly
         
         {/* Line Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <UserLoginChart data={systemAnalytics.userLogins || []} />
-          <PerformanceTrendsChart data={systemAnalytics.performanceTrends || []} />
+          <div className="bg-white rounded-lg shadow-sm border">
+            <UserLoginChart data={systemAnalytics.userLogins || []} />
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <PerformanceTrendsChart data={systemAnalytics.performanceTrends || []} />
+          </div>
         </div>
 
-        {/* Bar Charts Row */}
+        {/* Bar Chart and Financial Summary Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <SchoolsOnboardedChart data={systemAnalytics.schoolsOnboarded || []} />
+          <div className="bg-white rounded-lg shadow-sm border">
+            <SchoolsOnboardedChart data={systemAnalytics.schoolsOnboarded || []} />
+          </div>
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <h5 className="text-sm font-medium mb-4 text-gray-900">Financial Summary</h5>
             <div className="space-y-3">
@@ -54,8 +73,12 @@ const EnhancedSystemAnalyticsSection = ({ systemAnalytics }: EnhancedSystemAnaly
 
         {/* Pie Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <UserDistributionChart data={systemAnalytics.userDistribution || []} />
-          <CurriculumDistributionChart data={systemAnalytics.curriculumTypes || []} />
+          <div className="bg-white rounded-lg shadow-sm border">
+            <UserDistributionChart data={systemAnalytics.userDistribution || []} />
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <CurriculumDistributionChart data={systemAnalytics.curriculumTypes || []} />
+          </div>
         </div>
       </div>
     </div>
