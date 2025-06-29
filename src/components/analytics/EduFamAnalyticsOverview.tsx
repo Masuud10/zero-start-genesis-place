@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAdminSchoolsData } from '@/hooks/useAdminSchoolsData';
 import { useAdminUsersData } from '@/hooks/useAdminUsersData';
@@ -11,6 +10,7 @@ import AdditionalAnalyticsCardsSection from './sections/AdditionalAnalyticsCards
 import AnalyticsLoadingState from './sections/AnalyticsLoadingState';
 import AnalyticsErrorState from './sections/AnalyticsErrorState';
 import SchoolAnalyticsDetail from './SchoolAnalyticsDetail';
+import ComprehensiveAnalyticsDashboard from './ComprehensiveAnalyticsDashboard';
 
 const EduFamAnalyticsOverview = () => {
   const { data: schoolsData = [], isLoading: schoolsLoading, error: schoolsError } = useAdminSchoolsData(0);
@@ -93,6 +93,15 @@ const EduFamAnalyticsOverview = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* NEW: Comprehensive Analytics Dashboard */}
+      <div className="border-t pt-6">
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Comprehensive System Analytics</h3>
+          <p className="text-gray-600">Deep insights into platform growth, distribution, and performance metrics</p>
+        </div>
+        <ComprehensiveAnalyticsDashboard />
       </div>
 
       {/* Individual School Analytics Section */}
