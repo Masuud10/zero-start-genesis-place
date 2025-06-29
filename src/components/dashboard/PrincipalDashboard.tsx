@@ -2,8 +2,6 @@
 import React, { useState } from 'react';
 import { AuthUser } from '@/types/auth';
 import { usePrincipalDashboardData } from '@/hooks/usePrincipalDashboardData';
-import AddSubjectModal from '@/components/modals/AddSubjectModal';
-import SubjectAssignmentModal from '@/components/modals/SubjectAssignmentModal';
 import CertificateGenerator from '@/components/certificates/CertificateGenerator';
 import TimetableGenerator from '@/components/timetable/TimetableGenerator';
 import PrincipalReportGenerator from '@/components/reports/PrincipalReportGenerator';
@@ -139,22 +137,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ user, onModalOp
       </div>
       
       {/* Enhanced Modal Management with School Context */}
-      {activeModal === 'add-subject' && (
-        <AddSubjectModal
-          open={true}
-          onClose={handleModalClose}
-          onSubjectCreated={handleSuccess}
-        />
-      )}
-
-      {activeModal === 'assign-subject' && (
-        <SubjectAssignmentModal
-          open={true}
-          onClose={handleModalClose}
-          onAssignmentCreated={handleSuccess}
-        />
-      )}
-
       {activeModal === 'generate-certificate' && (
         <CertificateGenerator
           open={true}

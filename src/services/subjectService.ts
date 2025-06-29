@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Subject, SubjectCreationData } from '@/types/subject';
+import { Subject } from '@/types/subject';
 
 export class SubjectService {
   private static readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
@@ -55,45 +54,6 @@ export class SubjectService {
         throw new Error('Request timed out. Please try again.');
       }
       throw new Error(error.message || 'Failed to fetch subjects');
-    }
-  }
-
-  static async createSubject(subjectData: SubjectCreationData, schoolId: string): Promise<Subject> {
-    try {
-      console.log('📚 SubjectService: Creating subject:', subjectData);
-
-      const query = supabase
-        .from('subjects')
-        .insert({
-          ...subjectData,
-          school_id: schoolId,
-          curriculum: subjectData.curriculum?.toLowerCase() || 'cbc', // Normalize curriculum
-          category: subjectData.category || 'core',
-          credit_hours: subjectData.credit_hours || 1,
-          assessment_weight: subjectData.assessment_weight || 100,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      const result = await this.executeWithTimeout(query, this.DEFAULT_TIMEOUT);
-
-      if (result.error) {
-        console.error('❌ Error creating subject:', result.error);
-        throw new Error(`Failed to create subject: ${result.error.message}`);
-      }
-
-      console.log('✅ SubjectService: Subject created successfully');
-      return result.data as Subject;
-
-    } catch (error: any) {
-      console.error('❌ SubjectService: Critical error creating subject:', error);
-      if (error.name === 'AbortError') {
-        throw new Error('Create request timed out. Please try again.');
-      }
-      throw new Error(error.message || 'Failed to create subject');
     }
   }
 

@@ -34,72 +34,6 @@ export const useSubjectManagement = () => {
   const { schoolId } = useSchoolScopedData();
   const [loading, setLoading] = useState(false);
 
-  const createSubject = useCallback(async (subjectData: {
-    name: string;
-    code: string;
-    class_id?: string;
-    teacher_id?: string;
-    curriculum?: string;
-  }) => {
-    if (!schoolId) {
-      toast({
-        title: "Error",
-        description: "No school context found",
-        variant: "destructive"
-      });
-      return null;
-    }
-
-    setLoading(true);
-    try {
-      // Check for duplicate subject code
-      const { data: existing } = await supabase
-        .from('subjects')
-        .select('id')
-        .eq('school_id', schoolId)
-        .eq('code', subjectData.code.toUpperCase())
-        .maybeSingle();
-
-      if (existing) {
-        toast({
-          title: "Error",
-          description: `Subject with code "${subjectData.code}" already exists`,
-          variant: "destructive"
-        });
-        return null;
-      }
-
-      const { data, error } = await supabase
-        .from('subjects')
-        .insert({
-          ...subjectData,
-          code: subjectData.code.toUpperCase(),
-          school_id: schoolId
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Subject created successfully"
-      });
-
-      return data;
-    } catch (error: any) {
-      console.error('Error creating subject:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create subject",
-        variant: "destructive"
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [schoolId, toast]);
-
   const assignTeacherToSubject = useCallback(async (assignmentData: {
     subject_id: string;
     teacher_id: string;
@@ -231,7 +165,6 @@ export const useSubjectManagement = () => {
   }, [toast]);
 
   return {
-    createSubject,
     assignTeacherToSubject,
     getSubjectAssignments,
     removeAssignment,

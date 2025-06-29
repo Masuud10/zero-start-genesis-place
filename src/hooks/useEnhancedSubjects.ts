@@ -72,51 +72,6 @@ export const useEnhancedSubjects = (classId?: string) => {
     }
   }, [isSystemAdmin, schoolId, classId, toast]);
 
-  const createSubject = async (subjectData: {
-    name: string;
-    code: string;
-    class_id?: string;
-    teacher_id?: string;
-    curriculum?: string;
-    category?: string;
-    credit_hours?: number;
-    assessment_weight?: number;
-    prerequisites?: string[];
-    description?: string;
-    is_active?: boolean;
-  }) => {
-    try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .insert({
-          ...subjectData,
-          school_id: schoolId,
-          is_active: true,
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast({
-        title: "Subject Created",
-        description: `Subject ${subjectData.name} has been created successfully.`,
-      });
-
-      fetchSubjects();
-      return { data, error: null };
-    } catch (err: any) {
-      const message = err?.message || 'Failed to create subject';
-      toast({
-        title: "Create Error",
-        description: message,
-        variant: "destructive",
-      });
-      return { data: null, error: message };
-    }
-  };
-
   const updateSubject = async (id: string, updates: Partial<EnhancedSubject>) => {
     try {
       const { data, error } = await supabase
@@ -183,7 +138,6 @@ export const useEnhancedSubjects = (classId?: string) => {
     subjects,
     loading,
     error,
-    createSubject,
     updateSubject,
     deactivateSubject,
     refetch: fetchSubjects

@@ -17,18 +17,6 @@ export interface Subject {
   updated_at: string;
 }
 
-export interface SubjectCreationData {
-  name: string;
-  code: string;
-  class_id?: string;
-  teacher_id?: string;
-  curriculum?: string;
-  category?: string;
-  credit_hours?: number;
-  assessment_weight?: number;
-  description?: string;
-}
-
 export interface SubjectAssignment {
   id: string;
   school_id: string;
