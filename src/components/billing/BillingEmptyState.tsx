@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Plus, RefreshCw } from 'lucide-react';
+import { FileX, Plus, RefreshCw } from 'lucide-react';
 
 interface BillingEmptyStateProps {
-  title?: string;
-  description?: string;
+  title: string;
+  description: string;
   showCreateButton?: boolean;
   onCreateClick?: () => void;
   onRefreshClick?: () => void;
@@ -14,9 +14,9 @@ interface BillingEmptyStateProps {
 }
 
 const BillingEmptyState: React.FC<BillingEmptyStateProps> = ({
-  title = "No Billing Records Found",
-  description = "There are no billing records in the system yet. You can create setup fees or monthly subscriptions to get started.",
-  showCreateButton = true,
+  title,
+  description,
+  showCreateButton = false,
   onCreateClick,
   onRefreshClick,
   isRefreshing = false
@@ -24,26 +24,35 @@ const BillingEmptyState: React.FC<BillingEmptyStateProps> = ({
   return (
     <Card>
       <CardContent className="py-12">
-        <div className="text-center">
-          <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            {description}
-          </p>
-          <div className="flex justify-center gap-3">
+        <div className="text-center space-y-6">
+          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+            <FileX className="h-8 w-8 text-gray-400" />
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <p className="text-gray-500 max-w-md mx-auto">{description}</p>
+          </div>
+          
+          <div className="flex justify-center gap-4">
             {onRefreshClick && (
               <Button 
                 variant="outline" 
                 onClick={onRefreshClick}
                 disabled={isRefreshing}
+                className="flex items-center gap-2"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
             )}
+            
             {showCreateButton && onCreateClick && (
-              <Button onClick={onCreateClick}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button 
+                onClick={onCreateClick}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
                 Create Billing Records
               </Button>
             )}

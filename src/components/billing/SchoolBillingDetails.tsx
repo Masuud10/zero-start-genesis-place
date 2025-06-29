@@ -262,16 +262,11 @@ const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
               {records.map((record) => (
                 <TableRow key={record.id}>
                   <TableCell>{getBillingTypeBadge(record.billing_type)}</TableCell>
-                  <TableCell className="font-mono text-sm">{record.invoice_number}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {record.invoice_number || 'N/A'}
+                  </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{record.description}</div>
-                      {record.student_count && (
-                        <div className="text-sm text-muted-foreground">
-                          {record.student_count} students
-                        </div>
-                      )}
-                    </div>
+                    {record.description || `${record.billing_type.replace('_', ' ').toUpperCase()}`}
                   </TableCell>
                   <TableCell>
                     {editingRecord === record.id ? (
@@ -282,27 +277,20 @@ const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
                           onChange={(e) => setEditAmount(Number(e.target.value))}
                           className="w-24"
                         />
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveEdit(record.id)}
-                        >
+                        <Button size="sm" onClick={() => handleSaveEdit(record.id)}>
                           <Save className="h-3 w-3" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCancelEdit}
-                        >
+                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="font-mono">{formatCurrency(record.amount)}</span>
-                        <Button
-                          size="sm"
+                        <span className="font-mono">{formatCurrency(Number(record.amount))}</span>
+                        <Button 
+                          size="sm" 
                           variant="ghost"
-                          onClick={() => handleEditRecord(record.id, record.amount)}
+                          onClick={() => handleEditRecord(record.id, Number(record.amount))}
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -310,42 +298,29 @@ const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
                     )}
                   </TableCell>
                   <TableCell>{getStatusBadge(record.status)}</TableCell>
-                  <TableCell>{format(new Date(record.due_date), 'MMM dd, yyyy')}</TableCell>
+                  <TableCell>
+                    {record.due_date ? format(new Date(record.due_date), 'MMM dd, yyyy') : 'N/A'}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       {record.status === 'pending' && (
-                        <Button
+                        <Button 
+                          size="sm" 
                           onClick={() => handleStatusUpdate(record.id, 'paid')}
-                          size="sm"
                           disabled={updateBillingStatus.isPending}
                         >
                           Mark Paid
                         </Button>
                       )}
                       {record.status === 'paid' && (
-                        <Button
-                          onClick={() => handleStatusUpdate(record.id, 'pending')}
+                        <Button 
+                          size="sm" 
                           variant="outline"
-                          size="sm"
+                          onClick={() => handleStatusUpdate(record.id, 'pending')}
                           disabled={updateBillingStatus.isPending}
                         >
                           Mark Pending
                         </Button>
-                      )}
-                      {record.status === 'pending' && (
-                        <Select 
-                          onValueChange={(value) => handleStatusUpdate(record.id, value)}
-                          disabled={updateBillingStatus.isPending}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Change Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="paid">Mark Paid</SelectItem>
-                            <SelectItem value="overdue">Mark Overdue</SelectItem>
-                            <SelectItem value="cancelled">Cancel</SelectItem>
-                          </SelectContent>
-                        </Select>
                       )}
                     </div>
                   </TableCell>

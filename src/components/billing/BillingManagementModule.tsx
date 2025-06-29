@@ -11,7 +11,7 @@ import BillingErrorBoundary from './BillingErrorBoundary';
 const BillingManagementModule: React.FC = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>();
   
-  // Fetch billing data to check if the feature is working
+  // Fetch billing data with enhanced error handling
   const { 
     data: billingRecords, 
     isLoading: recordsLoading, 
@@ -27,13 +27,24 @@ const BillingManagementModule: React.FC = () => {
   } = useBillingStats();
 
   const isLoading = recordsLoading || statsLoading;
-  const error = recordsError?.message || statsError?.message || null;
+  const hasError = recordsError || statsError;
+  const errorMessage = recordsError?.message || statsError?.message || null;
+
+  console.log('🔍 BillingManagementModule: Current state:', {
+    isLoading,
+    hasError,
+    errorMessage,
+    recordsCount: billingRecords?.length || 0,
+    statsData: billingStats ? 'loaded' : 'null'
+  });
 
   const handleSelectSchool = (schoolId: string) => {
+    console.log('🏫 BillingManagementModule: Selecting school:', schoolId);
     setSelectedSchoolId(schoolId);
   };
 
   const handleBackToList = () => {
+    console.log('⬅️ BillingManagementModule: Going back to list');
     setSelectedSchoolId(undefined);
   };
 
@@ -53,20 +64,20 @@ const BillingManagementModule: React.FC = () => {
     return (
       <BillingLoadingFallback
         isLoading={isLoading}
-        error={error}
+        error={null}
         onRetry={handleRetry}
         title="Billing Management"
-        timeout={30000} // 30 second timeout
+        timeout={30000}
       />
     );
   }
 
   // Show error fallback if there's an error
-  if (error) {
+  if (hasError) {
     return (
       <BillingLoadingFallback
         isLoading={false}
-        error={error}
+        error={errorMessage}
         onRetry={handleRetry}
         title="Billing Management"
       />

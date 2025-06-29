@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { BillingRecordsService } from './billingRecordsService';
 import { FeeCreationService } from './feeCreationService';
@@ -46,42 +47,88 @@ export class BillingManagementService {
     try {
       console.log('📊 BillingManagementService: Getting billing stats');
 
-      // Test connection first
-      const connectionTest = await BillingRecordsService.testConnection();
-      if (!connectionTest) {
-        return { data: null, error: 'Database connection failed' };
+      // Test connection first with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      try {
+        // Get basic billing records with timeout
+        const { data: records, error: recordsError } = await supabase
+          .from('school_billing_records')
+          .select('amount, status, billing_type, school_id')
+          .limit(1000)
+          .abortSignal(controller.signal);
+
+        clearTimeout(timeoutId);
+
+        if (recordsError) {
+          console.error('❌ Error getting billing records for stats:', recordsError);
+          return { data: null, error: recordsError.message };
+        }
+
+        if (!records || !Array.isArray(records)) {
+          console.log('📊 No billing records found for stats calculation');
+          return { 
+            data: {
+              total_amount: 0,
+              paid_amount: 0,
+              pending_amount: 0,
+              total_schools: 0,
+              total_records: 0
+            }, 
+            error: null 
+          };
+        }
+
+        // Calculate basic stats safely
+        const totalAmount = records.reduce((sum, record) => {
+          const amount = Number(record?.amount) || 0;
+          return sum + amount;
+        }, 0);
+
+        const paidAmount = records
+          .filter(r => r?.status === 'paid')
+          .reduce((sum, record) => {
+            const amount = Number(record?.amount) || 0;
+            return sum + amount;
+          }, 0);
+
+        const pendingAmount = records
+          .filter(r => r?.status === 'pending')
+          .reduce((sum, record) => {
+            const amount = Number(record?.amount) || 0;
+            return sum + amount;
+          }, 0);
+
+        const uniqueSchools = new Set(
+          records
+            .map(r => r?.school_id)
+            .filter(id => id !== null && id !== undefined)
+        ).size;
+
+        const stats = {
+          total_amount: totalAmount,
+          paid_amount: paidAmount,
+          pending_amount: pendingAmount,
+          total_schools: uniqueSchools,
+          total_records: records.length
+        };
+
+        console.log('✅ BillingManagementService: Successfully calculated billing stats:', stats);
+        return { data: stats, error: null };
+
+      } catch (timeoutError) {
+        clearTimeout(timeoutId);
+        if (timeoutError.name === 'AbortError') {
+          console.error('❌ Billing stats query timed out');
+          return { data: null, error: 'Query timed out. Please try again.' };
+        }
+        throw timeoutError;
       }
 
-      // Calculate stats manually since RPC function doesn't exist
-      const { data: records, error: recordsError } = await supabase
-        .from('school_billing_records')
-        .select('amount, status, billing_type, school_id')
-        .limit(1000);
-
-      if (recordsError) {
-        console.error('❌ Error getting billing records for stats:', recordsError);
-        return { data: null, error: recordsError.message };
-      }
-
-      // Calculate basic stats
-      const totalAmount = records?.reduce((sum, record) => sum + Number(record.amount), 0) || 0;
-      const paidAmount = records?.filter(r => r.status === 'paid').reduce((sum, record) => sum + Number(record.amount), 0) || 0;
-      const pendingAmount = records?.filter(r => r.status === 'pending').reduce((sum, record) => sum + Number(record.amount), 0) || 0;
-      const uniqueSchools = new Set(records?.map(r => r.school_id)).size || 0;
-
-      const stats = {
-        total_amount: totalAmount,
-        paid_amount: paidAmount,
-        pending_amount: pendingAmount,
-        total_schools: uniqueSchools,
-        total_records: records?.length || 0
-      };
-
-      console.log('✅ BillingManagementService: Successfully calculated billing stats');
-      return { data: stats, error: null };
     } catch (error: any) {
       console.error('❌ BillingManagementService: Critical error getting billing stats:', error);
-      return { data: null, error: error.message };
+      return { data: null, error: error.message || 'Failed to fetch billing statistics' };
     }
   }
 
@@ -95,27 +142,42 @@ export class BillingManagementService {
         return { data: [], error: 'Database connection failed' };
       }
 
-      const { data, error } = await supabase
-        .from('schools')
-        .select(`
-          id,
-          name,
-          created_at,
-          school_billing_records (
-            amount,
-            status,
-            billing_type
-          )
-        `)
-        .limit(50);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-      if (error) {
-        console.error('❌ Error getting school billing summaries:', error);
-        return { data: [], error: error.message };
+      try {
+        const { data, error } = await supabase
+          .from('schools')
+          .select(`
+            id,
+            name,
+            created_at,
+            school_billing_records (
+              amount,
+              status,
+              billing_type
+            )
+          `)
+          .limit(50)
+          .abortSignal(controller.signal);
+
+        clearTimeout(timeoutId);
+
+        if (error) {
+          console.error('❌ Error getting school billing summaries:', error);
+          return { data: [], error: error.message };
+        }
+
+        console.log('✅ BillingManagementService: Successfully fetched school billing summaries');
+        return { data: data || [], error: null };
+
+      } catch (timeoutError) {
+        clearTimeout(timeoutId);
+        if (timeoutError.name === 'AbortError') {
+          return { data: [], error: 'Query timed out. Please try again.' };
+        }
+        throw timeoutError;
       }
-
-      console.log('✅ BillingManagementService: Successfully fetched school billing summaries');
-      return { data: data || [], error: null };
 
     } catch (error: any) {
       console.error('❌ BillingManagementService: Critical error getting school billing summaries:', error);
@@ -324,12 +386,69 @@ export class BillingManagementService {
   }
 
   static async calculateSubscriptionFee(schoolId: string): Promise<{ data: any | null; error: any }> {
-    console.log('📊 BillingManagementService: Calculating subscription fee');
-    return FeeCreationService.calculateSubscriptionFee(schoolId);
+    try {
+      console.log('📊 BillingManagementService: Calculating subscription fee for school:', schoolId);
+
+      // Get student count for the school
+      const { count: studentCount, error: countError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true })
+        .eq('school_id', schoolId);
+
+      if (countError) {
+        console.error('❌ Error getting student count:', countError);
+        return { data: null, error: countError.message };
+      }
+
+      const perStudentRate = 50; // KES 50 per student per month
+      const calculatedAmount = (studentCount || 0) * perStudentRate;
+
+      const result = {
+        student_count: studentCount || 0,
+        per_student_rate: perStudentRate,
+        calculated_amount: calculatedAmount,
+        currency: 'KES'
+      };
+
+      console.log('✅ BillingManagementService: Subscription fee calculated:', result);
+      return { data: result, error: null };
+
+    } catch (error: any) {
+      console.error('❌ BillingManagementService: Error calculating subscription fee:', error);
+      return { data: null, error: error.message };
+    }
   }
 
   static async createManualFeeRecord(data: any): Promise<{ success: boolean; recordId?: string; error?: any }> {
-    console.log('📊 BillingManagementService: Creating manual fee record');
-    return FeeCreationService.createManualFeeRecord(data);
+    try {
+      console.log('📊 BillingManagementService: Creating manual fee record:', data);
+
+      const { data: result, error } = await supabase
+        .from('school_billing_records')
+        .insert({
+          school_id: data.school_id,
+          billing_type: data.billing_type,
+          amount: data.amount,
+          currency: data.currency || 'KES',
+          status: data.status || 'pending',
+          due_date: data.due_date,
+          description: data.description,
+          invoice_number: `MAN-${Date.now()}`
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating manual fee record:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('✅ BillingManagementService: Manual fee record created successfully');
+      return { success: true, recordId: result.id };
+
+    } catch (error: any) {
+      console.error('❌ BillingManagementService: Critical error creating manual fee record:', error);
+      return { success: false, error: error.message };
+    }
   }
 }
