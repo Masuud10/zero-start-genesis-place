@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ComposedChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 
 interface PerformanceTrendsChartProps {
@@ -16,12 +16,8 @@ interface PerformanceTrendsChartProps {
 const PerformanceTrendsChart = ({ data }: PerformanceTrendsChartProps) => {
   const chartConfig = {
     average_grade: {
-      label: "Average Grade (%)",
+      label: "Average Grade",
       color: "hsl(var(--chart-1))",
-    },
-    total_grades: {
-      label: "Total Grades",
-      color: "hsl(var(--chart-2))",
     },
   };
 
@@ -33,13 +29,13 @@ const PerformanceTrendsChart = ({ data }: PerformanceTrendsChartProps) => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">System-wide Performance Trends</CardTitle>
+        <CardTitle className="text-sm font-medium">Performance Trends</CardTitle>
         <TrendingUp className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <XAxis 
                 dataKey="month" 
                 fontSize={12}
@@ -47,37 +43,26 @@ const PerformanceTrendsChart = ({ data }: PerformanceTrendsChartProps) => {
                 axisLine={false}
               />
               <YAxis 
-                yAxisId="left" 
-                orientation="left" 
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
+                domain={[0, 100]}
               />
-              <YAxis 
-                yAxisId="right" 
-                orientation="right" 
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
+              <ChartTooltip 
+                content={<ChartTooltipContent />}
+                formatter={(value, name) => [
+                  `${Number(value).toFixed(1)}%`,
+                  name === 'average_grade' ? 'Average Grade' : name
+                ]}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
               <Line 
-                yAxisId="left"
                 type="monotone" 
                 dataKey="average_grade" 
                 stroke="var(--color-average_grade)" 
-                strokeWidth={3}
-                dot={{ fill: "var(--color-average_grade)", strokeWidth: 2, r: 4 }}
-                connectNulls={false}
+                strokeWidth={2}
+                dot={{ fill: "var(--color-average_grade)" }}
               />
-              <Bar 
-                yAxisId="right"
-                dataKey="total_grades" 
-                fill="var(--color-total_grades)"
-                opacity={0.3}
-                radius={[2, 2, 0, 0]}
-              />
-            </ComposedChart>
+            </LineChart>
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>

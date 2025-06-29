@@ -2,8 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Legend } from 'recharts';
-import { Activity } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { Users } from 'lucide-react';
 
 interface UserLoginChartProps {
   data: Array<{
@@ -35,26 +35,18 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
       label: "Parents",
       color: "hsl(var(--chart-4))",
     },
-    finance_officer: {
-      label: "Finance Officers",
-      color: "hsl(var(--chart-5))",
-    },
-    school_owner: {
-      label: "School Owners",
-      color: "hsl(var(--chart-6))",
-    },
   };
 
   // Ensure we have data to display
-  const chartData = data && data.length > 0 ? data : [
-    { date: new Date().toISOString().split('T')[0], admin: 0, teacher: 0, principal: 0, parent: 0, finance_officer: 0, school_owner: 0 }
+  const chartData = data && data.length > 0 ? data.slice(-14) : [
+    { date: 'No Data', admin: 0, teacher: 0, principal: 0, parent: 0, finance_officer: 0, school_owner: 0 }
   ];
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Daily User Logins (Last 30 Days)</CardTitle>
-        <Activity className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-sm font-medium">Daily User Logins (Last 14 Days)</CardTitle>
+        <Users className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px]">
@@ -62,10 +54,13 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
             <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <XAxis 
                 dataKey="date" 
-                tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
+                tickFormatter={(value) => {
+                  if (value === 'No Data') return value;
+                  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }}
               />
               <YAxis 
                 fontSize={12}
@@ -73,54 +68,33 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
                 axisLine={false}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Legend />
               <Line 
                 type="monotone" 
                 dataKey="admin" 
                 stroke="var(--color-admin)" 
-                strokeWidth={2} 
-                dot={{ fill: "var(--color-admin)", strokeWidth: 2, r: 3 }} 
-                connectNulls={false}
+                strokeWidth={2}
+                dot={{ fill: "var(--color-admin)" }}
               />
               <Line 
                 type="monotone" 
                 dataKey="teacher" 
                 stroke="var(--color-teacher)" 
-                strokeWidth={2} 
-                dot={{ fill: "var(--color-teacher)", strokeWidth: 2, r: 3 }} 
-                connectNulls={false}
+                strokeWidth={2}
+                dot={{ fill: "var(--color-teacher)" }}
               />
               <Line 
                 type="monotone" 
                 dataKey="principal" 
                 stroke="var(--color-principal)" 
-                strokeWidth={2} 
-                dot={{ fill: "var(--color-principal)", strokeWidth: 2, r: 3 }} 
-                connectNulls={false}
+                strokeWidth={2}
+                dot={{ fill: "var(--color-principal)" }}
               />
               <Line 
                 type="monotone" 
                 dataKey="parent" 
                 stroke="var(--color-parent)" 
-                strokeWidth={2} 
-                dot={{ fill: "var(--color-parent)", strokeWidth: 2, r: 3 }} 
-                connectNulls={false}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="finance_officer" 
-                stroke="var(--color-finance_officer)" 
-                strokeWidth={2} 
-                dot={{ fill: "var(--color-finance_officer)", strokeWidth: 2, r: 3 }} 
-                connectNulls={false}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="school_owner" 
-                stroke="var(--color-school_owner)" 
-                strokeWidth={2} 
-                dot={{ fill: "var(--color-school_owner)", strokeWidth: 2, r: 3 }} 
-                connectNulls={false}
+                strokeWidth={2}
+                dot={{ fill: "var(--color-parent)" }}
               />
             </LineChart>
           </ResponsiveContainer>
