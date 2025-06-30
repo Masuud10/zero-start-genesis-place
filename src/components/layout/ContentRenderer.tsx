@@ -22,8 +22,10 @@ import SecurityModule from '@/components/modules/SecurityModule';
 import SupportModule from '@/components/modules/SupportModule';
 import CertificatesModule from '@/components/modules/CertificatesModule';
 import ProjectHubModule from '@/components/modules/ProjectHubModule';
+import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
 import SystemSettings from '@/components/settings/SystemSettings';
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
+import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
 import SchoolOwnerDashboard from '../dashboard/SchoolOwnerDashboard';
 
 interface ContentRendererProps {
@@ -78,6 +80,18 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
         return <ProjectHubModule />;
       }
       return <div>Project Hub access restricted to EduFam administrators</div>;
+    case 'school-analytics':
+      // Only EduFam admins can access School Analytics
+      if (user?.role === 'edufam_admin') {
+        return <SchoolAnalyticsList />;
+      }
+      return <div>School Analytics access restricted to EduFam administrators</div>;
+    case 'company-management':
+      // Only EduFam admins can access Company Management
+      if (user?.role === 'edufam_admin') {
+        return <CompanyManagementModule />;
+      }
+      return <div>Company Management access restricted to EduFam administrators</div>;
     case 'grades':
       return <GradesModule />;
     case 'attendance':

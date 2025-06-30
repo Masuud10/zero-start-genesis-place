@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import ProjectHubModule from './modules/ProjectHubModule';
+import CompanyManagementModule from './modules/CompanyManagementModule';
 import AnalyticsDashboard from './analytics/AnalyticsDashboard';
 import SchoolAnalyticsOverview from './analytics/SchoolAnalyticsOverview';
 import SchoolAnalyticsList from './analytics/SchoolAnalyticsList';
@@ -67,6 +68,12 @@ const MainContent: React.FC = () => {
           return <ProjectHubModule />;
         }
         return <div className="p-8 text-center text-red-600">Access Denied: Project Hub is only available to EduFam administrators</div>;
+      case 'company-management':
+        // Only EduFam admins can access Company Management
+        if (user?.role === 'edufam_admin') {
+          return <CompanyManagementModule />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Company Management is only available to EduFam administrators</div>;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'school-analytics':
