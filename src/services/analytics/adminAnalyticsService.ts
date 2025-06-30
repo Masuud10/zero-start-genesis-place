@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export class AdminAnalyticsService {
@@ -274,5 +273,332 @@ export class AdminAnalyticsService {
       console.error('❌ AdminAnalyticsService: getFinancialSummaryData error:', error);
       throw error;
     }
+  }
+
+  static async getSystemGrowthTrends() {
+    try {
+      console.log('📊 AdminAnalyticsService: Fetching system growth trends...');
+      
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+      // Get combined growth data for students, teachers, and schools
+      const [studentsData, teachersData, schoolsData] = await Promise.all([
+        // Students growth
+        supabase
+          .from('students')
+          .select('created_at')
+          .gte('created_at', sixMonthsAgo.toISOString())
+          .order('created_at', { ascending: true }),
+        
+        // Teachers growth  
+        supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('role', 'teacher')
+          .gte('created_at', sixMonthsAgo.toISOString())
+          .order('created_at', { ascending: true }),
+        
+        // Schools growth
+        supabase
+          .from('schools')
+          .select('created_at')
+          .gte('created_at', sixMonthsAgo.toISOString())
+          .order('created_at', { ascending: true })
+      ]);
+
+      if (studentsData.error) throw studentsData.error;
+      if (teachersData.error) throw teachersData.error;
+      if (schoolsData.error) throw schoolsData.error;
+
+      // Process monthly growth data
+      const monthlyGrowth = this.processMonthlyGrowthData({
+        students: studentsData.data || [],
+        teachers: teachersData.data || [],
+        schools: schoolsData.data || []
+      });
+
+      console.log('✅ AdminAnalyticsService: System growth trends processed:', monthlyGrowth.length);
+      return monthlyGrowth;
+
+    } catch (error) {
+      console.error('❌ AdminAnalyticsService: getSystemGrowthTrends error:', error);
+      throw error;
+    }
+  }
+
+  static async getPlatformUsageTrends() {
+    try {
+      console.log('📊 AdminAnalyticsService: Fetching platform usage trends...');
+      
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role, last_login_at')
+        .not('last_login_at', 'is', null)
+        .gte('last_login_at', thirtyDaysAgo.toISOString())
+        .order('last_login_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Process daily login trends by role
+      const usageTrends = this.processUsageTrends(data || []);
+
+      console.log('✅ AdminAnalyticsService: Platform usage trends processed:', usageTrends.length);
+      return usageTrends;
+
+    } catch (error) {
+      console.error('❌ AdminAnalyticsService: getPlatformUsageTrends error:', error);
+      throw error;
+    }
+  }
+
+  static async getRevenueAnalytics() {
+    try {
+      console.log('📊 AdminAnalyticsService: Fetching revenue analytics...');
+      
+      const [billingData, transactionData] = await Promise.all([
+        supabase
+          .from('school_billing_records')
+          .select('amount, created_at, status, billing_type')
+          .eq('status', 'paid'),
+        
+        supabase
+          .from('financial_transactions')
+          .select('amount, processed_at, transaction_type')
+          .eq('transaction_type', 'payment')
+          .not('processed_at', 'is', null)
+      ]);
+
+      if (billingData.error) throw billingData.error;
+      if (transactionData.error) throw transactionData.error;
+
+      const revenueData = this.processRevenueData({
+        billing: billingData.data || [],
+        transactions: transactionData.data || []
+      });
+
+      console.log('✅ AdminAnalyticsService: Revenue analytics processed:', revenueData.length);
+      return revenueData;
+
+    } catch (error) {
+      console.error('❌ AdminAnalyticsService: getRevenueAnalytics error:', error);
+      throw error;
+    }
+  }
+
+  static async getPerformanceInsights() {
+    try {
+      console.log('📊 AdminAnalyticsService: Fetching performance insights...');
+      
+      const [gradesData, attendanceData] = await Promise.all([
+        supabase
+          .from('grades')
+          .select('percentage, created_at, school_id')
+          .not('percentage', 'is', null)
+          .eq('status', 'released'),
+        
+        supabase
+          .from('attendance')
+          .select('status, date, school_id')
+          .gte('date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      ]);
+
+      if (gradesData.error) throw gradesData.error;
+      if (attendanceData.error) throw attendanceData.error;
+
+      const performanceData = this.processPerformanceData({
+        grades: gradesData.data || [],
+        attendance: attendanceData.data || []
+      });
+
+      console.log('✅ AdminAnalyticsService: Performance insights processed');
+      return performanceData;
+
+    } catch (error) {
+      console.error('❌ AdminAnalyticsService: getPerformanceInsights error:', error);
+      throw error;
+    }
+  }
+
+  // Helper methods for data processing
+  private static processMonthlyGrowthData(data: { students: any[], teachers: any[], schools: any[] }) {
+    const monthlyData = new Map();
+    
+    // Initialize last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      monthlyData.set(monthKey, { month: monthKey, students: 0, teachers: 0, schools: 0 });
+    }
+
+    // Process each data type
+    ['students', 'teachers', 'schools'].forEach(type => {
+      data[type as keyof typeof data].forEach(item => {
+        if (item.created_at) {
+          const month = new Date(item.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+          if (monthlyData.has(month)) {
+            monthlyData.get(month)[type]++;
+          }
+        }
+      });
+    });
+
+    return Array.from(monthlyData.values());
+  }
+
+  private static processUsageTrends(data: any[]) {
+    const dailyUsage = new Map();
+    
+    // Initialize last 14 days
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateKey = date.toISOString().split('T')[0];
+      dailyUsage.set(dateKey, { 
+        date: dateKey, 
+        total: 0,
+        admin: 0, 
+        teacher: 0, 
+        principal: 0, 
+        parent: 0,
+        finance_officer: 0,
+        school_owner: 0
+      });
+    }
+
+    data.forEach(user => {
+      if (user.last_login_at) {
+        const loginDate = user.last_login_at.split('T')[0];
+        if (dailyUsage.has(loginDate)) {
+          const dayData = dailyUsage.get(loginDate);
+          dayData.total++;
+          if (dayData[user.role] !== undefined) {
+            dayData[user.role]++;
+          }
+        }
+      }
+    });
+
+    return Array.from(dailyUsage.values());
+  }
+
+  private static processRevenueData(data: { billing: any[], transactions: any[] }) {
+    const monthlyRevenue = new Map();
+    
+    // Initialize last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      monthlyRevenue.set(monthKey, {
+        month: monthKey,
+        billing: 0,
+        payments: 0,
+        total: 0
+      });
+    }
+
+    // Process billing data
+    data.billing.forEach(record => {
+      if (record.created_at && record.amount) {
+        const month = new Date(record.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        if (monthlyRevenue.has(month)) {
+          monthlyRevenue.get(month).billing += parseFloat(record.amount);
+        }
+      }
+    });
+
+    // Process transaction data
+    data.transactions.forEach(transaction => {
+      if (transaction.processed_at && transaction.amount) {
+        const month = new Date(transaction.processed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        if (monthlyRevenue.has(month)) {
+          monthlyRevenue.get(month).payments += parseFloat(transaction.amount);
+        }
+      }
+    });
+
+    // Calculate totals
+    Array.from(monthlyRevenue.values()).forEach(monthData => {
+      monthData.total = monthData.billing + monthData.payments;
+    });
+
+    return Array.from(monthlyRevenue.values());
+  }
+
+  private static processPerformanceData(data: { grades: any[], attendance: any[] }) {
+    // Calculate network-wide averages
+    const totalGrades = data.grades.length;
+    const averageGrade = totalGrades > 0 
+      ? data.grades.reduce((sum, grade) => sum + (grade.percentage || 0), 0) / totalGrades 
+      : 0;
+
+    const totalAttendance = data.attendance.length;
+    const presentCount = data.attendance.filter(record => record.status === 'present').length;
+    const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
+
+    // Monthly performance trends
+    const monthlyPerformance = new Map();
+    
+    // Initialize last 3 months
+    for (let i = 2; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      monthlyPerformance.set(monthKey, {
+        month: monthKey,
+        avgGrade: 0,
+        attendanceRate: 0,
+        gradeCount: 0,
+        attendanceCount: 0,
+        presentCount: 0
+      });
+    }
+
+    // Process grades by month
+    data.grades.forEach(grade => {
+      if (grade.created_at && grade.percentage) {
+        const month = new Date(grade.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        if (monthlyPerformance.has(month)) {
+          const monthData = monthlyPerformance.get(month);
+          monthData.avgGrade += grade.percentage;
+          monthData.gradeCount++;
+        }
+      }
+    });
+
+    // Process attendance by month
+    data.attendance.forEach(record => {
+      if (record.date) {
+        const month = new Date(record.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        if (monthlyPerformance.has(month)) {
+          const monthData = monthlyPerformance.get(month);
+          monthData.attendanceCount++;
+          if (record.status === 'present') {
+            monthData.presentCount++;
+          }
+        }
+      }
+    });
+
+    // Calculate averages
+    Array.from(monthlyPerformance.values()).forEach(monthData => {
+      monthData.avgGrade = monthData.gradeCount > 0 ? monthData.avgGrade / monthData.gradeCount : 0;
+      monthData.attendanceRate = monthData.attendanceCount > 0 ? (monthData.presentCount / monthData.attendanceCount) * 100 : 0;
+    });
+
+    return {
+      summary: {
+        averageGrade,
+        attendanceRate,
+        totalGrades,
+        totalAttendance
+      },
+      trends: Array.from(monthlyPerformance.values())
+    };
   }
 }

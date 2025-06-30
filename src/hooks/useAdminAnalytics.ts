@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { AdminAnalyticsService } from '@/services/analytics/adminAnalyticsService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -95,6 +94,70 @@ export const useFinancialSummaryData = () => {
     retry: 2,
     meta: {
       errorMessage: 'Failed to load financial analytics'
+    }
+  });
+};
+
+export const useSystemGrowthTrends = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['admin-analytics-system-growth-trends'],
+    queryFn: AdminAnalyticsService.getSystemGrowthTrends,
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
+    retry: 2,
+    meta: {
+      errorMessage: 'Failed to load system growth trends'
+    }
+  });
+};
+
+export const usePlatformUsageTrends = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['admin-analytics-platform-usage-trends'],
+    queryFn: AdminAnalyticsService.getPlatformUsageTrends,
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
+    retry: 2,
+    meta: {
+      errorMessage: 'Failed to load platform usage trends'
+    }
+  });
+};
+
+export const useRevenueAnalytics = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['admin-analytics-revenue-analytics'],
+    queryFn: AdminAnalyticsService.getRevenueAnalytics,
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
+    retry: 2,
+    meta: {
+      errorMessage: 'Failed to load revenue analytics'
+    }
+  });
+};
+
+export const usePerformanceInsights = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['admin-analytics-performance-insights'],
+    queryFn: AdminAnalyticsService.getPerformanceInsights,
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
+    retry: 2,
+    meta: {
+      errorMessage: 'Failed to load performance insights'
     }
   });
 };
