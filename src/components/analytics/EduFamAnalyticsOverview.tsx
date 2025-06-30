@@ -9,18 +9,36 @@ import {
   TrendingUp, 
   Activity,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEduFamSystemAnalytics } from '@/hooks/useEduFamSystemAnalytics';
 import SystemAnalyticsChartsSection from './sections/SystemAnalyticsChartsSection';
 
-const EduFamAnalyticsOverview = () => {
+interface EduFamAnalyticsOverviewProps {
+  onAnalyticsAction?: (action: string) => void;
+}
+
+const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({ 
+  onAnalyticsAction 
+}) => {
   const { data: systemAnalytics, isLoading, error, refetch } = useEduFamSystemAnalytics();
 
   const handleRefresh = () => {
     console.log('🔄 EduFamAnalyticsOverview: Refreshing analytics data');
     refetch();
+  };
+
+  const handleViewDetailed = () => {
+    console.log('👁️ EduFamAnalyticsOverview: View detailed analytics');
+    onAnalyticsAction?.('view-detailed-analytics');
+  };
+
+  const handleExportData = () => {
+    console.log('📤 EduFamAnalyticsOverview: Export analytics data');
+    onAnalyticsAction?.('export-analytics');
   };
 
   if (isLoading) {
@@ -149,10 +167,20 @@ const EduFamAnalyticsOverview = () => {
               <BarChart3 className="h-5 w-5" />
               EduFam System Analytics Overview
             </CardTitle>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleViewDetailed} variant="outline" size="sm">
+                <Eye className="h-4 w-4 mr-1" />
+                View Details
+              </Button>
+              <Button onClick={handleExportData} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </Button>
+              <Button onClick={handleRefresh} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -160,7 +188,11 @@ const EduFamAnalyticsOverview = () => {
             {statsCards.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className={`${stat.bgColor} p-4 rounded-lg shadow-sm border`}>
+                <div 
+                  key={index} 
+                  className={`${stat.bgColor} p-4 rounded-lg shadow-sm border cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105`}
+                  onClick={handleViewDetailed}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div className={`p-2 rounded-full ${stat.color}`}>
                       <Icon className="h-4 w-4 text-white" />

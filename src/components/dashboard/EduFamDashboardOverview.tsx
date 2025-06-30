@@ -12,6 +12,7 @@ import SystemHealthStatusCard from "@/components/analytics/SystemHealthStatusCar
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
 import DashboardModals from './DashboardModals';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigation } from '@/contexts/NavigationContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ const EduFamDashboardOverview = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const { user } = useAuth();
+  const { onSectionChange } = useNavigation();
 
   // Permission check - only edufam_admin should access this dashboard
   if (!user || user.role !== 'edufam_admin') {
@@ -84,6 +86,21 @@ const EduFamDashboardOverview = () => {
     refetchSchools();
   };
 
+  const handleStatsCardClick = (section: string) => {
+    console.log('📊 EduFamDashboard: Stats card clicked:', section);
+    onSectionChange(section);
+  };
+
+  const handleAnalyticsAction = (action: string) => {
+    console.log('📈 EduFamDashboard: Analytics action:', action);
+    if (action === 'view-detailed-analytics') {
+      onSectionChange('analytics');
+    } else if (action === 'export-analytics') {
+      // Handle export functionality
+      console.log('Exporting analytics data...');
+    }
+  };
+
   const userStats = React.useMemo(() => {
     if (!Array.isArray(usersData) || usersData.length === 0) {
       return {
@@ -122,7 +139,7 @@ const EduFamDashboardOverview = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview Cards - REMOVED DOWNLOAD EXCEL CONTAINER */}
+      {/* Stats Overview Cards with Click Handlers */}
       <SystemOverviewCards
         schoolsCount={validSchoolsData.length}
         totalUsers={userStats.totalUsers}
@@ -132,10 +149,11 @@ const EduFamDashboardOverview = () => {
         usersLoading={usersLoading}
         schoolsRefetching={schoolsRefetching}
         usersRefetching={usersRefetching}
+        onStatsCardClick={handleStatsCardClick}
       />
 
-      {/* Real-Time Analytics Overview */}
-      <EduFamAnalyticsOverview />
+      {/* Real-Time Analytics Overview with Action Handlers */}
+      <EduFamAnalyticsOverview onAnalyticsAction={handleAnalyticsAction} />
 
       {/* System Health Status */}
       <SystemHealthStatusCard />

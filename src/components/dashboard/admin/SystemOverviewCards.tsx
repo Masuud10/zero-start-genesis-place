@@ -12,6 +12,7 @@ interface SystemOverviewCardsProps {
   usersLoading: boolean;
   schoolsRefetching: boolean;
   usersRefetching: boolean;
+  onStatsCardClick?: (section: string) => void;
 }
 
 const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
@@ -22,7 +23,8 @@ const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
   schoolsLoading,
   usersLoading,
   schoolsRefetching,
-  usersRefetching
+  usersRefetching,
+  onStatsCardClick
 }) => {
   const isLoading = schoolsLoading || usersLoading;
   const isRefetching = schoolsRefetching || usersRefetching;
@@ -34,7 +36,8 @@ const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
       icon: School,
       description: 'Active schools in system',
       loading: schoolsLoading || schoolsRefetching,
-      color: 'text-blue-600'
+      color: 'text-blue-600',
+      section: 'schools'
     },
     {
       title: 'Total Users',
@@ -42,7 +45,8 @@ const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
       icon: Users,
       description: 'All registered users',
       loading: usersLoading || usersRefetching,
-      color: 'text-green-600'
+      color: 'text-green-600',
+      section: 'users'
     },
     {
       title: 'Users with Schools',
@@ -50,7 +54,8 @@ const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
       icon: UserCheck,
       description: 'Users assigned to schools',
       loading: usersLoading || usersRefetching,
-      color: 'text-emerald-600'
+      color: 'text-emerald-600',
+      section: 'users'
     },
     {
       title: 'Unassigned Users',
@@ -58,16 +63,27 @@ const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
       icon: UserX,
       description: 'Users without school assignment',
       loading: usersLoading || usersRefetching,
-      color: 'text-orange-600'
+      color: 'text-orange-600',
+      section: 'users'
     }
   ];
+
+  const handleCardClick = (section: string) => {
+    if (onStatsCardClick) {
+      onStatsCardClick(section);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((card, index) => {
         const IconComponent = card.icon;
         return (
-          <Card key={index} className="relative">
+          <Card 
+            key={index} 
+            className="relative cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+            onClick={() => handleCardClick(card.section)}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {card.title}
