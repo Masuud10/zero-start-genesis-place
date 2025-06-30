@@ -1,40 +1,14 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { SystemMaintenanceService } from '@/services/system/systemMaintenanceService';
 import { useToast } from '@/hooks/use-toast';
-
-export interface MaintenanceSettings {
-  enabled: boolean;
-  message: string;
-  updated_at: string;
-}
 
 export const useMaintenanceSettings = () => {
   return useQuery({
     queryKey: ['maintenance-settings'],
-    queryFn: async (): Promise<MaintenanceSettings> => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'maintenance_mode')
-        .single();
-
-      if (error) throw error;
-
-      // Type assertion with proper validation
-      const settingValue = data.setting_value as unknown;
-      
-      if (typeof settingValue === 'object' && settingValue !== null) {
-        return settingValue as MaintenanceSettings;
-      }
-      
-      // Fallback to default settings if parsing fails
-      return {
-        enabled: false,
-        message: 'System is currently under maintenance. Please try again later.',
-        updated_at: new Date().toISOString()
-      };
-    },
+    queryFn: () => SystemMaintenanceService.getMaintenanceStatus(),
+    select: (response) => response.data,
+    staleTime: 1 * 60 * 1000, // 1 minute
   });
 };
 
@@ -43,36 +17,27 @@ export const useUpdateMaintenanceSettings = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ enabled, message }: { enabled: boolean; message: string }) => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .update({
-          setting_value: {
-            enabled,
-            message,
-            updated_at: new Date().toISOString()
-          },
-          updated_at: new Date().toISOString(),
-          updated_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('setting_key', 'maintenance_mode')
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+    mutationFn: ({ enabled, message }: { enabled: boolean; message: string }) => 
+      SystemMaintenanceService.updateMaintenanceStatus(enabled, message),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast({
+          title: "Settings Updated",
+          description: "Maintenance settings have been updated successfully.",
+        });
+        queryClient.invalidateQueries({ queryKey: ['maintenance-settings'] });
+      } else {
+        toast({
+          title: "Update Failed",
+          description: result.error || "Failed to update maintenance settings",
+          variant: "destructive",
+        });
+      }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maintenance-settings'] });
-      toast({
-        title: "Success",
-        description: "Maintenance settings updated successfully",
-      });
-    },
-    onError: (error: any) => {
+    onError: () => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update maintenance settings",
+        description: "Failed to update maintenance settings",
         variant: "destructive",
       });
     },
