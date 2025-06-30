@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SystemAnalyticsData {
@@ -41,31 +42,30 @@ export class SystemAnalyticsService {
     try {
       console.log('🔄 SystemAnalyticsService: Fetching comprehensive analytics...');
 
-      // Fetch user login data with proper error handling
-      const userLogins = await this.fetchUserLoginData();
-      
-      // Fetch performance trends with fallback
-      const performanceTrends = await this.fetchPerformanceData();
-      
-      // Fetch schools onboarded data
-      const schoolsOnboarded = await this.fetchSchoolsData();
-      
-      // Fetch user distribution
-      const userDistribution = await this.fetchUserDistribution();
-      
-      // Fetch curriculum types distribution
-      const curriculumTypes = await this.fetchCurriculumData();
-      
-      // Fetch financial summary
-      const financeSummary = await this.fetchFinancialData();
-
-      const result: SystemAnalyticsData = {
+      // Fetch all data in parallel with proper error handling
+      const [
         userLogins,
         performanceTrends,
         schoolsOnboarded,
         userDistribution,
         curriculumTypes,
         financeSummary
+      ] = await Promise.allSettled([
+        this.fetchUserLoginData(),
+        this.fetchPerformanceData(),
+        this.fetchSchoolsData(),
+        this.fetchUserDistribution(),
+        this.fetchCurriculumData(),
+        this.fetchFinancialData()
+      ]);
+
+      const result: SystemAnalyticsData = {
+        userLogins: userLogins.status === 'fulfilled' ? userLogins.value : this.generateMockUserLogins(),
+        performanceTrends: performanceTrends.status === 'fulfilled' ? performanceTrends.value : this.generateMockPerformanceData(),
+        schoolsOnboarded: schoolsOnboarded.status === 'fulfilled' ? schoolsOnboarded.value : this.generateMockSchoolsData(),
+        userDistribution: userDistribution.status === 'fulfilled' ? userDistribution.value : this.generateMockUserDistribution(),
+        curriculumTypes: curriculumTypes.status === 'fulfilled' ? curriculumTypes.value : this.generateMockCurriculumData(),
+        financeSummary: financeSummary.status === 'fulfilled' ? financeSummary.value : this.generateMockFinancialData()
       };
 
       console.log('✅ SystemAnalyticsService: Analytics data processed successfully');
@@ -73,126 +73,251 @@ export class SystemAnalyticsService {
 
     } catch (error) {
       console.error('❌ SystemAnalyticsService: Failed to fetch analytics:', error);
-      // Return empty but valid data structure instead of throwing
       return this.getEmptyAnalyticsData();
     }
   }
 
   private static async fetchUserLoginData(): Promise<SystemAnalyticsData['userLogins']> {
-    try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { data: loginData, error } = await supabase
-        .from('profiles')
-        .select('role, last_login_at')
-        .gte('last_login_at', thirtyDaysAgo.toISOString());
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const { data: loginData, error } = await supabase
+      .from('profiles')
+      .select('role, last_login_at, created_at')
+      .gte('created_at', thirtyDaysAgo.toISOString());
 
-      if (error) {
-        console.warn('⚠️ Login data fetch error:', error);
-        return this.generateMockUserLogins();
-      }
-
-      return this.processUserLoginData(loginData || []);
-    } catch (error) {
-      console.warn('⚠️ Error fetching login data, using mock data:', error);
-      return this.generateMockUserLogins();
+    if (error) {
+      console.warn('⚠️ Login data fetch error:', error.message);
+      throw error;
     }
+
+    return this.processUserLoginData(loginData || []);
   }
 
   private static async fetchPerformanceData(): Promise<SystemAnalyticsData['performanceTrends']> {
-    try {
-      const { data: gradesData, error } = await supabase
-        .from('grades')
-        .select('score, percentage, created_at')
-        .order('created_at', { ascending: true });
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      if (error) {
-        console.warn('⚠️ Performance data fetch error:', error);
-        return this.generateMockPerformanceData();
-      }
+    const { data: gradesData, error } = await supabase
+      .from('grades')
+      .select('score, percentage, created_at')
+      .gte('created_at', sixMonthsAgo.toISOString())
+      .eq('status', 'released')
+      .not('score', 'is', null)
+      .order('created_at', { ascending: true });
 
-      return this.processPerformanceData(gradesData || []);
-    } catch (error) {
-      console.warn('⚠️ Error fetching performance data, using mock data:', error);
-      return this.generateMockPerformanceData();
+    if (error) {
+      console.warn('⚠️ Performance data fetch error:', error.message);
+      throw error;
     }
+
+    return this.processPerformanceData(gradesData || []);
   }
 
   private static async fetchSchoolsData(): Promise<SystemAnalyticsData['schoolsOnboarded']> {
-    try {
-      const { data: schoolsData, error } = await supabase
-        .from('schools')
-        .select('created_at')
-        .order('created_at', { ascending: true });
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-      if (error) {
-        console.warn('⚠️ Schools data fetch error:', error);
-        return this.generateMockSchoolsData();
-      }
+    const { data: schoolsData, error } = await supabase
+      .from('schools')
+      .select('created_at')
+      .gte('created_at', oneYearAgo.toISOString())
+      .eq('status', 'active')
+      .order('created_at', { ascending: true });
 
-      return this.processSchoolsData(schoolsData || []);
-    } catch (error) {
-      console.warn('⚠️ Error fetching schools data, using mock data:', error);
-      return this.generateMockSchoolsData();
+    if (error) {
+      console.warn('⚠️ Schools data fetch error:', error.message);
+      throw error;
     }
+
+    return this.processSchoolsData(schoolsData || []);
   }
 
   private static async fetchUserDistribution(): Promise<SystemAnalyticsData['userDistribution']> {
-    try {
-      const { data: usersData, error } = await supabase
-        .from('profiles')
-        .select('role');
+    const { data: usersData, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('status', 'active');
 
-      if (error) {
-        console.warn('⚠️ User distribution fetch error:', error);
-        return this.generateMockUserDistribution();
-      }
-
-      return this.processUserDistribution(usersData || []);
-    } catch (error) {
-      console.warn('⚠️ Error fetching user distribution, using mock data:', error);
-      return this.generateMockUserDistribution();
+    if (error) {
+      console.warn('⚠️ User distribution fetch error:', error.message);
+      throw error;
     }
+
+    return this.processUserDistribution(usersData || []);
   }
 
   private static async fetchCurriculumData(): Promise<SystemAnalyticsData['curriculumTypes']> {
-    try {
-      const { data: curriculumData, error } = await supabase
-        .from('schools')
-        .select('curriculum_type');
+    const { data: curriculumData, error } = await supabase
+      .from('schools')
+      .select('curriculum_type')
+      .eq('status', 'active');
 
-      if (error) {
-        console.warn('⚠️ Curriculum data fetch error:', error);
-        return this.generateMockCurriculumData();
-      }
-
-      return this.processCurriculumData(curriculumData || []);
-    } catch (error) {
-      console.warn('⚠️ Error fetching curriculum data, using mock data:', error);
-      return this.generateMockCurriculumData();
+    if (error) {
+      console.warn('⚠️ Curriculum data fetch error:', error.message);
+      throw error;
     }
+
+    return this.processCurriculumData(curriculumData || []);
   }
 
   private static async fetchFinancialData(): Promise<SystemAnalyticsData['financeSummary']> {
-    try {
-      const { data: billingData, error } = await supabase
-        .from('school_billing_records')
-        .select('amount, billing_type, status');
+    const currentYear = new Date().getFullYear();
+    
+    const { data: billingData, error } = await supabase
+      .from('financial_transactions')
+      .select('amount, transaction_type, processed_at')
+      .eq('transaction_type', 'payment')
+      .gte('processed_at', `${currentYear}-01-01`)
+      .not('amount', 'is', null);
 
-      if (error) {
-        console.warn('⚠️ Financial data fetch error:', error);
-        return this.generateMockFinancialData();
-      }
-
-      return this.processFinancialData(billingData || []);
-    } catch (error) {
-      console.warn('⚠️ Error fetching financial data, using mock data:', error);
-      return this.generateMockFinancialData();
+    if (error) {
+      console.warn('⚠️ Financial data fetch error:', error.message);
+      throw error;
     }
+
+    return this.processFinancialData(billingData || []);
   }
 
-  // Mock data generators for graceful fallback
+  // Data processing methods
+  private static processUserLoginData(data: any[]): SystemAnalyticsData['userLogins'] {
+    const roleMap = new Map<string, Map<string, number>>();
+    
+    // Initialize last 14 days
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      roleMap.set(dateStr, new Map([
+        ['admin', 0],
+        ['teacher', 0],
+        ['principal', 0],
+        ['parent', 0],
+        ['finance_officer', 0],
+        ['school_owner', 0]
+      ]));
+    }
+
+    // Process actual data
+    data.forEach(user => {
+      if (user.last_login_at) {
+        const loginDate = new Date(user.last_login_at).toISOString().split('T')[0];
+        const roleData = roleMap.get(loginDate);
+        if (roleData && roleData.has(user.role)) {
+          roleData.set(user.role, (roleData.get(user.role) || 0) + 1);
+        }
+      }
+    });
+
+    return Array.from(roleMap.entries()).map(([date, roles]) => ({
+      date,
+      admin: roles.get('admin') || 0,
+      teacher: roles.get('teacher') || 0,
+      principal: roles.get('principal') || 0,
+      parent: roles.get('parent') || 0,
+      finance_officer: roles.get('finance_officer') || 0,
+      school_owner: roles.get('school_owner') || 0
+    }));
+  }
+
+  private static processPerformanceData(data: any[]): SystemAnalyticsData['performanceTrends'] {
+    const monthlyData = new Map<string, { total: number; sum: number }>();
+
+    data.forEach(grade => {
+      const score = grade.percentage || grade.score;
+      if (score && grade.created_at) {
+        const month = new Date(grade.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        const current = monthlyData.get(month) || { total: 0, sum: 0 };
+        current.total += 1;
+        current.sum += parseFloat(score);
+        monthlyData.set(month, current);
+      }
+    });
+
+    return Array.from(monthlyData.entries())
+      .map(([month, data]) => ({
+        month,
+        average_grade: Math.round((data.sum / data.total) * 100) / 100,
+        total_grades: data.total
+      }))
+      .slice(-6); // Last 6 months
+  }
+
+  private static processSchoolsData(data: any[]): SystemAnalyticsData['schoolsOnboarded'] {
+    const monthlyCount = new Map<string, number>();
+
+    data.forEach(school => {
+      if (school.created_at) {
+        const month = new Date(school.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        monthlyCount.set(month, (monthlyCount.get(month) || 0) + 1);
+      }
+    });
+
+    return Array.from(monthlyCount.entries())
+      .map(([month, count]) => ({ month, count }))
+      .slice(-12); // Last 12 months
+  }
+
+  private static processUserDistribution(data: any[]): SystemAnalyticsData['userDistribution'] {
+    const roleCounts = new Map<string, number>();
+    const total = data.length;
+
+    data.forEach(user => {
+      const role = user.role || 'unknown';
+      roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
+    });
+
+    return Array.from(roleCounts.entries()).map(([role, count]) => ({
+      role: role.replace('_', ' ').toUpperCase(),
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100 * 100) / 100 : 0
+    }));
+  }
+
+  private static processCurriculumData(data: any[]): SystemAnalyticsData['curriculumTypes'] {
+    const curriculumCounts = new Map<string, number>();
+    const total = data.length;
+
+    data.forEach(school => {
+      const curriculum = school.curriculum_type || 'unknown';
+      curriculumCounts.set(curriculum, (curriculumCounts.get(curriculum) || 0) + 1);
+    });
+
+    return Array.from(curriculumCounts.entries()).map(([type, count]) => ({
+      type: type.toUpperCase(),
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100 * 100) / 100 : 0
+    }));
+  }
+
+  private static processFinancialData(data: any[]): SystemAnalyticsData['financeSummary'] {
+    let totalRevenue = 0;
+    let monthlyRevenue = 0;
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    data.forEach(record => {
+      if (record.amount) {
+        const amount = parseFloat(record.amount);
+        totalRevenue += amount;
+        
+        // Calculate monthly revenue for current month
+        const recordDate = new Date(record.processed_at);
+        if (recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear) {
+          monthlyRevenue += amount;
+        }
+      }
+    });
+
+    return {
+      total_subscriptions: Math.round(totalRevenue * 100) / 100,
+      setup_fees: Math.round(totalRevenue * 0.15 * 100) / 100, // Estimate 15% as setup fees
+      monthly_revenue: Math.round(monthlyRevenue * 100) / 100
+    };
+  }
+
+  // Mock data generators
   private static generateMockUserLogins(): SystemAnalyticsData['userLogins'] {
     const mockData = [];
     for (let i = 13; i >= 0; i--) {
@@ -268,142 +393,6 @@ export class SystemAnalyticsService {
       userDistribution: this.generateMockUserDistribution(),
       curriculumTypes: this.generateMockCurriculumData(),
       financeSummary: this.generateMockFinancialData()
-    };
-  }
-
-  private static processUserLoginData(data: any[]): SystemAnalyticsData['userLogins'] {
-    const roleMap = new Map<string, Map<string, number>>();
-    
-    // Initialize last 14 days
-    for (let i = 13; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      roleMap.set(dateStr, new Map([
-        ['admin', 0],
-        ['teacher', 0],
-        ['principal', 0],
-        ['parent', 0],
-        ['finance_officer', 0],
-        ['school_owner', 0]
-      ]));
-    }
-
-    // Process actual data
-    data.forEach(user => {
-      if (user.last_login_at) {
-        const loginDate = new Date(user.last_login_at).toISOString().split('T')[0];
-        const roleData = roleMap.get(loginDate);
-        if (roleData && roleData.has(user.role)) {
-          roleData.set(user.role, (roleData.get(user.role) || 0) + 1);
-        }
-      }
-    });
-
-    return Array.from(roleMap.entries()).map(([date, roles]) => ({
-      date,
-      admin: roles.get('admin') || 0,
-      teacher: roles.get('teacher') || 0,
-      principal: roles.get('principal') || 0,
-      parent: roles.get('parent') || 0,
-      finance_officer: roles.get('finance_officer') || 0,
-      school_owner: roles.get('school_owner') || 0
-    }));
-  }
-
-  private static processPerformanceData(data: any[]): SystemAnalyticsData['performanceTrends'] {
-    const monthlyData = new Map<string, { total: number; sum: number }>();
-
-    data.forEach(grade => {
-      const score = grade.percentage || grade.score;
-      if (score && grade.created_at) {
-        const month = new Date(grade.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-        const current = monthlyData.get(month) || { total: 0, sum: 0 };
-        current.total += 1;
-        current.sum += parseFloat(score);
-        monthlyData.set(month, current);
-      }
-    });
-
-    return Array.from(monthlyData.entries()).map(([month, data]) => ({
-      month,
-      average_grade: data.sum / data.total,
-      total_grades: data.total
-    }));
-  }
-
-  private static processSchoolsData(data: any[]): SystemAnalyticsData['schoolsOnboarded'] {
-    const monthlyCount = new Map<string, number>();
-
-    data.forEach(school => {
-      if (school.created_at) {
-        const month = new Date(school.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-        monthlyCount.set(month, (monthlyCount.get(month) || 0) + 1);
-      }
-    });
-
-    return Array.from(monthlyCount.entries()).map(([month, count]) => ({
-      month,
-      count
-    }));
-  }
-
-  private static processUserDistribution(data: any[]): SystemAnalyticsData['userDistribution'] {
-    const roleCounts = new Map<string, number>();
-    const total = data.length;
-
-    data.forEach(user => {
-      const role = user.role || 'unknown';
-      roleCounts.set(role, (roleCounts.get(role) || 0) + 1);
-    });
-
-    return Array.from(roleCounts.entries()).map(([role, count]) => ({
-      role: role.replace('_', ' ').toUpperCase(),
-      count,
-      percentage: total > 0 ? (count / total) * 100 : 0
-    }));
-  }
-
-  private static processCurriculumData(data: any[]): SystemAnalyticsData['curriculumTypes'] {
-    const curriculumCounts = new Map<string, number>();
-    const total = data.length;
-
-    data.forEach(school => {
-      const curriculum = school.curriculum_type || 'unknown';
-      curriculumCounts.set(curriculum, (curriculumCounts.get(curriculum) || 0) + 1);
-    });
-
-    return Array.from(curriculumCounts.entries()).map(([type, count]) => ({
-      type: type.toUpperCase(),
-      count,
-      percentage: total > 0 ? (count / total) * 100 : 0
-    }));
-  }
-
-  private static processFinancialData(data: any[]): SystemAnalyticsData['financeSummary'] {
-    let totalSubscriptions = 0;
-    let setupFees = 0;
-    let monthlyRevenue = 0;
-
-    data.forEach(record => {
-      if (record.status === 'paid' && record.amount) {
-        const amount = parseFloat(record.amount);
-        if (record.billing_type === 'subscription') {
-          totalSubscriptions += amount;
-        } else if (record.billing_type === 'setup_fee') {
-          setupFees += amount;
-        }
-        
-        // Calculate monthly revenue (last 30 days)
-        monthlyRevenue += amount;
-      }
-    });
-
-    return {
-      total_subscriptions: totalSubscriptions,
-      setup_fees: setupFees,
-      monthly_revenue: monthlyRevenue
     };
   }
 }

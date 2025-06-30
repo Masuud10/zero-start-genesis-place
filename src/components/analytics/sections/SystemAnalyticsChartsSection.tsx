@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TrendingUp, Users, DollarSign, Activity, AlertCircle } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, Activity, AlertCircle, Loader2 } from 'lucide-react';
 import SystemGrowthTrendsChart from '../charts/SystemGrowthTrendsChart';
 import PlatformUsageChart from '../charts/PlatformUsageChart';
 import RevenueAnalyticsChart from '../charts/RevenueAnalyticsChart';
@@ -21,26 +21,9 @@ const SystemAnalyticsChartsSection = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Loading State */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="animate-pulse h-80">
-              <CardContent className="p-6">
-                <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-                <div className="h-64 bg-gray-200 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-3 text-lg">Loading system analytics...</span>
         </div>
       </div>
     );
@@ -57,22 +40,11 @@ const SystemAnalyticsChartsSection = () => {
     );
   }
 
-  if (!analytics) {
-    return (
-      <Alert className="bg-yellow-50 border-yellow-200">
-        <AlertCircle className="h-4 w-4 text-yellow-600" />
-        <AlertDescription className="text-yellow-700">
-          No analytics data available at this time. Data will appear once system activity is recorded.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Calculate key metrics from analytics data
-  const totalUsers = analytics.userDistribution?.reduce((sum, item) => sum + item.count, 0) || 0;
-  const totalSchools = analytics.schoolsOnboarded?.reduce((sum, item) => sum + item.count, 0) || 0;
-  const totalRevenue = analytics.financeSummary?.total_subscriptions || 0;
-  const avgPerformance = analytics.performanceTrends?.length > 0 
+  // Calculate key metrics from analytics data with safety checks
+  const totalUsers = analytics?.userDistribution?.reduce((sum, item) => sum + item.count, 0) || 0;
+  const totalSchools = analytics?.schoolsOnboarded?.reduce((sum, item) => sum + item.count, 0) || 0;
+  const totalRevenue = analytics?.financeSummary?.total_subscriptions || 0;
+  const avgPerformance = analytics?.performanceTrends?.length > 0 
     ? analytics.performanceTrends[analytics.performanceTrends.length - 1]?.average_grade || 0
     : 0;
 

@@ -1,119 +1,44 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
-import { DollarSign } from 'lucide-react';
-import { useRevenueAnalytics } from '@/hooks/useAdminAnalytics';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
+import { Loader2 } from 'lucide-react';
 
 const RevenueAnalyticsChart = () => {
-  const { data, isLoading, error } = useRevenueAnalytics();
-
-  const chartConfig = {
-    billing: {
-      label: "Billing Revenue",
-      color: "hsl(var(--chart-1))",
-    },
-    payments: {
-      label: "Payment Revenue",
-      color: "hsl(var(--chart-2))",
-    },
-  };
+  const { data: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
-      <Card className="h-full">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Revenue Analytics</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground animate-pulse" />
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] flex items-center justify-center">
-            <div className="text-sm text-muted-foreground">Loading revenue data...</div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
     );
   }
 
-  if (error || !data || data.length === 0) {
-    console.error('📊 RevenueAnalyticsChart: Error or no data:', error);
+  if (error || !analytics?.financeSummary) {
     return (
-      <Card className="h-full">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Revenue Analytics</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] flex items-center justify-center">
-            <div className="text-sm text-amber-600">No revenue data available</div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        <p>No revenue data available</p>
+      </div>
     );
   }
 
-  console.log('📊 RevenueAnalyticsChart: Rendering with data:', data.length);
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border rounded shadow-lg">
-          <p className="font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: KES {entry.value.toLocaleString()}
-            </p>
-          ))}
-          <p className="text-sm font-medium border-t pt-1 mt-1">
-            Total: KES {payload.reduce((sum: number, entry: any) => sum + entry.value, 0).toLocaleString()}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const revenueData = [
+    { name: 'Subscriptions', amount: analytics.financeSummary.total_subscriptions },
+    { name: 'Setup Fees', amount: analytics.financeSummary.setup_fees },
+    { name: 'Monthly Revenue', amount: analytics.financeSummary.monthly_revenue }
+  ];
 
   return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Monthly Revenue Trends (Last 6 Months)</CardTitle>
-        <DollarSign className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="month" 
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis 
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `KES ${(value / 1000).toFixed(0)}K`}
-              />
-              <ChartTooltip content={<CustomTooltip />} />
-              <Legend />
-              <Bar 
-                dataKey="billing" 
-                fill="var(--color-billing)" 
-                radius={[2, 2, 0, 0]}
-              />
-              <Bar 
-                dataKey="payments" 
-                fill="var(--color-payments)" 
-                radius={[2, 2, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={revenueData}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip formatter={(value) => [`KES ${Number(value).toLocaleString()}`, 'Amount']} />
+        <Bar dataKey="amount" fill="#8b5cf6" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 
