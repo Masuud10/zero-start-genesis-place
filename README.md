@@ -47,7 +47,7 @@ Individual school & multi-school analytics for Edufam Admins
 🎟️ Support Tickets
 Role-based support system
 
-All users can raise tickets; Edufam Admins view all
+All users can raise tickets; Edufam Admins can view all
 
 🎓 Certificate & Report Generation
 Auto-generated academic & completion certificates
