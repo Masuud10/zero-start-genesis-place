@@ -32,16 +32,31 @@ export const useFeeData = () => {
       const validSchoolId = schoolValidation.sanitizedValue!;
       console.log('🔍 Fetching fees for school:', validSchoolId);
 
+      // Optimized query with better performance
       const { data, error: fetchError } = await supabase
         .from('fees')
         .select(`
-          *,
-          students!fees_student_id_fkey(name, admission_number),
-          classes!fees_class_id_fkey(name)
+          id,
+          student_id,
+          class_id,
+          amount,
+          paid_amount,
+          due_date,
+          term,
+          category,
+          status,
+          payment_method,
+          paid_date,
+          created_at,
+          academic_year,
+          students!left(name, admission_number),
+          classes!left(name)
         `)
         .eq('school_id', validSchoolId)
         .not('id', 'is', null)
-        .order('created_at', { ascending: false });
+        .not('amount', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(500); // Limit for performance
 
       if (fetchError) {
         console.error('Supabase error fetching fees:', fetchError);

@@ -59,48 +59,40 @@ export const useSecureFinanceMetrics = () => {
 
       console.log('✅ School verified for finance metrics:', schoolCheck.name);
 
-      // Secure fees data fetch with proper UUID validation
-      const { data: feesData, error: feesError } = await supabase
-        .from('fees')
-        .select('id, amount, paid_amount, due_date, status, student_id')
-        .eq('school_id', validSchoolId)
-        .not('amount', 'is', null)
-        .not('id', 'is', null);
+      // Use Promise.allSettled for better performance and error handling
+      const [feesResult, studentsResult, mpesaResult] = await Promise.allSettled([
+        // Optimized fees query
+        supabase
+          .from('fees')
+          .select('id, amount, paid_amount, due_date, status, student_id')
+          .eq('school_id', validSchoolId)
+          .not('amount', 'is', null)
+          .not('id', 'is', null)
+          .limit(1000),
 
-      if (feesError) {
-        console.error('Error fetching fees with validated UUID:', feesError);
-        throw new Error(`Failed to fetch fees data: ${feesError.message}`);
-      }
+        // Optimized students count
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', validSchoolId)
+          .eq('is_active', true),
 
-      // Secure students count fetch
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('school_id', validSchoolId)
-        .eq('is_active', true)
-        .not('id', 'is', null);
+        // Optimized MPESA transactions
+        supabase
+          .from('financial_transactions')
+          .select('amount')
+          .eq('school_id', validSchoolId)
+          .eq('payment_method', 'mpesa')
+          .not('amount', 'is', null)
+          .limit(500)
+      ]);
 
-      if (studentsError) {
-        console.warn('Students fetch warning:', studentsError);
-      }
-
-      // Secure MPESA transactions fetch
-      const { data: mpesaData, error: mpesaError } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('school_id', validSchoolId)
-        .eq('payment_method', 'mpesa')
-        .not('amount', 'is', null);
-
-      if (mpesaError) {
-        console.warn('MPESA data fetch warning:', mpesaError);
-      }
+      // Process results with safe fallbacks
+      const fees = feesResult.status === 'fulfilled' ? feesResult.value.data || [] : [];
+      const studentsCount = studentsResult.status === 'fulfilled' ? studentsResult.value.count || 0 : 0;
+      const mpesaTransactions = mpesaResult.status === 'fulfilled' ? mpesaResult.value.data || [] : [];
 
       // Calculate metrics with safe defaults and null checks
-      const fees = feesData || [];
-      const students = studentsData || [];
-      const mpesaTransactions = mpesaData || [];
-
       const totalFees = fees.reduce((sum, fee) => {
         const amount = Number(fee.amount || 0);
         return !isNaN(amount) ? sum + amount : sum;
@@ -119,7 +111,6 @@ export const useSecureFinanceMetrics = () => {
       }, 0);
 
       const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
-      const totalStudents = students.length;
 
       // Calculate defaulters safely with null checks
       const today = new Date();
@@ -146,7 +137,7 @@ export const useSecureFinanceMetrics = () => {
         outstandingAmount,
         totalMpesaPayments,
         collectionRate: Math.min(100, Math.max(0, collectionRate)),
-        totalStudents,
+        totalStudents: studentsCount,
         defaultersCount: defaultersList.length
       };
 

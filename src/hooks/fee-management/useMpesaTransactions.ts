@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { MPESATransaction } from './types';
+import { validateUuid, validateSchoolAccess } from '@/utils/uuidValidation';
 
 export const useMpesaTransactions = () => {
   const [mpesaTransactions, setMpesaTransactions] = useState<MPESATransaction[]>([]);
@@ -20,17 +21,40 @@ export const useMpesaTransactions = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 Fetching MPESA transactions for school:', user.school_id);
+      // Validate school access
+      const schoolValidation = validateSchoolAccess(user.school_id);
+      if (!schoolValidation.isValid) {
+        throw new Error(schoolValidation.error || 'Invalid school access');
+      }
 
+      const validSchoolId = schoolValidation.sanitizedValue!;
+      console.log('🔍 Fetching MPESA transactions for school:', validSchoolId);
+
+      // Optimized query with limited joins and pagination
       const { data, error: fetchError } = await supabase
         .from('mpesa_transactions')
         .select(`
-          *,
-          students!mpesa_transactions_student_id_fkey(name, admission_number),
-          classes!mpesa_transactions_class_id_fkey(name)
+          id,
+          transaction_id,
+          mpesa_receipt_number,
+          phone_number,
+          amount_paid,
+          fee_id,
+          student_id,
+          class_id,
+          school_id,
+          transaction_status,
+          payment_type,
+          paybill_number,
+          transaction_date,
+          created_at,
+          students!left(name, admission_number),
+          classes!left(name)
         `)
-        .eq('school_id', user.school_id)
-        .order('transaction_date', { ascending: false });
+        .eq('school_id', validSchoolId)
+        .not('id', 'is', null)
+        .order('transaction_date', { ascending: false })
+        .limit(100); // Limit results for performance
 
       if (fetchError) {
         console.error('Supabase error fetching MPESA transactions:', fetchError);
@@ -95,7 +119,12 @@ export const useMpesaTransactions = () => {
   };
 
   useEffect(() => {
-    fetchMPESATransactions();
+    if (user?.school_id) {
+      fetchMPESATransactions();
+    } else {
+      setError('User school ID is required');
+      setLoading(false);
+    }
   }, [user?.school_id]);
 
   return {

@@ -24,12 +24,12 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
   const filters = { term: 'current', class: 'all' };
   const { data, isLoading, error, refetch } = useFinanceOfficerAnalytics(filters);
 
-  // Set a timeout for loading to prevent infinite loading
+  // Reduced timeout for better UX
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 15000); // 15 seconds timeout
+      }, 8000); // Reduced from 15 seconds to 8 seconds
 
       return () => clearTimeout(timeout);
     } else {
@@ -53,7 +53,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-muted-foreground">Loading financial overview...</p>
-          <p className="text-sm text-muted-foreground mt-2">Please wait while we fetch your data</p>
+          <p className="text-sm text-muted-foreground mt-2">This should only take a moment</p>
         </div>
       </div>
     );
@@ -70,7 +70,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
           </AlertTitle>
           <AlertDescription className="mt-2">
             {loadingTimeout 
-              ? 'The dashboard is taking longer than expected to load. This might be due to network issues or missing data.'
+              ? 'The dashboard is taking longer than expected to load. Please try refreshing.'
               : 'There was a problem loading the financial analytics. Please try refreshing the page.'
             }
             {error && (
@@ -174,20 +174,30 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
         </Card>
       </div>
 
-      {/* Detailed Analytics */}
-      <div className="space-y-6">
-        {/* Key Metrics */}
-        <FinanceKeyMetrics keyMetrics={safeData.keyMetrics} />
-        
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DailyTransactionsChart data={safeData.dailyTransactions} />
-          <ExpenseBreakdownChart data={safeData.expenseBreakdown} />
-        </div>
+      {/* Only show detailed analytics if we have data */}
+      {safeData.keyMetrics.totalRevenue > 0 && (
+        <div className="space-y-6">
+          {/* Key Metrics */}
+          <FinanceKeyMetrics keyMetrics={safeData.keyMetrics} />
+          
+          {/* Charts Section - Only if we have data */}
+          {(safeData.dailyTransactions.length > 0 || safeData.expenseBreakdown.length > 0) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {safeData.dailyTransactions.length > 0 && (
+                <DailyTransactionsChart data={safeData.dailyTransactions} />
+              )}
+              {safeData.expenseBreakdown.length > 0 && (
+                <ExpenseBreakdownChart data={safeData.expenseBreakdown} />
+              )}
+            </div>
+          )}
 
-        {/* Defaulters List */}
-        <TopDefaultersList data={safeData.defaultersList} />
-      </div>
+          {/* Defaulters List - Only if we have defaulters */}
+          {safeData.defaultersList.length > 0 && (
+            <TopDefaultersList data={safeData.defaultersList} />
+          )}
+        </div>
+      )}
 
       {/* Data Status Info */}
       {(!data || (safeData.keyMetrics.totalRevenue === 0 && safeData.feeCollectionData.length === 0)) && (
