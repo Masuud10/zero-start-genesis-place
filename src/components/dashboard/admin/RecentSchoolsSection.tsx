@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { School, Eye, Users, MapPin, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-interface School {
+interface SchoolData {
   id: string;
   name: string;
   address: string | null;
@@ -15,10 +15,29 @@ interface School {
   created_at: string;
   owner_id: string | null;
   principal_id: string | null;
+  location?: string | null;
+  logo_url?: string | null;
+  website_url?: string | null;
+  motto?: string | null;
+  slogan?: string | null;
+  registration_number?: string | null;
+  year_established?: number | null;
+  curriculum_type?: string | null;
+  principal_name?: string | null;
+  principal_contact?: string | null;
+  principal_email?: string | null;
+  owner_information?: string | null;
+  school_type?: string | null;
+  status?: string | null;
+  subscription_plan?: string | null;
+  max_students?: number | null;
+  timezone?: string | null;
+  term_structure?: string | null;
+  updated_at?: string;
 }
 
 interface RecentSchoolsSectionProps {
-  schoolsData: School[];
+  schoolsData: SchoolData[];
   schoolsLoading: boolean;
   schoolsError: any;
   onModalOpen: (modalType: string, schoolId?: string) => void;
