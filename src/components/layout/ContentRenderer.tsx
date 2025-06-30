@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
@@ -10,6 +9,9 @@ import GradesModule from '@/components/modules/GradesModule';
 import AttendanceModule from '@/components/modules/AttendanceModule';
 import StudentsModule from '@/components/modules/StudentsModule';
 import FinanceModule from '@/components/modules/FinanceModule';
+import FeeManagementModule from '@/components/modules/FeeManagementModule';
+import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
+import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
 import TimetableModule from '@/components/modules/TimetableModule';
 import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
 import MessagesModule from '@/components/modules/MessagesModule';
@@ -27,6 +29,11 @@ import SystemSettings from '@/components/settings/SystemSettings';
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
 import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
 import SchoolOwnerDashboard from '../dashboard/SchoolOwnerDashboard';
+import MpesaPaymentsPanel from '@/components/finance/MpesaPaymentsPanel';
+import FinancialReportsPanel from '@/components/finance/FinancialReportsPanel';
+import FinanceAnalyticsPanel from '@/components/finance/FinanceAnalyticsPanel';
+import StudentAccountsPanel from '@/components/finance/StudentAccountsPanel';
+import FinanceSettingsPanel from '@/components/finance/FinanceSettingsPanel';
 
 interface ContentRendererProps {
   activeSection: string;
@@ -72,8 +79,44 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
     return <div>Analytics access restricted to system administrators</div>;
   }
 
-  // Other sections with role-based access
+  // Finance-specific routes - ensure proper access control
+  const financeRoles = ['finance_officer', 'principal', 'school_owner'];
+  const hasFinanceAccess = financeRoles.includes(user?.role || '');
+
+  // Finance sub-modules
   switch (activeSection) {
+    case 'fee-management':
+      if (hasFinanceAccess) {
+        return <FeeManagementModule />;
+      }
+      return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+    case 'mpesa-payments':
+      if (hasFinanceAccess) {
+        return <MpesaPaymentsPanel />;
+      }
+      return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+    case 'financial-reports':
+      if (hasFinanceAccess) {
+        return <FinancialReportsPanel />;
+      }
+      return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+    case 'financial-analytics':
+      if (hasFinanceAccess) {
+        return <FinanceAnalyticsPanel />;
+      }
+      return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+    case 'student-accounts':
+      if (hasFinanceAccess) {
+        return <StudentAccountsPanel />;
+      }
+      return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+    case 'finance-settings':
+      if (hasFinanceAccess) {
+        return <FinanceSettingsPanel />;
+      }
+      return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+
+    // Other sections with role-based access
     case 'project-hub':
       // Only EduFam admins can access Project Hub
       if (user?.role === 'edufam_admin') {

@@ -14,6 +14,7 @@ import FinanceModule from './modules/FinanceModule';
 import ProcessPaymentsModule from './modules/ProcessPaymentsModule';
 import StudentAccountsModule from './modules/StudentAccountsModule';
 import FeeManagementModule from './modules/FeeManagementModule';
+import FinanceSettingsModule from './modules/FinanceSettingsModule';
 import TimetableModule from './modules/TimetableModule';
 import AnnouncementsModule from './modules/AnnouncementsModule';
 import MessagesModule from './modules/MessagesModule';
@@ -22,7 +23,6 @@ import SchoolActivityLogsModule from './modules/SchoolActivityLogsModule';
 import SystemAuditLogsModule from './modules/SystemAuditLogsModule';
 import SupportModule from './modules/SupportModule';
 import SettingsModule from './modules/SettingsModule';
-import FinanceSettingsModule from './modules/FinanceSettingsModule';
 import SecurityModule from './modules/SecurityModule';
 import SchoolsModule from './modules/SchoolsModule';
 import UsersModule from './modules/UsersModule';
@@ -35,12 +35,23 @@ import TeacherDashboard from './dashboard/TeacherDashboard';
 import ParentDashboard from './dashboard/ParentDashboard';
 import FinanceOfficerDashboard from './dashboard/FinanceOfficerDashboard';
 import SchoolOwnerDashboard from './dashboard/SchoolOwnerDashboard';
+import MpesaPaymentsPanel from './finance/MpesaPaymentsPanel';
+import FinancialReportsPanel from './finance/FinancialReportsPanel';
+import FinanceAnalyticsPanel from './finance/FinanceAnalyticsPanel';
+import StudentAccountsPanel from './finance/StudentAccountsPanel';
+import FinanceSettingsPanel from './finance/FinanceSettingsPanel';
 
 const MainContent: React.FC = () => {
   const { user } = useAuth();
   const { activeSection } = useNavigation();
 
   console.log('🎯 MainContent: Rendering section:', activeSection, 'for role:', user?.role);
+
+  // Helper function to check finance access
+  const hasFinanceAccess = () => {
+    const financeRoles = ['finance_officer', 'principal', 'school_owner'];
+    return financeRoles.includes(user?.role || '');
+  };
 
   const renderContent = () => {
     switch (activeSection) {
@@ -62,6 +73,39 @@ const MainContent: React.FC = () => {
           default:
             return <EduFamAdminDashboard />;
         }
+
+      // Finance-specific routes
+      case 'fee-management':
+        if (hasFinanceAccess()) {
+          return <FeeManagementModule />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+      case 'mpesa-payments':
+        if (hasFinanceAccess()) {
+          return <MpesaPaymentsPanel />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+      case 'financial-reports':
+        if (hasFinanceAccess()) {
+          return <FinancialReportsPanel />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+      case 'financial-analytics':
+        if (hasFinanceAccess()) {
+          return <FinanceAnalyticsPanel />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+      case 'student-accounts':
+        if (hasFinanceAccess()) {
+          return <StudentAccountsPanel />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+      case 'finance-settings':
+        if (hasFinanceAccess()) {
+          return <FinanceSettingsPanel />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
+
       case 'project-hub':
         // Only EduFam admins can access Project Hub
         if (user?.role === 'edufam_admin') {
@@ -94,10 +138,6 @@ const MainContent: React.FC = () => {
         return <FinanceModule />;
       case 'payments':
         return <ProcessPaymentsModule />;
-      case 'student-accounts':
-        return <StudentAccountsModule />;
-      case 'fee-management':
-        return <FeeManagementModule />;
       case 'timetable':
         return <TimetableModule />;
       case 'announcements':
@@ -114,8 +154,6 @@ const MainContent: React.FC = () => {
         return <SupportModule />;
       case 'settings':
         return <SettingsModule />;
-      case 'finance-settings':
-        return <FinanceSettingsModule />;
       case 'security':
         return <SecurityModule />;
       case 'schools':
