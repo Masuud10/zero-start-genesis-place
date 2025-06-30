@@ -1,7 +1,8 @@
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { SystemSettingsService } from '@/services/system/systemSettingsService';
 
 export const useSystemMaintenance = () => {
   const { toast } = useToast();
@@ -50,5 +51,31 @@ export const useSystemMaintenance = () => {
         variant: "destructive",
       });
     },
+  });
+};
+
+export const useUserManagementStats = () => {
+  return useQuery({
+    queryKey: ['user-management-stats'],
+    queryFn: async () => {
+      const { data, error } = await SystemSettingsService.getUserManagementStats();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+};
+
+export const useSecuritySettings = () => {
+  return useQuery({
+    queryKey: ['security-settings'],
+    queryFn: async () => {
+      const { data, error } = await SystemSettingsService.getSecuritySettings();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
   });
 };

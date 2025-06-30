@@ -140,7 +140,7 @@ const SettingsModule = () => {
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   <span className="font-medium capitalize">{role.replace('_', ' ')}</span>
                 </div>
-                <Badge variant="secondary">{count}</Badge>
+                <Badge variant="secondary">{count as number}</Badge>
               </div>
             ))}
           </div>

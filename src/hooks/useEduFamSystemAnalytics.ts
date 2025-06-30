@@ -14,13 +14,18 @@ interface SystemAnalytics {
   grades: {
     total_grades: number;
     average_grade: number;
+    schools_with_grades: number;
   };
   finance: {
     total_collected: number;
     outstanding_amount: number;
+    total_outstanding: number;
+    schools_with_finance: number;
   };
   attendance: {
     average_attendance_rate: number;
+    total_records: number;
+    schools_with_attendance: number;
   };
   system: {
     uptime_percentage: number;
@@ -56,11 +61,31 @@ export const useEduFamSystemAnalytics = () => {
         // Fetch grades data
         const { data: gradesData, error: gradesError } = await supabase
           .from('grades')
-          .select('score, max_score, percentage')
+          .select('score, max_score, percentage, school_id')
           .not('score', 'is', null);
 
         if (gradesError) {
           console.error('Error fetching grades:', gradesError);
+        }
+
+        // Fetch attendance data
+        const { data: attendanceData, error: attendanceError } = await supabase
+          .from('attendance')
+          .select('status, school_id')
+          .not('status', 'is', null);
+
+        if (attendanceError) {
+          console.error('Error fetching attendance:', attendanceError);
+        }
+
+        // Fetch finance data
+        const { data: financeData, error: financeError } = await supabase
+          .from('fees')
+          .select('amount, paid_amount, school_id')
+          .not('amount', 'is', null);
+
+        if (financeError) {
+          console.error('Error fetching finance:', financeError);
         }
 
         // Calculate analytics
@@ -68,9 +93,21 @@ export const useEduFamSystemAnalytics = () => {
         const activeSchools = schoolsData?.filter(s => s.status === 'active').length || 0;
         const totalUsers = usersData?.length || 0;
         const activeUsers = Math.floor(totalUsers * 0.8); // Mock active users calculation
+        
         const totalGrades = gradesData?.length || 0;
         const averageGrade = gradesData?.length ? 
           gradesData.reduce((sum, g) => sum + (g.percentage || 0), 0) / gradesData.length : 0;
+        const schoolsWithGrades = new Set(gradesData?.map(g => g.school_id)).size;
+
+        const totalAttendanceRecords = attendanceData?.length || 0;
+        const presentCount = attendanceData?.filter(a => a.status === 'present').length || 0;
+        const averageAttendanceRate = totalAttendanceRecords > 0 ? (presentCount / totalAttendanceRecords) * 100 : 0;
+        const schoolsWithAttendance = new Set(attendanceData?.map(a => a.school_id)).size;
+
+        const totalCollected = financeData?.reduce((sum, f) => sum + (Number(f.paid_amount) || 0), 0) || 0;
+        const totalAmount = financeData?.reduce((sum, f) => sum + (Number(f.amount) || 0), 0) || 0;
+        const outstandingAmount = totalAmount - totalCollected;
+        const schoolsWithFinance = new Set(financeData?.map(f => f.school_id)).size;
 
         const analytics: SystemAnalytics = {
           schools: {
@@ -83,14 +120,19 @@ export const useEduFamSystemAnalytics = () => {
           },
           grades: {
             total_grades: totalGrades,
-            average_grade: averageGrade
+            average_grade: averageGrade,
+            schools_with_grades: schoolsWithGrades
           },
           finance: {
-            total_collected: 5000000, // Mock data
-            outstanding_amount: 1200000 // Mock data
+            total_collected: totalCollected,
+            outstanding_amount: outstandingAmount,
+            total_outstanding: outstandingAmount,
+            schools_with_finance: schoolsWithFinance
           },
           attendance: {
-            average_attendance_rate: 87.5 // Mock data
+            average_attendance_rate: averageAttendanceRate,
+            total_records: totalAttendanceRecords,
+            schools_with_attendance: schoolsWithAttendance
           },
           system: {
             uptime_percentage: 99.9 // Mock data
