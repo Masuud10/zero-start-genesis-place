@@ -6,74 +6,78 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Bell, 
   Mail, 
   MessageSquare, 
-  AlertTriangle,
-  CheckCircle,
-  Settings
+  Smartphone,
+  Save,
+  Settings,
+  Volume2
 } from 'lucide-react';
 
 const NotificationSettings: React.FC = () => {
   const { toast } = useToast();
   
   const [emailSettings, setEmailSettings] = useState({
-    systemAlerts: true,
-    userRegistrations: true,
-    securityEvents: true,
-    maintenanceNotices: false,
-    weeklyReports: true
+    enabled: true,
+    smtpServer: 'smtp.gmail.com',
+    smtpPort: '587',
+    username: '',
+    password: '',
+    fromAddress: 'noreply@edufam.com',
+    fromName: 'EduFam System'
   });
 
   const [smsSettings, setSmsSettings] = useState({
-    criticalAlerts: true,
-    securityBreaches: true,
-    systemDown: true
+    enabled: false,
+    provider: 'twilio',
+    apiKey: '',
+    apiSecret: '',
+    fromNumber: ''
   });
 
-  const [emailConfig, setEmailConfig] = useState({
-    smtpServer: 'smtp.gmail.com',
-    smtpPort: '587',
-    smtpUsername: '',
-    smtpPassword: '',
-    fromEmail: 'noreply@edufam.com',
-    fromName: 'EduFam System'
+  const [systemNotifications, setSystemNotifications] = useState({
+    newUserRegistration: true,
+    failedLogins: true,
+    systemMaintenance: true,
+    backupAlerts: true,
+    securityIncidents: true,
+    performanceAlerts: false
   });
 
   const handleSaveEmailSettings = () => {
     toast({
-      title: "Email Settings Updated",
-      description: "Email notification preferences have been saved successfully.",
+      title: "Email Settings Saved",
+      description: "Email notification settings have been updated successfully.",
     });
   };
 
-  const handleSaveSmsSettings = () => {
+  const handleSaveSMSSettings = () => {
     toast({
-      title: "SMS Settings Updated",
-      description: "SMS notification preferences have been saved successfully.",
+      title: "SMS Settings Saved",
+      description: "SMS notification settings have been updated successfully.",
     });
   };
 
-  const handleSaveEmailConfig = () => {
+  const handleSaveSystemNotifications = () => {
     toast({
-      title: "Email Configuration Updated",
-      description: "SMTP configuration has been saved successfully.",
-    });
-  };
-
-  const handleTestEmail = () => {
-    toast({
-      title: "Test Email Sent",
-      description: "A test email has been sent to verify the configuration.",
+      title: "System Notifications Updated",
+      description: "System notification preferences have been saved.",
     });
   };
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Bell className="h-6 w-6 text-blue-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Notification Settings</h2>
+      </div>
+
       {/* Email Notifications */}
-      <Card>
+      <Card className="border-l-4 border-l-blue-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -83,221 +87,221 @@ const NotificationSettings: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label>System Alerts</Label>
-              <p className="text-xs text-gray-500">Critical system alerts and errors</p>
+              <Label>Enable Email Notifications</Label>
+              <p className="text-xs text-gray-500">Send system notifications via email</p>
             </div>
             <Switch
-              checked={emailSettings.systemAlerts}
+              checked={emailSettings.enabled}
               onCheckedChange={(checked) => 
-                setEmailSettings(prev => ({ ...prev, systemAlerts: checked }))
+                setEmailSettings(prev => ({ ...prev, enabled: checked }))
               }
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>User Registrations</Label>
-              <p className="text-xs text-gray-500">New user registration notifications</p>
+          {emailSettings.enabled && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <Label htmlFor="smtp_server">SMTP Server</Label>
+                <Input
+                  id="smtp_server"
+                  value={emailSettings.smtpServer}
+                  onChange={(e) => 
+                    setEmailSettings(prev => ({ ...prev, smtpServer: e.target.value }))
+                  }
+                  placeholder="smtp.gmail.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtp_port">SMTP Port</Label>
+                <Input
+                  id="smtp_port"
+                  value={emailSettings.smtpPort}
+                  onChange={(e) => 
+                    setEmailSettings(prev => ({ ...prev, smtpPort: e.target.value }))
+                  }
+                  placeholder="587"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email_username">Username</Label>
+                <Input
+                  id="email_username"
+                  value={emailSettings.username}
+                  onChange={(e) => 
+                    setEmailSettings(prev => ({ ...prev, username: e.target.value }))
+                  }
+                  placeholder="your-email@gmail.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email_password">Password</Label>
+                <Input
+                  id="email_password"
+                  type="password"
+                  value={emailSettings.password}
+                  onChange={(e) => 
+                    setEmailSettings(prev => ({ ...prev, password: e.target.value }))
+                  }
+                  placeholder="App password"
+                />
+              </div>
+              <div>
+                <Label htmlFor="from_address">From Address</Label>
+                <Input
+                  id="from_address"
+                  value={emailSettings.fromAddress}
+                  onChange={(e) => 
+                    setEmailSettings(prev => ({ ...prev, fromAddress: e.target.value }))
+                  }
+                  placeholder="noreply@edufam.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="from_name">From Name</Label>
+                <Input
+                  id="from_name"
+                  value={emailSettings.fromName}
+                  onChange={(e) => 
+                    setEmailSettings(prev => ({ ...prev, fromName: e.target.value }))
+                  }
+                  placeholder="EduFam System"
+                />
+              </div>
             </div>
-            <Switch
-              checked={emailSettings.userRegistrations}
-              onCheckedChange={(checked) => 
-                setEmailSettings(prev => ({ ...prev, userRegistrations: checked }))
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Security Events</Label>
-              <p className="text-xs text-gray-500">Security incidents and breaches</p>
-            </div>
-            <Switch
-              checked={emailSettings.securityEvents}
-              onCheckedChange={(checked) => 
-                setEmailSettings(prev => ({ ...prev, securityEvents: checked }))
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Maintenance Notices</Label>
-              <p className="text-xs text-gray-500">Scheduled maintenance notifications</p>
-            </div>
-            <Switch
-              checked={emailSettings.maintenanceNotices}
-              onCheckedChange={(checked) => 
-                setEmailSettings(prev => ({ ...prev, maintenanceNotices: checked }))
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Weekly Reports</Label>
-              <p className="text-xs text-gray-500">Weekly system usage reports</p>
-            </div>
-            <Switch
-              checked={emailSettings.weeklyReports}
-              onCheckedChange={(checked) => 
-                setEmailSettings(prev => ({ ...prev, weeklyReports: checked }))
-              }
-            />
-          </div>
+          )}
 
           <Button onClick={handleSaveEmailSettings} className="w-full">
+            <Save className="w-4 h-4 mr-2" />
             Save Email Settings
           </Button>
         </CardContent>
       </Card>
 
       {/* SMS Notifications */}
-      <Card>
+      <Card className="border-l-4 border-l-green-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
+            <Smartphone className="h-5 w-5" />
             SMS Notifications
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label>Critical Alerts</Label>
-              <p className="text-xs text-gray-500">High-priority system alerts</p>
+              <Label>Enable SMS Notifications</Label>
+              <p className="text-xs text-gray-500">Send urgent notifications via SMS</p>
             </div>
             <Switch
-              checked={smsSettings.criticalAlerts}
+              checked={smsSettings.enabled}
               onCheckedChange={(checked) => 
-                setSmsSettings(prev => ({ ...prev, criticalAlerts: checked }))
+                setSmsSettings(prev => ({ ...prev, enabled: checked }))
               }
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Security Breaches</Label>
-              <p className="text-xs text-gray-500">Security incident notifications</p>
+          {smsSettings.enabled && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="sms_provider">SMS Provider</Label>
+                <Select
+                  value={smsSettings.provider}
+                  onValueChange={(value) => 
+                    setSmsSettings(prev => ({ ...prev, provider: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="twilio">Twilio</SelectItem>
+                    <SelectItem value="nexmo">Nexmo</SelectItem>
+                    <SelectItem value="africastalking">Africa's Talking</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="sms_api_key">API Key</Label>
+                <Input
+                  id="sms_api_key"
+                  value={smsSettings.apiKey}
+                  onChange={(e) => 
+                    setSmsSettings(prev => ({ ...prev, apiKey: e.target.value }))
+                  }
+                  placeholder="Your SMS provider API key"
+                />
+              </div>
+              <div>
+                <Label htmlFor="sms_api_secret">API Secret</Label>
+                <Input
+                  id="sms_api_secret"
+                  type="password"
+                  value={smsSettings.apiSecret}
+                  onChange={(e) => 
+                    setSmsSettings(prev => ({ ...prev, apiSecret: e.target.value }))
+                  }
+                  placeholder="Your SMS provider API secret"
+                />
+              </div>
+              <div>
+                <Label htmlFor="from_number">From Number</Label>
+                <Input
+                  id="from_number"
+                  value={smsSettings.fromNumber}
+                  onChange={(e) => 
+                    setSmsSettings(prev => ({ ...prev, fromNumber: e.target.value }))
+                  }
+                  placeholder="+1234567890"
+                />
+              </div>
             </div>
-            <Switch
-              checked={smsSettings.securityBreaches}
-              onCheckedChange={(checked) => 
-                setSmsSettings(prev => ({ ...prev, securityBreaches: checked }))
-              }
-            />
-          </div>
+          )}
 
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>System Down</Label>
-              <p className="text-xs text-gray-500">System downtime notifications</p>
-            </div>
-            <Switch
-              checked={smsSettings.systemDown}
-              onCheckedChange={(checked) => 
-                setSmsSettings(prev => ({ ...prev, systemDown: checked }))
-              }
-            />
-          </div>
-
-          <Button onClick={handleSaveSmsSettings} className="w-full">
+          <Button onClick={handleSaveSMSSettings} className="w-full">
+            <Save className="w-4 h-4 mr-2" />
             Save SMS Settings
           </Button>
         </CardContent>
       </Card>
 
-      {/* Email Configuration */}
-      <Card>
+      {/* System Notification Preferences */}
+      <Card className="border-l-4 border-l-purple-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Email Configuration
+            <Volume2 className="h-5 w-5" />
+            System Notification Preferences
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="smtp_server">SMTP Server</Label>
-              <Input
-                id="smtp_server"
-                value={emailConfig.smtpServer}
-                onChange={(e) => 
-                  setEmailConfig(prev => ({ ...prev, smtpServer: e.target.value }))
-                }
-                placeholder="smtp.gmail.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="smtp_port">SMTP Port</Label>
-              <Input
-                id="smtp_port"
-                value={emailConfig.smtpPort}
-                onChange={(e) => 
-                  setEmailConfig(prev => ({ ...prev, smtpPort: e.target.value }))
-                }
-                placeholder="587"
-              />
-            </div>
+          <div className="space-y-4">
+            {Object.entries(systemNotifications).map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <Label className="capitalize">
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                  </Label>
+                  <p className="text-xs text-gray-500">
+                    {key === 'newUserRegistration' && 'Notify when new users register'}
+                    {key === 'failedLogins' && 'Alert on failed login attempts'}
+                    {key === 'systemMaintenance' && 'Maintenance mode notifications'}
+                    {key === 'backupAlerts' && 'Database backup status alerts'}
+                    {key === 'securityIncidents' && 'Security incident notifications'}
+                    {key === 'performanceAlerts' && 'System performance warnings'}
+                  </p>
+                </div>
+                <Switch
+                  checked={value}
+                  onCheckedChange={(checked) => 
+                    setSystemNotifications(prev => ({ ...prev, [key]: checked }))
+                  }
+                />
+              </div>
+            ))}
           </div>
 
-          <div>
-            <Label htmlFor="smtp_username">SMTP Username</Label>
-            <Input
-              id="smtp_username"
-              value={emailConfig.smtpUsername}
-              onChange={(e) => 
-                setEmailConfig(prev => ({ ...prev, smtpUsername: e.target.value }))
-              }
-              placeholder="your-email@gmail.com"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="smtp_password">SMTP Password</Label>
-            <Input
-              id="smtp_password"
-              type="password"
-              value={emailConfig.smtpPassword}
-              onChange={(e) => 
-                setEmailConfig(prev => ({ ...prev, smtpPassword: e.target.value }))
-              }
-              placeholder="Your app password"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="from_email">From Email</Label>
-              <Input
-                id="from_email"
-                value={emailConfig.fromEmail}
-                onChange={(e) => 
-                  setEmailConfig(prev => ({ ...prev, fromEmail: e.target.value }))
-                }
-                placeholder="noreply@edufam.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="from_name">From Name</Label>
-              <Input
-                id="from_name"
-                value={emailConfig.fromName}
-                onChange={(e) => 
-                  setEmailConfig(prev => ({ ...prev, fromName: e.target.value }))
-                }
-                placeholder="EduFam System"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <Button onClick={handleSaveEmailConfig} className="flex-1">
-              Save Configuration
-            </Button>
-            <Button onClick={handleTestEmail} variant="outline">
-              Test Email
-            </Button>
-          </div>
+          <Button onClick={handleSaveSystemNotifications} className="w-full">
+            <Save className="w-4 h-4 mr-2" />
+            Save Notification Preferences
+          </Button>
         </CardContent>
       </Card>
     </div>

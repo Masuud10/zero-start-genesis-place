@@ -2,211 +2,209 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { useSecuritySettings } from '@/hooks/useSystemSettings';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useSecuritySettings, useSystemMaintenance } from '@/hooks/useSystemSettings';
 import { 
   Shield, 
-  Key, 
   AlertTriangle, 
+  CheckCircle,
+  RefreshCw,
+  Trash2,
   Activity,
-  Eye,
-  Lock
+  Clock,
+  Users
 } from 'lucide-react';
 
 const SecuritySettingsPanel: React.FC = () => {
-  const { toast } = useToast();
-  const { data: securityData, isLoading } = useSecuritySettings();
+  const [lastAction, setLastAction] = useState<string | null>(null);
   
-  const [settings, setSettings] = useState({
-    twoFactorRequired: false,
-    passwordComplexity: true,
-    sessionTimeout: 30,
-    maxLoginAttempts: 5,
-    auditLogging: true,
-    ipWhitelisting: false
-  });
+  const { 
+    data: securityData, 
+    isLoading: securityLoading, 
+    error: securityError 
+  } = useSecuritySettings();
 
-  const handleSaveSettings = () => {
-    toast({
-      title: "Security Settings Updated",
-      description: "All security settings have been updated successfully.",
-    });
+  const systemMaintenance = useSystemMaintenance();
+
+  const handleSecurityAction = (action: string) => {
+    setLastAction(action);
+    systemMaintenance.mutate(action);
   };
 
-  const handleSettingChange = (key: string, value: boolean | number) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  if (isLoading) {
+  if (securityLoading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="flex items-center justify-center p-8">
+          <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-3 text-lg">Loading security settings...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (securityError) {
+    return (
+      <Alert className="bg-red-50 border-red-200">
+        <AlertTriangle className="h-4 w-4 text-red-600" />
+        <AlertDescription className="text-red-700">
+          Failed to load security settings. Please try refreshing the page.
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Shield className="h-6 w-6 text-blue-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Security Management</h2>
+      </div>
+
       {/* Security Overview */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="border-l-4 border-l-blue-500">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-900">
-            <Shield className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-green-600" />
             Security Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-              <Activity className="h-8 w-8 text-green-600 mx-auto mb-2" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+              <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-green-900">
                 {securityData?.total_audit_events || 0}
               </div>
-              <p className="text-sm text-green-700 mt-1">Total Audit Events</p>
+              <p className="text-sm text-green-700">Total Audit Events</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+            <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
               <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-red-900">
                 {securityData?.security_incidents || 0}
               </div>
-              <p className="text-sm text-red-700 mt-1">Security Incidents</p>
+              <p className="text-sm text-red-700">Security Incidents</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-              <Eye className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-orange-900">
+            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-blue-900">
                 {securityData?.failed_login_attempts || 0}
               </div>
-              <p className="text-sm text-orange-700 mt-1">Failed Login Attempts</p>
+              <p className="text-sm text-blue-700">Failed Login Attempts</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Security Settings */}
+      {/* Security Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
-            Security Configuration
-          </CardTitle>
+          <CardTitle>Security Actions</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Two-Factor Authentication Required</Label>
-              <p className="text-xs text-gray-500">Require 2FA for all admin accounts</p>
-            </div>
-            <Switch
-              checked={settings.twoFactorRequired}
-              onCheckedChange={(checked) => handleSettingChange('twoFactorRequired', checked)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Password Complexity</Label>
-              <p className="text-xs text-gray-500">Enforce strong password requirements</p>
-            </div>
-            <Switch
-              checked={settings.passwordComplexity}
-              onCheckedChange={(checked) => handleSettingChange('passwordComplexity', checked)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Audit Logging</Label>
-              <p className="text-xs text-gray-500">Log all administrative actions</p>
-            </div>
-            <Switch
-              checked={settings.auditLogging}
-              onCheckedChange={(checked) => handleSettingChange('auditLogging', checked)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>IP Whitelisting</Label>
-              <p className="text-xs text-gray-500">Restrict admin access to specific IPs</p>
-            </div>
-            <Switch
-              checked={settings.ipWhitelisting}
-              onCheckedChange={(checked) => handleSettingChange('ipWhitelisting', checked)}
-            />
-          </div>
-
+        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="session_timeout">Session Timeout (minutes)</Label>
-              <Input
-                id="session_timeout"
-                type="number"
-                value={settings.sessionTimeout}
-                onChange={(e) => handleSettingChange('sessionTimeout', parseInt(e.target.value))}
-                min="5"
-                max="480"
-              />
-            </div>
-            <div>
-              <Label htmlFor="max_login_attempts">Max Login Attempts</Label>
-              <Input
-                id="max_login_attempts"
-                type="number"
-                value={settings.maxLoginAttempts}
-                onChange={(e) => handleSettingChange('maxLoginAttempts', parseInt(e.target.value))}
-                min="3"
-                max="10"
-              />
-            </div>
-          </div>
+            <Button
+              onClick={() => handleSecurityAction('cleanup_audit_logs')}
+              disabled={systemMaintenance.isPending}
+              variant="outline"
+              className="justify-start h-auto p-4"
+            >
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Clean Audit Logs
+                </div>
+                <span className="text-xs text-gray-500 mt-1">
+                  Remove old security audit logs
+                </span>
+              </div>
+            </Button>
 
-          <Button onClick={handleSaveSettings} className="w-full">
-            Save Security Settings
-          </Button>
+            <Button
+              onClick={() => handleSecurityAction('reset_rate_limits')}
+              disabled={systemMaintenance.isPending}
+              variant="outline"
+              className="justify-start h-auto p-4"
+            >
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Reset Rate Limits
+                </div>
+                <span className="text-xs text-gray-500 mt-1">
+                  Clear all active rate limiting blocks
+                </span>
+              </div>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Recent Security Events */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Security Events</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Recent Security Events
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {securityData?.recent_audit_logs?.length > 0 ? (
-            <div className="space-y-3">
-              {securityData.recent_audit_logs.slice(0, 5).map((log: any, index: number) => (
-                <div
-                  key={log.id || index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${log.success ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <div>
-                      <span className="font-medium">{log.action || 'Unknown Action'}</span>
-                      <p className="text-xs text-gray-500">
-                        {log.created_at ? new Date(log.created_at).toLocaleString() : 'Unknown time'}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant={log.success ? "default" : "destructive"}>
-                    {log.success ? 'Success' : 'Failed'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Action</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {securityData.recent_audit_logs.slice(0, 5).map((log: any) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="font-medium">{log.action}</TableCell>
+                    <TableCell>{log.user_id || 'System'}</TableCell>
+                    <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Badge variant={log.success ? "default" : "destructive"}>
+                        {log.success ? 'Success' : 'Failed'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
-            <p className="text-gray-500 text-center py-4">No recent security events</p>
+            <div className="text-center py-8 text-gray-500">
+              <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No recent security events found</p>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Active Rate Limits */}
+      {securityData?.active_rate_limits && securityData.active_rate_limits.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              Active Rate Limits
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {securityData.active_rate_limits.map((limit: any, index: number) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <span className="font-medium">IP: {limit.ip_address}</span>
+                  <Badge variant="destructive">Blocked until {new Date(limit.blocked_until).toLocaleString()}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
