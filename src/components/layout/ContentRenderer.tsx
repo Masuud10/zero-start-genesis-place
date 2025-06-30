@@ -1,55 +1,65 @@
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
 import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
-import GradesModule from '@/components/modules/GradesModule';
-import AttendanceModule from '@/components/modules/AttendanceModule';
-import StudentsModule from '@/components/modules/StudentsModule';
-import FinanceModule from '@/components/modules/FinanceModule';
-import FeeManagementModule from '@/components/modules/FeeManagementModule';
-import StudentAccountsModule from '@/components/modules/StudentAccountsModule';
-import FinanceSettingsModule from '@/components/modules/FinanceSettingsModule';
-import TimetableModule from '@/components/modules/TimetableModule';
-import AnnouncementsModule from '@/components/modules/AnnouncementsModule';
-import MessagesModule from '@/components/modules/MessagesModule';
-import ReportsModule from '@/components/modules/ReportsModule';
-import SchoolsModule from '@/components/modules/SchoolsModule';
-import UsersModule from '@/components/modules/UsersModule';
-import BillingModule from '@/components/modules/BillingModule';
-import SystemHealthModule from '@/components/modules/SystemHealthModule';
-import SecurityModule from '@/components/modules/SecurityModule';
-import SupportModule from '@/components/modules/SupportModule';
-import CertificatesModule from '@/components/modules/CertificatesModule';
-import ProjectHubModule from '@/components/modules/ProjectHubModule';
-import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
-import SystemSettings from '@/components/settings/SystemSettings';
-import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
-import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
-import SchoolOwnerDashboard from '../dashboard/SchoolOwnerDashboard';
-import MpesaPaymentsPanel from '@/components/finance/MpesaPaymentsPanel';
-import FinancialReportsPanel from '@/components/finance/FinancialReportsPanel';
-import FinanceAnalyticsPanel from '@/components/finance/FinanceAnalyticsPanel';
-import StudentAccountsPanel from '@/components/finance/StudentAccountsPanel';
-import FinanceSettingsPanel from '@/components/finance/FinanceSettingsPanel';
-import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
-import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
+
+// Lazy load heavy components to improve performance
+const GradesModule = React.lazy(() => import('@/components/modules/GradesModule'));
+const AttendanceModule = React.lazy(() => import('@/components/modules/AttendanceModule'));
+const StudentsModule = React.lazy(() => import('@/components/modules/StudentsModule'));
+const FinanceModule = React.lazy(() => import('@/components/modules/FinanceModule'));
+const FeeManagementModule = React.lazy(() => import('@/components/modules/FeeManagementModule'));
+const StudentAccountsModule = React.lazy(() => import('@/components/modules/StudentAccountsModule'));
+const FinanceSettingsModule = React.lazy(() => import('@/components/modules/FinanceSettingsModule'));
+const TimetableModule = React.lazy(() => import('@/components/modules/TimetableModule'));
+const AnnouncementsModule = React.lazy(() => import('@/components/modules/AnnouncementsModule'));
+const MessagesModule = React.lazy(() => import('@/components/modules/MessagesModule'));
+const ReportsModule = React.lazy(() => import('@/components/modules/ReportsModule'));
+const SchoolsModule = React.lazy(() => import('@/components/modules/SchoolsModule'));
+const UsersModule = React.lazy(() => import('@/components/modules/UsersModule'));
+const BillingModule = React.lazy(() => import('@/components/modules/BillingModule'));
+const SystemHealthModule = React.lazy(() => import('@/components/modules/SystemHealthModule'));
+const SecurityModule = React.lazy(() => import('@/components/modules/SecurityModule'));
+const SupportModule = React.lazy(() => import('@/components/modules/SupportModule'));
+const CertificatesModule = React.lazy(() => import('@/components/modules/CertificatesModule'));
+const ProjectHubModule = React.lazy(() => import('@/components/modules/ProjectHubModule'));
+const CompanyManagementModule = React.lazy(() => import('@/components/modules/CompanyManagementModule'));
+const SystemSettings = React.lazy(() => import('@/components/settings/SystemSettings'));
+const EduFamAnalyticsOverview = React.lazy(() => import('@/components/analytics/EduFamAnalyticsOverview'));
+const SchoolAnalyticsList = React.lazy(() => import('@/components/analytics/SchoolAnalyticsList'));
+const SchoolOwnerDashboard = React.lazy(() => import('../dashboard/SchoolOwnerDashboard'));
+const MpesaPaymentsPanel = React.lazy(() => import('@/components/finance/MpesaPaymentsPanel'));
+const FinancialReportsPanel = React.lazy(() => import('@/components/finance/FinancialReportsPanel'));
+const FinanceAnalyticsPanel = React.lazy(() => import('@/components/finance/FinanceAnalyticsPanel'));
+const StudentAccountsPanel = React.lazy(() => import('@/components/finance/StudentAccountsPanel'));
+const FinanceSettingsPanel = React.lazy(() => import('@/components/finance/FinanceSettingsPanel'));
+const SchoolManagementDashboard = React.lazy(() => import('@/components/dashboard/principal/SchoolManagementDashboard'));
+const AnalyticsDashboard = React.lazy(() => import('@/components/analytics/AnalyticsDashboard'));
 
 interface ContentRendererProps {
   activeSection: string;
   onModalOpen?: (modalType: string) => void;
 }
 
-const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
+const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection }) => {
   const { user } = useAuth();
   
   console.log('📋 ContentRenderer: Rendering section:', activeSection, 'for user role:', user?.role);
 
-  // Dashboard sections - role-specific content
-  if (activeSection === 'dashboard') {
+  // Memoize role-based access checks to prevent unnecessary recalculations
+  const hasFinanceAccess = useMemo(() => {
+    const financeRoles = ['finance_officer', 'principal', 'school_owner'];
+    return financeRoles.includes(user?.role || '');
+  }, [user?.role]);
+
+  // Memoize dashboard component to prevent unnecessary re-renders
+  const dashboardComponent = useMemo(() => {
+    if (activeSection !== 'dashboard') return null;
+    
     switch (user?.role) {
       case 'edufam_admin':
       case 'elimisha_admin':
@@ -67,119 +77,128 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
       default:
         return <div>Unknown user role: {user?.role}</div>;
     }
+  }, [activeSection, user?.role, user]);
+
+  // Return dashboard component if it's the dashboard section
+  if (dashboardComponent) {
+    return dashboardComponent;
   }
+
+  // Render other sections with lazy loading and error boundaries
+  const renderLazyComponent = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
+    <React.Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    }>
+      <Component />
+    </React.Suspense>
+  );
 
   // School Management - Fix access for principals
   if (activeSection === 'school-management') {
     if (user?.role === 'principal') {
-      return <SchoolManagementDashboard />;
+      return renderLazyComponent(SchoolManagementDashboard);
     }
     return <div className="p-8 text-center text-red-600">Access Denied: Principal access required</div>;
   }
 
   // System Settings - Only for EduFam Admins
   if (activeSection === 'settings') {
-    return <SystemSettings />;
+    return renderLazyComponent(SystemSettings);
   }
 
   // Analytics sections - Fix access for principals
   if (activeSection === 'analytics') {
     if (user?.role === 'edufam_admin' || user?.role === 'elimisha_admin') {
-      return <EduFamAnalyticsOverview />;
+      return renderLazyComponent(EduFamAnalyticsOverview);
     }
     // Allow principals to access their school analytics
     if (user?.role === 'principal' || user?.role === 'school_owner') {
-      return <AnalyticsDashboard />;
+      return renderLazyComponent(AnalyticsDashboard);
     }
     return <div className="p-8 text-center text-red-600">Access Denied: Analytics access restricted</div>;
   }
-
-  // Finance-specific routes - ensure proper access control
-  const financeRoles = ['finance_officer', 'principal', 'school_owner'];
-  const hasFinanceAccess = financeRoles.includes(user?.role || '');
 
   // Finance sub-modules
   switch (activeSection) {
     case 'fee-management':
       if (hasFinanceAccess) {
-        return <FeeManagementModule />;
+        return renderLazyComponent(FeeManagementModule);
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'mpesa-payments':
       if (hasFinanceAccess) {
-        return <MpesaPaymentsPanel />;
+        return renderLazyComponent(MpesaPaymentsPanel);
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'financial-reports':
       if (hasFinanceAccess) {
-        return <FinancialReportsPanel />;
+        return renderLazyComponent(FinancialReportsPanel);
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'financial-analytics':
       if (hasFinanceAccess) {
-        return <FinanceAnalyticsPanel />;
+        return renderLazyComponent(FinanceAnalyticsPanel);
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'student-accounts':
       if (hasFinanceAccess) {
-        return <StudentAccountsPanel />;
+        return renderLazyComponent(StudentAccountsPanel);
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'finance-settings':
       if (hasFinanceAccess) {
-        return <FinanceSettingsPanel />;
+        return renderLazyComponent(FinanceSettingsPanel);
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
 
     // Other sections with role-based access
     case 'project-hub':
-      // Only EduFam admins can access Project Hub
       if (user?.role === 'edufam_admin') {
-        return <ProjectHubModule />;
+        return renderLazyComponent(ProjectHubModule);
       }
       return <div>Project Hub access restricted to EduFam administrators</div>;
     case 'school-analytics':
-      // Only EduFam admins can access School Analytics
       if (user?.role === 'edufam_admin') {
-        return <SchoolAnalyticsList />;
+        return renderLazyComponent(SchoolAnalyticsList);
       }
       return <div>School Analytics access restricted to EduFam administrators</div>;
     case 'company-management':
-      // Only EduFam admins can access Company Management
       if (user?.role === 'edufam_admin') {
-        return <CompanyManagementModule />;
+        return renderLazyComponent(CompanyManagementModule);
       }
       return <div>Company Management access restricted to EduFam administrators</div>;
     case 'grades':
-      return <GradesModule />;
+      return renderLazyComponent(GradesModule);
     case 'attendance':
-      return <AttendanceModule />;
+      return renderLazyComponent(AttendanceModule);
     case 'students':
-      return <StudentsModule />;
+      return renderLazyComponent(StudentsModule);
     case 'finance':
-      return <FinanceModule />;
+      return renderLazyComponent(FinanceModule);
     case 'timetable':
-      return <TimetableModule />;
+      return renderLazyComponent(TimetableModule);
     case 'announcements':
-      return <AnnouncementsModule />;
+      return renderLazyComponent(AnnouncementsModule);
     case 'messages':
-      return <MessagesModule />;
+      return renderLazyComponent(MessagesModule);
     case 'reports':
-      return <ReportsModule />;
+      return renderLazyComponent(ReportsModule);
     case 'schools':
-      return <SchoolsModule />;
+      return renderLazyComponent(SchoolsModule);
     case 'users':
-      return <UsersModule />;
+      return renderLazyComponent(UsersModule);
     case 'billing':
-      return <BillingModule />;
+      return renderLazyComponent(BillingModule);
     case 'system-health':
-      return <SystemHealthModule />;
+      return renderLazyComponent(SystemHealthModule);
     case 'security':
-      return <SecurityModule />;
+      return renderLazyComponent(SecurityModule);
     case 'support':
-      return <SupportModule />;
+      return renderLazyComponent(SupportModule);
     case 'certificates':
-      return <CertificatesModule />;
+      return renderLazyComponent(CertificatesModule);
     default:
       console.warn('📋 ContentRenderer: Unknown section:', activeSection);
       return (
@@ -195,6 +214,8 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
         </div>
       );
   }
-};
+});
+
+ContentRenderer.displayName = 'ContentRenderer';
 
 export default ContentRenderer;

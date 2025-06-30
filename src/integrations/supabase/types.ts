@@ -5302,6 +5302,343 @@ export type Database = {
           },
         ]
       }
+      staff: {
+        Row: {
+          address: string | null
+          assigned_classes: Json | null
+          assigned_roles: Json | null
+          certifications: Json | null
+          created_at: string | null
+          created_by: string | null
+          date_of_birth: string | null
+          department: string | null
+          email_address: string | null
+          emergency_contact: Json | null
+          employee_id: string | null
+          employment_status: string
+          full_name: string
+          gender: string | null
+          id: string
+          joining_date: string
+          national_id: string | null
+          passport_number: string | null
+          phone_number: string | null
+          position: string
+          profile_id: string | null
+          profile_picture_url: string | null
+          qualifications: Json | null
+          school_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          assigned_classes?: Json | null
+          assigned_roles?: Json | null
+          certifications?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          department?: string | null
+          email_address?: string | null
+          emergency_contact?: Json | null
+          employee_id?: string | null
+          employment_status?: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          joining_date: string
+          national_id?: string | null
+          passport_number?: string | null
+          phone_number?: string | null
+          position: string
+          profile_id?: string | null
+          profile_picture_url?: string | null
+          qualifications?: Json | null
+          school_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          assigned_classes?: Json | null
+          assigned_roles?: Json | null
+          certifications?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          department?: string | null
+          email_address?: string | null
+          emergency_contact?: Json | null
+          employee_id?: string | null
+          employment_status?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          joining_date?: string
+          national_id?: string | null
+          passport_number?: string | null
+          phone_number?: string | null
+          position?: string
+          profile_id?: string | null
+          profile_picture_url?: string | null
+          qualifications?: Json | null
+          school_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_activity_logs: {
+        Row: {
+          action_description: string | null
+          action_type: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          module_accessed: string | null
+          school_id: string
+          staff_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action_description?: string | null
+          action_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          module_accessed?: string | null
+          school_id: string
+          staff_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action_description?: string | null
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          module_accessed?: string | null
+          school_id?: string
+          staff_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_activity_logs_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_leave_balances: {
+        Row: {
+          academic_year: string
+          allocated_days: number
+          created_at: string | null
+          id: string
+          leave_type: string
+          remaining_days: number
+          school_id: string
+          staff_id: string
+          updated_at: string | null
+          used_days: number
+        }
+        Insert: {
+          academic_year: string
+          allocated_days?: number
+          created_at?: string | null
+          id?: string
+          leave_type: string
+          remaining_days?: number
+          school_id: string
+          staff_id: string
+          updated_at?: string | null
+          used_days?: number
+        }
+        Update: {
+          academic_year?: string
+          allocated_days?: number
+          created_at?: string | null
+          id?: string
+          leave_type?: string
+          remaining_days?: number
+          school_id?: string
+          staff_id?: string
+          updated_at?: string | null
+          used_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_leave_balances_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_leaves: {
+        Row: {
+          applied_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          days_requested: number
+          end_date: string
+          id: string
+          leave_type: string
+          reason: string | null
+          rejection_reason: string | null
+          school_id: string
+          staff_id: string
+          start_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_requested: number
+          end_date: string
+          id?: string
+          leave_type: string
+          reason?: string | null
+          rejection_reason?: string | null
+          school_id: string
+          staff_id: string
+          start_date: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_requested?: number
+          end_date?: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          school_id?: string
+          staff_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_leaves_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_leaves_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_salaries: {
+        Row: {
+          allowances: Json | null
+          basic_salary: number
+          created_at: string | null
+          deductions: Json | null
+          gross_salary: number
+          id: string
+          net_salary: number
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payment_status: string
+          processed_by: string | null
+          salary_period: string
+          school_id: string
+          staff_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          allowances?: Json | null
+          basic_salary?: number
+          created_at?: string | null
+          deductions?: Json | null
+          gross_salary?: number
+          id?: string
+          net_salary?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          processed_by?: string | null
+          salary_period: string
+          school_id: string
+          staff_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          allowances?: Json | null
+          basic_salary?: number
+          created_at?: string | null
+          deductions?: Json | null
+          gross_salary?: number
+          id?: string
+          net_salary?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          processed_by?: string | null
+          salary_period?: string
+          school_id?: string
+          staff_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_salaries_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_salaries_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_analytics: {
         Row: {
           absences: number | null
