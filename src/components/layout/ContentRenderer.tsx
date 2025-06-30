@@ -19,7 +19,6 @@ import BillingModule from '@/components/modules/BillingModule';
 import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import SecurityModule from '@/components/modules/SecurityModule';
 import SupportModule from '@/components/modules/SupportModule';
-import SchoolManagementModule from '@/components/modules/SchoolManagementModule';
 import CertificatesModule from '@/components/modules/CertificatesModule';
 import SystemSettings from '@/components/settings/SystemSettings';
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
@@ -99,8 +98,6 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
       return <SecurityModule />;
     case 'support':
       return <SupportModule />;
-    case 'school-management':
-      return <SchoolManagementModule />;
     case 'certificates':
       return <CertificatesModule />;
     default:
