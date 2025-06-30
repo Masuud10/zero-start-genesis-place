@@ -65,7 +65,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         studentsResult,
         expensesResult
       ] = await Promise.allSettled([
-        // Optimized fees query with minimal joins
+        // Fixed query with proper column hints for relationships
         supabase
           .from('fees')
           .select(`
@@ -77,8 +77,8 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
             category,
             student_id,
             class_id,
-            students!inner(name, admission_number),
-            classes!inner(name)
+            students!student_id(name, admission_number),
+            classes!class_id(name)
           `)
           .eq('school_id', validSchoolId)
           .not('amount', 'is', null)

@@ -32,7 +32,7 @@ export const useFeeData = () => {
       const validSchoolId = schoolValidation.sanitizedValue!;
       console.log('🔍 Fetching fees for school:', validSchoolId);
 
-      // Optimized query with better performance
+      // Fixed query with proper column hints for relationships
       const { data, error: fetchError } = await supabase
         .from('fees')
         .select(`
@@ -49,8 +49,8 @@ export const useFeeData = () => {
           paid_date,
           created_at,
           academic_year,
-          students!left(name, admission_number),
-          classes!left(name)
+          students!student_id(name, admission_number),
+          classes!class_id(name)
         `)
         .eq('school_id', validSchoolId)
         .not('id', 'is', null)
