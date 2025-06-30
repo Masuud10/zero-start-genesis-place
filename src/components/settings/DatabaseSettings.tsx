@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Database, 
@@ -11,12 +12,20 @@ import {
   HardDrive, 
   RefreshCw,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Download,
+  Clock,
+  FileText
 } from 'lucide-react';
 
 const DatabaseSettings: React.FC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [backupHistory, setBackupHistory] = useState([
+    { id: 1, date: '2024-06-30 14:30', size: '2.4 GB', status: 'Completed', duration: '3m 45s' },
+    { id: 2, date: '2024-06-29 14:30', size: '2.3 GB', status: 'Completed', duration: '3m 20s' },
+    { id: 3, date: '2024-06-28 14:30', size: '2.2 GB', status: 'Completed', duration: '3m 15s' },
+  ]);
 
   // Mock database statistics
   const dbStats = {
@@ -25,14 +34,26 @@ const DatabaseSettings: React.FC = () => {
     activeConnections: 12,
     queryPerformance: 'Good',
     lastBackup: '2 hours ago',
-    uptime: '15 days, 3 hours'
+    uptime: '15 days, 3 hours',
+    backupFrequency: 'Daily at 14:30'
   };
 
   const handleDatabaseAction = async (action: string) => {
     setIsLoading(true);
     try {
       // Simulate database operation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      if (action === 'backup') {
+        const newBackup = {
+          id: backupHistory.length + 1,
+          date: new Date().toLocaleString(),
+          size: '2.5 GB',
+          status: 'Completed',
+          duration: '3m 52s'
+        };
+        setBackupHistory([newBackup, ...backupHistory]);
+      }
       
       toast({
         title: "Success",
@@ -49,8 +70,20 @@ const DatabaseSettings: React.FC = () => {
     }
   };
 
+  const handleDownloadBackup = (backupId: number) => {
+    toast({
+      title: "Download Started",
+      description: "Backup download will begin shortly.",
+    });
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Database className="h-6 w-6 text-blue-600" />
+        <h2 className="text-2xl font-bold text-gray-900">Database Management</h2>
+      </div>
+
       <Alert>
         <Database className="h-4 w-4" />
         <AlertDescription>
@@ -59,7 +92,7 @@ const DatabaseSettings: React.FC = () => {
       </Alert>
 
       {/* Database Statistics */}
-      <Card>
+      <Card className="border-l-4 border-l-blue-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
@@ -67,21 +100,26 @@ const DatabaseSettings: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
               <HardDrive className="h-8 w-8 text-blue-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-blue-900">{dbStats.totalSize}</div>
               <p className="text-sm text-blue-700">Total Size</p>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
               <Database className="h-8 w-8 text-green-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-green-900">{dbStats.tableCount}</div>
               <p className="text-sm text-green-700">Tables</p>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
               <Activity className="h-8 w-8 text-purple-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-purple-900">{dbStats.activeConnections}</div>
               <p className="text-sm text-purple-700">Active Connections</p>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-orange-900">{dbStats.uptime}</div>
+              <p className="text-sm text-orange-700">System Uptime</p>
             </div>
           </div>
         </CardContent>
@@ -90,22 +128,24 @@ const DatabaseSettings: React.FC = () => {
       {/* Database Health */}
       <Card>
         <CardHeader>
-          <CardTitle>Database Health</CardTitle>
+          <CardTitle>Database Health Status</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span>Query Performance</span>
-            <Badge variant="default" className="bg-green-100 text-green-800">
-              {dbStats.queryPerformance}
-            </Badge>
-          </div>
-          <div className="flex justify-between items-center">
-            <span>Last Backup</span>
-            <span className="text-sm text-gray-600">{dbStats.lastBackup}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span>System Uptime</span>
-            <span className="text-sm text-gray-600">{dbStats.uptime}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="font-medium">Query Performance</span>
+              <Badge variant="default" className="bg-green-100 text-green-800">
+                {dbStats.queryPerformance}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="font-medium">Last Backup</span>
+              <span className="text-sm text-gray-600">{dbStats.lastBackup}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              <span className="font-medium">Backup Schedule</span>
+              <span className="text-sm text-gray-600">{dbStats.backupFrequency}</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -120,16 +160,16 @@ const DatabaseSettings: React.FC = () => {
             <Button
               onClick={() => handleDatabaseAction('backup')}
               disabled={isLoading}
-              variant="outline"
-              className="justify-start h-auto p-4"
+              variant="default"
+              className="justify-start h-auto p-4 bg-blue-600 hover:bg-blue-700"
             >
-              <div className="flex flex-col items-start">
+              <div className="flex flex-col items-start text-left">
                 <div className="flex items-center gap-2">
                   <HardDrive className="h-4 w-4" />
-                  Create Backup
+                  Create Backup Now
                 </div>
-                <span className="text-xs text-gray-500 mt-1">
-                  Create a full database backup
+                <span className="text-xs text-blue-100 mt-1">
+                  Generate a full database backup immediately
                 </span>
               </div>
             </Button>
@@ -140,10 +180,10 @@ const DatabaseSettings: React.FC = () => {
               variant="outline"
               className="justify-start h-auto p-4"
             >
-              <div className="flex flex-col items-start">
+              <div className="flex flex-col items-start text-left">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="h-4 w-4" />
-                  Optimize Tables
+                  Optimize Database
                 </div>
                 <span className="text-xs text-gray-500 mt-1">
                   Optimize database tables for better performance
@@ -151,6 +191,53 @@ const DatabaseSettings: React.FC = () => {
               </div>
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Backup History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Backup History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date & Time</TableHead>
+                <TableHead>Size</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {backupHistory.map((backup) => (
+                <TableRow key={backup.id}>
+                  <TableCell className="font-medium">{backup.date}</TableCell>
+                  <TableCell>{backup.size}</TableCell>
+                  <TableCell>{backup.duration}</TableCell>
+                  <TableCell>
+                    <Badge variant="default" className="bg-green-100 text-green-800">
+                      {backup.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      onClick={() => handleDownloadBackup(backup.id)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

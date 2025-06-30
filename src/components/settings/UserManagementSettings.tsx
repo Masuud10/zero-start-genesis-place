@@ -3,46 +3,76 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useUserManagementStats } from '@/hooks/useSystemSettings';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
   UserCheck, 
   UserPlus,
-  UserX,
-  Activity,
-  TrendingUp,
-  AlertCircle,
-  RefreshCw
+  Search,
+  Filter,
+  MoreHorizontal,
+  Shield,
+  Mail,
+  Phone,
+  Calendar
 } from 'lucide-react';
 
 const UserManagementSettings: React.FC = () => {
-  const { 
-    data: userStats, 
-    isLoading: userStatsLoading, 
-    error: userStatsError 
-  } = useUserManagementStats();
+  const { toast } = useToast();
+  const { data: userStats, isLoading, error } = useUserManagementStats();
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
 
-  if (userStatsLoading) {
+  // Mock user data for demonstration
+  const [recentUsers] = useState([
+    { id: 1, name: 'John Smith', email: 'john@school.edu', role: 'principal', status: 'active', lastLogin: '2024-06-30', school: 'Greenfield High' },
+    { id: 2, name: 'Sarah Johnson', email: 'sarah@school.edu', role: 'teacher', status: 'active', lastLogin: '2024-06-29', school: 'Greenfield High' },
+    { id: 3, name: 'Mike Brown', email: 'mike@parent.com', role: 'parent', status: 'active', lastLogin: '2024-06-28', school: 'Various' },
+    { id: 4, name: 'Lisa Davis', email: 'lisa@finance.edu', role: 'finance_officer', status: 'active', lastLogin: '2024-06-27', school: 'Central Academy' },
+    { id: 5, name: 'Tom Wilson', email: 'tom@owner.com', role: 'school_owner', status: 'pending', lastLogin: 'Never', school: 'Wilson Academy' }
+  ]);
+
+  const handleUserAction = (action: string, userId: number) => {
+    toast({
+      title: "User Action",
+      description: `User ${action} action performed successfully.`,
+    });
+  };
+
+  const getRoleColor = (role: string) => {
+    const colors = {
+      'edufam_admin': 'bg-red-100 text-red-800',
+      'school_owner': 'bg-purple-100 text-purple-800',
+      'principal': 'bg-blue-100 text-blue-800',
+      'teacher': 'bg-green-100 text-green-800',
+      'parent': 'bg-yellow-100 text-yellow-800',
+      'finance_officer': 'bg-indigo-100 text-indigo-800'
+    };
+    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'suspended': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center p-8">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-3 text-lg">Loading user management data...</span>
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Users className="h-8 w-8 animate-pulse text-blue-600 mx-auto mb-4" />
+          <p>Loading user management data...</p>
         </div>
       </div>
-    );
-  }
-
-  if (userStatsError) {
-    return (
-      <Alert className="bg-red-50 border-red-200">
-        <AlertCircle className="h-4 w-4 text-red-600" />
-        <AlertDescription className="text-red-700">
-          Failed to load user management data. Please try refreshing the page.
-        </AlertDescription>
-      </Alert>
     );
   }
 
@@ -54,38 +84,34 @@ const UserManagementSettings: React.FC = () => {
       </div>
 
       {/* User Statistics */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="border-l-4 border-l-blue-500">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-900">
-            <Activity className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-blue-600" />
             User Statistics Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-blue-200">
-              <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="text-3xl font-bold text-blue-900">
                 {userStats?.total_users || 0}
               </div>
               <p className="text-sm text-blue-700 mt-1">Total Users</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-green-200">
-              <UserCheck className="h-8 w-8 text-green-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="text-3xl font-bold text-green-900">
                 {userStats?.active_users || 0}
               </div>
               <p className="text-sm text-green-700 mt-1">Active Users</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-purple-200">
-              <UserPlus className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
               <div className="text-3xl font-bold text-purple-900">
                 {userStats?.recent_signups || 0}
               </div>
               <p className="text-sm text-purple-700 mt-1">Recent Signups</p>
             </div>
-            <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-orange-200">
-              <TrendingUp className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
               <div className="text-3xl font-bold text-orange-900">
                 {Object.keys(userStats?.users_by_role || {}).length}
               </div>
@@ -95,158 +121,133 @@ const UserManagementSettings: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Users by Role */}
+      {/* User Roles Distribution */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5" />
-            Users by Role Distribution
-          </CardTitle>
+          <CardTitle>User Roles Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          {userStats?.users_by_role && Object.keys(userStats.users_by_role).length > 0 ? (
-            <div className="space-y-4">
-              {Object.entries(userStats.users_by_role).map(([role, count]) => (
-                <div
-                  key={role}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                    <span className="font-medium text-gray-900 capitalize">
-                      {role.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      {count as number}
-                    </Badge>
-                    <span className="text-sm text-gray-500">
-                      ({(((count as number) / (userStats?.total_users || 1)) * 100).toFixed(1)}%)
-                    </span>
-                  </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Object.entries(userStats?.users_by_role || {}).map(([role, count]) => (
+              <div
+                key={role}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium capitalize">{role.replace('_', ' ')}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No user role data available</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* User Management Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>User Management Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Button
-              variant="outline"
-              className="justify-start h-auto p-4"
-              onClick={() => {
-                // TODO: Implement user export functionality
-                console.log('Export users');
-              }}
-            >
-              <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Export Users
-                </div>
-                <span className="text-xs text-gray-500 mt-1">
-                  Download user data as CSV
-                </span>
+                <Badge className={getRoleColor(role)}>{count as number}</Badge>
               </div>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="justify-start h-auto p-4"
-              onClick={() => {
-                // TODO: Implement bulk user operations
-                console.log('Bulk operations');
-              }}
-            >
-              <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" />
-                  Bulk Operations
-                </div>
-                <span className="text-xs text-gray-500 mt-1">
-                  Manage multiple users at once
-                </span>
-              </div>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="justify-start h-auto p-4"
-              onClick={() => {
-                // TODO: Implement user activity report
-                console.log('User activity report');
-              }}
-            >
-              <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Activity Report
-                </div>
-                <span className="text-xs text-gray-500 mt-1">
-                  View user activity statistics
-                </span>
-              </div>
-            </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* User Activity Summary */}
+      {/* User Search and Filter */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            User Activity Summary
-          </CardTitle>
+          <CardTitle>User Management Tools</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <Label htmlFor="search_users">Search Users</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="search_users"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, email, or school..."
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="filter_role">Filter by Role</Label>
+              <select
+                id="filter_role"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Roles</option>
+                <option value="principal">Principal</option>
+                <option value="teacher">Teacher</option>
+                <option value="parent">Parent</option>
+                <option value="finance_officer">Finance Officer</option>
+                <option value="school_owner">School Owner</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button className="bg-green-600 hover:bg-green-700">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add User
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Users Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Users</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-800">Active Today</p>
-                  <p className="text-2xl font-bold text-green-900">
-                    {Math.floor((userStats?.active_users || 0) * 0.3)}
-                  </p>
-                </div>
-                <UserCheck className="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-800">Active This Week</p>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {Math.floor((userStats?.active_users || 0) * 0.7)}
-                  </p>
-                </div>
-                <Users className="h-8 w-8 text-blue-600" />
-              </div>
-            </div>
-            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-orange-800">Inactive Users</p>
-                  <p className="text-2xl font-bold text-orange-900">
-                    {(userStats?.total_users || 0) - (userStats?.active_users || 0)}
-                  </p>
-                </div>
-                <UserX className="h-8 w-8 text-orange-600" />
-              </div>
-            </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>School</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{user.name}</div>
+                        <div className="text-sm text-gray-500 flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {user.email}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getRoleColor(user.role)}>
+                        {user.role.replace('_', ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">{user.school}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(user.status)}>
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {user.lastLogin}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUserAction('manage', user.id)}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
