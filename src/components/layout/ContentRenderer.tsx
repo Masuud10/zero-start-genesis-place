@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
@@ -20,6 +21,7 @@ import SystemHealthModule from '@/components/modules/SystemHealthModule';
 import SecurityModule from '@/components/modules/SecurityModule';
 import SupportModule from '@/components/modules/SupportModule';
 import CertificatesModule from '@/components/modules/CertificatesModule';
+import ProjectHubModule from '@/components/modules/ProjectHubModule';
 import SystemSettings from '@/components/settings/SystemSettings';
 import EduFamAnalyticsOverview from '@/components/analytics/EduFamAnalyticsOverview';
 import SchoolOwnerDashboard from '../dashboard/SchoolOwnerDashboard';
@@ -70,6 +72,12 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
 
   // Other sections with role-based access
   switch (activeSection) {
+    case 'project-hub':
+      // Only EduFam admins can access Project Hub
+      if (user?.role === 'edufam_admin') {
+        return <ProjectHubModule />;
+      }
+      return <div>Project Hub access restricted to EduFam administrators</div>;
     case 'grades':
       return <GradesModule />;
     case 'attendance':

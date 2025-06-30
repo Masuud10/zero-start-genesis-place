@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -61,7 +62,11 @@ const MainContent: React.FC = () => {
             return <EduFamAdminDashboard />;
         }
       case 'project-hub':
-        return <ProjectHubModule />;
+        // Only EduFam admins can access Project Hub
+        if (user?.role === 'edufam_admin') {
+          return <ProjectHubModule />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Project Hub is only available to EduFam administrators</div>;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'school-analytics':
@@ -118,7 +123,6 @@ const MainContent: React.FC = () => {
       case 'system-settings':
       case 'maintenance':
       case 'database':
-      case 'security':
       case 'notifications':
       case 'user-management':
       case 'company-settings':
