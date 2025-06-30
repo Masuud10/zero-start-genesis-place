@@ -40,6 +40,7 @@ import FinancialReportsPanel from './finance/FinancialReportsPanel';
 import FinanceAnalyticsPanel from './finance/FinanceAnalyticsPanel';
 import StudentAccountsPanel from './finance/StudentAccountsPanel';
 import FinanceSettingsPanel from './finance/FinanceSettingsPanel';
+import SchoolManagementDashboard from './dashboard/principal/SchoolManagementDashboard';
 
 const MainContent: React.FC = () => {
   const { user } = useAuth();
@@ -73,6 +74,24 @@ const MainContent: React.FC = () => {
           default:
             return <EduFamAdminDashboard />;
         }
+
+      // School Management - Fix access for principals
+      case 'school-management':
+        if (user?.role === 'principal') {
+          return <SchoolManagementDashboard />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Principal access required</div>;
+
+      // Analytics - Fix access for principals and school owners
+      case 'analytics':
+        if (user?.role === 'edufam_admin') {
+          return <AnalyticsDashboard />;
+        }
+        // Allow principals and school owners to access their school analytics
+        if (user?.role === 'principal' || user?.role === 'school_owner') {
+          return <AnalyticsDashboard />;
+        }
+        return <div className="p-8 text-center text-red-600">Access Denied: Analytics access restricted</div>;
 
       // Finance-specific routes
       case 'fee-management':
@@ -118,8 +137,6 @@ const MainContent: React.FC = () => {
           return <CompanyManagementModule />;
         }
         return <div className="p-8 text-center text-red-600">Access Denied: Company Management is only available to EduFam administrators</div>;
-      case 'analytics':
-        return <AnalyticsDashboard />;
       case 'school-analytics':
         // Show individual school analytics for EduFam admins
         if (user?.role === 'edufam_admin') {

@@ -28,6 +28,11 @@ export const useAccessControl = () => {
         const hasSchoolManagementAccess = user.role === 'principal';
         console.log('🔒 useAccessControl: School management access:', hasSchoolManagementAccess);
         return hasSchoolManagementAccess;
+      case 'analytics':
+        // Principals and school owners can access analytics for their school
+        const hasAnalyticsAccess = user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
+        console.log('🔒 useAccessControl: Analytics access:', hasAnalyticsAccess);
+        return hasAnalyticsAccess;
       case 'certificates':
         // Principals can generate certificates, school owners and EduFam admins can view
         return user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
@@ -57,8 +62,6 @@ export const useAccessControl = () => {
           return true; // Allow access but with restrictions in the component
         }
         return hasPermission(PERMISSIONS.VIEW_REPORTS);
-      case 'analytics':
-        return hasPermission(PERMISSIONS.VIEW_ANALYTICS);
       case 'schools':
         return hasPermission(PERMISSIONS.VIEW_OTHER_SCHOOLS);
       case 'users':

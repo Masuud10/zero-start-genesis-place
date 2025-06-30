@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import EduFamAdminDashboard from '@/components/dashboard/EduFamAdminDashboard';
@@ -34,6 +35,8 @@ import FinancialReportsPanel from '@/components/finance/FinancialReportsPanel';
 import FinanceAnalyticsPanel from '@/components/finance/FinanceAnalyticsPanel';
 import StudentAccountsPanel from '@/components/finance/StudentAccountsPanel';
 import FinanceSettingsPanel from '@/components/finance/FinanceSettingsPanel';
+import SchoolManagementDashboard from '@/components/dashboard/principal/SchoolManagementDashboard';
+import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 
 interface ContentRendererProps {
   activeSection: string;
@@ -66,17 +69,29 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({ activeSection }) => {
     }
   }
 
+  // School Management - Fix access for principals
+  if (activeSection === 'school-management') {
+    if (user?.role === 'principal') {
+      return <SchoolManagementDashboard />;
+    }
+    return <div className="p-8 text-center text-red-600">Access Denied: Principal access required</div>;
+  }
+
   // System Settings - Only for EduFam Admins
   if (activeSection === 'settings') {
     return <SystemSettings />;
   }
 
-  // Analytics sections
+  // Analytics sections - Fix access for principals
   if (activeSection === 'analytics') {
     if (user?.role === 'edufam_admin' || user?.role === 'elimisha_admin') {
       return <EduFamAnalyticsOverview />;
     }
-    return <div>Analytics access restricted to system administrators</div>;
+    // Allow principals to access their school analytics
+    if (user?.role === 'principal' || user?.role === 'school_owner') {
+      return <AnalyticsDashboard />;
+    }
+    return <div className="p-8 text-center text-red-600">Access Denied: Analytics access restricted</div>;
   }
 
   // Finance-specific routes - ensure proper access control
