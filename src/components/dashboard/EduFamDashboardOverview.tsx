@@ -137,6 +137,12 @@ const EduFamDashboardOverview = () => {
   const validSchoolsData = Array.isArray(schoolsData) ? schoolsData : [];
   const validUsersData = Array.isArray(usersData) ? usersData : [];
 
+  // Convert roleBreakdown array to Record<string, number> format expected by UserRoleBreakdown
+  const roleBreakdownRecord = userStats.roleBreakdown.reduce((acc, item) => {
+    acc[item.role] = item.count;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="space-y-6">
       {/* Stats Overview Cards with Click Handlers */}
@@ -185,7 +191,7 @@ const EduFamDashboardOverview = () => {
 
       {/* User Role Breakdown */}
       <UserRoleBreakdown
-        roleBreakdown={userStats.roleBreakdown}
+        roleBreakdown={roleBreakdownRecord}
         totalUsers={userStats.totalUsers}
         usersLoading={usersLoading}
       />
