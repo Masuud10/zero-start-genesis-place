@@ -15,7 +15,7 @@ export interface UuidValidationResult {
  */
 export const validateUuid = (value: any): UuidValidationResult => {
   // Handle null, undefined, or empty values
-  if (!value || value === 'null' || value === 'undefined') {
+  if (!value || value === 'null' || value === 'undefined' || value === '') {
     return {
       isValid: false,
       error: 'UUID is required but was null or undefined'
@@ -26,10 +26,10 @@ export const validateUuid = (value: any): UuidValidationResult => {
   const stringValue = String(value).trim();
 
   // Check for common invalid patterns
-  if (stringValue === 'null' || stringValue === 'undefined' || stringValue === '') {
+  if (stringValue === 'null' || stringValue === 'undefined' || stringValue === '' || stringValue === '0') {
     return {
       isValid: false,
-      error: 'UUID cannot be null, undefined, or empty string'
+      error: 'UUID cannot be null, undefined, empty, or zero'
     };
   }
 
@@ -84,6 +84,14 @@ export const validateSchoolAccess = (userSchoolId: any, requestedSchoolId?: any)
     isValid: true,
     sanitizedValue: userValidation.sanitizedValue
   };
+};
+
+/**
+ * Safely validates and returns a UUID or null
+ */
+export const safeUuidOrNull = (value: any): string | null => {
+  const validation = validateUuid(value);
+  return validation.isValid ? validation.sanitizedValue! : null;
 };
 
 /**
