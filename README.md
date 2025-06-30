@@ -52,7 +52,7 @@ All users can raise tickets; Edufam Admins view all
 🎓 Certificate & Report Generation
 Auto-generated academic & completion certificates
 
-Dynamic PDF report generation for schools & Edufam Company
+Dynamic PDF report generation for schools & Edufam
 
 ⚙️ System Settings
 Maintenance mode toggle
