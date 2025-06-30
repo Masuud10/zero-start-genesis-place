@@ -28,11 +28,13 @@ interface FinanceOfficerAnalyticsData {
     category: string;
     amount: number;
     percentage: number;
+    color: string;
   }>;
   defaultersList: Array<{
     student_name: string;
-    class_name: string;
+    admission_number: string;
     outstanding_amount: number;
+    class_name: string;
     days_overdue: number;
   }>;
 }
@@ -135,7 +137,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
         const outstandingAmount = Math.max(0, totalRevenue - totalCollected);
 
         const totalMpesaPayments = mpesaTransactions
-          .filter(txn => txn.transaction_status === 'completed')
+          .filter(txn => txn.transaction_status === 'Success')
           .reduce((sum, txn) => {
             const amount = Number(txn.amount_paid || 0);
             return !isNaN(amount) ? sum + amount : sum;
@@ -164,8 +166,9 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           })
           .map(fee => ({
             student_name: fee.students?.name || 'Unknown Student',
-            class_name: fee.classes?.name || 'Unknown Class',
+            admission_number: fee.students?.admission_number || 'N/A',
             outstanding_amount: Number(fee.amount || 0) - Number(fee.paid_amount || 0),
+            class_name: fee.classes?.name || 'Unknown Class',
             days_overdue: Math.floor((today.getTime() - new Date(fee.due_date!).getTime()) / (1000 * 60 * 60 * 24))
           }));
 
@@ -197,7 +200,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           .filter(txn => {
             if (!txn.transaction_date) return false;
             const txnDate = new Date(txn.transaction_date);
-            return txnDate >= thirtyDaysAgo && txn.transaction_status === 'completed';
+            return txnDate >= thirtyDaysAgo && txn.transaction_status === 'Success';
           })
           .forEach(txn => {
             const dateKey = new Date(txn.transaction_date!).toISOString().split('T')[0];
@@ -209,7 +212,7 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           .map(([date, amount]) => ({ date, amount }))
           .sort((a, b) => a.date.localeCompare(b.date));
 
-        // Process expense breakdown
+        // Process expense breakdown with colors
         const expenseMap = new Map<string, number>();
         expenses.forEach(expense => {
           const category = expense.category || 'Other';
@@ -217,11 +220,13 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
           expenseMap.set(category, current + Number(expense.amount || 0));
         });
 
+        const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
         const totalExpenses = Array.from(expenseMap.values()).reduce((sum, amount) => sum + amount, 0);
-        const expenseBreakdown = Array.from(expenseMap.entries()).map(([category, amount]) => ({
+        const expenseBreakdown = Array.from(expenseMap.entries()).map(([category, amount], index) => ({
           category,
           amount,
-          percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0
+          percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0,
+          color: colors[index % colors.length]
         }));
 
         return {

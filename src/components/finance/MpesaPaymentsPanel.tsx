@@ -13,8 +13,8 @@ const MpesaPaymentsPanel: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredTransactions = mpesaTransactions.filter(transaction => {
-    const matchesSearch = transaction.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = transaction.student?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.student?.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          transaction.mpesa_receipt_number?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || transaction.transaction_status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -22,9 +22,9 @@ const MpesaPaymentsPanel: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'failed': return 'bg-red-100 text-red-800';
+      case 'Success': return 'bg-green-100 text-green-800';
+      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Failed': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -32,7 +32,7 @@ const MpesaPaymentsPanel: React.FC = () => {
   const formatCurrency = (amount: number) => `KES ${amount.toLocaleString()}`;
 
   const totalAmount = filteredTransactions.reduce((sum, txn) => sum + Number(txn.amount_paid || 0), 0);
-  const completedTransactions = filteredTransactions.filter(txn => txn.transaction_status === 'completed').length;
+  const completedTransactions = filteredTransactions.filter(txn => txn.transaction_status === 'Success').length;
 
   if (loading) {
     return (
@@ -110,9 +110,9 @@ const MpesaPaymentsPanel: React.FC = () => {
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">All Transactions</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="failed">Failed</TabsTrigger>
+          <TabsTrigger value="Success">Completed</TabsTrigger>
+          <TabsTrigger value="Pending">Pending</TabsTrigger>
+          <TabsTrigger value="Failed">Failed</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
@@ -156,8 +156,8 @@ const MpesaPaymentsPanel: React.FC = () => {
                         <td className="p-2 font-medium">{transaction.mpesa_receipt_number || 'N/A'}</td>
                         <td className="p-2">
                           <div>
-                            <p className="font-medium">{transaction.student_name || 'Unknown'}</p>
-                            <p className="text-sm text-muted-foreground">{transaction.admission_number || 'N/A'}</p>
+                            <p className="font-medium">{transaction.student?.name || 'Unknown'}</p>
+                            <p className="text-sm text-muted-foreground">{transaction.student?.admission_number || 'N/A'}</p>
                           </div>
                         </td>
                         <td className="p-2 font-semibold text-green-600">
@@ -190,7 +190,7 @@ const MpesaPaymentsPanel: React.FC = () => {
         </TabsContent>
 
         {/* Other tab contents would filter by status */}
-        <TabsContent value="completed">
+        <TabsContent value="Success">
           <Card>
             <CardContent className="p-6">
               <p>Completed transactions: {completedTransactions}</p>

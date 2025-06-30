@@ -3,14 +3,15 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { FileText, Download, Calendar, Filter } from 'lucide-react';
 
 const FinancialReportsPanel: React.FC = () => {
   const [reportType, setReportType] = useState('');
   const [dateRange, setDateRange] = useState('current_term');
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   const reportTypes = [
     { value: 'fee_statements', label: 'Fee Statements', description: 'Individual student fee statements' },
@@ -70,11 +71,19 @@ const FinancialReportsPanel: React.FC = () => {
               <>
                 <div>
                   <label className="text-sm font-medium">Start Date</label>
-                  <DatePicker date={startDate} setDate={setStartDate} />
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium">End Date</label>
-                  <DatePicker date={endDate} setDate={setEndDate} />
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
                 </div>
               </>
             )}
