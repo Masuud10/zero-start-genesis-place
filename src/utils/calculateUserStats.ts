@@ -1,37 +1,53 @@
 
-export function calculateUserStats(usersData: any[]) {
-  try {
-    if (!Array.isArray(usersData)) {
-      console.warn('👥 EduFamAdmin: Invalid users data format:', typeof usersData);
-      return {
-        totalUsers: 0,
-        usersWithSchools: 0,
-        usersWithoutSchools: 0,
-        roleBreakdown: {}
-      };
-    }
-    const validUsers = usersData.filter(user => user && typeof user === 'object' && user.id);
+interface UserData {
+  id: string;
+  role: string;
+  school_id?: string | null;
+  created_at: string;
+}
 
-    const stats = {
-      totalUsers: validUsers.length,
-      usersWithSchools: validUsers.filter(u => u.school_id).length,
-      usersWithoutSchools: validUsers.filter(u => !u.school_id).length,
-      roleBreakdown: validUsers.reduce((acc: Record<string, number>, user) => {
-        const role = user.role || 'unknown';
-        acc[role] = (acc[role] || 0) + 1;
-        return acc;
-      }, {})
-    };
+interface UserStats {
+  totalUsers: number;
+  usersWithSchools: number;
+  usersWithoutSchools: number;
+  roleBreakdown: Array<{
+    role: string;
+    count: number;
+    percentage: number;
+  }>;
+}
 
-    console.log('📊 EduFamAdmin: User stats calculated:', stats);
-    return stats;
-  } catch (error) {
-    console.error('📊 EduFamAdmin: Error calculating user stats:', error);
+export const calculateUserStats = (usersData: UserData[]): UserStats => {
+  if (!Array.isArray(usersData) || usersData.length === 0) {
     return {
       totalUsers: 0,
       usersWithSchools: 0,
       usersWithoutSchools: 0,
-      roleBreakdown: {}
+      roleBreakdown: []
     };
   }
-}
+
+  const totalUsers = usersData.length;
+  const usersWithSchools = usersData.filter(user => user.school_id).length;
+  const usersWithoutSchools = totalUsers - usersWithSchools;
+
+  // Calculate role breakdown
+  const roleCounts: Record<string, number> = {};
+  usersData.forEach(user => {
+    const role = user.role || 'unknown';
+    roleCounts[role] = (roleCounts[role] || 0) + 1;
+  });
+
+  const roleBreakdown = Object.entries(roleCounts).map(([role, count]) => ({
+    role,
+    count,
+    percentage: Math.round((count / totalUsers) * 100)
+  })).sort((a, b) => b.count - a.count);
+
+  return {
+    totalUsers,
+    usersWithSchools,
+    usersWithoutSchools,
+    roleBreakdown
+  };
+};
