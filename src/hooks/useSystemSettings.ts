@@ -70,6 +70,17 @@ export const useSecuritySettings = () => {
 
         if (auditError) throw auditError;
 
+        // Fetch rate limits
+        const { data: rateLimits, error: rateLimitsError } = await supabase
+          .from('rate_limits')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (rateLimitsError) {
+          console.error('Rate limits fetch error:', rateLimitsError);
+        }
+
         // Calculate security metrics
         const totalAuditEvents = auditLogs?.length || 0;
         const securityIncidents = auditLogs?.filter(log => !log.success).length || 0;
@@ -77,11 +88,17 @@ export const useSecuritySettings = () => {
           log.action === 'login' && !log.success
         ).length || 0;
 
+        // Filter active rate limits (currently blocked)
+        const activeRateLimits = rateLimits?.filter(limit => 
+          limit.blocked_until && new Date(limit.blocked_until) > new Date()
+        ) || [];
+
         return {
           total_audit_events: totalAuditEvents,
           security_incidents: securityIncidents,
           failed_login_attempts: failedLoginAttempts,
-          recent_audit_logs: auditLogs?.slice(0, 10) || []
+          recent_audit_logs: auditLogs?.slice(0, 10) || [],
+          active_rate_limits: activeRateLimits
         };
       } catch (error) {
         console.error('❌ Error fetching security settings:', error);
