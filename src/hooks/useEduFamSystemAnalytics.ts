@@ -1,154 +1,117 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-interface SystemAnalytics {
-  schools: {
-    total_schools: number;
-    active_schools: number;
-  };
-  users: {
-    total_users: number;
-    active_users: number;
-  };
-  grades: {
-    total_grades: number;
-    average_grade: number;
-    schools_with_grades: number;
-  };
-  finance: {
-    total_collected: number;
-    outstanding_amount: number;
-    total_outstanding: number;
-    schools_with_finance: number;
-  };
-  attendance: {
-    average_attendance_rate: number;
-    total_records: number;
-    schools_with_attendance: number;
-  };
-  system: {
-    uptime_percentage: number;
-  };
-}
-
 export const useEduFamSystemAnalytics = () => {
+  const { user } = useAuth();
+
   return useQuery({
     queryKey: ['edufam-system-analytics'],
-    queryFn: async (): Promise<SystemAnalytics> => {
-      console.log('📊 Fetching EduFam system analytics...');
+    queryFn: async () => {
+      console.log('🔄 Fetching EduFam system analytics...');
       
       try {
-        // Fetch schools data
-        const { data: schoolsData, error: schoolsError } = await supabase
-          .from('schools')
-          .select('id, status')
-          .eq('status', 'active');
+        // Fetch overall system metrics
+        const [gradesResult, attendanceResult, financeResult] = await Promise.all([
+          // Grades analytics
+          supabase
+            .from('grades')
+            .select('score, percentage, school_id, created_at')
+            .not('score', 'is', null),
+          
+          // Attendance analytics
+          supabase
+            .from('attendance')
+            .select('status, school_id, date'),
+          
+          // Finance analytics
+          supabase
+            .from('fees')
+            .select('amount, paid_amount, school_id, created_at')
+        ]);
 
-        if (schoolsError) {
-          console.error('Error fetching schools:', schoolsError);
-        }
+        if (gradesResult.error) throw gradesResult.error;
+        if (attendanceResult.error) throw attendanceResult.error;
+        if (financeResult.error) throw financeResult.error;
 
-        // Fetch users data
-        const { data: usersData, error: usersError } = await supabase
-          .from('profiles')
-          .select('id, role, created_at');
+        const grades = gradesResult.data || [];
+        const attendance = attendanceResult.data || [];
+        const fees = financeResult.data || [];
 
-        if (usersError) {
-          console.error('Error fetching users:', usersError);
-        }
-
-        // Fetch grades data
-        const { data: gradesData, error: gradesError } = await supabase
-          .from('grades')
-          .select('score, max_score, percentage, school_id')
-          .not('score', 'is', null);
-
-        if (gradesError) {
-          console.error('Error fetching grades:', gradesError);
-        }
-
-        // Fetch attendance data
-        const { data: attendanceData, error: attendanceError } = await supabase
-          .from('attendance')
-          .select('status, school_id')
-          .not('status', 'is', null);
-
-        if (attendanceError) {
-          console.error('Error fetching attendance:', attendanceError);
-        }
-
-        // Fetch finance data
-        const { data: financeData, error: financeError } = await supabase
-          .from('fees')
-          .select('amount, paid_amount, school_id')
-          .not('amount', 'is', null);
-
-        if (financeError) {
-          console.error('Error fetching finance:', financeError);
-        }
-
-        // Calculate analytics
-        const totalSchools = schoolsData?.length || 0;
-        const activeSchools = schoolsData?.filter(s => s.status === 'active').length || 0;
-        const totalUsers = usersData?.length || 0;
-        const activeUsers = Math.floor(totalUsers * 0.8); // Mock active users calculation
-        
-        const totalGrades = gradesData?.length || 0;
-        const averageGrade = gradesData?.length ? 
-          gradesData.reduce((sum, g) => sum + (g.percentage || 0), 0) / gradesData.length : 0;
-        const schoolsWithGrades = new Set(gradesData?.map(g => g.school_id)).size;
-
-        const totalAttendanceRecords = attendanceData?.length || 0;
-        const presentCount = attendanceData?.filter(a => a.status === 'present').length || 0;
-        const averageAttendanceRate = totalAttendanceRecords > 0 ? (presentCount / totalAttendanceRecords) * 100 : 0;
-        const schoolsWithAttendance = new Set(attendanceData?.map(a => a.school_id)).size;
-
-        const totalCollected = financeData?.reduce((sum, f) => sum + (Number(f.paid_amount) || 0), 0) || 0;
-        const totalAmount = financeData?.reduce((sum, f) => sum + (Number(f.amount) || 0), 0) || 0;
-        const outstandingAmount = totalAmount - totalCollected;
-        const schoolsWithFinance = new Set(financeData?.map(f => f.school_id)).size;
-
-        const analytics: SystemAnalytics = {
-          schools: {
-            total_schools: totalSchools,
-            active_schools: activeSchools
-          },
-          users: {
-            total_users: totalUsers,
-            active_users: activeUsers
-          },
-          grades: {
-            total_grades: totalGrades,
-            average_grade: averageGrade,
-            schools_with_grades: schoolsWithGrades
-          },
-          finance: {
-            total_collected: totalCollected,
-            outstanding_amount: outstandingAmount,
-            total_outstanding: outstandingAmount,
-            schools_with_finance: schoolsWithFinance
-          },
-          attendance: {
-            average_attendance_rate: averageAttendanceRate,
-            total_records: totalAttendanceRecords,
-            schools_with_attendance: schoolsWithAttendance
-          },
-          system: {
-            uptime_percentage: 99.9 // Mock data
+        // Calculate grades analytics
+        const schoolGrades = grades.reduce((acc, grade) => {
+          if (!acc[grade.school_id]) {
+            acc[grade.school_id] = [];
           }
+          acc[grade.school_id].push(grade.percentage || grade.score || 0);
+          return acc;
+        }, {} as Record<string, number[]>);
+
+        const gradesAnalytics = {
+          total_grades: grades.length,
+          schools_with_grades: Object.keys(schoolGrades).length,
+          average_grade: grades.length > 0 
+            ? grades.reduce((sum, g) => sum + (g.percentage || g.score || 0), 0) / grades.length 
+            : 0
         };
 
-        console.log('✅ EduFam system analytics fetched successfully:', analytics);
-        return analytics;
+        // Calculate attendance analytics
+        const schoolAttendance = attendance.reduce((acc, record) => {
+          if (!acc[record.school_id]) {
+            acc[record.school_id] = { total: 0, present: 0 };
+          }
+          acc[record.school_id].total++;
+          if (record.status === 'present') {
+            acc[record.school_id].present++;
+          }
+          return acc;
+        }, {} as Record<string, { total: number; present: number }>);
 
+        const attendanceAnalytics = {
+          total_records: attendance.length,
+          schools_with_attendance: Object.keys(schoolAttendance).length,
+          average_attendance_rate: Object.values(schoolAttendance).length > 0
+            ? Object.values(schoolAttendance).reduce((sum, school) => 
+                sum + (school.total > 0 ? (school.present / school.total) * 100 : 0), 0
+              ) / Object.values(schoolAttendance).length
+            : 0
+        };
+
+        // Calculate finance analytics
+        const schoolFinance = fees.reduce((acc, fee) => {
+          if (!acc[fee.school_id]) {
+            acc[fee.school_id] = { total: 0, collected: 0 };
+          }
+          acc[fee.school_id].total += fee.amount || 0;
+          acc[fee.school_id].collected += fee.paid_amount || 0;
+          return acc;
+        }, {} as Record<string, { total: number; collected: number }>);
+
+        const financeAnalytics = {
+          schools_with_finance: Object.keys(schoolFinance).length,
+          total_collected: Object.values(schoolFinance).reduce((sum, school) => sum + school.collected, 0),
+          total_outstanding: Object.values(schoolFinance).reduce((sum, school) => sum + (school.total - school.collected), 0)
+        };
+
+        return {
+          grades: gradesAnalytics,
+          attendance: attendanceAnalytics,
+          finance: financeAnalytics,
+          last_updated: new Date().toISOString()
+        };
+        
       } catch (error) {
-        console.error('❌ Error in useEduFamSystemAnalytics:', error);
+        console.error('❌ Error fetching EduFam system analytics:', error);
         throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
     retry: 2,
+    meta: {
+      errorMessage: 'Failed to load system analytics'
+    }
   });
 };

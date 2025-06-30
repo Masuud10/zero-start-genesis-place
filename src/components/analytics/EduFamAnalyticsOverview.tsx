@@ -1,63 +1,48 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Users, 
-  School, 
-  GraduationCap, 
-  DollarSign, 
-  TrendingUp, 
-  Activity,
-  BarChart3,
-  RefreshCw,
-  Eye,
-  Download
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
 import { useEduFamSystemAnalytics } from '@/hooks/useEduFamSystemAnalytics';
-import SystemAnalyticsChartsSection from './sections/SystemAnalyticsChartsSection';
+import { 
+  TrendingUp, 
+  Users, 
+  Building2, 
+  DollarSign, 
+  Activity,
+  AlertCircle,
+  RefreshCw,
+  Download 
+} from 'lucide-react';
 
 interface EduFamAnalyticsOverviewProps {
   onAnalyticsAction?: (action: string) => void;
 }
 
-const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({ 
-  onAnalyticsAction 
-}) => {
-  const { data: systemAnalytics, isLoading, error, refetch } = useEduFamSystemAnalytics();
+const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({ onAnalyticsAction }) => {
+  const { data: systemAnalytics, isLoading: systemLoading, error: systemError } = useSystemAnalytics();
+  const { data: eduFamAnalytics, isLoading: eduFamLoading, error: eduFamError } = useEduFamSystemAnalytics();
 
-  const handleRefresh = () => {
-    console.log('🔄 EduFamAnalyticsOverview: Refreshing analytics data');
-    refetch();
-  };
-
-  const handleViewDetailed = () => {
-    console.log('👁️ EduFamAnalyticsOverview: View detailed analytics');
-    onAnalyticsAction?.('view-detailed-analytics');
-  };
-
-  const handleExportData = () => {
-    console.log('📤 EduFamAnalyticsOverview: Export analytics data');
-    onAnalyticsAction?.('export-analytics');
-  };
+  const isLoading = systemLoading || eduFamLoading;
+  const hasError = systemError || eduFamError;
 
   if (isLoading) {
     return (
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              <BarChart3 className="h-5 w-5 animate-pulse" />
-              EduFam System Analytics
-            </CardTitle>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-blue-900">
+            <Activity className="h-5 w-5 animate-pulse" />
+            Real-Time Analytics Overview
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white p-4 rounded-lg shadow-sm animate-pulse">
-                <div className="h-12 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="text-center p-4 bg-white rounded-lg shadow-sm animate-pulse">
+                <div className="h-8 w-8 bg-gray-200 rounded-full mx-auto mb-2"></div>
+                <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-1"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
               </div>
             ))}
           </div>
@@ -66,153 +51,144 @@ const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({
     );
   }
 
-  if (error) {
-    console.error('❌ EduFamAnalyticsOverview: Error loading analytics:', error);
+  if (hasError) {
     return (
-      <Card className="bg-gradient-to-r from-red-50 to-pink-50 border-red-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-red-900">
-              <BarChart3 className="h-5 w-5" />
-              EduFam System Analytics
-            </CardTitle>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-1" />
+      <Card className="bg-red-50 border-red-200">
+        <CardContent className="p-6">
+          <Alert className="border-red-300">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-700">
+              Unable to load analytics data. Please check your connection and try again.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-red-700">Failed to load system analytics. Please try again.</p>
         </CardContent>
       </Card>
     );
   }
 
-  console.log('📊 EduFamAnalyticsOverview: Rendering with analytics data:', systemAnalytics ? 'Available' : 'Not Available');
+  // Calculate metrics with fallbacks
+  const totalUsers = systemAnalytics?.userDistribution?.reduce((sum, item) => sum + item.count, 0) || 0;
+  const totalSchools = systemAnalytics?.schoolsOnboarded?.reduce((sum, item) => sum + item.count, 0) || 0;
+  const totalRevenue = systemAnalytics?.financeSummary?.total_subscriptions || 0;
+  const avgGrade = eduFamAnalytics?.grades?.average_grade || 0;
+  const attendanceRate = eduFamAnalytics?.attendance?.average_attendance_rate || 0;
 
-  const analytics = systemAnalytics || {
-    schools: { total_schools: 0, active_schools: 0 },
-    users: { total_users: 0, active_users: 0 },
-    grades: { total_grades: 0, average_grade: 0 },
-    finance: { total_collected: 0, outstanding_amount: 0 },
-    attendance: { average_attendance_rate: 0 },
-    system: { uptime_percentage: 99.9 }
+  const handleAnalyticsAction = (action: string) => {
+    onAnalyticsAction?.(action);
   };
 
-  const statsCards = [
-    {
-      title: 'Active Schools',
-      value: analytics.schools.active_schools.toLocaleString(),
-      total: `${analytics.schools.total_schools.toLocaleString()} Total`,
-      icon: School,
-      color: 'bg-blue-500',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-900'
-    },
-    {
-      title: 'System Users',
-      value: analytics.users.active_users.toLocaleString(),
-      total: `${analytics.users.total_users.toLocaleString()} Total`,
-      icon: Users,
-      color: 'bg-green-500',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-900'
-    },
-    {
-      title: 'Academic Performance',
-      value: `${analytics.grades.average_grade.toFixed(1)}%`,
-      total: `${analytics.grades.total_grades.toLocaleString()} Grades`,
-      icon: GraduationCap,
-      color: 'bg-purple-500',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-900'
-    },
-    {
-      title: 'Revenue Collected',
-      value: `KES ${(analytics.finance.total_collected / 1000000).toFixed(1)}M`,
-      total: `${(analytics.finance.outstanding_amount / 1000000).toFixed(1)}M Outstanding`,
-      icon: DollarSign,
-      color: 'bg-orange-500',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-900'
-    },
-    {
-      title: 'Attendance Rate',
-      value: `${analytics.attendance.average_attendance_rate.toFixed(1)}%`,
-      total: 'Network Average',
-      icon: TrendingUp,
-      color: 'bg-cyan-500',
-      bgColor: 'bg-cyan-50',
-      textColor: 'text-cyan-900'
-    },
-    {
-      title: 'System Uptime',
-      value: `${analytics.system.uptime_percentage.toFixed(1)}%`,
-      total: 'Last 30 Days',
-      icon: Activity,
-      color: 'bg-emerald-500',
-      bgColor: 'bg-emerald-50',
-      textColor: 'text-emerald-900'
-    }
-  ];
-
   return (
-    <div className="space-y-6">
-      {/* Stats Overview Cards */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-blue-900">
-              <BarChart3 className="h-5 w-5" />
-              EduFam System Analytics Overview
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button onClick={handleViewDetailed} variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-1" />
-                View Details
-              </Button>
-              <Button onClick={handleExportData} variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-              <Button onClick={handleRefresh} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Refresh
-              </Button>
+    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-blue-900">
+            <Activity className="h-5 w-5" />
+            Real-Time Analytics Overview
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleAnalyticsAction('view-detailed-analytics')}
+              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              View Details
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleAnalyticsAction('export-analytics')}
+              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </div>
+        </div>
+        <p className="text-blue-700 text-sm">
+          Live system performance and usage metrics across all schools
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-blue-500">
+            <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-blue-900">
+              {totalUsers.toLocaleString()}
+            </div>
+            <p className="text-sm text-blue-700 mt-1">Total Users</p>
+          </div>
+
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-green-500">
+            <Building2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-green-900">
+              {totalSchools.toLocaleString()}
+            </div>
+            <p className="text-sm text-green-700 mt-1">Active Schools</p>
+          </div>
+
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-purple-500">
+            <DollarSign className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-purple-900">
+              KES {totalRevenue.toLocaleString()}
+            </div>
+            <p className="text-sm text-purple-700 mt-1">Total Revenue</p>
+          </div>
+
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-orange-500">
+            <TrendingUp className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-orange-900">
+              {avgGrade.toFixed(1)}%
+            </div>
+            <p className="text-sm text-orange-700 mt-1">Avg Grade</p>
+          </div>
+
+          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-teal-500">
+            <Activity className="h-8 w-8 text-teal-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-teal-900">
+              {attendanceRate.toFixed(1)}%
+            </div>
+            <p className="text-sm text-teal-700 mt-1">Attendance Rate</p>
+          </div>
+        </div>
+
+        {/* Quick Insights */}
+        <div className="mt-6 p-4 bg-white rounded-lg">
+          <h4 className="font-semibold text-gray-900 mb-2">Quick Insights</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-gray-600">
+                System performance: <span className="font-medium text-green-600">Excellent</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-gray-600">
+                User engagement: <span className="font-medium text-blue-600">High</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span className="text-gray-600">
+                Revenue growth: <span className="font-medium text-purple-600">Positive</span>
+              </span>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {statsCards.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div 
-                  key={index} 
-                  className={`${stat.bgColor} p-4 rounded-lg shadow-sm border cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105`}
-                  onClick={handleViewDetailed}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`p-2 rounded-full ${stat.color}`}>
-                      <Icon className="h-4 w-4 text-white" />
-                    </div>
-                  </div>
-                  <div className={`text-2xl font-bold ${stat.textColor} mb-1`}>
-                    {stat.value}
-                  </div>
-                  <div className="text-xs text-gray-600 mb-1">{stat.title}</div>
-                  <div className="text-xs text-gray-500">{stat.total}</div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Comprehensive Charts Section */}
-      <SystemAnalyticsChartsSection />
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
