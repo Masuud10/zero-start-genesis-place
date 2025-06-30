@@ -14,7 +14,7 @@ interface SchoolData {
   email: string | null;
   created_at: string;
   owner_id: string | null;
-  principal_id: string | null;
+  principal_id?: string | null;
   location?: string | null;
   logo_url?: string | null;
   website_url?: string | null;
