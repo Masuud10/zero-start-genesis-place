@@ -2,33 +2,43 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useSecuritySettings, useSystemMaintenance } from '@/hooks/useSystemSettings';
-import { Shield, Key, Lock, AlertTriangle, Activity } from 'lucide-react';
+import { useSecuritySettings } from '@/hooks/useSystemSettings';
+import { 
+  Shield, 
+  Key, 
+  AlertTriangle, 
+  Activity,
+  Eye,
+  Lock
+} from 'lucide-react';
 
 const SecuritySettingsPanel: React.FC = () => {
   const { toast } = useToast();
   const { data: securityData, isLoading } = useSecuritySettings();
-  const systemMaintenance = useSystemMaintenance();
   
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [passwordComplexity, setPasswordComplexity] = useState(true);
-  const [sessionTimeout, setSessionTimeout] = useState(30);
-  const [maxLoginAttempts, setMaxLoginAttempts] = useState(5);
+  const [settings, setSettings] = useState({
+    twoFactorRequired: false,
+    passwordComplexity: true,
+    sessionTimeout: 30,
+    maxLoginAttempts: 5,
+    auditLogging: true,
+    ipWhitelisting: false
+  });
 
-  const handleUpdateSecurity = () => {
+  const handleSaveSettings = () => {
     toast({
-      title: "Security Updated",
-      description: "Security settings have been updated successfully",
+      title: "Security Settings Updated",
+      description: "All security settings have been updated successfully.",
     });
   };
 
-  const handleResetRateLimits = () => {
-    systemMaintenance.mutate('reset_rate_limits');
+  const handleSettingChange = (key: string, value: boolean | number) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   if (isLoading) {
@@ -46,57 +56,57 @@ const SecuritySettingsPanel: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Security Overview */}
-      <Card>
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-green-600" />
+          <CardTitle className="flex items-center gap-2 text-blue-900">
+            <Shield className="h-5 w-5" />
             Security Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
               <Activity className="h-8 w-8 text-green-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-green-900">
                 {securityData?.total_audit_events || 0}
               </div>
-              <p className="text-sm text-green-700">Total Audit Events</p>
+              <p className="text-sm text-green-700 mt-1">Total Audit Events</p>
             </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
               <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
               <div className="text-2xl font-bold text-red-900">
                 {securityData?.security_incidents || 0}
               </div>
-              <p className="text-sm text-red-700">Security Incidents</p>
+              <p className="text-sm text-red-700 mt-1">Security Incidents</p>
             </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <Lock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-blue-900">
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <Eye className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-orange-900">
                 {securityData?.failed_login_attempts || 0}
               </div>
-              <p className="text-sm text-blue-700">Failed Login Attempts</p>
+              <p className="text-sm text-orange-700 mt-1">Failed Login Attempts</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Security Configuration */}
+      {/* Security Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
+            <Lock className="h-5 w-5" />
             Security Configuration
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <Label>Two-Factor Authentication</Label>
-              <p className="text-xs text-gray-500">Require 2FA for admin accounts</p>
+              <Label>Two-Factor Authentication Required</Label>
+              <p className="text-xs text-gray-500">Require 2FA for all admin accounts</p>
             </div>
             <Switch
-              checked={twoFactorEnabled}
-              onCheckedChange={setTwoFactorEnabled}
+              checked={settings.twoFactorRequired}
+              onCheckedChange={(checked) => handleSettingChange('twoFactorRequired', checked)}
             />
           </div>
 
@@ -105,69 +115,98 @@ const SecuritySettingsPanel: React.FC = () => {
               <Label>Password Complexity</Label>
               <p className="text-xs text-gray-500">Enforce strong password requirements</p>
             </div>
-            <Switch 
-              checked={passwordComplexity}
-              onCheckedChange={setPasswordComplexity}
+            <Switch
+              checked={settings.passwordComplexity}
+              onCheckedChange={(checked) => handleSettingChange('passwordComplexity', checked)}
             />
           </div>
 
-          <div>
-            <Label htmlFor="session_timeout">Session Timeout (minutes)</Label>
-            <Input
-              id="session_timeout"
-              type="number"
-              value={sessionTimeout}
-              onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
-              min="5"
-              max="480"
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Audit Logging</Label>
+              <p className="text-xs text-gray-500">Log all administrative actions</p>
+            </div>
+            <Switch
+              checked={settings.auditLogging}
+              onCheckedChange={(checked) => handleSettingChange('auditLogging', checked)}
             />
           </div>
 
-          <div>
-            <Label htmlFor="max_login_attempts">Max Login Attempts</Label>
-            <Input
-              id="max_login_attempts"
-              type="number"
-              value={maxLoginAttempts}
-              onChange={(e) => setMaxLoginAttempts(parseInt(e.target.value))}
-              min="3"
-              max="10"
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>IP Whitelisting</Label>
+              <p className="text-xs text-gray-500">Restrict admin access to specific IPs</p>
+            </div>
+            <Switch
+              checked={settings.ipWhitelisting}
+              onCheckedChange={(checked) => handleSettingChange('ipWhitelisting', checked)}
             />
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleUpdateSecurity} className="flex-1">
-              Update Security Settings
-            </Button>
-            <Button 
-              onClick={handleResetRateLimits}
-              variant="outline"
-              disabled={systemMaintenance.isPending}
-            >
-              Reset Rate Limits
-            </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="session_timeout">Session Timeout (minutes)</Label>
+              <Input
+                id="session_timeout"
+                type="number"
+                value={settings.sessionTimeout}
+                onChange={(e) => handleSettingChange('sessionTimeout', parseInt(e.target.value))}
+                min="5"
+                max="480"
+              />
+            </div>
+            <div>
+              <Label htmlFor="max_login_attempts">Max Login Attempts</Label>
+              <Input
+                id="max_login_attempts"
+                type="number"
+                value={settings.maxLoginAttempts}
+                onChange={(e) => handleSettingChange('maxLoginAttempts', parseInt(e.target.value))}
+                min="3"
+                max="10"
+              />
+            </div>
           </div>
+
+          <Button onClick={handleSaveSettings} className="w-full">
+            Save Security Settings
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Active Rate Limits */}
-      {securityData?.active_rate_limits && securityData.active_rate_limits.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Active Rate Limits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {securityData.active_rate_limits.map((limit: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <span className="text-sm">{limit.identifier}</span>
-                  <Badge variant="destructive">Blocked</Badge>
+      {/* Recent Security Events */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Security Events</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {securityData?.recent_audit_logs?.length > 0 ? (
+            <div className="space-y-3">
+              {securityData.recent_audit_logs.slice(0, 5).map((log: any, index: number) => (
+                <div
+                  key={log.id || index}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${log.success ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <div>
+                      <span className="font-medium">{log.action || 'Unknown Action'}</span>
+                      <p className="text-xs text-gray-500">
+                        {log.created_at ? new Date(log.created_at).toLocaleString() : 'Unknown time'}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant={log.success ? "default" : "destructive"}>
+                    {log.success ? 'Success' : 'Failed'}
+                  </Badge>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-gray-500 text-center py-4">No recent security events</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -2,106 +2,112 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useMaintenanceSettings, useUpdateMaintenanceSettings } from '@/hooks/useMaintenanceSettings';
-import { Settings, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useSystemMaintenance } from '@/hooks/useSystemSettings';
+import { 
+  Settings, 
+  AlertTriangle, 
+  RefreshCw, 
+  Trash2, 
+  Database,
+  CheckCircle
+} from 'lucide-react';
 
 const MaintenanceSettings: React.FC = () => {
-  const { data: maintenanceSettings, isLoading } = useMaintenanceSettings();
-  const updateMaintenance = useUpdateMaintenanceSettings();
-  
-  const [enabled, setEnabled] = useState(false);
-  const [message, setMessage] = useState('System is currently under maintenance. Please try again later.');
+  const { toast } = useToast();
+  const systemMaintenance = useSystemMaintenance();
+  const [lastAction, setLastAction] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (maintenanceSettings) {
-      setEnabled(maintenanceSettings.enabled);
-      setMessage(maintenanceSettings.message);
-    }
-  }, [maintenanceSettings]);
-
-  const handleSave = () => {
-    updateMaintenance.mutate({ enabled, message });
+  const handleMaintenance = (action: string) => {
+    setLastAction(action);
+    systemMaintenance.mutate(action);
   };
 
-  if (isLoading) {
-    return (
+  const maintenanceActions = [
+    {
+      id: 'cleanup_audit_logs',
+      title: 'Clean Audit Logs',
+      description: 'Remove old audit logs older than 30 days',
+      icon: Trash2,
+      variant: 'outline' as const,
+      color: 'text-orange-600'
+    },
+    {
+      id: 'reset_rate_limits',
+      title: 'Reset Rate Limits',
+      description: 'Clear all rate limiting counters',
+      icon: RefreshCw,
+      variant: 'outline' as const,
+      color: 'text-blue-600'
+    },
+    {
+      id: 'optimize_database',
+      title: 'Optimize Database',
+      description: 'Run database optimization routines',
+      icon: Database,
+      variant: 'outline' as const,
+      color: 'text-green-600'
+    }
+  ];
+
+  return (
+    <div className="space-y-6">
+      <Alert className="bg-yellow-50 border-yellow-200">
+        <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        <AlertDescription className="text-yellow-700">
+          System maintenance operations should be performed during low-traffic periods to minimize user impact.
+        </AlertDescription>
+      </Alert>
+
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            System Maintenance Operations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {maintenanceActions.map((action) => (
+              <Card key={action.id} className="p-4">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <action.icon className={`h-8 w-8 ${action.color}`} />
+                  <div>
+                    <h3 className="font-semibold">{action.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{action.description}</p>
+                  </div>
+                  <Button
+                    onClick={() => handleMaintenance(action.id)}
+                    disabled={systemMaintenance.isPending}
+                    variant={action.variant}
+                    className="w-full"
+                  >
+                    {systemMaintenance.isPending && lastAction === action.id ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      action.title
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            ))}
           </div>
         </CardContent>
       </Card>
-    );
-  }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          Maintenance Mode Settings
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {enabled && (
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-700">
-              Maintenance mode is currently enabled. Users will see the maintenance message.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {!enabled && (
-          <Alert className="bg-green-50 border-green-200">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-700">
-              System is running normally. Users have full access.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="maintenance-mode">Enable Maintenance Mode</Label>
-            <p className="text-xs text-gray-500">
-              When enabled, users will be shown a maintenance message
-            </p>
-          </div>
-          <Switch
-            id="maintenance-mode"
-            checked={enabled}
-            onCheckedChange={setEnabled}
-          />
-        </div>
-
-        {enabled && (
-          <div>
-            <Label htmlFor="maintenance-message">Maintenance Message</Label>
-            <Textarea
-              id="maintenance-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Enter the message to display to users during maintenance"
-              rows={4}
-            />
-          </div>
-        )}
-
-        <Button 
-          onClick={handleSave} 
-          disabled={updateMaintenance.isPending}
-          className="w-full"
-        >
-          {updateMaintenance.isPending ? 'Saving...' : 'Save Settings'}
-        </Button>
-      </CardContent>
-    </Card>
+      {systemMaintenance.isSuccess && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700">
+            Maintenance operation completed successfully.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
   );
 };
 

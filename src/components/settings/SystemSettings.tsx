@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SystemSettings: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('maintenance');
+  const [activeTab, setActiveTab] = useState('company');
 
   // Only allow EduFam admins to access system settings
   if (user?.role !== 'edufam_admin') {
@@ -29,30 +29,13 @@ const SystemSettings: React.FC = () => {
     );
   }
 
+  // Re-arranged settings tabs in logical order: Company -> Users -> Security -> Database -> Maintenance -> Notifications
   const settingsTabs = [
     {
-      id: 'maintenance',
-      label: 'Maintenance',
-      icon: Settings,
-      component: <MaintenanceSettings />
-    },
-    {
-      id: 'database',
-      label: 'Database',
-      icon: Database,
-      component: <DatabaseSettings />
-    },
-    {
-      id: 'security',
-      label: 'Security',
-      icon: Shield,
-      component: <SecuritySettingsPanel />
-    },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: Bell,
-      component: <NotificationSettings />
+      id: 'company',
+      label: 'Company',
+      icon: Building2,
+      component: <CompanySettings />
     },
     {
       id: 'users',
@@ -61,10 +44,28 @@ const SystemSettings: React.FC = () => {
       component: <UserManagementSettings />
     },
     {
-      id: 'company',
-      label: 'Company',
-      icon: Building2,
-      component: <CompanySettings />
+      id: 'security',
+      label: 'Security',
+      icon: Shield,
+      component: <SecuritySettingsPanel />
+    },
+    {
+      id: 'database',
+      label: 'Database',
+      icon: Database,
+      component: <DatabaseSettings />
+    },
+    {
+      id: 'maintenance',
+      label: 'Maintenance',
+      icon: Settings,
+      component: <MaintenanceSettings />
+    },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: Bell,
+      component: <NotificationSettings />
     }
   ];
 
