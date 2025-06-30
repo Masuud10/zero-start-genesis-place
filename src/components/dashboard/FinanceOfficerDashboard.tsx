@@ -24,12 +24,12 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
   const filters = { term: 'current', class: 'all' };
   const { data, isLoading, error, refetch } = useFinanceOfficerAnalytics(filters);
 
-  // Reduced timeout for better UX
+  // Timeout for loading state
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 8000); // Reduced from 15 seconds to 8 seconds
+      }, 5000); // Reduced to 5 seconds
 
       return () => clearTimeout(timeout);
     } else {
@@ -46,14 +46,13 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
     }
   };
 
-  // Show loading state for reasonable time
-  if (isLoading && !loadingTimeout) {
+  // Show loading state with timeout
+  if (isLoading && !loadingTimeout && !data) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-muted-foreground">Loading financial overview...</p>
-          <p className="text-sm text-muted-foreground mt-2">This should only take a moment</p>
         </div>
       </div>
     );
@@ -174,13 +173,11 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
         </Card>
       </div>
 
-      {/* Only show detailed analytics if we have data */}
+      {/* Show detailed analytics if we have data */}
       {safeData.keyMetrics.totalRevenue > 0 && (
         <div className="space-y-6">
-          {/* Key Metrics */}
           <FinanceKeyMetrics keyMetrics={safeData.keyMetrics} />
           
-          {/* Charts Section - Only if we have data */}
           {(safeData.dailyTransactions.length > 0 || safeData.expenseBreakdown.length > 0) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {safeData.dailyTransactions.length > 0 && (
@@ -192,7 +189,6 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
             </div>
           )}
 
-          {/* Defaulters List - Only if we have defaulters */}
           {safeData.defaultersList.length > 0 && (
             <TopDefaultersList data={safeData.defaultersList} />
           )}
