@@ -3,6 +3,7 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CBCGradingSheet } from './CBCGradingSheet';
+import { detectCurriculumType } from '@/utils/curriculum-detector';
 
 interface Student {
   id: string;
@@ -51,8 +52,10 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
   selectedTerm,
   selectedExamType
 }) => {
+  const detectedCurriculumType = detectCurriculumType(curriculumType);
+
   // Route to CBC grading sheet for CBC curriculum
-  if (curriculumType.toUpperCase() === 'CBC') {
+  if (detectedCurriculumType === 'CBC') {
     return (
       <CBCGradingSheet
         students={students}
@@ -99,7 +102,7 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
       {/* Header Info */}
       <div className="bg-blue-50 border-b p-3 sticky top-0 z-30">
         <div className="flex items-center gap-4 text-sm font-medium text-blue-800">
-          <span>{curriculumType.toUpperCase()} Grading Sheet</span>
+          <span>{detectedCurriculumType.toUpperCase()} Grading Sheet</span>
           <span>•</span>
           <span>Class: <strong>{selectedClass}</strong></span>
           <span>•</span>

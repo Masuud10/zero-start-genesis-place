@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GradesForm from '../GradesForm';
 import CBCGradesForm from '../CBCGradesForm';
+import { detectCurriculumType } from '@/utils/curriculum-detector';
 
 interface GradeFormFieldsProps {
   curriculumType: string;
@@ -56,7 +57,8 @@ const GradeFormFields: React.FC<GradeFormFieldsProps> = ({
   isPrincipal,
   canOverride
 }) => {
-  const isCBC = curriculumType.toUpperCase() === 'CBC';
+  const detectedCurriculumType = detectCurriculumType(curriculumType);
+  const isCBC = detectedCurriculumType === 'CBC';
 
   return (
     <>

@@ -33,60 +33,102 @@ const CBCGradesForm: React.FC<CBCGradesFormProps> = ({
   selectedExamType, setSelectedExamType,
   cbcLevel, setCbcLevel,
   canInput
-}) => (
-  <div className="grid gap-4 py-4">
-    {/* Class Select */}
-    <div className="grid grid-cols-4 items-center gap-4">
-      <Label htmlFor="class" className="text-right">Class</Label>
-      <Select onValueChange={setSelectedClass} value={selectedClass}>
-        <SelectTrigger id="class" className="col-span-3"><SelectValue placeholder="Select Class" /></SelectTrigger>
-        <SelectContent>{classes.map((cls) => (<SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>))}</SelectContent>
-      </Select>
+}) => {
+  return (
+    <div className="space-y-4">
+      {/* Class Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="class">Class</Label>
+        <Select value={selectedClass} onValueChange={setSelectedClass} disabled={!canInput}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a class" />
+          </SelectTrigger>
+          <SelectContent>
+            {classes.map((cls) => (
+              <SelectItem key={cls.id} value={cls.id}>
+                {cls.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Subject Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="subject">Subject</Label>
+        <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={!canInput}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a subject" />
+          </SelectTrigger>
+          <SelectContent>
+            {subjects.map((subject) => (
+              <SelectItem key={subject.id} value={subject.id}>
+                {subject.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Student Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="student">Student</Label>
+        <Select value={selectedStudent} onValueChange={setSelectedStudent} disabled={!canInput}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a student" />
+          </SelectTrigger>
+          <SelectContent>
+            {students.map((student) => (
+              <SelectItem key={student.id} value={student.id}>
+                {student.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Term Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="term">Term</Label>
+        <Select value={selectedTerm} onValueChange={setSelectedTerm} disabled={!canInput}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a term" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1">Term 1</SelectItem>
+            <SelectItem value="2">Term 2</SelectItem>
+            <SelectItem value="3">Term 3</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Exam Type Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="examType">Assessment Type</Label>
+        <Select value={selectedExamType} onValueChange={setSelectedExamType} disabled={!canInput}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select assessment type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="formative">Formative Assessment</SelectItem>
+            <SelectItem value="summative">Summative Assessment</SelectItem>
+            <SelectItem value="project">Project Assessment</SelectItem>
+            <SelectItem value="observation">Observation Assessment</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* CBC Performance Level */}
+      <div className="space-y-2">
+        <Label htmlFor="cbcLevel">CBC Performance Level</Label>
+        <CBCGradeSelector
+          value={cbcLevel}
+          onChange={setCbcLevel}
+          disabled={!canInput}
+        />
+      </div>
     </div>
-    {/* Subject Select */}
-    <div className="grid grid-cols-4 items-center gap-4">
-      <Label htmlFor="subject" className="text-right">Subject</Label>
-      <Select onValueChange={setSelectedSubject} value={selectedSubject} disabled={!selectedClass}>
-        <SelectTrigger id="subject" className="col-span-3"><SelectValue placeholder="Select Subject" /></SelectTrigger>
-        <SelectContent>{subjects.map((subject) => (<SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>))}</SelectContent>
-      </Select>
-    </div>
-    {/* Student Select */}
-    <div className="grid grid-cols-4 items-center gap-4">
-      <Label htmlFor="student" className="text-right">Student</Label>
-      <Select onValueChange={setSelectedStudent} value={selectedStudent} disabled={!selectedClass}>
-        <SelectTrigger id="student" className="col-span-3"><SelectValue placeholder="Select Student" /></SelectTrigger>
-        <SelectContent>{students.map((student) => (<SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>))}</SelectContent>
-      </Select>
-    </div>
-    {/* Term Select */}
-    <div className="grid grid-cols-4 items-center gap-4">
-      <Label htmlFor="term" className="text-right">Term</Label>
-      <Select onValueChange={setSelectedTerm} value={selectedTerm}>
-        <SelectTrigger id="term" className="col-span-3"><SelectValue placeholder="Select Term" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="term1">Term 1</SelectItem>
-          <SelectItem value="term2">Term 2</SelectItem>
-          <SelectItem value="term3">Term 3</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    {/* Exam Type (Assessment) */}
-    <div className="grid grid-cols-4 items-center gap-4">
-      <Label htmlFor="examType" className="text-right">Assessment</Label>
-      <Select onValueChange={setSelectedExamType} value={selectedExamType}>
-        <SelectTrigger id="examType" className="col-span-3"><SelectValue placeholder="Select Assessment Type" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="opener">Opener</SelectItem>
-          <SelectItem value="mid_term">Mid Term</SelectItem>
-          <SelectItem value="end_term">End Term</SelectItem>
-          <SelectItem value="project">Project</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-    {/* CBC Level Selector */}
-    <CBCGradeSelector value={cbcLevel} onChange={setCbcLevel} disabled={!canInput} />
-  </div>
-);
+  );
+};
 
 export default CBCGradesForm;
