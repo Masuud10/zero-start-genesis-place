@@ -70,7 +70,7 @@ Payments: MPESA Daraja API
 
 Database Structure (Supabase)
 
-Contact
+Contact:
 Edufam Team
 Email: info@edufam.org
 Website: https://edufam.org
