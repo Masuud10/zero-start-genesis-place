@@ -48,7 +48,7 @@ const GradesModal = ({ onClose, userRole }: GradesModalProps) => {
   const [score, setScore] = useState('');
   const [maxScore, setMaxScore] = useState('100');
   const [selectedStudent, setSelectedStudent] = useState('');
-  const [status, setStatus] = useState<'draft' | 'submitted' | 'approved' | 'rejected' | 'released'>('draft');
+  const [status, setStatus] = useState<'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released'>('draft');
   const [cbcLevel, setCbcLevel] = useState('');
 
   const [classes, setClasses] = useState<any[]>([]);
