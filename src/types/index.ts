@@ -10,3 +10,7 @@ export * from './communication';
 export * from './analytics';
 export * from './attendance';
 export * from './auth';
+export * from './subject';
+
+// Ensure Grade is available from the main types export
+export type { Grade } from './grading';

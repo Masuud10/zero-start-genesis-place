@@ -67,6 +67,7 @@ export interface NewSubjectFormData {
   teacher_id?: string;
   credit_hours: number;
   assessment_weight: number;
+  prerequisites?: string[];
   description?: string;
   is_active: boolean;
 }
