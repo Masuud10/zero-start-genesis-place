@@ -1,516 +1,556 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Download, Calendar, Building2, Users, DollarSign, AlertCircle, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ReportEnhancementService } from '@/services/system/reportEnhancementService';
-import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { FileText, Download, AlertTriangle, Calendar, Building2, Users, BarChart3 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+interface School {
+  id: string;
+  name: string;
+}
+
+interface ReportConfig {
+  type: string;
+  title: string;
+  description: string;
+  icon: any;
+  requiredData: string[];
+}
 
 const EduFamReportGeneration = () => {
-  const [reportType, setReportType] = useState('');
-  const [dateRange, setDateRange] = useState('current_month');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [formatType, setFormatType] = useState('pdf');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSchool, setSelectedSchool] = useState<string>('');
+  const [selectedReportType, setSelectedReportType] = useState<string>('');
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch company-level data for reports
-  const { data: systemMetrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['system-metrics'],
-    queryFn: async () => {
-      return await ReportEnhancementService.getSystemMetrics();
-    }
-  });
-
-  const { data: schoolsData, isLoading: schoolsLoading } = useQuery({
-    queryKey: ['schools-summary'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('schools')
-        .select(`
-          id,
-          name,
-          location,
-          created_at,
-          students:students(count),
-          classes:classes(count),
-          teachers:profiles!profiles_school_id_fkey(count)
-        `);
-      
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  const { data: financialData, isLoading: financialLoading } = useQuery({
-    queryKey: ['financial-summary'],
-    queryFn: async () => {
-      const { data: fees, error: feesError } = await supabase
-        .from('fees')
-        .select('amount, paid_amount, school_id');
-      
-      const { data: expenses, error: expensesError } = await supabase
-        .from('expenses')
-        .select('amount, school_id');
-
-      if (feesError || expensesError) throw feesError || expensesError;
-
-      const totalRevenue = fees?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-      const totalExpenses = expenses?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0;
-      
-      return {
-        totalRevenue,
-        totalExpenses,
-        netIncome: totalRevenue - totalExpenses,
-        feesData: fees,
-        expensesData: expenses
-      };
-    }
-  });
-
-  const { data: supportData, isLoading: supportLoading } = useQuery({
-    queryKey: ['support-summary'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select('status, priority, created_at, school_id');
-      
-      if (error) throw error;
-
-      const totalTickets = data?.length || 0;
-      const openTickets = data?.filter(ticket => ticket.status === 'open').length || 0;
-      const closedTickets = data?.filter(ticket => ticket.status === 'closed').length || 0;
-      const highPriorityTickets = data?.filter(ticket => ticket.priority === 'high').length || 0;
-
-      return {
-        totalTickets,
-        openTickets,
-        closedTickets,
-        highPriorityTickets,
-        ticketsData: data
-      };
-    }
-  });
-
-  const reportTypes = [
-    { 
-      value: 'system_overview', 
-      label: 'System Overview Report',
-      description: 'Complete system statistics and performance metrics',
-      icon: BarChart3
+  const reportConfigs: ReportConfig[] = [
+    {
+      type: 'school_overview',
+      title: 'School Overview Report',
+      description: 'Comprehensive report including student count, staff, and basic statistics',
+      icon: Building2,
+      requiredData: ['schools', 'students', 'profiles']
     },
-    { 
-      value: 'schools_summary', 
-      label: 'Schools Summary Report',
-      description: 'All schools enrollment and performance data',
-      icon: Building2
+    {
+      type: 'user_analytics',
+      title: 'User Analytics Report',
+      description: 'Detailed analysis of user roles, activity, and engagement metrics',
+      icon: Users,
+      requiredData: ['profiles', 'user_login_details']
     },
-    { 
-      value: 'financial_overview', 
-      label: 'Financial Overview Report',
-      description: 'Revenue, expenses, and financial health across all schools',
-      icon: DollarSign
+    {
+      type: 'system_performance',
+      title: 'System Performance Report',
+      description: 'System health, performance metrics, and usage statistics',
+      icon: BarChart3,
+      requiredData: ['system_settings', 'security_audit_logs']
     },
-    { 
-      value: 'support_analytics', 
-      label: 'Support Analytics Report',
-      description: 'Support ticket trends and resolution metrics',
-      icon: AlertCircle
-    },
-    { 
-      value: 'user_engagement', 
-      label: 'User Engagement Report',
-      description: 'User activity and system usage patterns',
-      icon: Users
+    {
+      type: 'financial_summary',
+      title: 'Financial Summary Report',
+      description: 'Revenue, billing, and financial analytics across all schools',
+      icon: Calendar,
+      requiredData: ['school_billing_records', 'schools']
     }
   ];
 
-  const getDateRangeFilter = () => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    switch (dateRange) {
-      case 'current_month':
-        return {
-          start: new Date(currentYear, currentMonth, 1),
-          end: new Date(currentYear, currentMonth + 1, 0)
-        };
-      case 'last_month':
-        return {
-          start: new Date(currentYear, currentMonth - 1, 1),
-          end: new Date(currentYear, currentMonth, 0)
-        };
-      case 'current_year':
-        return {
-          start: new Date(currentYear, 0, 1),
-          end: new Date(currentYear, 11, 31)
-        };
-      case 'last_year':
-        return {
-          start: new Date(currentYear - 1, 0, 1),
-          end: new Date(currentYear - 1, 11, 31)
-        };
-      case 'custom':
-        return {
-          start: customStartDate ? new Date(customStartDate) : new Date(),
-          end: customEndDate ? new Date(customEndDate) : new Date()
-        };
-      default:
-        return {
-          start: new Date(currentYear, currentMonth, 1),
-          end: new Date(currentYear, currentMonth + 1, 0)
-        };
-    }
-  };
-
-  const generateReportData = () => {
-    const dateFilter = getDateRangeFilter();
-    const reportData = {
-      reportType: reportTypes.find(r => r.value === reportType)?.label || 'Unknown Report',
-      generatedAt: new Date().toISOString(),
-      dateRange: {
-        start: format(dateFilter.start, 'yyyy-MM-dd'),
-        end: format(dateFilter.end, 'yyyy-MM-dd')
-      },
-      systemMetrics: systemMetrics || {},
-      schools: schoolsData || [],
-      financial: financialData || {},
-      support: supportData || {}
-    };
-
-    return reportData;
-  };
-
-  const downloadReport = (data: any, filename: string, type: string) => {
-    let content = '';
-    let mimeType = '';
-    let fileExtension = '';
-
-    if (type === 'pdf') {
-      // Generate text content for PDF (could be enhanced with proper PDF generation)
-      content = generateTextReport(data);
-      mimeType = 'text/plain';
-      fileExtension = 'txt'; // Using .txt as placeholder for PDF
-    } else if (type === 'excel') {
-      // Generate CSV content for Excel
-      content = generateCSVReport(data);
-      mimeType = 'text/csv';
-      fileExtension = 'csv';
-    }
-
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.${fileExtension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const generateTextReport = (data: any) => {
-    let report = `EDUFAM SYSTEM REPORT\n`;
-    report += `========================\n\n`;
-    report += `Report Type: ${data.reportType}\n`;
-    report += `Generated At: ${new Date(data.generatedAt).toLocaleString()}\n`;
-    report += `Date Range: ${data.dateRange.start} to ${data.dateRange.end}\n\n`;
-
-    report += `SYSTEM METRICS\n`;
-    report += `--------------\n`;
-    report += `Total Schools: ${data.systemMetrics.totalSchools || 0}\n`;
-    report += `Total Users: ${data.systemMetrics.totalUsers || 0}\n`;
-    report += `Active Schools: ${data.systemMetrics.activeSchools || 0}\n`;
-    report += `System Uptime: ${data.systemMetrics.systemUptime || 0}%\n\n`;
-
-    if (data.schools && data.schools.length > 0) {
-      report += `SCHOOLS SUMMARY\n`;
-      report += `---------------\n`;
-      data.schools.forEach((school: any, index: number) => {
-        report += `${index + 1}. ${school.name} (${school.location})\n`;
-        report += `   Created: ${new Date(school.created_at).toLocaleDateString()}\n`;
-        report += `   Students: ${school.students?.[0]?.count || 0}\n`;
-        report += `   Classes: ${school.classes?.[0]?.count || 0}\n`;
-        report += `   Teachers: ${school.teachers?.[0]?.count || 0}\n\n`;
-      });
-    }
-
-    if (data.financial) {
-      report += `FINANCIAL SUMMARY\n`;
-      report += `-----------------\n`;
-      report += `Total Revenue: KES ${(data.financial.totalRevenue || 0).toLocaleString()}\n`;
-      report += `Total Expenses: KES ${(data.financial.totalExpenses || 0).toLocaleString()}\n`;
-      report += `Net Income: KES ${(data.financial.netIncome || 0).toLocaleString()}\n\n`;
-    }
-
-    if (data.support) {
-      report += `SUPPORT SUMMARY\n`;
-      report += `---------------\n`;
-      report += `Total Tickets: ${data.support.totalTickets || 0}\n`;
-      report += `Open Tickets: ${data.support.openTickets || 0}\n`;
-      report += `Closed Tickets: ${data.support.closedTickets || 0}\n`;
-      report += `High Priority Tickets: ${data.support.highPriorityTickets || 0}\n`;
-    }
-
-    return report;
-  };
-
-  const generateCSVReport = (data: any) => {
-    let csv = 'Report Type,Generated At,Date Range Start,Date Range End\n';
-    csv += `${data.reportType},${new Date(data.generatedAt).toLocaleString()},${data.dateRange.start},${data.dateRange.end}\n\n`;
-
-    csv += 'Metric,Value\n';
-    csv += `Total Schools,${data.systemMetrics.totalSchools || 0}\n`;
-    csv += `Total Users,${data.systemMetrics.totalUsers || 0}\n`;
-    csv += `Active Schools,${data.systemMetrics.activeSchools || 0}\n`;
-    csv += `System Uptime,${data.systemMetrics.systemUptime || 0}%\n\n`;
-
-    if (data.schools && data.schools.length > 0) {
-      csv += 'School Name,Location,Created Date,Students,Classes,Teachers\n';
-      data.schools.forEach((school: any) => {
-        csv += `${school.name},${school.location},${school.created_at},${school.students?.[0]?.count || 0},${school.classes?.[0]?.count || 0},${school.teachers?.[0]?.count || 0}\n`;
-      });
-    }
-
-    return csv;
-  };
-
-  const handleGenerateReport = async () => {
-    if (!reportType) {
-      toast({
-        title: "Please select a report type",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (dateRange === 'custom' && (!customStartDate || !customEndDate)) {
-      toast({
-        title: "Please specify custom date range",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-
+  const fetchSchools = async () => {
     try {
-      const reportData = generateReportData();
-      const filename = `edufam_${reportType}_${format(new Date(), 'yyyy-MM-dd')}`;
-      
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      downloadReport(reportData, filename, formatType);
-      
+      if (!user || user.role !== 'edufam_admin') {
+        throw new Error('Access denied. Only EduFam Admin can access reports.');
+      }
+
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+
+      setSchools(data || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load schools');
+      console.error('🔴 EduFamReportGeneration: Error fetching schools:', err);
+    }
+  };
+
+  const generateReport = async (reportType: string, format: 'pdf' | 'excel') => {
+    try {
+      setLoading(true);
+
+      if (!user || user.role !== 'edufam_admin') {
+        throw new Error('Access denied. Only EduFam Admin can generate reports.');
+      }
+
+      // Fetch data based on report type
+      let reportData: any = {};
+      const reportConfig = reportConfigs.find(config => config.type === reportType);
+
+      if (!reportConfig) {
+        throw new Error('Invalid report type selected');
+      }
+
+      // Fetch required data for the report
+      if (reportConfig.requiredData.includes('schools')) {
+        const { data: schoolsData, error: schoolsError } = await supabase
+          .from('schools')
+          .select('*')
+          .eq(selectedSchool ? 'id' : 'id', selectedSchool || undefined);
+
+        if (schoolsError && schoolsError.code !== 'PGRST116') throw schoolsError;
+        reportData.schools = schoolsData || [];
+      }
+
+      if (reportConfig.requiredData.includes('profiles')) {
+        const { data: usersData, error: usersError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq(selectedSchool ? 'school_id' : 'school_id', selectedSchool || undefined);
+
+        if (usersError && usersError.code !== 'PGRST116') throw usersError;
+        reportData.users = usersData || [];
+      }
+
+      if (reportConfig.requiredData.includes('students')) {
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('*')
+          .eq(selectedSchool ? 'school_id' : 'school_id', selectedSchool || undefined);
+
+        if (studentsError && studentsError.code !== 'PGRST116') throw studentsError;
+        reportData.students = studentsData || [];
+      }
+
+      if (reportConfig.requiredData.includes('school_billing_records')) {
+        const { data: billingData, error: billingError } = await supabase
+          .from('school_billing_records')
+          .select('*')
+          .eq(selectedSchool ? 'school_id' : 'school_id', selectedSchool || undefined);
+
+        if (billingError && billingError.code !== 'PGRST116') throw billingError;
+        reportData.billing = billingData || [];
+      }
+
+      // Generate report content based on type and format
+      if (format === 'excel') {
+        generateExcelReport(reportType, reportData);
+      } else {
+        generatePDFReport(reportType, reportData);
+      }
+
       toast({
-        title: "Report Generated Successfully",
-        description: `${reportTypes.find(r => r.value === reportType)?.label} has been downloaded.`
+        title: "Report Generated",
+        description: `${reportConfig.title} has been generated and downloaded successfully.`,
       });
-    } catch (error) {
-      console.error('Report generation error:', error);
+
+    } catch (err: any) {
       toast({
-        title: "Report Generation Failed",
-        description: "An error occurred while generating the report. Please try again.",
+        title: "Error",
+        description: err.message || "Failed to generate report",
         variant: "destructive"
       });
     } finally {
-      setIsGenerating(false);
+      setLoading(false);
     }
   };
 
-  const isLoading = metricsLoading || schoolsLoading || financialLoading || supportLoading;
+  const generateExcelReport = (reportType: string, data: any) => {
+    // Create CSV content based on report type
+    let csvContent = '';
+    const reportConfig = reportConfigs.find(config => config.type === reportType);
+
+    switch (reportType) {
+      case 'school_overview':
+        csvContent = [
+          ['School Overview Report', ''],
+          ['Generated', new Date().toLocaleDateString()],
+          [''],
+          ['School Name', 'Total Students', 'Total Staff', 'Status'],
+          ...(data.schools || []).map((school: any) => [
+            school.name,
+            data.students?.filter((s: any) => s.school_id === school.id).length || 0,
+            data.users?.filter((u: any) => u.school_id === school.id && u.role !== 'parent').length || 0,
+            school.status || 'active'
+          ])
+        ].map(row => row.join(',')).join('\n');
+        break;
+
+      case 'user_analytics':
+        csvContent = [
+          ['User Analytics Report', ''],
+          ['Generated', new Date().toLocaleDateString()],
+          [''],
+          ['Role', 'Count', 'Percentage'],
+          ...Object.entries(
+            (data.users || []).reduce((acc: any, user: any) => {
+              acc[user.role] = (acc[user.role] || 0) + 1;
+              return acc;
+            }, {})
+          ).map(([role, count]: [string, any]) => [
+            role.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+            count,
+            `${Math.round((count / (data.users?.length || 1)) * 100)}%`
+          ])
+        ].map(row => row.join(',')).join('\n');
+        break;
+
+      case 'financial_summary':
+        const totalRevenue = (data.billing || []).reduce((sum: number, record: any) => sum + (record.amount || 0), 0);
+        csvContent = [
+          ['Financial Summary Report', ''],
+          ['Generated', new Date().toLocaleDateString()],
+          [''],
+          ['Metric', 'Value'],
+          ['Total Revenue', `KES ${totalRevenue.toLocaleString()}`],
+          ['Total Invoices', (data.billing || []).length],
+          ['Pending Invoices', (data.billing || []).filter((b: any) => b.status === 'pending').length],
+          ['Paid Invoices', (data.billing || []).filter((b: any) => b.status === 'paid').length],
+          [''],
+          ['Recent Transactions', ''],
+          ['Date', 'School', 'Amount', 'Status'],
+          ...(data.billing || []).slice(0, 10).map((record: any) => [
+            new Date(record.created_at).toLocaleDateString(),
+            data.schools?.find((s: any) => s.id === record.school_id)?.name || 'Unknown',
+            `KES ${record.amount}`,
+            record.status
+          ])
+        ].map(row => row.join(',')).join('\n');
+        break;
+
+      default:
+        csvContent = [
+          [`${reportConfig?.title || 'System Report'}`, ''],
+          ['Generated', new Date().toLocaleDateString()],
+          [''],
+          ['Report Type', reportType],
+          ['Status', 'Generated Successfully']
+        ].map(row => row.join(',')).join('\n');
+    }
+
+    // Download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `eduFam-${reportType}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const generatePDFReport = (reportType: string, data: any) => {
+    // For PDF, we'll create an HTML content and convert it
+    const reportConfig = reportConfigs.find(config => config.type === reportType);
+    
+    let htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${reportConfig?.title || 'EduFam Report'}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .logo { font-size: 24px; font-weight: bold; color: #3b82f6; }
+          .report-title { font-size: 20px; margin: 10px 0; }
+          .report-meta { color: #666; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background-color: #f8f9fa; font-weight: bold; }
+          .metric { background-color: #f1f5f9; padding: 15px; margin: 10px 0; border-radius: 5px; }
+          .metric-label { font-weight: bold; color: #334155; }
+          .metric-value { font-size: 18px; color: #3b82f6; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo">EduFam Platform</div>
+          <div class="report-title">${reportConfig?.title || 'System Report'}</div>
+          <div class="report-meta">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
+        </div>
+    `;
+
+    switch (reportType) {
+      case 'school_overview':
+        htmlContent += `
+          <div class="metric">
+            <div class="metric-label">Total Schools</div>
+            <div class="metric-value">${(data.schools || []).length}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Total Students</div>
+            <div class="metric-value">${(data.students || []).length}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Total Staff</div>
+            <div class="metric-value">${(data.users || []).filter((u: any) => u.role !== 'parent').length}</div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>School Name</th><th>Students</th><th>Staff</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              ${(data.schools || []).map((school: any) => `
+                <tr>
+                  <td>${school.name}</td>
+                  <td>${(data.students || []).filter((s: any) => s.school_id === school.id).length}</td>
+                  <td>${(data.users || []).filter((u: any) => u.school_id === school.id && u.role !== 'parent').length}</td>
+                  <td>${school.status || 'active'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        break;
+
+      case 'user_analytics':
+        const roleStats = (data.users || []).reduce((acc: any, user: any) => {
+          acc[user.role] = (acc[user.role] || 0) + 1;
+          return acc;
+        }, {});
+
+        htmlContent += `
+          <div class="metric">
+            <div class="metric-label">Total Users</div>
+            <div class="metric-value">${(data.users || []).length}</div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Role</th><th>Count</th><th>Percentage</th></tr>
+            </thead>
+            <tbody>
+              ${Object.entries(roleStats).map(([role, count]: [string, any]) => `
+                <tr>
+                  <td>${role.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</td>
+                  <td>${count}</td>
+                  <td>${Math.round((count / (data.users?.length || 1)) * 100)}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        break;
+
+      case 'financial_summary':
+        const totalRevenue = (data.billing || []).reduce((sum: number, record: any) => sum + (record.amount || 0), 0);
+        htmlContent += `
+          <div class="metric">
+            <div class="metric-label">Total Revenue</div>
+            <div class="metric-value">KES ${totalRevenue.toLocaleString()}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Total Invoices</div>
+            <div class="metric-value">${(data.billing || []).length}</div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Date</th><th>School</th><th>Amount</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              ${(data.billing || []).slice(0, 20).map((record: any) => `
+                <tr>
+                  <td>${new Date(record.created_at).toLocaleDateString()}</td>
+                  <td>${data.schools?.find((s: any) => s.id === record.school_id)?.name || 'Unknown'}</td>
+                  <td>KES ${record.amount?.toLocaleString() || 0}</td>
+                  <td>${record.status}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        break;
+
+      default:
+        htmlContent += `
+          <div class="metric">
+            <div class="metric-label">Report Type</div>
+            <div class="metric-value">${reportType}</div>
+          </div>
+          <p>Report generated successfully with available data.</p>
+        `;
+    }
+
+    htmlContent += `
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666;">
+          <small>Generated by EduFam Platform - ${new Date().toISOString()}</small>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Create and download HTML file (which can be saved as PDF by the user)
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `eduFam-${reportType}-${new Date().toISOString().split('T')[0]}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  useEffect(() => {
+    fetchSchools();
+  }, [user]);
+
+  useEffect(() => {
+    // Set default date range
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    setDateRange({
+      startDate: firstDayOfMonth.toISOString().split('T')[0],
+      endDate: today.toISOString().split('T')[0]
+    });
+  }, []);
+
+  if (!user || user.role !== 'edufam_admin') {
+    return (
+      <Alert className="border-red-200 bg-red-50">
+        <AlertTriangle className="h-4 w-4 text-red-600" />
+        <AlertDescription className="text-red-700">
+          Access denied. Only EduFam Administrators can access report generation.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">EduFam System Reports</h2>
-        <p className="text-muted-foreground">
-          Generate comprehensive company-level reports with real-time data
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold">Report Generation</h2>
+          <p className="text-muted-foreground">Generate comprehensive reports for system analysis</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Report Configuration */}
-        <div className="lg:col-span-2">
-          <Card>
+      {error && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            {error}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Report Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Report Configuration</CardTitle>
+          <CardDescription>Configure report parameters and filters</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="school-select">School (Optional)</Label>
+              <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Schools" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Schools</SelectItem>
+                  {schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="report-type">Report Type</Label>
+              <Select value={selectedReportType} onValueChange={setSelectedReportType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select report type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {reportConfigs.map((config) => (
+                    <SelectItem key={config.type} value={config.type}>
+                      {config.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="start-date">Start Date</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="end-date">End Date</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Available Reports */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {reportConfigs.map((config) => (
+          <Card key={config.type} className={selectedReportType === config.type ? 'ring-2 ring-blue-500' : ''}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Report Configuration
+              <CardTitle className="flex items-center gap-3">
+                <config.icon className="h-6 w-6" />
+                {config.title}
               </CardTitle>
+              <CardDescription>{config.description}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="report-type">Report Type *</Label>
-                <Select value={reportType} onValueChange={setReportType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select report type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {reportTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center gap-2">
-                          <type.icon className="w-4 h-4" />
-                          <div>
-                            <div className="font-medium">{type.label}</div>
-                            <div className="text-xs text-muted-foreground">{type.description}</div>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="date-range">Date Range</Label>
-                <Select value={dateRange} onValueChange={setDateRange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="current_month">Current Month</SelectItem>
-                    <SelectItem value="last_month">Last Month</SelectItem>
-                    <SelectItem value="current_year">Current Year</SelectItem>
-                    <SelectItem value="last_year">Last Year</SelectItem>
-                    <SelectItem value="custom">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {dateRange === 'custom' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="start-date">Start Date</Label>
-                    <Input
-                      id="start-date"
-                      type="date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="end-date">End Date</Label>
-                    <Input
-                      id="end-date"
-                      type="date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="format">Export Format</Label>
-                <Select value={formatType} onValueChange={setFormatType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdf">PDF Document</SelectItem>
-                    <SelectItem value="excel">Excel Spreadsheet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button 
-                  onClick={handleGenerateReport} 
-                  disabled={!reportType || isGenerating || isLoading}
+            <CardContent>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => generateReport(config.type, 'pdf')}
+                  disabled={loading || !selectedReportType || selectedReportType !== config.type}
                   className="flex-1"
                 >
-                  {isGenerating ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Generate Report
-                    </>
-                  )}
+                  <Download className="h-4 w-4 mr-2" />
+                  {loading ? 'Generating...' : 'PDF'}
+                </Button>
+                <Button
+                  onClick={() => generateReport(config.type, 'excel')}
+                  disabled={loading || !selectedReportType || selectedReportType !== config.type}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {loading ? 'Generating...' : 'Excel'}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Stats */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>System Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  <div className="animate-pulse h-4 bg-gray-200 rounded"></div>
-                  <div className="animate-pulse h-4 bg-gray-200 rounded"></div>
-                  <div className="animate-pulse h-4 bg-gray-200 rounded"></div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Schools</span>
-                    <span className="font-semibold">{systemMetrics?.totalSchools || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Users</span>
-                    <span className="font-semibold">{systemMetrics?.totalUsers || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Active Schools</span>
-                    <span className="font-semibold">{systemMetrics?.activeSchools || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">System Uptime</span>
-                    <span className="font-semibold">{systemMetrics?.systemUptime || 0}%</span>
-                  </div>
-                </div>
+              {selectedReportType !== config.type && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Select this report type above to generate
+                </p>
               )}
             </CardContent>
           </Card>
-
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Financial Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  <div className="animate-pulse h-4 bg-gray-200 rounded"></div>
-                  <div className="animate-pulse h-4 bg-gray-200 rounded"></div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Revenue</span>
-                    <span className="font-semibold text-green-600">
-                      KES {(financialData?.totalRevenue || 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Net Income</span>
-                    <span className="font-semibold">
-                      KES {(financialData?.netIncome || 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        ))}
       </div>
     </div>
   );

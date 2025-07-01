@@ -1,3 +1,4 @@
+
 import { UserRole } from '@/types/user';
 
 // Define role hierarchy and permissions
@@ -23,6 +24,41 @@ export const hasAccess = (userRole: UserRole | undefined, section: string): bool
   // Security section is ONLY accessible to edufam_admin
   if (section === 'security') {
     return userRole === 'edufam_admin';
+  }
+  
+  // School analytics should be accessible to edufam_admin
+  if (section === 'school-analytics') {
+    return userRole === 'edufam_admin';
+  }
+  
+  // Company management should be accessible to edufam_admin
+  if (section === 'company-management') {
+    return userRole === 'edufam_admin';
+  }
+  
+  // Schools management should be accessible to edufam_admin
+  if (section === 'schools') {
+    return userRole === 'edufam_admin';
+  }
+  
+  // User management permissions
+  if (section === 'users') {
+    return ['edufam_admin', 'school_owner', 'principal'].includes(userRole);
+  }
+  
+  // Billing management only for edufam_admin
+  if (section === 'billing') {
+    return userRole === 'edufam_admin';
+  }
+  
+  // System health only for edufam_admin
+  if (section === 'system-health') {
+    return userRole === 'edufam_admin';
+  }
+  
+  // Settings access
+  if (section === 'settings') {
+    return ['edufam_admin', 'school_owner', 'principal'].includes(userRole);
   }
   
   // Reports section restrictions for teachers
@@ -68,8 +104,66 @@ export const getAccessibleSections = (userRole: UserRole | undefined): string[] 
   
   // If admin, return all sections
   if (permissions.includes('*')) {
-    return ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support', 'settings', 'schools', 'users', 'billing', 'system-health', 'security'];
+    return [
+      'dashboard', 'analytics', 'school-analytics', 'grades', 'attendance', 
+      'students', 'finance', 'timetable', 'announcements', 'messages', 
+      'reports', 'support', 'settings', 'schools', 'users', 'billing', 
+      'system-health', 'security', 'company-management', 'certificates'
+    ];
   }
   
   return [...permissions];
+};
+
+// Additional utility functions for specific checks
+export const canManageSchools = (userRole: UserRole | undefined): boolean => {
+  return userRole === 'edufam_admin';
+};
+
+export const canManageUsers = (userRole: UserRole | undefined): boolean => {
+  return ['edufam_admin', 'school_owner', 'principal'].includes(userRole || '');
+};
+
+export const canAccessBilling = (userRole: UserRole | undefined): boolean => {
+  return userRole === 'edufam_admin';
+};
+
+export const canAccessSystemHealth = (userRole: UserRole | undefined): boolean => {
+  return userRole === 'edufam_admin';
+};
+
+export const canAccessSecurity = (userRole: UserRole | undefined): boolean => {
+  return userRole === 'edufam_admin';
+};
+
+export const canAccessCompanyManagement = (userRole: UserRole | undefined): boolean => {
+  return userRole === 'edufam_admin';
+};
+
+export const canAccessSchoolAnalytics = (userRole: UserRole | undefined): boolean => {
+  return userRole === 'edufam_admin';
+};
+
+export const getRoleDisplayName = (role: UserRole): string => {
+  const roleNames: Record<UserRole, string> = {
+    edufam_admin: 'EduFam Administrator',
+    elimisha_admin: 'Elimisha Administrator',
+    school_owner: 'School Owner',
+    principal: 'Principal',
+    teacher: 'Teacher',
+    finance_officer: 'Finance Officer',
+    parent: 'Parent'
+  };
+  
+  return roleNames[role] || role;
+};
+
+export const validateModuleAccess = (userRole: UserRole | undefined, moduleName: string): boolean => {
+  console.log(`🔐 RoleGuard: Validating access for role "${userRole}" to module "${moduleName}"`);
+  
+  const hasAccessResult = hasAccess(userRole, moduleName);
+  
+  console.log(`🔐 RoleGuard: Access ${hasAccessResult ? 'GRANTED' : 'DENIED'} for ${userRole} to ${moduleName}`);
+  
+  return hasAccessResult;
 };

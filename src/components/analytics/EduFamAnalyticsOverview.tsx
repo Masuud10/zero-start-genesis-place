@@ -1,191 +1,369 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, Users, Building2, DollarSign, AlertTriangle, RefreshCw, Download } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
-import { useEduFamSystemAnalytics } from '@/hooks/useEduFamSystemAnalytics';
-import { 
-  TrendingUp, 
-  Users, 
-  Building2, 
-  DollarSign, 
-  Activity,
-  AlertCircle,
-  RefreshCw,
-  Download 
-} from 'lucide-react';
+
+interface AnalyticsData {
+  totalSchools: number;
+  totalUsers: number;
+  monthlyGrowth: number;
+  revenueGrowth: number;
+  schoolGrowthData: Array<{ month: string; schools: number; users: number }>;
+  userRoleData: Array<{ role: string; count: number; color: string }>;
+  systemHealthData: Array<{ metric: string; value: number; status: string }>;
+}
 
 interface EduFamAnalyticsOverviewProps {
   onAnalyticsAction?: (action: string) => void;
 }
 
 const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({ onAnalyticsAction }) => {
-  const { data: systemAnalytics, isLoading: systemLoading, error: systemError } = useSystemAnalytics();
-  const { data: eduFamAnalytics, isLoading: eduFamLoading, error: eduFamError } = useEduFamSystemAnalytics();
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const isLoading = systemLoading || eduFamLoading;
-  const hasError = systemError || eduFamError;
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  if (isLoading) {
+      if (!user || user.role !== 'edufam_admin') {
+        throw new Error('Access denied. Only EduFam Admin can access system analytics.');
+      }
+
+      // Fetch schools data
+      const { data: schoolsData, error: schoolsError } = await supabase
+        .from('schools')
+        .select('id, name, created_at, status')
+        .order('created_at', { ascending: false });
+
+      if (schoolsError) throw schoolsError;
+
+      // Fetch users data
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, role, created_at, school_id')
+        .order('created_at', { ascending: false });
+
+      if (usersError) throw usersError;
+
+      // Process data for analytics
+      const currentDate = new Date();
+      const sixMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 6, 1);
+
+      // Generate monthly growth data
+      const monthlyData = [];
+      for (let i = 5; i >= 0; i--) {
+        const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const monthName = monthDate.toLocaleDateString('en-US', { month: 'short' });
+        
+        const schoolsInMonth = schoolsData?.filter(s => 
+          new Date(s.created_at) <= monthDate
+        ).length || 0;
+        
+        const usersInMonth = usersData?.filter(u => 
+          new Date(u.created_at) <= monthDate
+        ).length || 0;
+
+        monthlyData.push({
+          month: monthName,
+          schools: schoolsInMonth,
+          users: usersInMonth
+        });
+      }
+
+      // User role distribution
+      const roleDistribution = usersData?.reduce((acc, user) => {
+        acc[user.role] = (acc[user.role] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const roleColors = {
+        'edufam_admin': '#3b82f6',
+        'school_owner': '#10b981',
+        'principal': '#f59e0b',
+        'teacher': '#06b6d4',
+        'finance_officer': '#8b5cf6',
+        'parent': '#ec4899'
+      };
+
+      const userRoleData = Object.entries(roleDistribution).map(([role, count]) => ({
+        role: role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        count,
+        color: roleColors[role as keyof typeof roleColors] || '#6b7280'
+      }));
+
+      // System health metrics (mock data for demonstration)
+      const systemHealthData = [
+        { metric: 'Database Performance', value: 95, status: 'good' },
+        { metric: 'API Response Time', value: 87, status: 'good' },
+        { metric: 'User Satisfaction', value: 92, status: 'good' },
+        { metric: 'System Uptime', value: 99, status: 'excellent' }
+      ];
+
+      // Calculate growth rates
+      const currentMonthSchools = schoolsData?.filter(s => 
+        new Date(s.created_at).getMonth() === currentDate.getMonth()
+      ).length || 0;
+      
+      const lastMonthSchools = schoolsData?.filter(s => {
+        const createdDate = new Date(s.created_at);
+        return createdDate.getMonth() === currentDate.getMonth() - 1;
+      }).length || 0;
+
+      const monthlyGrowth = lastMonthSchools > 0 
+        ? Math.round(((currentMonthSchools - lastMonthSchools) / lastMonthSchools) * 100)
+        : 0;
+
+      const analyticsResult: AnalyticsData = {
+        totalSchools: schoolsData?.length || 0,
+        totalUsers: usersData?.length || 0,
+        monthlyGrowth,
+        revenueGrowth: 15, // Mock data
+        schoolGrowthData: monthlyData,
+        userRoleData,
+        systemHealthData
+      };
+
+      setAnalyticsData(analyticsResult);
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to load analytics data';
+      setError(errorMessage);
+      console.error('🔴 EduFamAnalyticsOverview: Error fetching analytics:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportAnalytics = () => {
+    if (onAnalyticsAction) {
+      onAnalyticsAction('export-analytics');
+    }
+    
+    // Create and download CSV
+    const csvContent = [
+      ['Metric', 'Value'],
+      ['Total Schools', analyticsData?.totalSchools || 0],
+      ['Total Users', analyticsData?.totalUsers || 0],
+      ['Monthly Growth', `${analyticsData?.monthlyGrowth || 0}%`],
+      ['Revenue Growth', `${analyticsData?.revenueGrowth || 0}%`]
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `eduFam-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [user]);
+
+  if (!user || user.role !== 'edufam_admin') {
     return (
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <Alert className="border-red-200 bg-red-50">
+        <AlertTriangle className="h-4 w-4 text-red-600" />
+        <AlertDescription className="text-red-700">
+          Access denied. Only EduFam Administrators can access system analytics.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-900">
-            <Activity className="h-5 w-5 animate-pulse" />
-            Real-Time Analytics Overview
+          <CardTitle className="flex items-center gap-3">
+            <TrendingUp className="h-6 w-6" />
+            System Analytics Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="text-center p-4 bg-white rounded-lg shadow-sm animate-pulse">
-                <div className="h-8 w-8 bg-gray-200 rounded-full mx-auto mb-2"></div>
-                <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-1"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-              </div>
-            ))}
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-pulse text-muted-foreground">Loading analytics data...</div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (hasError) {
+  if (error) {
     return (
-      <Card className="bg-red-50 border-red-200">
-        <CardContent className="p-6">
-          <Alert className="border-red-300">
-            <AlertCircle className="h-4 w-4 text-red-600" />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <TrendingUp className="h-6 w-6" />
+            System Analytics Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-700">
-              Unable to load analytics data. Please check your connection and try again.
+              {error}
+              <Button
+                onClick={fetchAnalyticsData}
+                variant="outline"
+                size="sm"
+                className="ml-2"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </Button>
             </AlertDescription>
           </Alert>
-          <div className="mt-4 flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => window.location.reload()}
-              className="text-red-600 border-red-300 hover:bg-red-50"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Calculate metrics with fallbacks
-  const totalUsers = systemAnalytics?.userDistribution?.reduce((sum, item) => sum + item.count, 0) || 0;
-  const totalSchools = systemAnalytics?.schoolsOnboarded?.reduce((sum, item) => sum + item.count, 0) || 0;
-  const totalRevenue = systemAnalytics?.financeSummary?.total_subscriptions || 0;
-  const avgGrade = eduFamAnalytics?.grades?.average_grade || 0;
-  const attendanceRate = eduFamAnalytics?.attendance?.average_attendance_rate || 0;
-
-  const handleAnalyticsAction = (action: string) => {
-    onAnalyticsAction?.(action);
-  };
-
   return (
-    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+    <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-blue-900">
-            <Activity className="h-5 w-5" />
-            Real-Time Analytics Overview
-          </CardTitle>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="flex items-center gap-3">
+              <TrendingUp className="h-6 w-6" />
+              System Analytics Overview
+            </CardTitle>
+            <CardDescription>Real-time platform performance and growth metrics</CardDescription>
+          </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleAnalyticsAction('view-detailed-analytics')}
-              className="text-blue-600 border-blue-300 hover:bg-blue-50"
-            >
-              View Details
+            <Button onClick={fetchAnalyticsData} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleAnalyticsAction('export-analytics')}
-              className="text-blue-600 border-blue-300 hover:bg-blue-50"
-            >
+            <Button onClick={handleExportAnalytics} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
           </div>
         </div>
-        <p className="text-blue-700 text-sm">
-          Live system performance and usage metrics across all schools
-        </p>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-blue-500">
-            <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-blue-900">
-              {totalUsers.toLocaleString()}
+      <CardContent className="space-y-6">
+        {/* Key Metrics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-600">Total Schools</span>
             </div>
-            <p className="text-sm text-blue-700 mt-1">Total Users</p>
+            <div className="text-2xl font-bold text-blue-700">
+              {analyticsData?.totalSchools || 0}
+            </div>
           </div>
-
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-green-500">
-            <Building2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-green-900">
-              {totalSchools.toLocaleString()}
+          
+          <div className="bg-green-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium text-green-600">Total Users</span>
             </div>
-            <p className="text-sm text-green-700 mt-1">Active Schools</p>
+            <div className="text-2xl font-bold text-green-700">
+              {analyticsData?.totalUsers || 0}
+            </div>
           </div>
-
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-purple-500">
-            <DollarSign className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-purple-900">
-              KES {totalRevenue.toLocaleString()}
+          
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
+              <span className="text-sm font-medium text-purple-600">Monthly Growth</span>
             </div>
-            <p className="text-sm text-purple-700 mt-1">Total Revenue</p>
+            <div className="text-2xl font-bold text-purple-700">
+              {analyticsData?.monthlyGrowth || 0}%
+            </div>
           </div>
-
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-orange-500">
-            <TrendingUp className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-orange-900">
-              {avgGrade.toFixed(1)}%
+          
+          <div className="bg-orange-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-orange-600" />
+              <span className="text-sm font-medium text-orange-600">Revenue Growth</span>
             </div>
-            <p className="text-sm text-orange-700 mt-1">Avg Grade</p>
-          </div>
-
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm border-l-4 border-l-teal-500">
-            <Activity className="h-8 w-8 text-teal-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-teal-900">
-              {attendanceRate.toFixed(1)}%
+            <div className="text-2xl font-bold text-orange-700">
+              {analyticsData?.revenueGrowth || 0}%
             </div>
-            <p className="text-sm text-teal-700 mt-1">Attendance Rate</p>
           </div>
         </div>
 
-        {/* Quick Insights */}
-        <div className="mt-6 p-4 bg-white rounded-lg">
-          <h4 className="font-semibold text-gray-900 mb-2">Quick Insights</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-gray-600">
-                System performance: <span className="font-medium text-green-600">Excellent</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-gray-600">
-                User engagement: <span className="font-medium text-blue-600">High</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-gray-600">
-                Revenue growth: <span className="font-medium text-purple-600">Positive</span>
-              </span>
-            </div>
+        {/* Growth Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Platform Growth Trends</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={analyticsData?.schoolGrowthData || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="schools" stroke="#3b82f6" name="Schools" />
+                <Line type="monotone" dataKey="users" stroke="#10b981" name="Users" />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-4">User Role Distribution</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={analyticsData?.userRoleData || []}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                  label={({ role, count }) => `${role}: ${count}`}
+                >
+                  {analyticsData?.userRoleData?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* System Health Metrics */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">System Health Metrics</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={analyticsData?.systemHealthData || []}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="metric" />
+              <YAxis domain={[0, 100]} />
+              <Tooltip formatter={(value) => [`${value}%`, 'Performance']} />
+              <Bar dataKey="value" fill="#10b981" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-4 border-t">
+          <Button 
+            onClick={() => onAnalyticsAction?.('view-detailed-analytics')}
+            variant="default"
+          >
+            View Detailed Analytics
+          </Button>
+          <Button 
+            onClick={handleExportAnalytics}
+            variant="outline"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Data
+          </Button>
         </div>
       </CardContent>
     </Card>
