@@ -1,8 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 import NewSubjectCreationForm from './NewSubjectCreationForm';
+import { NewSubjectFormData } from '@/types/subject';
+import { createSubject } from '@/services/subject/subjectDatabaseService';
 
 interface NewSubjectCreationModalProps {
   open: boolean;
@@ -19,9 +22,21 @@ const NewSubjectCreationModal: React.FC<NewSubjectCreationModalProps> = ({
   classes,
   teachers
 }) => {
-  const handleSuccess = () => {
-    onSuccess?.();
-    onClose();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (data: NewSubjectFormData) => {
+    setIsSubmitting(true);
+    try {
+      await createSubject(data);
+      toast.success('Subject created successfully!');
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      toast.error('Failed to create subject. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -32,8 +47,8 @@ const NewSubjectCreationModal: React.FC<NewSubjectCreationModalProps> = ({
         </DialogHeader>
         <ScrollArea className="max-h-[90vh]">
           <NewSubjectCreationForm
-            onSuccess={handleSuccess}
-            onCancel={onClose}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
             classes={classes}
             teachers={teachers}
           />
