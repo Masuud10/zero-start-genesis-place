@@ -18,10 +18,10 @@ interface PrincipalGrade {
   submitted_by: string;
   term: string;
   exam_type: string;
-  students?: { id: string; name: string; admission_number: string };
-  subjects?: { id: string; name: string; code: string };
-  classes?: { id: string; name: string };
-  profiles?: { id: string; name: string };
+  students?: { id: string; name: string; admission_number: string } | null;
+  subjects?: { id: string; name: string; code: string } | null;
+  classes?: { id: string; name: string } | null;
+  profiles?: { id: string; name: string } | null;
 }
 
 export const usePrincipalGradeManagement = () => {
@@ -73,7 +73,29 @@ export const usePrincipalGradeManagement = () => {
       }
 
       console.log('✅ usePrincipalGradeManagement: Fetched grades:', data?.length || 0);
-      setGrades(data || []);
+      
+      // Transform the data to match our interface
+      const transformedGrades: PrincipalGrade[] = (data || []).map(grade => ({
+        id: grade.id,
+        student_id: grade.student_id,
+        subject_id: grade.subject_id,
+        class_id: grade.class_id,
+        score: grade.score,
+        max_score: grade.max_score,
+        percentage: grade.percentage,
+        letter_grade: grade.letter_grade,
+        status: grade.status,
+        submitted_at: grade.submitted_at,
+        submitted_by: grade.submitted_by,
+        term: grade.term,
+        exam_type: grade.exam_type,
+        students: Array.isArray(grade.students) ? grade.students[0] || null : grade.students,
+        subjects: Array.isArray(grade.subjects) ? grade.subjects[0] || null : grade.subjects,
+        classes: Array.isArray(grade.classes) ? grade.classes[0] || null : grade.classes,
+        profiles: Array.isArray(grade.profiles) ? grade.profiles[0] || null : grade.profiles,
+      }));
+
+      setGrades(transformedGrades);
     } catch (error: any) {
       console.error('❌ usePrincipalGradeManagement: Fetch error:', error);
       toast({
