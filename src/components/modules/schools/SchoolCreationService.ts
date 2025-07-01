@@ -72,7 +72,7 @@ export class SchoolCreationService {
       console.log('🏫 SchoolCreationService: RPC Response:', data);
       
       if (data && typeof data === 'object' && !Array.isArray(data)) {
-        const response = data as CreateSchoolRpcResponse;
+        const response = data as unknown as CreateSchoolRpcResponse;
         if (response.success) {
           return {
             success: true,
