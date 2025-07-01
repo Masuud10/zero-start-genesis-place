@@ -92,7 +92,7 @@ const SecuritySettingsModal: React.FC<SecuritySettingsModalProps> = ({
           {/* Recent Security Events */}
           <div>
             <h4 className="font-medium mb-3">Recent Security Events</h4>
-            {securityData?.recent_audit_logs?.length > 0 ? (
+            {securityData?.recent_audit_logs && securityData.recent_audit_logs.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>

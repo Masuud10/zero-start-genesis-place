@@ -75,7 +75,9 @@ export const useSecuritySettings = () => {
       // Get audit events count
       const { data: auditEvents, error: auditError } = await supabase
         .from('security_audit_logs')
-        .select('id', { count: 'exact' });
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
       if (auditError) throw auditError;
 
@@ -100,7 +102,8 @@ export const useSecuritySettings = () => {
         total_audit_events: auditEvents?.length || 0,
         security_incidents: 0, // This would need to be calculated based on specific criteria
         failed_login_attempts: failedLogins?.reduce((sum, user) => sum + (user.login_attempts || 0), 0) || 0,
-        active_rate_limits: rateLimits || []
+        active_rate_limits: rateLimits || [],
+        recent_audit_logs: auditEvents || []
       };
     },
     enabled: user?.role === 'edufam_admin',
@@ -124,7 +127,11 @@ export const useSystemMaintenance = () => {
 
         if (getError && getError.code !== 'PGRST116') throw getError;
 
-        const currentMode = currentSetting?.setting_value?.enabled || false;
+        const currentMode = currentSetting?.setting_value && 
+          typeof currentSetting.setting_value === 'object' && 
+          currentSetting.setting_value !== null ?
+          (currentSetting.setting_value as any).enabled || false : false;
+        
         const newMode = !currentMode;
 
         const { error: updateError } = await supabase

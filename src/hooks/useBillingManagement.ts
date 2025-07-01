@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +18,37 @@ interface BillingRecord {
     email: string;
   };
 }
+
+interface School {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+}
+
+export const useAllSchools = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['all-schools'],
+    queryFn: async () => {
+      if (!user || user.role !== 'edufam_admin') {
+        throw new Error('Access denied. Only EduFam Admin can access school data.');
+      }
+
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name, email, status')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      return data as School[];
+    },
+    enabled: user?.role === 'edufam_admin',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
 
 export const useBillingRecords = () => {
   const { user } = useAuth();

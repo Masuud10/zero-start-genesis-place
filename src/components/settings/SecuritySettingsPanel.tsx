@@ -150,7 +150,7 @@ const SecuritySettingsPanel: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {securityData?.recent_audit_logs?.length > 0 ? (
+          {securityData?.recent_audit_logs && securityData.recent_audit_logs.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
