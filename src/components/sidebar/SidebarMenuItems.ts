@@ -79,12 +79,13 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // Principal - full school operational access (Grades Management removed)
+  // Principal - full school operational access (Grades Management added back)
   if (userRole === 'principal') {
     return [
       ...baseItems,
       { id: 'school-management', label: 'School Management', icon: SchoolIcon, roles: ['principal'] },
       { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['principal'] },
+      { id: 'grades', label: 'Grades Management', icon: GraduationCap, roles: ['principal'] },
       { id: 'attendance', label: 'Attendance Management', icon: CalendarCheck, roles: ['principal'] },
       { id: 'students', label: 'Student Management', icon: Users, roles: ['principal'] },
       { id: 'finance', label: 'Financial Overview', icon: DollarSign, roles: ['principal'] },
