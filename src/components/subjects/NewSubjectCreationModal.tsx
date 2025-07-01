@@ -5,7 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import NewSubjectCreationForm from './NewSubjectCreationForm';
 import { NewSubjectFormData } from '@/types/subject';
-import { createSubject } from '@/services/subject/subjectDatabaseService';
+import { SubjectDatabaseService } from '@/services/subject/subjectDatabaseService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NewSubjectCreationModalProps {
   open: boolean;
@@ -23,11 +24,17 @@ const NewSubjectCreationModal: React.FC<NewSubjectCreationModalProps> = ({
   teachers
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const handleSubmit = async (data: NewSubjectFormData) => {
+    if (!user?.school_id) {
+      toast.error('No school ID found. Please try logging in again.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await createSubject(data);
+      await SubjectDatabaseService.createSubject(user.school_id, data);
       toast.success('Subject created successfully!');
       onSuccess?.();
       onClose();
