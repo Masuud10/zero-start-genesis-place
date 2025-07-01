@@ -3,33 +3,33 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, Users, DollarSign, Calendar } from 'lucide-react';
+import { Eye, Building2, Calendar, DollarSign } from 'lucide-react';
 import { useBillingRecords } from '@/hooks/useBillingManagement';
-import { format } from 'date-fns';
 
 interface SchoolBillingListProps {
   onSelectSchool: (schoolId: string) => void;
   selectedSchoolId?: string;
 }
 
-const SchoolBillingList: React.FC<SchoolBillingListProps> = ({ 
-  onSelectSchool 
+const SchoolBillingList: React.FC<SchoolBillingListProps> = ({
+  onSelectSchool,
+  selectedSchoolId
 }) => {
-  const { data: billingRecords, isLoading, error } = useBillingRecords();
-
-  console.log('🏫 SchoolBillingList: Rendering with records:', billingRecords?.length || 0);
+  const { data: billingRecords, isLoading } = useBillingRecords();
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>School Billing Records</CardTitle>
+          <CardTitle>Loading billing records...</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse p-4 border rounded-lg">
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+              </div>
             ))}
           </div>
         </CardContent>
@@ -37,146 +37,131 @@ const SchoolBillingList: React.FC<SchoolBillingListProps> = ({
     );
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-6 text-center">
-          <p className="text-red-600">Failed to load school billing records</p>
-          <p className="text-red-500 text-sm mt-2">{error.message}</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!billingRecords || billingRecords.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>School Billing Records</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-gray-500">No billing records found</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Group records by school
-  const schoolGroups = billingRecords.reduce((acc, record) => {
+  const recordsBySchool = billingRecords?.reduce((acc, record) => {
     const schoolId = record.school_id;
-    const schoolName = record.school?.name || 'Unknown School';
-    
     if (!acc[schoolId]) {
       acc[schoolId] = {
-        schoolId,
-        schoolName,
-        studentCount: record.school?.student_count || 0,
-        records: [],
-        totalAmount: 0,
-        paidAmount: 0,
-        pendingAmount: 0
+        school: record.schools,
+        records: []
       };
     }
-    
     acc[schoolId].records.push(record);
-    acc[schoolId].totalAmount += Number(record.amount);
-    
-    if (record.status === 'paid') {
-      acc[schoolId].paidAmount += Number(record.amount);
-    } else if (record.status === 'pending') {
-      acc[schoolId].pendingAmount += Number(record.amount);
-    }
-    
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, { school: any; records: any[] }>) || {};
 
-  const schools = Object.values(schoolGroups);
-
-  const formatCurrency = (amount: number) => {
-    return `KES ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
-  };
-
-  const getStatusBadge = (school: any) => {
-    if (school.pendingAmount > 0) {
-      return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-    if (school.paidAmount > 0) {
-      return <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>;
-    }
-    return <Badge variant="outline">No Records</Badge>;
   };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
-          School Billing Records ({schools.length} schools)
+          <Building2 className="h-5 w-5" />
+          School Billing Overview
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>School Name</TableHead>
-                <TableHead>Students</TableHead>
-                <TableHead>Total Amount</TableHead>
-                <TableHead>Paid Amount</TableHead>
-                <TableHead>Pending Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Records</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {schools.map((school) => (
-                <TableRow key={school.schoolId}>
-                  <TableCell>
-                    <div className="font-medium">{school.schoolName}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4 text-gray-500" />
-                      {school.studentCount}
+        {Object.keys(recordsBySchool).length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No billing records found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {Object.entries(recordsBySchool).map(([schoolId, { school, records }]) => {
+              const totalAmount = records.reduce((sum, record) => sum + (record.amount || 0), 0);
+              const pendingAmount = records
+                .filter(r => r.status === 'pending')
+                .reduce((sum, record) => sum + (record.amount || 0), 0);
+              const paidAmount = records
+                .filter(r => r.status === 'paid')
+                .reduce((sum, record) => sum + (record.amount || 0), 0);
+
+              return (
+                <div
+                  key={schoolId}
+                  className={`p-4 border rounded-lg hover:bg-gray-50 transition-colors ${
+                    selectedSchoolId === schoolId ? 'border-blue-500 bg-blue-50' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Building2 className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <h3 className="font-semibold">{school?.name || 'Unknown School'}</h3>
+                          <p className="text-sm text-muted-foreground">{school?.email}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-blue-600">
+                            KES {totalAmount.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Total Billed</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-green-600">
+                            KES {paidAmount.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Paid</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-yellow-600">
+                            KES {pendingAmount.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Pending</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold">
+                            {records.length}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Total Records</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-3">
+                        {records.slice(0, 3).map((record) => (
+                          <Badge key={record.id} className={getStatusColor(record.status)}>
+                            {record.billing_type} - {record.status}
+                          </Badge>
+                        ))}
+                        {records.length > 3 && (
+                          <span className="text-sm text-muted-foreground">
+                            +{records.length - 3} more
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="font-mono">
-                    {formatCurrency(school.totalAmount)}
-                  </TableCell>
-                  <TableCell className="font-mono text-green-600">
-                    {formatCurrency(school.paidAmount)}
-                  </TableCell>
-                  <TableCell className="font-mono text-yellow-600">
-                    {formatCurrency(school.pendingAmount)}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(school)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      {school.records.length}
+
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onSelectSchool(schoolId)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => onSelectSchool(school.schoolId)}
-                      className="flex items-center gap-2"
-                    >
-                      <Eye className="h-3 w-3" />
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,98 +1,35 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { ArrowLeft, Calculator, RefreshCw, Edit, Save, X } from 'lucide-react';
-import { useSchoolBillingRecords, useBillingActions } from '@/hooks/useBillingManagement';
-import { BillingManagementService } from '@/services/billing/billingManagementService';
-import { format } from 'date-fns';
+import { ArrowLeft, Building2, Calendar, DollarSign, FileText } from 'lucide-react';
+import { useBillingRecords } from '@/hooks/useBillingManagement';
 
 interface SchoolBillingDetailsProps {
   schoolId: string;
   onBack: () => void;
 }
 
-const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({ 
-  schoolId, 
-  onBack 
+const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
+  schoolId,
+  onBack
 }) => {
-  const { data: records, isLoading, refetch } = useSchoolBillingRecords(schoolId);
-  const { updateBillingStatus } = useBillingActions();
-  const [subscriptionCalculation, setSubscriptionCalculation] = useState<any>(null);
-  const [calculatingSubscription, setCalculatingSubscription] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<string | null>(null);
-  const [editAmount, setEditAmount] = useState<number>(0);
+  const { data: billingRecords, isLoading } = useBillingRecords();
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      paid: 'bg-green-100 text-green-800',
-      overdue: 'bg-red-100 text-red-800',
-      cancelled: 'bg-gray-100 text-gray-800'
-    };
-    
-    return (
-      <Badge className={variants[status as keyof typeof variants] || variants.pending}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
+  const schoolRecords = billingRecords?.filter(record => record.school_id === schoolId) || [];
+  const school = schoolRecords[0]?.schools;
 
-  const getBillingTypeBadge = (type: string) => {
-    return (
-      <Badge variant={type === 'setup_fee' ? 'outline' : 'secondary'}>
-        {type === 'setup_fee' ? 'Setup Fee' : 'Subscription'}
-      </Badge>
-    );
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `KES ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
-  };
-
-  const handleStatusUpdate = (recordId: string, newStatus: string) => {
-    updateBillingStatus.mutate({ 
-      recordId, 
-      status: newStatus,
-      paymentMethod: newStatus === 'paid' ? 'manual' : undefined
-    });
-  };
-
-  const handleEditRecord = (recordId: string, currentAmount: number) => {
-    setEditingRecord(recordId);
-    setEditAmount(currentAmount);
-  };
-
-  const handleSaveEdit = async (recordId: string) => {
-    try {
-      await BillingManagementService.updateBillingRecord(recordId, { amount: editAmount });
-      setEditingRecord(null);
-      refetch();
-    } catch (error) {
-      console.error('Error updating record:', error);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingRecord(null);
-    setEditAmount(0);
-  };
-
-  const calculateSubscriptionFee = async () => {
-    setCalculatingSubscription(true);
-    try {
-      const result = await BillingManagementService.calculateSubscriptionFee(schoolId);
-      if (result.data) {
-        setSubscriptionCalculation(result.data);
-      }
-    } catch (error) {
-      console.error('Error calculating subscription fee:', error);
-    } finally {
-      setCalculatingSubscription(false);
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -100,234 +37,134 @@ const SchoolBillingDetails: React.FC<SchoolBillingDetailsProps> = ({
     return (
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onBack}>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <CardTitle>Loading billing details...</CardTitle>
+            <CardTitle>Loading school details...</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
-            ))}
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-20 bg-gray-200 rounded"></div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (!records || records.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <CardTitle>No billing records found</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-500">This school has no billing records yet.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const schoolName = records[0]?.school?.name || 'Unknown School';
-  const setupFees = records.filter(r => r.billing_type === 'setup_fee');
-  const subscriptionFees = records.filter(r => r.billing_type === 'subscription_fee');
-  
-  const totalAmount = records.reduce((sum, record) => sum + Number(record.amount), 0);
-  const totalPaid = records.filter(r => r.status === 'paid').reduce((sum, record) => sum + Number(record.amount), 0);
-  const totalOutstanding = totalAmount - totalPaid;
+  const totalAmount = schoolRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+  const paidAmount = schoolRecords
+    .filter(r => r.status === 'paid')
+    .reduce((sum, record) => sum + (record.amount || 0), 0);
+  const pendingAmount = schoolRecords
+    .filter(r => r.status === 'pending')
+    .reduce((sum, record) => sum + (record.amount || 0), 0);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <CardTitle className="text-xl">{schoolName}</CardTitle>
-                <p className="text-sm text-muted-foreground">Billing Details</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={calculateSubscriptionFee}
-                variant="outline" 
-                size="sm"
-                disabled={calculatingSubscription}
-              >
-                <Calculator className="h-4 w-4 mr-2" />
-                Calculate Subscription
-              </Button>
-              <Button 
-                onClick={() => refetch()} 
-                variant="outline" 
-                size="sm"
-                disabled={isLoading}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+              <Building2 className="h-5 w-5" />
+              <CardTitle>{school?.name || 'School Details'}</CardTitle>
             </div>
           </div>
         </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <DollarSign className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+              <div className="text-2xl font-bold text-blue-600">
+                KES {totalAmount.toLocaleString()}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Billed</div>
+            </div>
+
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                KES {paidAmount.toLocaleString()}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Paid</div>
+            </div>
+
+            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-600">
+                KES {pendingAmount.toLocaleString()}
+              </div>
+              <div className="text-sm text-muted-foreground">Outstanding</div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalOutstanding)}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Subscription Calculation */}
-      {subscriptionCalculation && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Subscription Fee Calculation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Student Count:</span>
-                <div className="text-lg font-bold">{subscriptionCalculation.student_count}</div>
-              </div>
-              <div>
-                <span className="font-medium">Rate per Student:</span>
-                <div className="text-lg font-bold">{formatCurrency(subscriptionCalculation.per_student_rate)}</div>
-              </div>
-              <div>
-                <span className="font-medium">Calculated Amount:</span>
-                <div className="text-lg font-bold text-blue-600">{formatCurrency(subscriptionCalculation.calculated_amount)}</div>
-              </div>
-              <div>
-                <span className="font-medium">Currency:</span>
-                <div className="text-lg font-bold">{subscriptionCalculation.currency}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Billing Records Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Billing Records</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Billing Records ({schoolRecords.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell>{getBillingTypeBadge(record.billing_type)}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {record.invoice_number || 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {record.description || `${record.billing_type.replace('_', ' ').toUpperCase()}`}
-                  </TableCell>
-                  <TableCell>
-                    {editingRecord === record.id ? (
+          {schoolRecords.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No billing records found for this school</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {schoolRecords.map((record) => (
+                <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
                       <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          value={editAmount}
-                          onChange={(e) => setEditAmount(Number(e.target.value))}
-                          className="w-24"
-                        />
-                        <Button size="sm" onClick={() => handleSaveEdit(record.id)}>
-                          <Save className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                          <X className="h-3 w-3" />
-                        </Button>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span className="font-medium capitalize">
+                          {record.billing_type?.replace('_', ' ')}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono">{formatCurrency(Number(record.amount))}</span>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => handleEditRecord(record.id, Number(record.amount))}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <Badge className={getStatusColor(record.status)}>
+                        {record.status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                    
+                    {record.description && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {record.description}
+                      </p>
                     )}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(record.status)}</TableCell>
-                  <TableCell>
-                    {record.due_date ? format(new Date(record.due_date), 'MMM dd, yyyy') : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {record.status === 'pending' && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleStatusUpdate(record.id, 'paid')}
-                          disabled={updateBillingStatus.isPending}
-                        >
-                          Mark Paid
-                        </Button>
+                    
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Created: {new Date(record.created_at).toLocaleDateString()}
+                      </span>
+                      {record.due_date && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Due: {new Date(record.due_date).toLocaleDateString()}
+                        </span>
                       )}
-                      {record.status === 'paid' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleStatusUpdate(record.id, 'pending')}
-                          disabled={updateBillingStatus.isPending}
-                        >
-                          Mark Pending
-                        </Button>
+                      {record.invoice_number && (
+                        <span>Invoice: {record.invoice_number}</span>
                       )}
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                  
+                  <div className="text-right">
+                    <div className="text-lg font-bold">
+                      KES {(record.amount || 0).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

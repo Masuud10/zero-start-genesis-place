@@ -1,111 +1,73 @@
 
-import React from 'react';
-import { ErrorBoundary } from '@/utils/errorBoundary';
+import React, { Component, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
-interface BillingErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
+interface Props {
+  children: ReactNode;
 }
 
-const BillingErrorFallback: React.FC<{ error?: Error; onRetry?: () => void }> = ({ 
-  error, 
-  onRetry 
-}) => {
-  return (
-    <div className="min-h-[400px] flex items-center justify-center p-4">
-      <Card className="max-w-2xl w-full border-red-200 bg-red-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
-            <AlertTriangle className="h-5 w-5" />
-            Billing System Error
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-red-700">
-            The billing management system encountered an unexpected error. This could be due to:
-          </p>
-          <ul className="list-disc list-inside text-red-700 space-y-1 ml-4">
-            <li>Network connectivity issues</li>
-            <li>Database timeout or connection problems</li>
-            <li>Server overload during peak hours</li>
-            <li>Temporary service interruption</li>
-          </ul>
-          
-          {process.env.NODE_ENV === 'development' && error && (
-            <details className="bg-red-100 p-4 rounded text-sm">
-              <summary className="cursor-pointer font-medium text-red-800">
-                Technical Details (Development Only)
-              </summary>
-              <pre className="mt-2 whitespace-pre-wrap text-red-600 text-xs overflow-auto">
-                {error.message}
-                {'\n\n'}
-                {error.stack}
-              </pre>
-            </details>
-          )}
+interface State {
+  hasError: boolean;
+  error?: Error;
+}
 
-          <div className="flex gap-2 pt-4">
-            {onRetry && (
-              <Button 
-                onClick={onRetry} 
-                className="flex items-center gap-2"
-                variant="default"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Try Again
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.reload()}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh Page
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/dashboard'}
-              className="flex items-center gap-2"
-            >
-              <Home className="h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
+class BillingErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-const BillingErrorBoundary: React.FC<BillingErrorBoundaryProps> = ({ 
-  children, 
-  fallback 
-}) => {
-  return (
-    <ErrorBoundary
-      fallback={fallback || <BillingErrorFallback />}
-      onError={(error, errorInfo) => {
-        console.error('🚨 Billing Error Boundary caught error:', error, errorInfo);
-        
-        // Log to external service in production
-        if (process.env.NODE_ENV === 'production') {
-          console.error('Production billing error:', {
-            error: error.message,
-            stack: error.stack,
-            componentStack: errorInfo.componentStack,
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent
-          });
-        }
-      }}
-    >
-      {children}
-    </ErrorBoundary>
-  );
-};
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Billing Error Boundary caught an error:', error, errorInfo);
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: undefined });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Billing Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-700">
+                <div className="mb-2">
+                  Something went wrong with the billing module. Please try refreshing or contact support if the issue persists.
+                </div>
+                {this.state.error && (
+                  <div className="text-xs text-red-600 mb-3 font-mono">
+                    {this.state.error.message}
+                  </div>
+                )}
+                <Button
+                  onClick={this.handleRetry}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Try Again
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default BillingErrorBoundary;

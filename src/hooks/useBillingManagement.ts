@@ -1,120 +1,84 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BillingManagementService } from '@/services/billing/billingManagementService';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-export const useBillingRecords = (filters?: {
-  status?: string;
-  school_name?: string;
-  month?: string;
-  year?: string;
-}) => {
+interface BillingRecord {
+  id: string;
+  school_id: string;
+  invoice_number: string;
+  amount: number;
+  status: string;
+  billing_type: string;
+  description?: string;
+  due_date?: string;
+  created_at: string;
+  schools?: {
+    name: string;
+    email: string;
+  };
+}
+
+export const useBillingRecords = () => {
   const { user } = useAuth();
-  
+
   return useQuery({
-    queryKey: ['billing-records', filters],
+    queryKey: ['billing-records'],
     queryFn: async () => {
-      console.log('🔄 useBillingRecords: Starting fetch with filters:', filters);
-      
-      try {
-        const result = await BillingManagementService.getAllBillingRecords(filters);
-        console.log('✅ useBillingRecords: Service returned:', { success: !result.error, dataLength: result.data?.length });
-        
-        if (result.error) {
-          const errorMessage = typeof result.error === 'string' 
-            ? result.error 
-            : result.error?.message || 'Failed to fetch billing records';
-          console.error('❌ useBillingRecords: Service error:', errorMessage);
-          throw new Error(errorMessage);
-        }
-        
-        console.log('✅ useBillingRecords: Successfully processed data');
-        return result.data || [];
-      } catch (error) {
-        console.error('❌ useBillingRecords: Query function error:', error);
-        throw error;
+      if (!user || user.role !== 'edufam_admin') {
+        throw new Error('Access denied. Only EduFam Admin can access billing data.');
       }
+
+      const { data, error } = await supabase
+        .from('school_billing_records')
+        .select(`
+          *,
+          schools!inner(name, email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      return data as BillingRecord[];
     },
     enabled: user?.role === 'edufam_admin',
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: (failureCount, error) => {
-      console.log(`🔄 useBillingRecords: Retry attempt ${failureCount}`, error);
-      if (error?.message?.includes('timed out') && failureCount >= 1) {
-        return false;
-      }
-      return failureCount < 2;
-    },
-    refetchInterval: false,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
 
 export const useBillingStats = () => {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['billing-stats'],
     queryFn: async () => {
-      const result = await BillingManagementService.getBillingStats();
-      if (result.error) {
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
-          : result.error?.message || 'Failed to fetch billing statistics';
-        throw new Error(errorMessage);
+      if (!user || user.role !== 'edufam_admin') {
+        throw new Error('Access denied');
       }
-      return result.data;
+
+      const { data: billingRecords, error } = await supabase
+        .from('school_billing_records')
+        .select('amount, status, billing_type');
+
+      if (error) throw error;
+
+      const totalRevenue = billingRecords?.reduce((sum, record) => sum + (record.amount || 0), 0) || 0;
+      const pendingInvoices = billingRecords?.filter(r => r.status === 'pending').length || 0;
+      const paidInvoices = billingRecords?.filter(r => r.status === 'paid').length || 0;
+      const setupFees = billingRecords?.filter(r => r.billing_type === 'setup_fee').length || 0;
+
+      return {
+        totalRevenue,
+        pendingInvoices,
+        paidInvoices,
+        setupFees,
+        totalInvoices: billingRecords?.length || 0
+      };
     },
     enabled: user?.role === 'edufam_admin',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: 2,
-    refetchInterval: false,
-  });
-};
-
-export const useSchoolBillingRecords = (schoolId?: string) => {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['school-billing-records', schoolId],
-    queryFn: async () => {
-      if (!schoolId) throw new Error('School ID is required');
-      const result = await BillingManagementService.getSchoolBillingRecords(schoolId);
-      if (result.error) {
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
-          : result.error?.message || 'Failed to fetch school billing records';
-        throw new Error(errorMessage);
-      }
-      return result.data;
-    },
-    enabled: user?.role === 'edufam_admin' && !!schoolId,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: 2,
-  });
-};
-
-export const useAllSchools = () => {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['all-schools'],
-    queryFn: async () => {
-      const result = await BillingManagementService.getAllSchools();
-      if (result.error) {
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
-          : result.error?.message || 'Failed to fetch schools';
-        throw new Error(errorMessage);
-      }
-      return result.data;
-    },
-    enabled: user?.role === 'edufam_admin',
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
@@ -122,128 +86,112 @@ export const useBillingActions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const updateBillingStatus = useMutation({
-    mutationFn: async ({ recordId, status, paymentMethod }: { recordId: string; status: string; paymentMethod?: string }) => {
-      const result = await BillingManagementService.updateBillingStatus(recordId, status, paymentMethod);
-      if (!result.success) {
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
-          : result.error?.message || 'Failed to update billing status';
-        throw new Error(errorMessage);
+  const createSetupFees = useMutation({
+    mutationFn: async () => {
+      // Get all schools without setup fees
+      const { data: schools, error: schoolsError } = await supabase
+        .from('schools')
+        .select('id, name')
+        .not('id', 'in', 
+          supabase
+            .from('school_billing_records')
+            .select('school_id')
+            .eq('billing_type', 'setup_fee')
+        );
+
+      if (schoolsError) throw schoolsError;
+
+      if (!schools || schools.length === 0) {
+        return { message: 'All schools already have setup fees', recordsCreated: 0 };
       }
-      return result;
+
+      // Create setup fee records
+      const setupFeeRecords = schools.map(school => ({
+        school_id: school.id,
+        amount: 15000, // 15,000 KES setup fee
+        billing_type: 'setup_fee',
+        status: 'pending',
+        description: `Setup fee for ${school.name}`,
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+      }));
+
+      const { error: insertError } = await supabase
+        .from('school_billing_records')
+        .insert(setupFeeRecords);
+
+      if (insertError) throw insertError;
+
+      return { message: `Created setup fees for ${schools.length} schools`, recordsCreated: schools.length };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast({
-        title: "Status Updated",
-        description: "Billing record status has been updated successfully.",
+        title: "Setup Fees Created",
+        description: result.message,
       });
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
     },
     onError: (error: any) => {
       toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update billing status.",
-        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create setup fees",
+        variant: "destructive"
       });
-    },
+    }
   });
 
   const createMonthlySubscriptions = useMutation({
     mutationFn: async () => {
-      const result = await BillingManagementService.createMonthlySubscriptions();
-      if (!result.success) {
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
-          : result.error?.message || 'Failed to create monthly subscriptions';
-        throw new Error(errorMessage);
+      // Get all active schools
+      const { data: schools, error: schoolsError } = await supabase
+        .from('schools')
+        .select('id, name')
+        .eq('status', 'active');
+
+      if (schoolsError) throw schoolsError;
+
+      if (!schools || schools.length === 0) {
+        return { message: 'No active schools found', recordsCreated: 0 };
       }
-      return result;
+
+      // Create monthly subscription records
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      const subscriptionRecords = schools.map(school => ({
+        school_id: school.id,
+        amount: 2500, // 2,500 KES monthly fee
+        billing_type: 'subscription_fee',
+        status: 'pending',
+        description: `Monthly subscription for ${school.name} - ${currentMonth}`,
+        due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 5).toISOString() // 5th of next month
+      }));
+
+      const { error: insertError } = await supabase
+        .from('school_billing_records')
+        .insert(subscriptionRecords);
+
+      if (insertError) throw insertError;
+
+      return { message: `Created monthly subscriptions for ${schools.length} schools`, recordsCreated: schools.length };
     },
     onSuccess: (result) => {
-      const recordsCreated = result && typeof result === 'object' && 'recordsCreated' in result 
-        ? Number(result.recordsCreated) || 0 
-        : 0;
       toast({
-        title: "Subscription Fees Created",
-        description: `Created ${recordsCreated} subscription fee records.`,
+        title: "Monthly Subscriptions Created",
+        description: result.message,
       });
       queryClient.invalidateQueries({ queryKey: ['billing-records'] });
       queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
     },
     onError: (error: any) => {
       toast({
-        title: "Failed to Create Subscriptions",
-        description: error.message || "Failed to create monthly subscription fees.",
-        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create monthly subscriptions",
+        variant: "destructive"
       });
-    },
-  });
-
-  const createSetupFee = useMutation({
-    mutationFn: async (schoolId: string) => {
-      const result = await BillingManagementService.createSetupFee(schoolId);
-      if (!result.success) {
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
-          : result.error?.message || 'Failed to create setup fee';
-        throw new Error(errorMessage);
-      }
-      return result;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Setup Fee Created",
-        description: "Setup fee has been created for the school.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['billing-records'] });
-      queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Setup Fee Creation Failed",
-        description: error.message || "Failed to create setup fee.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateBillingRecord = useMutation({
-    mutationFn: async ({ recordId, updates }: { recordId: string; updates: any }) => {
-      const result = await BillingManagementService.updateBillingRecord(recordId, updates);
-      if (!result.success) {
-        const errorMessage = typeof result.error === 'string' 
-          ? result.error 
-          : result.error?.message || 'Failed to update billing record';
-        throw new Error(errorMessage);
-      }
-      return result;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Record Updated",
-        description: "Billing record has been updated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['billing-records'] });
-      queryClient.invalidateQueries({ queryKey: ['billing-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['school-billing-records'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update billing record.",
-        variant: "destructive",
-      });
-    },
+    }
   });
 
   return {
-    updateBillingStatus,
-    createSetupFee,
-    createMonthlySubscriptions,
-    updateBillingRecord
+    createSetupFees,
+    createMonthlySubscriptions
   };
 };
