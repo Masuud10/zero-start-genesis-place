@@ -11,6 +11,15 @@ export interface SchoolCreationResult {
   error?: string;
 }
 
+interface CreateSchoolRpcResponse {
+  success: boolean;
+  school_id?: string;
+  owner_id?: string;
+  principal_id?: string;
+  message?: string;
+  error?: string;
+}
+
 export class SchoolCreationService {
   static async createSchool(schoolData: ComprehensiveSchoolData): Promise<SchoolCreationResult> {
     try {
@@ -62,19 +71,20 @@ export class SchoolCreationService {
 
       console.log('🏫 SchoolCreationService: RPC Response:', data);
       
-      if (data && typeof data === 'object') {
-        if (data.success) {
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        const response = data as CreateSchoolRpcResponse;
+        if (response.success) {
           return {
             success: true,
-            school_id: data.school_id,
-            owner_id: data.owner_id,
-            principal_id: data.principal_id,
-            message: data.message || 'School created successfully with complete setup'
+            school_id: response.school_id,
+            owner_id: response.owner_id,
+            principal_id: response.principal_id,
+            message: response.message || 'School created successfully with complete setup'
           };
         } else {
           return {
             success: false,
-            error: data.error || 'Failed to create school'
+            error: response.error || 'Failed to create school'
           };
         }
       }
