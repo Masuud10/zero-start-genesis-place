@@ -26,10 +26,84 @@ export class SchoolCreationService {
       console.log('🏫 SchoolCreationService: Creating school with data:', schoolData);
 
       // Validate required fields
-      if (!schoolData.school_name || !schoolData.school_email || !schoolData.school_phone || !schoolData.school_address) {
+      if (!schoolData.school_name?.trim()) {
         return {
           success: false,
-          error: 'Missing required fields: name, email, phone, and address are required'
+          error: 'School name is required'
+        };
+      }
+
+      if (!schoolData.school_email?.trim()) {
+        return {
+          success: false,
+          error: 'School email is required'
+        };
+      }
+
+      if (!schoolData.school_phone?.trim()) {
+        return {
+          success: false,
+          error: 'School phone is required'
+        };
+      }
+
+      if (!schoolData.school_address?.trim()) {
+        return {
+          success: false,
+          error: 'School address is required'
+        };
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(schoolData.school_email)) {
+        return {
+          success: false,
+          error: 'Please enter a valid email address'
+        };
+      }
+
+      // Validate owner details if provided
+      if (schoolData.owner_email && !schoolData.owner_name) {
+        return {
+          success: false,
+          error: 'Owner name is required when owner email is provided'
+        };
+      }
+
+      if (schoolData.owner_name && !schoolData.owner_email) {
+        return {
+          success: false,
+          error: 'Owner email is required when owner name is provided'
+        };
+      }
+
+      if (schoolData.owner_email && !emailRegex.test(schoolData.owner_email)) {
+        return {
+          success: false,
+          error: 'Please enter a valid owner email address'
+        };
+      }
+
+      // Validate principal details if provided
+      if (schoolData.principal_email && !schoolData.principal_name) {
+        return {
+          success: false,
+          error: 'Principal name is required when principal email is provided'
+        };
+      }
+
+      if (schoolData.principal_name && !schoolData.principal_email) {
+        return {
+          success: false,
+          error: 'Principal email is required when principal name is provided'
+        };
+      }
+
+      if (schoolData.principal_email && !emailRegex.test(schoolData.principal_email)) {
+        return {
+          success: false,
+          error: 'Please enter a valid principal email address'
         };
       }
 

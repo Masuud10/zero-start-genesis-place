@@ -52,50 +52,34 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
     }));
   };
 
-  const validateForm = () => {
-    if (!formData.school_name?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School name is required",
-        variant: "destructive"
-      });
-      return false;
+  const handleClose = () => {
+    if (!isLoading) {
+      onClose();
     }
+  };
 
-    if (!formData.school_email?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School email is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.school_phone?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School phone is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.school_address?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School address is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    return true;
+  const resetForm = () => {
+    setFormData({
+      school_name: '',
+      school_email: '',
+      school_phone: '',
+      school_address: '',
+      owner_name: '',
+      owner_email: '',
+      logo_url: '',
+      website_url: '',
+      motto: '',
+      slogan: '',
+      registration_number: '',
+      year_established: new Date().getFullYear(),
+      curriculum_type: 'cbc',
+      school_type: 'primary',
+      term_structure: '3-term'
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
     
     setIsLoading(true);
 
@@ -135,27 +119,9 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
           title: "Success",
           description: result.message || "School created successfully",
         });
+        resetForm();
         onSuccess();
         onClose();
-        
-        // Reset form
-        setFormData({
-          school_name: '',
-          school_email: '',
-          school_phone: '',
-          school_address: '',
-          owner_name: '',
-          owner_email: '',
-          logo_url: '',
-          website_url: '',
-          motto: '',
-          slogan: '',
-          registration_number: '',
-          year_established: new Date().getFullYear(),
-          curriculum_type: 'cbc',
-          school_type: 'primary',
-          term_structure: '3-term'
-        });
       } else {
         toast({
           title: "Error",
@@ -167,7 +133,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
       console.error('Error creating school:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create school",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -176,7 +142,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New School</DialogTitle>
@@ -195,6 +161,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 onChange={(e) => handleInputChange('school_name', e.target.value)}
                 placeholder="ABC Primary School"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -207,6 +174,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 onChange={(e) => handleInputChange('school_email', e.target.value)}
                 placeholder="info@abcschool.com"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -218,6 +186,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 onChange={(e) => handleInputChange('school_phone', e.target.value)}
                 placeholder="+254 700 000 000"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -228,6 +197,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 value={formData.registration_number || ''}
                 onChange={(e) => handleInputChange('registration_number', e.target.value)}
                 placeholder="REG/2024/001"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -240,6 +210,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
               onChange={(e) => handleInputChange('school_address', e.target.value)}
               placeholder="Full address of the school"
               required
+              disabled={isLoading}
             />
           </div>
 
@@ -250,6 +221,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
               <Select
                 value={formData.school_type || 'primary'}
                 onValueChange={(value) => handleInputChange('school_type', value)}
+                disabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select school type" />
@@ -267,6 +239,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
               <Select
                 value={formData.curriculum_type || 'cbc'}
                 onValueChange={(value) => handleInputChange('curriculum_type', value)}
+                disabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select curriculum" />
@@ -288,6 +261,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 value={formData.owner_name || ''}
                 onChange={(e) => handleInputChange('owner_name', e.target.value)}
                 placeholder="John Doe"
+                disabled={isLoading}
               />
             </div>
 
@@ -299,6 +273,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 value={formData.owner_email || ''}
                 onChange={(e) => handleInputChange('owner_email', e.target.value)}
                 placeholder="owner@example.com"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -312,6 +287,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 value={formData.motto || ''}
                 onChange={(e) => handleInputChange('motto', e.target.value)}
                 placeholder="Excellence in Education"
+                disabled={isLoading}
               />
             </div>
 
@@ -322,6 +298,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 value={formData.slogan || ''}
                 onChange={(e) => handleInputChange('slogan', e.target.value)}
                 placeholder="Nurturing Future Leaders"
+                disabled={isLoading}
               />
             </div>
 
@@ -333,6 +310,7 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 value={formData.website_url || ''}
                 onChange={(e) => handleInputChange('website_url', e.target.value)}
                 placeholder="https://www.abcschool.com"
+                disabled={isLoading}
               />
             </div>
 
@@ -345,12 +323,13 @@ const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 onChange={(e) => handleInputChange('year_established', parseInt(e.target.value))}
                 min="1900"
                 max={new Date().getFullYear()}
+                disabled={isLoading}
               />
             </div>
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button type="button" variant="outline" onClick={handleClose} className="flex-1" disabled={isLoading}>
               Cancel
             </Button>
             <Button 

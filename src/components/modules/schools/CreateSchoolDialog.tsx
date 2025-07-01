@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { CreateSchoolRequest } from '@/services/schoolService';
 import { SchoolCreationService } from './SchoolCreationService';
 import { Plus, Building2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,62 +41,22 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
     }));
   };
 
-  const validateForm = () => {
-    if (!formData.school_name?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School name is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.school_email?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School email is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.school_phone?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School phone is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.school_address?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "School address is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    // If owner details are provided, both email and name are required
-    if (formData.owner_email || formData.owner_name) {
-      if (!formData.owner_email || !formData.owner_name) {
-        toast({
-          title: "Validation Error",
-          description: "Both owner email and name are required if creating an owner account",
-          variant: "destructive"
-        });
-        return false;
-      }
-    }
-
-    return true;
+  const resetForm = () => {
+    setFormData({
+      school_name: '',
+      school_email: '',
+      school_phone: '',
+      school_address: '',
+      owner_email: '',
+      owner_name: '',
+      curriculum_type: 'cbc',
+      school_type: 'primary',
+      term_structure: '3-term'
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
     
     setIsLoading(true);
 
@@ -140,19 +99,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
           description: result.message || "The school has been created and is ready for use.",
         });
 
-        // Reset form
-        setFormData({
-          school_name: '',
-          school_email: '',
-          school_phone: '',
-          school_address: '',
-          owner_email: '',
-          owner_name: '',
-          curriculum_type: 'cbc',
-          school_type: 'primary',
-          term_structure: '3-term'
-        });
-
+        resetForm();
         setOpen(false);
         onSchoolCreated?.();
       } else {
@@ -166,7 +113,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
       console.error('🏫 CreateSchoolDialog: Error creating school:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create school",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -174,8 +121,17 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!isLoading) {
+      setOpen(newOpen);
+      if (!newOpen) {
+        resetForm();
+      }
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -208,6 +164,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                     onChange={(e) => handleInputChange('school_name', e.target.value)}
                     placeholder="e.g., Sunshine Primary School"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -219,6 +176,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                     onChange={(e) => handleInputChange('school_email', e.target.value)}
                     placeholder="info@school.edu"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -231,6 +189,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                   onChange={(e) => handleInputChange('school_phone', e.target.value)}
                   placeholder="+254 123 456 789"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -243,6 +202,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                   placeholder="Full address of the school"
                   rows={3}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -252,6 +212,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                   <Select
                     value={formData.curriculum_type || 'cbc'}
                     onValueChange={(value) => handleInputChange('curriculum_type', value)}
+                    disabled={isLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select curriculum" />
@@ -267,6 +228,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                   <Select
                     value={formData.school_type || 'primary'}
                     onValueChange={(value) => handleInputChange('school_type', value)}
+                    disabled={isLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select school type" />
@@ -298,6 +260,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                     value={formData.owner_name || ''}
                     onChange={(e) => handleInputChange('owner_name', e.target.value)}
                     placeholder="John Doe"
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -308,6 +271,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
                     value={formData.owner_email || ''}
                     onChange={(e) => handleInputChange('owner_email', e.target.value)}
                     placeholder="owner@school.edu"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -323,7 +287,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={isLoading}
             >
               Cancel
