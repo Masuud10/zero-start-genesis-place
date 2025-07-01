@@ -54,7 +54,7 @@ Auto-generated academic & completion certificates
 
 Dynamic PDF report generation for schools & Edufam
 
-⚙️ System Settings
+⚙️ System Setting
 Maintenance mode toggle
 
 User account deactivation & management
