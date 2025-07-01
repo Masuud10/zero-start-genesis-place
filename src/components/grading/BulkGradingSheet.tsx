@@ -52,7 +52,7 @@ const BulkGradingSheet: React.FC<BulkGradingSheetProps> = ({
   selectedExamType
 }) => {
   // Route to CBC grading sheet for CBC curriculum
-  if (curriculumType === 'cbc') {
+  if (curriculumType.toUpperCase() === 'CBC') {
     return (
       <CBCGradingSheet
         students={students}

@@ -17,17 +17,17 @@ const CurriculumModalSwitcher: React.FC<CurriculumModalSwitcherProps> = ({
   userRole
 }) => {
   // Modal switching: CBC custom flow
-  if (curriculumType === 'cbc') {
+  if (curriculumType.toUpperCase() === 'CBC') {
     return <CBCGradesModal onClose={onClose} />;
   }
 
   // Modal switching: IGCSE custom flow
-  if (curriculumType === 'igcse') {
+  if (curriculumType.toUpperCase() === 'IGCSE') {
     return <IGCSEGradesModal onClose={onClose} userRole={userRole} />;
   }
 
   // Handle unsupported curriculum types
-  if (curriculumType && !['standard', 'cbc', 'igcse'].includes(curriculumType)) {
+  if (curriculumType && !['standard', 'CBC', 'IGCSE'].includes(curriculumType.toUpperCase())) {
     return (
       <Dialog open={true} onOpenChange={onClose}>
         <DialogContent className="max-w-md">

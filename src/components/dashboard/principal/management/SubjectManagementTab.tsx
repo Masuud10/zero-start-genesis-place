@@ -136,7 +136,7 @@ const SubjectManagementTab = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">
-                  {subjectsLoading ? '...' : subjects.filter(s => s.curriculum?.toLowerCase() === 'cbc').length}
+                  {subjectsLoading ? '...' : subjects.filter(s => s.curriculum?.toUpperCase() === 'CBC').length}
                 </p>
                 <p className="text-xs text-gray-600">CBC Subjects</p>
               </div>
@@ -152,7 +152,7 @@ const SubjectManagementTab = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">
-                  {subjectsLoading ? '...' : subjects.filter(s => s.curriculum?.toLowerCase() === 'igcse').length}
+                  {subjectsLoading ? '...' : subjects.filter(s => s.curriculum?.toUpperCase() === 'IGCSE').length}
                 </p>
                 <p className="text-xs text-gray-600">IGCSE Subjects</p>
               </div>

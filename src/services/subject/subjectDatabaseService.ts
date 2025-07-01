@@ -200,11 +200,11 @@ export class SubjectDatabaseService {
         }
       }
 
-      // Prepare subject data for insertion
+      // Prepare subject data for insertion - normalize curriculum to uppercase
       const insertData = {
         name: subjectData.name.trim(),
         code: formattedCode,
-        curriculum: subjectData.curriculum,
+        curriculum: subjectData.curriculum.toUpperCase(),
         category: subjectData.category,
         class_id: subjectData.class_id || null,
         teacher_id: subjectData.teacher_id || null,

@@ -56,7 +56,7 @@ const GradeFormFields: React.FC<GradeFormFieldsProps> = ({
   isPrincipal,
   canOverride
 }) => {
-  const isCBC = curriculumType === 'cbc';
+  const isCBC = curriculumType.toUpperCase() === 'CBC';
 
   return (
     <>
