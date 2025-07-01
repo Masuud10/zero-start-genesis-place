@@ -1,4 +1,5 @@
 
+
 export interface CBCCompetency {
   id: string;
   competency_name: string;
@@ -33,7 +34,7 @@ export interface CBCGradeData {
   teacher_remarks?: string;
   assessment_type?: string;
   curriculum_type: 'CBC';
-  status: 'draft' | 'submitted' | 'approved' | 'released';
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
 }
 
 export interface StandardGradeData {
@@ -47,7 +48,7 @@ export interface StandardGradeData {
   percentage: number;
   letter_grade?: string;
   curriculum_type: 'standard' | 'IGCSE';
-  status: 'draft' | 'submitted' | 'approved' | 'released';
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
 }
 
 export type GradeData = CBCGradeData | StandardGradeData;
@@ -68,7 +69,7 @@ export interface GradingSession {
     currentScore?: number;
     isAbsent?: boolean;
   }>;
-  status: 'draft' | 'submitted' | 'approved' | 'released';
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
   submittedAt?: string;
   submittedBy?: string;
 }
@@ -84,7 +85,7 @@ export interface Grade {
   maxScore: number;
   percentage: number;
   letter_grade?: string;
-  status: 'draft' | 'submitted' | 'approved' | 'released';
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
   submittedBy: string;
   submittedAt: string;
   curriculum_type?: string;
@@ -137,3 +138,4 @@ export interface CBCStrandAssessment {
   created_at?: string;
   updated_at?: string;
 }
+
