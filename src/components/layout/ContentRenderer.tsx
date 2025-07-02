@@ -40,6 +40,10 @@ const FinanceSettingsPanel = React.lazy(() => import('@/components/finance/Finan
 const SchoolManagementDashboard = React.lazy(() => import('@/components/dashboard/principal/SchoolManagementDashboard'));
 const AnalyticsDashboard = React.lazy(() => import('@/components/analytics/AnalyticsDashboard'));
 const FinancialOverview = React.lazy(() => import('@/components/finance/FinancialOverview'));
+const TeacherGradesModule = React.lazy(() => import('@/components/modules/TeacherGradesModule'));
+const TeacherReportsModule = React.lazy(() => import('@/components/reports/TeacherReportsModule'));
+const TeacherSupportModule = React.lazy(() => import('@/components/modules/TeacherSupportModule'));
+const TeacherTimetableModule = React.lazy(() => import('@/components/timetable/TeacherTimetableView'));
 
 interface ContentRendererProps {
   activeSection: string;
@@ -109,13 +113,17 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
     return renderLazyComponent(SystemSettings);
   }
 
-  // Analytics sections - Fix access for principals
+  // Analytics sections - Fix access for teachers, principals, and school owners
   if (activeSection === 'analytics') {
     if (user?.role === 'edufam_admin' || user?.role === 'elimisha_admin') {
       return renderLazyComponent(EduFamAnalyticsOverview);
     }
-    // Allow principals to access their school analytics
+    // Allow principals and school owners to access their school analytics
     if (user?.role === 'principal' || user?.role === 'school_owner') {
+      return renderLazyComponent(AnalyticsDashboard);
+    }
+    // Allow teachers to access their class analytics
+    if (user?.role === 'teacher') {
       return renderLazyComponent(AnalyticsDashboard);
     }
     return <div className="p-8 text-center text-red-600">Access Denied: Analytics access restricted</div>;
@@ -171,6 +179,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
       }
       return <div>Company Management access restricted to EduFam administrators</div>;
     case 'grades':
+      // Teachers get their own specialized grade management module
+      if (user?.role === 'teacher') {
+        return renderLazyComponent(TeacherGradesModule);
+      }
       return renderLazyComponent(GradesModule);
     case 'attendance':
       return renderLazyComponent(AttendanceModule);
@@ -182,12 +194,20 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'timetable':
+      // Teachers get their own timetable view
+      if (user?.role === 'teacher') {
+        return renderLazyComponent(TeacherTimetableModule);
+      }
       return renderLazyComponent(TimetableModule);
     case 'announcements':
       return renderLazyComponent(AnnouncementsModule);
     case 'messages':
       return renderLazyComponent(MessagesModule);
     case 'reports':
+      // Teachers get restricted access to only grade and attendance reports
+      if (user?.role === 'teacher') {
+        return renderLazyComponent(TeacherReportsModule);
+      }
       return renderLazyComponent(ReportsModule);
     case 'schools':
       return renderLazyComponent(SchoolsModule);
@@ -200,6 +220,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
     case 'security':
       return renderLazyComponent(SecurityModule);
     case 'support':
+      // Teachers get their own simplified support module
+      if (user?.role === 'teacher') {
+        return renderLazyComponent(TeacherSupportModule);
+      }
       return renderLazyComponent(SupportModule);
     case 'certificates':
       return renderLazyComponent(CertificatesModule);

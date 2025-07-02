@@ -56,7 +56,7 @@ const TimetableModule = () => {
             </CardContent>
           </Card>
         ) : (
-          <TeacherTimetableView timetable={teacherTimetable} />
+          <TeacherTimetableView />
         )}
       </div>
     );
