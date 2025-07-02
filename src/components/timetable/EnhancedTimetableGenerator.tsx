@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
 import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
-import { useEnhancedTimetable } from '@/hooks/useEnhancedTimetable';
+import { useTimetableManagement } from '@/hooks/useTimetableManagement';
 import { 
   Calendar, 
   Clock, 
@@ -24,7 +25,8 @@ import {
   Save,
   Eye,
   Plus,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -55,7 +57,18 @@ const EnhancedTimetableGenerator = () => {
   const { schoolId } = useSchoolScopedData();
   const { academicInfo } = useCurrentAcademicInfo(schoolId);
   const { toast } = useToast();
-  const { generateTimetable, isGenerating } = useEnhancedTimetable();
+  const {
+    generatedTimetables,
+    isLoadingTimetables,
+    generateTimetable,
+    isGenerating,
+    togglePublish,
+    isTogglingPublish,
+    sendToTeachers,
+    isSendingToTeachers,
+    deleteTimetable,
+    isDeletingTimetable
+  } = useTimetableManagement();
   const [reloadKey, setReloadKey] = useState(0);
   
   const { 
@@ -170,37 +183,37 @@ const EnhancedTimetableGenerator = () => {
     }
 
     try {
-      const result = await generateTimetable.mutateAsync({
-        school_id: schoolId,
+      await generateTimetable({
         class_id: selectedClass,
-        term: academicInfo.term || 'Term 1',
-        subject_teacher_assignments: subjectTeacherAssignments,
-        time_slots: timeSlots
+        subjects: subjectTeacherAssignments.map(assignment => ({
+          subject_id: assignment.subject_id,
+          teacher_id: assignment.teacher_id
+        })),
+        time_slots: timeSlots,
+        term: academicInfo.term || 'Term 1'
       });
 
-      if (result) {
-        // Generate mock timetable for UI display with editing capability
-        const mockTimetable: GeneratedTimetableEntry[] = [];
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        
-        days.forEach(day => {
-          timeSlots.forEach((slot, index) => {
-            const assignment = subjectTeacherAssignments[index % subjectTeacherAssignments.length];
-            mockTimetable.push({
-              day,
-              time: `${slot.start} - ${slot.end}`,
-              subject: assignment.subject_name,
-              teacher: assignment.teacher_name,
-              room: `Room ${(index % 20) + 1}`,
-              subject_id: assignment.subject_id,
-              teacher_id: assignment.teacher_id
-            });
+      // Generate mock timetable for UI display with editing capability
+      const mockTimetable: GeneratedTimetableEntry[] = [];
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      
+      days.forEach(day => {
+        timeSlots.forEach((slot, index) => {
+          const assignment = subjectTeacherAssignments[index % subjectTeacherAssignments.length];
+          mockTimetable.push({
+            day,
+            time: `${slot.start} - ${slot.end}`,
+            subject: assignment.subject_name,
+            teacher: assignment.teacher_name,
+            room: `Room ${(index % 20) + 1}`,
+            subject_id: assignment.subject_id,
+            teacher_id: assignment.teacher_id
           });
         });
+      });
 
-        setGeneratedTimetable(mockTimetable);
-        setCurrentStep(6);
-      }
+      setGeneratedTimetable(mockTimetable);
+      setCurrentStep(6);
     } catch (error) {
       console.error('Timetable generation error:', error);
     }
@@ -614,7 +627,7 @@ const EnhancedTimetableGenerator = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -686,6 +699,161 @@ const EnhancedTimetableGenerator = () => {
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Generated Timetables List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Generated Timetables
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoadingTimetables ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p>Loading timetables...</p>
+            </div>
+          ) : generatedTimetables.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No timetables generated yet.</p>
+              <p className="text-sm">Generate your first timetable using the wizard above.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {generatedTimetables.map((timetable) => (
+                <div key={timetable.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-lg">{timetable.class_name}</h3>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>Created: {new Date(timetable.created_at).toLocaleDateString()}</span>
+                        <span>Entries: {timetable.entries.length}</span>
+                        <Badge variant={timetable.is_published ? "default" : "secondary"}>
+                          {timetable.is_published ? "Published" : "Draft"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const className = timetable.class_name;
+                          const htmlContent = `
+                            <!DOCTYPE html>
+                            <html>
+                              <head>
+                                <title>Timetable - ${className}</title>
+                                <style>
+                                  body { font-family: Arial, sans-serif; margin: 20px; }
+                                  .header { text-align: center; margin-bottom: 30px; }
+                                  .school-name { font-size: 24px; font-weight: bold; color: #1e40af; }
+                                  .class-title { font-size: 18px; margin: 10px 0; }
+                                  table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                                  th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+                                  th { background-color: #f3f4f6; font-weight: bold; }
+                                  .time-slot { background-color: #fef3c7; font-weight: bold; }
+                                  .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
+                                  .footer-brand { font-weight: bold; color: #1e40af; }
+                                  @media print { body { margin: 0; } .no-print { display: none; } }
+                                </style>
+                              </head>
+                              <body>
+                                <div class="header">
+                                  <div class="school-name">School Timetable</div>
+                                  <div class="class-title">${className}</div>
+                                </div>
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th>Time</th>
+                                      <th>Monday</th>
+                                      <th>Tuesday</th>
+                                      <th>Wednesday</th>
+                                      <th>Thursday</th>
+                                      <th>Friday</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    ${timeSlots.map(slot => {
+                                      const slotEntries = timetable.entries.filter(entry => 
+                                        entry.start_time === slot.start && entry.end_time === slot.end
+                                      );
+                                      return `
+                                        <tr>
+                                          <td class="time-slot">${slot.start} - ${slot.end}</td>
+                                          ${['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].map(day => {
+                                            const entry = slotEntries.find(e => e.day_of_week === day);
+                                            return `<td>${entry ? `${entry.subjects?.name || 'Subject'}<br><small>${entry.profiles?.name || 'Teacher'}</small><br><small>${entry.room || ''}</small>` : '-'}</td>`;
+                                          }).join('')}
+                                        </tr>
+                                      `;
+                                    }).join('')}
+                                  </tbody>
+                                </table>
+                                <div class="footer">
+                                  <div class="footer-brand">Powered by Edufam</div>
+                                </div>
+                              </body>
+                            </html>
+                          `;
+                          const printWindow = window.open('', '_blank');
+                          if (printWindow) {
+                            printWindow.document.write(htmlContent);
+                            printWindow.document.close();
+                            printWindow.print();
+                          }
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        PDF
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => togglePublish({ 
+                          class_id: timetable.class_id, 
+                          is_published: !timetable.is_published 
+                        })}
+                        disabled={isTogglingPublish}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        {timetable.is_published ? "Unpublish" : "Publish"}
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => sendToTeachers(timetable.class_id)}
+                        disabled={isSendingToTeachers || !timetable.is_published}
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Send to Teachers
+                      </Button>
+                      
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete the timetable for ${timetable.class_name}?`)) {
+                            deleteTimetable(timetable.class_id);
+                          }
+                        }}
+                        disabled={isDeletingTimetable}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
