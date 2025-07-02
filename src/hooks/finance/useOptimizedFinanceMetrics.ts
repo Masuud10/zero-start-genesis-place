@@ -20,6 +20,7 @@ export const useOptimizedFinanceMetrics = () => {
 
   const fetchOptimizedMetrics = async () => {
     if (!user?.school_id) {
+      console.log('💰 No user or school_id, skipping metrics fetch');
       setMetrics({
         totalRevenue: 0,
         totalCollected: 0,
@@ -30,6 +31,7 @@ export const useOptimizedFinanceMetrics = () => {
         defaultersCount: 0
       });
       setIsLoading(false);
+      setError(null);
       return;
     }
 
@@ -151,9 +153,12 @@ export const useOptimizedFinanceMetrics = () => {
     let mounted = true;
     
     if (user?.school_id && mounted) {
+      console.log('💰 User with school_id found, fetching metrics');
       fetchOptimizedMetrics();
     } else if (mounted) {
+      console.log('💰 No user/school_id, setting loading to false');
       setIsLoading(false);
+      setError(null);
     }
 
     return () => {
