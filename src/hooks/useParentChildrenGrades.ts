@@ -33,110 +33,149 @@ export const useParentChildrenGrades = () => {
     setError(null);
 
     try {
-      // First, get the parent's children
-      const { data: parentStudents, error: parentStudentsError } = await supabase
-        .from('parent_students')
-        .select('student_id')
-        .eq('parent_id', user.id);
+      console.log('📚 Parent Children Grades: Starting fetch for parent:', user.id);
 
-      if (parentStudentsError) {
-        throw new Error('Could not fetch your children information');
-      }
+      // Ultra-optimized timeout control  
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('📚 Parent grades query timed out');
+      }, 5000);
 
-      if (!parentStudents || parentStudents.length === 0) {
-        setChildrenGrades([]);
-        setLoading(false);
-        return;
-      }
+      try {
+        // Single optimized query to get parent's children using new index
+        const { data: parentStudents, error: parentStudentsError } = await supabase
+          .from('parent_students')
+          .select('student_id')
+          .eq('parent_id', user.id)
+          .limit(20) // Reasonable limit for children
+          .abortSignal(controller.signal);
 
-      const studentIds = parentStudents.map(ps => ps.student_id);
-
-      // Get students info with class information
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select(`
-          id, 
-          name, 
-          class_id,
-          classes!students_class_id_fkey(name)
-        `)
-        .in('id', studentIds);
-
-      if (studentsError) {
-        throw new Error('Could not fetch student information');
-      }
-
-      // Get released grades for these students with subject information
-      const { data: gradesData, error: gradesError } = await supabase
-        .from('grades')
-        .select(`
-          student_id,
-          score,
-          max_score,
-          percentage,
-          letter_grade,
-          term,
-          exam_type,
-          created_at,
-          subjects!grades_subject_id_fkey(name)
-        `)
-        .in('student_id', studentIds)
-        .eq('status', 'released')
-        .order('created_at', { ascending: false });
-
-      if (gradesError) {
-        throw new Error('Could not fetch grades');
-      }
-
-      // Process the data
-      const childrenGradesMap: Record<string, ChildGrade> = {};
-
-      // Initialize with student data
-      studentsData?.forEach(student => {
-        const classes = student.classes as any;
-        childrenGradesMap[student.id] = {
-          student_id: student.id,
-          student_name: student.name,
-          class_name: classes?.name || 'Unknown Class',
-          recent_grades: [],
-          average_score: 0,
-          total_subjects: 0
-        };
-      });
-
-      // Add grades data
-      gradesData?.forEach(grade => {
-        if (childrenGradesMap[grade.student_id]) {
-          const subjects = grade.subjects as any;
-          childrenGradesMap[grade.student_id].recent_grades.push({
-            subject: subjects?.name || 'Unknown Subject',
-            score: grade.score || 0,
-            max_score: grade.max_score || 100,
-            percentage: grade.percentage || 0,
-            letter_grade: grade.letter_grade || 'N/A',
-            term: grade.term,
-            exam_type: grade.exam_type || 'Unknown'
-          });
+        if (parentStudentsError) {
+          throw new Error('Could not fetch your children information');
         }
-      });
 
-      // Calculate averages and limit recent grades
-      Object.values(childrenGradesMap).forEach(child => {
-        // Sort by most recent and take top 5
-        child.recent_grades = child.recent_grades
-          .sort((a, b) => new Date(b.term).getTime() - new Date(a.term).getTime())
-          .slice(0, 5);
-
-        // Calculate average
-        if (child.recent_grades.length > 0) {
-          child.average_score = child.recent_grades.reduce((sum, grade) => sum + grade.percentage, 0) / child.recent_grades.length;
-          child.total_subjects = new Set(child.recent_grades.map(g => g.subject)).size;
+        if (!parentStudents || parentStudents.length === 0) {
+          setChildrenGrades([]);
+          setLoading(false);
+          clearTimeout(timeoutId);
+          return;
         }
-      });
 
-      setChildrenGrades(Object.values(childrenGradesMap));
+        const studentIds = parentStudents.map(ps => ps.student_id);
+        console.log('📚 Found students:', studentIds.length);
+
+        // Optimized parallel queries with proper limits
+        const [studentsResult, gradesResult] = await Promise.all([
+          // Get students with class info in single optimized query
+          supabase
+            .from('students')
+            .select(`
+              id, 
+              name, 
+              class_id,
+              classes!students_class_id_fkey(name)
+            `)
+            .in('id', studentIds)
+            .limit(20)
+            .abortSignal(controller.signal),
+
+          // Get only recent released grades (last 3 months) with subject info
+          supabase
+            .from('grades')
+            .select(`
+              student_id,
+              score,
+              max_score,
+              percentage,
+              letter_grade,
+              term,
+              exam_type,
+              created_at,
+              subjects!grades_subject_id_fkey(name)
+            `)
+            .in('student_id', studentIds)
+            .eq('status', 'released')
+            .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()) // Last 3 months only
+            .order('created_at', { ascending: false })
+            .limit(100) // Limit total grades to prevent excessive data
+            .abortSignal(controller.signal)
+        ]);
+
+        clearTimeout(timeoutId);
+
+        if (studentsResult.error) {
+          throw new Error('Could not fetch student information');
+        }
+
+        if (gradesResult.error) {
+          throw new Error('Could not fetch grades');
+        }
+
+        // Process the data efficiently
+        const childrenGradesMap: Record<string, ChildGrade> = {};
+
+        // Initialize with student data
+        studentsResult.data?.forEach(student => {
+          const classes = student.classes as any;
+          childrenGradesMap[student.id] = {
+            student_id: student.id,
+            student_name: student.name,
+            class_name: classes?.name || 'Unknown Class',
+            recent_grades: [],
+            average_score: 0,
+            total_subjects: 0
+          };
+        });
+
+        // Add grades data efficiently
+        gradesResult.data?.forEach(grade => {
+          if (childrenGradesMap[grade.student_id]) {
+            const subjects = grade.subjects as any;
+            childrenGradesMap[grade.student_id].recent_grades.push({
+              subject: subjects?.name || 'Unknown Subject',
+              score: grade.score || 0,
+              max_score: grade.max_score || 100,
+              percentage: grade.percentage || 0,
+              letter_grade: grade.letter_grade || 'N/A',
+              term: grade.term,
+              exam_type: grade.exam_type || 'Unknown'
+            });
+          }
+        });
+
+        // Calculate averages and limit recent grades efficiently
+        Object.values(childrenGradesMap).forEach(child => {
+          // Sort by most recent and take top 5 only
+          child.recent_grades = child.recent_grades
+            .sort((a, b) => new Date(b.term).getTime() - new Date(a.term).getTime())
+            .slice(0, 5);
+
+          // Calculate average only if we have grades
+          if (child.recent_grades.length > 0) {
+            const validGrades = child.recent_grades.filter(g => g.percentage > 0);
+            if (validGrades.length > 0) {
+              child.average_score = Math.round(
+                validGrades.reduce((sum, grade) => sum + grade.percentage, 0) / validGrades.length
+              );
+              child.total_subjects = new Set(validGrades.map(g => g.subject)).size;
+            }
+          }
+        });
+
+        setChildrenGrades(Object.values(childrenGradesMap));
+        console.log('📚 Successfully loaded grades for', Object.keys(childrenGradesMap).length, 'children');
+
+      } catch (queryError) {
+        clearTimeout(timeoutId);
+        if (queryError.name === 'AbortError') {
+          throw new Error('Grades query timed out - please try again');
+        }
+        throw queryError;
+      }
+
     } catch (error: any) {
-      console.error('Error fetching children grades:', error);
+      console.error('📚 Error fetching children grades:', error);
       setError(error.message);
     } finally {
       setLoading(false);

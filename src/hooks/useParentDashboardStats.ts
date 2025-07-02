@@ -29,82 +29,148 @@ export const useParentDashboardStats = (user: AuthUser) => {
         return;
       }
       
-      let childrenIds: string[] = [];
-      const { data: directChildren } = await supabase
-        .from('students')
-        .select('id')
-        .eq('parent_id', user.id);
-
-      const { data: relationshipChildren } = await supabase
-        .from('parent_students')
-        .select('student_id')
-        .eq('parent_id', user.id);
-
-      if (directChildren) childrenIds = childrenIds.concat(directChildren.map(x => x.id));
-      if (relationshipChildren) childrenIds = childrenIds.concat(relationshipChildren.map(x => x.student_id));
-      childrenIds = [...new Set(childrenIds)];
-
-      let attendancePercent = 0;
-      let feeBalance = 0;
-      let recentGrade = "";
-      let recentSubject = "";
-
-      if (childrenIds.length > 0) {
-        // Attendance this month
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().substring(0, 10);
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().substring(0, 10);
+      try {
+        console.log('📊 Parent Dashboard: Starting stats fetch for parent:', user.id);
         
-        const { data: attendanceRows } = await supabase
-          .from('attendance')
-          .select('status')
-          .in('student_id', childrenIds)
-          .gte('date', firstDayOfMonth)
-          .lte('date', lastDayOfMonth);
-        
-        if (attendanceRows) {
-          const total = attendanceRows.length;
-          const present = attendanceRows.filter(r => r.status?.toLowerCase() === 'present').length;
-          attendancePercent = total > 0 ? (present / total) * 100 : 0;
+        // Ultra-optimized single query to get children IDs using new index
+        const { data: parentStudents, error: parentError } = await supabase
+          .from('parent_students')
+          .select('student_id')
+          .eq('parent_id', user.id)
+          .limit(50); // Reasonable limit for performance
+
+        if (parentError) {
+          console.error('📊 Parent students query error:', parentError);
+          throw parentError;
         }
 
-        // Fee balance
-        const { data: studentFees } = await supabase
-          .from('fees')
-          .select('amount, paid_amount')
-          .in('student_id', childrenIds);
+        // Check for direct parent relationships in students table (legacy support)
+        const { data: directChildren, error: directError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('parent_id', user.id)
+          .limit(50);
 
-        if (studentFees) {
-          feeBalance = studentFees.reduce((sum, fee) => sum + (fee.amount || 0) - (fee.paid_amount || 0), 0);
+        if (directError) {
+          console.error('📊 Direct children query error:', directError);
+          // Don't throw, just continue without direct children
         }
 
-        // Recent grade
-        const { data: grades } = await supabase
-          .from('grades')
-          .select('percentage, subjects!subject_id(name)')
-          .in('student_id', childrenIds)
-          .order('created_at', { ascending: false })
-          .limit(1);
+        // Combine and deduplicate student IDs
+        let childrenIds: string[] = [];
+        if (parentStudents) childrenIds = parentStudents.map(x => x.student_id);
+        if (directChildren) childrenIds = [...childrenIds, ...directChildren.map(x => x.id)];
+        childrenIds = [...new Set(childrenIds)];
 
-        if (grades && grades.length > 0) {
-          const grade = grades[0] as any;
-          const percent = grade.percentage;
-          recentGrade = percent !== undefined && percent !== null
-            ? percent >= 80 ? "A" : percent >= 70 ? "B+" : percent >= 60 ? "B" : percent >= 50 ? "C" : "D"
-            : "-";
-          recentSubject = grade.subjects?.name || "Subject";
+        console.log('📊 Found children:', childrenIds.length);
+
+        if (childrenIds.length === 0) {
+          setStats({
+            childrenCount: 0,
+            attendance: 0,
+            feeBalance: 0,
+            recentGrade: "",
+            recentSubject: "",
+          });
+          setLoading(false);
+          return;
         }
+
+        // Optimized parallel queries with proper limits and timeouts
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const [attendanceResult, feeResult, gradeResult] = await Promise.all([
+            // Optimized attendance query for current month only
+            supabase
+              .from('attendance')
+              .select('status')
+              .in('student_id', childrenIds)
+              .gte('date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+              .lte('date', new Date().toISOString().split('T')[0])
+              .limit(200)
+              .abortSignal(controller.signal),
+
+            // Optimized fee query with minimal fields
+            supabase
+              .from('fees')
+              .select('amount, paid_amount')
+              .in('student_id', childrenIds)
+              .not('amount', 'is', null)
+              .limit(100)
+              .abortSignal(controller.signal),
+
+            // Optimized recent grade query using new index
+            supabase
+              .from('grades')
+              .select('percentage, subjects!subject_id(name)')
+              .in('student_id', childrenIds)
+              .eq('status', 'released')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .abortSignal(controller.signal)
+          ]);
+
+          clearTimeout(timeoutId);
+
+          // Process results efficiently
+          let attendancePercent = 0;
+          if (attendanceResult.data && attendanceResult.data.length > 0) {
+            const total = attendanceResult.data.length;
+            const present = attendanceResult.data.filter(r => r.status?.toLowerCase() === 'present').length;
+            attendancePercent = Math.round((present / total) * 100);
+          }
+
+          let feeBalance = 0;
+          if (feeResult.data) {
+            feeBalance = feeResult.data.reduce((sum, fee) => {
+              return sum + Math.max(0, (fee.amount || 0) - (fee.paid_amount || 0));
+            }, 0);
+          }
+
+          let recentGrade = "";
+          let recentSubject = "";
+          if (gradeResult.data && gradeResult.data.length > 0) {
+            const grade = gradeResult.data[0] as any;
+            const percent = grade.percentage;
+            recentGrade = percent !== undefined && percent !== null
+              ? percent >= 80 ? "A" : percent >= 70 ? "B+" : percent >= 60 ? "B" : percent >= 50 ? "C" : "D"
+              : "-";
+            recentSubject = grade.subjects?.name || "Subject";
+          }
+
+          setStats({
+            childrenCount: childrenIds.length,
+            attendance: attendancePercent,
+            feeBalance,
+            recentGrade,
+            recentSubject,
+          });
+
+        } catch (queryError) {
+          clearTimeout(timeoutId);
+          if (queryError.name === 'AbortError') {
+            throw new Error('Dashboard queries timed out');
+          }
+          throw queryError;
+        }
+
+      } catch (err: any) {
+        console.error('📊 Parent dashboard stats error:', err);
+        // Set safe defaults on error
+        setStats({
+          childrenCount: 0,
+          attendance: 0,
+          feeBalance: 0,
+          recentGrade: "-",
+          recentSubject: "N/A",
+        });
+      } finally {
+        setLoading(false);
       }
-
-      setStats({
-        childrenCount: childrenIds.length,
-        attendance: attendancePercent,
-        feeBalance,
-        recentGrade,
-        recentSubject,
-      });
-      setLoading(false);
     };
+
     fetchStats();
   }, [user.id]);
 
