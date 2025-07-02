@@ -6,6 +6,7 @@ import PrincipalDashboard from '@/components/dashboard/PrincipalDashboard';
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 import ParentDashboard from '@/components/dashboard/ParentDashboard';
 import FinanceOfficerDashboard from '@/components/dashboard/FinanceOfficerDashboard';
+import ErrorFallback from '@/components/common/ErrorFallback';
 
 // Lazy load heavy components to improve performance
 const GradesModule = React.lazy(() => import('@/components/modules/GradesModule'));
@@ -90,41 +91,82 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
   }
 
   // Render other sections with lazy loading and error boundaries
-  const renderLazyComponent = (Component: React.LazyExoticComponent<React.ComponentType<any>>) => (
-    <React.Suspense fallback={
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse">Loading...</div>
-      </div>
-    }>
-      <Component />
-    </React.Suspense>
-  );
+  const renderLazyComponent = (Component: React.LazyExoticComponent<React.ComponentType<any>>, componentName?: string) => {
+    const ErrorBoundary = React.forwardRef<any, { children: React.ReactNode }>((props, ref) => {
+      const [hasError, setHasError] = React.useState(false);
+      const [error, setError] = React.useState<Error | null>(null);
+
+      React.useEffect(() => {
+        const handleError = (event: ErrorEvent) => {
+          console.error(`🚨 Error in ${componentName || 'component'}:`, event.error);
+          setError(event.error);
+          setHasError(true);
+        };
+
+        window.addEventListener('error', handleError);
+        return () => window.removeEventListener('error', handleError);
+      }, []);
+
+      if (hasError) {
+        return (
+          <ErrorFallback 
+            error={error || `Failed to load ${componentName || 'component'}`}
+            resetError={() => {
+              setHasError(false);
+              setError(null);
+            }}
+            context={`${componentName || 'component'} module`}
+            showDetails={process.env.NODE_ENV === 'development'}
+          />
+        );
+      }
+
+      return <>{props.children}</>;
+    });
+
+    return (
+      <ErrorBoundary>
+        <React.Suspense fallback={
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-pulse flex items-center gap-2">
+              <div className="h-6 w-6 bg-primary/20 rounded animate-spin"></div>
+              <span className="text-muted-foreground">
+                Loading {componentName || 'component'}...
+              </span>
+            </div>
+          </div>
+        }>
+          <Component />
+        </React.Suspense>
+      </ErrorBoundary>
+    );
+  };
 
   // School Management - Fix access for principals
   if (activeSection === 'school-management') {
     if (user?.role === 'principal') {
-      return renderLazyComponent(SchoolManagementDashboard);
+      return renderLazyComponent(SchoolManagementDashboard, 'SchoolManagementDashboard');
     }
     return <div className="p-8 text-center text-red-600">Access Denied: Principal access required</div>;
   }
 
   // System Settings - Only for EduFam Admins
   if (activeSection === 'settings') {
-    return renderLazyComponent(SystemSettings);
+    return renderLazyComponent(SystemSettings, 'SystemSettings');
   }
 
   // Analytics sections - Fix access for teachers, principals, and school owners
   if (activeSection === 'analytics') {
     if (user?.role === 'edufam_admin' || user?.role === 'elimisha_admin') {
-      return renderLazyComponent(EduFamAnalyticsOverview);
+      return renderLazyComponent(EduFamAnalyticsOverview, 'EduFamAnalyticsOverview');
     }
     // Allow principals and school owners to access their school analytics
     if (user?.role === 'principal' || user?.role === 'school_owner') {
-      return renderLazyComponent(AnalyticsDashboard);
+      return renderLazyComponent(AnalyticsDashboard, 'AnalyticsDashboard');
     }
     // Allow teachers to access their class analytics
     if (user?.role === 'teacher') {
-      return renderLazyComponent(AnalyticsDashboard);
+      return renderLazyComponent(AnalyticsDashboard, 'TeacherAnalyticsDashboard');
     }
     return <div className="p-8 text-center text-red-600">Access Denied: Analytics access restricted</div>;
   }
@@ -133,100 +175,100 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
   switch (activeSection) {
     case 'fee-management':
       if (hasFinanceAccess) {
-        return renderLazyComponent(FeeManagementModule);
+        return renderLazyComponent(FeeManagementModule, 'FeeManagementModule');
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'mpesa-payments':
       if (hasFinanceAccess) {
-        return renderLazyComponent(MpesaPaymentsPanel);
+        return renderLazyComponent(MpesaPaymentsPanel, 'MpesaPaymentsPanel');
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'financial-reports':
       if (hasFinanceAccess) {
-        return renderLazyComponent(FinancialReportsPanel);
+        return renderLazyComponent(FinancialReportsPanel, 'FinancialReportsPanel');
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'financial-analytics':
       if (hasFinanceAccess) {
-        return renderLazyComponent(FinanceAnalyticsPanel);
+        return renderLazyComponent(FinanceAnalyticsPanel, 'FinanceAnalyticsPanel');
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'student-accounts':
       if (hasFinanceAccess) {
-        return renderLazyComponent(StudentAccountsPanel);
+        return renderLazyComponent(StudentAccountsPanel, 'StudentAccountsPanel');
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'finance-settings':
       if (hasFinanceAccess) {
-        return renderLazyComponent(FinanceSettingsPanel);
+        return renderLazyComponent(FinanceSettingsPanel, 'FinanceSettingsPanel');
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
 
     // Other sections with role-based access
     case 'project-hub':
       if (user?.role === 'edufam_admin') {
-        return renderLazyComponent(ProjectHubModule);
+        return renderLazyComponent(ProjectHubModule, 'ProjectHubModule');
       }
       return <div>Project Hub access restricted to EduFam administrators</div>;
     case 'school-analytics':
       if (user?.role === 'edufam_admin') {
-        return renderLazyComponent(SchoolAnalyticsList);
+        return renderLazyComponent(SchoolAnalyticsList, 'SchoolAnalyticsList');
       }
       return <div>School Analytics access restricted to EduFam administrators</div>;
     case 'company-management':
       if (user?.role === 'edufam_admin') {
-        return renderLazyComponent(CompanyManagementModule);
+        return renderLazyComponent(CompanyManagementModule, 'CompanyManagementModule');
       }
       return <div>Company Management access restricted to EduFam administrators</div>;
     case 'grades':
       // Teachers get their own specialized grade management module
       if (user?.role === 'teacher') {
-        return renderLazyComponent(TeacherGradesModule);
+        return renderLazyComponent(TeacherGradesModule, 'TeacherGradesModule');
       }
-      return renderLazyComponent(GradesModule);
+      return renderLazyComponent(GradesModule, 'GradesModule');
     case 'attendance':
-      return renderLazyComponent(AttendanceModule);
+      return renderLazyComponent(AttendanceModule, 'AttendanceModule');
     case 'students':
-      return renderLazyComponent(StudentsModule);
+      return renderLazyComponent(StudentsModule, 'StudentsModule');
     case 'finance':
       if (hasFinanceAccess) {
-        return renderLazyComponent(FinancialOverview);
+        return renderLazyComponent(FinancialOverview, 'FinancialOverview');
       }
       return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'timetable':
       // Teachers get their own timetable view
       if (user?.role === 'teacher') {
-        return renderLazyComponent(TeacherTimetableModule);
+        return renderLazyComponent(TeacherTimetableModule, 'TeacherTimetableModule');
       }
-      return renderLazyComponent(TimetableModule);
+      return renderLazyComponent(TimetableModule, 'TimetableModule');
     case 'announcements':
-      return renderLazyComponent(AnnouncementsModule);
+      return renderLazyComponent(AnnouncementsModule, 'AnnouncementsModule');
     case 'messages':
-      return renderLazyComponent(MessagesModule);
+      return renderLazyComponent(MessagesModule, 'MessagesModule');
     case 'reports':
       // Teachers get restricted access to only grade and attendance reports
       if (user?.role === 'teacher') {
-        return renderLazyComponent(TeacherReportsModule);
+        return renderLazyComponent(TeacherReportsModule, 'TeacherReportsModule');
       }
-      return renderLazyComponent(ReportsModule);
+      return renderLazyComponent(ReportsModule, 'ReportsModule');
     case 'schools':
-      return renderLazyComponent(SchoolsModule);
+      return renderLazyComponent(SchoolsModule, 'SchoolsModule');
     case 'users':
-      return renderLazyComponent(UsersModule);
+      return renderLazyComponent(UsersModule, 'UsersModule');
     case 'billing':
-      return renderLazyComponent(BillingModule);
+      return renderLazyComponent(BillingModule, 'BillingModule');
     case 'system-health':
-      return renderLazyComponent(SystemHealthModule);
+      return renderLazyComponent(SystemHealthModule, 'SystemHealthModule');
     case 'security':
-      return renderLazyComponent(SecurityModule);
+      return renderLazyComponent(SecurityModule, 'SecurityModule');
     case 'support':
       // Teachers get their own simplified support module
       if (user?.role === 'teacher') {
-        return renderLazyComponent(TeacherSupportModule);
+        return renderLazyComponent(TeacherSupportModule, 'TeacherSupportModule');
       }
-      return renderLazyComponent(SupportModule);
+      return renderLazyComponent(SupportModule, 'SupportModule');
     case 'certificates':
-      return renderLazyComponent(CertificatesModule);
+      return renderLazyComponent(CertificatesModule, 'CertificatesModule');
     default:
       console.warn('📋 ContentRenderer: Unknown section:', activeSection);
       return (
