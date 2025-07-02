@@ -1,139 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Search, Filter, Eye, MessageSquare, Clock, CheckCircle, AlertCircle, Users, Calendar } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { Search, MessageSquare, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useSupportTickets } from '@/hooks/useSupportTickets';
+import SupportTicketManagement from './support/SupportTicketManagement';
 
-interface SupportTicket {
-  id: string;
-  school_id?: string;
-  created_by: string;
-  title: string;
-  description: string;
-  type: 'technical' | 'feature_request' | 'billing' | 'feedback';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  assigned_to?: string;
-  created_at: string;
-  resolved_at?: string;
-  creator_name?: string;
-  school_name?: string;
-}
 
 const SupportModule = () => {
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { tickets } = useSupportTickets();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [response, setResponse] = useState('');
-  const [isResponding, setIsResponding] = useState(false);
-  const { toast } = useToast();
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
-
-  const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select(`
-          *,
-          profiles!support_tickets_created_by_fkey(name),
-          schools(name)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedData = data?.map(item => ({
-        id: item.id,
-        school_id: item.school_id,
-        created_by: item.created_by,
-        title: item.title,
-        description: item.description,
-        type: item.type as 'technical' | 'feature_request' | 'billing' | 'feedback',
-        status: item.status as 'open' | 'in_progress' | 'resolved' | 'closed',
-        priority: item.priority as 'low' | 'medium' | 'high' | 'urgent',
-        assigned_to: item.assigned_to,
-        created_at: item.created_at,
-        resolved_at: item.resolved_at,
-        creator_name: item.profiles?.name,
-        school_name: item.schools?.name
-      })) || [];
-
-      setTickets(formattedData);
-    } catch (error) {
-      console.error('Error fetching support tickets:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch support tickets",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateStatus = async (ticketId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('support_tickets')
-        .update({ 
-          status: newStatus,
-          resolved_at: newStatus === 'resolved' ? new Date().toISOString() : null
-        })
-        .eq('id', ticketId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Ticket status updated successfully",
-      });
-
-      fetchTickets();
-    } catch (error) {
-      console.error('Error updating ticket status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update ticket status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'urgent': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getTicketStats = () => {
     return {
@@ -261,129 +141,40 @@ const SupportModule = () => {
         </Select>
       </div>
 
-      {/* Tickets Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Support Tickets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center p-8">
+      {/* Advanced Admin Support Interface */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Filtered Tickets List */}
+        <div className="lg:col-span-2">
+          <SupportTicketManagement 
+            title="All Support Tickets"
+            description="Manage support requests from all schools"
+            showCreateButton={false}
+          />
+        </div>
+        
+        {/* Summary and Quick Actions */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="text-center">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p>Loading support tickets...</p>
+                <div className="text-3xl font-bold text-red-600">{stats.urgent}</div>
+                <p className="text-sm text-muted-foreground">Urgent Tickets</p>
               </div>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>School</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.title}</TableCell>
-                    <TableCell>{ticket.school_name || 'N/A'}</TableCell>
-                    <TableCell>{ticket.creator_name || 'Unknown'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {ticket.type.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getPriorityColor(ticket.priority)}>
-                        {ticket.priority}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(ticket.status)}>
-                        {ticket.status.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{new Date(ticket.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" onClick={() => setSelectedTicket(ticket)}>
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>{ticket.title}</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label>School</Label>
-                                  <p className="text-sm">{ticket.school_name || 'N/A'}</p>
-                                </div>
-                                <div>
-                                  <Label>Created By</Label>
-                                  <p className="text-sm">{ticket.creator_name || 'Unknown'}</p>
-                                </div>
-                                <div>
-                                  <Label>Type</Label>
-                                  <p className="text-sm">{ticket.type.replace('_', ' ')}</p>
-                                </div>
-                                <div>
-                                  <Label>Priority</Label>
-                                  <Badge className={getPriorityColor(ticket.priority)}>
-                                    {ticket.priority}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div>
-                                <Label>Description</Label>
-                                <p className="text-sm bg-gray-50 p-3 rounded-md">{ticket.description}</p>
-                              </div>
-                              <div>
-                                <Label>Status</Label>
-                                <Select value={ticket.status} onValueChange={(value) => handleUpdateStatus(ticket.id, value)}>
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="open">Open</SelectItem>
-                                    <SelectItem value="in_progress">In Progress</SelectItem>
-                                    <SelectItem value="resolved">Resolved</SelectItem>
-                                    <SelectItem value="closed">Closed</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                        <Select value={ticket.status} onValueChange={(value) => handleUpdateStatus(ticket.id, value)}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="resolved">Resolved</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">{stats.open}</div>
+                <p className="text-sm text-muted-foreground">Open Tickets</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-yellow-600">{stats.inProgress}</div>
+                <p className="text-sm text-muted-foreground">In Progress</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

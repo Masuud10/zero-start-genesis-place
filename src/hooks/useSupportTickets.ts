@@ -17,6 +17,7 @@ export interface SupportTicket {
   created_at: string;
   resolved_at?: string;
   creator_name?: string;
+  school_name?: string;
 }
 
 export type NewSupportTicket = Omit<SupportTicket, 'id' | 'created_at' | 'created_by' | 'school_id' | 'status' | 'creator_name' | 'resolved_at' | 'assigned_to' | 'attachments'>
@@ -45,7 +46,8 @@ export const useSupportTickets = () => {
         .from('support_tickets')
         .select(`
           *,
-          profiles!support_tickets_created_by_fkey(name)
+          profiles!support_tickets_created_by_fkey(name),
+          schools(name)
         `)
         .order('created_at', { ascending: false });
 
@@ -76,7 +78,8 @@ export const useSupportTickets = () => {
         attachments: item.attachments,
         created_at: item.created_at,
         resolved_at: item.resolved_at,
-        creator_name: item.profiles?.name
+        creator_name: item.profiles?.name,
+        school_name: item.schools?.name
       })) || [];
 
       console.log('🎫 Support tickets fetched:', formattedData.length, 'tickets for role:', user.role);
@@ -126,11 +129,41 @@ export const useSupportTickets = () => {
     }
   };
 
+  const updateTicketStatus = async (ticketId: string, newStatus: string) => {
+    if (!user) return { data: null, error: new Error("User not authenticated") };
+    
+    if (user.role !== 'edufam_admin') {
+      return { data: null, error: new Error("Only EduFam Admin can update ticket status") };
+    }
+
+    try {
+      console.log('🎫 Updating ticket status:', ticketId, newStatus);
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .update({ 
+          status: newStatus,
+          resolved_at: newStatus === 'resolved' ? new Date().toISOString() : null
+        })
+        .eq('id', ticketId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      console.log('🎫 Ticket status updated successfully');
+      await fetchTickets();
+      return { data, error: null };
+    } catch (error: any) {
+      console.error('🎫 Error updating ticket status:', error);
+      return { data: null, error };
+    }
+  };
+
   return {
     tickets,
     loading,
     error,
     createTicket,
+    updateTicketStatus,
     refetch: fetchTickets,
     retry: fetchTickets,
   };
