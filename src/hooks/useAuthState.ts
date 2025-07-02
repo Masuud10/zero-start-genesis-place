@@ -7,7 +7,7 @@ import { UserRole } from '@/types/user';
 
 // Simple role validation function to avoid external dependencies
 const isValidRole = (role: string): boolean => {
-  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
+  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'];
   return validRoles.includes(role as UserRole);
 };
 
@@ -100,7 +100,7 @@ export const useAuthState = () => {
       const profile = await Promise.race([
         fetchProfile(authUser.id),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile timeout')), 1000)
+          setTimeout(() => reject(new Error('Profile timeout')), 3000)
         )
       ]).catch((err) => {
         console.warn('🔐 AuthState: Profile fetch failed, continuing with minimal data:', err);
@@ -144,17 +144,17 @@ export const useAuthState = () => {
           
           console.log('🔐 AuthState: No valid database/metadata role found, using email fallback for new user');
           
-          if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com' || emailLower.includes('admin.')) {
+          if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com' || emailLower.includes('admin.edufam') || emailLower.includes('edufam.admin')) {
             resolvedRole = 'edufam_admin';
-          } else if (emailLower.includes('elimisha')) {
+          } else if (emailLower.includes('elimisha') || emailLower.includes('admin@elimisha')) {
             resolvedRole = 'elimisha_admin';
-          } else if (emailLower.includes('principal')) {
+          } else if (emailLower.includes('principal') || emailLower.includes('head')) {
             resolvedRole = 'principal';
-          } else if (emailLower.includes('teacher')) {
+          } else if (emailLower.includes('teacher') || emailLower.includes('tutor')) {
             resolvedRole = 'teacher';
-          } else if (emailLower.includes('finance') || emailLower.includes('bursar') || emailLower.includes('accounts')) {
+          } else if (emailLower.includes('finance') || emailLower.includes('bursar') || emailLower.includes('accounts') || emailLower.includes('accountant')) {
             resolvedRole = 'finance_officer';
-          } else if (emailLower.includes('owner')) {
+          } else if (emailLower.includes('owner') || emailLower.includes('proprietor')) {
             resolvedRole = 'school_owner';
           } else {
             resolvedRole = 'parent';
