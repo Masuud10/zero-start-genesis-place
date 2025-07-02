@@ -7327,6 +7327,10 @@ export type Database = {
         Args: { strand_scores: Json; competency_weightings: Json }
         Returns: string
       }
+      calculate_class_grade_stats: {
+        Args: { p_class_id: string; p_term: string; p_exam_type: string }
+        Returns: Json
+      }
       calculate_class_positions: {
         Args: { p_class_id: string; p_term: string; p_exam_type: string }
         Returns: undefined
@@ -7549,6 +7553,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_fee_payment: {
+        Args: { p_fee_id: string; p_payment_amount: number }
+        Returns: undefined
+      }
       update_grade_status: {
         Args: { grade_ids: string[]; new_status: string; user_id: string }
         Returns: Json
@@ -7568,6 +7576,18 @@ export type Database = {
       update_user_status: {
         Args: { target_user_id: string; new_status: string }
         Returns: Json
+      }
+      validate_grade_submission: {
+        Args: {
+          p_student_id: string
+          p_subject_id: string
+          p_class_id: string
+          p_term: string
+          p_exam_type: string
+          p_score: number
+          p_max_score: number
+        }
+        Returns: string
       }
       validate_password_strength: {
         Args: { password: string }

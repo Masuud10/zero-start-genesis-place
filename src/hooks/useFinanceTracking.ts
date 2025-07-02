@@ -93,15 +93,35 @@ export const useFinanceTracking = () => {
 
       // CRITICAL: Update student fee balance if fee_id is provided
       if (paymentData.fee_id) {
-        const { error: feeUpdateError } = await withDatabaseRetry(
-          () => supabase.rpc('update_fee_payment', {
-            p_fee_id: paymentData.fee_id,
-            p_payment_amount: Number(paymentData.amount)
-          }),
-          'update_fee_payment'
-        );
+        try {
+          // Update fee balance manually until RPC function is available in types
+          const { data: feeData, error: feeQueryError } = await withDatabaseRetry(
+            () => supabase
+              .from('fees')
+              .select('paid_amount, amount')
+              .eq('id', paymentData.fee_id)
+              .single(),
+            'fetch_fee_for_update'
+          );
 
-        if (feeUpdateError) {
+          if (!feeQueryError && feeData) {
+            const newPaidAmount = (feeData.paid_amount || 0) + Number(paymentData.amount);
+            const newStatus = newPaidAmount >= feeData.amount ? 'paid' : 
+                             newPaidAmount > 0 ? 'partial' : 'pending';
+
+            await withDatabaseRetry(
+              () => supabase
+                .from('fees')
+                .update({
+                  paid_amount: newPaidAmount,
+                  status: newStatus,
+                  paid_date: newStatus === 'paid' ? new Date().toISOString().split('T')[0] : undefined
+                })
+                .eq('id', paymentData.fee_id),
+              'update_fee_balance'
+            );
+          }
+        } catch (feeUpdateError) {
           console.warn('Fee balance update failed:', feeUpdateError);
           // Don't fail the entire transaction, but log it
         }

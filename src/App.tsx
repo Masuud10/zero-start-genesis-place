@@ -7,6 +7,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { SchoolProvider } from '@/contexts/SchoolContext';
 import { NavigationProvider } from '@/contexts/NavigationContext';
+import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
 import AppContent from '@/components/AppContent';
 import './App.css';
 
@@ -33,20 +34,22 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <ThemeProvider>
-            <SchoolProvider>
-              <NavigationProvider>
-                <AppContent />
-                <Toaster />
-              </NavigationProvider>
-            </SchoolProvider>
-          </ThemeProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <GlobalErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <ThemeProvider>
+              <SchoolProvider>
+                <NavigationProvider>
+                  <AppContent />
+                  <Toaster />
+                </NavigationProvider>
+              </SchoolProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </GlobalErrorBoundary>
   );
 }
 
