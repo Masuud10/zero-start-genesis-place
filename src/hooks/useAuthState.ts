@@ -96,90 +96,73 @@ export const useAuthState = () => {
         return;
       }
 
-      // Fetch profile with shorter timeout to prevent system-wide blocking
-      const profile = await Promise.race([
-        fetchProfile(authUser.id),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile timeout')), 3000)
-        )
-      ]).catch((err) => {
-        console.warn('🔐 AuthState: Profile fetch failed, continuing with minimal data:', err);
-        return null;
-      });
+      // Defer profile fetch to prevent auth blocking
+      let profile = null;
+      setTimeout(async () => {
+        try {
+          profile = await fetchProfile(authUser.id);
+          if (profile && isMountedRef.current) {
+            // Update user with profile data after initial auth is complete
+            setUser(prev => prev ? { ...prev, ...profile } : prev);
+          }
+        } catch (err) {
+          console.warn('🔐 AuthState: Deferred profile fetch failed:', err);
+        }
+      }, 0);
 
       if (!isMountedRef.current) return;
 
-      // Check profile status as well
-      if (profile && profile.status === 'inactive') {
-        console.log('🔐 AuthState: User profile is inactive, signing out');
-        await supabase.auth.signOut();
-        if (isMountedRef.current) {
-          setUser(null);
-          setError('Your account has been deactivated. Please contact your administrator.');
-          setIsLoading(false);
-          setIsInitialized(true);
-        }
-        return;
-      }
+      // Profile status check will happen in deferred fetch
 
-      // STRICT ROLE DETECTION: Database first, then fallback for new users only
-      let resolvedRole = profile?.role;
+      // STRICT ROLE DETECTION: Metadata first (since profile is deferred), then email fallback
+      let resolvedRole = authUser.app_metadata?.role || authUser.user_metadata?.role;
       
-      console.log('🔐 AuthState: Profile role from database:', resolvedRole);
+      console.log('🔐 AuthState: Metadata role found:', resolvedRole);
       
-      // If role exists in database profile, use it and skip all fallbacks
+      // If valid role exists in metadata, use it
       if (resolvedRole && isValidRole(resolvedRole)) {
-        console.log('🔐 AuthState: Using verified database role:', resolvedRole);
+        console.log('🔐 AuthState: Using verified metadata role:', resolvedRole);
       } else {
-        // Only for new users without database roles: check metadata first
-        resolvedRole = authUser.app_metadata?.role || authUser.user_metadata?.role;
-        console.log('🔐 AuthState: Metadata role found:', resolvedRole);
+        // Last resort: Email-based detection for new registrations only
+        const emailLower = authUser.email.toLowerCase();
         
-        // Validate metadata role before using
-        if (resolvedRole && isValidRole(resolvedRole)) {
-          console.log('🔐 AuthState: Using valid metadata role:', resolvedRole);
+        console.log('🔐 AuthState: No valid database/metadata role found, using email fallback for new user');
+        
+        if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com' || emailLower.includes('admin.edufam') || emailLower.includes('edufam.admin')) {
+          resolvedRole = 'edufam_admin';
+        } else if (emailLower.includes('elimisha') || emailLower.includes('admin@elimisha')) {
+          resolvedRole = 'elimisha_admin';
+        } else if (emailLower.includes('principal') || emailLower.includes('head')) {
+          resolvedRole = 'principal';
+        } else if (emailLower.includes('teacher') || emailLower.includes('tutor')) {
+          resolvedRole = 'teacher';
+        } else if (emailLower.includes('finance') || emailLower.includes('bursar') || emailLower.includes('accounts') || emailLower.includes('accountant')) {
+          resolvedRole = 'finance_officer';
+        } else if (emailLower.includes('owner') || emailLower.includes('proprietor')) {
+          resolvedRole = 'school_owner';
         } else {
-          // Last resort: Email-based detection for new registrations only
-          const emailLower = authUser.email.toLowerCase();
-          
-          console.log('🔐 AuthState: No valid database/metadata role found, using email fallback for new user');
-          
-          if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com' || emailLower.includes('admin.edufam') || emailLower.includes('edufam.admin')) {
-            resolvedRole = 'edufam_admin';
-          } else if (emailLower.includes('elimisha') || emailLower.includes('admin@elimisha')) {
-            resolvedRole = 'elimisha_admin';
-          } else if (emailLower.includes('principal') || emailLower.includes('head')) {
-            resolvedRole = 'principal';
-          } else if (emailLower.includes('teacher') || emailLower.includes('tutor')) {
-            resolvedRole = 'teacher';
-          } else if (emailLower.includes('finance') || emailLower.includes('bursar') || emailLower.includes('accounts') || emailLower.includes('accountant')) {
-            resolvedRole = 'finance_officer';
-          } else if (emailLower.includes('owner') || emailLower.includes('proprietor')) {
-            resolvedRole = 'school_owner';
-          } else {
-            resolvedRole = 'parent';
-          }
-          
-          console.log('🔐 AuthState: Email-based role determined for new user:', resolvedRole);
-          
-          // Update database with inferred role for future logins
-          if (resolvedRole) {
-            setTimeout(async () => {
-              try {
-                await supabase
-                  .from('profiles')
-                  .upsert({ 
-                    id: authUser.id, 
-                    email: authUser.email,
-                    role: resolvedRole,
-                    name: authUser.user_metadata?.name || authUser.email.split('@')[0]
-                  });
-                console.log('🔐 AuthState: Profile role updated in database for future logins');
-              } catch (updateError) {
-                console.warn('🔐 AuthState: Failed to update profile role:', updateError);
-              }
-            }, 100);
-          }
+          resolvedRole = 'parent';
+        }
+        
+        console.log('🔐 AuthState: Email-based role determined for new user:', resolvedRole);
+        
+        // Update database with inferred role for future logins
+        if (resolvedRole) {
+          setTimeout(async () => {
+            try {
+              await supabase
+                .from('profiles')
+                .upsert({ 
+                  id: authUser.id, 
+                  email: authUser.email,
+                  role: resolvedRole,
+                  name: authUser.user_metadata?.name || authUser.email.split('@')[0]
+                });
+              console.log('🔐 AuthState: Profile role updated in database for future logins');
+            } catch (updateError) {
+              console.warn('🔐 AuthState: Failed to update profile role:', updateError);
+            }
+          }, 100);
         }
       }
 

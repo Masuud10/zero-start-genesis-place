@@ -14,8 +14,20 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
+      retry: (failureCount, error: any) => {
+        // Don't retry auth errors
+        if (error?.message?.includes('auth') || error?.message?.includes('unauthorized')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: 'always',
     },
+    mutations: {
+      retry: false, // Don't retry mutations to prevent data inconsistency
+    }
   },
 });
 
