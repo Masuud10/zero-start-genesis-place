@@ -111,6 +111,30 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       roles: ['finance_officer']
     },
     {
+      id: 'mpesa-payments',
+      label: 'MPESA Payments',
+      icon: Banknote,
+      roles: ['finance_officer']
+    },
+    {
+      id: 'financial-analytics',
+      label: 'Financial Analytics',
+      icon: BarChart3,
+      roles: ['finance_officer', 'principal', 'school_owner']
+    },
+    {
+      id: 'financial-reports',
+      label: 'Financial Reports',
+      icon: FileText,
+      roles: ['finance_officer', 'principal', 'school_owner']
+    },
+    {
+      id: 'finance-settings',
+      label: 'Finance Settings',
+      icon: Settings,
+      roles: ['finance_officer']
+    },
+    {
       id: 'certificates',
       label: 'Certificates',
       icon: Award,
