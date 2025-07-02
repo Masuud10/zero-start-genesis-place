@@ -89,13 +89,16 @@ export const useAuthState = () => {
         return;
       }
 
-      // Fetch profile with timeout
+      // Fetch profile with shorter timeout to prevent system-wide blocking
       const profile = await Promise.race([
         fetchProfile(authUser.id),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile timeout')), 3000)
+          setTimeout(() => reject(new Error('Profile timeout')), 1000)
         )
-      ]).catch(() => null);
+      ]).catch((err) => {
+        console.warn('🔐 AuthState: Profile fetch failed, continuing with minimal data:', err);
+        return null;
+      });
 
       if (!isMountedRef.current) return;
 
@@ -146,20 +149,22 @@ export const useAuthState = () => {
           
           console.log('🔐 AuthState: Email-based role determined:', resolvedRole);
           
-          // Update profile with determined role
+          // Defer profile updates to avoid blocking auth initialization
           if (resolvedRole) {
-            try {
-              await supabase
-                .from('profiles')
-                .upsert({ 
-                  id: authUser.id, 
-                  email: authUser.email,
-                  role: resolvedRole,
-                  name: authUser.user_metadata?.name || authUser.email.split('@')[0]
-                });
-            } catch (updateError) {
-              console.warn('🔐 AuthState: Failed to update profile role:', updateError);
-            }
+            setTimeout(async () => {
+              try {
+                await supabase
+                  .from('profiles')
+                  .upsert({ 
+                    id: authUser.id, 
+                    email: authUser.email,
+                    role: resolvedRole,
+                    name: authUser.user_metadata?.name || authUser.email.split('@')[0]
+                  });
+              } catch (updateError) {
+                console.warn('🔐 AuthState: Failed to update profile role:', updateError);
+              }
+            }, 100);
           }
         }
       }
@@ -169,28 +174,8 @@ export const useAuthState = () => {
                         authUser.user_metadata?.school_id ||
                         authUser.app_metadata?.school_id;
 
-      // For non-admin roles without school, assign to first available school
-      if (!['elimisha_admin', 'edufam_admin'].includes(resolvedRole) && !userSchoolId) {
-        const { data: schools } = await supabase
-          .from('schools')
-          .select('id')
-          .order('created_at')
-          .limit(1);
-        
-        if (schools && schools.length > 0) {
-          userSchoolId = schools[0].id;
-          
-          // Update profile with school assignment
-          try {
-            await supabase
-              .from('profiles')
-              .update({ school_id: userSchoolId })
-              .eq('id', authUser.id);
-          } catch (updateError) {
-            console.warn('🔐 AuthState: Failed to update school assignment:', updateError);
-          }
-        }
-      }
+      // For non-admin roles without school, we'll handle this later to avoid blocking auth
+      // Don't block authentication initialization with school assignment queries
 
       const userData: AuthUser = {
         id: authUser.id,
