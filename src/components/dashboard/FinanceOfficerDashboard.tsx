@@ -6,6 +6,7 @@ import { Loader2, AlertCircle, RefreshCw, DollarSign, TrendingUp, Users, CreditC
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import FinanceAnalyticsCharts from '@/components/finance/FinanceAnalyticsCharts';
 
 interface FinanceOfficerDashboardProps {
   user: AuthUser;
@@ -95,19 +96,8 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
 
   return (
     <div className="space-y-8" key={refreshKey}>
-      {/* Welcome Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Finance Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user.name || user.email}</p>
-        </div>
-        <Button onClick={handleRefresh} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
       {/* Quick Stats Cards */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -161,6 +151,9 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({ user 
           </CardContent>
         </Card>
       </div>
+
+      {/* Financial Analytics Charts */}
+      <FinanceAnalyticsCharts />
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

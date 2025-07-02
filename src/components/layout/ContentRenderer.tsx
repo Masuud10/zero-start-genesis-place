@@ -39,6 +39,7 @@ const StudentAccountsPanel = React.lazy(() => import('@/components/finance/Stude
 const FinanceSettingsPanel = React.lazy(() => import('@/components/finance/FinanceSettingsPanel'));
 const SchoolManagementDashboard = React.lazy(() => import('@/components/dashboard/principal/SchoolManagementDashboard'));
 const AnalyticsDashboard = React.lazy(() => import('@/components/analytics/AnalyticsDashboard'));
+const FinancialOverview = React.lazy(() => import('@/components/finance/FinancialOverview'));
 
 interface ContentRendererProps {
   activeSection: string;
@@ -176,7 +177,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
     case 'students':
       return renderLazyComponent(StudentsModule);
     case 'finance':
-      return renderLazyComponent(FinanceModule);
+      if (hasFinanceAccess) {
+        return renderLazyComponent(FinancialOverview);
+      }
+      return <div className="p-8 text-center text-red-600">Access Denied: Finance access required</div>;
     case 'timetable':
       return renderLazyComponent(TimetableModule);
     case 'announcements':
