@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { FileText, Download, Loader2, BarChart3, Users, Calendar, DollarSign, GraduationCap, FileSpreadsheet, Printer } from 'lucide-react';
+import { FileText, Download, Loader2, BarChart3, Users, Calendar, DollarSign, GraduationCap, FileSpreadsheet, Printer, TrendingUp, Target, Award, BookOpen } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -33,17 +35,54 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
   const [academicYear, setAcademicYear] = useState('');
   const [term, setTerm] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const { toast } = useToast();
   const { schoolId } = useSchoolScopedData();
 
   const reportTypes = [
-    { value: 'individual_student', label: 'Individual Student Performance Report', icon: GraduationCap },
-    { value: 'academic_performance', label: 'Academic Performance Summary', icon: BarChart3 },
-    { value: 'attendance_summary', label: 'Attendance Summary Report', icon: Calendar },
-    { value: 'financial_performance', label: 'Financial Performance Report', icon: DollarSign },
-    { value: 'class_performance', label: 'Class Performance Report', icon: Users },
-    { value: 'subject_performance', label: 'Subject Performance Report', icon: FileText }
+    { 
+      value: 'individual_student' as ReportType, 
+      label: 'Individual Student Performance Report', 
+      icon: GraduationCap,
+      description: 'Comprehensive report for individual student performance',
+      color: 'bg-blue-50 hover:bg-blue-100 border-blue-200'
+    },
+    { 
+      value: 'academic_performance' as ReportType, 
+      label: 'Academic Performance Summary', 
+      icon: BarChart3,
+      description: 'Overall academic performance across all classes and subjects',
+      color: 'bg-green-50 hover:bg-green-100 border-green-200'
+    },
+    { 
+      value: 'attendance_summary' as ReportType, 
+      label: 'Attendance Summary Report', 
+      icon: Calendar,
+      description: 'Student attendance patterns and statistics',
+      color: 'bg-yellow-50 hover:bg-yellow-100 border-yellow-200'
+    },
+    { 
+      value: 'financial_performance' as ReportType, 
+      label: 'Financial Performance Report', 
+      icon: DollarSign,
+      description: 'Fee collection, expenses, and financial analytics',
+      color: 'bg-purple-50 hover:bg-purple-100 border-purple-200'
+    },
+    { 
+      value: 'class_performance' as ReportType, 
+      label: 'Class Performance Report', 
+      icon: Users,
+      description: 'Class-wise performance analysis and comparison',
+      color: 'bg-orange-50 hover:bg-orange-100 border-orange-200'
+    },
+    { 
+      value: 'subject_performance' as ReportType, 
+      label: 'Subject Performance Report', 
+      icon: BookOpen,
+      description: 'Subject-wise performance trends and insights',
+      color: 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200'
+    }
   ];
 
   const terms = ['Term 1', 'Term 2', 'Term 3'];
@@ -125,8 +164,8 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
     // School details
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    if (school?.location) {
-      doc.text(school.location, 20, 28);
+    if (school?.address) {
+      doc.text(school.address, 20, 28);
     }
     
     // Report type and timestamp
@@ -546,6 +585,47 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
       let sheetName = 'Report';
 
       switch (reportType) {
+        case 'individual_student':
+          if (!selectedStudent) {
+            toast({
+              title: "Student Required",
+              description: "Please select a student for individual reports.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          const { data: studentData } = await supabase
+            .from('students')
+            .select(`
+              *,
+              classes!students_class_id_fkey(name, level),
+              grades!grades_student_id_fkey(
+                score, max_score, percentage, letter_grade, term,
+                subjects!grades_subject_id_fkey(name)
+              ),
+              fees!fees_student_id_fkey(amount, paid_amount, status, category, term)
+            `)
+            .eq('id', selectedStudent)
+            .eq('school_id', schoolId)
+            .single();
+
+          if (studentData) {
+            data = studentData.grades?.map(g => ({
+              'Student Name': studentData.name,
+              'Admission Number': studentData.admission_number,
+              'Class': studentData.classes?.name,
+              'Subject': g.subjects?.name,
+              'Score': g.score,
+              'Max Score': g.max_score,
+              'Percentage': g.percentage,
+              'Grade': g.letter_grade,
+              'Term': g.term
+            })) || [];
+          }
+          sheetName = 'Student_Performance';
+          break;
+
         case 'academic_performance':
           const { data: gradesData } = await supabase
             .from('grades')
@@ -750,20 +830,11 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
     }
   };
 
-  const handleGenerateReport = async (format: 'pdf' | 'excel') => {
+  const generateReport = async (format: 'pdf' | 'excel' | 'print') => {
     if (reportType === 'individual_student' && !selectedStudent) {
       toast({
         title: "Student Required",
         description: "Please select a student for individual reports.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!['individual_student', 'academic_performance', 'financial_performance'].includes(reportType) && selectedClasses.length === 0) {
-      toast({
-        title: "Classes Required",
-        description: "Please select at least one class.",
         variant: "destructive"
       });
       return;
@@ -774,8 +845,12 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
     try {
       if (format === 'pdf') {
         await generatePDFReport();
-      } else {
+      } else if (format === 'excel') {
         await generateExcelReport();
+      } else if (format === 'print') {
+        // Generate PDF and open print dialog
+        await generatePDFReport();
+        setTimeout(() => window.print(), 1000);
       }
       onReportGenerated?.();
     } finally {
@@ -783,179 +858,368 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
     }
   };
 
-  const handleClose = () => {
-    setReportType('academic_performance');
-    setSelectedClasses([]);
-    setSelectedStudent('');
-    setAcademicYear('');
-    setTerm('');
-    onClose?.();
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Generate Principal Reports
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="border-b pb-4">
+          <DialogTitle className="flex items-center gap-3 text-2xl">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <FileText className="h-6 w-6 text-primary" />
+            </div>
+            School Reports Generator
           </DialogTitle>
-          <DialogDescription>
-            Create comprehensive reports for your school's performance and administration
+          <DialogDescription className="text-base">
+            Generate comprehensive reports for your school's academic and administrative data with professional formatting.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Report Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="reportType">Report Type</Label>
-                  <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select report type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {reportTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          <div className="flex items-center gap-2">
-                            <type.icon className="w-4 h-4" />
-                            {type.label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="academicYear">Academic Year</Label>
-                  <Select value={academicYear} onValueChange={setAcademicYear}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={new Date().getFullYear().toString()}>
-                        {new Date().getFullYear()}
-                      </SelectItem>
-                      <SelectItem value={(new Date().getFullYear() - 1).toString()}>
-                        {new Date().getFullYear() - 1}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="term">Term (Optional)</Label>
-                  <Select value={term} onValueChange={setTerm}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select term" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {terms.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <div className="space-y-8 py-6">
+          {/* Progress Steps */}
+          <div className="flex items-center justify-center space-x-4 mb-8">
+            <div className={`flex items-center ${currentStep >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 1 ? 'bg-primary text-white' : 'bg-muted'}`}>
+                1
               </div>
-            </CardContent>
-          </Card>
-
-          {reportType === 'individual_student' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Select Student</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a student" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {students.map((student) => (
-                      <SelectItem key={student.id} value={student.id}>
-                        {student.name} - {student.admission_number} ({student.classes?.name})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-          )}
-
-          {!['individual_student', 'academic_performance', 'financial_performance'].includes(reportType) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Select Classes</CardTitle>
-                <p className="text-sm text-muted-foreground">Leave empty to include all classes</p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {classes.map((classItem) => (
-                    <div key={classItem.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={classItem.id}
-                        checked={selectedClasses.includes(classItem.id)}
-                        onCheckedChange={(checked) => handleClassSelection(classItem.id, checked as boolean)}
-                      />
-                      <Label htmlFor={classItem.id} className="text-sm">
-                        {classItem.name}
-                        {classItem.stream && ` - ${classItem.stream}`}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={handleClose} disabled={isGenerating}>
-              Cancel
-            </Button>
-            
-            <div className="flex space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={() => handleGenerateReport('excel')} 
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />
-                )}
-                Excel
-              </Button>
-              
-              <Button onClick={() => handleGenerateReport('pdf')} disabled={isGenerating}>
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    PDF
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={() => window.print()} 
-                disabled={isGenerating}
-              >
-                <Printer className="w-4 h-4 mr-2" />
-                Print
-              </Button>
+              <span className="ml-2 font-medium">Select Type</span>
+            </div>
+            <div className={`w-12 h-0.5 ${currentStep > 1 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`flex items-center ${currentStep >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 2 ? 'bg-primary text-white' : 'bg-muted'}`}>
+                2
+              </div>
+              <span className="ml-2 font-medium">Configure</span>
+            </div>
+            <div className={`w-12 h-0.5 ${currentStep > 2 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`flex items-center ${currentStep >= 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 3 ? 'bg-primary text-white' : 'bg-muted'}`}>
+                3
+              </div>
+              <span className="ml-2 font-medium">Generate</span>
             </div>
           </div>
+
+          {/* Step 1: Report Type Selection */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2">Choose Your Report Type</h3>
+                <p className="text-muted-foreground">Select the type of report you want to generate</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {reportTypes.map((type) => {
+                  const Icon = type.icon;
+                  return (
+                    <Card
+                      key={type.value}
+                      className={`cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+                        reportType === type.value 
+                          ? 'ring-2 ring-primary border-primary shadow-lg' 
+                          : type.color
+                      }`}
+                      onClick={() => {
+                        setReportType(type.value);
+                        setCurrentStep(2);
+                      }}
+                    >
+                      <CardContent className="p-6 text-center space-y-4">
+                        <div className="mx-auto w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md">
+                          <Icon className="h-8 w-8 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg mb-2">{type.label}</h3>
+                          <p className="text-sm text-muted-foreground">{type.description}</p>
+                        </div>
+                        {reportType === type.value && (
+                          <Badge className="bg-primary text-white">Selected</Badge>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => setCurrentStep(2)} 
+                  disabled={!reportType}
+                  size="lg"
+                  className="px-8"
+                >
+                  Continue to Configuration
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Configuration */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2">Configure Report Parameters</h3>
+                <p className="text-muted-foreground">Set up filters and options for your report</p>
+              </div>
+
+              <Card className="border-2">
+                <CardHeader className="bg-muted/30">
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    Report Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  {/* Basic Filters */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="academic-year" className="text-sm font-medium">Academic Year</Label>
+                      <Select value={academicYear} onValueChange={setAcademicYear}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select Academic Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2024">2024</SelectItem>
+                          <SelectItem value="2023">2023</SelectItem>
+                          <SelectItem value="2022">2022</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="term" className="text-sm font-medium">Term</Label>
+                      <Select value={term} onValueChange={setTerm}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select Term (Optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {terms.map(termOption => (
+                            <SelectItem key={termOption} value={termOption}>
+                              {termOption}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {reportType === 'individual_student' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="student" className="text-sm font-medium">Student *</Label>
+                        <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Select Student" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {students.map(student => (
+                              <SelectItem key={student.id} value={student.id}>
+                                {student.name} ({student.admission_number})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Class Selection for certain report types */}
+                  {['academic_performance', 'attendance_summary', 'class_performance', 'subject_performance'].includes(reportType) && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Select Classes</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedClasses(classes.map(c => c.id))}
+                          >
+                            Select All
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedClasses([])}
+                          >
+                            Clear All
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto p-4 border rounded-lg bg-muted/20">
+                        {classes.map(classItem => (
+                          <div key={classItem.id} className="flex items-center space-x-2 p-2 hover:bg-white rounded">
+                            <Checkbox
+                              id={classItem.id}
+                              checked={selectedClasses.includes(classItem.id)}
+                              onCheckedChange={(checked) => handleClassSelection(classItem.id, checked as boolean)}
+                            />
+                            <Label htmlFor={classItem.id} className="text-sm cursor-pointer flex-1">
+                              {classItem.name}
+                              {classItem.level && (
+                                <span className="text-xs text-muted-foreground block">Level {classItem.level}</span>
+                              )}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                      {selectedClasses.length === 0 && (
+                        <p className="text-sm text-muted-foreground">No classes selected - will include all classes</p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                  Back to Report Types
+                </Button>
+                <Button 
+                  onClick={() => setCurrentStep(3)}
+                  disabled={reportType === 'individual_student' && !selectedStudent}
+                  size="lg"
+                >
+                  Continue to Generate
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Generation */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2">Generate Your Report</h3>
+                <p className="text-muted-foreground">Choose your preferred format and generate the report</p>
+              </div>
+
+              {/* Report Summary */}
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="bg-primary/5">
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    Report Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Report Type:</span>
+                      <p className="font-semibold">{reportTypes.find(r => r.value === reportType)?.label}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">School:</span>
+                      <p className="font-semibold">{school?.name || 'Loading...'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Academic Year:</span>
+                      <p className="font-semibold">{academicYear || 'All Years'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Term:</span>
+                      <p className="font-semibold">{term || 'All Terms'}</p>
+                    </div>
+                    {reportType === 'individual_student' && selectedStudent && (
+                      <div className="md:col-span-2">
+                        <span className="text-sm font-medium text-muted-foreground">Student:</span>
+                        <p className="font-semibold">
+                          {students.find(s => s.id === selectedStudent)?.name} 
+                          ({students.find(s => s.id === selectedStudent)?.admission_number})
+                        </p>
+                      </div>
+                    )}
+                    {selectedClasses.length > 0 && (
+                      <div className="md:col-span-2">
+                        <span className="text-sm font-medium text-muted-foreground">Selected Classes:</span>
+                        <p className="font-semibold">
+                          {selectedClasses.length === classes.length 
+                            ? 'All Classes' 
+                            : `${selectedClasses.length} classes selected`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Generation Options */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6 text-center">
+                    <Button
+                      onClick={() => generateReport('pdf')}
+                      disabled={isGenerating || !schoolId}
+                      className="w-full h-auto flex-col py-6"
+                      size="lg"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                          <span>Generating PDF...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-8 w-8 mb-2" />
+                          <span>Generate PDF Report</span>
+                          <span className="text-xs opacity-75 mt-1">Professional formatting</span>
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6 text-center">
+                    <Button
+                      onClick={() => generateReport('excel')}
+                      disabled={isGenerating || !schoolId}
+                      variant="outline"
+                      className="w-full h-auto flex-col py-6"
+                      size="lg"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                          <span>Generating Excel...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileSpreadsheet className="h-8 w-8 mb-2" />
+                          <span>Generate Excel Report</span>
+                          <span className="text-xs opacity-75 mt-1">Data analysis ready</span>
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6 text-center">
+                    <Button
+                      onClick={() => generateReport('print')}
+                      disabled={isGenerating || !schoolId}
+                      variant="outline"
+                      className="w-full h-auto flex-col py-6"
+                      size="lg"
+                    >
+                      <Printer className="h-8 w-8 mb-2" />
+                      <span>Print Report</span>
+                      <span className="text-xs opacity-75 mt-1">Direct printing</span>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setCurrentStep(2)}>
+                  Back to Configuration
+                </Button>
+                <Button variant="outline" onClick={onClose}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
