@@ -1,8 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import TeacherTimetableModal from '@/components/modals/TeacherTimetableModal';
+import TeacherGradeBookModal from '@/components/modals/TeacherGradeBookModal';
+import TeacherClassListModal from '@/components/modals/TeacherClassListModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +40,10 @@ interface ClassAssignment {
 const MyClasses: React.FC = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
+  
+  const [timetableModal, setTimetableModal] = useState({ open: false, classId: '', className: '' });
+  const [gradeBookModal, setGradeBookModal] = useState({ open: false, classId: '', className: '' });
+  const [classListModal, setClassListModal] = useState({ open: false, classId: '', className: '' });
 
   const { data: assignments, isLoading, error } = useQuery({
     queryKey: ['teacher-assignments', user?.id, schoolId],
@@ -242,15 +249,30 @@ const MyClasses: React.FC = () => {
 
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2 mt-4 pt-3 border-t">
-                  <Button size="sm" variant="outline" className="text-xs">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => setTimetableModal({ open: true, classId: classData.class.id, className: classData.class.name })}
+                  >
                     <Calendar className="h-3 w-3 mr-1" />
                     View Timetable
                   </Button>
-                  <Button size="sm" variant="outline" className="text-xs">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => setGradeBookModal({ open: true, classId: classData.class.id, className: classData.class.name })}
+                  >
                     <ClipboardList className="h-3 w-3 mr-1" />
                     Grade Book
                   </Button>
-                  <Button size="sm" variant="outline" className="text-xs">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs"
+                    onClick={() => setClassListModal({ open: true, classId: classData.class.id, className: classData.class.name })}
+                  >
                     <Users className="h-3 w-3 mr-1" />
                     Class List
                   </Button>
@@ -281,6 +303,28 @@ const MyClasses: React.FC = () => {
             </Badge>
           </div>
         </div>
+
+        {/* Modals */}
+        <TeacherTimetableModal
+          open={timetableModal.open}
+          onClose={() => setTimetableModal({ open: false, classId: '', className: '' })}
+          classId={timetableModal.classId}
+          className={timetableModal.className}
+        />
+        
+        <TeacherGradeBookModal
+          open={gradeBookModal.open}
+          onClose={() => setGradeBookModal({ open: false, classId: '', className: '' })}
+          classId={gradeBookModal.classId}
+          className={gradeBookModal.className}
+        />
+        
+        <TeacherClassListModal
+          open={classListModal.open}
+          onClose={() => setClassListModal({ open: false, classId: '', className: '' })}
+          classId={classListModal.classId}
+          className={classListModal.className}
+        />
       </CardContent>
     </Card>
   );

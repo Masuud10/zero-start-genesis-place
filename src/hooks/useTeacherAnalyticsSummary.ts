@@ -22,56 +22,78 @@ const fetchTeacherAnalyticsSummary = async (userId: string | undefined, schoolId
   }
 
   try {
-    // Fetch teacher's assigned classes for the current school
-    const { data: teacherClasses, error: tcErr } = await supabase
-      .from("teacher_classes")
+    // Fetch teacher's assigned classes from subject_teacher_assignments
+    const { data: teacherAssignments, error: tcErr } = await supabase
+      .from("subject_teacher_assignments")
       .select("class_id")
       .eq("teacher_id", userId)
-      .eq("school_id", schoolId);
+      .eq("school_id", schoolId)
+      .eq("is_active", true);
       
-    if (tcErr) throw new Error("Failed to load class assignments.");
-    if (!teacherClasses || teacherClasses.length === 0) {
+    if (tcErr) {
+      console.error("Teacher assignments fetch error:", tcErr);
+      throw new Error("Failed to load class assignments.");
+    }
+    
+    if (!teacherAssignments || teacherAssignments.length === 0) {
         return { avgGrade: null, gradesSubmitted: null, gradesExpected: null, attendanceRate: null };
     }
 
-    const classIds = teacherClasses.map(row => row.class_id);
+    const classIds = [...new Set(teacherAssignments.map(row => row.class_id))];
 
+    // Fetch analytics data from actual grades and attendance tables
     const [
-        gradeSummaryRes,
-        submittedCountRes,
-        expectedCountRes,
-        attendanceSummaryRes
+        gradesRes,
+        attendanceRes
     ] = await Promise.all([
-        supabase.from("grade_summary").select("average_score").in("class_id", classIds).eq('school_id', schoolId),
-        supabase.from("grades").select("id", { count: "exact", head: true }).eq("submitted_by", userId).eq("status", "finalized").in("class_id", classIds).eq('school_id', schoolId),
-        supabase.from("grades").select("id", { count: "exact", head: true }).in("class_id", classIds).eq('school_id', schoolId),
-        supabase.from("attendance_summary").select("attendance_percentage").in("class_id", classIds).eq('school_id', schoolId)
+        supabase
+          .from("grades")
+          .select("percentage, status, submitted_by")
+          .in("class_id", classIds)
+          .eq('school_id', schoolId)
+          .in('status', ['approved', 'released', 'submitted']),
+        supabase
+          .from("attendance")
+          .select("status, class_id")
+          .in("class_id", classIds)
+          .eq('school_id', schoolId)
+          .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Last 30 days
     ]);
 
-    if (gradeSummaryRes.error) throw new Error("Failed to fetch grade summary.");
-    let avgGrade: number | null = null;
-    if (gradeSummaryRes.data && gradeSummaryRes.data.length > 0) {
-        const totals = gradeSummaryRes.data
-            .map(gs => typeof gs.average_score === "number" ? gs.average_score : Number(gs.average_score) || 0)
-            .filter(x => !isNaN(x));
-        avgGrade = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length) : null;
+    if (gradesRes.error) {
+      console.error("Grades fetch error:", gradesRes.error);
+      throw new Error("Failed to fetch grades data.");
+    }
+    
+    if (attendanceRes.error) {
+      console.error("Attendance fetch error:", attendanceRes.error);
+      throw new Error("Failed to fetch attendance data.");
     }
 
-    if (submittedCountRes.error || expectedCountRes.error) throw new Error("Failed to fetch grade counts.");
+    // Calculate average grade from actual grades
+    let avgGrade: number | null = null;
+    const validGrades = gradesRes.data?.filter(g => g.percentage !== null && !isNaN(Number(g.percentage))) || [];
+    if (validGrades.length > 0) {
+        const total = validGrades.reduce((sum, g) => sum + Number(g.percentage), 0);
+        avgGrade = Math.round(total / validGrades.length);
+    }
 
-    if (attendanceSummaryRes.error) throw new Error("Failed to fetch attendance summary.");
+    // Count grades submitted by this teacher vs expected
+    const teacherGrades = gradesRes.data?.filter(g => g.submitted_by === userId) || [];
+    const submittedCount = teacherGrades.filter(g => ['submitted', 'approved', 'released'].includes(g.status)).length;
+    
+    // Calculate attendance rate
     let attendanceRate: number | null = null;
-    if (attendanceSummaryRes.data && attendanceSummaryRes.data.length > 0) {
-        const rates = attendanceSummaryRes.data
-            .map(a => typeof a.attendance_percentage === "number" ? a.attendance_percentage : Number(a.attendance_percentage) || 0)
-            .filter(x => !isNaN(x));
-        attendanceRate = rates.length ? (rates.reduce((a, b) => a + b, 0) / rates.length) : null;
+    const attendanceData = attendanceRes.data || [];
+    if (attendanceData.length > 0) {
+        const presentCount = attendanceData.filter(a => a.status === 'present').length;
+        attendanceRate = Math.round((presentCount / attendanceData.length) * 100);
     }
 
     return {
         avgGrade,
-        gradesSubmitted: submittedCountRes.count ?? null,
-        gradesExpected: expectedCountRes.count ?? null,
+        gradesSubmitted: submittedCount,
+        gradesExpected: gradesRes.data?.length || 0,
         attendanceRate,
     };
   } catch (err: any) {
