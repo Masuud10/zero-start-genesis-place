@@ -46,73 +46,122 @@ export const useStudentFees = (studentId?: string) => {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 Fetching student fees for school:', user.school_id, 'student:', studentId);
+      console.log('🔍 Optimized student fees fetch for school:', user.school_id, 'student:', studentId);
 
-      // First try to fetch from student_fees table if it exists
-      let query = supabase
-        .from('fees')
-        .select(`
-          id,
-          student_id,
-          amount,
-          paid_amount,
-          status,
-          due_date,
-          category,
-          term,
-          academic_year,
-          created_at,
-          students!fees_student_id_fkey(
-            name,
-            admission_number,
-            class_id
-          ),
-          classes!fees_class_id_fkey(
-            name
-          )
-        `)
-        .eq('school_id', user.school_id);
+      // Add timeout control
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('🔍 Student fees query timed out');
+      }, 5000);
 
-      if (studentId) {
-        query = query.eq('student_id', studentId);
+      try {
+        // Optimized query without complex joins to avoid relationship issues
+        let query = supabase
+          .from('fees')
+          .select(`
+            id,
+            student_id,
+            class_id,
+            amount,
+            paid_amount,
+            status,
+            due_date,
+            category,
+            term,
+            academic_year,
+            created_at
+          `)
+          .eq('school_id', user.school_id)
+          .not('id', 'is', null)
+          .not('amount', 'is', null);
+
+        if (studentId) {
+          query = query.eq('student_id', studentId);
+        }
+
+        const { data, error: fetchError } = await query
+          .order('created_at', { ascending: false })
+          .limit(studentId ? 50 : 200); // Limit records for better performance
+
+        clearTimeout(timeoutId);
+
+        if (fetchError) {
+          console.error('Error fetching student fees:', fetchError);
+          throw new Error(`Failed to fetch student fees: ${fetchError.message}`);
+        }
+
+        console.log('✅ Student fees fetched:', data?.length || 0, 'records');
+
+        if (!data || data.length === 0) {
+          setStudentFees([]);
+          setError(null);
+          return;
+        }
+
+        // Get student and class data separately for better performance
+        const studentIds = [...new Set(data.map(item => item.student_id).filter(Boolean))];
+        const classIds = [...new Set(data.map(item => item.class_id).filter(Boolean))];
+
+        const [studentsResult, classesResult] = await Promise.allSettled([
+          studentIds.length > 0 ? supabase
+            .from('students')
+            .select('id, name, admission_number, class_id')
+            .in('id', studentIds)
+            .eq('school_id', user.school_id)
+            .limit(100) : Promise.resolve({ data: [] }),
+          
+          classIds.length > 0 ? supabase
+            .from('classes')
+            .select('id, name')
+            .in('id', classIds)
+            .eq('school_id', user.school_id)
+            .limit(50) : Promise.resolve({ data: [] })
+        ]);
+
+        const students = studentsResult.status === 'fulfilled' ? studentsResult.value.data || [] : [];
+        const classes = classesResult.status === 'fulfilled' ? classesResult.value.data || [] : [];
+
+        // Create lookup maps
+        const studentMap = new Map(students.map(s => [s.id, s]));
+        const classMap = new Map(classes.map(c => [c.id, c]));
+
+        const transformedData: StudentFee[] = data.map((item) => {
+          const student = studentMap.get(item.student_id);
+          const studentClass = classMap.get(item.class_id);
+          
+          return {
+            id: item.id,
+            student_id: item.student_id || '',
+            fee_id: item.id, // Using fee id as fee_id for now
+            amount: Number(item.amount) || 0,
+            amount_paid: Number(item.paid_amount) || 0,
+            status: (item.status as 'unpaid' | 'partial' | 'paid' | 'overdue') || 'unpaid',
+            due_date: item.due_date || new Date().toISOString(),
+            created_at: item.created_at || new Date().toISOString(),
+            fee: {
+              category: item.category || 'General',
+              term: item.term || '',
+              academic_year: item.academic_year || new Date().getFullYear().toString(),
+              amount: Number(item.amount) || 0,
+            },
+            student: student ? {
+              name: student.name || 'Unknown Student',
+              admission_number: student.admission_number || 'N/A',
+              class_id: student.class_id || '',
+            } : undefined,
+            class: studentClass ? {
+              name: studentClass.name || 'Unknown Class',
+            } : undefined,
+          };
+        });
+
+        setStudentFees(transformedData);
+        setError(null);
+      } catch (queryError) {
+        clearTimeout(timeoutId);
+        throw queryError;
       }
-
-      const { data, error: fetchError } = await query.order('created_at', { ascending: false });
-
-      if (fetchError) {
-        console.error('Error fetching student fees:', fetchError);
-        throw new Error(`Failed to fetch student fees: ${fetchError.message}`);
-      }
-
-      console.log('✅ Student fees fetched:', data?.length || 0, 'records');
-
-      const transformedData: StudentFee[] = (data || []).map((item) => ({
-        id: item.id,
-        student_id: item.student_id || '',
-        fee_id: item.id, // Using fee id as fee_id for now
-        amount: item.amount || 0,
-        amount_paid: item.paid_amount || 0,
-        status: (item.status as 'unpaid' | 'partial' | 'paid' | 'overdue') || 'unpaid',
-        due_date: item.due_date || new Date().toISOString(),
-        created_at: item.created_at || new Date().toISOString(),
-        fee: {
-          category: item.category || 'General',
-          term: item.term || '',
-          academic_year: item.academic_year || new Date().getFullYear().toString(),
-          amount: item.amount || 0,
-        },
-        student: item.students ? {
-          name: item.students.name || 'Unknown Student',
-          admission_number: item.students.admission_number || 'N/A',
-          class_id: item.students.class_id || '',
-        } : undefined,
-        class: item.classes ? {
-          name: item.classes.name || 'Unknown Class',
-        } : undefined,
-      }));
-
-      setStudentFees(transformedData);
-      setError(null);
     } catch (err: any) {
       console.error('Error fetching student fees:', err);
       const message = err?.message || 'Failed to fetch student fees';

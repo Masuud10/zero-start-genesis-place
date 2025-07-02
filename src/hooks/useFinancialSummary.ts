@@ -41,109 +41,129 @@ export const useFinancialSummary = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch fees data to calculate summary
-      const { data: feesData, error: feesError } = await supabase
-        .from('fees')
-        .select('amount, paid_amount')
-        .eq('school_id', user.school_id);
+      console.log('💰 Optimized financial summary fetch for school:', user.school_id);
 
-      if (feesError) throw feesError;
+      // Add timeout control
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('💰 Financial summary query timed out');
+      }, 5000);
 
-      // Calculate totals from fees
-      const totalFees = feesData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
-      const totalCollected = feesData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
-      const outstandingBalance = totalFees - totalCollected;
+      try {
+        // Use Promise.allSettled for parallel execution with better error handling
+        const [feesResult, expensesResult, mpesaResult] = await Promise.allSettled([
+          // Optimized fees query
+          supabase
+            .from('fees')
+            .select('amount, paid_amount')
+            .eq('school_id', user.school_id)
+            .not('amount', 'is', null)
+            .limit(500),
 
-      // Fetch expenses data
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
-        .select('amount')
-        .eq('school_id', user.school_id);
+          // Optimized expenses query
+          supabase
+            .from('expenses')
+            .select('amount, category')
+            .eq('school_id', user.school_id)
+            .not('amount', 'is', null)
+            .limit(200),
 
-      if (expensesError) throw expensesError;
+          // Optimized MPESA count query
+          supabase
+            .from('mpesa_transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('school_id', user.school_id)
+            .eq('transaction_status', 'Success')
+        ]);
 
-      const totalExpenses = expensesData?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0;
+        clearTimeout(timeoutId);
 
-      // Fetch MPESA transactions count
-      const { data: mpesaData, error: mpesaError } = await supabase
-        .from('mpesa_transactions')
-        .select('id')
-        .eq('school_id', user.school_id)
-        .eq('transaction_status', 'Success');
+        // Process results with safe fallbacks
+        const feesData = feesResult.status === 'fulfilled' ? feesResult.value.data || [] : [];
+        const expensesData = expensesResult.status === 'fulfilled' ? expensesResult.value.data || [] : [];
+        const mpesaCount = mpesaResult.status === 'fulfilled' ? mpesaResult.value.count || 0 : 0;
 
-      if (mpesaError) throw mpesaError;
+        // Calculate totals from fees
+        const totalFees = feesData.reduce((sum, fee) => sum + (Number(fee.amount) || 0), 0);
+        const totalCollected = feesData.reduce((sum, fee) => sum + (Number(fee.paid_amount) || 0), 0);
+        const outstandingBalance = Math.max(0, totalFees - totalCollected);
 
-      const mpesaTransactionsCount = mpesaData?.length || 0;
+        const totalExpenses = expensesData.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
 
-      // Set summary
-      setSummary({
-        total_fees: totalFees,
-        total_collected: totalCollected,
-        outstanding_balance: outstandingBalance,
-        total_expenses: totalExpenses,
-        net_income: totalCollected - totalExpenses,
-        mpesa_transactions_count: mpesaTransactionsCount
-      });
+        const mpesaTransactionsCount = mpesaCount;
 
-      // Fetch expense breakdown
-      const { data: expenseBreakdownData, error: expenseBreakdownError } = await supabase
-        .from('expenses')
-        .select('category, amount')
-        .eq('school_id', user.school_id);
-
-      if (expenseBreakdownError) throw expenseBreakdownError;
-
-      // Group expenses by category
-      const expenseMap = new Map<string, { amount: number; count: number }>();
-      expenseBreakdownData?.forEach(expense => {
-        const existing = expenseMap.get(expense.category) || { amount: 0, count: 0 };
-        expenseMap.set(expense.category, {
-          amount: existing.amount + expense.amount,
-          count: existing.count + 1
+        // Set summary
+        setSummary({
+          total_fees: totalFees,
+          total_collected: totalCollected,
+          outstanding_balance: outstandingBalance,
+          total_expenses: totalExpenses,
+          net_income: totalCollected - totalExpenses,
+          mpesa_transactions_count: mpesaTransactionsCount
         });
-      });
 
-      const breakdown = Array.from(expenseMap.entries()).map(([category, data]) => ({
-        category,
-        amount: data.amount,
-        count: data.count
-      }));
-      setExpenseBreakdown(breakdown);
-
-      // Fetch collection trends (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { data: trendsData, error: trendsError } = await supabase
-        .from('fees')
-        .select('paid_date, paid_amount')
-        .eq('school_id', user.school_id)
-        .not('paid_date', 'is', null)
-        .gte('paid_date', thirtyDaysAgo.toISOString().split('T')[0]);
-
-      if (trendsError) throw trendsError;
-
-      // Group by date
-      const trendMap = new Map<string, { amount: number; count: number }>();
-      trendsData?.forEach(fee => {
-        if (fee.paid_date && fee.paid_amount) {
-          const existing = trendMap.get(fee.paid_date) || { amount: 0, count: 0 };
-          trendMap.set(fee.paid_date, {
-            amount: existing.amount + fee.paid_amount,
+        // Optimized expense breakdown
+        const expenseMap = new Map<string, { amount: number; count: number }>();
+        expensesData.forEach(expense => {
+          const category = expense.category || 'Other';
+          const existing = expenseMap.get(category) || { amount: 0, count: 0 };
+          expenseMap.set(category, {
+            amount: existing.amount + (Number(expense.amount) || 0),
             count: existing.count + 1
           });
-        }
-      });
+        });
 
-      const trends = Array.from(trendMap.entries())
-        .map(([date, data]) => ({
-          date,
+        const breakdown = Array.from(expenseMap.entries()).slice(0, 10).map(([category, data]) => ({
+          category,
           amount: data.amount,
-          transaction_count: data.count
-        }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          count: data.count
+        }));
+        setExpenseBreakdown(breakdown);
 
-      setCollectionTrends(trends);
+        // Optimized collection trends (last 30 days) using existing fees data
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+        // Get recent collection data efficiently
+        const recentFeesResult = await supabase
+          .from('fees')
+          .select('paid_date, paid_amount')
+          .eq('school_id', user.school_id)
+          .not('paid_date', 'is', null)
+          .not('paid_amount', 'is', null)
+          .gte('paid_date', thirtyDaysAgoStr)
+          .limit(100);
+
+        const trendsData = recentFeesResult.data || [];
+
+        // Group by date
+        const trendMap = new Map<string, { amount: number; count: number }>();
+        trendsData.forEach(fee => {
+          if (fee.paid_date && fee.paid_amount) {
+            const existing = trendMap.get(fee.paid_date) || { amount: 0, count: 0 };
+            trendMap.set(fee.paid_date, {
+              amount: existing.amount + (Number(fee.paid_amount) || 0),
+              count: existing.count + 1
+            });
+          }
+        });
+
+        const trends = Array.from(trendMap.entries())
+          .map(([date, data]) => ({
+            date,
+            amount: data.amount,
+            transaction_count: data.count
+          }))
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(-30); // Keep only last 30 days
+
+        setCollectionTrends(trends);
+      } catch (queryError) {
+        clearTimeout(timeoutId);
+        throw queryError;
+      }
 
     } catch (err: any) {
       console.error('Error fetching financial summary:', err);

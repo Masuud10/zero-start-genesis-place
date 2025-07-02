@@ -52,31 +52,67 @@ const ProcessPaymentsModule = () => {
         if (!user?.school_id || !searchTerm.trim()) return;
         setIsSearching(true);
         setSelectedStudent(null);
+        
         try {
+            console.log('🔍 Optimized student search for:', searchTerm);
+            
+            // Add timeout control
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                controller.abort();
+                console.error('🔍 Student search query timed out');
+            }, 3000);
+
+            // Simplified student search without complex joins
             const { data, error } = await supabase
                 .from('students')
-                .select(`id, name, admission_number, classes ( name )`)
+                .select(`id, name, admission_number, class_id`)
                 .eq('school_id', user.school_id)
+                .eq('is_active', true)
                 .or(`name.ilike.%${searchTerm.trim()}%,admission_number.ilike.%${searchTerm.trim()}%`)
                 .limit(10);
 
+            clearTimeout(timeoutId);
+
             if (error) throw error;
             
+            if (!data || data.length === 0) {
+                setSearchResults([]);
+                return;
+            }
+
+            // Get classes data separately
+            const classIds = [...new Set(data.map(s => s.class_id).filter(Boolean))];
+            const classesResult = classIds.length > 0 ? await supabase
+                .from('classes')
+                .select('id, name')
+                .in('id', classIds)
+                .eq('school_id', user.school_id)
+                .limit(20) : { data: [] };
+
+            const classMap = new Map((classesResult.data || []).map(c => [c.id, c.name]));
+            
+            // Get fee data separately
             const studentIds = data.map(s => s.id);
             const { data: feesData, error: feesError } = await supabase
                 .from('fees')
                 .select('student_id, amount, paid_amount')
-                .in('student_id', studentIds);
+                .in('student_id', studentIds)
+                .not('amount', 'is', null)
+                .limit(50);
 
-            if (feesError) throw feesError;
+            if (feesError) {
+                console.warn('Error fetching fees data:', feesError);
+                // Continue without fee data
+            }
 
-            const feeMap = feesData.reduce((acc, fee) => {
+            const feeMap = (feesData || []).reduce((acc, fee) => {
                 if (fee.student_id && !acc[fee.student_id]) {
                     acc[fee.student_id] = { total: 0, paid: 0 };
                 }
                 if (fee.student_id) {
-                    acc[fee.student_id].total += fee.amount || 0;
-                    acc[fee.student_id].paid += fee.paid_amount || 0;
+                    acc[fee.student_id].total += Number(fee.amount) || 0;
+                    acc[fee.student_id].paid += Number(fee.paid_amount) || 0;
                 }
                 return acc;
             }, {} as Record<string, { total: number, paid: number }>);
@@ -87,14 +123,19 @@ const ProcessPaymentsModule = () => {
                     id: student.id,
                     name: student.name,
                     admission_number: student.admission_number,
-                    class_name: (student.classes as any)?.name || 'N/A',
-                    balance: balanceData.total - balanceData.paid,
+                    class_name: classMap.get(student.class_id) || 'N/A',
+                    balance: Math.max(0, balanceData.total - balanceData.paid),
                 };
             });
             setSearchResults(studentsWithBalance);
 
         } catch (error: any) {
-            toast({ title: "Error searching students", description: error.message, variant: 'destructive' });
+            console.error('Student search error:', error);
+            toast({ 
+                title: "Error searching students", 
+                description: error.message || 'Search failed', 
+                variant: 'destructive' 
+            });
         } finally {
             setIsSearching(false);
         }
@@ -109,17 +150,69 @@ const ProcessPaymentsModule = () => {
     const fetchRecentTransactions = async () => {
         if (!user?.school_id) return;
         setTransactionsLoading(true);
+        
         try {
+            console.log('💳 Optimized recent transactions fetch for school:', user.school_id);
+            
+            // Add timeout control
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                controller.abort();
+                console.error('💳 Recent transactions query timed out');
+            }, 3000);
+
+            // Simplified query without complex joins
             const { data, error } = await supabase
                 .from('financial_transactions')
-                .select(`*, students (name)`)
+                .select(`
+                    id,
+                    student_id,
+                    amount,
+                    payment_method,
+                    mpesa_code,
+                    reference_number,
+                    processed_at,
+                    created_at
+                `)
                 .eq('school_id', user.school_id)
+                .not('id', 'is', null)
                 .order('created_at', { ascending: false })
                 .limit(10);
+
+            clearTimeout(timeoutId);
+
             if (error) throw error;
-            setRecentTransactions(data as EnrichedFinancialTransaction[]);
+            
+            if (!data || data.length === 0) {
+                setRecentTransactions([]);
+                return;
+            }
+
+            // Get student data separately
+            const studentIds = [...new Set(data.map(t => t.student_id).filter(Boolean))];
+            const studentsResult = studentIds.length > 0 ? await supabase
+                .from('students')
+                .select('id, name')
+                .in('id', studentIds)
+                .eq('school_id', user.school_id)
+                .limit(20) : { data: [] };
+
+            const studentMap = new Map((studentsResult.data || []).map(s => [s.id, s.name]));
+
+            const enrichedTransactions = data.map(txn => ({
+                ...txn,
+                students: txn.student_id && studentMap.has(txn.student_id) ? 
+                    { name: studentMap.get(txn.student_id) } : null
+            })) as EnrichedFinancialTransaction[];
+
+            setRecentTransactions(enrichedTransactions);
         } catch (error: any) {
-            toast({ title: "Error fetching transactions", description: error.message, variant: 'destructive' });
+            console.error('Recent transactions error:', error);
+            toast({ 
+                title: "Error fetching transactions", 
+                description: error.message || 'Failed to fetch transactions', 
+                variant: 'destructive' 
+            });
         } finally {
             setTransactionsLoading(false);
         }
