@@ -425,6 +425,121 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
     return (doc as any).lastAutoTable.finalY + 20;
   };
 
+  const generateClassPerformanceReport = async (doc: jsPDF, startY: number) => {
+    let classFilter = selectedClasses.length > 0 ? selectedClasses : classes.map(c => c.id);
+    
+    const { data: classData } = await supabase
+      .from('classes')
+      .select(`
+        *,
+        students!students_class_id_fkey(
+          id, name, admission_number,
+          grades!grades_student_id_fkey(score, percentage, letter_grade)
+        )
+      `)
+      .eq('school_id', schoolId)
+      .in('id', classFilter)
+      .order('name');
+
+    if (!classData?.length) {
+      doc.text('No class performance data available.', 20, startY);
+      return startY + 20;
+    }
+
+    let yPos = startY;
+
+    // Class Performance Analysis
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Class Performance Report', 20, yPos);
+    yPos += 15;
+
+    const classPerformanceData = classData.map(classItem => {
+      const students = classItem.students || [];
+      const grades = students.flatMap(s => s.grades || []);
+      const avgPerformance = grades.length > 0 ? 
+        grades.reduce((sum, g) => sum + (g.percentage || 0), 0) / grades.length : 0;
+      
+      return [
+        classItem.name,
+        students.length.toString(),
+        grades.length.toString(),
+        `${avgPerformance.toFixed(1)}%`,
+        grades.length > 0 ? Math.max(...grades.map(g => g.percentage || 0)).toFixed(1) + '%' : 'N/A',
+        grades.length > 0 ? Math.min(...grades.map(g => g.percentage || 0)).toFixed(1) + '%' : 'N/A'
+      ];
+    });
+
+    (doc as any).autoTable({
+      startY: yPos,
+      head: [['Class', 'Students', 'Assessments', 'Average', 'Highest', 'Lowest']],
+      body: classPerformanceData,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [41, 128, 185] },
+      margin: { left: 20, right: 20 }
+    });
+
+    return (doc as any).lastAutoTable.finalY + 20;
+  };
+
+  const generateSubjectPerformanceReport = async (doc: jsPDF, startY: number) => {
+    let classFilter = selectedClasses.length > 0 ? selectedClasses : classes.map(c => c.id);
+    
+    const { data: subjectData } = await supabase
+      .from('subjects')
+      .select(`
+        *,
+        grades!grades_subject_id_fkey(score, percentage, letter_grade, student_id),
+        classes!subjects_class_id_fkey(name)
+      `)
+      .eq('school_id', schoolId)
+      .in('class_id', classFilter)
+      .order('name');
+
+    if (!subjectData?.length) {
+      doc.text('No subject performance data available.', 20, startY);
+      return startY + 20;
+    }
+
+    let yPos = startY;
+
+    // Subject Performance Analysis
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Subject Performance Report', 20, yPos);
+    yPos += 15;
+
+    const subjectPerformanceData = subjectData.map(subject => {
+      const grades = subject.grades || [];
+      const uniqueStudents = new Set(grades.map(g => g.student_id)).size;
+      const avgPerformance = grades.length > 0 ? 
+        grades.reduce((sum, g) => sum + (g.percentage || 0), 0) / grades.length : 0;
+      
+      return [
+        subject.name,
+        subject.classes?.name || 'N/A',
+        uniqueStudents.toString(),
+        grades.length.toString(),
+        `${avgPerformance.toFixed(1)}%`,
+        grades.length > 0 ? Math.max(...grades.map(g => g.percentage || 0)).toFixed(1) + '%' : 'N/A',
+        grades.length > 0 ? Math.min(...grades.map(g => g.percentage || 0)).toFixed(1) + '%' : 'N/A'
+      ];
+    });
+
+    (doc as any).autoTable({
+      startY: yPos,
+      head: [['Subject', 'Class', 'Students', 'Assessments', 'Average', 'Highest', 'Lowest']],
+      body: subjectPerformanceData,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [41, 128, 185] },
+      margin: { left: 20, right: 20 }
+    });
+
+    return (doc as any).lastAutoTable.finalY + 20;
+  };
+
   const generateExcelReport = async () => {
     try {
       let data: any[] = [];
@@ -500,6 +615,63 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
           })) || [];
           sheetName = 'Financial_Performance';
           break;
+
+        case 'class_performance':
+          let classFilter = selectedClasses.length > 0 ? selectedClasses : classes.map(c => c.id);
+          const { data: classGrades } = await supabase
+            .from('grades')
+            .select(`
+              *,
+              students!grades_student_id_fkey(name, admission_number),
+              classes!grades_class_id_fkey(name, level),
+              subjects!grades_subject_id_fkey(name)
+            `)
+            .eq('school_id', schoolId)
+            .in('class_id', classFilter)
+            .eq('status', 'released');
+
+          data = classGrades?.map(g => ({
+            'Class': g.classes?.name,
+            'Student': g.students?.name,
+            'Admission Number': g.students?.admission_number,
+            'Subject': g.subjects?.name,
+            'Score': g.score,
+            'Max Score': g.max_score,
+            'Percentage': g.percentage,
+            'Grade': g.letter_grade,
+            'Term': g.term
+          })) || [];
+          sheetName = 'Class_Performance';
+          break;
+
+        case 'subject_performance':
+          let subjectClassFilter = selectedClasses.length > 0 ? selectedClasses : classes.map(c => c.id);
+          const { data: subjectGrades } = await supabase
+            .from('grades')
+            .select(`
+              *,
+              students!grades_student_id_fkey(name, admission_number),
+              classes!grades_class_id_fkey(name, level),
+              subjects!grades_subject_id_fkey(name, code)
+            `)
+            .eq('school_id', schoolId)
+            .in('class_id', subjectClassFilter)
+            .eq('status', 'released');
+
+          data = subjectGrades?.map(g => ({
+            'Subject': g.subjects?.name,
+            'Subject Code': g.subjects?.code,
+            'Class': g.classes?.name,
+            'Student': g.students?.name,
+            'Admission Number': g.students?.admission_number,
+            'Score': g.score,
+            'Max Score': g.max_score,
+            'Percentage': g.percentage,
+            'Grade': g.letter_grade,
+            'Term': g.term
+          })) || [];
+          sheetName = 'Subject_Performance';
+          break;
       }
 
       if (data.length === 0) {
@@ -552,10 +724,10 @@ const PrincipalReportGenerator: React.FC<PrincipalReportGeneratorProps> = ({
           yPosition = await generateFinancialReport(doc, yPosition);
           break;
         case 'class_performance':
-          yPosition = await generateAcademicPerformanceReport(doc, yPosition);
+          yPosition = await generateClassPerformanceReport(doc, yPosition);
           break;
         case 'subject_performance':
-          yPosition = await generateAcademicPerformanceReport(doc, yPosition);
+          yPosition = await generateSubjectPerformanceReport(doc, yPosition);
           break;
       }
 
