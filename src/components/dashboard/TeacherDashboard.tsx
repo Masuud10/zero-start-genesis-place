@@ -59,14 +59,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   // Prevent render before role/school_id are ready
   if (!isReady) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm max-w-md w-full">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="bg-card p-8 rounded-lg border shadow-sm max-w-md w-full">
           <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-gray-300 rounded mb-2"></div>
-            <div className="h-4 bg-gray-300 rounded"></div>
+            <div className="h-6 bg-muted rounded mb-2"></div>
+            <div className="h-4 bg-muted rounded"></div>
             <div className="grid grid-cols-2 gap-4 mt-4">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-24 bg-gray-300 rounded"></div>
+                <div key={i} className="h-24 bg-muted rounded"></div>
               ))}
             </div>
           </div>
@@ -77,7 +77,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
   return (
     <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           {/* Stats Overview */}
           <div className="w-full">
@@ -90,12 +90,12 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
           </div>
 
           {/* My Assignments Section */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="bg-card rounded-lg border shadow-sm">
             <MyClasses />
           </div>
 
           {/* My Timetable Section */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="bg-card rounded-lg border shadow-sm">
             <CompactTeacherTimetable />
           </div>
         </div>
