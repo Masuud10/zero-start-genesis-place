@@ -134,9 +134,20 @@ export const useParentDashboardStats = (user: AuthUser) => {
           if (gradeResult.data && gradeResult.data.length > 0) {
             const grade = gradeResult.data[0] as any;
             const percent = grade.percentage;
-            recentGrade = percent !== undefined && percent !== null
-              ? percent >= 80 ? "A" : percent >= 70 ? "B+" : percent >= 60 ? "B" : percent >= 50 ? "C" : "D"
-              : "-";
+            // Fixed: Added more comprehensive grade boundaries and validation
+            if (percent !== undefined && percent !== null && !isNaN(percent)) {
+              if (percent >= 90) recentGrade = "A+";
+              else if (percent >= 80) recentGrade = "A";
+              else if (percent >= 70) recentGrade = "B+";
+              else if (percent >= 60) recentGrade = "B";
+              else if (percent >= 50) recentGrade = "C+";
+              else if (percent >= 40) recentGrade = "C";
+              else if (percent >= 30) recentGrade = "D+";
+              else if (percent >= 20) recentGrade = "D";
+              else recentGrade = "E";
+            } else {
+              recentGrade = "-";
+            }
             recentSubject = grade.subjects?.name || "Subject";
           }
 

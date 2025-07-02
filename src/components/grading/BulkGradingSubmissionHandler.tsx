@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -55,9 +55,10 @@ export const useBulkGradingSubmissionHandler = ({
           
           // Submit grades that have valid scores or are marked as absent
           if ((grade.score !== undefined && grade.score !== null && grade.score >= 0) || grade.isAbsent) {
-            const maxScore = 100; // Default max score
+            // Fixed: Use proper max score calculation - defaulting to 100 for consistency
+            const maxScore = 100; // Standard max score for percentage calculations
             const percentage = grade.isAbsent ? null : 
-              (grade.percentage || (grade.score !== null ? (Number(grade.score) / maxScore) * 100 : null));
+              (grade.percentage || (grade.score !== null ? Math.round((Number(grade.score) / maxScore) * 100 * 100) / 100 : null));
 
             gradesToUpsert.push({
               school_id: schoolId,

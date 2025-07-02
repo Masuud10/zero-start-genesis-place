@@ -120,7 +120,10 @@ export const useFinanceMetrics = () => {
         return sum + amount;
       }, 0);
 
-      const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
+      // Fixed: Enhanced collection rate calculation with proper validation
+      const collectionRate = totalFees > 0 && !isNaN(totalFees) && !isNaN(totalPaid) 
+        ? Math.min(100, Math.round((totalPaid / totalFees) * 100)) 
+        : 0;
       const totalStudents = students.length;
 
       // Find defaulters (fees past due date with outstanding amounts)

@@ -145,7 +145,10 @@ export const useTeacherStats = () => {
 
         if (attendanceData && attendanceData.length > 0) {
           const presentCount = attendanceData.filter(a => a.status === 'present').length;
-          attendancePercentage = Math.round((presentCount / attendanceData.length) * 100);
+          // Fixed: Enhanced attendance calculation with proper validation
+          attendancePercentage = attendanceData.length > 0 && presentCount >= 0
+            ? Math.round((presentCount / attendanceData.length) * 100)
+            : 0;
         }
       }
 
