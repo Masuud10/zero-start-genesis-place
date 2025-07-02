@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
+import TimetableFilter from './TimetableFilter';
 import { 
   Calendar, 
   Clock, 
@@ -33,6 +34,8 @@ interface TimetableEntry {
 const CompactTeacherTimetable: React.FC = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
+  const [filterActive, setFilterActive] = useState(false);
+  const [filters, setFilters] = useState<{ day?: string; subject?: string; class?: string }>({});
 
   const { data: timetable, isLoading, error } = useQuery({
     queryKey: ['teacher-timetable', user?.id, schoolId],
@@ -108,9 +111,41 @@ const CompactTeacherTimetable: React.FC = () => {
     return days[new Date().getDay()];
   };
 
-  const todaySchedule = timetable?.filter(entry => 
+  // Get unique subjects and classes for filter
+  const uniqueSubjects = React.useMemo(() => {
+    if (!timetable) return [];
+    const subjects = timetable.map(entry => ({ id: entry.subject.name, name: entry.subject.name }));
+    return subjects.filter((subject, index, self) => 
+      index === self.findIndex(s => s.id === subject.id)
+    );
+  }, [timetable]);
+
+  const uniqueClasses = React.useMemo(() => {
+    if (!timetable) return [];
+    const classes = timetable.map(entry => ({ id: entry.class.name, name: entry.class.name }));
+    return classes.filter((cls, index, self) => 
+      index === self.findIndex(c => c.id === cls.id)
+    );
+  }, [timetable]);
+
+  // Apply filters to timetable
+  const filteredTimetable = React.useMemo(() => {
+    if (!timetable) return [];
+    return timetable.filter(entry => {
+      const matchesDay = !filters.day || entry.day_of_week.toLowerCase() === filters.day.toLowerCase();
+      const matchesSubject = !filters.subject || entry.subject.name === filters.subject;
+      const matchesClass = !filters.class || entry.class.name === filters.class;
+      return matchesDay && matchesSubject && matchesClass;
+    });
+  }, [timetable, filters]);
+
+  const todaySchedule = filteredTimetable?.filter(entry => 
     entry.day_of_week.toLowerCase() === getCurrentDay()
   ) || [];
+
+  const handleFilterChange = (newFilters: { day?: string; subject?: string; class?: string }) => {
+    setFilters(newFilters);
+  };
 
   if (isLoading) {
     return (
@@ -189,12 +224,28 @@ const CompactTeacherTimetable: React.FC = () => {
             <Calendar className="h-5 w-5" />
             My Timetable
           </CardTitle>
-          <Badge variant="outline" className="text-xs">
-            {timetable.length} Scheduled Classes
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {filteredTimetable.length} Scheduled Classes
+            </Badge>
+            <button
+              onClick={() => setFilterActive(!filterActive)}
+              className="text-xs text-blue-600 hover:text-blue-800"
+            >
+              {filterActive ? 'Hide Filters' : 'Show Filters'}
+            </button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
+        {/* Timetable Filter */}
+        <TimetableFilter
+          onFilterChange={handleFilterChange}
+          subjects={uniqueSubjects}
+          classes={uniqueClasses}
+          isActive={filterActive}
+        />
+
         {/* Today's Schedule Highlight */}
         {todaySchedule.length > 0 && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -237,7 +288,7 @@ const CompactTeacherTimetable: React.FC = () => {
           </h3>
           
           {['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].map((day) => {
-            const daySchedule = timetable.filter(entry => 
+            const daySchedule = filteredTimetable.filter(entry => 
               entry.day_of_week.toLowerCase() === day
             );
             
@@ -277,7 +328,7 @@ const CompactTeacherTimetable: React.FC = () => {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="text-gray-700">
-                <strong>{timetable.length}</strong> Total Classes
+                <strong>{filteredTimetable.length}</strong> {filters.day || filters.subject || filters.class ? 'Filtered' : 'Total'} Classes
               </span>
               <span className="text-gray-700">
                 <strong>{todaySchedule.length}</strong> Today

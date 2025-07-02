@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Download, Calendar, BarChart3, Users, GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const TeacherReportsModule = () => {
   const [reportType, setReportType] = useState('');
@@ -36,12 +38,32 @@ const TeacherReportsModule = () => {
     }
   ];
 
-  // Mock class data - in real implementation, this would come from API
-  const teacherClasses = [
-    'Grade 8A - Mathematics',
-    'Grade 8B - Mathematics',
-    'Grade 7A - Mathematics'
-  ];
+  // Get teacher's classes from useTeacherAnalyticsSummary hook or create a separate query
+  const { data: teacherClasses, isLoading: classesLoading } = useQuery({
+    queryKey: ['teacher-classes', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('subject_teacher_assignments')
+        .select(`
+          classes!inner(id, name, level, stream),
+          subjects!inner(id, name, code)
+        `)
+        .eq('teacher_id', user.id)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      return data?.map(assignment => ({
+        id: assignment.classes.id,
+        label: `${assignment.classes.name} - ${assignment.subjects.name}`,
+        className: assignment.classes.name,
+        subjectName: assignment.subjects.name
+      })) || [];
+    },
+    enabled: !!user?.id
+  });
 
   const handleGenerateReport = async () => {
     if (!reportType || !selectedClass) {
@@ -60,18 +82,25 @@ const TeacherReportsModule = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const selectedReport = allowedReports.find(r => r.value === reportType);
+      const selectedClassData = teacherClasses?.find(c => c.id === selectedClass);
+      
       toast({
         title: "Report Generated Successfully",
-        description: `${selectedReport?.label} for ${selectedClass} has been generated.`
+        description: `${selectedReport?.label} for ${selectedClassData?.className} has been generated.`
       });
 
-      // Simulate file download
-      const link = document.createElement('a');
-      link.href = '#';
-      link.download = `${selectedReport?.label}_${selectedClass}_${dateRange}.${format}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // In a real implementation, this would call an API to generate the actual report
+      // For now, we'll simulate the file download
+      const fileName = `${selectedReport?.label.replace(' ', '_')}_${selectedClassData?.className?.replace(' ', '_')}_${dateRange}.${format}`;
+      console.log('Generated report:', fileName);
+      
+      // This would be replaced with actual file download from server
+      // const link = document.createElement('a');
+      // link.href = reportUrl;
+      // link.download = fileName;
+      // document.body.appendChild(link);
+      // link.click();
+      // document.body.removeChild(link);
 
     } catch (error) {
       toast({
@@ -140,13 +169,19 @@ const TeacherReportsModule = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a class" />
                 </SelectTrigger>
-                <SelectContent>
-                  {teacherClasses.map((className) => (
-                    <SelectItem key={className} value={className}>
-                      {className}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                  <SelectContent>
+                    {classesLoading ? (
+                      <SelectItem value="" disabled>Loading classes...</SelectItem>
+                    ) : teacherClasses && teacherClasses.length > 0 ? (
+                      teacherClasses.map((assignment) => (
+                        <SelectItem key={assignment.id} value={assignment.id}>
+                          {assignment.label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>No classes assigned</SelectItem>
+                    )}
+                  </SelectContent>
               </Select>
             </div>
 

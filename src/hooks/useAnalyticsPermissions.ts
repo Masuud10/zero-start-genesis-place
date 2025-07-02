@@ -23,7 +23,7 @@ export const useAnalyticsPermissions = () => {
       if (user.role === 'edufam_admin') return true;
       if (!schoolId) return false;
       if (targetSchoolId && targetSchoolId !== schoolId) return false;
-      return ['principal', 'school_owner'].includes(user.role);
+      return ['principal', 'school_owner', 'teacher'].includes(user.role);
     };
 
     const analyticsScope = (() => {
