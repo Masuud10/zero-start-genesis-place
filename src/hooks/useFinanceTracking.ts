@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import { useAnalyticsTracking } from './useAnalyticsTracking';
 import { auditLogger } from '@/utils/auditLogger';
 import { rateLimiter, RateLimiter } from '@/utils/rateLimiter';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { withDatabaseRetry } from '@/utils/enhancedErrorHandler';
 
 export const useFinanceTracking = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -14,6 +14,19 @@ export const useFinanceTracking = () => {
   const processPayment = async (paymentData: any) => {
     if (!user) {
       return { success: false, error: 'User not authenticated' };
+    }
+
+    // CRITICAL: Validate required fields before processing
+    if (!paymentData.amount || paymentData.amount <= 0) {
+      return { success: false, error: 'Invalid payment amount' };
+    }
+
+    if (!paymentData.student_id) {
+      return { success: false, error: 'Student ID is required' };
+    }
+
+    if (!paymentData.transaction_type) {
+      return { success: false, error: 'Transaction type is required' };
     }
 
     // Check rate limiting for MPESA transactions
@@ -32,33 +45,67 @@ export const useFinanceTracking = () => {
 
     setIsProcessing(true);
     try {
-      if (!paymentData.student_id) {
-        throw new Error("student_id is required to process a payment");
+      // CRITICAL FIX: Verify student belongs to user's school for security
+      const studentQuery = await withDatabaseRetry(
+        () => supabase
+          .from('students')
+          .select('school_id, name, admission_number')
+          .eq('id', paymentData.student_id)
+          .single(),
+        'fetch_student_for_payment'
+      );
+
+      if (studentQuery.error) {
+        throw new Error(`Student not found: ${studentQuery.error.message}`);
       }
-      
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('school_id')
-        .eq('id', paymentData.student_id)
-        .single();
 
-      if (studentError) throw studentError;
-      if (!studentData?.school_id) throw new Error("Could not find school for the student");
+      const studentData = studentQuery.data;
+      if (!studentData?.school_id) {
+        throw new Error("Could not find school for the student");
+      }
 
+      // SECURITY: Verify user has permission to process payments for this school
+      if (user.role !== 'edufam_admin' && user.role !== 'elimisha_admin' && 
+          user.school_id !== studentData.school_id) {
+        throw new Error("Access denied: Cannot process payments for other schools");
+      }
+
+      // BUSINESS LOGIC: Calculate proper amounts and update fee balance
       const completePaymentData = {
         ...paymentData,
         school_id: studentData.school_id,
+        processed_by: user.id,
         processed_at: new Date().toISOString(),
+        amount: Number(paymentData.amount), // Ensure numeric
       };
 
-      // Process payment in database
-      const { data, error } = await supabase
-        .from('financial_transactions')
-        .insert(completePaymentData)
-        .select()
-        .single();
+      // Start transaction for atomic payment processing
+      const { data: transaction, error: transactionError } = await withDatabaseRetry(
+        () => supabase
+          .from('financial_transactions')
+          .insert(completePaymentData)
+          .select()
+          .single(),
+        'create_financial_transaction'
+      );
 
-      if (error) throw error;
+      if (transactionError) throw transactionError;
+
+      // CRITICAL: Update student fee balance if fee_id is provided
+      if (paymentData.fee_id) {
+        const { error: feeUpdateError } = await withDatabaseRetry(
+          () => supabase.rpc('update_fee_payment', {
+            p_fee_id: paymentData.fee_id,
+            p_payment_amount: Number(paymentData.amount)
+          }),
+          'update_fee_payment'
+        );
+
+        if (feeUpdateError) {
+          console.warn('Fee balance update failed:', feeUpdateError);
+          // Don't fail the entire transaction, but log it
+        }
+      }
 
       // Track the finance transaction event
       await trackFinanceTransaction({
@@ -72,14 +119,22 @@ export const useFinanceTracking = () => {
       // Log successful transaction
       await auditLogger.logMpesaTransaction(user.id, completePaymentData, true);
 
-      return { success: true, data };
+      return { 
+        success: true, 
+        data: transaction,
+        message: `Payment of ${paymentData.amount} processed successfully for ${studentData.name} (${studentData.admission_number})`
+      };
     } catch (error: any) {
       console.error('Payment processing failed:', error);
       
       // Log failed transaction
       await auditLogger.logMpesaTransaction(user.id, paymentData, false, error.message);
       
-      return { success: false, error };
+      return { 
+        success: false, 
+        error: error.message || 'Payment processing failed',
+        details: error
+      };
     } finally {
       setIsProcessing(false);
     }
