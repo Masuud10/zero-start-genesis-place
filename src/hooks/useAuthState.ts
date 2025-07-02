@@ -3,6 +3,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
+import { UserRole } from '@/types/user';
+
+// Simple role validation function to avoid external dependencies
+const isValidRole = (role: string): boolean => {
+  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
+  return validRoles.includes(role as UserRole);
+};
 
 export const useAuthState = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -115,21 +122,27 @@ export const useAuthState = () => {
         return;
       }
 
-      // Create user data with proper role handling - CRITICAL FIX
+      // STRICT ROLE DETECTION: Database first, then fallback for new users only
       let resolvedRole = profile?.role;
       
-      console.log('🔐 AuthState: Profile role found:', resolvedRole);
+      console.log('🔐 AuthState: Profile role from database:', resolvedRole);
       
-      // If no role in profile, determine from email or metadata
-      if (!resolvedRole) {
-        resolvedRole = authUser.user_metadata?.role || 
-                     authUser.app_metadata?.role;
-        
+      // If role exists in database profile, use it and skip all fallbacks
+      if (resolvedRole && isValidRole(resolvedRole)) {
+        console.log('🔐 AuthState: Using verified database role:', resolvedRole);
+      } else {
+        // Only for new users without database roles: check metadata first
+        resolvedRole = authUser.app_metadata?.role || authUser.user_metadata?.role;
         console.log('🔐 AuthState: Metadata role found:', resolvedRole);
         
-        // Email-based role detection as fallback
-        if (!resolvedRole) {
+        // Validate metadata role before using
+        if (resolvedRole && isValidRole(resolvedRole)) {
+          console.log('🔐 AuthState: Using valid metadata role:', resolvedRole);
+        } else {
+          // Last resort: Email-based detection for new registrations only
           const emailLower = authUser.email.toLowerCase();
+          
+          console.log('🔐 AuthState: No valid database/metadata role found, using email fallback for new user');
           
           if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com' || emailLower.includes('admin.')) {
             resolvedRole = 'edufam_admin';
@@ -147,9 +160,9 @@ export const useAuthState = () => {
             resolvedRole = 'parent';
           }
           
-          console.log('🔐 AuthState: Email-based role determined:', resolvedRole);
+          console.log('🔐 AuthState: Email-based role determined for new user:', resolvedRole);
           
-          // Defer profile updates to avoid blocking auth initialization
+          // Update database with inferred role for future logins
           if (resolvedRole) {
             setTimeout(async () => {
               try {
@@ -161,6 +174,7 @@ export const useAuthState = () => {
                     role: resolvedRole,
                     name: authUser.user_metadata?.name || authUser.email.split('@')[0]
                   });
+                console.log('🔐 AuthState: Profile role updated in database for future logins');
               } catch (updateError) {
                 console.warn('🔐 AuthState: Failed to update profile role:', updateError);
               }

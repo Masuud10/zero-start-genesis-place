@@ -90,48 +90,11 @@ const isValidRole = (role: string): boolean => {
   return isValid;
 };
 
+// Email-based role detection is now only used as a fallback during initial registration
+// and has been moved to useAuthState.ts to avoid multiple sources of truth
 const determineRoleFromEmail = (email: string): UserRole => {
-  if (!email || typeof email !== 'string') {
-    console.warn('🔍 RoleUtils: Invalid email for role determination:', email);
-    return 'parent';
-  }
-
-  const emailLower = email.toLowerCase();
-  
-  // System admin patterns - prioritize official admin emails
-  if (emailLower.includes('@edufam.com') || 
-      emailLower === 'masuud@gmail.com' ||
-      emailLower.includes('admin@') ||
-      emailLower.includes('system@') ||
-      emailLower.includes('admin.')) {
-    console.log('🔍 RoleUtils: Email matches admin pattern:', email);
-    return 'edufam_admin';
-  }
-  
-  // School role patterns - use broader matching
-  if (emailLower.includes('principal') || emailLower.includes('head')) {
-    console.log('🔍 RoleUtils: Email matches principal pattern:', email);
-    return 'principal';
-  }
-  
-  if (emailLower.includes('teacher') || emailLower.includes('staff')) {
-    console.log('🔍 RoleUtils: Email matches teacher pattern:', email);
-    return 'teacher';
-  }
-  
-  if (emailLower.includes('owner') || emailLower.includes('proprietor')) {
-    console.log('🔍 RoleUtils: Email matches owner pattern:', email);
-    return 'school_owner';
-  }
-  
-  if (emailLower.includes('finance') || emailLower.includes('accounts') || emailLower.includes('bursar')) {
-    console.log('🔍 RoleUtils: Email matches finance pattern:', email);
-    return 'finance_officer';
-  }
-  
-  // Default to parent - this should be the fallback for regular users
-  console.log('🔍 RoleUtils: Email matches no specific patterns, defaulting to parent:', email);
-  return 'parent';
+  console.warn('🔍 RoleUtils: Email-based role detection should only be used during registration');
+  return 'parent'; // Default fallback
 };
 
 export const getRoleDisplayName = (role: UserRole): string => {

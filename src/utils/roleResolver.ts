@@ -4,7 +4,7 @@ import { UserRole } from '@/types/user';
 
 export class RoleResolver {
   /**
-   * Resolves user role from multiple sources with fallback priority
+   * Resolves user role from database profile ONLY - no email fallbacks
    */
   static resolveRole(authUser: SupabaseUser, profileRole?: string): UserRole {
     console.log('🔍 RoleResolver: Resolving role for user:', authUser.email, {
@@ -13,26 +13,22 @@ export class RoleResolver {
       appMetadataRole: authUser.app_metadata?.role
     });
 
-    // Priority order for role resolution:
-    // 1. Profile table role (most authoritative)
-    // 2. App metadata role (set by admin)
-    // 3. User metadata role (set during signup)
-    // 4. Default fallback based on email domain
-
-    const possibleRole = profileRole || 
-                        authUser.app_metadata?.role || 
-                        authUser.user_metadata?.role;
-
-    if (possibleRole && this.isValidRole(possibleRole)) {
-      console.log('🔍 RoleResolver: Found valid role:', possibleRole);
-      return possibleRole as UserRole;
+    // STRICT: Database role is primary and authoritative
+    if (profileRole && this.isValidRole(profileRole)) {
+      console.log('🔍 RoleResolver: Using database profile role:', profileRole);
+      return profileRole as UserRole;
     }
 
-    // Fallback: Determine role based on email domain
-    const fallbackRole = this.determineFallbackRole(authUser.email);
-    console.log('🔍 RoleResolver: Using fallback role:', fallbackRole);
-    
-    return fallbackRole;
+    // Secondary: Check metadata (for admin-assigned roles)
+    const metadataRole = authUser.app_metadata?.role || authUser.user_metadata?.role;
+    if (metadataRole && this.isValidRole(metadataRole)) {
+      console.log('🔍 RoleResolver: Using metadata role:', metadataRole);
+      return metadataRole as UserRole;
+    }
+
+    // If no valid role found, return 'parent' as default
+    console.warn('🔍 RoleResolver: No valid role found, defaulting to parent');
+    return 'parent';
   }
 
   /**
