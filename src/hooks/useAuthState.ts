@@ -131,7 +131,7 @@ export const useAuthState = () => {
         if (!resolvedRole) {
           const emailLower = authUser.email.toLowerCase();
           
-          if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com') {
+          if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com' || emailLower.includes('admin.')) {
             resolvedRole = 'edufam_admin';
           } else if (emailLower.includes('elimisha')) {
             resolvedRole = 'elimisha_admin';
@@ -139,7 +139,7 @@ export const useAuthState = () => {
             resolvedRole = 'principal';
           } else if (emailLower.includes('teacher')) {
             resolvedRole = 'teacher';
-          } else if (emailLower.includes('finance')) {
+          } else if (emailLower.includes('finance') || emailLower.includes('bursar') || emailLower.includes('accounts')) {
             resolvedRole = 'finance_officer';
           } else if (emailLower.includes('owner')) {
             resolvedRole = 'school_owner';

@@ -102,28 +102,29 @@ const determineRoleFromEmail = (email: string): UserRole => {
   if (emailLower.includes('@edufam.com') || 
       emailLower === 'masuud@gmail.com' ||
       emailLower.includes('admin@') ||
-      emailLower.includes('system@')) {
+      emailLower.includes('system@') ||
+      emailLower.includes('admin.')) {
     console.log('🔍 RoleUtils: Email matches admin pattern:', email);
     return 'edufam_admin';
   }
   
-  // School role patterns
-  if (emailLower.includes('principal@') || emailLower.includes('head@')) {
+  // School role patterns - use broader matching
+  if (emailLower.includes('principal') || emailLower.includes('head')) {
     console.log('🔍 RoleUtils: Email matches principal pattern:', email);
     return 'principal';
   }
   
-  if (emailLower.includes('teacher@') || emailLower.includes('staff@')) {
+  if (emailLower.includes('teacher') || emailLower.includes('staff')) {
     console.log('🔍 RoleUtils: Email matches teacher pattern:', email);
     return 'teacher';
   }
   
-  if (emailLower.includes('owner@') || emailLower.includes('proprietor@')) {
+  if (emailLower.includes('owner') || emailLower.includes('proprietor')) {
     console.log('🔍 RoleUtils: Email matches owner pattern:', email);
     return 'school_owner';
   }
   
-  if (emailLower.includes('finance@') || emailLower.includes('accounts@')) {
+  if (emailLower.includes('finance') || emailLower.includes('accounts') || emailLower.includes('bursar')) {
     console.log('🔍 RoleUtils: Email matches finance pattern:', email);
     return 'finance_officer';
   }
