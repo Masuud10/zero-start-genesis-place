@@ -86,7 +86,7 @@ export const useTimetableManagement = () => {
 
       return Object.values(groupedByClass) as GeneratedTimetable[];
     },
-    enabled: !!schoolId
+    enabled: !!schoolId && !!user
   });
 
   // Generate timetable mutation

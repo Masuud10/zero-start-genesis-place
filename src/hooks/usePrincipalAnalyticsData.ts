@@ -315,11 +315,11 @@ export const usePrincipalAnalyticsData = () => {
     return useQuery({
         queryKey: ['principal-analytics', schoolId, academicInfo.term, academicInfo.year],
         queryFn: () => fetchPrincipalAnalytics(schoolId || '', academicInfo.term, academicInfo.year),
-        enabled: isReady && !loading && !!schoolId,
+        enabled: isReady && !loading && !!schoolId && schoolId !== 'null' && schoolId !== 'undefined',
         staleTime: 2 * 60 * 1000, // 2 minutes
-        refetchInterval: 5 * 60 * 1000, // 5 minutes
-        refetchOnWindowFocus: true,
-        retry: 2,
-        retryDelay: 1000,
+        refetchInterval: false, // Disable auto-refetch to reduce load
+        refetchOnWindowFocus: false, // Disable refetch on focus to reduce queries
+        retry: 1, // Reduce retry attempts
+        retryDelay: 2000,
     });
 };

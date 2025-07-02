@@ -42,14 +42,40 @@ export const useAnalyticsData = (schoolId?: string) => {
       // Validate school ID before making any queries
       if (!effectiveSchoolId || effectiveSchoolId === 'null' || effectiveSchoolId === 'undefined') {
         console.warn('Invalid or missing school ID for analytics:', effectiveSchoolId);
-        throw new Error('School ID is required and must be valid');
+        // Return default/empty analytics data instead of throwing
+        return {
+          totalStudents: 0,
+          totalTeachers: 0,
+          totalClasses: 0,
+          totalSubjects: 0,
+          averageGrade: 0,
+          attendanceRate: 0,
+          feeCollectionRate: 0,
+          academicPerformance: [],
+          gradeDistribution: [],
+          monthlyAttendance: [],
+          feeCollection: { collected: 0, expected: 0, outstanding: 0 }
+        };
       }
 
       // Additional UUID format validation
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(effectiveSchoolId)) {
         console.error('Invalid UUID format for school ID:', effectiveSchoolId);
-        throw new Error('Invalid school ID format');
+        // Return default data instead of throwing
+        return {
+          totalStudents: 0,
+          totalTeachers: 0,
+          totalClasses: 0,
+          totalSubjects: 0,
+          averageGrade: 0,
+          attendanceRate: 0,
+          feeCollectionRate: 0,
+          academicPerformance: [],
+          gradeDistribution: [],
+          monthlyAttendance: [],
+          feeCollection: { collected: 0, expected: 0, outstanding: 0 }
+        };
       }
 
       console.log('🔍 Fetching analytics data for school:', effectiveSchoolId);
@@ -62,8 +88,21 @@ export const useAnalyticsData = (schoolId?: string) => {
         .single();
 
       if (schoolError || !schoolCheck) {
-        console.error('School not found or access denied:', schoolError);
-        throw new Error('School not found or access denied');
+        console.warn('School not found or access denied:', schoolError);
+        // Return default data instead of throwing
+        return {
+          totalStudents: 0,
+          totalTeachers: 0,
+          totalClasses: 0,
+          totalSubjects: 0,
+          averageGrade: 0,
+          attendanceRate: 0,
+          feeCollectionRate: 0,
+          academicPerformance: [],
+          gradeDistribution: [],
+          monthlyAttendance: [],
+          feeCollection: { collected: 0, expected: 0, outstanding: 0 }
+        };
       }
 
       // Fetch basic counts with proper school isolation and error handling
@@ -238,7 +277,7 @@ export const useAnalyticsData = (schoolId?: string) => {
         }
       };
     },
-    enabled: !!effectiveSchoolId && effectiveSchoolId !== 'null' && effectiveSchoolId !== 'undefined',
+    enabled: !!effectiveSchoolId && !!user && effectiveSchoolId !== 'null' && effectiveSchoolId !== 'undefined',
     staleTime: 2 * 60 * 1000, // 2 minutes - reduced for more real-time updates
     refetchInterval: 5 * 60 * 1000, // 5 minutes - auto refresh
     refetchOnWindowFocus: true,

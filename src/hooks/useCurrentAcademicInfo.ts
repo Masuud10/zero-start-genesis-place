@@ -15,12 +15,17 @@ export const useCurrentAcademicInfo = (schoolId: string | null) => {
       }
 
       // Try to get current academic term
-      const { data: terms } = await supabase
+      const { data: terms, error } = await supabase
         .from('academic_terms')
         .select('*')
         .eq('school_id', schoolId)
         .eq('is_current', true)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle no results gracefully
+
+      // Log error for debugging but don't throw
+      if (error) {
+        console.warn('Error fetching academic terms:', error);
+      }
 
       if (terms) {
         return {
