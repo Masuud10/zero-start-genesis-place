@@ -29,8 +29,8 @@ export const useAccessControl = () => {
         console.log('🔒 useAccessControl: School management access:', hasSchoolManagementAccess);
         return hasSchoolManagementAccess;
       case 'analytics':
-        // Principals and school owners can access analytics for their school
-        const hasAnalyticsAccess = user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
+        // Teachers can access analytics for their classes, principals and school owners can access analytics for their school
+        const hasAnalyticsAccess = user.role === 'teacher' || user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
         console.log('🔒 useAccessControl: Analytics access:', hasAnalyticsAccess);
         return hasAnalyticsAccess;
       case 'certificates':
