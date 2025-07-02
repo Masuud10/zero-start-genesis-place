@@ -430,6 +430,9 @@ const EduFamReportGeneration = () => {
     );
   }
 
+  // Debug logging to help identify issues
+  console.log('🔧 EduFamReportGeneration: Component rendered for user:', user.email, 'Role:', user.role);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
