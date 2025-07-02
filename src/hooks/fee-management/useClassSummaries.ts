@@ -11,28 +11,70 @@ export const useClassSummaries = () => {
   const { user } = useAuth();
 
   const fetchClassSummaries = async () => {
-    if (!user?.school_id) return;
+    if (!user?.school_id) {
+      setLoading(false);
+      return;
+    }
 
     try {
+      setLoading(true);
+      setError(null);
+
+      console.log('📊 Fetching class summaries for school:', user.school_id);
+
+      // Timeout for the query
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('📊 Class summaries query timed out');
+      }, 3000);
+
+      // Optimized query without complex joins
       const { data, error } = await supabase
         .from('fees')
-        .select(`
-          class_id,
-          amount,
-          paid_amount,
-          class:classes(name)
-        `)
-        .eq('school_id', user.school_id);
+        .select('class_id, amount, paid_amount')
+        .eq('school_id', user.school_id)
+        .not('amount', 'is', null)
+        .not('class_id', 'is', null)
+        .limit(300);
 
-      if (error) throw error;
+      clearTimeout(timeoutId);
+
+      if (error) {
+        console.error('📊 Error fetching fees for class summaries:', error);
+        throw error;
+      }
+
+      console.log('📊 Processing', data?.length || 0, 'fee records');
+
+      if (!data || data.length === 0) {
+        setClassSummaries([]);
+        setError(null);
+        return;
+      }
+
+      // Get unique class IDs first
+      const classIds = [...new Set(data.map(fee => fee.class_id).filter(Boolean))];
+      
+      // Fetch class names separately for better performance
+      const { data: classesData } = await supabase
+        .from('classes')
+        .select('id, name')
+        .in('id', classIds)
+        .eq('school_id', user.school_id)
+        .limit(50);
+
+      const classMap = new Map((classesData || []).map(c => [c.id, c.name]));
 
       // Group by class and calculate summaries
-      const summaries = data?.reduce((acc: Record<string, any>, fee) => {
+      const summaries = data.reduce((acc: Record<string, any>, fee) => {
         const classId = fee.class_id;
+        if (!classId) return acc;
+        
         if (!acc[classId]) {
           acc[classId] = {
             class_id: classId,
-            class_name: fee.class?.name || 'Unknown',
+            class_name: classMap.get(classId) || 'Unknown Class',
             total_amount: 0,
             paid_amount: 0,
             balance: 0,
@@ -43,12 +85,15 @@ export const useClassSummaries = () => {
           };
         }
         
-        acc[classId].total_amount += fee.amount || 0;
-        acc[classId].paid_amount += fee.paid_amount || 0;
+        const amount = Number(fee.amount) || 0;
+        const paidAmount = Number(fee.paid_amount) || 0;
+        
+        acc[classId].total_amount += amount;
+        acc[classId].paid_amount += paidAmount;
         acc[classId].student_count += 1;
         
         return acc;
-      }, {}) || {};
+      }, {});
 
       // Convert to array and calculate derived values
       const summaryArray = Object.values(summaries).map((summary: any) => ({

@@ -32,12 +32,17 @@ export const useFeeData = () => {
       const validSchoolId = schoolValidation.sanitizedValue!;
       console.log('🔍 Fetching fees for school:', validSchoolId);
 
-      // Create timeout for query
+      // Create timeout for query - reduced timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('🔍 Fee data query timed out for school:', validSchoolId);
+      }, 4000); // Reduced to 4 seconds
 
       try {
-        // Simplified query without complex joins to avoid relationship issues
+        console.log('🔍 Starting fee data fetch with optimized query...');
+        
+        // Highly optimized query without complex joins
         const { data, error: fetchError } = await supabase
           .from('fees')
           .select(`
@@ -59,7 +64,7 @@ export const useFeeData = () => {
           .not('id', 'is', null)
           .not('amount', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(300); // Reduced limit for faster loading
+          .limit(150); // Further reduced limit for faster loading
 
         clearTimeout(timeoutId);
 
@@ -76,9 +81,11 @@ export const useFeeData = () => {
           return;
         }
 
-        // Get student and class data separately
-        const studentIds = [...new Set(data.map(item => item.student_id).filter(Boolean))];
-        const classIds = [...new Set(data.map(item => item.class_id).filter(Boolean))];
+        // Get student and class data separately with optimization
+        const studentIds = [...new Set(data.map(item => item.student_id).filter(Boolean))].slice(0, 100);
+        const classIds = [...new Set(data.map(item => item.class_id).filter(Boolean))].slice(0, 30);
+
+        console.log('🔍 Fetching related data for', studentIds.length, 'students and', classIds.length, 'classes');
 
         const [studentsResult, classesResult] = await Promise.allSettled([
           studentIds.length > 0 ? supabase
@@ -86,14 +93,14 @@ export const useFeeData = () => {
             .select('id, name, admission_number')
             .in('id', studentIds)
             .eq('school_id', validSchoolId)
-            .limit(200) : Promise.resolve({ data: [] }),
+            .limit(100) : Promise.resolve({ data: [] }),
           
           classIds.length > 0 ? supabase
             .from('classes')
             .select('id, name')
             .in('id', classIds)
             .eq('school_id', validSchoolId)
-            .limit(50) : Promise.resolve({ data: [] })
+            .limit(30) : Promise.resolve({ data: [] })
         ]);
 
         const students = studentsResult.status === 'fulfilled' ? studentsResult.value.data || [] : [];
