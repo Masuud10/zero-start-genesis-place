@@ -310,14 +310,7 @@ const EduFamAdminDashboard = () => {
                             {school.school_type}
                           </Badge>
                         )}
-                        {school.curriculum_type && (
-                          <Badge
-                            variant="outline"
-                            className="uppercase font-mono text-xs"
-                          >
-                            {school.curriculum_type}
-                          </Badge>
-                        )}
+                        {/* Curriculum type is now managed at class level */}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-gray-600 mb-3">

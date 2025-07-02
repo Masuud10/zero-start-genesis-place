@@ -20,14 +20,16 @@ export const useSchoolCurriculum = () => {
 
       try {
         setError(null);
+        // Get curriculum type from first class in school since it's now class-level
         const { data, error: fetchError } = await supabase
-          .from('schools')
+          .from('classes')
           .select('curriculum_type')
-          .eq('id', schoolId)
+          .eq('school_id', schoolId)
+          .limit(1)
           .single();
 
         if (fetchError) {
-          console.error('Error fetching curriculum type:', fetchError);
+          console.error('Error fetching curriculum type from classes:', fetchError);
           setError('Failed to fetch curriculum type');
           setCurriculumType('standard');
         } else {

@@ -191,8 +191,9 @@ export class AdminAnalyticsService {
     try {
       console.log('📊 AdminAnalyticsService: Fetching curriculum distribution...');
       
+      // Get curriculum distribution from classes table instead of schools
       const { data, error } = await supabase
-        .from('schools')
+        .from('classes')
         .select('curriculum_type');
 
       if (error) {
@@ -205,8 +206,8 @@ export class AdminAnalyticsService {
         return [];
       }
 
-      const curriculumCount = data.reduce((acc: Record<string, number>, school) => {
-        const curriculum = school.curriculum_type || 'Standard';
+      const curriculumCount = data.reduce((acc: Record<string, number>, classData) => {
+        const curriculum = classData.curriculum_type || 'CBC';
         acc[curriculum] = (acc[curriculum] || 0) + 1;
         return acc;
       }, {});

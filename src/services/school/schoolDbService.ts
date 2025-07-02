@@ -60,7 +60,7 @@ export class SchoolDbService {
     if (schoolData.year_established) updateData.year_established = schoolData.year_established;
     if (schoolData.term_structure) updateData.term_structure = schoolData.term_structure;
     if (schoolData.owner_information) updateData.owner_information = schoolData.owner_information;
-    if (schoolData.curriculumType) updateData.curriculum_type = schoolData.curriculumType;
+    // curriculum_type is now handled at class level, not school level
     
     if (Object.keys(updateData).length > 0) {
       const { error: updateError } = await supabase
@@ -94,7 +94,6 @@ export class SchoolDbService {
           year_established,
           term_structure,
           owner_information,
-          curriculum_type,
           school_type,
           principal_name,
           principal_contact,
@@ -142,7 +141,6 @@ export class SchoolDbService {
           year_established,
           term_structure,
           owner_information,
-          curriculum_type,
           school_type,
           principal_name,
           principal_contact,

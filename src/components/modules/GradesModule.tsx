@@ -72,7 +72,7 @@ const GradesModule: React.FC = () => {
       if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
         const { data: schoolsResponse, error: schoolsError } = await supabase
           .from("schools")
-          .select("id, name, curriculum_type")
+          .select("id, name")
           .order('name');
           
         if (schoolsError) {

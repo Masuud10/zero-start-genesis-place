@@ -10,7 +10,6 @@ export interface School {
   phone: string;
   address: string;
   school_type?: string;
-  curriculum_type?: string;
   term_structure?: string;
   registration_number?: string;
   year_established?: number;
@@ -56,7 +55,6 @@ export const useSchools = (refreshKey = 0) => {
           phone,
           address,
           school_type,
-          curriculum_type,
           term_structure,
           registration_number,
           year_established,
@@ -108,7 +106,6 @@ export const useSchool = (schoolId: string) => {
           phone,
           address,
           school_type,
-          curriculum_type,
           term_structure,
           registration_number,
           year_established,

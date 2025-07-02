@@ -1616,6 +1616,7 @@ export type Database = {
           capacity: number | null
           class_type: string | null
           created_at: string | null
+          curriculum_type: string
           id: string
           level: string | null
           name: string
@@ -1631,6 +1632,7 @@ export type Database = {
           capacity?: number | null
           class_type?: string | null
           created_at?: string | null
+          curriculum_type?: string
           id?: string
           level?: string | null
           name: string
@@ -1646,6 +1648,7 @@ export type Database = {
           capacity?: number | null
           class_type?: string | null
           created_at?: string | null
+          curriculum_type?: string
           id?: string
           level?: string | null
           name?: string
@@ -5120,7 +5123,6 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string | null
-          curriculum_type: string
           email: string | null
           id: string
           location: string | null
@@ -5149,7 +5151,6 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string | null
-          curriculum_type?: string
           email?: string | null
           id?: string
           location?: string | null
@@ -5178,7 +5179,6 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string | null
-          curriculum_type?: string
           email?: string | null
           id?: string
           location?: string | null
@@ -6322,6 +6322,7 @@ export type Database = {
           created_at: string | null
           credit_hours: number | null
           curriculum: string | null
+          curriculum_type: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -6339,6 +6340,7 @@ export type Database = {
           created_at?: string | null
           credit_hours?: number | null
           curriculum?: string | null
+          curriculum_type?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -6356,6 +6358,7 @@ export type Database = {
           created_at?: string | null
           credit_hours?: number | null
           curriculum?: string | null
+          curriculum_type?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null

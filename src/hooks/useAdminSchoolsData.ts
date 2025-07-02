@@ -30,7 +30,6 @@ export function useAdminSchoolsData(refreshKey = 0) {
             slogan,
             registration_number,
             year_established,
-            curriculum_type,
             principal_name,
             principal_contact,
             principal_email,

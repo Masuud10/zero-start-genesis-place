@@ -107,18 +107,20 @@ export const EnhancedBulkGradingModal: React.FC<EnhancedBulkGradingModalProps> =
 
       if (subjectsError) throw subjectsError;
 
-      // Get curriculum type from school
-      const { data: schoolData, error: schoolError } = await supabase
-        .from('schools')
+      // Get curriculum type from first class in the selected class
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
         .select('curriculum_type')
-        .eq('id', schoolId)
+        .eq('id', selectedClass)
         .single();
 
-      if (schoolError) throw schoolError;
+      if (classError) {
+        console.warn('Could not fetch curriculum type from class, defaulting to CBC');
+      }
 
       setStudents(studentsData || []);
       setSubjects(subjectsData || []);
-      setCurriculumType(schoolData?.curriculum_type || 'standard');
+      setCurriculumType((classData?.curriculum_type as any) || 'CBC');
 
     } catch (error) {
       console.error('Error loading data:', error);
