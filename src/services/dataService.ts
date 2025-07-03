@@ -59,16 +59,16 @@ export class DataService {
   }
 
   // Reporting - delegate to ReportService
-  static async generateStudentReport(scope: UserScope, studentId: string, academicYear: string, term: string) {
-    return ReportService.generateStudentReport(scope, studentId, academicYear, term);
+  static async generateStudentReport(studentId: string, schoolId: string) {
+    return ReportService.generateStudentReport(studentId, schoolId);
   }
 
-  static async generateClassReport(scope: UserScope, classId: string, academicYear: string, term: string) {
-    return ReportService.generateClassReport(scope, classId, academicYear, term);
+  static async generateClassReport(classId: string, schoolId: string) {
+    return ReportService.generateClassPerformanceReport(classId, schoolId);
   }
 
-  static async generateFinancialReport(scope: UserScope, schoolId?: string, academicYear?: string) {
-    return ReportService.generateFinancialReport(scope, schoolId, academicYear);
+  static async generateFinancialReport(schoolId: string, startDate: string, endDate: string) {
+    return ReportService.generateFeeCollectionReport(schoolId, startDate, endDate);
   }
 }
 

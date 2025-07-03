@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Class {
   id: string;
   name: string;
+  level?: string;
   school_id: string;
   teacher_id?: string;
   created_at: string;
@@ -36,6 +37,7 @@ export const useClasses = () => {
       let query = supabase.from('classes').select(`
         id,
         name,
+        level,
         school_id,
         teacher_id,
         created_at

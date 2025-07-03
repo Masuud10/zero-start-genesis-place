@@ -5,6 +5,8 @@ import { Download } from 'lucide-react';
 interface RoleReportDownloadButtonProps {
   userRole?: string;
   label?: string;
+  type?: string;
+  term?: string;
 }
 
 const RoleReportDownloadButton: React.FC<RoleReportDownloadButtonProps> = ({ 
