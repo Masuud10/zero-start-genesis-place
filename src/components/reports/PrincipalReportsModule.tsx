@@ -13,6 +13,7 @@ import ReportHeader from './shared/ReportHeader';
 import ReportFooter from './shared/ReportFooter';
 import ExportButton from './shared/ExportButton';
 import { useToast } from '@/hooks/use-toast';
+import EnhancedReportGeneration from './EnhancedReportGeneration';
 
 const PrincipalReportsModule: React.FC = () => {
   const { user } = useAuth();
@@ -357,6 +358,11 @@ const PrincipalReportsModule: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Enhanced Report Generation */}
+      {user?.school_id && (
+        <EnhancedReportGeneration schoolId={user.school_id} />
       )}
     </div>
   );

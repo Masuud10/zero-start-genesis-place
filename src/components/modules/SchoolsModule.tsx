@@ -364,7 +364,7 @@ const SchoolsModule: React.FC = () => {
       {/* Enhanced School Registration Dialog */}
       <EnhancedSchoolRegistrationDialog
         open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
         onSuccess={handleCreateSuccess}
       />
     </div>

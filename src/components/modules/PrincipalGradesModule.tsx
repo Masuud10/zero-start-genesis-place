@@ -14,9 +14,11 @@ import { useSubjects } from '@/hooks/useSubjects';
 import { PrincipalGradeApprovalInterface } from '@/components/grading/PrincipalGradeApprovalInterface';
 import { Eye, CheckCircle, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
 const PrincipalGradesModule: React.FC = () => {
   const { toast } = useToast();
+  const { schoolId } = useSchoolScopedData();
   const {
     grades,
     isLoading,
@@ -148,6 +150,7 @@ const PrincipalGradesModule: React.FC = () => {
             grades={pendingGrades}
             onBulkAction={handleBulkAction}
             processing={processing}
+            schoolId={schoolId || ''}
             allowRelease={false}
           />
         </TabsContent>
@@ -157,6 +160,7 @@ const PrincipalGradesModule: React.FC = () => {
             grades={approvedGrades}
             onBulkAction={handleBulkAction}
             processing={processing}
+            schoolId={schoolId || ''}
             allowRelease={true}
           />
         </TabsContent>
@@ -166,6 +170,7 @@ const PrincipalGradesModule: React.FC = () => {
             grades={releasedGrades}
             onBulkAction={handleBulkAction}
             processing={processing}
+            schoolId={schoolId || ''}
             readOnly={true}
           />
         </TabsContent>
@@ -175,6 +180,7 @@ const PrincipalGradesModule: React.FC = () => {
             grades={rejectedGrades}
             onBulkAction={handleBulkAction}
             processing={processing}
+            schoolId={schoolId || ''}
             readOnly={true}
           />
         </TabsContent>
