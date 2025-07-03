@@ -1,126 +1,162 @@
-
 import { supabase } from '@/integrations/supabase/client';
-
-interface UserScope {
-  isSystemAdmin: boolean;
-  schoolId: string | null;
-}
+import { ReportData, SchoolInfo } from '@/types/report';
 
 export class ReportService {
-  static async generateStudentReport(scope: UserScope, studentId: string, academicYear: string, term: string) {
-    try {
-      const query = supabase
-        .from('students')
-        .select(`
-          *,
-          grades:grades(
-            subject_id,
-            score,
-            max_score,
-            percentage,
-            position,
-            exam_type,
-            subjects:subjects(name, code)
-          ),
-          attendance:attendance(
-            date,
-            status,
-            session
-          ),
-          fees:fees(
-            amount,
-            paid_amount,
-            status,
-            category,
-            due_date
-          )
-        `)
-        .eq('id', studentId);
+  private static async getSchoolInfo(schoolId: string): Promise<SchoolInfo> {
+    const { data: school } = await supabase
+      .from('schools')
+      .select('name, logo_url, address, phone, email')
+      .eq('id', schoolId)
+      .single();
 
-      if (!scope.isSystemAdmin) {
-        if (!scope.schoolId) {
-          return { data: null, error: new Error("User's school context is required for this report.") };
-        }
-        query.eq('school_id', scope.schoolId);
-      }
-
-      const { data, error } = await query.single();
-
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error generating student report:', error);
-      return { data: null, error };
-    }
+    return {
+      name: school?.name || 'School',
+      logo: school?.logo_url,
+      address: school?.address,
+      phone: school?.phone,
+      email: school?.email,
+    };
   }
 
-  static async generateClassReport(scope: UserScope, classId: string, academicYear: string, term: string) {
-    try {
-      const query = supabase
-        .from('classes')
-        .select(`
-          *,
-          students:students(
-            id,
-            name,
-            admission_number,
-            grades:grades(score, max_score, percentage, subject_id),
-            attendance:attendance(status, date)
-          )
-        `)
-        .eq('id', classId);
+  // Teacher Reports
+  static async generateClassPerformanceReport(classId: string, schoolId: string): Promise<ReportData> {
+    const schoolInfo = await this.getSchoolInfo(schoolId);
+    
+    const { data: grades } = await supabase
+      .from('grades')
+      .select(`
+        *,
+        student:students(name, admission_number),
+        subject:subjects(name, code)
+      `)
+      .eq('class_id', classId)
+      .eq('school_id', schoolId);
 
-      if (!scope.isSystemAdmin) {
-        if (!scope.schoolId) {
-          return { data: null, error: new Error("User's school context is required for this report.") };
-        }
-        query.eq('school_id', scope.schoolId);
-      }
-
-      const { data, error } = await query.single();
-
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error generating class report:', error);
-      return { data: null, error };
-    }
+    return {
+      id: `class-performance-${Date.now()}`,
+      title: 'Class Performance Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo,
+      content: { grades }
+    };
   }
 
-  static async generateFinancialReport(scope: UserScope, schoolId?: string, academicYear?: string) {
-    try {
-      let query = supabase
-        .from('financial_transactions')
-        .select(`
-          *,
-          students:students(name, admission_number),
-          fees:fees(amount, category, term)
-        `);
+  static async generateSubjectPerformanceReport(subjectId: string, schoolId: string): Promise<ReportData> {
+    const schoolInfo = await this.getSchoolInfo(schoolId);
+    
+    const { data: grades } = await supabase
+      .from('grades')
+      .select(`
+        *,
+        student:students(name, admission_number),
+        class:classes(name)
+      `)
+      .eq('subject_id', subjectId)
+      .eq('school_id', schoolId);
 
-      if (scope.isSystemAdmin) {
-        // System admin can filter by a specific school or get all.
-        if (schoolId) {
-          query = query.eq('school_id', schoolId);
-        }
-      } else {
-        // Non-system admin is always scoped to their own school.
-        if (!scope.schoolId) {
-          return { data: null, error: new Error("User's school context is required for this report.") };
-        }
-        query = query.eq('school_id', scope.schoolId);
-      }
+    return {
+      id: `subject-performance-${Date.now()}`,
+      title: 'Subject Performance Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo,
+      content: { grades }
+    };
+  }
 
-      if (academicYear) {
-        query = query.eq('academic_year', academicYear);
-      }
+  // Principal Reports
+  static async generateStudentReport(studentId: string, schoolId: string): Promise<ReportData> {
+    const schoolInfo = await this.getSchoolInfo(schoolId);
+    
+    const { data: student } = await supabase
+      .from('students')
+      .select(`
+        *,
+        grades:grades(*),
+        attendance:attendance(*),
+        fees:fees(*)
+      `)
+      .eq('id', studentId)
+      .eq('school_id', schoolId)
+      .single();
 
-      const { data, error } = await query.order('processed_at', { ascending: false });
+    return {
+      id: `student-report-${Date.now()}`,
+      title: 'Individual Student Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo,
+      content: { student }
+    };
+  }
 
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error generating financial report:', error);
-      return { data: null, error };
-    }
+  // Finance Reports
+  static async generateFeeCollectionReport(schoolId: string, startDate: string, endDate: string): Promise<ReportData> {
+    const schoolInfo = await this.getSchoolInfo(schoolId);
+    
+    const { data: transactions } = await supabase
+      .from('financial_transactions')
+      .select(`
+        *,
+        student:students(name, admission_number)
+      `)
+      .eq('school_id', schoolId)
+      .gte('created_at', startDate)
+      .lte('created_at', endDate);
+
+    return {
+      id: `fee-collection-${Date.now()}`,
+      title: 'Fee Collection Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo,
+      content: { transactions }
+    };
+  }
+
+  // Parent Reports
+  static async generateStudentAcademicReport(studentId: string): Promise<ReportData> {
+    const { data: student } = await supabase
+      .from('students')
+      .select(`
+        *,
+        grades:grades(*),
+        attendance:attendance(*)
+      `)
+      .eq('id', studentId)
+      .single();
+
+    const { data: school } = await supabase
+      .from('schools')
+      .select('name, logo_url, address, phone, email')
+      .eq('id', student?.school_id)
+      .single();
+
+    const schoolInfo: SchoolInfo = {
+      name: school?.name || 'School',
+      logo: school?.logo_url,
+      address: school?.address,
+      phone: school?.phone,
+      email: school?.email,
+    };
+
+    return {
+      id: `student-academic-${Date.now()}`,
+      title: 'Student Academic Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo,
+      content: { student }
+    };
+  }
+
+  // System Reports
+  static async generateSystemOverviewReport(): Promise<ReportData> {
+    const { data: schools } = await supabase.from('schools').select('*');
+    const { data: users } = await supabase.from('profiles').select('*');
+    
+    return {
+      id: `system-overview-${Date.now()}`,
+      title: 'System Overview Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo: { name: 'EduFam System' },
+      content: { schools, users }
+    };
   }
 }

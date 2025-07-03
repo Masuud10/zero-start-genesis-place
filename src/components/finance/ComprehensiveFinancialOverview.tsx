@@ -7,7 +7,7 @@ import { useFinancialSummary } from '@/hooks/useFinancialSummary';
 import { useFeeManagement } from '@/hooks/useFeeManagement';
 import { useMpesaTransactions } from '@/hooks/useMpesaTransactions';
 import MpesaTransactionsPanel from './MpesaTransactionsPanel';
-import FinanceReportsModule from '../modules/FinanceReportsModule';
+import FinanceReportsModule from '../reports/FinanceReportsModule';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

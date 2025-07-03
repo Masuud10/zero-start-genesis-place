@@ -4,32 +4,36 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
 import { ReportService } from '@/services/reportService';
-import { SystemReportFilters } from '@/types/report';
+import { FinanceReportFilters } from '@/types/report';
 import ReportHeader from './shared/ReportHeader';
 import ReportFooter from './shared/ReportFooter';
 import ExportButton from './shared/ExportButton';
 import { useToast } from '@/hooks/use-toast';
 
-const SystemReportsModule: React.FC = () => {
+const FinanceReportsModule: React.FC = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   
-  const [filters, setFilters] = useState<SystemReportFilters>({
+  const [filters, setFilters] = useState<FinanceReportFilters>({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
-    reportType: 'system_overview'
+    reportType: 'fee_collection'
   });
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
 
   const handleGenerateReport = async () => {
+    if (!user?.school_id) return;
+    
     setLoading(true);
     try {
       let report;
       
       switch (filters.reportType) {
-        case 'system_overview':
-          report = await ReportService.generateSystemOverviewReport();
+        case 'fee_collection':
+          report = await ReportService.generateFeeCollectionReport(user.school_id, filters.startDate, filters.endDate);
           break;
         default:
           // For other report types, use a generic approach
@@ -37,7 +41,7 @@ const SystemReportsModule: React.FC = () => {
             id: `${filters.reportType}-${Date.now()}`,
             title: `${filters.reportType.replace('_', ' ').toUpperCase()} Report`,
             generatedAt: new Date().toISOString(),
-            schoolInfo: { name: 'EduFam System' },
+            schoolInfo: { name: 'Financial Report' },
             content: { message: `${filters.reportType} report data would be displayed here` }
           };
       }
@@ -45,12 +49,12 @@ const SystemReportsModule: React.FC = () => {
       setReportData(report);
       toast({
         title: "Report Generated",
-        description: "System report has been generated successfully.",
+        description: "Your financial report has been generated successfully.",
       });
     } catch (error) {
       toast({
         title: "Generation Failed",
-        description: "Unable to generate system report. Please try again.",
+        description: "Unable to generate report. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -64,11 +68,11 @@ const SystemReportsModule: React.FC = () => {
 
   const handleExportExcel = () => {
     const csvContent = "data:text/csv;charset=utf-8," + 
-      "System report data would be formatted as CSV here";
+      "Finance report data would be formatted as CSV here";
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "system_report.csv");
+    link.setAttribute("download", "finance_report.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -78,7 +82,7 @@ const SystemReportsModule: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>System Reports</CardTitle>
+          <CardTitle>Finance Reports</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -92,10 +96,10 @@ const SystemReportsModule: React.FC = () => {
                   <SelectValue placeholder="Select report type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="system_overview">System Overview</SelectItem>
-                  <SelectItem value="school_performance">School Performance</SelectItem>
-                  <SelectItem value="revenue">Revenue Analysis</SelectItem>
-                  <SelectItem value="user_activity">User Activity</SelectItem>
+                  <SelectItem value="fee_collection">Fee Collection Reports</SelectItem>
+                  <SelectItem value="mpesa_transactions">MPESA Transactions</SelectItem>
+                  <SelectItem value="outstanding">Outstanding Balances</SelectItem>
+                  <SelectItem value="subscription">Subscription Summary</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -149,88 +153,68 @@ const SystemReportsModule: React.FC = () => {
             />
             
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">System Overview</h3>
+              <h3 className="text-lg font-semibold">Financial Summary</h3>
               
-              {reportData.content?.schools && reportData.content?.users && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-blue-800">Total Schools</h4>
-                      <p className="text-2xl font-bold text-blue-600">
-                        {reportData.content.schools.length}
+              {reportData.content?.transactions?.length > 0 ? (
+                <div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-green-800">Total Collection</h4>
+                      <p className="text-2xl font-bold text-green-600">
+                        KES {reportData.content.transactions.reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0).toLocaleString()}
                       </p>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-green-800">Active Users</h4>
-                      <p className="text-2xl font-bold text-green-600">
-                        {reportData.content.users.filter((u: any) => u.is_active !== false).length}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-800">Transactions</h4>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {reportData.content.transactions.length}
                       </p>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-purple-800">Teachers</h4>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {reportData.content.users.filter((u: any) => u.role === 'teacher').length}
+                      <h4 className="font-semibold text-purple-800">Period</h4>
+                      <p className="text-sm font-medium text-purple-600">
+                        {filters.startDate} to {filters.endDate}
                       </p>
                     </div>
                     <div className="bg-orange-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-orange-800">Principals</h4>
-                      <p className="text-2xl font-bold text-orange-600">
-                        {reportData.content.users.filter((u: any) => u.role === 'principal').length}
-                      </p>
+                      <h4 className="font-semibold text-orange-800">Currency</h4>
+                      <p className="text-lg font-bold text-orange-600">KES</p>
                     </div>
                   </div>
 
-                  <div>
-                    <h4 className="font-semibold mb-2">Schools Summary</h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border border-border">
-                        <thead>
-                          <tr className="bg-muted">
-                            <th className="border border-border p-2 text-left">School Name</th>
-                            <th className="border border-border p-2 text-left">Location</th>
-                            <th className="border border-border p-2 text-left">Created Date</th>
-                            <th className="border border-border p-2 text-left">Status</th>
+                  <h4 className="font-semibold mb-2">Transaction Details</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-border">
+                      <thead>
+                        <tr className="bg-muted">
+                          <th className="border border-border p-2 text-left">Date</th>
+                          <th className="border border-border p-2 text-left">Student</th>
+                          <th className="border border-border p-2 text-left">Amount (KES)</th>
+                          <th className="border border-border p-2 text-left">Type</th>
+                          <th className="border border-border p-2 text-left">Method</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportData.content.transactions.map((transaction: any, index: number) => (
+                          <tr key={index}>
+                            <td className="border border-border p-2">
+                              {new Date(transaction.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="border border-border p-2">{transaction.student?.name || 'N/A'}</td>
+                            <td className="border border-border p-2 font-mono">
+                              {Number(transaction.amount).toLocaleString()}
+                            </td>
+                            <td className="border border-border p-2">{transaction.transaction_type}</td>
+                            <td className="border border-border p-2">{transaction.payment_method || 'Cash'}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {reportData.content.schools.slice(0, 10).map((school: any, index: number) => (
-                            <tr key={index}>
-                              <td className="border border-border p-2">{school.name}</td>
-                              <td className="border border-border p-2">{school.location || 'N/A'}</td>
-                              <td className="border border-border p-2">
-                                {new Date(school.created_at).toLocaleDateString()}
-                              </td>
-                              <td className="border border-border p-2">
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                                  Active
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-2">User Role Distribution</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {['teacher', 'principal', 'parent', 'finance_officer', 'school_owner'].map(role => (
-                        <div key={role} className="bg-gray-50 p-2 rounded text-center">
-                          <div className="text-sm text-gray-600 capitalize">{role.replace('_', ' ')}</div>
-                          <div className="font-bold">
-                            {reportData.content.users.filter((u: any) => u.role === role).length}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              )}
-
-              {!reportData.content?.schools && !reportData.content?.users && (
+              ) : (
                 <p className="text-muted-foreground">
-                  {reportData.content?.message || 'System report data will be displayed here.'}
+                  {reportData.content?.message || 'No financial data available for the selected period.'}
                 </p>
               )}
             </div>
@@ -243,4 +227,4 @@ const SystemReportsModule: React.FC = () => {
   );
 };
 
-export default SystemReportsModule;
+export default FinanceReportsModule;

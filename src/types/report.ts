@@ -1,158 +1,51 @@
-export interface Report {
+export interface ReportData {
   id: string;
-  school_id: string;
-  generated_by: string;
-  report_type: 'individual_academic' | 'class_academic' | 'financial' | 'attendance';
-  report_data: any;
-  filters: any;
-  generated_at: string;
-  created_at: string;
-  updated_at: string;
-  // Joined data from queries
-  school?: {
-    name: string;
-    logo_url: string;
-    address: string;
-    phone: string;
-    email: string;
-  };
-  generated_by_profile?: {
-    name: string;
-  };
-}
-
-export interface ReportFilters {
-  school_id?: string;
-  academic_year?: string;
-  term?: string;
-  class_id?: string;
-  student_id?: string;
-  report_type?: string;
-}
-
-export interface StudentReportData {
-  student: {
-    id: string;
-    name: string;
-    admission_number: string;
-    roll_number: string;
-    date_of_birth: string;
-    gender: string;
-    class: {
-      id: string;
-      name: string;
-      level: string;
-      stream: string;
-    };
-    school: SchoolInfo;
-  };
-  academic_performance: {
-    total_marks: number;
-    possible_marks: number;
-    average_percentage: number;
-    overall_grade: string;
-    class_position: number;
-    total_subjects: number;
-    subjects_performance: SubjectPerformance[];
-  };
-  attendance: {
-    total_days: number;
-    present_days: number;
-    absent_days: number;
-    late_days: number;
-    attendance_percentage: number;
-  };
-  financial: {
-    total_fees: number;
-    paid_amount: number;
-    outstanding_amount: number;
-    fee_breakdown: FeeBreakdown[];
-  };
-  generated_at: string;
-  academic_year: string;
-  term?: string;
-}
-
-export interface ClassReportData {
-  class_info: {
-    id: string;
-    name: string;
-    level: string;
-    stream: string;
-    teacher: {
-      name: string;
-      email: string;
-    };
-    school: SchoolInfo;
-    total_students: number;
-  };
-  performance_summary: {
-    class_average: number;
-    highest_score: number;
-    lowest_score: number;
-    total_subjects: number;
-    top_performers: TopPerformer[];
-    subject_performance: SubjectPerformance[];
-  };
-  attendance_summary: {
-    total_attendance_records: number;
-    class_attendance_rate: number;
-    students_with_low_attendance: number;
-  };
-  generated_at: string;
-  academic_year: string;
-  term?: string;
+  title: string;
+  generatedAt: string;
+  schoolInfo: SchoolInfo;
+  content: any;
 }
 
 export interface SchoolInfo {
-  id: string;
   name: string;
-  location: string;
-  address: string;
-  phone: string;
-  email: string;
-  logo_url: string;
-  motto: string;
-  slogan: string;
-  principal_name: string;
-  principal_contact: string;
+  logo?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
 }
 
-export interface SubjectPerformance {
-  subject_name: string;
-  subject_code: string;
-  score?: number;
-  max_score?: number;
-  percentage?: number;
-  grade?: string;
-  position?: number;
-  comments?: string;
-  class_average?: number;
-  highest_score?: number;
-  lowest_score?: number;
+export interface TeacherReportFilters {
+  classId?: string;
+  subjectId?: string;
+  startDate: string;
+  endDate: string;
+  reportType: 'performance' | 'attendance' | 'subject';
 }
 
-export interface TopPerformer {
-  student_name: string;
-  admission_number: string;
-  average_score: number;
-  position: number;
+export interface PrincipalReportFilters {
+  studentId?: string;
+  classId?: string;
+  subjectId?: string;
+  startDate: string;
+  endDate: string;
+  reportType: 'individual' | 'academic' | 'class' | 'subject' | 'attendance' | 'financial';
 }
 
-export interface FeeBreakdown {
-  category: string;
-  term: string;
-  amount: number;
-  paid_amount: number;
-  status: string;
-  due_date: string;
+export interface FinanceReportFilters {
+  startDate: string;
+  endDate: string;
+  reportType: 'fee_collection' | 'mpesa_transactions' | 'outstanding' | 'subscription';
 }
 
-export interface ReportGenerationRequest {
-  report_type: 'individual_academic' | 'class_academic' | 'financial' | 'attendance';
-  student_id?: string;
-  class_id?: string;
-  academic_year: string;
-  term?: string;
-  filters?: any;
+export interface ParentReportFilters {
+  studentId: string;
+  startDate: string;
+  endDate: string;
+  reportType: 'academic' | 'attendance' | 'fees';
+}
+
+export interface SystemReportFilters {
+  startDate: string;
+  endDate: string;
+  reportType: 'system_overview' | 'school_performance' | 'revenue' | 'user_activity';
 }
