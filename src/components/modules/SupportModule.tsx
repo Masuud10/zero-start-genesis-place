@@ -48,59 +48,7 @@ const SupportModule = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open</CardTitle>
-            <AlertCircle className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.open}</div>
-            <p className="text-xs text-muted-foreground">Awaiting response</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
-            <p className="text-xs text-muted-foreground">Being worked on</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
-            <p className="text-xs text-muted-foreground">Completed</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Urgent</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.urgent}</div>
-            <p className="text-xs text-muted-foreground">High priority</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Removed Stats Cards per user requirements */}
 
       {/* Filters */}
       <div className="flex space-x-4">
@@ -141,40 +89,13 @@ const SupportModule = () => {
         </Select>
       </div>
 
-      {/* Advanced Admin Support Interface */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Filtered Tickets List */}
-        <div className="lg:col-span-2">
-          <SupportTicketManagement 
-            title="All Support Tickets"
-            description="Manage support requests from all schools"
-            showCreateButton={false}
-          />
-        </div>
+      {/* Admin Support Interface */}
+      <SupportTicketManagement 
+        title="All Support Tickets"
+        description="Manage support requests from all schools"
+        showCreateButton={false}
+      />
         
-        {/* Summary and Quick Actions */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-red-600">{stats.urgent}</div>
-                <p className="text-sm text-muted-foreground">Urgent Tickets</p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{stats.open}</div>
-                <p className="text-sm text-muted-foreground">Open Tickets</p>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-600">{stats.inProgress}</div>
-                <p className="text-sm text-muted-foreground">In Progress</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
     </div>
   );
 };

@@ -44,6 +44,7 @@ const FinancialOverview = React.lazy(() => import('@/components/finance/Financia
 const TeacherGradesModule = React.lazy(() => import('@/components/modules/TeacherGradesModule'));
 const TeacherReportsModule = React.lazy(() => import('@/components/reports/TeacherReportsModule'));
 const TeacherSupportModule = React.lazy(() => import('@/components/modules/TeacherSupportModule'));
+const UniversalSupportModule = React.lazy(() => import('@/components/modules/UniversalSupportModule'));
 const TeacherTimetableModule = React.lazy(() => import('@/components/timetable/TeacherTimetableView'));
 
 interface ContentRendererProps {
@@ -262,11 +263,16 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
     case 'security':
       return renderLazyComponent(SecurityModule, 'SecurityModule');
     case 'support':
+      // EduFam admin gets full admin support module
+      if (user?.role === 'edufam_admin') {
+        return renderLazyComponent(SupportModule, 'SupportModule');
+      }
       // Teachers get their own simplified support module
       if (user?.role === 'teacher') {
         return renderLazyComponent(TeacherSupportModule, 'TeacherSupportModule');
       }
-      return renderLazyComponent(SupportModule, 'SupportModule');
+      // All other roles get universal support module
+      return renderLazyComponent(UniversalSupportModule, 'UniversalSupportModule');
     case 'certificates':
       return renderLazyComponent(CertificatesModule, 'CertificatesModule');
     default:
