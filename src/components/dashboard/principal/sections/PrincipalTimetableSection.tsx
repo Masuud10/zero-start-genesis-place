@@ -4,9 +4,9 @@ import PrincipalTimetableCard from '../PrincipalTimetableCard';
 
 const PrincipalTimetableSection: React.FC = () => {
   return (
-    <section>
+    <section className="w-full">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Timetable Management</h2>
-      <div className="bg-white rounded-lg border shadow-sm">
+      <div className="w-full">
         <PrincipalTimetableCard />
       </div>
     </section>

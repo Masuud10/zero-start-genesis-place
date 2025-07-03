@@ -72,18 +72,18 @@ const SubjectManagementTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+      {/* REMOVED: Subject Creation has been disabled as per requirements */}
+      <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-xl">Subject Management</CardTitle>
-                <p className="text-green-600 text-sm">
-                  Create and manage subjects for your school curriculum
+                <CardTitle className="text-xl">Subject Management - Read Only</CardTitle>
+                <p className="text-gray-600 text-sm">
+                  View existing subjects (Creation disabled)
                 </p>
               </div>
             </div>
@@ -96,14 +96,6 @@ const SubjectManagementTab = () => {
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${subjectsLoading ? 'animate-spin' : ''}`} />
                 Refresh
-              </Button>
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                disabled={entitiesLoading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Subject
               </Button>
             </div>
           </div>
@@ -193,14 +185,7 @@ const SubjectManagementTab = () => {
         </CardContent>
       </Card>
 
-      {/* Subject Creation Modal */}
-      <NewSubjectCreationModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleCreateSuccess}
-        classes={classList}
-        teachers={teacherList}
-      />
+      {/* REMOVED: Subject Creation Modal disabled */}
     </div>
   );
 };

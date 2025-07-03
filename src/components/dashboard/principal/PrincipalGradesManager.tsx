@@ -106,48 +106,7 @@ const PrincipalGradesManager: React.FC<PrincipalGradesManagerProps> = ({
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter Grades</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Class</label>
-              <Select value={classFilter} onValueChange={setClassFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Classes</SelectItem>
-                  {uniqueClasses.map((className) => (
-                    <SelectItem key={className} value={className}>
-                      {className}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Subject</label>
-              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {uniqueSubjects.map((subjectName) => (
-                    <SelectItem key={subjectName} value={subjectName}>
-                      {subjectName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* REMOVED: Duplicate Filter Section - Keeping only one filter set */}
 
       {/* Grade Management Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

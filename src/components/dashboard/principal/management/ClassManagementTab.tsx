@@ -10,7 +10,7 @@ import { Edit, X } from "lucide-react";
 const ClassManagementTab = () => {
   const { toast } = useToast();
   const { schoolId } = useSchoolScopedData();
-  const [form, setForm] = useState({ name: "", level: "", stream: "", year: "" });
+  const [form, setForm] = useState({ name: "", level: "", stream: "", year: "", curriculum: "" });
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -28,7 +28,7 @@ const ClassManagementTab = () => {
     setLoadingTable(true);
     const { data, error } = await supabase
       .from("classes")
-      .select("*")
+      .select("id, name, level, stream, year, curriculum, school_id, teacher_id, created_at")
       .eq("school_id", schoolId)
       .order("name");
     if (error) {
@@ -52,7 +52,7 @@ const ClassManagementTab = () => {
 
   const handleCreateOrEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.level || !form.year) {
+    if (!form.name || !form.level || !form.year || !form.curriculum) {
       toast({ title: "Validation Error", description: "All required fields must be filled", variant: "destructive" });
       return;
     }
@@ -70,6 +70,7 @@ const ClassManagementTab = () => {
           level: form.level,
           stream: form.stream,
           year: form.year,
+          curriculum: form.curriculum,
         })
         .eq("id", editingId);
       result = { error };
@@ -82,6 +83,7 @@ const ClassManagementTab = () => {
           level: form.level,
           stream: form.stream,
           year: form.year,
+          curriculum: form.curriculum,
         });
       result = { error };
     }
@@ -93,7 +95,7 @@ const ClassManagementTab = () => {
         title: editingId ? "Class Updated" : "Class Created",
         description: editingId ? `Class "${form.name}" updated.` : `Class "${form.name}" added.`
       });
-      setForm({ name: "", level: "", stream: "", year: "" });
+      setForm({ name: "", level: "", stream: "", year: "", curriculum: "" });
       setEditingId(null);
       fetchClasses();
     }
@@ -105,7 +107,8 @@ const ClassManagementTab = () => {
       name: row.name || "",
       level: row.level || "",
       stream: row.stream || "",
-      year: row.year || ""
+      year: row.year || "",
+      curriculum: row.curriculum || ""
     });
   };
 
@@ -128,7 +131,7 @@ const ClassManagementTab = () => {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setForm({ name: "", level: "", stream: "", year: "" });
+    setForm({ name: "", level: "", stream: "", year: "", curriculum: "" });
   };
 
   return (
@@ -139,6 +142,19 @@ const ClassManagementTab = () => {
         <Input name="level" required placeholder="Class Level (e.g., Grade 1)" value={form.level} onChange={handleChange} />
         <Input name="stream" placeholder="Stream (if applicable)" value={form.stream} onChange={handleChange} />
         <Input name="year" required placeholder="Year (e.g., 2025)" value={form.year} onChange={handleChange} />
+        <select 
+          name="curriculum" 
+          required 
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          value={form.curriculum || ''} 
+          onChange={(e) => setForm(f => ({ ...f, curriculum: e.target.value }))}
+        >
+          <option value="">Select Curriculum Type</option>
+          <option value="CBC">CBC (Competency Based Curriculum)</option>
+          <option value="IGCSE">IGCSE (International General Certificate)</option>
+          <option value="IB">IB (International Baccalaureate)</option>
+          <option value="KCSE">KCSE (Kenya Certificate of Secondary Education)</option>
+        </select>
         <div className="flex gap-2">
           <Button type="submit" disabled={loading}>
             {loading ? (editingId ? "Saving..." : "Creating...") : (editingId ? "Save Changes" : "Create Class")}
@@ -164,6 +180,7 @@ const ClassManagementTab = () => {
               <th className="border px-2 py-1">Level</th>
               <th className="border px-2 py-1">Stream</th>
               <th className="border px-2 py-1">Year</th>
+              <th className="border px-2 py-1">Curriculum</th>
               <th className="border px-2 py-1">Actions</th>
             </tr>
           </thead>
@@ -174,6 +191,7 @@ const ClassManagementTab = () => {
                 <td className="border px-2 py-1">{row.level ?? "-"}</td>
                 <td className="border px-2 py-1">{row.stream ?? "-"}</td>
                 <td className="border px-2 py-1">{row.year ?? "-"}</td>
+                <td className="border px-2 py-1">{row.curriculum ?? "-"}</td>
                 <td className="border px-2 py-1 flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
                     <Edit className="w-4 h-4 mr-1" /> Edit

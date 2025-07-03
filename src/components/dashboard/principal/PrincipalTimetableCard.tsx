@@ -101,10 +101,10 @@ const PrincipalTimetableCard: React.FC = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="w-full hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-blue-800">
             <Calendar className="h-5 w-5" />
             Timetable Management
           </CardTitle>
@@ -114,6 +114,7 @@ const PrincipalTimetableCard: React.FC = () => {
               variant="outline"
               onClick={() => refetch()}
               disabled={isLoading}
+              className="border-blue-200 text-blue-700 hover:bg-blue-50"
             >
               <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
@@ -122,7 +123,7 @@ const PrincipalTimetableCard: React.FC = () => {
               size="sm"
               onClick={handleGenerateTimetable}
               disabled={generating}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 shadow-md"
             >
               {generating ? (
                 <>

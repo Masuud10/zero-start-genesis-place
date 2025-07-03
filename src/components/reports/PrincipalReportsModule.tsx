@@ -27,6 +27,7 @@ const PrincipalReportsModule: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
+  const [reportHistory, setReportHistory] = useState<any[]>([]);
 
   const handleGenerateReport = async () => {
     if (!user?.school_id) return;
@@ -62,6 +63,15 @@ const PrincipalReportsModule: React.FC = () => {
       }
       
       setReportData(report);
+      
+      // Add to report history
+      const reportWithId = {
+        ...report,
+        generatedAt: new Date().toISOString(),
+        filters: filters
+      };
+      setReportHistory(prev => [reportWithId, ...prev]);
+      
       toast({
         title: "Report Generated",
         description: "Your report has been generated successfully.",
@@ -95,9 +105,39 @@ const PrincipalReportsModule: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Report History */}
+      {reportHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Report History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {reportHistory.slice(0, 5).map((historyReport, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{historyReport.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Generated: {new Date(historyReport.generatedAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setReportData(historyReport)}
+                  >
+                    View
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Principal Reports</CardTitle>
+          <CardTitle>Generate New Report</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -205,12 +245,34 @@ const PrincipalReportsModule: React.FC = () => {
       {reportData && (
         <Card className="print:shadow-none">
           <CardContent className="p-6">
-            <ReportHeader
-              schoolInfo={reportData.schoolInfo}
-              title={reportData.title}
-              generatedAt={reportData.generatedAt}
-            />
+            {/* School Details Header */}
+            <div className="border-b border-border pb-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  {reportData.schoolInfo?.logo && (
+                    <img src={reportData.schoolInfo.logo} alt="School Logo" className="h-16 w-16 object-contain" />
+                  )}
+                  <div>
+                    <h1 className="text-2xl font-bold text-foreground">{reportData.schoolInfo?.name || 'School Name'}</h1>
+                    {reportData.schoolInfo?.address && (
+                      <p className="text-sm text-muted-foreground">{reportData.schoolInfo.address}</p>
+                    )}
+                    <div className="flex space-x-4 text-sm text-muted-foreground">
+                      {reportData.schoolInfo?.phone && <span>📞 {reportData.schoolInfo.phone}</span>}
+                      {reportData.schoolInfo?.email && <span>✉️ {reportData.schoolInfo.email}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-xl font-semibold text-foreground">{reportData.title}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Generated: {new Date(reportData.generatedAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
             
+            {/* Report Content */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Report Summary</h3>
               
@@ -286,7 +348,13 @@ const PrincipalReportsModule: React.FC = () => {
               )}
             </div>
 
-            <ReportFooter />
+            {/* Footer */}
+            <div className="border-t border-border pt-4 mt-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Powered by <span className="font-semibold text-primary">EduFam</span> - 
+                Education Management System
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
