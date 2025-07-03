@@ -14,6 +14,7 @@ export class SubjectDatabaseService {
       code: data.code.toUpperCase().trim(),
       school_id: schoolId,
       curriculum: data.curriculum, // CBC or IGCSE
+      curriculum_type: data.curriculum, // Store in both fields for consistency
       category: data.category,
       class_id: data.class_id || null,
       teacher_id: data.teacher_id || null,

@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface Class {
   id: string;
   name: string;
+  curriculum_type?: string;
 }
 
 interface Teacher {
@@ -49,15 +50,34 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
     is_active: true
   });
 
+  // Get selected class curriculum
+  const selectedClass = classes.find(c => c.id === formData.class_id);
+  const classCurriculum = selectedClass?.curriculum_type || 'CBC';
+
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Handle input changes
   const handleInputChange = (field: keyof NewSubjectFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
+    let updatedFormData = {
+      ...formData,
       [field]: value
-    }));
+    };
+
+    // When class changes, update curriculum to match class curriculum
+    if (field === 'class_id') {
+      const selectedClass = classes.find(c => c.id === value);
+      if (selectedClass?.curriculum_type) {
+        // Ensure curriculum type is valid
+        const validCurriculums = ['CBC', 'IGCSE'] as const;
+        const curriculum = validCurriculums.includes(selectedClass.curriculum_type as any) 
+          ? selectedClass.curriculum_type as 'CBC' | 'IGCSE'
+          : 'CBC';
+        updatedFormData.curriculum = curriculum;
+      }
+    }
+
+    setFormData(updatedFormData);
 
     // Clear error when user starts typing
     if (errors[field]) {
@@ -174,10 +194,14 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
           {/* Curriculum and Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="curriculum">Curriculum</Label>
+              <Label htmlFor="curriculum">
+                Curriculum 
+                {formData.class_id && <span className="text-xs text-muted-foreground">(Auto-selected from class)</span>}
+              </Label>
               <Select
                 value={formData.curriculum}
                 onValueChange={(value: 'CBC' | 'IGCSE') => handleInputChange('curriculum', value)}
+                disabled={!!formData.class_id}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -187,6 +211,11 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                   <SelectItem value="IGCSE">IGCSE (Cambridge)</SelectItem>
                 </SelectContent>
               </Select>
+              {formData.class_id && (
+                <p className="text-xs text-green-600">
+                  ✓ Curriculum automatically set to match the selected class
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -8,6 +8,7 @@ import DeactivatedAccountMessage from '@/components/auth/DeactivatedAccountMessa
 import { ErrorState } from '@/components/common/LoadingStates';
 import { NavigationProvider } from '@/contexts/NavigationContext';
 import { SchoolProvider } from '@/contexts/SchoolContext';
+import MaintenanceCheck from '@/components/maintenance/MaintenanceCheck';
 
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
@@ -124,11 +125,13 @@ const AppContent: React.FC = () => {
   // Authenticated user with role => show main app
   console.log('🎯 AppContent: Authenticated. Render ElimshaLayout.', { role: user.role });
   return (
-    <SchoolProvider>
-      <NavigationProvider>
-        <ElimshaLayout />
-      </NavigationProvider>
-    </SchoolProvider>
+    <MaintenanceCheck>
+      <SchoolProvider>
+        <NavigationProvider>
+          <ElimshaLayout />
+        </NavigationProvider>
+      </SchoolProvider>
+    </MaintenanceCheck>
   );
 };
 

@@ -42,6 +42,7 @@ const SchoolManagementDashboard = React.lazy(() => import('@/components/dashboar
 const AnalyticsDashboard = React.lazy(() => import('@/components/analytics/AnalyticsDashboard'));
 const FinancialOverview = React.lazy(() => import('@/components/finance/FinancialOverview'));
 const TeacherGradesModule = React.lazy(() => import('@/components/modules/TeacherGradesModule'));
+const PrincipalGradesModule = React.lazy(() => import('@/components/modules/PrincipalGradesModule'));
 const TeacherReportsModule = React.lazy(() => import('@/components/reports/TeacherReportsModule'));
 const TeacherSupportModule = React.lazy(() => import('@/components/modules/TeacherSupportModule'));
 const UniversalSupportModule = React.lazy(() => import('@/components/modules/UniversalSupportModule'));
@@ -236,6 +237,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
       // Teachers get their own specialized grade management module
       if (user?.role === 'teacher') {
         return renderLazyComponent(TeacherGradesModule, 'TeacherGradesModule');
+      }
+      // Principals get the specialized principal grades module
+      if (user?.role === 'principal') {
+        return renderLazyComponent(PrincipalGradesModule, 'PrincipalGradesModule');
       }
       return renderLazyComponent(GradesModule, 'GradesModule');
     case 'attendance':
