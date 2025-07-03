@@ -153,7 +153,18 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(({ activeSection })
 
   // System Settings - Only for EduFam Admins
   if (activeSection === 'settings') {
-    return renderLazyComponent(SystemSettings, 'SystemSettings');
+    if (user?.role === 'edufam_admin') {
+      return renderLazyComponent(SystemSettings, 'SystemSettings');
+    }
+    return <div className="p-8 text-center text-red-600">Access Denied: EduFam Admin access required</div>;
+  }
+
+  // System Reports for EduFam Admin
+  if (activeSection === 'system-reports') {
+    if (user?.role === 'edufam_admin') {
+      return renderLazyComponent(EduFamAnalyticsOverview, 'SystemReportsModule');
+    }
+    return <div className="p-8 text-center text-red-600">Access Denied: EduFam Admin access required</div>;
   }
 
   // Analytics sections - Fix access for teachers, principals, and school owners

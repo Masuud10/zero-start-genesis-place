@@ -48,7 +48,45 @@ const SupportModule = () => {
         </div>
       </div>
 
-      {/* Removed Stats Cards per user requirements */}
+      {/* Stats Overview - Simple Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <p className="text-sm text-muted-foreground">Total Tickets</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <Clock className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
+              <div className="text-2xl font-bold">{stats.open}</div>
+              <p className="text-sm text-muted-foreground">Open</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
+              <div className="text-2xl font-bold">{stats.resolved}</div>
+              <p className="text-sm text-muted-foreground">Resolved</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2 text-red-600" />
+              <div className="text-2xl font-bold">{stats.urgent}</div>
+              <p className="text-sm text-muted-foreground">Urgent</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters */}
       <div className="flex space-x-4">

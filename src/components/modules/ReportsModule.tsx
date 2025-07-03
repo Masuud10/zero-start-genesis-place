@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ReportsGenerator from '@/components/reports/ReportsGenerator';
 import EduFamReportGeneration from '@/components/reports/EduFamReportGeneration';
 import TeacherReportsModule from '@/components/reports/TeacherReportsModule';
-import EnhancedReportsModule from '@/components/reports/EnhancedReportsModule';
+import FixedEnhancedReportsModule from '@/components/reports/FixedEnhancedReportsModule';
 import RoleGuard from '@/components/common/RoleGuard';
 
 const ReportsModule = () => {
@@ -49,7 +49,7 @@ const ReportsModule = () => {
   // For other roles, show enhanced reports module
   return (
     <RoleGuard allowedRoles={['principal', 'edufam_admin', 'school_owner', 'finance_officer', 'parent']} requireSchoolAssignment>
-      <EnhancedReportsModule userRole={user?.role || ''} />
+      <FixedEnhancedReportsModule userRole={user?.role || ''} />
     </RoleGuard>
   );
 };

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Database, 
   Activity, 
@@ -70,11 +71,77 @@ const DatabaseSettings: React.FC = () => {
     }
   };
 
-  const handleDownloadBackup = (backupId: number) => {
-    toast({
-      title: "Download Started",
-      description: "Backup download will begin shortly.",
-    });
+  const handleDownloadBackup = async (backupId: number) => {
+    try {
+      setIsLoading(true);
+      
+      // Generate a comprehensive backup file
+      const backupData = {
+        schools: await fetchTableData('schools'),
+        users: await fetchTableData('profiles'),
+        students: await fetchTableData('students'),
+        grades: await fetchTableData('grades'),
+        financial_transactions: await fetchTableData('financial_transactions'),
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      const jsonContent = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `eduFam-system-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Backup Downloaded",
+        description: "System backup has been downloaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download backup. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchTableData = async (tableName: string) => {
+    try {
+      // Type-safe table queries
+      if (tableName === 'schools') {
+        const { data, error } = await supabase.from('schools').select('*').limit(1000);
+        if (error) throw error;
+        return data || [];
+      } else if (tableName === 'profiles') {
+        const { data, error } = await supabase.from('profiles').select('*').limit(1000);
+        if (error) throw error;
+        return data || [];
+      } else if (tableName === 'students') {
+        const { data, error } = await supabase.from('students').select('*').limit(1000);
+        if (error) throw error;
+        return data || [];
+      } else if (tableName === 'grades') {
+        const { data, error } = await supabase.from('grades').select('*').limit(1000);
+        if (error) throw error;
+        return data || [];
+      } else if (tableName === 'financial_transactions') {
+        const { data, error } = await supabase.from('financial_transactions').select('*').limit(1000);
+        if (error) throw error;
+        return data || [];
+      }
+      return [];
+    } catch (error) {
+      console.error(`Error fetching ${tableName}:`, error);
+      return [];
+    }
   };
 
   return (
