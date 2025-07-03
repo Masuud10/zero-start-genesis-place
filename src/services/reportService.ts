@@ -159,4 +159,38 @@ export class ReportService {
       content: { schools, users }
     };
   }
+
+  // Academic Performance (school-wide)
+  static async generateAcademicPerformanceReport(schoolId: string): Promise<ReportData> {
+    const schoolInfo = await this.getSchoolInfo(schoolId);
+    const { data: grades } = await supabase
+      .from('grades')
+      .select(`*, student:students(name, admission_number), class:classes(name), subject:subjects(name, code)`)
+      .eq('school_id', schoolId);
+    return {
+      id: `academic-performance-${Date.now()}`,
+      title: 'Academic Performance Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo,
+      content: { grades }
+    };
+  }
+
+  // Attendance Overview
+  static async generateAttendanceOverviewReport(schoolId: string, startDate: string, endDate: string): Promise<ReportData> {
+    const schoolInfo = await this.getSchoolInfo(schoolId);
+    const { data: attendance } = await supabase
+      .from('attendance')
+      .select(`*, student:students(name, admission_number), class:classes(name)`)
+      .eq('school_id', schoolId)
+      .gte('date', startDate)
+      .lte('date', endDate);
+    return {
+      id: `attendance-overview-${Date.now()}`,
+      title: 'Attendance Overview Report',
+      generatedAt: new Date().toISOString(),
+      schoolInfo,
+      content: { attendance }
+    };
+  }
 }

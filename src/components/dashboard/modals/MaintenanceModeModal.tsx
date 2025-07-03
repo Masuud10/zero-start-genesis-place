@@ -1,15 +1,23 @@
-
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AuthUser } from '@/types/auth';
-import { Settings, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import {
+  MaintenanceModeService,
+  MaintenanceModeSettings,
+} from "@/services/system/maintenanceModeService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AuthUser } from "@/types/auth";
+import { Settings, AlertTriangle, RefreshCw } from "lucide-react";
 
 interface MaintenanceModeModalProps {
   isOpen: boolean;
@@ -22,42 +30,77 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  currentUser
+  currentUser,
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
-  const [maintenanceMessage, setMaintenanceMessage] = useState('System is under maintenance. Please try again later.');
+  const [maintenanceMessage, setMaintenanceMessage] = useState(
+    "System is under maintenance. Please try again later."
+  );
+
+  // Load current maintenance mode settings when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadCurrentSettings();
+    }
+  }, [isOpen]);
+
+  const loadCurrentSettings = async () => {
+    try {
+      const { data, error } =
+        await MaintenanceModeService.getMaintenanceModeSettings();
+      if (!error && data) {
+        setMaintenanceEnabled(data.enabled);
+        setMaintenanceMessage(data.message);
+      }
+    } catch (err) {
+      console.error("Error loading maintenance settings:", err);
+    }
+  };
 
   const updateMaintenanceMode = useMutation({
-    mutationFn: async ({ enabled, message }: { enabled: boolean; message: string }) => {
-      const { error } = await supabase
-        .from('system_settings')
-        .upsert({
-          setting_key: 'maintenance_mode',
-          setting_value: {
-            enabled,
-            message,
-            updated_by: currentUser.id,
-            updated_at: new Date().toISOString()
-          }
-        });
+    mutationFn: async ({
+      enabled,
+      message,
+    }: {
+      enabled: boolean;
+      message: string;
+    }) => {
+      const settings: MaintenanceModeSettings = {
+        enabled,
+        message,
+        updated_by: currentUser.id,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
+      const result = await MaintenanceModeService.updateMaintenanceMode(
+        settings
+      );
+      if (!result.success) {
+        throw new Error(
+          (result.error as string) || "Failed to update maintenance mode"
+        );
+      }
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: `Maintenance mode ${maintenanceEnabled ? 'enabled' : 'disabled'} successfully`,
+        description: `Maintenance mode ${
+          maintenanceEnabled ? "enabled" : "disabled"
+        } successfully`,
       });
-      queryClient.invalidateQueries({ queryKey: ['system-config'] });
+      queryClient.invalidateQueries({ queryKey: ["system-config"] });
       onSuccess();
       onClose();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update maintenance mode",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update maintenance mode",
         variant: "destructive",
       });
     },
@@ -67,7 +110,7 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
     e.preventDefault();
     updateMaintenanceMode.mutate({
       enabled: maintenanceEnabled,
-      message: maintenanceMessage
+      message: maintenanceMessage,
     });
   };
 
@@ -87,7 +130,9 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="maintenance_mode">Enable Maintenance Mode</Label>
-              <p className="text-xs text-gray-500">Prevent user access to the system</p>
+              <p className="text-xs text-gray-500">
+                Prevent user access to the system
+              </p>
             </div>
             <Switch
               id="maintenance_mode"
@@ -115,22 +160,32 @@ const MaintenanceModeModal: React.FC<MaintenanceModeModalProps> = ({
                 <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
                 <div className="text-sm text-yellow-700">
                   <p className="font-medium">Warning</p>
-                  <p>Enabling maintenance mode will prevent all users from accessing the system.</p>
+                  <p>
+                    Enabling maintenance mode will prevent all users from
+                    accessing the system.
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={updateMaintenanceMode.isPending}
               className="flex-1"
             >
-              {updateMaintenanceMode.isPending ? 'Updating...' : 'Update Settings'}
+              {updateMaintenanceMode.isPending
+                ? "Updating..."
+                : "Update Settings"}
             </Button>
           </div>
         </form>

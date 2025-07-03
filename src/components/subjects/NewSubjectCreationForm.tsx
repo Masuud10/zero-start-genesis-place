@@ -1,15 +1,20 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Loader2, AlertCircle } from 'lucide-react';
-import { NewSubjectFormData } from '@/types/subject';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, Loader2, AlertCircle } from "lucide-react";
+import { NewSubjectFormData } from "@/types/subject";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Class {
   id: string;
@@ -34,25 +39,25 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
   classes,
   teachers,
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
 }) => {
   // Form state
   const [formData, setFormData] = useState<NewSubjectFormData>({
-    name: '',
-    code: '',
-    curriculum: 'CBC',
-    category: 'core',
-    class_id: '',
-    teacher_id: '',
+    name: "",
+    code: "",
+    curriculum: "CBC",
+    category: "core",
+    class_id: "",
+    teacher_id: "",
     credit_hours: 1,
     assessment_weight: 100,
-    description: '',
-    is_active: true
+    description: "",
+    is_active: true,
   });
 
   // Get selected class curriculum
-  const selectedClass = classes.find(c => c.id === formData.class_id);
-  const classCurriculum = selectedClass?.curriculum_type || 'CBC';
+  const selectedClass = classes.find((c) => c.id === formData.class_id);
+  const classCurriculum = selectedClass?.curriculum_type || "CBC";
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,18 +66,20 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
   const handleInputChange = (field: keyof NewSubjectFormData, value: any) => {
     let updatedFormData = {
       ...formData,
-      [field]: value
+      [field]: value,
     };
 
     // When class changes, update curriculum to match class curriculum
-    if (field === 'class_id') {
-      const selectedClass = classes.find(c => c.id === value);
+    if (field === "class_id") {
+      const selectedClass = classes.find((c) => c.id === value);
       if (selectedClass?.curriculum_type) {
         // Ensure curriculum type is valid
-        const validCurriculums = ['CBC', 'IGCSE'] as const;
-        const curriculum = validCurriculums.includes(selectedClass.curriculum_type as any) 
-          ? selectedClass.curriculum_type as 'CBC' | 'IGCSE'
-          : 'CBC';
+        const validCurriculums = ["CBC", "IGCSE"] as const;
+        const curriculum = validCurriculums.includes(
+          selectedClass.curriculum_type as any
+        )
+          ? (selectedClass.curriculum_type as "CBC" | "IGCSE")
+          : "CBC";
         updatedFormData.curriculum = curriculum;
       }
     }
@@ -81,7 +88,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
 
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -94,21 +101,22 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Subject name is required';
+      newErrors.name = "Subject name is required";
     }
 
     if (!formData.code.trim()) {
-      newErrors.code = 'Subject code is required';
+      newErrors.code = "Subject code is required";
     } else if (!/^[A-Z0-9]+$/.test(formData.code.toUpperCase())) {
-      newErrors.code = 'Subject code must contain only letters and numbers';
+      newErrors.code = "Subject code must contain only letters and numbers";
     }
 
     if (formData.credit_hours < 1 || formData.credit_hours > 10) {
-      newErrors.credit_hours = 'Credit hours must be between 1 and 10';
+      newErrors.credit_hours = "Credit hours must be between 1 and 10";
     }
 
     if (formData.assessment_weight < 1 || formData.assessment_weight > 100) {
-      newErrors.assessment_weight = 'Assessment weight must be between 1 and 100';
+      newErrors.assessment_weight =
+        "Assessment weight must be between 1 and 100";
     }
 
     setErrors(newErrors);
@@ -118,7 +126,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -133,10 +141,10 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
         teacher_id: formData.teacher_id || undefined,
         description: formData.description?.trim() || undefined,
       };
-      
+
       await onSubmit(submitData);
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error("Error submitting form:", error);
     }
   };
 
@@ -159,9 +167,9 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="e.g., Mathematics"
-                className={errors.name ? 'border-red-500' : ''}
+                className={errors.name ? "border-red-500" : ""}
               />
               {errors.name && (
                 <p className="text-sm text-red-600 flex items-center gap-1">
@@ -178,9 +186,11 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
               <Input
                 id="code"
                 value={formData.code}
-                onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
+                onChange={(e) =>
+                  handleInputChange("code", e.target.value.toUpperCase())
+                }
                 placeholder="e.g., MATH101"
-                className={errors.code ? 'border-red-500' : ''}
+                className={errors.code ? "border-red-500" : ""}
               />
               {errors.code && (
                 <p className="text-sm text-red-600 flex items-center gap-1">
@@ -195,22 +205,35 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="curriculum">
-                Curriculum 
-                {formData.class_id && <span className="text-xs text-muted-foreground">(Auto-selected from class)</span>}
+                Curriculum
+                {formData.class_id && (
+                  <span className="text-xs text-muted-foreground">
+                    (Auto-selected from class)
+                  </span>
+                )}
               </Label>
-              <Select
-                value={formData.curriculum}
-                onValueChange={(value: 'CBC' | 'IGCSE') => handleInputChange('curriculum', value)}
-                disabled={!!formData.class_id}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CBC">CBC (Competency Based Curriculum)</SelectItem>
-                  <SelectItem value="IGCSE">IGCSE (Cambridge)</SelectItem>
-                </SelectContent>
-              </Select>
+              {formData.class_id ? (
+                <div className="px-3 py-2 border rounded bg-gray-50 text-gray-700">
+                  {classCurriculum}
+                </div>
+              ) : (
+                <Select
+                  value={formData.curriculum}
+                  onValueChange={(value: "CBC" | "IGCSE") =>
+                    handleInputChange("curriculum", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CBC">
+                      CBC (Competency Based Curriculum)
+                    </SelectItem>
+                    <SelectItem value="IGCSE">IGCSE (Cambridge)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               {formData.class_id && (
                 <p className="text-xs text-green-600">
                   ✓ Curriculum automatically set to match the selected class
@@ -222,7 +245,9 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
               <Label htmlFor="category">Category</Label>
               <Select
                 value={formData.category}
-                onValueChange={(value: 'core' | 'elective' | 'optional') => handleInputChange('category', value)}
+                onValueChange={(value: "core" | "elective" | "optional") =>
+                  handleInputChange("category", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -241,14 +266,15 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
             <div className="space-y-2">
               <Label htmlFor="class_id">Assign to Class (Optional)</Label>
               <Select
-                value={formData.class_id}
-                onValueChange={(value) => handleInputChange('class_id', value)}
+                value={formData.class_id || undefined}
+                onValueChange={(value) =>
+                  handleInputChange("class_id", value || "")
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No specific class</SelectItem>
                   {classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name}
@@ -261,14 +287,15 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
             <div className="space-y-2">
               <Label htmlFor="teacher_id">Assign Teacher (Optional)</Label>
               <Select
-                value={formData.teacher_id}
-                onValueChange={(value) => handleInputChange('teacher_id', value)}
+                value={formData.teacher_id || undefined}
+                onValueChange={(value) =>
+                  handleInputChange("teacher_id", value || "")
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a teacher" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No specific teacher</SelectItem>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.id}>
                       {teacher.name} ({teacher.email})
@@ -289,8 +316,13 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 min="1"
                 max="10"
                 value={formData.credit_hours}
-                onChange={(e) => handleInputChange('credit_hours', parseInt(e.target.value) || 1)}
-                className={errors.credit_hours ? 'border-red-500' : ''}
+                onChange={(e) =>
+                  handleInputChange(
+                    "credit_hours",
+                    parseInt(e.target.value) || 1
+                  )
+                }
+                className={errors.credit_hours ? "border-red-500" : ""}
               />
               {errors.credit_hours && (
                 <p className="text-sm text-red-600 flex items-center gap-1">
@@ -308,8 +340,13 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                 min="1"
                 max="100"
                 value={formData.assessment_weight}
-                onChange={(e) => handleInputChange('assessment_weight', parseInt(e.target.value) || 100)}
-                className={errors.assessment_weight ? 'border-red-500' : ''}
+                onChange={(e) =>
+                  handleInputChange(
+                    "assessment_weight",
+                    parseInt(e.target.value) || 100
+                  )
+                }
+                className={errors.assessment_weight ? "border-red-500" : ""}
               />
               {errors.assessment_weight && (
                 <p className="text-sm text-red-600 flex items-center gap-1">
@@ -326,7 +363,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => handleInputChange("description", e.target.value)}
               placeholder="Brief description of the subject..."
               rows={3}
             />
@@ -345,24 +382,22 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
             <Switch
               id="is_active"
               checked={formData.is_active}
-              onCheckedChange={(checked) => handleInputChange('is_active', checked)}
+              onCheckedChange={(checked) =>
+                handleInputChange("is_active", checked)
+              }
             />
           </div>
 
           {/* Submit Button */}
           <div className="flex justify-end pt-4">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="min-w-32"
-            >
+            <Button type="submit" disabled={isSubmitting} className="min-w-32">
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Creating...
                 </>
               ) : (
-                'Create Subject'
+                "Create Subject"
               )}
             </Button>
           </div>

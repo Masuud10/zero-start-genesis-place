@@ -1,46 +1,49 @@
-
-import React, { useState } from 'react';
-import { AuthUser } from '@/types/auth';
+import React, { useState } from "react";
+import { AuthUser } from "@/types/auth";
 import RoleGuard from "@/components/common/RoleGuard";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { useTeacherStats } from "@/hooks/useTeacherStats";
-import TeacherStatsCards from './teacher/TeacherStatsCards';
-import ClassAnalyticsOverview from './teacher/ClassAnalyticsOverview';
-import MyClasses from './teacher/MyClasses';
-import CompactTeacherTimetable from './teacher/CompactTeacherTimetable';
-import BulkGradingModal from '@/components/grading/BulkGradingModal';
-import AttendanceModal from '@/components/modals/AttendanceModal';
-import GradesModal from '@/components/modals/GradesModal';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import TeacherStatsCards from "./teacher/TeacherStatsCards";
+import ClassAnalyticsOverview from "./teacher/ClassAnalyticsOverview";
+import MyClasses from "./teacher/MyClasses";
+import CompactTeacherTimetable from "./teacher/CompactTeacherTimetable";
+
+import BulkGradingModal from "@/components/grading/BulkGradingModal";
+import AttendanceModal from "@/components/modals/AttendanceModal";
+import GradesModal from "@/components/modals/GradesModal";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface TeacherDashboardProps {
   user: AuthUser;
   onModalOpen?: (modalType: string) => void;
 }
 
-const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }) => {
+const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
+  user,
+  onModalOpen,
+}) => {
   const { isReady } = useSchoolScopedData();
   const { data: stats, isLoading } = useTeacherStats();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   // Modal states
   const [bulkGradingOpen, setBulkGradingOpen] = useState(false);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [gradesModalOpen, setGradesModalOpen] = useState(false);
 
   const handleModalClose = (modalType: string) => {
-    console.log('TeacherDashboard: Closing modal:', modalType);
-    
+    console.log("TeacherDashboard: Closing modal:", modalType);
+
     switch (modalType) {
-      case 'bulkGrading':
+      case "bulkGrading":
         setBulkGradingOpen(false);
         break;
-      case 'attendance':
+      case "attendance":
         setAttendanceModalOpen(false);
         break;
-      case 'grades':
+      case "grades":
         setGradesModalOpen(false);
         break;
     }
@@ -65,7 +68,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
             <div className="h-6 bg-muted rounded mb-2"></div>
             <div className="h-4 bg-muted rounded"></div>
             <div className="grid grid-cols-2 gap-4 mt-4">
-              {[1, 2, 3, 4].map(i => (
+              {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-24 bg-muted rounded"></div>
               ))}
             </div>
@@ -76,7 +79,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
   }
 
   return (
-    <RoleGuard allowedRoles={['teacher']} requireSchoolAssignment={true}>
+    <RoleGuard allowedRoles={["teacher"]} requireSchoolAssignment={true}>
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           {/* Stats Overview */}
@@ -102,25 +105,25 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onModalOpen }
 
         {/* Local Modals */}
         {bulkGradingOpen && (
-          <BulkGradingModal 
+          <BulkGradingModal
             open={bulkGradingOpen}
-            onClose={() => handleModalClose('bulkGrading')}
+            onClose={() => handleModalClose("bulkGrading")}
             classList={stats?.classes || []}
             subjectList={stats?.subjects || []}
           />
         )}
-        
+
         {attendanceModalOpen && (
-          <AttendanceModal 
-            onClose={() => handleModalClose('attendance')} 
-            userRole={user.role} 
+          <AttendanceModal
+            onClose={() => handleModalClose("attendance")}
+            userRole={user.role}
           />
         )}
-        
+
         {gradesModalOpen && (
-          <GradesModal 
-            onClose={() => handleModalClose('grades')} 
-            userRole={user.role} 
+          <GradesModal
+            onClose={() => handleModalClose("grades")}
+            userRole={user.role}
           />
         )}
       </div>

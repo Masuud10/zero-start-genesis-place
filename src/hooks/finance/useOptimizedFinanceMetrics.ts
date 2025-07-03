@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
-interface OptimizedFinanceMetrics {
+export interface OptimizedFinanceMetrics {
   totalRevenue: number;
   totalCollected: number;
   outstandingAmount: number;
@@ -16,9 +16,10 @@ export const useOptimizedFinanceMetrics = () => {
   const [metrics, setMetrics] = useState<OptimizedFinanceMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const { user } = useAuth();
 
-  const fetchOptimizedMetrics = async () => {
+  const fetchOptimizedMetrics = useCallback(async () => {
     if (!user?.school_id) {
       console.log('💰 No user or school_id, skipping metrics fetch');
       setMetrics({
@@ -32,12 +33,14 @@ export const useOptimizedFinanceMetrics = () => {
       });
       setIsLoading(false);
       setError(null);
+      setLoadingTimeout(false);
       return;
     }
 
     try {
       setIsLoading(true);
       setError(null);
+      setLoadingTimeout(false);
 
       console.log('💰 Starting ultra-optimized finance metrics fetch for school:', user.school_id);
 
@@ -46,130 +49,77 @@ export const useOptimizedFinanceMetrics = () => {
       const timeoutId = setTimeout(() => {
         controller.abort();
         console.error('💰 Finance metrics query timed out');
-      }, 3000); // Reduced to 3 second timeout
+        setLoadingTimeout(true);
+      }, 4000); // Reduced to 4 seconds
 
-      try {
-        // Ultra-optimized parallel queries - only essential data
-        const [feesResult, studentsResult, mpesaResult] = await Promise.all([
-          // Super minimal fees query - only aggregation fields
-          supabase
-            .from('fees')
-            .select('amount, paid_amount, due_date')
-            .eq('school_id', user.school_id)
-            .not('amount', 'is', null)
-            .limit(100) // Further reduced limit
-            .abortSignal(controller.signal),
+      // Optimized parallel queries with proper limits
+      const [feesResult, studentsResult] = await Promise.allSettled([
+        // Get fees data with limits
+        supabase
+          .from('fees')
+          .select('amount, paid_amount, status')
+          .eq('school_id', user.school_id)
+          .limit(1000)
+          .abortSignal(controller.signal),
 
-          // Just get count - fastest possible query
-          supabase
-            .from('students')
-            .select('*', { count: 'exact', head: true })
-            .eq('school_id', user.school_id)
-            .eq('is_active', true)
-            .abortSignal(controller.signal),
+        // Get student count
+        supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', user.school_id)
+          .eq('is_active', true)
+          .abortSignal(controller.signal)
+      ]);
 
-          // Simple check for any mpesa transactions
-          Promise.resolve({ data: [] }) // Skip mpesa for now to avoid table issues
-        ]);
+      clearTimeout(timeoutId);
 
-        clearTimeout(timeoutId);
-        
-        console.log('💰 Ultra-fast finance queries completed');
+      // Process results safely
+      const feesData = feesResult.status === 'fulfilled' ? feesResult.value.data : [];
+      const studentCount = studentsResult.status === 'fulfilled' ? (studentsResult.value.count || 0) : 0;
 
-        // Process results with ultra-safe defaults
-        const fees = feesResult.data || [];
-        const studentsCount = studentsResult.count || 0;
-        const mpesaTransactions = mpesaResult.data || [];
+      // Calculate metrics efficiently
+      const totalRevenue = feesData.reduce((sum, fee) => sum + (parseFloat(String(fee.amount || 0))), 0);
+      const totalCollected = feesData.reduce((sum, fee) => sum + (parseFloat(String(fee.paid_amount || 0))), 0);
+      const outstandingAmount = Math.max(0, totalRevenue - totalCollected);
+      const totalMpesaPayments = 0; // Placeholder - mpesa table not available
+      const collectionRate = totalRevenue > 0 ? Math.round((totalCollected / totalRevenue) * 100) : 0;
+      const defaultersCount = feesData.filter(fee => 
+        parseFloat(String(fee.amount || 0)) > parseFloat(String(fee.paid_amount || 0))
+      ).length;
 
-        // Calculate metrics efficiently with reduced complexity
-        let totalFees = 0;
-        let totalPaid = 0;
-        let defaultersCount = 0;
-        const today = new Date();
+      const newMetrics: OptimizedFinanceMetrics = {
+        totalRevenue,
+        totalCollected,
+        outstandingAmount,
+        totalMpesaPayments,
+        collectionRate,
+        totalStudents: studentCount,
+        defaultersCount
+      };
 
-        fees.forEach(fee => {
-          const amount = Number(fee.amount || 0);
-          const paidAmount = Number(fee.paid_amount || 0);
-          
-          totalFees += amount;
-          totalPaid += paidAmount;
-          
-          // Simple defaulter check
-          if (fee.due_date && amount > paidAmount) {
-            try {
-              const dueDate = new Date(fee.due_date);
-              if (dueDate < today) {
-                defaultersCount++;
-              }
-            } catch {
-              // Ignore invalid dates
-            }
-          }
-        });
+      console.log('✅ Finance metrics compiled:', newMetrics);
+      setMetrics(newMetrics);
+      setLoadingTimeout(false);
 
-        const totalMpesaPayments = mpesaTransactions.reduce((sum, txn) => {
-          return sum + (Number(txn.amount) || 0);
-        }, 0);
-
-        const outstandingAmount = Math.max(0, totalFees - totalPaid);
-        const collectionRate = totalFees > 0 ? Math.round((totalPaid / totalFees) * 100) : 0;
-
-        setMetrics({
-          totalRevenue: totalFees,
-          totalCollected: totalPaid,
-          outstandingAmount,
-          totalMpesaPayments,
-          collectionRate: Math.min(100, Math.max(0, collectionRate)),
-          totalStudents: studentsCount,
-          defaultersCount
-        });
-
-      } catch (queryError) {
-        clearTimeout(timeoutId);
-        if (queryError.name === 'AbortError') {
-          throw new Error('Query timeout - please try again');
-        }
-        throw queryError;
-      }
-    } catch (err: any) {
-      console.error('Optimized finance metrics error:', err);
-      setError(err);
-      // Set safe defaults on error
-      setMetrics({
-        totalRevenue: 0,
-        totalCollected: 0,
-        outstandingAmount: 0,
-        totalMpesaPayments: 0,
-        collectionRate: 0,
-        totalStudents: 0,
-        defaultersCount: 0
-      });
+    } catch (error) {
+      console.error('❌ Finance metrics error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch finance metrics';
+      setError(new Error(errorMessage));
+      setLoadingTimeout(false);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-    
-    if (user?.school_id && mounted) {
-      console.log('💰 User with school_id found, fetching metrics');
-      fetchOptimizedMetrics();
-    } else if (mounted) {
-      console.log('💰 No user/school_id, setting loading to false');
-      setIsLoading(false);
-      setError(null);
-    }
-
-    return () => {
-      mounted = false;
-    };
   }, [user?.school_id]);
 
-  return {
-    metrics,
-    isLoading,
-    error,
-    refetch: fetchOptimizedMetrics
+  useEffect(() => {
+    fetchOptimizedMetrics();
+  }, [fetchOptimizedMetrics]);
+
+  return { 
+    metrics, 
+    isLoading: isLoading && !loadingTimeout, 
+    error, 
+    loadingTimeout,
+    refetch: fetchOptimizedMetrics 
   };
 };

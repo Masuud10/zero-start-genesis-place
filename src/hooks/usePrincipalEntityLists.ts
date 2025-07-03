@@ -67,7 +67,7 @@ export const usePrincipalEntityLists = (reloadKey: number) => {
       try {
         const { data, error } = await supabase
           .from('classes')
-          .select('id, name, level, stream')
+          .select('id, name, level, stream, curriculum_type')
           .eq('school_id', schoolId)
           .order('name')
           .limit(500);

@@ -1,862 +1,852 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
-import { usePrincipalEntityLists } from '@/hooks/usePrincipalEntityLists';
-import { useTimetableManagement } from '@/hooks/useTimetableManagement';
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  BookOpen, 
-  ChevronRight, 
-  ChevronLeft,
-  Download,
-  Send,
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import {
+  Calendar,
+  Clock,
+  Users,
+  BookOpen,
+  Loader2,
+  Plus,
+  Trash2,
   Edit,
   Save,
+  Download,
   Eye,
-  Plus,
-  X,
-  Trash2
-} from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+  Send,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+  Printer,
+} from "lucide-react";
 
-interface SubjectTeacherAssignment {
+interface TimetableEntry {
+  id?: string;
   subject_id: string;
-  subject_name: string;
   teacher_id: string;
-  teacher_name: string;
-}
-
-interface TimeSlot {
-  start: string;
-  end: string;
-}
-
-interface GeneratedTimetableEntry {
-  day: string;
-  time: string;
-  subject: string;
-  teacher: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
   room?: string;
-  subject_id?: string;
-  teacher_id?: string;
 }
 
-const EnhancedTimetableGenerator = () => {
-  const { schoolId } = useSchoolScopedData();
-  const { academicInfo } = useCurrentAcademicInfo(schoolId);
+interface TimetableData {
+  id: string;
+  class_id: string;
+  class_name: string;
+  is_published: boolean;
+  created_at: string;
+  entries: TimetableEntry[];
+}
+
+interface EnhancedTimetableGeneratorProps {
+  open?: boolean;
+  onClose?: () => void;
+  onTimetableGenerated?: () => void;
+}
+
+const DAYS_OF_WEEK = [
+  { value: "monday", label: "Monday" },
+  { value: "tuesday", label: "Tuesday" },
+  { value: "wednesday", label: "Wednesday" },
+  { value: "thursday", label: "Thursday" },
+  { value: "friday", label: "Friday" },
+];
+
+const TIME_SLOTS = [
+  "08:00",
+  "08:40",
+  "09:20",
+  "10:00",
+  "10:40",
+  "11:20",
+  "12:00",
+  "12:40",
+  "13:20",
+  "14:00",
+  "14:40",
+  "15:20",
+  "16:00",
+  "16:40",
+];
+
+const EnhancedTimetableGenerator: React.FC<EnhancedTimetableGeneratorProps> = ({
+  open = false,
+  onClose,
+  onTimetableGenerated,
+}) => {
+  const [selectedClass, setSelectedClass] = useState("");
+  const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>(
+    []
+  );
+  const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
+  const [activeTab, setActiveTab] = useState("generator");
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const { toast } = useToast();
-  const {
-    generatedTimetables,
-    isLoadingTimetables,
-    generateTimetable,
-    isGenerating,
-    togglePublish,
-    isTogglingPublish,
-    sendToTeachers,
-    isSendingToTeachers,
-    deleteTimetable,
-    isDeletingTimetable
-  } = useTimetableManagement();
-  const [reloadKey, setReloadKey] = useState(0);
-  
-  const { 
-    classList, 
-    subjectList, 
-    teacherList, 
-    isLoading: entitiesLoading 
-  } = usePrincipalEntityLists(reloadKey);
+  const { schoolId } = useSchoolScopedData();
+  const queryClient = useQueryClient();
 
-  // Wizard steps
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [subjectTeacherAssignments, setSubjectTeacherAssignments] = useState<SubjectTeacherAssignment[]>([]);
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { start: '08:00', end: '08:40' },
-    { start: '08:40', end: '09:20' },
-    { start: '09:20', end: '10:00' },
-    { start: '10:20', end: '11:00' }, // Break 10:00-10:20
-    { start: '11:00', end: '11:40' },
-    { start: '11:40', end: '12:20' },
-    { start: '13:20', end: '14:00' }, // Lunch 12:20-13:20
-    { start: '14:00', end: '14:40' },
-    { start: '14:40', end: '15:20' }
-  ]);
-  const [generatedTimetable, setGeneratedTimetable] = useState<GeneratedTimetableEntry[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingSlot, setEditingSlot] = useState<{day: string, time: string} | null>(null);
-
-  const totalSteps = 6;
-  const progress = (currentStep / totalSteps) * 100;
-
-  // Step titles
-  const stepTitles = [
-    'Select Class',
-    'Choose Subjects', 
-    'Assign Teachers',
-    'Set Time Slots',
-    'Generate Timetable',
-    'Review & Finalize'
-  ];
-
-  // Reset form when class changes
-  useEffect(() => {
-    if (selectedClass) {
-      setSelectedSubjects([]);
-      setSubjectTeacherAssignments([]);
-      setGeneratedTimetable([]);
-      setCurrentStep(2);
-      setReloadKey(prev => prev + 1);
-    }
-  }, [selectedClass]);
-
-  // Filter subjects by selected class - Fixed logic
-  const classSubjects = subjectList.filter(subject => {
-    if (!selectedClass) return false;
-    
-    // If subject has a specific class_id, it must match the selected class
-    if (subject.class_id) {
-      return subject.class_id === selectedClass;
-    }
-    
-    // If subject has no class_id, it's available to all classes
-    return true;
+  // Get current user
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    },
   });
 
-  const handleSubjectSelection = (subjectId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSubjects([...selectedSubjects, subjectId]);
-    } else {
-      setSelectedSubjects(selectedSubjects.filter(id => id !== subjectId));
-      // Remove from assignments if unchecked
-      setSubjectTeacherAssignments(prev => 
-        prev.filter(assignment => assignment.subject_id !== subjectId)
-      );
-    }
-  };
+  // Get classes
+  const { data: classes = [] } = useQuery({
+    queryKey: ["classes", schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, name, level, stream")
+        .eq("school_id", schoolId)
+        .order("name");
 
-  const handleTeacherAssignment = (subjectId: string, teacherId: string) => {
-    const subject = subjectList.find(s => s.id === subjectId);
-    const teacher = teacherList.find(t => t.id === teacherId);
-    
-    if (!subject || !teacher) return;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!schoolId,
+  });
 
-    setSubjectTeacherAssignments(prev => {
-      const existing = prev.find(a => a.subject_id === subjectId);
-      if (existing) {
-        return prev.map(a => 
-          a.subject_id === subjectId 
-            ? { ...a, teacher_id: teacherId, teacher_name: teacher.name }
-            : a
-        );
-      } else {
-        return [...prev, {
-          subject_id: subjectId,
-          subject_name: subject.name,
-          teacher_id: teacherId,
-          teacher_name: teacher.name
-        }];
-      }
-    });
-  };
+  // Get subjects for selected class
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["subjects", selectedClass, schoolId],
+    queryFn: async () => {
+      if (!selectedClass || !schoolId) return [];
+      const { data, error } = await supabase
+        .from("subjects")
+        .select(
+          "id, name, code, teacher_id, profiles!subjects_teacher_id_fkey(name)"
+        )
+        .eq("class_id", selectedClass)
+        .eq("school_id", schoolId)
+        .order("name");
 
-  const handleGenerateTimetable = async () => {
-    if (!selectedClass || subjectTeacherAssignments.length === 0 || !schoolId) {
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedClass && !!schoolId,
+  });
+
+  // Get teachers
+  const { data: teachers = [] } = useQuery({
+    queryKey: ["teachers", schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .eq("school_id", schoolId)
+        .eq("role", "teacher")
+        .order("name");
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!schoolId,
+  });
+
+  // Get existing timetable
+  const { data: existingTimetable = [] } = useQuery({
+    queryKey: ["timetable", selectedClass, schoolId],
+    queryFn: async () => {
+      if (!selectedClass || !schoolId) return [];
+      const { data, error } = await supabase
+        .from("timetables")
+        .select(
+          `
+          id, subject_id, teacher_id, day_of_week, start_time, end_time, room,
+          subjects(name),
+          profiles!timetables_teacher_id_fkey(name)
+        `
+        )
+        .eq("class_id", selectedClass)
+        .eq("school_id", schoolId)
+        .order("day_of_week")
+        .order("start_time");
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedClass && !!schoolId,
+  });
+
+  // Get all timetables for list view
+  const { data: allTimetables = [] } = useQuery({
+    queryKey: ["all-timetables", schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+      const { data, error } = await supabase
+        .from("timetables")
+        .select(
+          `
+          id, class_id, is_published, created_at,
+          classes(name)
+        `
+        )
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Group by class and get unique timetables
+      const grouped = data?.reduce((acc: any, item: any) => {
+        if (!acc[item.class_id]) {
+          acc[item.class_id] = {
+            id: item.id,
+            class_id: item.class_id,
+            class_name: item.classes?.name,
+            is_published: item.is_published,
+            created_at: item.created_at,
+          };
+        }
+        return acc;
+      }, {});
+
+      return Object.values(grouped || {});
+    },
+    enabled: !!schoolId,
+  });
+
+  // Save timetable mutation
+  const saveTimetableMutation = useMutation({
+    mutationFn: async (entries: TimetableEntry[]) => {
+      if (!selectedClass || !schoolId || !currentUser?.id)
+        throw new Error("Missing required data");
+
+      // Delete existing timetable entries
+      await supabase
+        .from("timetables")
+        .delete()
+        .eq("class_id", selectedClass)
+        .eq("school_id", schoolId);
+
+      // Insert new entries
+      const timetableData = entries.map((entry) => ({
+        school_id: schoolId,
+        class_id: selectedClass,
+        subject_id: entry.subject_id,
+        teacher_id: entry.teacher_id,
+        day_of_week: entry.day_of_week,
+        start_time: entry.start_time,
+        end_time: entry.end_time,
+        room: entry.room || null,
+        created_by_principal_id: currentUser.id,
+        is_published: false,
+      }));
+
+      const { error } = await supabase.from("timetables").insert(timetableData);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
       toast({
-        title: "Error",
-        description: "Please complete all required fields",
-        variant: "destructive"
+        title: "Timetable Saved",
+        description:
+          "Timetable has been saved successfully. You can now publish it.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["timetable"] });
+      queryClient.invalidateQueries({ queryKey: ["all-timetables"] });
+      onTimetableGenerated?.();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save timetable.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Publish timetable mutation
+  const publishTimetableMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedClass || !schoolId) throw new Error("Missing required data");
+
+      const { error } = await supabase
+        .from("timetables")
+        .update({ is_published: true })
+        .eq("class_id", selectedClass)
+        .eq("school_id", schoolId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Timetable Published",
+        description: "Timetable has been published to teacher dashboards.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["timetable"] });
+      queryClient.invalidateQueries({ queryKey: ["all-timetables"] });
+      setIsPublishing(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Publish Failed",
+        description: error.message || "Failed to publish timetable.",
+        variant: "destructive",
+      });
+      setIsPublishing(false);
+    },
+  });
+
+  const addTimetableEntry = () => {
+    const newEntry: TimetableEntry = {
+      subject_id: "",
+      teacher_id: "",
+      day_of_week: "monday",
+      start_time: "08:00",
+      end_time: "08:40",
+      room: "",
+    };
+    setTimetableEntries([...timetableEntries, newEntry]);
+    setEditingEntry(newEntry);
+  };
+
+  const updateTimetableEntry = (
+    index: number,
+    field: keyof TimetableEntry,
+    value: string
+  ) => {
+    const updatedEntries = [...timetableEntries];
+    updatedEntries[index] = { ...updatedEntries[index], [field]: value };
+    setTimetableEntries(updatedEntries);
+  };
+
+  const removeTimetableEntry = (index: number) => {
+    setTimetableEntries(timetableEntries.filter((_, i) => i !== index));
+  };
+
+  const handleAutoGenerate = () => {
+    if (!subjects.length || !teachers.length) {
+      toast({
+        title: "Cannot Auto-Generate",
+        description:
+          "Please ensure there are subjects and teachers assigned to this class.",
+        variant: "destructive",
       });
       return;
     }
 
-    try {
-      await generateTimetable({
-        class_id: selectedClass,
-        subjects: subjectTeacherAssignments.map(assignment => ({
-          subject_id: assignment.subject_id,
-          teacher_id: assignment.teacher_id
-        })),
-        time_slots: timeSlots,
-        term: academicInfo.term || 'Term 1'
-      });
+    const generatedEntries: TimetableEntry[] = [];
+    let subjectIndex = 0;
+    let teacherIndex = 0;
 
-      // Generate mock timetable for UI display with editing capability
-      const mockTimetable: GeneratedTimetableEntry[] = [];
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-      
-      days.forEach(day => {
-        timeSlots.forEach((slot, index) => {
-          const assignment = subjectTeacherAssignments[index % subjectTeacherAssignments.length];
-          mockTimetable.push({
-            day,
-            time: `${slot.start} - ${slot.end}`,
-            subject: assignment.subject_name,
-            teacher: assignment.teacher_name,
-            room: `Room ${(index % 20) + 1}`,
-            subject_id: assignment.subject_id,
-            teacher_id: assignment.teacher_id
+    DAYS_OF_WEEK.forEach((day) => {
+      TIME_SLOTS.slice(0, 8).forEach((startTime, timeIndex) => {
+        if (subjectIndex < subjects.length) {
+          const endTime = TIME_SLOTS[timeIndex + 1] || "16:40";
+          generatedEntries.push({
+            subject_id: subjects[subjectIndex].id,
+            teacher_id: teachers[teacherIndex % teachers.length].id,
+            day_of_week: day.value,
+            start_time: startTime,
+            end_time: endTime,
+            room: `Room ${Math.floor(Math.random() * 10) + 1}`,
           });
-        });
-      });
-
-      setGeneratedTimetable(mockTimetable);
-      setCurrentStep(6);
-    } catch (error) {
-      console.error('Timetable generation error:', error);
-    }
-  };
-
-  const handleSlotEdit = (day: string, time: string, field: string, value: string) => {
-    setGeneratedTimetable(prev => prev.map(entry => {
-      if (entry.day === day && entry.time === time) {
-        if (field === 'subject_id') {
-          const subject = subjectList.find(s => s.id === value);
-          return { 
-            ...entry, 
-            subject_id: value, 
-            subject: subject?.name || entry.subject 
-          };
-        } else if (field === 'teacher_id') {
-          const teacher = teacherList.find(t => t.id === value);
-          return { 
-            ...entry, 
-            teacher_id: value, 
-            teacher: teacher?.name || entry.teacher 
-          };
-        } else {
-          return { ...entry, [field]: value };
+          subjectIndex++;
+          teacherIndex++;
         }
-      }
-      return entry;
-    }));
+      });
+    });
+
+    setTimetableEntries(generatedEntries);
+    toast({
+      title: "Auto-Generated",
+      description: `Generated ${generatedEntries.length} timetable entries.`,
+    });
   };
 
-  const handleDownloadPDF = () => {
-    // Create a printable version
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const selectedClassName = classList.find(c => c.id === selectedClass)?.name || 'Class';
-    
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Timetable - ${selectedClassName}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .school-name { font-size: 24px; font-weight: bold; color: #1e40af; }
-            .class-title { font-size: 18px; margin: 10px 0; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-            th { background-color: #f3f4f6; font-weight: bold; }
-            .time-slot { background-color: #fef3c7; font-weight: bold; }
-            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
-            .footer-brand { font-weight: bold; color: #1e40af; }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="school-name">School Timetable</div>
-            <div class="class-title">${selectedClassName} - ${academicInfo.term || 'Term 1'}</div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Monday</th>
-                <th>Tuesday</th>
-                <th>Wednesday</th>
-                <th>Thursday</th>
-                <th>Friday</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${timeSlots.map(slot => {
-                const slotEntries = generatedTimetable.filter(entry => 
-                  entry.time === `${slot.start} - ${slot.end}`
-                );
-                
-                return `
-                  <tr>
-                    <td class="time-slot">${slot.start} - ${slot.end}</td>
-                    ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
-                      const entry = slotEntries.find(e => e.day === day);
-                      return `<td>${entry ? `${entry.subject}<br><small>${entry.teacher}</small><br><small>${entry.room || ''}</small>` : '-'}</td>`;
-                    }).join('')}
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-          <div class="footer">
-            <div class="footer-brand">Powered by Edufam</div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.print();
-  };
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1: return selectedClass !== '';
-      case 2: return selectedSubjects.length > 0;
-      case 3: return subjectTeacherAssignments.length === selectedSubjects.length;
-      case 4: return timeSlots.length > 0;
-      case 5: return true;
-      case 6: return generatedTimetable.length > 0;
-      default: return false;
+  const handleSave = () => {
+    if (!timetableEntries.length) {
+      toast({
+        title: "No Entries",
+        description: "Please add at least one timetable entry.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const invalidEntries = timetableEntries.filter(
+      (entry) => !entry.subject_id || !entry.teacher_id || !entry.day_of_week
+    );
+
+    if (invalidEntries.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields for all entries.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveTimetableMutation.mutate(timetableEntries);
   };
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Select Class</h3>
-            </div>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a class to generate timetable for" />
-              </SelectTrigger>
-              <SelectContent>
-                {classList.map(classItem => (
-                  <SelectItem key={classItem.id} value={classItem.id}>
-                    {classItem.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        );
+  const handlePublish = () => {
+    setIsPublishing(true);
+    publishTimetableMutation.mutate();
+  };
 
-      case 2:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Choose Subjects</h3>
-            </div>
-            {classSubjects.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No subjects found for this class.</p>
-                <p className="text-sm">Please create subjects first in School Management.</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-                  {classSubjects.map(subject => (
-                    <div key={subject.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={subject.id}
-                        checked={selectedSubjects.includes(subject.id)}
-                        onCheckedChange={(checked) => 
-                          handleSubjectSelection(subject.id, checked as boolean)
-                        }
-                      />
-                      <label htmlFor={subject.id} className="text-sm font-medium">
-                        {subject.name} ({subject.code})
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Selected: {selectedSubjects.length} subjects
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        );
+  const handleDownload = () => {
+    // Generate CSV content
+    let csvContent = "Day,Start Time,End Time,Subject,Teacher,Room\n";
 
-      case 3:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Assign Teachers</h3>
-            </div>
-            <div className="space-y-4 max-h-64 overflow-y-auto">
-              {selectedSubjects.map(subjectId => {
-                const subject = subjectList.find(s => s.id === subjectId);
-                const assignment = subjectTeacherAssignments.find(a => a.subject_id === subjectId);
-                
-                return (
-                  <div key={subjectId} className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="font-medium">{subject?.name}</span>
+    timetableEntries.forEach((entry) => {
+      const subject = subjects.find((s) => s.id === entry.subject_id);
+      const teacher = teachers.find((t) => t.id === entry.teacher_id);
+      const day = DAYS_OF_WEEK.find((d) => d.value === entry.day_of_week);
+
+      csvContent += `${day?.label},${entry.start_time},${entry.end_time},${
+        subject?.name || ""
+      },${teacher?.name || ""},${entry.room || ""}\n`;
+    });
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `timetable_${selectedClass}_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Downloaded",
+      description: "Timetable has been downloaded as CSV.",
+    });
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleClose = () => {
+    setSelectedClass("");
+    setTimetableEntries([]);
+    setEditingEntry(null);
+    setActiveTab("generator");
+    onClose?.();
+  };
+
+  // Load existing timetable when class is selected
+  useEffect(() => {
+    if (existingTimetable.length > 0) {
+      const entries = existingTimetable.map((item) => ({
+        id: item.id,
+        subject_id: item.subject_id,
+        teacher_id: item.teacher_id,
+        day_of_week: item.day_of_week,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        room: item.room || "",
+      }));
+      setTimetableEntries(entries);
+    } else {
+      setTimetableEntries([]);
+    }
+  }, [existingTimetable]);
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Enhanced Timetable Generator
+          </DialogTitle>
+          <DialogDescription>
+            Create, edit, and manage timetables for all classes. Support manual
+            editing and publishing to teacher dashboards.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="generator">Generator</TabsTrigger>
+            <TabsTrigger value="editor">Manual Editor</TabsTrigger>
+            <TabsTrigger value="list">Timetable List</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="generator" className="space-y-6">
+            {/* Class Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Class Selection
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="class-select">Select Class</Label>
                     <Select
-                      value={assignment?.teacher_id || ''}
-                      onValueChange={(teacherId) => handleTeacherAssignment(subjectId, teacherId)}
+                      value={selectedClass}
+                      onValueChange={setSelectedClass}
                     >
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Select teacher" />
+                      <SelectTrigger id="class-select">
+                        <SelectValue placeholder="Choose a class" />
                       </SelectTrigger>
                       <SelectContent>
-                        {teacherList.map(teacher => (
-                          <SelectItem key={teacher.id} value={teacher.id}>
-                            {teacher.name}
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.name} - {cls.level} {cls.stream}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        );
 
-      case 4:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Time Slots</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-              {timeSlots.map((slot, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="font-medium">Period {index + 1}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {slot.start} - {slot.end}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Default time slots are configured. You can customize these later.
-            </p>
-          </div>
-        );
-
-      case 5:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">Generate Timetable</h3>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Summary</h4>
-              <div className="space-y-2 text-sm">
-                <p><strong>Class:</strong> {classList.find(c => c.id === selectedClass)?.name}</p>
-                <p><strong>Subjects:</strong> {selectedSubjects.length}</p>
-                <p><strong>Teachers Assigned:</strong> {subjectTeacherAssignments.length}</p>
-                <p><strong>Time Slots:</strong> {timeSlots.length} periods per day</p>
-              </div>
-            </div>
-            <Button 
-              onClick={handleGenerateTimetable}
-              disabled={isGenerating}
-              className="w-full"
-            >
-              {isGenerating ? 'Generating...' : 'Generate Timetable'}
-            </Button>
-          </div>
-        );
-
-      case 6:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Eye className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold">Review & Finalize</h3>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {isEditing ? 'Stop Editing' : 'Edit'}
-                </Button>
-                <Button onClick={handleDownloadPDF}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download PDF
-                </Button>
-              </div>
-            </div>
-            
-            {/* Timetable Preview */}
-            <div className="border rounded-lg overflow-hidden">
-              <div className="bg-blue-50 p-3 text-center">
-                <h4 className="font-semibold">
-                  {classList.find(c => c.id === selectedClass)?.name} - {academicInfo.term || 'Term 1'}
-                </h4>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="p-2 border text-left">Time</th>
-                      <th className="p-2 border text-center">Monday</th>
-                      <th className="p-2 border text-center">Tuesday</th>
-                      <th className="p-2 border text-center">Wednesday</th>
-                      <th className="p-2 border text-center">Thursday</th>
-                      <th className="p-2 border text-center">Friday</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {timeSlots.map((slot, index) => {
-                      const slotEntries = generatedTimetable.filter(entry => 
-                        entry.time === `${slot.start} - ${slot.end}`
-                      );
-                      
-                      return (
-                        <tr key={index}>
-                          <td className="p-2 border bg-yellow-50 font-medium">
-                            {slot.start} - {slot.end}
-                          </td>
-                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
-                            const entry = slotEntries.find(e => e.day === day);
-                            return (
-                              <td key={day} className="p-2 border text-center">
-                                {entry ? (
-                                  <div className="text-xs">
-                                    {isEditing ? (
-                                      <div className="space-y-1">
-                                        <Select
-                                          value={entry.subject_id || ''}
-                                          onValueChange={(value) => handleSlotEdit(day, entry.time, 'subject_id', value)}
-                                        >
-                                          <SelectTrigger className="h-6 text-xs">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {classSubjects.map(subject => (
-                                              <SelectItem key={subject.id} value={subject.id}>
-                                                {subject.name}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        <Select
-                                          value={entry.teacher_id || ''}
-                                          onValueChange={(value) => handleSlotEdit(day, entry.time, 'teacher_id', value)}
-                                        >
-                                          <SelectTrigger className="h-6 text-xs">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {teacherList.map(teacher => (
-                                              <SelectItem key={teacher.id} value={teacher.id}>
-                                                {teacher.name}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        <Input
-                                          value={entry.room || ''}
-                                          onChange={(e) => handleSlotEdit(day, entry.time, 'room', e.target.value)}
-                                          placeholder="Room"
-                                          className="h-6 text-xs"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className="font-medium">{entry.subject}</div>
-                                        <div className="text-muted-foreground">{entry.teacher}</div>
-                                        <div className="text-muted-foreground">{entry.room}</div>
-                                      </>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <Button size="lg" className="px-8">
-                <Save className="h-4 w-4 mr-2" />
-                Publish Timetable
-              </Button>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  if (entitiesLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p>Loading timetable generator...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-6 w-6" />
-            Timetable Generator
-          </CardTitle>
-          
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Step {currentStep} of {totalSteps}</span>
-              <span>{Math.round(progress)}% Complete</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-
-          {/* Step Indicators */}
-          <div className="flex items-center justify-between mt-4">
-            {stepTitles.map((title, index) => (
-              <div
-                key={index}
-                className={`flex items-center ${index < stepTitles.length - 1 ? 'flex-1' : ''}`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    index + 1 <= currentStep
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  {index + 1}
-                </div>
-                <span className={`ml-2 text-sm ${
-                  index + 1 <= currentStep ? 'text-blue-600' : 'text-gray-600'
-                }`}>
-                  {title}
-                </span>
-                {index < stepTitles.length - 1 && (
-                  <div className="flex-1 h-px bg-gray-200 mx-4" />
-                )}
-              </div>
-            ))}
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-6">
-          <div className="min-h-[400px]">
-            {renderStepContent()}
-          </div>
-
-          <Separator className="my-6" />
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-              disabled={currentStep === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-
-            <Button
-              onClick={() => setCurrentStep(Math.min(totalSteps, currentStep + 1))}
-              disabled={!canProceed() || currentStep === totalSteps}
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Generated Timetables List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Generated Timetables
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoadingTimetables ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p>Loading timetables...</p>
-            </div>
-          ) : generatedTimetables.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No timetables generated yet.</p>
-              <p className="text-sm">Generate your first timetable using the wizard above.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {generatedTimetables.map((timetable) => (
-                <div key={timetable.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <h3 className="font-semibold text-lg">{timetable.class_name}</h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Created: {new Date(timetable.created_at).toLocaleDateString()}</span>
-                        <span>Entries: {timetable.entries.length}</span>
-                        <Badge variant={timetable.is_published ? "default" : "secondary"}>
-                          {timetable.is_published ? "Published" : "Draft"}
-                        </Badge>
+                  {selectedClass && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Available Subjects</Label>
+                        <div className="text-sm text-muted-foreground">
+                          {subjects.length} subjects assigned
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Available Teachers</Label>
+                        <div className="text-sm text-muted-foreground">
+                          {teachers.length} teachers available
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Timetable Entries */}
+            {selectedClass && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Timetable Entries
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleAutoGenerate}
+                        variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const className = timetable.class_name;
-                          const htmlContent = `
-                            <!DOCTYPE html>
-                            <html>
-                              <head>
-                                <title>Timetable - ${className}</title>
-                                <style>
-                                  body { font-family: Arial, sans-serif; margin: 20px; }
-                                  .header { text-align: center; margin-bottom: 30px; }
-                                  .school-name { font-size: 24px; font-weight: bold; color: #1e40af; }
-                                  .class-title { font-size: 18px; margin: 10px 0; }
-                                  table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                                  th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-                                  th { background-color: #f3f4f6; font-weight: bold; }
-                                  .time-slot { background-color: #fef3c7; font-weight: bold; }
-                                  .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #666; }
-                                  .footer-brand { font-weight: bold; color: #1e40af; }
-                                  @media print { body { margin: 0; } .no-print { display: none; } }
-                                </style>
-                              </head>
-                              <body>
-                                <div class="header">
-                                  <div class="school-name">School Timetable</div>
-                                  <div class="class-title">${className}</div>
-                                </div>
-                                <table>
-                                  <thead>
-                                    <tr>
-                                      <th>Time</th>
-                                      <th>Monday</th>
-                                      <th>Tuesday</th>
-                                      <th>Wednesday</th>
-                                      <th>Thursday</th>
-                                      <th>Friday</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    ${timeSlots.map(slot => {
-                                      const slotEntries = timetable.entries.filter(entry => 
-                                        entry.start_time === slot.start && entry.end_time === slot.end
-                                      );
-                                      return `
-                                        <tr>
-                                          <td class="time-slot">${slot.start} - ${slot.end}</td>
-                                          ${['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].map(day => {
-                                            const entry = slotEntries.find(e => e.day_of_week === day);
-                                            return `<td>${entry ? `${entry.subjects?.name || 'Subject'}<br><small>${entry.profiles?.name || 'Teacher'}</small><br><small>${entry.room || ''}</small>` : '-'}</td>`;
-                                          }).join('')}
-                                        </tr>
-                                      `;
-                                    }).join('')}
-                                  </tbody>
-                                </table>
-                                <div class="footer">
-                                  <div class="footer-brand">Powered by Edufam</div>
-                                </div>
-                              </body>
-                            </html>
-                          `;
-                          const printWindow = window.open('', '_blank');
-                          if (printWindow) {
-                            printWindow.document.write(htmlContent);
-                            printWindow.document.close();
-                            printWindow.print();
+                      >
+                        Auto-Generate
+                      </Button>
+                      <Button onClick={addTimetableEntry} size="sm">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Entry
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {timetableEntries.map((entry, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-6 gap-2 p-3 border rounded-lg"
+                      >
+                        <Select
+                          value={entry.day_of_week}
+                          onValueChange={(value) =>
+                            updateTimetableEntry(index, "day_of_week", value)
                           }
-                        }}
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        PDF
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => togglePublish({ 
-                          class_id: timetable.class_id, 
-                          is_published: !timetable.is_published 
-                        })}
-                        disabled={isTogglingPublish}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        {timetable.is_published ? "Unpublish" : "Publish"}
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => sendToTeachers(timetable.class_id)}
-                        disabled={isSendingToTeachers || !timetable.is_published}
-                      >
-                        <Send className="h-4 w-4 mr-1" />
-                        Send to Teachers
-                      </Button>
-                      
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete the timetable for ${timetable.class_name}?`)) {
-                            deleteTimetable(timetable.class_id);
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DAYS_OF_WEEK.map((day) => (
+                              <SelectItem key={day.value} value={day.value}>
+                                {day.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Input
+                          value={entry.start_time}
+                          onChange={(e) =>
+                            updateTimetableEntry(
+                              index,
+                              "start_time",
+                              e.target.value
+                            )
                           }
-                        }}
-                        disabled={isDeletingTimetable}
+                          placeholder="08:00"
+                          type="time"
+                        />
+
+                        <Input
+                          value={entry.end_time}
+                          onChange={(e) =>
+                            updateTimetableEntry(
+                              index,
+                              "end_time",
+                              e.target.value
+                            )
+                          }
+                          placeholder="08:40"
+                          type="time"
+                        />
+
+                        <Select
+                          value={entry.subject_id}
+                          onValueChange={(value) =>
+                            updateTimetableEntry(index, "subject_id", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Subject" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subjects.map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {subject.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Select
+                          value={entry.teacher_id}
+                          onValueChange={(value) =>
+                            updateTimetableEntry(index, "teacher_id", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Teacher" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teachers.map((teacher) => (
+                              <SelectItem key={teacher.id} value={teacher.id}>
+                                {teacher.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <div className="flex gap-1">
+                          <Input
+                            value={entry.room || ""}
+                            onChange={(e) =>
+                              updateTimetableEntry(
+                                index,
+                                "room",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Room"
+                            className="flex-1"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeTimetableEntry(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {timetableEntries.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No timetable entries yet. Add entries manually or use
+                        auto-generate.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Actions */}
+            {selectedClass && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleSave}
+                        disabled={saveTimetableMutation.isPending}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {saveTimetableMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        Save Timetable
+                      </Button>
+                      <Button
+                        onClick={handlePublish}
+                        disabled={isPublishing || !timetableEntries.length}
+                        variant="outline"
+                      >
+                        {isPublishing ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        Publish to Teachers
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleDownload}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download CSV
+                      </Button>
+                      <Button onClick={handlePrint} variant="outline" size="sm">
+                        <Printer className="h-4 w-4 mr-2" />
+                        Print
                       </Button>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="editor" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Edit className="h-4 w-4" />
+                  Manual Timetable Editor
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  Manual editor component will be implemented here.
+                  <br />
+                  This will allow drag-and-drop editing of timetable entries.
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="list" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Generated Timetables
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Class</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allTimetables.map((timetable: any) => (
+                      <TableRow key={timetable.id}>
+                        <TableCell className="font-medium">
+                          {timetable.class_name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              timetable.is_published ? "default" : "secondary"
+                            }
+                          >
+                            {timetable.is_published ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Published
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Draft
+                              </>
+                            )}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(timetable.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-3 w-3 mr-1" />
+                              View
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Download className="h-3 w-3 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {allTimetables.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          No timetables generated yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 };
 

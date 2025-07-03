@@ -1,41 +1,63 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { usePermissions } from '@/utils/permissions';
-import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
-import { UserRole } from '@/types/user';
-import GradesAdminSummary from './GradesAdminSummary';
-import ParentGradesView from '../grades/ParentGradesView';
-import TeacherGradesModule from './TeacherGradesModule';
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { usePermissions } from "@/utils/permissions";
+import { useSchoolCurriculum } from "@/hooks/useSchoolCurriculum";
+import { UserRole } from "@/types/user";
+import GradesAdminSummary from "./GradesAdminSummary";
+import ParentGradesView from "../grades/ParentGradesView";
+import TeacherGradesModule from "./TeacherGradesModule";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import BulkGradingModal from '../grading/BulkGradingModal';
-import NoGradebookPermission from '../grades/NoGradebookPermission';
-import BulkGradingQuickAction from '../dashboard/principal/BulkGradingQuickAction';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import BulkGradingModal from "../grading/BulkGradingModal";
+import NoGradebookPermission from "../grades/NoGradebookPermission";
+import BulkGradingQuickAction from "../dashboard/principal/BulkGradingQuickAction";
+import PrincipalGradesModule from "./PrincipalGradesModule";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 const GradesModule: React.FC = () => {
   const { user } = useAuth();
-  const { curriculumType, loading: curriculumLoading, error: curriculumError } = useSchoolCurriculum();
+  const {
+    curriculumType,
+    loading: curriculumLoading,
+    error: curriculumError,
+  } = useSchoolCurriculum();
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const { hasPermission } = usePermissions(user?.role as UserRole, user?.school_id);
+  const { hasPermission } = usePermissions(
+    user?.role as UserRole,
+    user?.school_id
+  );
 
   const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
-  const [gradesSummary, setGradesSummary] = useState<any>(null);
+  const [gradesSummary, setGradesSummary] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [errorSummary, setErrorSummary] = useState<string | null>(null);
 
   // Caching and optimization refs
   const dataFetchedRef = useRef(false);
-  const summaryCache = useRef<Map<string, any>>(new Map());
+  const summaryCache = useRef<
+    Map<
+      string,
+      {
+        summary: Record<string, unknown> | null;
+        schools: { id: string; name: string }[];
+      }
+    >
+  >(new Map());
   const schoolsCache = useRef<{ id: string; name: string }[]>([]);
   const lastFetchTime = useRef<number>(0);
   const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
 
   // Memoize role check to avoid recalculation
   const isSummaryRole = useMemo(() => {
-    return user?.role && ['edufam_admin', 'principal', 'school_owner'].includes(user.role);
+    return (
+      user?.role &&
+      ["edufam_admin", "principal", "school_owner"].includes(user.role)
+    );
   }, [user?.role]);
 
   // Optimized data fetching with proper async/await
@@ -46,12 +68,16 @@ const GradesModule: React.FC = () => {
     }
 
     const now = Date.now();
-    const effectiveSchoolId = user.role === 'edufam_admin' ? schoolFilter : user.school_id;
-    const cacheKey = `${user.role}_${effectiveSchoolId || 'all'}`;
+    const effectiveSchoolId =
+      user.role === "edufam_admin" ? schoolFilter : user.school_id;
+    const cacheKey = `${user.role}_${effectiveSchoolId || "all"}`;
 
     // Check cache first
-    if (summaryCache.current.has(cacheKey) && (now - lastFetchTime.current) < CACHE_DURATION) {
-      console.log('🎓 GradesModule: Using cached data for', cacheKey);
+    if (
+      summaryCache.current.has(cacheKey) &&
+      now - lastFetchTime.current < CACHE_DURATION
+    ) {
+      console.log("🎓 GradesModule: Using cached data for", cacheKey);
       const cachedData = summaryCache.current.get(cacheKey);
       setGradesSummary(cachedData.summary);
       setSchools(cachedData.schools);
@@ -63,20 +89,20 @@ const GradesModule: React.FC = () => {
     setErrorSummary(null);
 
     try {
-      console.log('🎓 GradesModule: Fetching fresh data for', cacheKey);
+      console.log("🎓 GradesModule: Fetching fresh data for", cacheKey);
 
       let schoolsData = schoolsCache.current;
       let summaryData = null;
 
       // Fetch schools if admin and not cached
-      if (user.role === 'edufam_admin' && schoolsCache.current.length === 0) {
+      if (user.role === "edufam_admin" && schoolsCache.current.length === 0) {
         const { data: schoolsResponse, error: schoolsError } = await supabase
           .from("schools")
           .select("id, name")
-          .order('name');
-          
+          .order("name");
+
         if (schoolsError) {
-          console.error('🚫 Schools fetch error:', schoolsError);
+          console.error("🚫 Schools fetch error:", schoolsError);
           throw new Error("Failed to fetch schools list.");
         }
         schoolsData = schoolsResponse || [];
@@ -85,32 +111,40 @@ const GradesModule: React.FC = () => {
 
       // Fetch grades summary if school is selected
       if (effectiveSchoolId) {
-        const { data: summaryResponse, error: summaryError } = await supabase
-          .from("school_grades_summary")
-          .select("*")
-          .eq("school_id", effectiveSchoolId)
-          .maybeSingle();
-          
-        if (summaryError) {
-          console.error('🚫 Grades summary fetch error:', summaryError);
-          throw new Error("Could not load grades summary data.");
+        try {
+          const { data: summaryResponse, error: summaryError } = await supabase
+            .from("school_grades_summary")
+            .select("*")
+            .eq("school_id", effectiveSchoolId)
+            .maybeSingle();
+
+          if (summaryError) {
+            console.error("🚫 Grades summary fetch error:", summaryError);
+            // Don't throw error, just set summaryData to null
+            summaryData = null;
+          } else {
+            summaryData = summaryResponse;
+          }
+        } catch (error) {
+          console.error("🚫 Grades summary fetch exception:", error);
+          summaryData = null;
         }
-        summaryData = summaryResponse;
       }
 
       // Cache the results
       summaryCache.current.set(cacheKey, {
         summary: summaryData,
-        schools: schoolsData
+        schools: schoolsData,
       });
       lastFetchTime.current = now;
 
       setSchools(schoolsData);
       setGradesSummary(summaryData);
-
-    } catch (error: any) {
-      console.error('🎓 GradesModule: Error fetching data:', error);
-      setErrorSummary(error.message || "Failed to load grades data.");
+    } catch (error: unknown) {
+      console.error("🎓 GradesModule: Error fetching data:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load grades data.";
+      setErrorSummary(errorMessage);
       setGradesSummary(null);
     } finally {
       setLoadingSummary(false);
@@ -120,14 +154,14 @@ const GradesModule: React.FC = () => {
   // Only fetch data when dependencies change and avoid duplicate calls
   useEffect(() => {
     if (!user || dataFetchedRef.current) return;
-    
+
     dataFetchedRef.current = true;
     fetchGradesData();
   }, [isSummaryRole, user?.role, user?.school_id]);
 
   // Handle school filter changes (only for admins)
   useEffect(() => {
-    if (user?.role === 'edufam_admin' && dataFetchedRef.current) {
+    if (user?.role === "edufam_admin" && dataFetchedRef.current) {
       fetchGradesData();
     }
   }, [schoolFilter]);
@@ -157,13 +191,23 @@ const GradesModule: React.FC = () => {
         </Alert>
       );
     }
-    if (user?.role === 'edufam_admin' && !schoolFilter && schools.length > 0) {
-        return <GradesAdminSummary schools={schools} schoolFilter={schoolFilter} setSchoolFilter={setSchoolFilter} gradesSummary={null} loading={false} error={null} />;
+    if (user?.role === "edufam_admin" && !schoolFilter && schools.length > 0) {
+      return (
+        <GradesAdminSummary
+          schools={schools}
+          schoolFilter={schoolFilter}
+          setSchoolFilter={setSchoolFilter}
+          gradesSummary={null}
+          loading={false}
+          error={null}
+        />
+      );
     }
     if (!gradesSummary) {
-      const message = user?.role === 'edufam_admin' && schools.length === 0
-        ? "No schools found."
-        : "There is no grades summary available for this school.";
+      const message =
+        user?.role === "edufam_admin" && schools.length === 0
+          ? "No schools found."
+          : "There is no grades summary available for this school.";
       return (
         <Alert className="my-8">
           <AlertTitle>No Summary Data</AlertTitle>
@@ -177,8 +221,8 @@ const GradesModule: React.FC = () => {
         error={null}
         gradesSummary={{
           avg_grade: gradesSummary.average_grade ?? null,
-          most_improved_school: '—',
-          declining_alerts: 0
+          most_improved_school: "—",
+          declining_alerts: 0,
         }}
         schools={schools}
         schoolFilter={schoolFilter}
@@ -186,7 +230,7 @@ const GradesModule: React.FC = () => {
       />
     );
   };
-  
+
   // Show loading while detecting curriculum
   if (curriculumLoading) {
     return (
@@ -211,84 +255,73 @@ const GradesModule: React.FC = () => {
       </div>
     );
   }
-  
+
   if (!user) return <div>Loading...</div>;
 
-  if (user.role !== 'parent' && !hasPermission('view_gradebook')) {
-      return <NoGradebookPermission role={user.role} hasPermission={false} />;
+  if (user.role !== "parent" && !hasPermission("view_gradebook")) {
+    return <NoGradebookPermission role={user.role} hasPermission={false} />;
   }
 
   const getCurriculumBadgeColor = () => {
     switch (curriculumType) {
-      case 'cbc':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'igcse':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case "cbc":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "igcse":
+        return "bg-purple-100 text-purple-800 border-purple-200";
       default:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return "bg-blue-100 text-blue-800 border-blue-200";
     }
   };
 
   const getCurriculumDisplayName = () => {
     switch (curriculumType) {
-      case 'cbc':
-        return 'CBC (Competency-Based Curriculum)';
-      case 'igcse':
-        return 'IGCSE (International General Certificate)';
+      case "cbc":
+        return "CBC (Competency-Based Curriculum)";
+      case "igcse":
+        return "IGCSE (International General Certificate)";
       default:
-        return 'Standard Curriculum';
+        return "Standard Curriculum";
     }
   };
 
-  console.log('🎓 GradesModule: Rendering with curriculum:', curriculumType, 'for role:', user.role);
+  console.log(
+    "🎓 GradesModule: Rendering with curriculum:",
+    curriculumType,
+    "for role:",
+    user.role
+  );
 
   switch (user.role) {
-    case 'edufam_admin':
-    case 'school_owner':
+    case "edufam_admin":
+    case "school_owner":
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <Badge className={`text-xs font-medium ${getCurriculumBadgeColor()}`}>
+            <Badge
+              className={`text-xs font-medium ${getCurriculumBadgeColor()}`}
+            >
               {getCurriculumDisplayName()}
             </Badge>
           </div>
           {renderForSummaryRole()}
         </div>
       );
-    case 'principal':
-        return (
-            <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge className={`text-xs font-medium ${getCurriculumBadgeColor()}`}>
-                    {getCurriculumDisplayName()}
-                  </Badge>
-                </div>
-                {renderForSummaryRole()}
-                <div className="pt-6 border-t">
-                  <BulkGradingQuickAction onOpenBulkGrade={() => setShowBulkModal(true)} />
-                </div>
-                {showBulkModal && (
-                  <BulkGradingModal 
-                    open={showBulkModal}
-                    onClose={() => setShowBulkModal(false)}
-                    classList={[]}
-                    subjectList={[]}
-                  />
-                )}
-            </div>
-        );
-    case 'teacher':
+    case "principal":
+      return <PrincipalGradesModule />;
+    case "teacher":
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <Badge className={`text-xs font-medium ${getCurriculumBadgeColor()}`}>
+            <Badge
+              className={`text-xs font-medium ${getCurriculumBadgeColor()}`}
+            >
               {getCurriculumDisplayName()}
             </Badge>
           </div>
           <TeacherGradesModule />
         </div>
       );
-    case 'parent':
+    case "parent":
       return <ParentGradesView />;
     default:
       return (

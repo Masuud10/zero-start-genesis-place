@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +14,11 @@ export interface PrincipalStats {
   attendanceRate: number;
   revenueThisMonth: number;
   outstandingFees: number;
-  recentGrades: any[];
+  recentGrades: Array<{
+    id: string;
+    status: string;
+    created_at: string;
+  }>;
 }
 
 // Export alias for backward compatibility
@@ -39,12 +42,14 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     if (!schoolId || !user?.id) {
       console.log('🔍 usePrincipalDashboardData: Missing schoolId or user');
       setLoading(false);
-      setError(null); // Clear any existing errors when no data is available
+      setError(null);
+      setLoadingTimeout(false);
       return;
     }
 
@@ -54,26 +59,78 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       console.error('🔍 usePrincipalDashboardData: Invalid school ID format:', schoolId);
       setError('Invalid school ID format');
       setLoading(false);
+      setLoadingTimeout(false);
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
+      setLoadingTimeout(false);
       
       console.log('🔍 usePrincipalDashboardData: Fetching data for school:', schoolId);
 
-      // Fetch all dashboard data in parallel with simplified queries
+      // Set timeout for loading state
+      const timeoutId = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 5000); // 5 second timeout
+
+      // Optimized parallel queries with proper error handling
+      const controller = new AbortController();
+      
       const queries = {
-        students: supabase.from('students').select('id').eq('school_id', schoolId).eq('is_active', true),
-        teachers: supabase.from('profiles').select('id').eq('school_id', schoolId).eq('role', 'teacher'),
-        parents: supabase.from('profiles').select('id').eq('school_id', schoolId).eq('role', 'parent'),
-        classes: supabase.from('classes').select('id').eq('school_id', schoolId),
-        subjects: supabase.from('subjects').select('id').eq('school_id', schoolId),
-        grades: supabase.from('grades').select('id, status, created_at, score, student_id, subject_id').eq('school_id', schoolId).order('created_at', { ascending: false }).limit(10),
-        certificates: supabase.from('certificates').select('id').eq('school_id', schoolId),
-        attendance: supabase.from('attendance').select('status').eq('school_id', schoolId),
-        fees: supabase.from('fees').select('amount, paid_amount, status').eq('school_id', schoolId)
+        students: supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .eq('is_active', true)
+          .abortSignal(controller.signal),
+        teachers: supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .eq('role', 'teacher')
+          .abortSignal(controller.signal),
+        parents: supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .eq('role', 'parent')
+          .abortSignal(controller.signal),
+        classes: supabase
+          .from('classes')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .abortSignal(controller.signal),
+        subjects: supabase
+          .from('subjects')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .abortSignal(controller.signal),
+        grades: supabase
+          .from('grades')
+          .select('id, status, created_at')
+          .eq('school_id', schoolId)
+          .order('created_at', { ascending: false })
+          .limit(10)
+          .abortSignal(controller.signal),
+        certificates: supabase
+          .from('certificates')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId)
+          .abortSignal(controller.signal),
+        attendance: supabase
+          .from('attendance')
+          .select('status')
+          .eq('school_id', schoolId)
+          .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Last 30 days
+          .limit(1000)
+          .abortSignal(controller.signal),
+        fees: supabase
+          .from('fees')
+          .select('amount, paid_amount, status')
+          .eq('school_id', schoolId)
+          .abortSignal(controller.signal)
       };
 
       const results = await Promise.allSettled([
@@ -88,31 +145,33 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         queries.fees
       ]);
 
-      // Process results safely
+      clearTimeout(timeoutId);
+
+      // Process results safely with better error handling
       const [studentsResult, teachersResult, parentsResult, classesResult, subjectsResult, gradesResult, certificatesResult, attendanceResult, feesResult] = results;
       
-      const totalStudents = studentsResult.status === 'fulfilled' && studentsResult.value.data ? studentsResult.value.data.length : 0;
-      const totalTeachers = teachersResult.status === 'fulfilled' && teachersResult.value.data ? teachersResult.value.data.length : 0;
-      const totalParents = parentsResult.status === 'fulfilled' && parentsResult.value.data ? parentsResult.value.data.length : 0;
-      const totalClasses = classesResult.status === 'fulfilled' && classesResult.value.data ? classesResult.value.data.length : 0;
-      const totalSubjects = subjectsResult.status === 'fulfilled' && subjectsResult.value.data ? subjectsResult.value.data.length : 0;
-      const totalCertificates = certificatesResult.status === 'fulfilled' && certificatesResult.value.data ? certificatesResult.value.data.length : 0;
+      const totalStudents = studentsResult.status === 'fulfilled' ? (studentsResult.value.count || 0) : 0;
+      const totalTeachers = teachersResult.status === 'fulfilled' ? (teachersResult.value.count || 0) : 0;
+      const totalParents = parentsResult.status === 'fulfilled' ? (parentsResult.value.count || 0) : 0;
+      const totalClasses = classesResult.status === 'fulfilled' ? (classesResult.value.count || 0) : 0;
+      const totalSubjects = subjectsResult.status === 'fulfilled' ? (subjectsResult.value.count || 0) : 0;
+      const totalCertificates = certificatesResult.status === 'fulfilled' ? (certificatesResult.value.count || 0) : 0;
 
       // Calculate pending approvals
       const pendingApprovals = gradesResult.status === 'fulfilled' && gradesResult.value.data 
-        ? gradesResult.value.data.filter((grade: any) => grade.status === 'submitted').length 
+        ? gradesResult.value.data.filter((grade: { status: string }) => grade.status === 'submitted').length 
         : 0;
 
-      // Calculate attendance rate
+      // Calculate attendance rate with better data handling
       const attendanceData = attendanceResult.status === 'fulfilled' && attendanceResult.value.data ? attendanceResult.value.data : [];
-      const presentCount = attendanceData.filter((record: any) => record.status === 'present').length;
-      const attendanceRate = attendanceData.length > 0 ? (presentCount / attendanceData.length) * 100 : 0;
+      const presentCount = attendanceData.filter((record: { status: string }) => record.status === 'present').length;
+      const attendanceRate = attendanceData.length > 0 ? Math.round((presentCount / attendanceData.length) * 100) : 0;
 
-      // Calculate financial data
+      // Calculate financial data with better error handling
       const feesData = feesResult.status === 'fulfilled' && feesResult.value.data ? feesResult.value.data : [];
-      const totalFees = feesData.reduce((sum: number, fee: any) => sum + (fee.amount || 0), 0);
-      const totalPaid = feesData.reduce((sum: number, fee: any) => sum + (fee.paid_amount || 0), 0);
-      const outstandingFees = totalFees - totalPaid;
+      const totalFees = feesData.reduce((sum: number, fee: { amount: number | null }) => sum + (parseFloat(String(fee.amount || 0))), 0);
+      const totalPaid = feesData.reduce((sum: number, fee: { paid_amount: number | null }) => sum + (parseFloat(String(fee.paid_amount || 0))), 0);
+      const outstandingFees = Math.max(0, totalFees - totalPaid);
 
       // Get recent grades
       const recentGrades = gradesResult.status === 'fulfilled' && gradesResult.value.data ? gradesResult.value.data : [];
@@ -125,7 +184,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         totalSubjects,
         pendingApprovals,
         totalCertificates,
-        attendanceRate: Math.round(attendanceRate),
+        attendanceRate,
         revenueThisMonth: totalPaid,
         outstandingFees,
         recentGrades
@@ -133,19 +192,26 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
 
       console.log('✅ usePrincipalDashboardData: Fetched stats:', newStats);
       setStats(newStats);
+      setLoadingTimeout(false);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ usePrincipalDashboardData: Error fetching data:', error);
-      setError(error.message || 'Failed to fetch dashboard data');
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard data. Please try again.",
-        variant: "destructive"
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
+      setError(errorMessage);
+      setLoadingTimeout(false);
+      
+      // Only show toast for non-timeout errors
+      if (error instanceof Error && error.name !== 'AbortError') {
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [schoolId, user?.id, toast]);
 
   useEffect(() => {
     // Only fetch if we have both schoolId and user
@@ -155,6 +221,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       // Reset state when dependencies are missing
       setLoading(false);
       setError(null);
+      setLoadingTimeout(false);
       setStats({
         totalStudents: 0,
         totalTeachers: 0,
@@ -169,12 +236,13 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         recentGrades: []
       });
     }
-  }, [schoolId, user?.id]);
+  }, [schoolId, user?.id, fetchDashboardData]);
 
   return { 
     stats, 
-    loading, 
+    loading: loading && !loadingTimeout, 
     error: error || null, 
+    loadingTimeout,
     refetch: fetchDashboardData 
   };
 };
