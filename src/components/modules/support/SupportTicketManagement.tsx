@@ -21,17 +21,26 @@ interface SupportTicketManagementProps {
 
 const SupportTicketManagement: React.FC<SupportTicketManagementProps> = ({ 
   showCreateButton = true,
-  title = "My Support Tickets",
-  description = "Submit and track your support requests here."
+  title = "Support Center",
+  description = "Manage all support tickets across the system."
 }) => {
   const { tickets, loading, error, refetch, updateTicketStatus } = useSupportTickets();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const { toast } = useToast();
   const { user } = useAuth();
 
   const isAdmin = user?.role === 'edufam_admin';
+
+  // Filter tickets based on status and priority
+  const filteredTickets = tickets.filter(ticket => {
+    const statusMatch = statusFilter === 'all' || ticket.status === statusFilter;
+    const priorityMatch = priorityFilter === 'all' || ticket.priority === priorityFilter;
+    return statusMatch && priorityMatch;
+  });
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -96,15 +105,20 @@ const SupportTicketManagement: React.FC<SupportTicketManagementProps> = ({
       );
     }
 
-    if (tickets.length === 0) {
+    if (filteredTickets.length === 0) {
       return (
         <div className="text-center py-8">
           <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No Support Tickets Found</h3>
+          <h3 className="mt-4 text-lg font-semibold">
+            {tickets.length === 0 ? "No Support Tickets Found" : "No tickets match your filters"}
+          </h3>
           <p className="text-muted-foreground mt-1">
-            {showCreateButton ? "Get started by creating your first support ticket." : "No tickets to display."}
+            {tickets.length === 0 
+              ? (showCreateButton ? "Get started by creating your first support ticket." : "No tickets to display.")
+              : "Try adjusting your filters to see more tickets."
+            }
           </p>
-          {showCreateButton && (
+          {showCreateButton && tickets.length === 0 && (
             <Button className="mt-4" onClick={() => setIsCreateDialogOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Create New Ticket
@@ -129,7 +143,7 @@ const SupportTicketManagement: React.FC<SupportTicketManagementProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tickets.map((ticket) => (
+          {filteredTickets.map((ticket) => (
             <TableRow key={ticket.id}>
               <TableCell className="font-medium">{ticket.title}</TableCell>
               {isAdmin && <TableCell>{ticket.school_name || 'N/A'}</TableCell>}
@@ -264,6 +278,45 @@ const SupportTicketManagement: React.FC<SupportTicketManagementProps> = ({
           </Button>
         )}
       </div>
+
+      {/* Filter Controls for Admins */}
+      {isAdmin && (
+        <div className="flex gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Status:</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Priority:</label>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Badge variant="outline" className="ml-auto">
+            Total: {filteredTickets.length} / {tickets.length}
+          </Badge>
+        </div>
+      )}
       
       <Card>
         <CardHeader>

@@ -8,6 +8,7 @@ import { Lock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import EnhancedTimetableGenerator from '../timetable/EnhancedTimetableGenerator';
 import TeacherTimetableView from '../timetable/TeacherTimetableView';
+import TimetablePublisher from '../timetable/TimetablePublisher';
 
 const TimetableModule = () => {
   const { user } = useAuth();
@@ -81,8 +82,9 @@ const TimetableModule = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <EnhancedTimetableGenerator />
+      {schoolId && <TimetablePublisher schoolId={schoolId} />}
     </div>
   );
 };
