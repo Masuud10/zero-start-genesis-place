@@ -2,7 +2,7 @@ Edufam – Comprehensive School Management System
 Overview
 Edufam is a modern, full-stack, multi-tenant School Management Platform designed to simplify, automate, and enhance school operations in Kenya and beyond. The platform serves various user roles including Edufam Admins, Principals, Teachers, Parents, Finance Officers, offering tailored dashboards and workflows for each role.
 
-🚀 Key Features
+Key Features
 🎓 School Management
 School registration & profile management
 
