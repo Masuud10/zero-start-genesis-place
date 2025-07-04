@@ -1,56 +1,44 @@
-
-import React, { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  BarChart3, 
-  FileText, 
-  Award, 
-  Settings,
-  Activity,
-  DollarSign,
-  Shield,
-  Building2,
-  Globe,
+import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertTriangle,
+  Loader2,
   RefreshCw,
-  TrendingUp
-} from 'lucide-react';
-import EduFamDashboardOverview from '../EduFamDashboardOverview';
-import EduFamCertificateManagement from '@/components/certificates/EduFamCertificateManagement';
-import EduFamReportGeneration from '@/components/reports/EduFamReportGeneration';
-import BillingModule from '@/components/modules/BillingModule';
-import SystemHealthModule from '@/components/modules/SystemHealthModule';
-import SettingsModule from '@/components/modules/SettingsModule';
-import CompanyManagementModule from '@/components/modules/CompanyManagementModule';
-import SchoolAnalyticsList from '@/components/analytics/SchoolAnalyticsList';
-import AdministrativeHub from './AdministrativeHub';
-import { useAuth } from '@/contexts/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+  Settings,
+  Users,
+  Building2,
+  BarChart3,
+  CreditCard,
+  FileText,
+  HeadphonesIcon,
+} from "lucide-react";
+import DashboardWrapper from "../DashboardWrapper";
+
+// Import dashboard modules
+import SchoolsModule from "@/components/modules/schools/SchoolsModule";
+import UsersModule from "@/components/modules/users/UsersModule";
+import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
+import BillingModule from "@/components/modules/billing/BillingModule";
+import ReportsModule from "@/components/modules/reports/ReportsModule";
+import SupportModule from "@/components/modules/support/SupportModule";
+import SystemSettings from "@/components/settings/SystemSettings";
 
 interface EduFamAdminDashboardProps {
-  onModalOpen: (modalType: string) => void;
+  onModalOpen?: (modalType: string) => void;
 }
 
 const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTab] = useState<string>("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { user } = useAuth();
-
-  // Permission check - only edufam_admin should access this dashboard
-  if (user?.role !== 'edufam_admin') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Alert className="max-w-md bg-red-50 border-red-200">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-700">
-            Access denied. Only EduFam Administrators can access this dashboard.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const { isReady, userRole } = useSchoolScopedData();
+  const { toast } = useToast();
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -60,131 +48,204 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
     }, 500);
   };
 
-  const navigationTabs = [
-    {
-      id: 'overview',
-      label: 'Dashboard Overview',
-      icon: BarChart3,
-      component: <EduFamDashboardOverview />
-    },
-    {
-      id: 'school-analytics',
-      label: 'Schools Analytics',
-      icon: TrendingUp,
-      component: <SchoolAnalyticsList />
-    },
-    {
-      id: 'company-management',
-      label: 'Company Management',
-      icon: Globe,
-      component: <CompanyManagementModule />
-    },
-    {
-      id: 'certificates',
-      label: 'Certificate Management',
-      icon: Award,
-      component: <EduFamCertificateManagement />
-    },
-    {
-      id: 'reports',
-      label: 'Report Generation',
-      icon: FileText,
-      component: <EduFamReportGeneration />
-    },
-    {
-      id: 'billing',
-      label: 'Billing Management',
-      icon: DollarSign,
-      component: <BillingModule />
-    },
-    {
-      id: 'system-health',
-      label: 'System Health',
-      icon: Activity,
-      component: <SystemHealthModule />
-    },
-    {
-      id: 'settings',
-      label: 'System Settings',
-      icon: Settings,
-      component: <SettingsModule />
-    },
-    {
-      id: 'management',
-      label: 'System Management',
-      icon: Shield,
-      component: <AdministrativeHub onModalOpen={onModalOpen} onUserCreated={() => window.location.reload()} />
+  const handleModalOpen = (modalType: string) => {
+    console.log("EduFamAdminDashboard: Opening modal:", modalType);
+    if (onModalOpen) {
+      onModalOpen(modalType);
     }
-  ];
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Header */}
-        <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-xl">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                  <Building2 className="w-7 h-7" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold">EduFam Admin Dashboard</h1>
-                  <p className="text-blue-100 text-base font-normal mt-1">
-                    Comprehensive system management and analytics platform
+    <DashboardWrapper
+      requiredRole={["edufam_admin", "elimisha_admin"]}
+      title="EduFam Admin Dashboard"
+    >
+      <div className="space-y-6">
+        {/* Header with quick actions */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">
+              EduFam Administration
+            </h2>
+            <p className="text-gray-600 mt-1">
+              Manage schools, users, analytics, and system settings
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-sm">
+              {userRole === "edufam_admin" ? "EduFam Admin" : "Elimisha Admin"}
+            </Badge>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              size="sm"
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span className="ml-2">Refresh</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Main dashboard content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="schools">Schools</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="billing">Billing</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="support">Support</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Schools
+                  </CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">Loading...</div>
+                  <p className="text-xs text-muted-foreground">
+                    Active schools in the system
                   </p>
-                </div>
-              </CardTitle>
-              <Button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                variant="secondary"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Users
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">Loading...</div>
+                  <p className="text-xs text-muted-foreground">
+                    Registered users across all schools
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Monthly Revenue
+                  </CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">Loading...</div>
+                  <p className="text-xs text-muted-foreground">
+                    Revenue from subscriptions
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    System Health
+                  </CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">99.9%</div>
+                  <p className="text-xs text-muted-foreground">
+                    System uptime and performance
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          </CardHeader>
-        </Card>
 
-        {/* Navigation Tabs */}
-        <Card className="shadow-lg">
-          <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 h-auto p-2 bg-gray-50">
-                {navigationTabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="flex flex-col items-center gap-2 py-3 px-2 text-xs font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 hover:bg-white/50 transition-all duration-200"
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Button
+                    onClick={() => setActiveTab("schools")}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
                   >
-                    <tab.icon className="h-5 w-5" />
-                    <span className="hidden sm:block text-center leading-tight">{tab.label}</span>
-                    <span className="sm:hidden text-xs">{tab.label.split(' ')[0]}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+                    <Building2 className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Manage Schools</span>
+                  </Button>
+                  <Button
+                    onClick={() => setActiveTab("users")}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    <Users className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Manage Users</span>
+                  </Button>
+                  <Button
+                    onClick={() => setActiveTab("analytics")}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    <BarChart3 className="h-6 w-6 mb-2" />
+                    <span className="text-sm">View Analytics</span>
+                  </Button>
+                  <Button
+                    onClick={() => setActiveTab("billing")}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    <CreditCard className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Billing</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              {/* Tab Content */}
-              <div className="p-6">
-                {navigationTabs.map((tab) => (
-                  <TabsContent
-                    key={tab.id}
-                    value={tab.id}
-                    className="space-y-6 mt-0"
-                  >
-                    <div className="min-h-[400px]">
-                      {tab.component}
-                    </div>
-                  </TabsContent>
-                ))}
-              </div>
-            </Tabs>
-          </CardContent>
-        </Card>
+          {/* Schools Tab */}
+          <TabsContent value="schools" className="space-y-6">
+            <SchoolsModule />
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <UsersModule />
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <AnalyticsDashboard />
+          </TabsContent>
+
+          {/* Billing Tab */}
+          <TabsContent value="billing" className="space-y-6">
+            <BillingModule />
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="space-y-6">
+            <ReportsModule />
+          </TabsContent>
+
+          {/* Support Tab */}
+          <TabsContent value="support" className="space-y-6">
+            <SupportModule />
+          </TabsContent>
+        </Tabs>
       </div>
-    </div>
+    </DashboardWrapper>
   );
 };
 

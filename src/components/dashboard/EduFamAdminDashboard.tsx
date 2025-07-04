@@ -41,6 +41,31 @@ import SecuritySettingsModal from "./modals/SecuritySettingsModal";
 import NotificationSettingsModal from "./modals/NotificationSettingsModal";
 import CompanyDetailsModal from "./modals/CompanyDetailsModal";
 import SchoolRegistrationModal from "./modals/SchoolRegistrationModal";
+import SchoolDetailsModal from "@/components/modals/SchoolDetailsModal";
+
+interface School {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  status?: string;
+  created_at: string;
+  school_type?: string;
+  curriculum_type?: string;
+  website_url?: string;
+  registration_number?: string;
+  year_established?: number;
+  motto?: string;
+  slogan?: string;
+  logo_url?: string;
+  owner_id?: string;
+  principal_id?: string;
+  principal_name?: string;
+  principal_email?: string;
+  max_students?: number;
+  term_structure?: string;
+}
 
 const EduFamAdminDashboard = () => {
   const { user } = useAuth();
@@ -59,6 +84,8 @@ const EduFamAdminDashboard = () => {
     useState(false);
   const [showCompanyDetails, setShowCompanyDetails] = useState(false);
   const [showSchoolRegistration, setShowSchoolRegistration] = useState(false);
+  const [showSchoolDetails, setShowSchoolDetails] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   // Calculate stats
   const totalSchools = schools.length;
@@ -75,6 +102,18 @@ const EduFamAdminDashboard = () => {
   const handleModalSuccess = () => {
     console.log("🏫 Refreshing school data after successful operation...");
     refetchSchools();
+  };
+
+  const handleViewSchool = (school: School) => {
+    setSelectedSchool(school);
+    setShowSchoolDetails(true);
+  };
+
+  const handleEditSchool = (school: School) => {
+    // For now, we'll show the school details modal in edit mode
+    // In the future, you can create a separate edit modal
+    setSelectedSchool(school);
+    setShowSchoolDetails(true);
   };
 
   const getSchoolStatusColor = (status?: string) => {
@@ -212,26 +251,26 @@ const EduFamAdminDashboard = () => {
 
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-purple-50"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-yellow-50"
               onClick={() => setShowNotificationSettings(true)}
             >
-              <Bell className="h-6 w-6 text-purple-600" />
-              <span className="text-sm">Notifications</span>
+              <Bell className="h-6 w-6 text-yellow-600" />
+              <span className="text-sm">Notification Settings</span>
             </Button>
 
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center gap-2 hover:bg-indigo-50"
+              className="h-20 flex flex-col items-center gap-2 hover:bg-purple-50"
               onClick={() => setShowCompanyDetails(true)}
             >
-              <Building2 className="h-6 w-6 text-indigo-600" />
+              <Globe className="h-6 w-6 text-purple-600" />
               <span className="text-sm">Company Details</span>
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Schools List */}
+      {/* Registered Schools Section */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -413,6 +452,7 @@ const EduFamAdminDashboard = () => {
                         variant="outline"
                         size="sm"
                         className="hover:bg-blue-50"
+                        onClick={() => handleViewSchool(school)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -420,6 +460,7 @@ const EduFamAdminDashboard = () => {
                         variant="outline"
                         size="sm"
                         className="hover:bg-gray-50"
+                        onClick={() => handleEditSchool(school)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -481,6 +522,18 @@ const EduFamAdminDashboard = () => {
         onSuccess={handleModalSuccess}
         currentUser={user!}
       />
+
+      {/* School Details Modal */}
+      {selectedSchool && (
+        <SchoolDetailsModal
+          school={selectedSchool}
+          isOpen={showSchoolDetails}
+          onClose={() => {
+            setShowSchoolDetails(false);
+            setSelectedSchool(null);
+          }}
+        />
+      )}
     </div>
   );
 };

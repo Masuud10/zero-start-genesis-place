@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,13 +12,13 @@ const isValidRole = (role: string): boolean => {
 
 export const useAuthState = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-  const isMountedRef = useRef(true);
-  const subscriptionRef = useRef<any>(null);
-  const initializedRef = useRef(false);
+  const isMountedRef = useRef<boolean>(true);
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+  const initializedRef = useRef<boolean>(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -32,7 +31,7 @@ export const useAuthState = () => {
     };
   }, []);
 
-  const fetchProfile = useCallback(async (userId: string): Promise<any> => {
+  const fetchProfile = useCallback(async (userId: string): Promise<{ role?: string; name?: string; school_id?: string; avatar_url?: string; mfa_enabled?: boolean; status?: string } | null> => {
     console.log('🔐 AuthState: Fetching profile for', userId);
     try {
       const { data, error } = await supabase
@@ -96,34 +95,19 @@ export const useAuthState = () => {
         return;
       }
 
-      // Defer profile fetch to prevent auth blocking
-      let profile = null;
-      setTimeout(async () => {
-        try {
-          profile = await fetchProfile(authUser.id);
-          if (profile && isMountedRef.current) {
-            // Update user with profile data after initial auth is complete
-            setUser(prev => prev ? { ...prev, ...profile } : prev);
-          }
-        } catch (err) {
-          console.warn('🔐 AuthState: Deferred profile fetch failed:', err);
-        }
-      }, 0);
-
+      // Fetch profile synchronously to avoid race conditions
+      console.log('🔐 AuthState: Fetching profile for', authUser.id);
+      const profile = await fetchProfile(authUser.id);
+      
       if (!isMountedRef.current) return;
 
-      // Profile status check will happen in deferred fetch
-
-      // STRICT ROLE DETECTION: Metadata first (since profile is deferred), then email fallback
-      let resolvedRole = authUser.app_metadata?.role || authUser.user_metadata?.role;
+      // Determine role with priority: backend profile > metadata > email fallback
+      let resolvedRole = profile?.role || authUser.app_metadata?.role || authUser.user_metadata?.role;
       
-      console.log('🔐 AuthState: Metadata role found:', resolvedRole);
-      
-      // If valid role exists in metadata, use it
       if (resolvedRole && isValidRole(resolvedRole)) {
-        console.log('🔐 AuthState: Using verified metadata role:', resolvedRole);
+        console.log('🔐 AuthState: Using verified role:', resolvedRole);
       } else {
-        // Last resort: Email-based detection for new registrations only
+        // Email-based detection for new registrations only
         const emailLower = authUser.email.toLowerCase();
         
         console.log('🔐 AuthState: No valid database/metadata role found, using email fallback for new user');
@@ -148,31 +132,27 @@ export const useAuthState = () => {
         
         // Update database with inferred role for future logins
         if (resolvedRole) {
-          setTimeout(async () => {
-            try {
-              await supabase
-                .from('profiles')
-                .upsert({ 
-                  id: authUser.id, 
-                  email: authUser.email,
-                  role: resolvedRole,
-                  name: authUser.user_metadata?.name || authUser.email.split('@')[0]
-                });
-              console.log('🔐 AuthState: Profile role updated in database for future logins');
-            } catch (updateError) {
-              console.warn('🔐 AuthState: Failed to update profile role:', updateError);
-            }
-          }, 100);
+          try {
+            await supabase
+              .from('profiles')
+              .upsert({ 
+                id: authUser.id, 
+                email: authUser.email,
+                role: resolvedRole,
+                name: authUser.user_metadata?.name || authUser.email.split('@')[0]
+              });
+            console.log('🔐 AuthState: Profile role updated in database for future logins');
+          } catch (updateError: unknown) {
+            const error = updateError instanceof Error ? updateError : new Error('Unknown error');
+            console.warn('🔐 AuthState: Failed to update profile role:', error);
+          }
         }
       }
 
       // Determine school assignment
-      let userSchoolId = profile?.school_id ||
+      const userSchoolId = profile?.school_id ||
                         authUser.user_metadata?.school_id ||
                         authUser.app_metadata?.school_id;
-
-      // For non-admin roles without school, we'll handle this later to avoid blocking auth
-      // Don't block authentication initialization with school assignment queries
 
       const userData: AuthUser = {
         id: authUser.id,
@@ -201,14 +181,17 @@ export const useAuthState = () => {
         hasProfile: !!profile
       });
 
-      setUser(userData);
-      setError(null);
-      setIsLoading(false);
-      setIsInitialized(true);
-    } catch (err: any) {
-      console.error('🔐 AuthState: User processing failed:', err);
       if (isMountedRef.current) {
-        setError('User processing failed: ' + (err.message || 'Unknown error'));
+        setUser(userData);
+        setError(null);
+        setIsLoading(false);
+        setIsInitialized(true);
+      }
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Unknown error');
+      console.error('🔐 AuthState: User processing failed:', error);
+      if (isMountedRef.current) {
+        setError('User processing failed: ' + (error.message || 'Unknown error'));
         setIsLoading(false);
         setIsInitialized(true);
       }
@@ -271,8 +254,9 @@ export const useAuthState = () => {
         );
         subscriptionRef.current = subscription;
 
-      } catch (err: any) {
-        console.error('🔐 AuthState: Auth initialization failed:', err);
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        console.error('🔐 AuthState: Auth initialization failed:', error);
         if (isMountedRef.current) {
           setError('Authentication failed - please refresh the page');
           setIsLoading(false);

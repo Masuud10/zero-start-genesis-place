@@ -1,25 +1,33 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useNavigation } from "@/contexts/NavigationContext";
+import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
+import { useDatabaseBackup } from "@/hooks/useDatabaseBackup";
+import { useNotificationSettings } from "@/hooks/useNotificationSettings";
 import {
   Users,
-  School,
   UserPlus,
   Building2,
   GraduationCap,
   BookOpen,
+  School,
   Settings,
-  Shield,
-  Activity,
   TrendingUp,
-  Plus,
+  Activity,
+  Shield,
   BarChart3,
-  Database,
   Headphones,
+  Wrench,
+  Database,
+  Bell,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
+  Download,
+  Send,
 } from "lucide-react";
 import CreateSchoolDialog from "@/components/school/CreateSchoolDialog";
-import { useNavigation } from "@/contexts/NavigationContext";
 
 interface AdministrativeHubProps {
   onModalOpen: (modalType: string) => void;
@@ -31,6 +39,35 @@ const AdministrativeHub = ({
   onUserCreated,
 }: AdministrativeHubProps) => {
   const { onSectionChange } = useNavigation();
+
+  // System Management hooks
+  const {
+    maintenanceSettings,
+    maintenanceStatus,
+    isLoading: isLoadingMaintenance,
+    enableMaintenance,
+    disableMaintenance,
+    isEnabling,
+    isDisabling,
+  } = useMaintenanceMode();
+
+  const {
+    backupHistory,
+    latestBackup,
+    isBackupRecent,
+    isLoading: isLoadingBackup,
+    isCreatingBackup,
+    createBackup,
+    downloadBackup,
+  } = useDatabaseBackup();
+
+  const {
+    notificationSettings,
+    notificationStats,
+    isLoading: isLoadingNotifications,
+    isTestingNotification,
+    testNotification,
+  } = useNotificationSettings();
 
   const handleActionClick = (action: string) => {
     console.log("🎯 AdministrativeHub: Action clicked:", action);
@@ -72,6 +109,28 @@ const AdministrativeHub = ({
       onModalOpen(modalMappings[action]);
     } else {
       console.warn("Unknown action:", action);
+    }
+  };
+
+  const handleMaintenanceToggle = () => {
+    if (maintenanceSettings?.enabled) {
+      disableMaintenance();
+    } else {
+      enableMaintenance({
+        message:
+          "System is currently under maintenance. Please try again later.",
+        estimatedDuration: "2-4 hours",
+      });
+    }
+  };
+
+  const handleCreateBackup = () => {
+    createBackup("full");
+  };
+
+  const handleTestNotification = () => {
+    if (notificationSettings) {
+      testNotification(notificationSettings);
     }
   };
 
@@ -150,6 +209,156 @@ const AdministrativeHub = ({
         <p className="text-muted-foreground">
           Comprehensive administrative tools for managing the EduFam platform
         </p>
+      </div>
+
+      {/* System Management Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Maintenance Mode Control */}
+        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-orange-50 to-red-50 border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg">
+                <Wrench className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-orange-900">
+                  Maintenance Mode
+                </h3>
+                <p className="text-sm text-gray-600 font-normal mt-1">
+                  Control system accessibility
+                </p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-white/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                {maintenanceSettings?.enabled ? (
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                ) : (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                )}
+                <span className="font-medium">
+                  {maintenanceSettings?.enabled ? "Active" : "Inactive"}
+                </span>
+              </div>
+              <Button
+                onClick={handleMaintenanceToggle}
+                disabled={isEnabling || isDisabling || isLoadingMaintenance}
+                variant={
+                  maintenanceSettings?.enabled ? "destructive" : "default"
+                }
+                size="sm"
+              >
+                {isEnabling || isDisabling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : maintenanceSettings?.enabled ? (
+                  "Disable"
+                ) : (
+                  "Enable"
+                )}
+              </Button>
+            </div>
+            {maintenanceSettings?.enabled && (
+              <div className="text-sm text-red-700 bg-red-50 p-2 rounded">
+                System is in maintenance mode. Only EduFam Admins can access.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Database Backup Control */}
+        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+                <Database className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900">
+                  Database Backup
+                </h3>
+                <p className="text-sm text-gray-600 font-normal mt-1">
+                  Manage system backups
+                </p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-white/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                {isBackupRecent ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                )}
+                <span className="font-medium">
+                  {isBackupRecent ? "Recent" : "Needed"}
+                </span>
+              </div>
+              <Button
+                onClick={handleCreateBackup}
+                disabled={isCreatingBackup || isLoadingBackup}
+                size="sm"
+              >
+                {isCreatingBackup ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {latestBackup && (
+              <div className="text-sm text-gray-600">
+                Last: {new Date(latestBackup.created_at).toLocaleDateString()}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notification Settings Control */}
+        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg">
+                <Bell className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-purple-900">
+                  Notifications
+                </h3>
+                <p className="text-sm text-gray-600 font-normal mt-1">
+                  System notification settings
+                </p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-white/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-purple-600" />
+                <span className="font-medium">
+                  {notificationStats.totalSent} sent
+                </span>
+              </div>
+              <Button
+                onClick={handleTestNotification}
+                disabled={isTestingNotification || isLoadingNotifications}
+                size="sm"
+                variant="outline"
+              >
+                {isTestingNotification ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <div className="text-sm text-gray-600">
+              {notificationStats.recentSent} this week
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -301,7 +510,9 @@ const AdministrativeHub = ({
               className="text-center p-4 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
               onClick={() => onSectionChange("system-health")}
             >
-              <div className="text-2xl font-bold text-green-600">Healthy</div>
+              <div className="text-2xl font-bold text-green-600">
+                {maintenanceSettings?.enabled ? "Maintenance" : "Healthy"}
+              </div>
               <div className="text-sm text-gray-600">System Status</div>
             </div>
             <div

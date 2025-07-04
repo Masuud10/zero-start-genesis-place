@@ -1,7 +1,15 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { School, Users, UserCheck, UserX, RefreshCw } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Building2,
+  Users,
+  GraduationCap,
+  TrendingUp,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 interface SystemOverviewCardsProps {
   schoolsCount: number;
@@ -12,7 +20,7 @@ interface SystemOverviewCardsProps {
   usersLoading: boolean;
   schoolsRefetching: boolean;
   usersRefetching: boolean;
-  onStatsCardClick?: (section: string) => void;
+  onStatsCardClick?: (cardType: string) => void;
 }
 
 const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
@@ -24,94 +32,121 @@ const SystemOverviewCards: React.FC<SystemOverviewCardsProps> = ({
   usersLoading,
   schoolsRefetching,
   usersRefetching,
-  onStatsCardClick
+  onStatsCardClick,
 }) => {
+  // Handle loading states
   const isLoading = schoolsLoading || usersLoading;
   const isRefetching = schoolsRefetching || usersRefetching;
 
+  // Handle error states - if counts are negative or NaN, something went wrong
+  const hasError =
+    schoolsCount < 0 ||
+    totalUsers < 0 ||
+    isNaN(schoolsCount) ||
+    isNaN(totalUsers);
+
+  if (hasError) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Error loading system statistics. Please refresh the page.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const cards = [
     {
-      title: 'Total Schools',
+      title: "Total Schools",
       value: schoolsCount,
-      icon: School,
-      description: 'Active schools in system',
-      loading: schoolsLoading || schoolsRefetching,
-      color: 'text-blue-600',
-      section: 'schools'
+      icon: Building2,
+      color: "bg-blue-500",
+      loading: schoolsLoading,
+      refetching: schoolsRefetching,
+      type: "schools",
     },
     {
-      title: 'Total Users',
+      title: "Total Users",
       value: totalUsers,
       icon: Users,
-      description: 'All registered users',
-      loading: usersLoading || usersRefetching,
-      color: 'text-green-600',
-      section: 'users'
+      color: "bg-green-500",
+      loading: usersLoading,
+      refetching: usersRefetching,
+      type: "users",
     },
     {
-      title: 'Users with Schools',
+      title: "Users with Schools",
       value: usersWithSchools,
-      icon: UserCheck,
-      description: 'Users assigned to schools',
-      loading: usersLoading || usersRefetching,
-      color: 'text-emerald-600',
-      section: 'users'
+      icon: GraduationCap,
+      color: "bg-purple-500",
+      loading: usersLoading,
+      refetching: usersRefetching,
+      type: "users-with-schools",
     },
     {
-      title: 'Unassigned Users',
+      title: "Users without Schools",
       value: usersWithoutSchools,
-      icon: UserX,
-      description: 'Users without school assignment',
-      loading: usersLoading || usersRefetching,
-      color: 'text-orange-600',
-      section: 'users'
-    }
+      icon: TrendingUp,
+      color: "bg-orange-500",
+      loading: usersLoading,
+      refetching: usersRefetching,
+      type: "users-without-schools",
+    },
   ];
 
-  const handleCardClick = (section: string) => {
-    if (onStatsCardClick) {
-      onStatsCardClick(section);
-    }
-  };
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {cards.map((card, index) => {
-        const IconComponent = card.icon;
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {cards.map((card) => {
+        const Icon = card.icon;
+        const isCardLoading = card.loading;
+        const isCardRefetching = card.refetching;
+
         return (
-          <Card 
-            key={index} 
-            className="relative cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
-            onClick={() => handleCardClick(card.section)}
+          <Card
+            key={card.title}
+            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+              onStatsCardClick ? "hover:scale-105" : ""
+            }`}
+            onClick={() => onStatsCardClick?.(card.type)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium">
                 {card.title}
               </CardTitle>
-              <div className="relative">
-                <IconComponent className={`h-4 w-4 ${card.color}`} />
-                {card.loading && (
-                  <RefreshCw className="h-3 w-3 absolute -top-1 -right-1 animate-spin text-gray-400" />
+              <div className={`p-2 rounded-full ${card.color} text-white`}>
+                {isCardLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Icon className="h-4 w-4" />
                 )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  {card.loading ? (
-                    <div className="text-2xl font-bold text-gray-400">
-                      <RefreshCw className="h-6 w-6 animate-spin inline" />
-                    </div>
-                  ) : (
-                    <div className="text-2xl font-bold">
-                      {typeof card.value === 'number' ? card.value.toLocaleString() : '0'}
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {card.description}
-                  </p>
-                </div>
+              <div className="text-2xl font-bold">
+                {isCardLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">
+                      Loading...
+                    </span>
+                  </div>
+                ) : (
+                  card.value.toLocaleString()
+                )}
               </div>
+              {isCardRefetching && (
+                <Badge variant="secondary" className="mt-2">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Updating...
+                </Badge>
+              )}
             </CardContent>
           </Card>
         );

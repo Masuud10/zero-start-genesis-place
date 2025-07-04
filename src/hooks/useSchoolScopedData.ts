@@ -19,8 +19,22 @@ export const useSchoolScopedData = (): SchoolScopedDataResult => {
 
   // Memoize computations to prevent unnecessary re-renders
   const computedValues = useMemo(() => {
+    // Guard: Check if user is authenticated and role is loaded
+    if (!user || !user.role) {
+      return {
+        schoolId: null,
+        isReady: false,
+        isLoading: authLoading || schoolLoading,
+        hasSchool: false,
+        isMultiTenantUser: false,
+        isSystemAdmin: false,
+        userRole: undefined,
+        validateSchoolAccess: () => false
+      };
+    }
+    
     // System admins can access all schools
-    const isMultiTenantUser = user?.role === 'edufam_admin' || user?.role === 'elimisha_admin';
+    const isMultiTenantUser = user.role === 'edufam_admin' || user.role === 'elimisha_admin';
     const isSystemAdmin = isMultiTenantUser; // Alias for backward compatibility
     
     // For multi-tenant users, use current selected school or null if none selected
@@ -31,7 +45,7 @@ export const useSchoolScopedData = (): SchoolScopedDataResult => {
 
     const isLoading = authLoading || schoolLoading;
     const hasSchool = !!schoolId;
-    const isReady = !isLoading && !!user;
+    const isReady = !isLoading && !!user && !!user.role;
 
     // Validation function for school access
     const validateSchoolAccess = (requiredSchoolId?: string): boolean => {
@@ -56,7 +70,7 @@ export const useSchoolScopedData = (): SchoolScopedDataResult => {
       hasSchool,
       isMultiTenantUser,
       isSystemAdmin,
-      userRole: user?.role,
+      userRole: user.role,
       validateSchoolAccess
     };
   }, [user, currentSchool, authLoading, schoolLoading]);

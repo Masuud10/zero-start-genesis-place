@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { getMenuItems } from './SidebarMenuItems';
-import { MenuGroup } from './MenuGroup';
-import { MenuItem } from './MenuItem';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from "react";
+import { getMenuItems } from "./SidebarMenuItems";
+import { MenuGroup } from "./MenuGroup";
+import { MenuItem } from "./MenuItem";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { Loader2 } from "lucide-react";
 
 interface SidebarNavigationProps {
   activeSection: string;
@@ -11,17 +13,31 @@ interface SidebarNavigationProps {
 
 export const SidebarNavigation: React.FC<SidebarNavigationProps> = ({
   activeSection,
-  onSectionChange
+  onSectionChange,
 }) => {
   const { user } = useAuth();
+  const { isReady, userRole } = useSchoolScopedData();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
-  const menuItems = getMenuItems(user?.role);
+  // Wait for backend-validated role before rendering menu items
+  if (!isReady || !userRole) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading navigation...
+        </div>
+      </div>
+    );
+  }
+
+  // Use backend-validated role instead of user.role
+  const menuItems = getMenuItems(userRole);
 
   const handleToggleExpanded = (itemId: string) => {
-    setExpandedItems(prev => 
-      prev.includes(itemId) 
-        ? prev.filter(id => id !== itemId)
+    setExpandedItems((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
         : [...prev, itemId]
     );
   };

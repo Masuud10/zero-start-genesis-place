@@ -21,5 +21,31 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
   global: {
     headers: { 'x-my-custom-header': 'edufam-app' }
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
   }
 });
+
+// Add connection health check
+export const checkDatabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('system_status')
+      .select('current_status, supabase_connected')
+      .limit(1)
+      .single();
+    
+    if (error) {
+      console.error('Database connection check failed:', error);
+      return { connected: false, error: error.message };
+    }
+    
+    return { connected: true, status: data?.current_status };
+  } catch (err) {
+    console.error('Database connection check exception:', err);
+    return { connected: false, error: 'Connection failed' };
+  }
+};

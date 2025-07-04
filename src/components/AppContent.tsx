@@ -1,26 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import LandingPage from '@/components/LandingPage';
-import ElimshaLayout from '@/components/ElimshaLayout';
-import LoadingScreen from '@/components/common/LoadingScreen';
-import LoginForm from '@/components/LoginForm';
-import DeactivatedAccountMessage from '@/components/auth/DeactivatedAccountMessage';
-import { ErrorState } from '@/components/common/LoadingStates';
-import { NavigationProvider } from '@/contexts/NavigationContext';
-import { SchoolProvider } from '@/contexts/SchoolContext';
-import MaintenanceCheck from '@/components/maintenance/MaintenanceCheck';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import LandingPage from "@/components/LandingPage";
+import ElimshaLayout from "@/components/ElimshaLayout";
+import LoadingScreen from "@/components/common/LoadingScreen";
+import LoginForm from "@/components/LoginForm";
+import DeactivatedAccountMessage from "@/components/auth/DeactivatedAccountMessage";
+import { ErrorState } from "@/components/common/LoadingStates";
+import { NavigationProvider } from "@/contexts/NavigationContext";
+import { SchoolProvider } from "@/contexts/SchoolContext";
+import MaintenancePage from "@/components/maintenance/MaintenancePage";
+import { checkDatabaseConnection } from "@/integrations/supabase/client";
 
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
+  const [dbStatus, setDbStatus] = useState<{
+    connected: boolean;
+    error?: string;
+  } | null>(null);
+  const [isCheckingDb, setIsCheckingDb] = useState(true);
 
-  console.log('🎯 AppContent: Render start');
+  console.log("🎯 AppContent: Render start");
+
+  // Check database connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const status = await checkDatabaseConnection();
+        setDbStatus(status);
+      } catch (err) {
+        console.error("Failed to check database connection:", err);
+        setDbStatus({ connected: false, error: "Connection check failed" });
+      } finally {
+        setIsCheckingDb(false);
+      }
+    };
+
+    checkConnection();
+  }, []);
 
   // Always try to get auth state safely
   let authState;
   try {
     authState = useAuth();
   } catch (err) {
-    console.error('🎯 AppContent: Auth context error', err);
+    console.error("🎯 AppContent: Auth context error", err);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -35,7 +58,7 @@ const AppContent: React.FC = () => {
 
   // Defensive check for auth state
   if (!authState || typeof authState !== "object") {
-    console.error('🎯 AppContent: Invalid auth state');
+    console.error("🎯 AppContent: Invalid auth state");
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -48,31 +71,54 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const { user, isLoading: authLoading, error: authError, isInitialized } = authState;
-  console.log('🎯 AppContent: State:', { 
-    authLoading, 
-    authError, 
-    hasUser: !!user, 
-    role: user?.role, 
+  const {
+    user,
+    isLoading: authLoading,
+    error: authError,
+    isInitialized,
+  } = authState;
+
+  console.log("🎯 AppContent: State:", {
+    authLoading,
+    authError,
+    hasUser: !!user,
+    role: user?.role,
     email: user?.email,
-    isInitialized
+    isInitialized,
+    dbStatus,
+    isCheckingDb,
   });
 
-  // Show loading only if not initialized yet
-  if (!isInitialized && authLoading) {
-    console.log('🎯 AppContent: Loading auth...');
+  // Show loading while checking database or auth
+  if (!isInitialized || authLoading || isCheckingDb) {
+    console.log("🎯 AppContent: Loading...");
     return <LoadingScreen />;
+  }
+
+  // Handle database connection errors
+  if (dbStatus && !dbStatus.connected) {
+    console.log("🎯 AppContent: Database connection error");
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <ErrorState
+          title="Database Connection Error"
+          description="Unable to connect to the database"
+          error={dbStatus.error || "Connection failed"}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
   }
 
   // Handle auth errors
   if (authError) {
-    console.log('🎯 AppContent: Auth error:', authError);
-    
+    console.log("🎯 AppContent: Auth error:", authError);
+
     // Check if the error is related to account deactivation
-    if (authError.includes('deactivated') || authError.includes('inactive')) {
+    if (authError.includes("deactivated") || authError.includes("inactive")) {
       return <DeactivatedAccountMessage />;
     }
-    
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
@@ -87,51 +133,50 @@ const AppContent: React.FC = () => {
 
   // No user authenticated - show login/landing based on URL or state
   if (!user) {
-    console.log('🎯 AppContent: No user - checking URL path');
-    
+    console.log("🎯 AppContent: No user - checking URL path");
+
     // Check current path to determine what to show
     const currentPath = window.location.pathname;
-    
+
     // If user is on login path or has requested login, show login form
-    if (currentPath === '/login' || showLogin) {
+    if (currentPath === "/login" || showLogin) {
       return <LoginForm />;
     }
-    
+
     // Otherwise show landing page
     return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
   // Check if user account is deactivated
-  if (user && user.user_metadata?.status === 'inactive') {
-    console.log('🎯 AppContent: User account is deactivated');
+  if (user && user.user_metadata?.status === "inactive") {
+    console.log("🎯 AppContent: User account is deactivated");
     return <DeactivatedAccountMessage />;
   }
 
-  // User authenticated but missing role
+  // Check if user has a valid role
   if (!user.role) {
-    console.error('🎯 AppContent: User missing role', user.email);
+    console.log("🎯 AppContent: User has no role assigned");
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ErrorState
-          title="Account Setup Required"
-          description="Your account role has not been configured. Please contact your administrator."
-          error={`User: ${user.email}. Missing role information.`}
+          title="Account Configuration Error"
+          description="Your account is not properly configured"
+          error="No role assigned"
           onRetry={() => window.location.reload()}
         />
       </div>
     );
   }
 
-  // Authenticated user with role => show main app
-  console.log('🎯 AppContent: Authenticated. Render ElimshaLayout.', { role: user.role });
+  // User is authenticated and has a valid role - show the main application
+  console.log("🎯 AppContent: User authenticated, showing main app");
+
   return (
-    <MaintenanceCheck>
+    <NavigationProvider>
       <SchoolProvider>
-        <NavigationProvider>
-          <ElimshaLayout />
-        </NavigationProvider>
+        <ElimshaLayout />
       </SchoolProvider>
-    </MaintenanceCheck>
+    </NavigationProvider>
   );
 };
 

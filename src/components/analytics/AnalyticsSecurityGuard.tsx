@@ -1,14 +1,19 @@
-
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, AlertTriangle } from 'lucide-react';
-import { useAnalyticsPermissions } from '@/hooks/useAnalyticsPermissions';
-import { useAuth } from '@/contexts/AuthContext';
+import * as React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield, AlertTriangle } from "lucide-react";
+import { useAnalyticsPermissions } from "@/hooks/useAnalyticsPermissions";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AnalyticsSecurityGuardProps {
   children: React.ReactNode;
-  requiredPermission: 'system' | 'school' | 'class' | 'student';
+  requiredPermission: "system" | "school" | "class" | "student";
   schoolId?: string;
   fallbackMessage?: string;
 }
@@ -17,14 +22,11 @@ const AnalyticsSecurityGuard: React.FC<AnalyticsSecurityGuardProps> = ({
   children,
   requiredPermission,
   schoolId,
-  fallbackMessage
+  fallbackMessage,
 }) => {
   const { user } = useAuth();
-  const { 
-    canViewSystemAnalytics, 
-    canViewSchoolAnalytics, 
-    analyticsScope 
-  } = useAnalyticsPermissions();
+  const { canViewSystemAnalytics, canViewSchoolAnalytics, analyticsScope } =
+    useAnalyticsPermissions();
 
   // Check if user is authenticated
   if (!user) {
@@ -46,14 +48,16 @@ const AnalyticsSecurityGuard: React.FC<AnalyticsSecurityGuardProps> = ({
   // Check specific permission requirements
   const hasPermission = (() => {
     switch (requiredPermission) {
-      case 'system':
+      case "system":
         return canViewSystemAnalytics;
-      case 'school':
+      case "school":
         return canViewSchoolAnalytics(schoolId);
-      case 'class':
-        return ['system', 'school', 'class'].includes(analyticsScope);
-      case 'student':
-        return ['system', 'school', 'class', 'student'].includes(analyticsScope);
+      case "class":
+        return ["system", "school", "class"].includes(analyticsScope);
+      case "student":
+        return ["system", "school", "class", "student"].includes(
+          analyticsScope
+        );
       default:
         return false;
     }
@@ -64,9 +68,11 @@ const AnalyticsSecurityGuard: React.FC<AnalyticsSecurityGuardProps> = ({
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          {fallbackMessage || `You don't have permission to view ${requiredPermission}-level analytics.`}
+          {fallbackMessage ||
+            `You don't have permission to view ${requiredPermission}-level analytics.`}
           <div className="text-xs mt-2 opacity-75">
-            Your current scope: {analyticsScope} | Required: {requiredPermission}
+            Your current scope: {analyticsScope} | Required:{" "}
+            {requiredPermission}
           </div>
         </AlertDescription>
       </Alert>

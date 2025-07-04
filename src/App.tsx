@@ -7,9 +7,10 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SchoolProvider } from "@/contexts/SchoolContext";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
-import MaintenanceCheck from "@/components/maintenance/MaintenanceCheck";
+import MaintenanceGuard from "@/components/guards/MaintenanceGuard";
 import AppContent from "@/components/AppContent";
 import "./App.css";
+import "./utils/maintenanceDebugConsole";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,9 +46,9 @@ function App() {
             <ThemeProvider>
               <SchoolProvider>
                 <NavigationProvider>
-                  <MaintenanceCheck>
+                  <MaintenanceGuard>
                     <AppContent />
-                  </MaintenanceCheck>
+                  </MaintenanceGuard>
                   <Toaster />
                 </NavigationProvider>
               </SchoolProvider>

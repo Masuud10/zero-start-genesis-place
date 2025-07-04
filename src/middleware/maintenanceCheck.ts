@@ -1,72 +1,70 @@
+import { MaintenanceModeService } from '@/services/system/maintenanceModeService';
 
-import { supabase } from '@/integrations/supabase/client';
-
-export interface MaintenanceStatus {
+export interface MaintenanceCheckResult {
   inMaintenance: boolean;
+  canAccess: boolean;
   message?: string;
-  canBypass?: boolean;
+  redirectTo?: string;
 }
 
-export class MaintenanceMiddleware {
-  static async checkMaintenanceStatus(userRole?: string): Promise<MaintenanceStatus> {
+export class MaintenanceCheck {
+  static async checkAccess(userRole?: string): Promise<MaintenanceCheckResult> {
     try {
-      // Check if system is in maintenance mode
-      const { data: maintenanceData } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'maintenance_mode')
-        .single();
-
-      if (!maintenanceData?.setting_value) {
-        return { inMaintenance: false };
+      console.log('🔍 MaintenanceCheck: Checking access for role:', userRole);
+      
+      const status = await MaintenanceModeService.getMaintenanceStatus(userRole);
+      
+      console.log('🔍 MaintenanceCheck: Maintenance status:', status);
+      
+      if (!status.inMaintenance) {
+        return {
+          inMaintenance: false,
+          canAccess: true
+        };
       }
 
-      const maintenanceSettings = maintenanceData.setting_value as {
-        enabled: boolean;
-        message: string;
-      };
-
-      if (!maintenanceSettings.enabled) {
-        return { inMaintenance: false };
+      // If in maintenance mode, check if user can bypass
+      if (status.canBypass) {
+        return {
+          inMaintenance: true,
+          canAccess: true,
+          message: 'System is in maintenance mode, but you have admin access.'
+        };
       }
 
-      // EduFam admins can bypass maintenance mode
-      const canBypass = userRole === 'edufam_admin' || userRole === 'elimisha_admin';
-
+      // User is blocked by maintenance mode
       return {
         inMaintenance: true,
-        message: maintenanceSettings.message || 'System is currently under maintenance. Please try again later.',
-        canBypass
+        canAccess: false,
+        message: status.message || 'System is currently under maintenance. Please try again later.',
+        redirectTo: '/maintenance'
       };
     } catch (error) {
-      console.error('Error checking maintenance status:', error);
-      return { inMaintenance: false };
+      console.error('🔍 MaintenanceCheck: Error checking maintenance status:', error);
+      // On error, allow access to prevent blocking legitimate users
+      return {
+        inMaintenance: false,
+        canAccess: true
+      };
     }
   }
 
-  static async updateMaintenanceMode(enabled: boolean, message: string) {
+  static async shouldRedirectToMaintenance(userRole?: string): Promise<boolean> {
+    const result = await this.checkAccess(userRole);
+    return result.inMaintenance && !result.canAccess;
+  }
+
+  static async getMaintenanceMessage(): Promise<string> {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from('system_settings')
-        .update({
-          setting_value: {
-            enabled,
-            message,
-            updated_at: new Date().toISOString()
-          },
-          updated_at: new Date().toISOString(),
-          updated_by: userData.user?.id
-        })
-        .eq('setting_key', 'maintenance_mode');
-
-      if (error) throw error;
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error updating maintenance mode:', error);
-      return { success: false, error: error.message };
+      return await MaintenanceModeService.getMaintenanceMessage();
+    } catch (error) {
+      console.error('🔍 MaintenanceCheck: Error getting maintenance message:', error);
+      return 'System is currently under maintenance. Please try again later.';
     }
+  }
+
+  static canRoleBypassMaintenance(userRole?: string): boolean {
+    return MaintenanceModeService.canRoleAccessDuringMaintenance(userRole);
   }
 }
+

@@ -130,7 +130,7 @@ export const useSystemMaintenance = () => {
         const currentMode = currentSetting?.setting_value && 
           typeof currentSetting.setting_value === 'object' && 
           currentSetting.setting_value !== null ?
-          (currentSetting.setting_value as any).enabled || false : false;
+          (currentSetting.setting_value as Record<string, unknown>).enabled as boolean || false : false;
         
         const newMode = !currentMode;
 
@@ -153,12 +153,15 @@ export const useSystemMaintenance = () => {
       throw new Error('Unknown action');
     },
     onSuccess: () => {
+      // Use the same query keys as useMaintenanceMode to prevent conflicts
+      queryClient.invalidateQueries({ queryKey: ['maintenance-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance-status'] });
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Operation failed",
+        description: error instanceof Error ? error.message : "Operation failed",
         variant: "destructive"
       });
     }
