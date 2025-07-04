@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Settings, Database, Shield, Bell, Users, Building2 } from 'lucide-react';
+import { Settings, Database, Shield, Bell, Users, Building2, Sparkles, Monitor, Lock, UserCog, Wrench, Server } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import MaintenanceSettings from './MaintenanceSettings';
 import DatabaseSettings from './DatabaseSettings';
 import SecuritySettingsPanel from './SecuritySettingsPanel';
@@ -18,89 +20,203 @@ const SystemSettings: React.FC = () => {
   // Only allow EduFam admins to access system settings
   if (user?.role !== 'edufam_admin') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Alert className="max-w-md bg-red-50 border-red-200">
-          <Shield className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-700">
-            Access denied. Only EduFam Administrators can access system settings.
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/20 flex items-center justify-center p-4">
+        <Card className="max-w-md border-destructive/20 bg-destructive/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-destructive/10 rounded-full">
+                <Shield className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Access Denied</h3>
+                <p className="text-sm text-muted-foreground">
+                  Only EduFam Administrators can access system settings.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Re-arranged settings tabs in logical order: Maintenance → Database → Security → Notifications → User Management → Company
   const settingsTabs = [
     {
       id: 'maintenance',
-      label: 'Maintenance',
-      icon: Settings,
+      label: 'System Maintenance',
+      description: 'Control system availability and updates',
+      icon: Wrench,
+      color: 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200',
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600',
       component: <MaintenanceSettings />
     },
     {
       id: 'database',
-      label: 'Database',
-      icon: Database,
+      label: 'Database Management',
+      description: 'Monitor and optimize database performance',
+      icon: Server,
+      color: 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200',
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
       component: <DatabaseSettings />
     },
     {
       id: 'security',
-      label: 'Security',
-      icon: Shield,
+      label: 'Security Center',
+      description: 'Manage authentication and access controls',
+      icon: Lock,
+      color: 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200',
+      iconBg: 'bg-red-100',
+      iconColor: 'text-red-600',
       component: <SecuritySettingsPanel />
     },
     {
       id: 'notifications',
-      label: 'Notifications',
+      label: 'Notification Hub',
+      description: 'Configure system-wide notifications',
       icon: Bell,
+      color: 'bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200',
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600',
       component: <NotificationSettings />
     },
     {
       id: 'users',
-      label: 'User Management',
-      icon: Users,
+      label: 'User Administration',
+      description: 'Manage user accounts and permissions',
+      icon: UserCog,
+      color: 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200',
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
       component: <UserManagementSettings />
     },
     {
       id: 'company',
-      label: 'Company',
+      label: 'Organization Settings',
+      description: 'Configure company information and branding',
       icon: Building2,
+      color: 'bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200',
+      iconBg: 'bg-slate-100',
+      iconColor: 'text-slate-600',
       component: <CompanySettings />
     }
   ];
 
+  const activeSettings = settingsTabs.find(tab => tab.id === activeTab);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">System Settings</h1>
-          <p className="text-lg text-gray-600">
-            Manage system-wide configurations and administrative settings
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/20">
+      {/* Header Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-secondary/10" />
+        <div className="relative px-6 py-12">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-primary/10 rounded-2xl">
+                <Monitor className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  System Control Center
+                </h1>
+                <p className="text-lg text-muted-foreground mt-2 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Advanced system administration and configuration
+                </p>
+              </div>
+            </div>
+            
+            <Badge variant="secondary" className="mb-8">
+              <Settings className="h-3 w-3 mr-1" />
+              EduFam Administrator Access
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 pb-12">
+        {/* Navigation Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {settingsTabs.map((tab) => (
+            <Card 
+              key={tab.id}
+              className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
+                activeTab === tab.id 
+                  ? `${tab.color} shadow-md ring-2 ring-primary/20` 
+                  : 'bg-card hover:bg-accent/30'
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className={`p-3 rounded-xl ${tab.iconBg}`}>
+                    <tab.icon className={`h-6 w-6 ${tab.iconColor}`} />
+                  </div>
+                  {activeTab === tab.id && (
+                    <Badge variant="default" className="text-xs">
+                      Active
+                    </Badge>
+                  )}
+                </div>
+                <CardTitle className="text-lg font-semibold">
+                  {tab.label}
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  {tab.description}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-white shadow-lg rounded-xl p-2 border border-gray-200">
-            {settingsTabs.map((tab) => (
-              <TabsTrigger
-                key={tab.id}
-                value={tab.id}
-                className="flex flex-col items-center gap-2 py-4 px-3 text-sm font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md hover:bg-blue-50 transition-all duration-300 rounded-lg"
-              >
-                <tab.icon className="h-5 w-5" />
-                <span className="hidden sm:block text-xs">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {settingsTabs.map((tab) => (
-            <TabsContent key={tab.id} value={tab.id} className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                {tab.component}
+        {/* Active Content Section */}
+        {activeSettings && (
+          <Card className="bg-card/80 backdrop-blur-sm border shadow-xl">
+            <CardHeader className="border-b bg-gradient-to-r from-accent/20 to-secondary/10">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${activeSettings.iconBg}`}>
+                  <activeSettings.icon className={`h-6 w-6 ${activeSettings.iconColor}`} />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-bold">
+                    {activeSettings.label}
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    {activeSettings.description}
+                  </CardDescription>
+                </div>
               </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="animate-fade-in">
+                {activeSettings.component}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Quick Actions Footer */}
+        <div className="mt-8 flex justify-center">
+          <Card className="bg-gradient-to-r from-accent/20 to-secondary/20 border-accent/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  System Online
+                </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Secure Session
+                </div>
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-4 w-4" />
+                  Admin Panel v2.0
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
