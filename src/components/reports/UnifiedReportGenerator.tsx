@@ -32,10 +32,7 @@ import {
   UnifiedReportService,
   ReportData,
 } from "@/services/unifiedReportService";
-import {
-  ReportExportService,
-  ExportOptions,
-} from "@/services/reportExportService";
+import { reportExportService } from "@/services/reportExportService";
 
 interface UnifiedReportGeneratorProps {
   userRole: string;
@@ -218,14 +215,14 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
       }
 
       // Export the report
-      const exportOptions: ExportOptions = {
+      const exportOptions = {
         format,
         includeLogo: true,
         includeTimestamp: true,
         includeFooter: true,
       };
 
-      await ReportExportService.exportReport(reportData, exportOptions);
+      await reportExportService.exportReport(reportData, 'generated_report', format);
 
       // Success notification
       toast({

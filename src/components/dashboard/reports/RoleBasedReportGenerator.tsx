@@ -265,7 +265,7 @@ const RoleBasedReportGenerator: React.FC<RoleBasedReportGeneratorProps> = ({
     },
   };
 
-  const currentReports =
+  const currentReports: Record<string, Array<{id: string, name: string, description: string}>> =
     reportConfigs[userRole as keyof typeof reportConfigs] || {};
 
   useEffect(() => {
