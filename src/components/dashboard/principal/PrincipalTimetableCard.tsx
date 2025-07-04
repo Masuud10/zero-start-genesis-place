@@ -1,29 +1,39 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Clock, Download, Plus, RefreshCw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Download, Plus, RefreshCw } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+interface PrincipalTimetableCardProps {
+  onModalOpen?: (modalType: string) => void;
+}
 
-const PrincipalTimetableCard: React.FC = () => {
+const PrincipalTimetableCard: React.FC<PrincipalTimetableCardProps> = ({
+  onModalOpen,
+}) => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
 
-  const { data: timetables, isLoading, refetch } = useQuery({
-    queryKey: ['principal-timetables', schoolId],
+  const {
+    data: timetables,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["principal-timetables", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
-      
+
       const { data, error } = await supabase
-        .from('timetables')
-        .select(`
+        .from("timetables")
+        .select(
+          `
           id,
           day_of_week,
           start_time,
@@ -34,27 +44,38 @@ const PrincipalTimetableCard: React.FC = () => {
           classes!inner(id, name),
           subjects!inner(id, name),
           profiles!timetables_teacher_id_fkey(id, name)
-        `)
-        .eq('school_id', schoolId)
-        .order('created_at', { ascending: false })
+        `
+        )
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: false })
         .limit(10);
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!schoolId
+    enabled: !!schoolId,
   });
 
   const handleGenerateTimetable = async () => {
+    // If onModalOpen is provided, use it to open the TimetableGenerator modal
+    if (onModalOpen) {
+      console.log(
+        "🎭 PrincipalTimetableCard: Opening TimetableGenerator modal"
+      );
+      onModalOpen("generate-timetable");
+      return;
+    }
+
+    // Fallback to the old RPC method
     if (!schoolId || !user?.id) return;
 
     setGenerating(true);
     try {
       // Call the generate_timetable function
-      const { data, error } = await supabase.rpc('generate_timetable', {
+      const { data, error } = await supabase.rpc("generate_timetable", {
         p_school_id: schoolId,
         p_class_id: null, // Generate for all classes
-        p_created_by: user.id
+        p_created_by: user.id,
       });
 
       if (error) throw error;
@@ -65,12 +86,15 @@ const PrincipalTimetableCard: React.FC = () => {
       });
 
       await refetch();
-    } catch (error: any) {
-      console.error('Error generating timetable:', error);
+    } catch (error: unknown) {
+      console.error("Error generating timetable:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to generate timetable.",
-        variant: "destructive"
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate timetable.",
+        variant: "destructive",
       });
     } finally {
       setGenerating(false);
@@ -116,7 +140,9 @@ const PrincipalTimetableCard: React.FC = () => {
               disabled={isLoading}
               className="border-blue-200 text-blue-700 hover:bg-blue-50"
             >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
             <Button
@@ -144,7 +170,9 @@ const PrincipalTimetableCard: React.FC = () => {
         {!timetables || timetables.length === 0 ? (
           <div className="text-center py-8">
             <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-800 mb-2">No timetables found</h3>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">
+              No timetables found
+            </h3>
             <p className="text-gray-600 mb-4">
               Generate timetables for your school classes to get started.
             </p>
@@ -179,7 +207,7 @@ const PrincipalTimetableCard: React.FC = () => {
                 Download All
               </Button>
             </div>
-            
+
             <div className="space-y-3">
               {timetables.slice(0, 5).map((timetable) => (
                 <div
@@ -195,13 +223,14 @@ const PrincipalTimetableCard: React.FC = () => {
                         {timetable.classes?.name} - {timetable.subjects?.name}
                       </h5>
                       <p className="text-sm text-gray-600">
-                        {timetable.day_of_week} • {timetable.start_time} - {timetable.end_time}
+                        {timetable.day_of_week} • {timetable.start_time} -{" "}
+                        {timetable.end_time}
                         {timetable.room && ` • ${timetable.room}`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
+                    <Badge
                       variant={timetable.is_published ? "default" : "secondary"}
                       className="text-xs"
                     >
@@ -211,7 +240,7 @@ const PrincipalTimetableCard: React.FC = () => {
                 </div>
               ))}
             </div>
-            
+
             {timetables.length > 5 && (
               <div className="text-center">
                 <Button variant="outline" size="sm">

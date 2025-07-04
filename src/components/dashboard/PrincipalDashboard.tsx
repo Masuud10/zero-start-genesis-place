@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuthUser } from "@/types/auth";
 import { usePrincipalDashboardData } from "@/hooks/usePrincipalDashboardData";
 import CertificateGenerator from "@/components/certificates/CertificateGenerator";
@@ -7,7 +7,9 @@ import PrincipalReportGenerator from "@/components/reports/PrincipalReportGenera
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { useNavigation } from "@/contexts/NavigationContext";
 
 // Section components
 import PrincipalStatsSection from "./principal/sections/PrincipalStatsSection";
@@ -33,6 +35,37 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
     usePrincipalDashboardData(schoolId);
   const { toast } = useToast();
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const { activeSection } = useNavigation();
+
+  // Check for timetable modal flag on component mount and section changes
+  useEffect(() => {
+    console.log(
+      "🎓 PrincipalDashboard: activeSection changed to:",
+      activeSection
+    );
+
+    // Check if timetable modal should be opened (from sidebar click)
+    const shouldOpenTimetableModal =
+      sessionStorage.getItem("openTimetableModal");
+    if (shouldOpenTimetableModal === "true") {
+      console.log(
+        "🎓 PrincipalDashboard: Opening TimetableGenerator modal from sidebar"
+      );
+      // Clear the flag first
+      sessionStorage.removeItem("openTimetableModal");
+      // Set modal with a small delay to ensure proper state update
+      setTimeout(() => {
+        setActiveModal("generate-timetable");
+      }, 50);
+      return;
+    }
+
+    // Fallback for direct timetable section access
+    if (activeSection === "timetable") {
+      console.log("🎓 PrincipalDashboard: Opening TimetableGenerator modal");
+      setActiveModal("generate-timetable");
+    }
+  }, [activeSection]);
 
   // Enhanced school assignment validation
   if (!isReady) {
@@ -153,7 +186,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
           onModalOpen={handleModalOpen}
         />
 
-        <PrincipalTimetableSection />
+        <PrincipalTimetableSection onModalOpen={handleModalOpen} />
 
         <PrincipalFinanceSection />
 
@@ -170,11 +203,16 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
       )}
 
       {activeModal === "generate-timetable" && (
-        <TimetableGenerator
-          open={true}
-          onClose={handleModalClose}
-          onTimetableGenerated={handleSuccess}
-        />
+        <>
+          {console.log(
+            "🎭 PrincipalDashboard: Rendering TimetableGenerator modal"
+          )}
+          <TimetableGenerator
+            open={true}
+            onClose={handleModalClose}
+            onTimetableGenerated={handleSuccess}
+          />
+        </>
       )}
 
       {activeModal === "reports" && (

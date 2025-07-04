@@ -1,11 +1,13 @@
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigation } from "@/contexts/NavigationContext";
 import EduFamAdminDashboard from "@/components/dashboard/EduFamAdminDashboard";
 import PrincipalDashboard from "@/components/dashboard/PrincipalDashboard";
 import TeacherDashboard from "@/components/dashboard/TeacherDashboard";
 import ParentDashboard from "@/components/dashboard/ParentDashboard";
 import FinanceOfficerDashboard from "@/components/dashboard/FinanceOfficerDashboard";
 import ErrorFallback from "@/components/common/ErrorFallback";
+import PrincipalTimetableGenerator from "@/components/timetable/PrincipalTimetableGenerator";
 
 // Lazy load heavy components to improve performance
 const GradesModule = React.lazy(
@@ -131,6 +133,9 @@ interface ContentRendererProps {
 const ContentRenderer: React.FC<ContentRendererProps> = memo(
   ({ activeSection }) => {
     const { user } = useAuth();
+    const { setActiveSection } = useNavigation();
+
+    // No redirect needed - principals will get their own timetable page
 
     console.log(
       "📋 ContentRenderer: Rendering section:",
@@ -441,12 +446,16 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           </div>
         );
       case "timetable":
-        // Teachers get their own timetable view
+        // For principals, the useEffect above will handle the redirect
+        // For other roles, render the appropriate timetable module
         if (user?.role === "teacher") {
           return renderLazyComponent(
             TeacherTimetableModule,
             "TeacherTimetableModule"
           );
+        }
+        if (user?.role === "principal") {
+          return <PrincipalTimetableGenerator />;
         }
         return renderLazyComponent(TimetableModule, "TimetableModule");
       case "announcements":

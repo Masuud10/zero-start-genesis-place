@@ -19,9 +19,6 @@ const PrincipalStatsSection: React.FC<PrincipalStatsSectionProps> = ({
 }) => {
   return (
     <section>
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">
-        School Overview
-      </h2>
       <PrincipalStatsCards
         stats={stats}
         loading={loading}

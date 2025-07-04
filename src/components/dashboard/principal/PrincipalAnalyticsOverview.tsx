@@ -1,10 +1,32 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
-import { useAnalyticsData } from '@/hooks/useAnalyticsData';
-import { Loader2, TrendingUp, Users, BookOpen, AlertCircle } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Area,
+  AreaChart,
+} from "recharts";
+import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import {
+  Loader2,
+  TrendingUp,
+  Users,
+  BookOpen,
+  AlertCircle,
+} from "lucide-react";
 
 const PrincipalAnalyticsOverview = () => {
   const { data: analytics, isLoading, error } = useAnalyticsData();
@@ -13,7 +35,10 @@ const PrincipalAnalyticsOverview = () => {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="flex items-center justify-center h-64 animate-pulse">
+          <Card
+            key={i}
+            className="flex items-center justify-center h-64 animate-pulse"
+          >
             <div className="flex flex-col items-center space-y-3">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               <p className="text-sm text-gray-500">Loading analytics...</p>
@@ -33,8 +58,12 @@ const PrincipalAnalyticsOverview = () => {
               <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-red-800">Analytics Unavailable</h3>
-              <p className="text-red-600 mt-2">Unable to load school analytics data at this time.</p>
+              <h3 className="text-lg font-semibold text-red-800">
+                Analytics Unavailable
+              </h3>
+              <p className="text-red-600 mt-2">
+                Unable to load school analytics data at this time.
+              </p>
             </div>
           </div>
         </CardContent>
@@ -43,25 +72,30 @@ const PrincipalAnalyticsOverview = () => {
   }
 
   const chartConfig = {
-    students: { label: 'Students', color: '#3b82f6' },
-    average: { label: 'Average Score', color: '#10b981' },
-    attendance: { label: 'Attendance', color: '#8b5cf6' },
-    collection: { label: 'Fee Collection', color: '#f59e0b' },
+    students: { label: "Students", color: "#3b82f6" },
+    average: { label: "Average Score", color: "#10b981" },
+    attendance: { label: "Attendance", color: "#8b5cf6" },
+    collection: { label: "Fee Collection", color: "#f59e0b" },
   };
 
   // Grade Distribution Data
-  const gradeDistributionData = analytics.gradeDistribution?.map(item => ({
-    grade: item.grade,
-    count: item.count,
-    percentage: item.percentage
-  })) || [];
+  const gradeDistributionData =
+    analytics.gradeDistribution?.map((item) => ({
+      grade: item.grade,
+      count: item.count,
+      percentage: item.percentage,
+    })) || [];
 
   // Academic Performance by Subject
-  const subjectPerformanceData = analytics.academicPerformance?.slice(0, 6).map(item => ({
-    subject: item.subject.length > 10 ? item.subject.substring(0, 10) + '...' : item.subject,
-    average: item.average,
-    trend: item.trend
-  })) || [];
+  const subjectPerformanceData =
+    analytics.academicPerformance?.slice(0, 6).map((item) => ({
+      subject:
+        item.subject.length > 10
+          ? item.subject.substring(0, 10) + "..."
+          : item.subject,
+      average: item.average,
+      trend: item.trend,
+    })) || [];
 
   // Monthly Attendance Trends
   const attendanceData = analytics.monthlyAttendance || [];
@@ -69,18 +103,25 @@ const PrincipalAnalyticsOverview = () => {
   // Fee Collection Overview
   const feeCollectionData = [
     {
-      name: 'Collected',
+      name: "Collected",
       value: analytics.feeCollection?.collected || 0,
-      color: '#10b981'
+      color: "#10b981",
     },
     {
-      name: 'Outstanding',
+      name: "Outstanding",
       value: analytics.feeCollection?.outstanding || 0,
-      color: '#ef4444'
-    }
+      color: "#ef4444",
+    },
   ];
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+  const COLORS = [
+    "#3b82f6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#06b6d4",
+  ];
 
   return (
     <div className="p-6 space-y-6">
@@ -88,12 +129,14 @@ const PrincipalAnalyticsOverview = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Grade Distribution */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white pb-4">
+          <CardHeader className="bg-gradient-to-r from-blue-400 to-blue-500 text-white pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <BookOpen className="h-5 w-5" />
               Grade Distribution
             </CardTitle>
-            <p className="text-blue-100 text-sm">Current academic performance spread</p>
+            <p className="text-blue-50 text-sm">
+              Current academic performance spread
+            </p>
           </CardHeader>
           <CardContent className="p-4">
             <ChartContainer config={chartConfig} className="h-64">
@@ -109,7 +152,10 @@ const PrincipalAnalyticsOverview = () => {
                     dataKey="count"
                   >
                     {gradeDistributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <ChartTooltip content={<ChartTooltipContent />} />
@@ -119,7 +165,7 @@ const PrincipalAnalyticsOverview = () => {
             <div className="grid grid-cols-3 gap-2 mt-4">
               {gradeDistributionData.slice(0, 6).map((item, index) => (
                 <div key={item.grade} className="text-center">
-                  <div 
+                  <div
                     className="w-3 h-3 rounded-full mx-auto mb-1"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   ></div>
@@ -133,29 +179,32 @@ const PrincipalAnalyticsOverview = () => {
 
         {/* Subject Performance */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white pb-4">
+          <CardHeader className="bg-gradient-to-r from-green-400 to-green-500 text-white pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5" />
               Subject Performance
             </CardTitle>
-            <p className="text-green-100 text-sm">Average scores by subject</p>
+            <p className="text-green-50 text-sm">Average scores by subject</p>
           </CardHeader>
           <CardContent className="p-4">
             <ChartContainer config={chartConfig} className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={subjectPerformanceData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <XAxis 
-                    dataKey="subject" 
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
+                <BarChart
+                  data={subjectPerformanceData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <XAxis
+                    dataKey="subject"
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
                     angle={-45}
                     textAnchor="end"
                     height={60}
                   />
-                  <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar 
-                    dataKey="average" 
-                    fill="#10b981" 
+                  <Bar
+                    dataKey="average"
+                    fill="#10b981"
                     name="Average Score (%)"
                     radius={[2, 2, 0, 0]}
                   />
@@ -170,24 +219,32 @@ const PrincipalAnalyticsOverview = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Attendance Trends */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white pb-4">
+          <CardHeader className="bg-gradient-to-r from-purple-400 to-purple-500 text-white pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="h-5 w-5" />
               Attendance Trends
             </CardTitle>
-            <p className="text-purple-100 text-sm">Monthly attendance rate patterns</p>
+            <p className="text-purple-50 text-sm">
+              Monthly attendance rate patterns
+            </p>
           </CardHeader>
           <CardContent className="p-4">
             <ChartContainer config={chartConfig} className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={attendanceData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} />
-                  <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <AreaChart
+                  data={attendanceData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 12, fill: "#6b7280" }}
+                  />
+                  <YAxis tick={{ fontSize: 12, fill: "#6b7280" }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="rate" 
-                    stroke="#8b5cf6" 
+                  <Area
+                    type="monotone"
+                    dataKey="rate"
+                    stroke="#8b5cf6"
                     fill="#8b5cf6"
                     fillOpacity={0.3}
                     strokeWidth={2}
@@ -201,12 +258,14 @@ const PrincipalAnalyticsOverview = () => {
 
         {/* Fee Collection Overview */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 text-white pb-4">
+          <CardHeader className="bg-gradient-to-r from-orange-400 to-orange-500 text-white pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5" />
               Fee Collection Status
             </CardTitle>
-            <p className="text-orange-100 text-sm">Current fee collection overview</p>
+            <p className="text-orange-50 text-sm">
+              Current fee collection overview
+            </p>
           </CardHeader>
           <CardContent className="p-4">
             <div className="h-64 flex items-center justify-center">
@@ -219,7 +278,8 @@ const PrincipalAnalyticsOverview = () => {
                   </div>
                   <p className="font-medium text-green-600">Collected</p>
                   <p className="text-sm text-gray-500">
-                    KES {(analytics.feeCollection?.collected || 0).toLocaleString()}
+                    KES{" "}
+                    {(analytics.feeCollection?.collected || 0).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-center">
@@ -230,7 +290,10 @@ const PrincipalAnalyticsOverview = () => {
                   </div>
                   <p className="font-medium text-red-600">Outstanding</p>
                   <p className="text-sm text-gray-500">
-                    KES {(analytics.feeCollection?.outstanding || 0).toLocaleString()}
+                    KES{" "}
+                    {(
+                      analytics.feeCollection?.outstanding || 0
+                    ).toLocaleString()}
                   </p>
                 </div>
               </div>
