@@ -1,0 +1,191 @@
+import { AuthService } from '@/services/authService';
+import { AuthUser } from '@/types/auth';
+
+export interface RouteGuardConfig {
+  allowedRoles: string[];
+  redirectTo?: string;
+  requireAuth?: boolean;
+}
+
+export class RouteGuard {
+  /**
+   * Check if user has access to a specific route
+   */
+  static async checkAccess(user: AuthUser | null, config: RouteGuardConfig): Promise<{
+    hasAccess: boolean;
+    redirectTo?: string;
+    error?: string;
+  }> {
+    // If authentication is required but user is not authenticated
+    if (config.requireAuth !== false && !user) {
+      return {
+        hasAccess: false,
+        redirectTo: '/login',
+        error: 'Authentication required'
+      };
+    }
+
+    // If user is authenticated but no specific roles are required
+    if (!config.allowedRoles || config.allowedRoles.length === 0) {
+      return { hasAccess: true };
+    }
+
+    // Check if user's role is in the allowed roles
+    if (user && config.allowedRoles.includes(user.role)) {
+      return { hasAccess: true };
+    }
+
+    // Access denied
+    return {
+      hasAccess: false,
+      redirectTo: config.redirectTo || '/unauthorized',
+      error: `Access denied. This area is restricted to ${config.allowedRoles.map(role => 
+        AuthService.getRoleDisplayName(role)
+      ).join(', ')} users only.`
+    };
+  }
+
+  /**
+   * Validate admin access specifically
+   */
+  static async validateAdminAccess(user: AuthUser | null): Promise<{
+    hasAccess: boolean;
+    redirectTo?: string;
+    error?: string;
+  }> {
+    if (!user) {
+      return {
+        hasAccess: false,
+        redirectTo: '/login',
+        error: 'Authentication required'
+      };
+    }
+
+    if (!AuthService.isEduFamAdmin(user.role)) {
+      return {
+        hasAccess: false,
+        redirectTo: '/unauthorized',
+        error: 'Access denied. This area is restricted to EduFam Admin Staff only.'
+      };
+    }
+
+    return { hasAccess: true };
+  }
+
+  /**
+   * Validate school user access specifically
+   */
+  static async validateSchoolUserAccess(user: AuthUser | null): Promise<{
+    hasAccess: boolean;
+    redirectTo?: string;
+    error?: string;
+  }> {
+    if (!user) {
+      return {
+        hasAccess: false,
+        redirectTo: '/login',
+        error: 'Authentication required'
+      };
+    }
+
+    if (!AuthService.isSchoolUser(user.role)) {
+      return {
+        hasAccess: false,
+        redirectTo: '/unauthorized',
+        error: 'Access denied. This area is restricted to school users only.'
+      };
+    }
+
+    return { hasAccess: true };
+  }
+
+  /**
+   * Get route configuration based on path
+   */
+  static getRouteConfig(pathname: string): RouteGuardConfig {
+    // Admin-only routes
+    if (pathname.startsWith('/admin') || 
+        pathname.startsWith('/edufam') || 
+        pathname.startsWith('/system')) {
+      return {
+        allowedRoles: ['edufam_admin', 'elimisha_admin'],
+        redirectTo: '/unauthorized',
+        requireAuth: true
+      };
+    }
+
+    // School user routes
+    if (pathname.startsWith('/dashboard') || 
+        pathname.startsWith('/school') || 
+        pathname.startsWith('/students') ||
+        pathname.startsWith('/classes') ||
+        pathname.startsWith('/grades') ||
+        pathname.startsWith('/attendance') ||
+        pathname.startsWith('/finance') ||
+        pathname.startsWith('/reports')) {
+      return {
+        allowedRoles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'],
+        redirectTo: '/unauthorized',
+        requireAuth: true
+      };
+    }
+
+    // Public routes
+    if (pathname === '/' || 
+        pathname === '/login' || 
+        pathname === '/about' || 
+        pathname === '/contact' ||
+        pathname === '/features') {
+      return {
+        allowedRoles: [],
+        requireAuth: false
+      };
+    }
+
+    // Default: require authentication
+    return {
+      allowedRoles: [],
+      requireAuth: true
+    };
+  }
+
+  /**
+   * Check if user can access admin section
+   */
+  static canAccessAdmin(user: AuthUser | null): boolean {
+    return user ? AuthService.isEduFamAdmin(user.role) : false;
+  }
+
+  /**
+   * Check if user can access school section
+   */
+  static canAccessSchool(user: AuthUser | null): boolean {
+    return user ? AuthService.isSchoolUser(user.role) : false;
+  }
+
+  /**
+   * Get user's accessible sections
+   */
+  static getUserAccessibleSections(user: AuthUser | null): {
+    canAccessAdmin: boolean;
+    canAccessSchool: boolean;
+    primarySection: 'admin' | 'school' | null;
+  } {
+    if (!user) {
+      return {
+        canAccessAdmin: false,
+        canAccessSchool: false,
+        primarySection: null
+      };
+    }
+
+    const canAccessAdmin = AuthService.isEduFamAdmin(user.role);
+    const canAccessSchool = AuthService.isSchoolUser(user.role);
+
+    return {
+      canAccessAdmin,
+      canAccessSchool,
+      primarySection: canAccessAdmin ? 'admin' : canAccessSchool ? 'school' : null
+    };
+  }
+} 

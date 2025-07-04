@@ -3,13 +3,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import LandingPage from "@/components/LandingPage";
 import ElimshaLayout from "@/components/ElimshaLayout";
 import LoadingScreen from "@/components/common/LoadingScreen";
-import LoginForm from "@/components/LoginForm";
+import UniversalLoginPage from "@/components/UniversalLoginPage";
+import UnauthorizedPage from "@/components/UnauthorizedPage";
 import DeactivatedAccountMessage from "@/components/auth/DeactivatedAccountMessage";
 import { ErrorState } from "@/components/common/LoadingStates";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { SchoolProvider } from "@/contexts/SchoolContext";
 import MaintenancePage from "@/components/maintenance/MaintenancePage";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
+import { RouteGuard } from "@/utils/routeGuard";
+import { AuthService } from "@/services/authService";
 
 const AppContent: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
@@ -18,10 +21,15 @@ const AppContent: React.FC = () => {
     error?: string;
   } | null>(null);
   const [isCheckingDb, setIsCheckingDb] = useState(true);
+  const [accessCheck, setAccessCheck] = useState<{
+    hasAccess: boolean;
+    redirectTo?: string;
+    error?: string;
+  } | null>(null);
 
-  console.log("🎯 AppContent: Render start");
+  // Always call useAuth at the top level
+  const authState = useAuth();
 
-  // Check database connection on mount
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -34,27 +42,35 @@ const AppContent: React.FC = () => {
         setIsCheckingDb(false);
       }
     };
-
     checkConnection();
   }, []);
 
-  // Always try to get auth state safely
-  let authState;
-  try {
-    authState = useAuth();
-  } catch (err) {
-    console.error("🎯 AppContent: Auth context error", err);
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <ErrorState
-          title="Authentication Error"
-          description="Failed to initialize authentication system"
-          error={String(err)}
-          onRetry={() => window.location.reload()}
-        />
-      </div>
-    );
-  }
+  // Check route access when user or path changes
+  useEffect(() => {
+    const checkRouteAccess = async () => {
+      if (!authState.user) {
+        setAccessCheck(null);
+        return;
+      }
+
+      const currentPath = window.location.pathname;
+      const routeConfig = RouteGuard.getRouteConfig(currentPath);
+
+      const access = await RouteGuard.checkAccess(authState.user, routeConfig);
+      setAccessCheck(access);
+
+      // If access is denied and we have a redirect, navigate
+      if (!access.hasAccess && access.redirectTo) {
+        if (access.redirectTo === "/unauthorized") {
+          // Stay on current page, UnauthorizedPage will be rendered
+          return;
+        }
+        window.location.href = access.redirectTo;
+      }
+    };
+
+    checkRouteAccess();
+  }, [authState.user, window.location.pathname]);
 
   // Defensive check for auth state
   if (!authState || typeof authState !== "object") {
@@ -87,6 +103,7 @@ const AppContent: React.FC = () => {
     isInitialized,
     dbStatus,
     isCheckingDb,
+    accessCheck,
   });
 
   // Show loading while checking database or auth
@@ -140,7 +157,7 @@ const AppContent: React.FC = () => {
 
     // If user is on login path or has requested login, show login form
     if (currentPath === "/login" || showLogin) {
-      return <LoginForm />;
+      return <UniversalLoginPage />;
     }
 
     // Otherwise show landing page
@@ -168,8 +185,22 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // User is authenticated and has a valid role - show the main application
-  console.log("🎯 AppContent: User authenticated, showing main app");
+  // Check route access
+  if (accessCheck && !accessCheck.hasAccess) {
+    console.log("🎯 AppContent: Access denied:", accessCheck.error);
+
+    if (accessCheck.redirectTo === "/unauthorized") {
+      return <UnauthorizedPage />;
+    }
+
+    // For other redirects, show loading while redirecting
+    return <LoadingScreen />;
+  }
+
+  // User is authenticated, has a valid role, and has access - show the main application
+  console.log(
+    "🎯 AppContent: User authenticated and authorized, showing main app"
+  );
 
   return (
     <NavigationProvider>

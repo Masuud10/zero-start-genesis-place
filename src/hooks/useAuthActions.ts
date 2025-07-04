@@ -1,12 +1,16 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { LoginCredentials, SignupCredentials } from '@/types/auth';
+import { AuthService } from '@/services/authService';
+import { LoginCredentials } from '@/types/auth';
 import { cleanupAuthState } from '@/utils/authCleanup';
 
 export const useAuthActions = () => {
   const signIn = useCallback(async (credentials: LoginCredentials) => {
-    console.log('🔑 AuthActions: Attempting sign in for', credentials.email);
+    console.log('🔑 AuthActions: Attempting sign in for', credentials.email, {
+      strictValidation: credentials.strictValidation,
+      accessType: credentials.accessType
+    });
+    
     try {
       // Clean up any existing session first for safety
       cleanupAuthState();
@@ -15,49 +19,39 @@ export const useAuthActions = () => {
       } catch (cleanupError) {
         console.warn('🔑 AuthActions: Cleanup warning:', cleanupError);
       }
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email.trim(),
-        password: credentials.password,
-      });
-      if (error) {
-        console.error('🔑 AuthActions: Sign in error:', error);
-        return { error: error.message };
-      }
-      if (data.user) {
-        console.log('🔑 AuthActions: Sign in successful for', credentials.email);
+
+      // Use strict role validation if specified
+      if (credentials.strictValidation && credentials.accessType) {
+        const result = await AuthService.authenticateUserWithStrictRoleValidation(
+          credentials.email, 
+          credentials.password, 
+          credentials.accessType
+        );
+        
+        if (!result.success) {
+          console.error('🔑 AuthActions: Strict validation sign in failed:', result.error);
+          return { error: result.error };
+        }
+
+        console.log('🔑 AuthActions: Strict validation sign in successful for', credentials.email);
+        return { error: undefined };
+      } else {
+        // Use legacy authentication for backward compatibility
+        const result = await AuthService.authenticateUser(credentials.email, credentials.password);
+        
+        if (!result.success) {
+          console.error('🔑 AuthActions: Legacy sign in failed:', result.error);
+          return { error: result.error };
+        }
+
+        console.log('🔑 AuthActions: Legacy sign in successful for', credentials.email);
         return { error: undefined };
       }
-      return { error: 'Sign in failed - no user returned' };
-    } catch (error: any) {
-      console.error('❌ AuthActions: Sign in exception:', error);
-      return { error: error.message || 'Authentication failed' };
-    }
-  }, []);
 
-  const signUp = useCallback(async (credentials: SignupCredentials) => {
-    console.log('📝 AuthActions: Attempting sign up for', credentials.email);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: credentials.email.trim(),
-        password: credentials.password,
-        options: {
-          data: {
-            name: credentials.name,
-            role: credentials.role || 'parent',
-            school_id: credentials.school_id
-          },
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
-      if (error) {
-        console.error('📝 AuthActions: Sign up error:', error);
-        return { error: error.message };
-      }
-      console.log('📝 AuthActions: Sign up successful for', credentials.email);
-      return { error: undefined };
-    } catch (error: any) {
-      console.error('❌ AuthActions: Sign up exception:', error);
-      return { error: error.message || 'Sign up failed' };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      console.error('❌ AuthActions: Sign in exception:', error);
+      return { error: errorMessage };
     }
   }, []);
 
@@ -80,7 +74,8 @@ export const useAuthActions = () => {
         window.location.href = '/login';
       }, 100);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Logout failed';
       console.error('❌ AuthActions: Logout error:', error);
       // Fallback hard reload to login
       setTimeout(() => {
@@ -91,7 +86,6 @@ export const useAuthActions = () => {
 
   return {
     signIn,
-    signUp,
     signOut
   };
 };

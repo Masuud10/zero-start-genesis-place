@@ -3,6 +3,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
 import { UserRole } from '@/types/user';
+import { AuthService } from '@/services/authService';
 
 // Simple role validation function to avoid external dependencies
 const isValidRole = (role: string): boolean => {
@@ -46,7 +47,7 @@ export const useAuthState = () => {
       }
 
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('🔐 AuthState: Profile fetch exception:', err);
       return null;
     }
@@ -101,53 +102,20 @@ export const useAuthState = () => {
       
       if (!isMountedRef.current) return;
 
-      // Determine role with priority: backend profile > metadata > email fallback
-      let resolvedRole = profile?.role || authUser.app_metadata?.role || authUser.user_metadata?.role;
+      // Use only database role - no email-based inference for security
+      const resolvedRole = profile?.role;
       
-      if (resolvedRole && isValidRole(resolvedRole)) {
-        console.log('🔐 AuthState: Using verified role:', resolvedRole);
-      } else {
-        // Email-based detection for new registrations only
-        const emailLower = authUser.email.toLowerCase();
-        
-        console.log('🔐 AuthState: No valid database/metadata role found, using email fallback for new user');
-        
-        if (emailLower.includes('admin@edufam') || emailLower === 'masuud@gmail.com' || emailLower.includes('admin.edufam') || emailLower.includes('edufam.admin')) {
-          resolvedRole = 'edufam_admin';
-        } else if (emailLower.includes('elimisha') || emailLower.includes('admin@elimisha')) {
-          resolvedRole = 'elimisha_admin';
-        } else if (emailLower.includes('principal') || emailLower.includes('head')) {
-          resolvedRole = 'principal';
-        } else if (emailLower.includes('teacher') || emailLower.includes('tutor')) {
-          resolvedRole = 'teacher';
-        } else if (emailLower.includes('finance') || emailLower.includes('bursar') || emailLower.includes('accounts') || emailLower.includes('accountant')) {
-          resolvedRole = 'finance_officer';
-        } else if (emailLower.includes('owner') || emailLower.includes('proprietor')) {
-          resolvedRole = 'school_owner';
-        } else {
-          resolvedRole = 'parent';
+      if (!resolvedRole || !isValidRole(resolvedRole)) {
+        console.error('🔐 AuthState: No valid role found in database');
+        if (isMountedRef.current) {
+          setError('Your account is not properly configured. Please contact your administrator.');
+          setIsLoading(false);
+          setIsInitialized(true);
         }
-        
-        console.log('🔐 AuthState: Email-based role determined for new user:', resolvedRole);
-        
-        // Update database with inferred role for future logins
-        if (resolvedRole) {
-          try {
-            await supabase
-              .from('profiles')
-              .upsert({ 
-                id: authUser.id, 
-                email: authUser.email,
-                role: resolvedRole,
-                name: authUser.user_metadata?.name || authUser.email.split('@')[0]
-              });
-            console.log('🔐 AuthState: Profile role updated in database for future logins');
-          } catch (updateError: unknown) {
-            const error = updateError instanceof Error ? updateError : new Error('Unknown error');
-            console.warn('🔐 AuthState: Failed to update profile role:', error);
-          }
-        }
+        return;
       }
+
+      console.log('🔐 AuthState: Using database role:', resolvedRole);
 
       // Determine school assignment
       const userSchoolId = profile?.school_id ||
@@ -157,7 +125,7 @@ export const useAuthState = () => {
       const userData: AuthUser = {
         id: authUser.id,
         email: authUser.email,
-        role: resolvedRole, // CRITICAL: Ensure this is set correctly
+        role: resolvedRole,
         name: profile?.name ||
               authUser.user_metadata?.name ||
               authUser.user_metadata?.full_name ||

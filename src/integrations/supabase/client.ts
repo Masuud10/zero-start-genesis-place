@@ -32,18 +32,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Add connection health check
 export const checkDatabaseConnection = async () => {
   try {
-    const { data, error } = await supabase
-      .from('system_status')
-      .select('current_status, supabase_connected')
-      .limit(1)
-      .single();
+    // Use the more robust database connection test
+    const { DatabaseConnectionTest } = await import('../../utils/databaseConnectionTest');
+    const result = await DatabaseConnectionTest.runFullTest();
     
-    if (error) {
-      console.error('Database connection check failed:', error);
-      return { connected: false, error: error.message };
+    if (!result.connected) {
+      console.error('Database connection check failed:', result.error);
+      return { connected: false, error: result.error || 'Connection failed' };
     }
     
-    return { connected: true, status: data?.current_status };
+    return { connected: true, status: 'connected' };
   } catch (err) {
     console.error('Database connection check exception:', err);
     return { connected: false, error: 'Connection failed' };

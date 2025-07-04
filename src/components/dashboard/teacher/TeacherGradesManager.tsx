@@ -1,21 +1,43 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useOptimizedGradeQuery } from '@/hooks/useOptimizedGradeQuery';
-import { ImprovedGradeSheet } from '@/components/grading/ImprovedGradeSheet';
-import GradesModal from '@/components/modals/GradesModal';
-import { CBCGradesModal } from '@/components/modals/CBCGradesModal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileSpreadsheet, Plus, CheckCircle, Clock, AlertTriangle, Users, BookOpen, TrendingUp, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useSchoolCurriculum } from '@/hooks/useSchoolCurriculum';
-import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useOptimizedGradeQuery } from "@/hooks/useOptimizedGradeQuery";
+import { ImprovedGradeSheet } from "@/components/grading/ImprovedGradeSheet";
+import GradesModal from "@/components/modals/GradesModal";
+import { CBCGradesModal } from "@/components/modals/CBCGradesModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  FileSpreadsheet,
+  Plus,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Users,
+  BookOpen,
+  TrendingUp,
+  Loader2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useSchoolCurriculum } from "@/hooks/useSchoolCurriculum";
+import { useClassCurriculum } from "@/hooks/useClassCurriculum";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
+import { DynamicGradingSheet } from "@/components/grading/DynamicGradingSheet";
 
 interface ClassOption {
   id: string;
@@ -25,19 +47,39 @@ interface ClassOption {
 const TeacherGradesManager: React.FC = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
-  const { curriculumType, loading: curriculumLoading } = useSchoolCurriculum();
   const { toast } = useToast();
+
   const [showGradesModal, setShowGradesModal] = useState(false);
   const [showCBCModal, setShowCBCModal] = useState(false);
   const [showImprovedSheet, setShowImprovedSheet] = useState(false);
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedTerm, setSelectedTerm] = useState('');
-  const [selectedExamType, setSelectedExamType] = useState('');
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedTerm, setSelectedTerm] = useState("");
+  const [selectedExamType, setSelectedExamType] = useState("");
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { data: grades, isLoading, refetch } = useOptimizedGradeQuery({
-    enabled: !!user?.id && !!schoolId
+  const { curriculumType: schoolCurriculumType, loading: curriculumLoading } =
+    useSchoolCurriculum();
+  const {
+    curriculumType: classCurriculumType,
+    loading: classCurriculumLoading,
+    error: classCurriculumError,
+  } = useClassCurriculum(selectedClass);
+
+  // Use class-specific curriculum if available, otherwise fall back to school curriculum
+  const curriculumType = selectedClass
+    ? classCurriculumType
+    : schoolCurriculumType;
+  const curriculumLoadingState = selectedClass
+    ? classCurriculumLoading
+    : curriculumLoading;
+
+  const {
+    data: grades,
+    isLoading,
+    refetch,
+  } = useOptimizedGradeQuery({
+    enabled: !!user?.id && !!schoolId,
   });
 
   useEffect(() => {
@@ -48,79 +90,89 @@ const TeacherGradesManager: React.FC = () => {
     if (!user?.id || !schoolId) return;
 
     try {
-      console.log('Loading teacher classes for:', user.id, schoolId);
+      console.log("Loading teacher classes for:", user.id, schoolId);
 
       const { data, error } = await supabase
-        .from('subject_teacher_assignments')
-        .select(`
+        .from("subject_teacher_assignments")
+        .select(
+          `
           class_id,
           classes!inner(id, name)
-        `)
-        .eq('teacher_id', user.id)
-        .eq('school_id', schoolId)
-        .eq('is_active', true);
+        `
+        )
+        .eq("teacher_id", user.id)
+        .eq("school_id", schoolId)
+        .eq("is_active", true);
 
       if (error) {
-        console.error('Error loading teacher classes:', error);
+        console.error("Error loading teacher classes:", error);
         throw error;
       }
 
-      const uniqueClasses = data
-        ?.filter((item: any) => item.classes)
-        .map((item: any) => ({
-          id: item.classes.id,
-          name: item.classes.name
-        }))
-        .filter((cls, index, self) => 
-          index === self.findIndex(c => c.id === cls.id)
-        ) || [];
+      const uniqueClasses =
+        data
+          ?.filter((item: any) => item.classes)
+          .map((item: any) => ({
+            id: item.classes.id,
+            name: item.classes.name,
+          }))
+          .filter(
+            (cls, index, self) =>
+              index === self.findIndex((c) => c.id === cls.id)
+          ) || [];
 
-      console.log('Loaded classes:', uniqueClasses);
+      console.log("Loaded classes:", uniqueClasses);
       setClasses(uniqueClasses);
 
       if (uniqueClasses.length === 0) {
         toast({
           title: "No Classes Assigned",
-          description: "You are not assigned to any classes. Please contact your administrator.",
-          variant: "default"
+          description:
+            "You are not assigned to any classes. Please contact your administrator.",
+          variant: "default",
         });
       }
-
     } catch (error) {
-      console.error('Error loading teacher classes:', error);
+      console.error("Error loading teacher classes:", error);
       toast({
         title: "Error Loading Classes",
         description: "Failed to load your assigned classes. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   // Handle cases where approval_workflow_stage might not exist, fallback to status
-  const getWorkflowStage = (grade: any) => grade.approval_workflow_stage || grade.status || 'draft';
-  
-  const draftGrades = grades?.filter(grade => getWorkflowStage(grade) === 'draft') || [];
-  const submittedGrades = grades?.filter(grade => getWorkflowStage(grade) === 'submitted') || [];
-  const approvedGrades = grades?.filter(grade => getWorkflowStage(grade) === 'approved') || [];
-  const rejectedGrades = grades?.filter(grade => getWorkflowStage(grade) === 'rejected') || [];
-  const releasedGrades = grades?.filter(grade => getWorkflowStage(grade) === 'released') || [];
+  const getWorkflowStage = (grade: any) =>
+    grade.approval_workflow_stage || grade.status || "draft";
+
+  const draftGrades =
+    grades?.filter((grade) => getWorkflowStage(grade) === "draft") || [];
+  const submittedGrades =
+    grades?.filter((grade) => getWorkflowStage(grade) === "submitted") || [];
+  const approvedGrades =
+    grades?.filter((grade) => getWorkflowStage(grade) === "approved") || [];
+  const rejectedGrades =
+    grades?.filter((grade) => getWorkflowStage(grade) === "rejected") || [];
+  const releasedGrades =
+    grades?.filter((grade) => getWorkflowStage(grade) === "released") || [];
 
   const handleImprovedGrading = () => {
     if (!selectedClass || !selectedTerm || !selectedExamType) {
       toast({
         title: "Missing Information",
         description: "Please select class, term, and exam type to continue",
-        variant: "default"
+        variant: "default",
       });
       return;
     }
-    console.log('Opening grading sheet for teacher:', curriculumType);
+    console.log("Opening grading sheet for teacher:", curriculumType);
     setShowImprovedSheet(true);
   };
 
   const handleSingleGrade = () => {
-    console.log('Opening single grade modal for teacher');
-    if (curriculumType === 'cbc') {
+    console.log("Opening single grade modal for teacher");
+    if (curriculumType === "cbc") {
       setShowCBCModal(true);
     } else {
       setShowGradesModal(true);
@@ -145,19 +197,31 @@ const TeacherGradesManager: React.FC = () => {
 
   const getCurriculumBadge = () => {
     if (curriculumLoading) return null;
-    
+
     switch (curriculumType) {
-      case 'cbc':
-        return <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">CBC Curriculum</Badge>;
-      case 'igcse':
-        return <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">IGCSE Curriculum</Badge>;
+      case "cbc":
+        return (
+          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+            CBC Curriculum
+          </Badge>
+        );
+      case "igcse":
+        return (
+          <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+            IGCSE Curriculum
+          </Badge>
+        );
       default:
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">Standard Curriculum</Badge>;
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+            Standard Curriculum
+          </Badge>
+        );
     }
   };
 
   const getAssessmentTypeOptions = () => {
-    if (curriculumType === 'cbc') {
+    if (curriculumType === "cbc") {
       return (
         <>
           <SelectItem value="observation">Observation</SelectItem>
@@ -179,12 +243,33 @@ const TeacherGradesManager: React.FC = () => {
     }
   };
 
-  if (curriculumLoading) {
+  if (curriculumLoadingState) {
     return (
       <Card className="h-full">
         <CardContent className="p-8 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
           <span>Loading curriculum settings...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show curriculum error if any
+  if (classCurriculumError && selectedClass) {
+    return (
+      <Card className="h-full">
+        <CardContent className="p-8">
+          <div className="text-center">
+            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-red-800 mb-2">
+              Curriculum Error
+            </h3>
+            <p className="text-red-600 mb-4">{classCurriculumError}</p>
+            <p className="text-sm text-gray-600">
+              No curriculum type set for this class. Please update the class
+              information.
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -202,23 +287,23 @@ const TeacherGradesManager: React.FC = () => {
             {getCurriculumBadge()}
           </div>
           <div className="flex gap-2">
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               onClick={handleSingleGrade}
               className="flex items-center gap-1"
             >
               <Plus className="h-4 w-4" />
-              {curriculumType === 'cbc' ? 'CBC Assessment' : 'Single Grade'}
+              {curriculumType === "cbc" ? "CBC Assessment" : "Single Grade"}
             </Button>
-            <Button 
+            <Button
               size="sm"
               onClick={handleImprovedGrading}
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
               disabled={!selectedClass || !selectedTerm || !selectedExamType}
             >
               <FileSpreadsheet className="h-4 w-4" />
-              {curriculumType === 'cbc' ? 'Assessment Sheet' : 'Grade Sheet'}
+              {curriculumType === "cbc" ? "Assessment Sheet" : "Grade Sheet"}
             </Button>
           </div>
         </div>
@@ -228,17 +313,21 @@ const TeacherGradesManager: React.FC = () => {
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <h4 className="font-medium text-blue-900 mb-3">
-              {curriculumType === 'cbc' ? 'Assessment Configuration' : 'Grade Sheet Configuration'}
+              {curriculumType === "cbc"
+                ? "Assessment Configuration"
+                : "Grade Sheet Configuration"}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-blue-800">Class</label>
+                <label className="text-xs font-medium text-blue-800">
+                  Class
+                </label>
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="h-9 bg-white">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map(cls => (
+                    {classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id}>
                         {cls.name}
                       </SelectItem>
@@ -247,7 +336,9 @@ const TeacherGradesManager: React.FC = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-blue-800">Term</label>
+                <label className="text-xs font-medium text-blue-800">
+                  Term
+                </label>
                 <Select value={selectedTerm} onValueChange={setSelectedTerm}>
                   <SelectTrigger className="h-9 bg-white">
                     <SelectValue placeholder="Select term" />
@@ -261,15 +352,16 @@ const TeacherGradesManager: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-blue-800">
-                  {curriculumType === 'cbc' ? 'Assessment Type' : 'Exam Type'}
+                  {curriculumType === "cbc" ? "Assessment Type" : "Exam Type"}
                 </label>
-                <Select value={selectedExamType} onValueChange={setSelectedExamType}>
+                <Select
+                  value={selectedExamType}
+                  onValueChange={setSelectedExamType}
+                >
                   <SelectTrigger className="h-9 bg-white">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {getAssessmentTypeOptions()}
-                  </SelectContent>
+                  <SelectContent>{getAssessmentTypeOptions()}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -287,28 +379,39 @@ const TeacherGradesManager: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="flex items-center justify-between p-3 border rounded-lg bg-yellow-25 border-yellow-200">
                 <div>
-                  <p className="text-sm font-medium text-yellow-800">Draft {curriculumType === 'cbc' ? 'Assessments' : 'Grades'}</p>
-                  <p className="text-2xl font-bold text-yellow-600">{draftGrades.length}</p>
+                  <p className="text-sm font-medium text-yellow-800">
+                    Draft {curriculumType === "cbc" ? "Assessments" : "Grades"}
+                  </p>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {draftGrades.length}
+                  </p>
                   <p className="text-xs text-yellow-600">Need submission</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-500" />
               </div>
-              
+
               <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-25 border-blue-200">
                 <div>
                   <p className="text-sm font-medium text-blue-800">Submitted</p>
-                  <p className="text-2xl font-bold text-blue-600">{submittedGrades.length}</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {submittedGrades.length}
+                  </p>
                   <p className="text-xs text-blue-600">Under review</p>
                 </div>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-100 text-blue-800"
+                >
                   Pending
                 </Badge>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 border rounded-lg bg-green-25 border-green-200">
                 <div>
                   <p className="text-sm font-medium text-green-800">Approved</p>
-                  <p className="text-2xl font-bold text-green-600">{approvedGrades.length}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {approvedGrades.length}
+                  </p>
                   <p className="text-xs text-green-600">Principal approved</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-500" />
@@ -318,7 +421,9 @@ const TeacherGradesManager: React.FC = () => {
                 <div className="flex items-center justify-between p-3 border rounded-lg bg-red-25 border-red-200">
                   <div>
                     <p className="text-sm font-medium text-red-800">Rejected</p>
-                    <p className="text-2xl font-bold text-red-600">{rejectedGrades.length}</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {rejectedGrades.length}
+                    </p>
                     <p className="text-xs text-red-600">Need revision</p>
                   </div>
                   <AlertTriangle className="h-8 w-8 text-red-500" />
@@ -328,9 +433,15 @@ const TeacherGradesManager: React.FC = () => {
               {releasedGrades.length > 0 && (
                 <div className="flex items-center justify-between p-3 border rounded-lg bg-purple-25 border-purple-200">
                   <div>
-                    <p className="text-sm font-medium text-purple-800">Released</p>
-                    <p className="text-2xl font-bold text-purple-600">{releasedGrades.length}</p>
-                    <p className="text-xs text-purple-600">Available to parents</p>
+                    <p className="text-sm font-medium text-purple-800">
+                      Released
+                    </p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {releasedGrades.length}
+                    </p>
+                    <p className="text-xs text-purple-600">
+                      Available to parents
+                    </p>
                   </div>
                   <CheckCircle className="h-8 w-8 text-purple-500" />
                 </div>
@@ -341,41 +452,55 @@ const TeacherGradesManager: React.FC = () => {
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium text-gray-900">
-                  {curriculumType === 'cbc' ? 'Assessment Tools' : 'Grading Tools'}
+                  {curriculumType === "cbc"
+                    ? "Assessment Tools"
+                    : "Grading Tools"}
                 </h4>
                 {getCurriculumBadge()}
               </div>
-              
+
               <div className="grid grid-cols-1 gap-3">
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white h-12"
                   onClick={handleImprovedGrading}
-                  disabled={!selectedClass || !selectedTerm || !selectedExamType}
+                  disabled={
+                    !selectedClass || !selectedTerm || !selectedExamType
+                  }
                 >
                   <FileSpreadsheet className="h-5 w-5 mr-3" />
                   <div className="text-left">
                     <div className="font-medium">
-                      Open {curriculumType === 'cbc' ? 'Assessment Sheet' : 'Grade Sheet'}
+                      Open{" "}
+                      {curriculumType === "cbc"
+                        ? "Assessment Sheet"
+                        : "Grade Sheet"}
                     </div>
                     <div className="text-xs opacity-90">
-                      {selectedClass && selectedTerm && selectedExamType 
-                        ? `${selectedTerm} - ${selectedExamType}` 
-                        : `Select class, term & ${curriculumType === 'cbc' ? 'assessment' : 'exam'} type`}
+                      {selectedClass && selectedTerm && selectedExamType
+                        ? `${selectedTerm} - ${selectedExamType}`
+                        : `Select class, term & ${
+                            curriculumType === "cbc" ? "assessment" : "exam"
+                          } type`}
                     </div>
                   </div>
-                  <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-800">
+                  <Badge
+                    variant="secondary"
+                    className="ml-auto bg-blue-100 text-blue-800"
+                  >
                     Recommended
                   </Badge>
                 </Button>
-                
-                <Button 
-                  variant="outline" 
+
+                <Button
+                  variant="outline"
                   className="w-full justify-start h-10"
                   onClick={handleSingleGrade}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  {curriculumType === 'cbc' ? 'Add Individual CBC Assessment' : 'Add Individual Grade'}
+                  {curriculumType === "cbc"
+                    ? "Add Individual CBC Assessment"
+                    : "Add Individual Grade"}
                   <Badge variant="secondary" className="ml-auto">
                     Single Entry
                   </Badge>
@@ -387,37 +512,33 @@ const TeacherGradesManager: React.FC = () => {
       </CardContent>
 
       {/* Improved Grade Sheet Dialog */}
-      <Dialog open={showImprovedSheet} onOpenChange={setShowImprovedSheet}>
-        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {curriculumType === 'cbc' ? 'CBC Assessment Sheet' : 'Grade Sheet'} - {classes.find(c => c.id === selectedClass)?.name}
-            </DialogTitle>
-          </DialogHeader>
-          {showImprovedSheet && (
-            <ImprovedGradeSheet
-              classId={selectedClass}
-              term={selectedTerm}
-              examType={selectedExamType}
-              onSubmissionSuccess={handleSubmissionSuccess}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {showImprovedSheet &&
+        selectedClass &&
+        selectedTerm &&
+        selectedExamType && (
+          <Dialog open={showImprovedSheet} onOpenChange={handleModalClose}>
+            <DialogContent className="max-w-5xl">
+              <DynamicGradingSheet
+                classId={selectedClass}
+                term={selectedTerm}
+                examType={selectedExamType}
+                onSubmissionSuccess={handleSubmissionSuccess}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
 
       {/* Standard Grade Modal */}
       {showGradesModal && (
-        <GradesModal 
-          onClose={() => setShowGradesModal(false)} 
-          userRole={user?.role || 'teacher'} 
+        <GradesModal
+          onClose={() => setShowGradesModal(false)}
+          userRole={user?.role || "teacher"}
         />
       )}
 
       {/* CBC Grade Modal */}
       {showCBCModal && (
-        <CBCGradesModal 
-          onClose={() => setShowCBCModal(false)} 
-        />
+        <CBCGradesModal onClose={() => setShowCBCModal(false)} />
       )}
     </Card>
   );

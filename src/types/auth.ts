@@ -1,4 +1,3 @@
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -9,8 +8,8 @@ export interface AuthUser {
   created_at?: string;
   updated_at?: string;
   // Supabase auth metadata
-  user_metadata?: any;
-  app_metadata?: any;
+  user_metadata?: Record<string, unknown>;
+  app_metadata?: Record<string, unknown>;
   // Security properties
   mfa_enabled?: boolean;
   last_login_at?: string;
@@ -30,12 +29,8 @@ export interface AuthState {
 export interface LoginCredentials {
   email: string;
   password: string;
-}
-
-export interface SignupCredentials extends LoginCredentials {
-  name: string;
-  role?: string;
-  school_id?: string;
+  strictValidation?: boolean;
+  accessType?: 'school' | 'admin';
 }
 
 export interface AuthContextType {
@@ -44,6 +39,5 @@ export interface AuthContextType {
   error: string | null;
   isInitialized?: boolean;
   signIn: (credentials: LoginCredentials) => Promise<{ error?: string }>;
-  signUp: (credentials: SignupCredentials) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }

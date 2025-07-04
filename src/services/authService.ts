@@ -1,0 +1,384 @@
+import { supabase } from '@/integrations/supabase/client';
+import { AuthUser } from '@/types/auth';
+
+export interface LoginResult {
+  success: boolean;
+  user?: AuthUser;
+  error?: string;
+}
+
+export interface RoleValidationResult {
+  isValid: boolean;
+  user?: AuthUser;
+  error?: string;
+}
+
+export interface StrictLoginResult {
+  success: boolean;
+  user?: AuthUser;
+  error?: string;
+  accessType?: 'school' | 'admin';
+}
+
+export class AuthService {
+  /**
+   * Authenticate user with strict role-based validation
+   * This method enforces that users can only access the appropriate login section
+   */
+  static async authenticateUserWithStrictRoleValidation(
+    email: string, 
+    password: string, 
+    accessType: 'school' | 'admin'
+  ): Promise<StrictLoginResult> {
+    try {
+      console.log('🔐 AuthService: Authenticating user with strict role validation:', {
+        email,
+        accessType
+      });
+      
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (authError) {
+        console.error('🔐 AuthService: Authentication failed:', authError);
+        return {
+          success: false,
+          error: this.getUserFriendlyError(authError.message),
+          accessType
+        };
+      }
+
+      if (!authData.user) {
+        return {
+          success: false,
+          error: 'Authentication failed - no user returned',
+          accessType
+        };
+      }
+
+      // Fetch user profile from database to validate role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, name, school_id, avatar_url, mfa_enabled, status')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('🔐 AuthService: Profile fetch failed:', profileError);
+        return {
+          success: false,
+          error: 'Unable to retrieve user profile. Please contact support.',
+          accessType
+        };
+      }
+
+      // Check if user account is active
+      if (profile.status === 'inactive' || profile.status === 'suspended') {
+        return {
+          success: false,
+          error: 'Your account has been deactivated. Please contact your administrator.',
+          accessType
+        };
+      }
+
+      // Validate role exists
+      if (!profile.role) {
+        return {
+          success: false,
+          error: 'User role not assigned. Please contact your administrator.',
+          accessType
+        };
+      }
+
+      // STRICT ROLE-BASED ACCESS VALIDATION
+      const roleValidation = this.validateRoleForAccessType(profile.role, accessType);
+      if (!roleValidation.isValid) {
+        console.error('🔐 AuthService: Role access denied:', {
+          userRole: profile.role,
+          requestedAccessType: accessType,
+          error: roleValidation.error
+        });
+        
+        return {
+          success: false,
+          error: roleValidation.error,
+          accessType
+        };
+      }
+
+      const user: AuthUser = {
+        id: authData.user.id,
+        email: authData.user.email!,
+        role: profile.role,
+        name: profile.name || authData.user.email!.split('@')[0],
+        school_id: profile.school_id,
+        avatar_url: profile.avatar_url,
+        created_at: authData.user.created_at,
+        updated_at: authData.user.updated_at,
+        user_metadata: authData.user.user_metadata || {},
+        app_metadata: authData.user.app_metadata || {},
+        mfa_enabled: profile.mfa_enabled || false,
+        last_login_at: authData.user.last_sign_in_at || undefined,
+        last_login_ip: undefined,
+      };
+
+      console.log('🔐 AuthService: User authenticated successfully with strict role validation:', {
+        email: user.email,
+        role: user.role,
+        school_id: user.school_id,
+        accessType
+      });
+
+      return {
+        success: true,
+        user,
+        accessType
+      };
+
+    } catch (error) {
+      console.error('🔐 AuthService: Authentication exception:', error);
+      return {
+        success: false,
+        error: 'An unexpected error occurred. Please try again.',
+        accessType
+      };
+    }
+  }
+
+  /**
+   * Validate if a user role can access a specific login type
+   */
+  static validateRoleForAccessType(userRole: string, accessType: 'school' | 'admin'): {
+    isValid: boolean;
+    error?: string;
+  } {
+    // Define which roles can access which login types
+    const adminRoles = ['edufam_admin', 'elimisha_admin'];
+    const schoolRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'];
+
+    if (accessType === 'admin') {
+      // Only admin roles can access admin login
+      if (!adminRoles.includes(userRole)) {
+        return {
+          isValid: false,
+          error: `Access denied. The EduFam Admin Staff login is restricted to internal staff only. Your account (${this.getRoleDisplayName(userRole)}) is not authorized for this access. Please use the School Users login section.`
+        };
+      }
+    } else if (accessType === 'school') {
+      // Only school roles can access school login
+      if (!schoolRoles.includes(userRole)) {
+        return {
+          isValid: false,
+          error: `Access denied. The School Users login is restricted to school staff and parents only. Your account (${this.getRoleDisplayName(userRole)}) is not authorized for this access. Please use the EduFam Admin Staff login section.`
+        };
+      }
+    }
+
+    return { isValid: true };
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   */
+  static async authenticateUser(email: string, password: string): Promise<LoginResult> {
+    // Default to school access type for backward compatibility
+    const result = await this.authenticateUserWithStrictRoleValidation(email, password, 'school');
+    return {
+      success: result.success,
+      user: result.user,
+      error: result.error
+    };
+  }
+
+  /**
+   * Validate user role for specific access type
+   */
+  static async validateRoleAccess(userId: string, requiredRole: string): Promise<RoleValidationResult> {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, name, school_id, avatar_url, mfa_enabled, status')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        return {
+          isValid: false,
+          error: 'Unable to validate user role'
+        };
+      }
+
+      if (profile.status === 'inactive' || profile.status === 'suspended') {
+        return {
+          isValid: false,
+          error: 'Your account has been deactivated'
+        };
+      }
+
+      // Strict role validation
+      if (profile.role !== requiredRole) {
+        return {
+          isValid: false,
+          error: `Access denied. This area is restricted to ${this.getRoleDisplayName(requiredRole)} users only.`
+        };
+      }
+
+      return {
+        isValid: true,
+        user: {
+          id: userId,
+          role: profile.role,
+          name: profile.name,
+          school_id: profile.school_id,
+          avatar_url: profile.avatar_url,
+          mfa_enabled: profile.mfa_enabled || false,
+        } as AuthUser
+      };
+
+    } catch (error) {
+      console.error('🔐 AuthService: Role validation error:', error);
+      return {
+        isValid: false,
+        error: 'Role validation failed'
+      };
+    }
+  }
+
+  /**
+   * Send password reset email with role validation
+   */
+  static async sendPasswordResetWithRoleValidation(
+    email: string, 
+    accessType: 'school' | 'admin'
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // First, check if the user exists and validate their role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, status')
+        .eq('email', email)
+        .single();
+
+      if (profileError) {
+        // Don't reveal if user exists or not for security
+        console.log('🔐 AuthService: Password reset requested for non-existent or invalid email:', email);
+        return { success: true }; // Return success to prevent email enumeration
+      }
+
+      // Check if user account is active
+      if (profile.status === 'inactive' || profile.status === 'suspended') {
+        return {
+          success: false,
+          error: 'Password reset is not available for deactivated accounts. Please contact your administrator.'
+        };
+      }
+
+      // Validate role for access type
+      const roleValidation = this.validateRoleForAccessType(profile.role, accessType);
+      if (!roleValidation.isValid) {
+        return {
+          success: false,
+          error: roleValidation.error
+        };
+      }
+
+      // Send password reset email
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        console.error('🔐 AuthService: Password reset error:', error);
+        return {
+          success: false,
+          error: this.getUserFriendlyError(error.message)
+        };
+      }
+
+      return { success: true };
+
+    } catch (error) {
+      console.error('🔐 AuthService: Password reset exception:', error);
+      return {
+        success: false,
+        error: 'Failed to send password reset email. Please try again.'
+      };
+    }
+  }
+
+  /**
+   * Send password reset email (legacy method)
+   */
+  static async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+    return this.sendPasswordResetWithRoleValidation(email, 'school');
+  }
+
+  /**
+   * Check if user is EduFam Admin
+   */
+  static isEduFamAdmin(role: string): boolean {
+    return role === 'edufam_admin' || role === 'elimisha_admin';
+  }
+
+  /**
+   * Check if user is a school user (non-admin)
+   */
+  static isSchoolUser(role: string): boolean {
+    return ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(role);
+  }
+
+  /**
+   * Get user-friendly error messages
+   */
+  private static getUserFriendlyError(errorMessage: string): string {
+    const errorLower = errorMessage.toLowerCase();
+    
+    if (errorLower.includes('invalid login credentials')) {
+      return 'Invalid email or password. Please check your credentials and try again.';
+    }
+    
+    if (errorLower.includes('email not confirmed')) {
+      return 'Please verify your email address before logging in.';
+    }
+    
+    if (errorLower.includes('too many requests')) {
+      return 'Too many login attempts. Please wait a few minutes before trying again.';
+    }
+    
+    if (errorLower.includes('user not found')) {
+      return 'No account found with this email address.';
+    }
+    
+    return 'Login failed. Please check your credentials and try again.';
+  }
+
+  /**
+   * Get display name for role
+   */
+  static getRoleDisplayName(role: string): string {
+    const roleNames: Record<string, string> = {
+      'edufam_admin': 'EduFam Admin Staff',
+      'elimisha_admin': 'Elimisha Admin Staff',
+      'school_owner': 'School Owner',
+      'principal': 'Principal',
+      'teacher': 'Teacher',
+      'parent': 'Parent',
+      'finance_officer': 'Finance Officer'
+    };
+    
+    return roleNames[role] || role;
+  }
+
+  /**
+   * Get access type for a role
+   */
+  static getAccessTypeForRole(role: string): 'school' | 'admin' {
+    if (this.isEduFamAdmin(role)) {
+      return 'admin';
+    }
+    return 'school';
+  }
+} 

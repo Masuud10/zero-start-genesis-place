@@ -1,4 +1,3 @@
-
 export const detectCurriculumType = (curriculumValue: string | undefined | null): string => {
   if (!curriculumValue) return 'standard';
   
@@ -9,12 +8,19 @@ export const detectCurriculumType = (curriculumValue: string | undefined | null)
     case 'competency_based':
     case 'competency-based':
     case 'competency based':
-      return 'cbc'; // Keep lowercase to match database
+      return 'cbc'; // Keep lowercase to match application expectations
     case 'igcse':
     case 'cambridge':
     case 'cambridge igcse':
-      return 'igcse'; // Keep lowercase to match database
+      return 'igcse'; // Keep lowercase to match application expectations
+    case 'standard':
+    case 'traditional':
+    case '8-4-4':
+    case '844':
+      return 'standard';
     default:
+      // If we get an unrecognized value, log it and default to standard
+      console.warn(`Unrecognized curriculum type: ${curriculumValue}, defaulting to standard`);
       return 'standard';
   }
 };

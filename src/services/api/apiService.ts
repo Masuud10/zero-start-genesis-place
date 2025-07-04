@@ -1,10 +1,24 @@
 import { supabase } from '../../integrations/supabase/client';
-import { ApiCallWrapper, QueryOptimizer, UuidValidator } from '../../utils/apiOptimization';
+import { 
+  ApiCallWrapper, 
+  QueryOptimizer, 
+  UuidValidator, 
+  APIOptimizationUtils,
+  ApiErrorHandler,
+  RetryHandler,
+  TimeoutHandler,
+  FormValidator
+} from '../../utils/apiOptimization';
 
 export interface ApiResponse<T> {
   data: T | null;
   error: string | null;
   success: boolean;
+  metadata?: {
+    timestamp: number;
+    duration: number;
+    cached?: boolean;
+  };
 }
 
 export interface PaginationParams {
@@ -42,13 +56,13 @@ export interface School {
   principal_name?: string;
   principal_contact?: string;
   principal_email?: string;
-  owner_information?: Record<string, unknown>;
+  owner_information?: string;
   school_type?: string;
   status?: string;
   subscription_plan?: string;
   max_students?: number;
   timezone?: string;
-  term_structure?: Record<string, unknown>;
+  term_structure?: string;
 }
 
 export interface User {
@@ -125,12 +139,13 @@ export interface CreateSchoolParams {
   principal_name?: string;
   principal_contact?: string;
   principal_email?: string;
-  owner_information?: Record<string, unknown>;
+  owner_information?: string;
   subscription_plan?: string;
   max_students?: number;
   timezone?: string;
-  term_structure?: Record<string, unknown>;
+  term_structure?: string;
   curriculum_type?: string;
+  [key: string]: unknown;
 }
 
 export interface CreateUserParams {
@@ -139,6 +154,7 @@ export interface CreateUserParams {
   user_name: string;
   user_role?: string;
   user_school_id?: string;
+  [key: string]: unknown;
 }
 
 export interface StudentInsertData {
@@ -178,43 +194,169 @@ export interface ClassInsertData {
   [key: string]: unknown;
 }
 
-// Type for RPC calls that may not be fully typed
-export type RpcCall = (functionName: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+// Proper Supabase query builder types
+export interface SupabaseQueryBuilder {
+  select: (columns: string) => SupabaseQueryBuilder;
+  eq: (column: string, value: string) => SupabaseQueryBuilder;
+  order: (column: string, options: { ascending: boolean }) => SupabaseQueryBuilder;
+  limit: (count: number) => SupabaseQueryBuilder;
+  range: (from: number, to: number) => SupabaseQueryBuilder;
+  single: () => Promise<{ data: unknown; error: unknown }>;
+  update: (updates: Record<string, unknown>) => SupabaseQueryBuilder;
+  delete: () => SupabaseQueryBuilder;
+  insert: (data: Record<string, unknown>) => SupabaseQueryBuilder;
+}
 
-// Type for Supabase client with RPC capabilities
-export interface SupabaseWithRpc {
-  rpc: RpcCall;
-  from: (table: string) => {
-    select: (columns: string) => any;
-    eq: (column: string, value: string) => any;
-    order: (column: string, options: { ascending: boolean }) => any;
-    single: () => Promise<{ data: unknown; error: unknown }>;
-  };
+export interface SupabaseTableBuilder {
+  (table: string): SupabaseQueryBuilder;
+}
+
+export interface SupabaseRpcBuilder {
+  (functionName: string, params?: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
+}
+
+export interface SupabaseClient {
+  from: SupabaseTableBuilder;
+  rpc: SupabaseRpcBuilder;
 }
 
 export class ApiService {
+  private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private static readonly REQUEST_TIMEOUT = 30000; // 30 seconds
+  private static readonly MAX_RETRIES = 3;
+
   /**
-   * Generic fetch method with error handling
+   * Generic fetch method with enhanced error handling and performance optimizations
    */
   static async fetch<T>(
     operation: () => Promise<{ data: T | null; error: unknown }>,
-    context: string
+    context: string,
+    options: {
+      useCache?: boolean;
+      cacheKey?: string;
+      timeoutMs?: number;
+      maxRetries?: number;
+      deduplicate?: boolean;
+    } = {}
   ): Promise<ApiResponse<T>> {
+    const startTime = Date.now();
+    const {
+      useCache = false,
+      cacheKey,
+      timeoutMs = this.REQUEST_TIMEOUT,
+      maxRetries = this.MAX_RETRIES,
+      deduplicate = true
+    } = options;
+
+    // Check cache first if enabled
+    if (useCache && cacheKey) {
+      const cachedData = APIOptimizationUtils.getCachedData<T>(cacheKey);
+      if (cachedData) {
+        return {
+          data: cachedData,
+          error: null,
+          success: true,
+          metadata: {
+            timestamp: Date.now(),
+            duration: Date.now() - startTime,
+            cached: true
+          }
+        };
+      }
+    }
+
+    // Create operation with timeout and retry logic
+    const executeOperation = async (): Promise<{ data: T | null; error: unknown }> => {
+      return TimeoutHandler.withTimeout(
+        RetryHandler.withRetry(
+          async () => {
+            const result = await ApiCallWrapper.execute(operation, { 
+              context,
+              maxRetries: 1, // We handle retries at this level
+              timeoutMs: timeoutMs / 2, // Reserve time for retries
+              showErrorToast: false // We handle errors here
+            });
+            return result;
+          },
+          maxRetries,
+          1000,
+          context
+        ),
+        timeoutMs,
+        context
+      );
+    };
+
+    // Deduplicate requests if enabled
+    const finalOperation = deduplicate && cacheKey 
+      ? () => APIOptimizationUtils.deduplicateRequest(cacheKey, executeOperation)
+      : executeOperation;
+
     try {
-      const result = await ApiCallWrapper.execute(operation, { context });
+      const result = await finalOperation();
+      
+      // Cache successful results
+      if (useCache && cacheKey && result.data && !result.error) {
+        APIOptimizationUtils.setCachedData(cacheKey, result.data, this.CACHE_TTL);
+      }
+
+      const duration = Date.now() - startTime;
+      
       return {
         data: result.data,
         error: result.error ? String(result.error) : null,
-        success: !result.error
+        success: !result.error,
+        metadata: {
+          timestamp: Date.now(),
+          duration
+        }
       };
     } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
       console.error(`❌ ${context} error:`, error);
+      ApiErrorHandler.handle(error, context);
+      
       return {
         data: null,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        success: false
+        error: errorMessage,
+        success: false,
+        metadata: {
+          timestamp: Date.now(),
+          duration
+        }
       };
     }
+  }
+
+  /**
+   * Input validation helper
+   */
+  private static validateRequiredParams(params: Record<string, unknown>, requiredFields: string[]): void {
+    for (const field of requiredFields) {
+      if (!params[field] || (typeof params[field] === 'string' && params[field].toString().trim() === '')) {
+        throw new Error(`Missing required parameter: ${field}`);
+      }
+    }
+  }
+
+  /**
+   * Sanitize input data to prevent injection attacks
+   */
+  private static sanitizeInput<T extends Record<string, unknown>>(data: T): T {
+    const sanitized = {} as T;
+    
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === 'string') {
+        // Remove potentially dangerous characters
+        (sanitized as Record<string, unknown>)[key] = value.replace(/[<>\"'&]/g, '');
+      } else {
+        (sanitized as Record<string, unknown>)[key] = value;
+      }
+    }
+    
+    return sanitized;
   }
 
   /**
@@ -223,8 +365,9 @@ export class ApiService {
   static schools = {
     async getAll(params?: PaginationParams & SortParams): Promise<ApiResponse<School[]>> {
       const startTime = Date.now();
+      const cacheKey = `schools:all:${JSON.stringify(params)}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         let query = supabase
           .from('schools')
           .select(`
@@ -272,13 +415,14 @@ export class ApiService {
         const result = await query;
         QueryOptimizer.logSlowQuery('schools.getAll', startTime);
         return result;
-      }, 'Fetch Schools');
+      }, 'Fetch Schools', { useCache: true, cacheKey });
     },
 
     async getById(id: string): Promise<ApiResponse<School>> {
       UuidValidator.validateAndThrow(id, 'School ID');
+      const cacheKey = `school:${id}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('schools')
           .select('*')
@@ -286,26 +430,47 @@ export class ApiService {
           .single();
         
         return { data, error };
-      }, 'Fetch School by ID');
+      }, 'Fetch School by ID', { useCache: true, cacheKey });
     },
 
     async create(schoolData: CreateSchoolParams): Promise<ApiResponse<School>> {
-      return this.fetch(async () => {
-        const { data, error } = await supabase.rpc('create_enhanced_school', schoolData);
-        return { data, error };
+      // Validate required fields
+      ApiService.validateRequiredParams(schoolData, ['school_name', 'school_email', 'school_phone', 'school_address']);
+      
+      // Sanitize input
+      const sanitizedData = ApiService.sanitizeInput(schoolData);
+      
+      return ApiService.fetch(async () => {
+        const { data, error } = await supabase.rpc('create_enhanced_school', sanitizedData);
+        
+        // Clear cache after successful creation
+        if (data && !error) {
+          APIOptimizationUtils.clearCache('schools:');
+        }
+        
+        return { data: data as unknown as School, error };
       }, 'Create School');
     },
 
     async update(id: string, updates: Record<string, unknown>): Promise<ApiResponse<School>> {
       UuidValidator.validateAndThrow(id, 'School ID');
       
-      return this.fetch(async () => {
+      // Sanitize input
+      const sanitizedUpdates = ApiService.sanitizeInput(updates);
+      
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('schools')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update({ ...sanitizedUpdates, updated_at: new Date().toISOString() })
           .eq('id', id)
           .select()
           .single();
+        
+        // Clear cache after successful update
+        if (data && !error) {
+          APIOptimizationUtils.clearCache(`school:${id}`);
+          APIOptimizationUtils.clearCache('schools:');
+        }
         
         return { data, error };
       }, 'Update School');
@@ -314,11 +479,17 @@ export class ApiService {
     async delete(id: string): Promise<ApiResponse<boolean>> {
       UuidValidator.validateAndThrow(id, 'School ID');
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { error } = await supabase
           .from('schools')
           .delete()
           .eq('id', id);
+        
+        // Clear cache after successful deletion
+        if (!error) {
+          APIOptimizationUtils.clearCache(`school:${id}`);
+          APIOptimizationUtils.clearCache('schools:');
+        }
         
         return { data: !error, error };
       }, 'Delete School');
@@ -331,8 +502,9 @@ export class ApiService {
   static users = {
     async getAll(params?: PaginationParams & SortParams): Promise<ApiResponse<User[]>> {
       const startTime = Date.now();
+      const cacheKey = `users:all:${JSON.stringify(params)}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         let query = supabase
           .from('profiles')
           .select(`
@@ -357,13 +529,14 @@ export class ApiService {
         const result = await query;
         QueryOptimizer.logSlowQuery('users.getAll', startTime);
         return result;
-      }, 'Fetch Users');
+      }, 'Fetch Users', { useCache: true, cacheKey });
     },
 
     async getById(id: string): Promise<ApiResponse<User>> {
       UuidValidator.validateAndThrow(id, 'User ID');
+      const cacheKey = `user:${id}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('profiles')
           .select(`
@@ -374,26 +547,53 @@ export class ApiService {
           .single();
         
         return { data, error };
-      }, 'Fetch User by ID');
+      }, 'Fetch User by ID', { useCache: true, cacheKey });
     },
 
     async create(userData: CreateUserParams): Promise<ApiResponse<User>> {
-      return this.fetch(async () => {
-        const { data, error } = await supabase.rpc('create_admin_user', userData);
-        return { data, error };
+      // Validate required fields
+      ApiService.validateRequiredParams(userData, ['user_email', 'user_password', 'user_name']);
+      
+      // Validate email format
+      const emailError = FormValidator.validateEmail(userData.user_email);
+      if (emailError) {
+        throw new Error(emailError);
+      }
+      
+      // Sanitize input
+      const sanitizedData = ApiService.sanitizeInput(userData);
+      
+      return ApiService.fetch(async () => {
+        const { data, error } = await supabase.rpc('create_admin_user', sanitizedData);
+        
+        // Clear cache after successful creation
+        if (data && !error) {
+          APIOptimizationUtils.clearCache('users:');
+        }
+        
+        return { data: data as unknown as User, error };
       }, 'Create User');
     },
 
     async update(id: string, updates: Record<string, unknown>): Promise<ApiResponse<User>> {
       UuidValidator.validateAndThrow(id, 'User ID');
       
-      return this.fetch(async () => {
+      // Sanitize input
+      const sanitizedUpdates = ApiService.sanitizeInput(updates);
+      
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update({ ...sanitizedUpdates, updated_at: new Date().toISOString() })
           .eq('id', id)
           .select()
           .single();
+        
+        // Clear cache after successful update
+        if (data && !error) {
+          APIOptimizationUtils.clearCache(`user:${id}`);
+          APIOptimizationUtils.clearCache('users:');
+        }
         
         return { data, error };
       }, 'Update User');
@@ -402,11 +602,17 @@ export class ApiService {
     async delete(id: string): Promise<ApiResponse<boolean>> {
       UuidValidator.validateAndThrow(id, 'User ID');
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { error } = await supabase
           .from('profiles')
           .delete()
           .eq('id', id);
+        
+        // Clear cache after successful deletion
+        if (!error) {
+          APIOptimizationUtils.clearCache(`user:${id}`);
+          APIOptimizationUtils.clearCache('users:');
+        }
         
         return { data: !error, error };
       }, 'Delete User');
@@ -414,8 +620,9 @@ export class ApiService {
 
     async getBySchool(schoolId: string): Promise<ApiResponse<User[]>> {
       UuidValidator.validateAndThrow(schoolId, 'School ID');
+      const cacheKey = `users:school:${schoolId}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('profiles')
           .select(`
@@ -426,7 +633,7 @@ export class ApiService {
           .order('created_at', { ascending: false });
         
         return { data, error };
-      }, 'Fetch Users by School');
+      }, 'Fetch Users by School', { useCache: true, cacheKey });
     }
   };
 
@@ -437,15 +644,14 @@ export class ApiService {
     async getAll(schoolId: string, params?: PaginationParams & SortParams): Promise<ApiResponse<Student[]>> {
       UuidValidator.validateAndThrow(schoolId, 'School ID');
       const startTime = Date.now();
+      const cacheKey = `students:school:${schoolId}:${JSON.stringify(params)}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         let query = supabase
           .from('students')
           .select(`
             id, 
-            first_name, 
-            last_name, 
-            email, 
+            name,
             phone, 
             date_of_birth,
             gender,
@@ -476,20 +682,19 @@ export class ApiService {
         const result = await query;
         QueryOptimizer.logSlowQuery('students.getAll', startTime);
         return result;
-      }, 'Fetch Students');
+      }, 'Fetch Students', { useCache: true, cacheKey });
     },
 
     async getById(id: string): Promise<ApiResponse<Student>> {
       UuidValidator.validateAndThrow(id, 'Student ID');
+      const cacheKey = `student:${id}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('students')
           .select(`
             id, 
-            first_name, 
-            last_name, 
-            email, 
+            name,
             phone, 
             date_of_birth,
             gender,
@@ -507,16 +712,27 @@ export class ApiService {
           .single();
         
         return { data, error };
-      }, 'Fetch Student by ID');
+      }, 'Fetch Student by ID', { useCache: true, cacheKey });
     },
 
     async create(studentData: StudentInsertData): Promise<ApiResponse<Student>> {
-      return this.fetch(async () => {
+      // Validate required fields
+      ApiService.validateRequiredParams(studentData, ['name', 'admission_number']);
+      
+      // Sanitize input
+      const sanitizedData = ApiService.sanitizeInput(studentData);
+      
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('students')
-          .insert(studentData)
+          .insert(sanitizedData)
           .select()
           .single();
+        
+        // Clear cache after successful creation
+        if (data && !error) {
+          APIOptimizationUtils.clearCache('students:');
+        }
         
         return { data, error };
       }, 'Create Student');
@@ -525,13 +741,22 @@ export class ApiService {
     async update(id: string, updates: Record<string, unknown>): Promise<ApiResponse<Student>> {
       UuidValidator.validateAndThrow(id, 'Student ID');
       
-      return this.fetch(async () => {
+      // Sanitize input
+      const sanitizedUpdates = ApiService.sanitizeInput(updates);
+      
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('students')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update({ ...sanitizedUpdates, updated_at: new Date().toISOString() })
           .eq('id', id)
           .select()
           .single();
+        
+        // Clear cache after successful update
+        if (data && !error) {
+          APIOptimizationUtils.clearCache(`student:${id}`);
+          APIOptimizationUtils.clearCache('students:');
+        }
         
         return { data, error };
       }, 'Update Student');
@@ -540,11 +765,17 @@ export class ApiService {
     async delete(id: string): Promise<ApiResponse<boolean>> {
       UuidValidator.validateAndThrow(id, 'Student ID');
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { error } = await supabase
           .from('students')
           .delete()
           .eq('id', id);
+        
+        // Clear cache after successful deletion
+        if (!error) {
+          APIOptimizationUtils.clearCache(`student:${id}`);
+          APIOptimizationUtils.clearCache('students:');
+        }
         
         return { data: !error, error };
       }, 'Delete Student');
@@ -557,14 +788,14 @@ export class ApiService {
   static classes = {
     async getAll(schoolId: string): Promise<ApiResponse<Class[]>> {
       UuidValidator.validateAndThrow(schoolId, 'School ID');
+      const cacheKey = `classes:school:${schoolId}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('classes')
           .select(`
             id, 
             name, 
-            grade_level, 
             capacity, 
             academic_year,
             curriculum_type,
@@ -572,16 +803,17 @@ export class ApiService {
             updated_at
           `)
           .eq('school_id', schoolId)
-          .order('grade_level', { ascending: true });
+          .order('name', { ascending: true });
         
         return { data, error };
-      }, 'Fetch Classes');
+      }, 'Fetch Classes', { useCache: true, cacheKey });
     },
 
     async getById(id: string): Promise<ApiResponse<Class>> {
       UuidValidator.validateAndThrow(id, 'Class ID');
+      const cacheKey = `class:${id}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('classes')
           .select('*')
@@ -589,16 +821,27 @@ export class ApiService {
           .single();
         
         return { data, error };
-      }, 'Fetch Class by ID');
+      }, 'Fetch Class by ID', { useCache: true, cacheKey });
     },
 
     async create(classData: ClassInsertData): Promise<ApiResponse<Class>> {
-      return this.fetch(async () => {
+      // Validate required fields
+      ApiService.validateRequiredParams(classData, ['name']);
+      
+      // Sanitize input
+      const sanitizedData = ApiService.sanitizeInput(classData);
+      
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('classes')
-          .insert(classData)
+          .insert(sanitizedData)
           .select()
           .single();
+        
+        // Clear cache after successful creation
+        if (data && !error) {
+          APIOptimizationUtils.clearCache('classes:');
+        }
         
         return { data, error };
       }, 'Create Class');
@@ -607,13 +850,22 @@ export class ApiService {
     async update(id: string, updates: Record<string, unknown>): Promise<ApiResponse<Class>> {
       UuidValidator.validateAndThrow(id, 'Class ID');
       
-      return this.fetch(async () => {
+      // Sanitize input
+      const sanitizedUpdates = ApiService.sanitizeInput(updates);
+      
+      return ApiService.fetch(async () => {
         const { data, error } = await supabase
           .from('classes')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update({ ...sanitizedUpdates, updated_at: new Date().toISOString() })
           .eq('id', id)
           .select()
           .single();
+        
+        // Clear cache after successful update
+        if (data && !error) {
+          APIOptimizationUtils.clearCache(`class:${id}`);
+          APIOptimizationUtils.clearCache('classes:');
+        }
         
         return { data, error };
       }, 'Update Class');
@@ -622,11 +874,17 @@ export class ApiService {
     async delete(id: string): Promise<ApiResponse<boolean>> {
       UuidValidator.validateAndThrow(id, 'Class ID');
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { error } = await supabase
           .from('classes')
           .delete()
           .eq('id', id);
+        
+        // Clear cache after successful deletion
+        if (!error) {
+          APIOptimizationUtils.clearCache(`class:${id}`);
+          APIOptimizationUtils.clearCache('classes:');
+        }
         
         return { data: !error, error };
       }, 'Delete Class');
@@ -639,34 +897,38 @@ export class ApiService {
   static analytics = {
     async getSchoolStats(schoolId: string): Promise<ApiResponse<AnalyticsData>> {
       UuidValidator.validateAndThrow(schoolId, 'School ID');
+      const cacheKey = `analytics:school:${schoolId}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await (supabase as any).rpc('get_school_analytics', {
           p_school_id: schoolId
         });
         
-        return { data, error };
-      }, 'Fetch School Analytics');
+        return { data: data as AnalyticsData, error };
+      }, 'Fetch School Analytics', { useCache: true, cacheKey, timeoutMs: 45000 });
     },
 
     async getSystemStats(): Promise<ApiResponse<AnalyticsData>> {
-      return this.fetch(async () => {
+      const cacheKey = 'analytics:system';
+      
+      return ApiService.fetch(async () => {
         const { data, error } = await (supabase as any).rpc('get_system_analytics');
         
-        return { data, error };
-      }, 'Fetch System Analytics');
+        return { data: data as AnalyticsData, error };
+      }, 'Fetch System Analytics', { useCache: true, cacheKey, timeoutMs: 45000 });
     },
 
     async getClassStats(classId: string): Promise<ApiResponse<AnalyticsData>> {
       UuidValidator.validateAndThrow(classId, 'Class ID');
+      const cacheKey = `analytics:class:${classId}`;
       
-      return this.fetch(async () => {
+      return ApiService.fetch(async () => {
         const { data, error } = await (supabase as any).rpc('get_class_analytics', {
           p_class_id: classId
         });
         
-        return { data, error };
-      }, 'Fetch Class Analytics');
+        return { data: data as AnalyticsData, error };
+      }, 'Fetch Class Analytics', { useCache: true, cacheKey, timeoutMs: 45000 });
     }
   };
 
@@ -675,28 +937,46 @@ export class ApiService {
    */
   static reports = {
     async generateReport(reportType: string, params: Record<string, unknown>): Promise<ApiResponse<ReportData>> {
-      return this.fetch(async () => {
-        const { data, error } = await (supabase as any).rpc('generate_report', {
+      // Validate required fields
+      ApiService.validateRequiredParams({ reportType, ...params }, ['reportType']);
+      
+      // Sanitize input
+      const sanitizedParams = ApiService.sanitizeInput(params);
+      
+      return ApiService.fetch(async () => {
+        const { data, error } = await supabase.rpc('generate_report', {
           report_type: reportType,
-          report_params: params
+          report_params: sanitizedParams
         });
         
         return { data, error };
-      }, 'Generate Report');
+      }, 'Generate Report', { timeoutMs: 60000 }); // Longer timeout for report generation
     },
 
     async getReportHistory(userId: string): Promise<ApiResponse<ReportHistory[]>> {
       UuidValidator.validateAndThrow(userId, 'User ID');
+      const cacheKey = `reports:history:${userId}`;
       
-      return this.fetch(async () => {
-        const { data, error } = await (supabase as any)
+      return ApiService.fetch(async () => {
+        const { data, error } = await supabase
           .from('reports')
           .select('*')
           .eq('created_by', userId)
           .order('created_at', { ascending: false });
         
         return { data, error };
-      }, 'Fetch Report History');
+      }, 'Fetch Report History', { useCache: true, cacheKey });
     }
   };
+
+  /**
+   * Utility methods for cache management
+   */
+  static clearCache(pattern?: string): void {
+    APIOptimizationUtils.clearCache(pattern);
+  }
+
+  static getCacheStats(): { size: number; keys: string[] } {
+    return APIOptimizationUtils.getCacheStats();
+  }
 } 

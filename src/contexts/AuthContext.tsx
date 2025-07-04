@@ -1,15 +1,14 @@
-
-import React, { createContext, useContext, ReactNode } from 'react';
-import { AuthContextType } from '@/types/auth';
-import { useAuthState } from '@/hooks/useAuthState';
-import { useAuthActions } from '@/hooks/useAuthActions';
+import React, { createContext, useContext, ReactNode } from "react";
+import { AuthContextType } from "@/types/auth";
+import { useAuthState } from "@/hooks/useAuthState";
+import { useAuthActions } from "@/hooks/useAuthActions";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -24,22 +23,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     error: authState.error,
     isInitialized: authState.isInitialized,
     signIn: authActions.signIn,
-    signUp: authActions.signUp,
-    signOut: authActions.signOut
+    signOut: authActions.signOut,
   };
 
-  console.log('🔐 AuthProvider: State update', {
+  console.log("🔐 AuthProvider: State update", {
     hasUser: !!value.user,
     isLoading: value.isLoading,
     hasError: !!value.error,
     userRole: value.user?.role,
     userEmail: value.user?.email,
-    isInitialized: value.isInitialized
+    isInitialized: value.isInitialized,
   });
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

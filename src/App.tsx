@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -9,6 +9,8 @@ import { NavigationProvider } from "@/contexts/NavigationContext";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
 import MaintenanceGuard from "@/components/guards/MaintenanceGuard";
 import AppContent from "@/components/AppContent";
+import ResetPasswordPage from "@/components/ResetPasswordPage";
+import UnauthorizedPage from "@/components/UnauthorizedPage";
 import "./App.css";
 import "./utils/maintenanceDebugConsole";
 
@@ -47,7 +49,17 @@ function App() {
               <SchoolProvider>
                 <NavigationProvider>
                   <MaintenanceGuard>
-                    <AppContent />
+                    <Routes>
+                      <Route
+                        path="/reset-password"
+                        element={<ResetPasswordPage />}
+                      />
+                      <Route
+                        path="/unauthorized"
+                        element={<UnauthorizedPage />}
+                      />
+                      <Route path="*" element={<AppContent />} />
+                    </Routes>
                   </MaintenanceGuard>
                   <Toaster />
                 </NavigationProvider>

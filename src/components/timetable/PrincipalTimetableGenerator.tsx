@@ -45,7 +45,6 @@ import {
   Target,
   Settings,
   FileText,
-  ArrowLeft,
 } from "lucide-react";
 import {
   Table,
@@ -466,10 +465,6 @@ const PrincipalTimetableGenerator: React.FC = () => {
     window.print();
   };
 
-  const handleBackToDashboard = () => {
-    setActiveSection("dashboard");
-  };
-
   // Load existing timetable when class is selected
   useEffect(() => {
     if (existingTimetable.length > 0) {
@@ -493,15 +488,6 @@ const PrincipalTimetableGenerator: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToDashboard}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                   <Calendar className="h-6 w-6 text-white" />

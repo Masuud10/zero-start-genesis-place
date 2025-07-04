@@ -23,6 +23,7 @@ import { usePrincipalGradeManagement } from "@/hooks/usePrincipalGradeManagement
 import { useClasses } from "@/hooks/useClasses";
 import { useSubjects } from "@/hooks/useSubjects";
 import { PrincipalGradeApprovalInterface } from "@/components/grading/PrincipalGradeApprovalInterface";
+import { useClassCurriculum } from "@/hooks/useClassCurriculum";
 import {
   Eye,
   CheckCircle,
@@ -35,6 +36,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { DynamicGradingSheet } from "@/components/grading/DynamicGradingSheet";
 
 const PrincipalGradesModule: React.FC = () => {
   const { toast } = useToast();
@@ -59,6 +61,17 @@ const PrincipalGradesModule: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState<any>(null);
   const [overrideScore, setOverrideScore] = useState<string>("");
   const [overrideNotes, setOverrideNotes] = useState<string>("");
+  const [selectedClassForCurriculum, setSelectedClassForCurriculum] =
+    useState<string>("");
+  const [selectedTerm, setSelectedTerm] = useState<string>("");
+  const [selectedExamType, setSelectedExamType] = useState<string>("");
+
+  // Get curriculum type for selected class
+  const {
+    curriculumType: classCurriculumType,
+    loading: classCurriculumLoading,
+    error: classCurriculumError,
+  } = useClassCurriculum(selectedClassForCurriculum);
 
   const getFilteredGrades = (status: string) => {
     return grades.filter((grade) => {
@@ -366,6 +379,22 @@ const PrincipalGradesModule: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {selectedClassForCurriculum && selectedTerm && selectedExamType && (
+        <Dialog
+          open={true}
+          onOpenChange={() => setSelectedClassForCurriculum("")}
+        >
+          <DialogContent className="max-w-5xl">
+            <DynamicGradingSheet
+              classId={selectedClassForCurriculum}
+              term={selectedTerm}
+              examType={selectedExamType}
+              isReadOnly={false}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

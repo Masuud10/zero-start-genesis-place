@@ -1,24 +1,42 @@
-
-import React, { useState } from 'react';
-import { Settings, Database, Shield, Bell, Users, Building2, Sparkles, Monitor, Lock, UserCog, Wrench, Server } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import {
+  Settings,
+  Database,
+  Shield,
+  Bell,
+  Users,
+  Building2,
+  Sparkles,
+  Monitor,
+  Lock,
+  UserCog,
+  Wrench,
+  Server,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import MaintenanceSettings from './MaintenanceSettings';
-import DatabaseSettings from './DatabaseSettings';
-import SecuritySettingsPanel from './SecuritySettingsPanel';
-import NotificationSettings from './NotificationSettings';
-import UserManagementSettings from './UserManagementSettings';
-import CompanySettings from './CompanySettings';
-import { useAuth } from '@/contexts/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import MaintenanceSettings from "./MaintenanceSettings";
+import DatabaseSettings from "./DatabaseSettings";
+import SecuritySettingsPanel from "./SecuritySettingsPanel";
+import NotificationSettings from "./NotificationSettings";
+import UserManagementSettings from "./UserManagementSettings";
+import CompanySettings from "./CompanySettings";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SystemSettings: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('maintenance');
+  const [activeTab, setActiveTab] = useState("maintenance");
 
   // Only allow EduFam admins to access system settings
-  if (user?.role !== 'edufam_admin') {
+  if (user?.role !== "edufam_admin") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/20 flex items-center justify-center p-4">
         <Card className="max-w-md border-destructive/20 bg-destructive/5">
@@ -42,109 +60,81 @@ const SystemSettings: React.FC = () => {
 
   const settingsTabs = [
     {
-      id: 'maintenance',
-      label: 'System Maintenance',
-      description: 'Control system availability and updates',
+      id: "maintenance",
+      label: "System Maintenance",
+      description: "Control system availability and updates",
       icon: Wrench,
-      color: 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200',
-      iconBg: 'bg-orange-100',
-      iconColor: 'text-orange-600',
-      component: <MaintenanceSettings />
+      color: "bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200",
+      iconBg: "bg-orange-100",
+      iconColor: "text-orange-600",
+      component: <MaintenanceSettings />,
     },
     {
-      id: 'database',
-      label: 'Database Management',
-      description: 'Monitor and optimize database performance',
+      id: "database",
+      label: "Database Management",
+      description: "Monitor and optimize database performance",
       icon: Server,
-      color: 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200',
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      component: <DatabaseSettings />
+      color: "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      component: <DatabaseSettings />,
     },
     {
-      id: 'security',
-      label: 'Security Center',
-      description: 'Manage authentication and access controls',
+      id: "security",
+      label: "Security Center",
+      description: "Manage authentication and access controls",
       icon: Lock,
-      color: 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200',
-      iconBg: 'bg-red-100',
-      iconColor: 'text-red-600',
-      component: <SecuritySettingsPanel />
+      color: "bg-gradient-to-br from-red-50 to-pink-50 border-red-200",
+      iconBg: "bg-red-100",
+      iconColor: "text-red-600",
+      component: <SecuritySettingsPanel />,
     },
     {
-      id: 'notifications',
-      label: 'Notification Hub',
-      description: 'Configure system-wide notifications',
+      id: "notifications",
+      label: "Notification Hub",
+      description: "Configure system-wide notifications",
       icon: Bell,
-      color: 'bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200',
-      iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600',
-      component: <NotificationSettings />
+      color: "bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200",
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
+      component: <NotificationSettings />,
     },
     {
-      id: 'users',
-      label: 'User Administration',
-      description: 'Manage user accounts and permissions',
+      id: "users",
+      label: "User Administration",
+      description: "Manage user accounts and permissions",
       icon: UserCog,
-      color: 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200',
-      iconBg: 'bg-green-100',
-      iconColor: 'text-green-600',
-      component: <UserManagementSettings />
+      color: "bg-gradient-to-br from-green-50 to-emerald-50 border-green-200",
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+      component: <UserManagementSettings />,
     },
     {
-      id: 'company',
-      label: 'Organization Settings',
-      description: 'Configure company information and branding',
+      id: "company",
+      label: "Organization Settings",
+      description: "Configure company information and branding",
       icon: Building2,
-      color: 'bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200',
-      iconBg: 'bg-slate-100',
-      iconColor: 'text-slate-600',
-      component: <CompanySettings />
-    }
+      color: "bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200",
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-600",
+      component: <CompanySettings />,
+    },
   ];
 
-  const activeSettings = settingsTabs.find(tab => tab.id === activeTab);
+  const activeSettings = settingsTabs.find((tab) => tab.id === activeTab);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/20">
-      {/* Header Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/5 to-secondary/10" />
-        <div className="relative px-6 py-12">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 bg-primary/10 rounded-2xl">
-                <Monitor className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  System Control Center
-                </h1>
-                <p className="text-lg text-muted-foreground mt-2 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Advanced system administration and configuration
-                </p>
-              </div>
-            </div>
-            
-            <Badge variant="secondary" className="mb-8">
-              <Settings className="h-3 w-3 mr-1" />
-              EduFam Administrator Access
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 pb-12">
+      <div className="max-w-7xl mx-auto px-6 pb-12 pt-6">
         {/* Navigation Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {settingsTabs.map((tab) => (
-            <Card 
+            <Card
               key={tab.id}
               className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 ${
-                activeTab === tab.id 
-                  ? `${tab.color} shadow-md ring-2 ring-primary/20` 
-                  : 'bg-card hover:bg-accent/30'
+                activeTab === tab.id
+                  ? `${tab.color} shadow-md ring-2 ring-primary/20`
+                  : "bg-card hover:bg-accent/30"
               }`}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -176,7 +166,9 @@ const SystemSettings: React.FC = () => {
             <CardHeader className="border-b bg-gradient-to-r from-accent/20 to-secondary/10">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-xl ${activeSettings.iconBg}`}>
-                  <activeSettings.icon className={`h-6 w-6 ${activeSettings.iconColor}`} />
+                  <activeSettings.icon
+                    className={`h-6 w-6 ${activeSettings.iconColor}`}
+                  />
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-bold">
@@ -189,9 +181,7 @@ const SystemSettings: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent className="p-8">
-              <div className="animate-fade-in">
-                {activeSettings.component}
-              </div>
+              <div className="animate-fade-in">{activeSettings.component}</div>
             </CardContent>
           </Card>
         )}

@@ -82,20 +82,36 @@ export class SystemHealthCheck {
     try {
       console.log('🔍 Testing database connection...');
       
-      const { data, error } = await supabase
-        .from('system_status')
-        .select('current_status')
+      // First test basic connectivity with a reliable table
+      const { data: testData, error: testError } = await supabase
+        .from('profiles')
+        .select('id')
         .limit(1);
 
       const responseTime = Date.now() - startTime;
 
-      if (error) {
-        console.error('❌ Database connection failed:', error);
+      if (testError) {
+        console.error('❌ Database connection failed:', testError);
         return {
           connected: false,
-          error: error.message,
+          error: testError.message,
           responseTime
         };
+      }
+
+      // Try to get system status if available (optional)
+      try {
+        const { data, error } = await supabase
+          .from('system_status')
+          .select('current_status')
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.warn('⚠️ System status check failed, but basic connection works:', error);
+        }
+      } catch (statusError) {
+        console.warn('⚠️ System status table not available, but basic connection works');
       }
 
       console.log('✅ Database connection successful');
@@ -223,11 +239,12 @@ export class SystemHealthCheck {
       return {
         accessible: true
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown API error';
       console.error('❌ API accessibility test exception:', err);
       return {
         accessible: false,
-        error: err.message || 'Unknown API error'
+        error: errorMessage
       };
     }
   }
@@ -237,7 +254,7 @@ export class SystemHealthCheck {
     
     try {
       switch (feature) {
-        case 'profiles':
+        case 'profiles': {
           const { data, error } = await supabase
             .from('profiles')
             .select('id, role, name')
@@ -247,8 +264,9 @@ export class SystemHealthCheck {
             return { working: false, error: error.message };
           }
           return { working: true };
+        }
 
-        case 'schools':
+        case 'schools': {
           const { data: schoolsData, error: schoolsError } = await supabase
             .from('schools')
             .select('id, name')
@@ -258,8 +276,9 @@ export class SystemHealthCheck {
             return { working: false, error: schoolsError.message };
           }
           return { working: true };
+        }
 
-        case 'subjects':
+        case 'subjects': {
           const { data: subjectsData, error: subjectsError } = await supabase
             .from('subjects')
             .select('id, name')
@@ -269,12 +288,14 @@ export class SystemHealthCheck {
             return { working: false, error: subjectsError.message };
           }
           return { working: true };
+        }
 
         default:
           return { working: false, error: `Unknown feature: ${feature}` };
       }
-    } catch (err: any) {
-      return { working: false, error: err.message || 'Unknown error' };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      return { working: false, error: errorMessage };
     }
   }
 } 
