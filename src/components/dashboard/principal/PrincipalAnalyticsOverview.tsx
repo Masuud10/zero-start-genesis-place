@@ -129,12 +129,12 @@ const PrincipalAnalyticsOverview = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Grade Distribution */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-400 to-blue-500 text-white pb-4">
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <BookOpen className="h-5 w-5" />
               Grade Distribution
             </CardTitle>
-            <p className="text-blue-50 text-sm">
+            <p className="text-muted-foreground text-sm">
               Current academic performance spread
             </p>
           </CardHeader>
@@ -179,12 +179,12 @@ const PrincipalAnalyticsOverview = () => {
 
         {/* Subject Performance */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-green-400 to-green-500 text-white pb-4">
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5" />
               Subject Performance
             </CardTitle>
-            <p className="text-green-50 text-sm">Average scores by subject</p>
+            <p className="text-muted-foreground text-sm">Average scores by subject</p>
           </CardHeader>
           <CardContent className="p-4">
             <ChartContainer config={chartConfig} className="h-64">
@@ -219,12 +219,12 @@ const PrincipalAnalyticsOverview = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Attendance Trends */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-400 to-purple-500 text-white pb-4">
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="h-5 w-5" />
               Attendance Trends
             </CardTitle>
-            <p className="text-purple-50 text-sm">
+            <p className="text-muted-foreground text-sm">
               Monthly attendance rate patterns
             </p>
           </CardHeader>
@@ -258,12 +258,12 @@ const PrincipalAnalyticsOverview = () => {
 
         {/* Fee Collection Overview */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-orange-400 to-orange-500 text-white pb-4">
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5" />
               Fee Collection Status
             </CardTitle>
-            <p className="text-orange-50 text-sm">
+            <p className="text-muted-foreground text-sm">
               Current fee collection overview
             </p>
           </CardHeader>

@@ -429,37 +429,49 @@ function AdminLoginForm() {
 
 const UniversalLoginPage: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-[#F7F9FC] p-4">
-      {/* Main Login Form */}
-      <Card className="w-full max-w-[400px] mx-auto shadow-lg border-0 overflow-hidden rounded-2xl">
-        <CardContent className="p-8 bg-white">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome back — Sign in to Edufam
-            </h1>
-            <p className="text-sm text-gray-600">
-              Access your personalized Edufam dashboard
-            </p>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+      <div className="w-full max-w-sm mx-auto">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mb-6 shadow-lg">
+            <Shield className="h-8 w-8 text-white" />
           </div>
-          <SchoolUserLoginForm />
-        </CardContent>
-      </Card>
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+            Welcome back
+          </h1>
+          <h2 className="text-xl text-gray-700 mb-2">
+            Sign in to Edufam
+          </h2>
+          <p className="text-sm text-gray-500">
+            Access your personalized dashboard
+          </p>
+        </div>
 
-      {/* Admin Login Section */}
-      <div className="mt-8 w-full max-w-[400px] mx-auto">
+        {/* Main Login Form */}
+        <Card className="backdrop-blur-sm bg-white/80 border-white/20 shadow-2xl rounded-3xl overflow-hidden mb-8">
+          <CardContent className="p-8">
+            <SchoolUserLoginForm />
+          </CardContent>
+        </Card>
+
+        {/* Admin Login Section */}
         <div className="relative mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+            <div className="w-full border-t border-gray-300/50" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-[#F7F9FC] text-gray-500 font-medium">
-              — Or login as Edufam Admin —
+            <span className="px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-gray-600 font-medium rounded-full">
+              Edufam Admin Access
             </span>
           </div>
         </div>
 
-        <Card className="shadow-lg border-0 overflow-hidden rounded-2xl">
-          <CardContent className="p-6 bg-white">
+        <Card className="backdrop-blur-sm bg-white/70 border-white/20 shadow-xl rounded-3xl overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+              <Shield className="h-4 w-4" />
+              <span>Administrative Login</span>
+            </div>
             <AdminLoginForm />
           </CardContent>
         </Card>
@@ -467,7 +479,8 @@ const UniversalLoginPage: React.FC = () => {
 
       {/* Footer Branding */}
       <div className="mt-12 text-center">
-        <p className="text-sm text-gray-500">Powered by Edufam</p>
+        <p className="text-sm text-gray-500 font-medium">Powered by Edufam</p>
+        <div className="mt-2 w-16 h-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full"></div>
       </div>
     </div>
   );
