@@ -1,7 +1,12 @@
-
 import React from "react";
 import { BarChart3 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import SchoolOwnerStatsCards, { SchoolMetrics } from "./SchoolOwnerStatsCards";
 import SchoolManagementActions from "./SchoolManagementActions";
 import AnalyticsSecurityGuard from "../../analytics/AnalyticsSecurityGuard";
@@ -30,17 +35,19 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
       fallbackMessage="You need school owner permissions to view analytics."
     >
       <Card className="shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+        <CardHeader className="rounded-t-lg">
           <CardTitle className="flex items-center gap-3 text-xl">
             <BarChart3 className="h-6 w-6" />
             Secure Analytics Overview
           </CardTitle>
-          <CardDescription className="text-blue-100">
+          <CardDescription>
             Real-time insights and performance data with enhanced security
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <SecureSchoolOwnerAnalytics filters={{ term: 'current', class: 'all' }} />
+          <SecureSchoolOwnerAnalytics
+            filters={{ term: "current", class: "all" }}
+          />
         </CardContent>
       </Card>
     </AnalyticsSecurityGuard>
