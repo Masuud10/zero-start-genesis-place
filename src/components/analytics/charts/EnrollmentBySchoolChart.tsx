@@ -5,7 +5,7 @@ import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
 import { Loader2 } from 'lucide-react';
 
 const EnrollmentBySchoolChart = () => {
-  const { data: analytics, isLoading, error } = useSystemAnalytics();
+  const { analyticsData: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
@@ -15,7 +15,7 @@ const EnrollmentBySchoolChart = () => {
     );
   }
 
-  if (error || !analytics?.schoolsOnboarded) {
+  if (error || !analytics?.schoolRegistrationTrend) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         <p>No enrollment data available</p>
@@ -25,12 +25,12 @@ const EnrollmentBySchoolChart = () => {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={analytics.schoolsOnboarded}>
+      <BarChart data={analytics.schoolRegistrationTrend}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" />
         <YAxis />
         <Tooltip />
-        <Bar dataKey="count" fill="#10b981" />
+        <Bar dataKey="schools" fill="#10b981" />
       </BarChart>
     </ResponsiveContainer>
   );

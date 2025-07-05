@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
@@ -7,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981'];
 
 const FinancialSummaryPieChart = () => {
-  const { data: analytics, isLoading, error } = useSystemAnalytics();
+  const { analyticsData: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
@@ -17,7 +16,7 @@ const FinancialSummaryPieChart = () => {
     );
   }
 
-  if (error || !analytics?.financeSummary) {
+  if (error || !analytics?.subscriptionData) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         <p>No financial data available</p>
@@ -26,9 +25,9 @@ const FinancialSummaryPieChart = () => {
   }
 
   const financialData = [
-    { name: 'Subscriptions', value: analytics.financeSummary.total_subscriptions },
-    { name: 'Setup Fees', value: analytics.financeSummary.setup_fees },
-    { name: 'Monthly Revenue', value: analytics.financeSummary.monthly_revenue }
+    { name: 'Total Revenue', value: analytics.totalRevenue },
+    { name: 'Monthly Revenue', value: analytics.monthlyRevenue },
+    { name: 'Subscriptions', value: analytics.subscriptionData.reduce((sum, sub) => sum + sub.revenue, 0) }
   ];
 
   return (

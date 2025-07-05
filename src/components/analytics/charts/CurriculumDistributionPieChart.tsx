@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
 const CurriculumDistributionPieChart = () => {
-  const { data: analytics, isLoading, error } = useSystemAnalytics();
+  const { analyticsData: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
@@ -17,7 +17,7 @@ const CurriculumDistributionPieChart = () => {
     );
   }
 
-  if (error || !analytics?.curriculumTypes) {
+  if (error || !analytics?.userRoleDistribution) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         <p>No curriculum data available</p>
@@ -29,16 +29,16 @@ const CurriculumDistributionPieChart = () => {
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
-          data={analytics.curriculumTypes}
+          data={analytics.userRoleDistribution}
           cx="50%"
           cy="50%"
           labelLine={false}
-          label={({ type, percentage }) => `${type}: ${percentage}%`}
+          label={({ role, percentage }) => `${role}: ${percentage}%`}
           outerRadius={80}
           fill="#8884d8"
           dataKey="count"
         >
-          {analytics.curriculumTypes.map((entry, index) => (
+          {analytics.userRoleDistribution.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>

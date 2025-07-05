@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
@@ -7,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 const UserRoleDistributionChart = () => {
-  const { data: analytics, isLoading, error } = useSystemAnalytics();
+  const { analyticsData: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
@@ -17,7 +16,7 @@ const UserRoleDistributionChart = () => {
     );
   }
 
-  if (error || !analytics?.userDistribution) {
+  if (error || !analytics?.userRoleDistribution) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         <p>No user data available</p>
@@ -29,7 +28,7 @@ const UserRoleDistributionChart = () => {
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
-          data={analytics.userDistribution}
+          data={analytics.userRoleDistribution}
           cx="50%"
           cy="50%"
           labelLine={false}
@@ -38,7 +37,7 @@ const UserRoleDistributionChart = () => {
           fill="#8884d8"
           dataKey="count"
         >
-          {analytics.userDistribution.map((entry, index) => (
+          {analytics.userRoleDistribution.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>

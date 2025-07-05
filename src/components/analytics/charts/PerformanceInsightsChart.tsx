@@ -1,11 +1,10 @@
-
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
 import { Loader2 } from 'lucide-react';
 
 const PerformanceInsightsChart = () => {
-  const { data: analytics, isLoading, error } = useSystemAnalytics();
+  const { analyticsData: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
@@ -15,7 +14,7 @@ const PerformanceInsightsChart = () => {
     );
   }
 
-  if (error || !analytics?.performanceTrends) {
+  if (error || !analytics?.performanceMetrics) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         <p>No performance data available</p>
@@ -25,19 +24,13 @@ const PerformanceInsightsChart = () => {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={analytics.performanceTrends}>
+      <BarChart data={analytics.performanceMetrics}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="month" />
-        <YAxis domain={[0, 100]} />
-        <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Average Grade']} />
-        <Line 
-          type="monotone" 
-          dataKey="average_grade" 
-          stroke="#f59e0b" 
-          strokeWidth={3}
-          dot={{ fill: '#f59e0b', strokeWidth: 2, r: 5 }}
-        />
-      </LineChart>
+        <XAxis dataKey="metric" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="value" fill="#f59e0b" />
+      </BarChart>
     </ResponsiveContainer>
   );
 };

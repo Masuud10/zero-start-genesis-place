@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
 import { Loader2 } from 'lucide-react';
 
 const SystemGrowthTrendsChart = () => {
-  const { data: analytics, isLoading, error } = useSystemAnalytics();
+  const { analyticsData: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
@@ -15,7 +14,7 @@ const SystemGrowthTrendsChart = () => {
     );
   }
 
-  if (error || !analytics?.schoolsOnboarded) {
+  if (error || !analytics?.schoolRegistrationTrend) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         <p>No growth data available</p>
@@ -25,14 +24,14 @@ const SystemGrowthTrendsChart = () => {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={analytics.schoolsOnboarded}>
+      <LineChart data={analytics.schoolRegistrationTrend}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" />
         <YAxis />
         <Tooltip />
         <Line 
           type="monotone" 
-          dataKey="count" 
+          dataKey="schools" 
           stroke="#3b82f6" 
           strokeWidth={2}
           dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
