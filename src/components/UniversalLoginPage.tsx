@@ -12,11 +12,9 @@ import { AuthService } from "@/services/authService";
 function ForgotPasswordModal({
   isOpen,
   onClose,
-  userType,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  userType: "school" | "admin";
 }) {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,12 +35,7 @@ function ForgotPasswordModal({
     setIsSubmitting(true);
 
     try {
-      // Use strict role validation for password reset
-      const accessType = userType === "admin" ? "admin" : "school";
-      const result = await AuthService.sendPasswordResetWithRoleValidation(
-        email,
-        accessType
-      );
+      const result = await AuthService.sendUniversalPasswordReset(email);
 
       if (result.success) {
         setMessage(
@@ -142,7 +135,7 @@ function ForgotPasswordModal({
   );
 }
 
-function SchoolUserLoginForm() {
+function UniversalLoginForm() {
   const { signIn, isLoading } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
@@ -164,11 +157,10 @@ function SchoolUserLoginForm() {
     setIsSubmitting(true);
 
     try {
-      // Use strict role validation for school user login
-      const result = await AuthService.authenticateUserWithStrictRoleValidation(
+      // Use universal authentication that determines role automatically
+      const result = await AuthService.authenticateUserUniversal(
         email.trim(),
-        password,
-        "school"
+        password
       );
 
       if (!result.success) {
@@ -181,7 +173,6 @@ function SchoolUserLoginForm() {
         email: email.trim(),
         password,
         strictValidation: true,
-        accessType: "school",
       });
 
       if (authResult.error) {
@@ -216,7 +207,7 @@ function SchoolUserLoginForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email"
+            placeholder="Email"
             className="w-full px-4 py-3 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
             required
             autoComplete="email"
@@ -229,7 +220,7 @@ function SchoolUserLoginForm() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
+            placeholder="Password"
             className="w-full px-4 py-3 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
             required
             autoComplete="current-password"
@@ -277,151 +268,6 @@ function SchoolUserLoginForm() {
       <ForgotPasswordModal
         isOpen={showForgotPassword}
         onClose={() => setShowForgotPassword(false)}
-        userType="school"
-      />
-    </>
-  );
-}
-
-function AdminLoginForm() {
-  const { signIn, isLoading } = useAuth();
-  const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!email || !password) {
-      setError("Please enter both email and password.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Use strict role validation for admin login
-      const result = await AuthService.authenticateUserWithStrictRoleValidation(
-        email.trim(),
-        password,
-        "admin"
-      );
-
-      if (!result.success) {
-        setError(result.error || "Login failed. Please try again.");
-        return;
-      }
-
-      // Call the auth context signIn method with the validated user
-      const authResult = await signIn({
-        email: email.trim(),
-        password,
-        strictValidation: true,
-        accessType: "admin",
-      });
-
-      if (authResult.error) {
-        setError(authResult.error);
-        return;
-      }
-
-      toast({
-        title: "Login Successful",
-        description: "Redirecting to admin dashboard...",
-      });
-    } catch (error) {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertDescription className="text-red-700">
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-2">
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email"
-            className="w-full px-4 py-3 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
-            required
-            autoComplete="email"
-            disabled={isLoading || isSubmitting}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            className="w-full px-4 py-3 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
-            required
-            autoComplete="current-password"
-            disabled={isLoading || isSubmitting}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="admin-remember-me"
-              checked={rememberMe}
-              onCheckedChange={(v) => setRememberMe(!!v)}
-              className="rounded"
-            />
-            <label
-              htmlFor="admin-remember-me"
-              className="text-sm text-gray-600"
-            >
-              Remember me
-            </label>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowForgotPassword(true)}
-            className="text-sm text-[#0047AB] hover:text-[#003A8C] hover:underline transition-colors"
-          >
-            Forgot password?
-          </button>
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-3 rounded-lg font-medium transition-colors duration-200"
-          disabled={isLoading || isSubmitting}
-        >
-          {isLoading || isSubmitting ? (
-            <span className="flex items-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Signing in...
-            </span>
-          ) : (
-            "Sign In"
-          )}
-        </Button>
-      </form>
-
-      <ForgotPasswordModal
-        isOpen={showForgotPassword}
-        onClose={() => setShowForgotPassword(false)}
-        userType="admin"
       />
     </>
   );
@@ -439,9 +285,7 @@ const UniversalLoginPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-3">
             Welcome back
           </h1>
-          <h2 className="text-xl text-gray-700 mb-2">
-            Sign in to Edufam
-          </h2>
+          <h2 className="text-xl text-gray-700 mb-2">Sign in to Edufam</h2>
           <p className="text-sm text-gray-500">
             Access your personalized dashboard
           </p>
@@ -450,29 +294,7 @@ const UniversalLoginPage: React.FC = () => {
         {/* Main Login Form */}
         <Card className="backdrop-blur-sm bg-white/80 border-white/20 shadow-2xl rounded-3xl overflow-hidden mb-8">
           <CardContent className="p-8">
-            <SchoolUserLoginForm />
-          </CardContent>
-        </Card>
-
-        {/* Admin Login Section */}
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300/50" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-gray-600 font-medium rounded-full">
-              Edufam Admin Access
-            </span>
-          </div>
-        </div>
-
-        <Card className="backdrop-blur-sm bg-white/70 border-white/20 shadow-xl rounded-3xl overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
-              <Shield className="h-4 w-4" />
-              <span>Administrative Login</span>
-            </div>
-            <AdminLoginForm />
+            <UniversalLoginForm />
           </CardContent>
         </Card>
       </div>

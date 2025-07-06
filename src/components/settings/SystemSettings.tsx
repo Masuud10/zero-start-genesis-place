@@ -62,7 +62,6 @@ const SystemSettings: React.FC = () => {
     {
       id: "maintenance",
       label: "System Maintenance",
-      description: "Control system availability and updates",
       icon: Wrench,
       color: "bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200",
       iconBg: "bg-orange-100",
@@ -72,7 +71,6 @@ const SystemSettings: React.FC = () => {
     {
       id: "database",
       label: "Database Management",
-      description: "Monitor and optimize database performance",
       icon: Server,
       color: "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200",
       iconBg: "bg-blue-100",
@@ -82,7 +80,6 @@ const SystemSettings: React.FC = () => {
     {
       id: "security",
       label: "Security Center",
-      description: "Manage authentication and access controls",
       icon: Lock,
       color: "bg-gradient-to-br from-red-50 to-pink-50 border-red-200",
       iconBg: "bg-red-100",
@@ -92,7 +89,6 @@ const SystemSettings: React.FC = () => {
     {
       id: "notifications",
       label: "Notification Hub",
-      description: "Configure system-wide notifications",
       icon: Bell,
       color: "bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200",
       iconBg: "bg-purple-100",
@@ -102,7 +98,6 @@ const SystemSettings: React.FC = () => {
     {
       id: "users",
       label: "User Administration",
-      description: "Manage user accounts and permissions",
       icon: UserCog,
       color: "bg-gradient-to-br from-green-50 to-emerald-50 border-green-200",
       iconBg: "bg-green-100",
@@ -112,7 +107,6 @@ const SystemSettings: React.FC = () => {
     {
       id: "company",
       label: "Organization Settings",
-      description: "Configure company information and branding",
       icon: Building2,
       color: "bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200",
       iconBg: "bg-slate-100",
@@ -152,9 +146,6 @@ const SystemSettings: React.FC = () => {
                 <CardTitle className="text-lg font-semibold">
                   {tab.label}
                 </CardTitle>
-                <CardDescription className="text-sm">
-                  {tab.description}
-                </CardDescription>
               </CardHeader>
             </Card>
           ))}
@@ -174,9 +165,6 @@ const SystemSettings: React.FC = () => {
                   <CardTitle className="text-2xl font-bold">
                     {activeSettings.label}
                   </CardTitle>
-                  <CardDescription className="text-base">
-                    {activeSettings.description}
-                  </CardDescription>
                 </div>
               </div>
             </CardHeader>

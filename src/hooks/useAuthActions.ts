@@ -20,7 +20,23 @@ export const useAuthActions = () => {
         console.warn('🔑 AuthActions: Cleanup warning:', cleanupError);
       }
 
-      // Use strict role validation if specified
+      // Use universal authentication if no access type is specified
+      if (!credentials.accessType) {
+        const result = await AuthService.authenticateUserUniversal(
+          credentials.email, 
+          credentials.password
+        );
+        
+        if (!result.success) {
+          console.error('🔑 AuthActions: Universal authentication failed:', result.error);
+          return { error: result.error };
+        }
+
+        console.log('🔑 AuthActions: Universal authentication successful for', credentials.email);
+        return { error: undefined };
+      }
+
+      // Use strict role validation if access type is specified
       if (credentials.strictValidation && credentials.accessType) {
         const result = await AuthService.authenticateUserWithStrictRoleValidation(
           credentials.email, 

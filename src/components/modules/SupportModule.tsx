@@ -1,37 +1,49 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MessageSquare, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { useSupportTickets } from '@/hooks/useSupportTickets';
-import SupportTicketManagement from './support/SupportTicketManagement';
-
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  MessageSquare,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { useSupportTickets } from "@/hooks/useSupportTickets";
+import SupportTicketManagement from "./support/SupportTicketManagement";
 
 const SupportModule = () => {
   const { tickets } = useSupportTickets();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
   const getTicketStats = () => {
     return {
       total: tickets.length,
-      open: tickets.filter(t => t.status === 'open').length,
-      inProgress: tickets.filter(t => t.status === 'in_progress').length,
-      resolved: tickets.filter(t => t.status === 'resolved').length,
-      urgent: tickets.filter(t => t.priority === 'urgent').length
+      open: tickets.filter((t) => t.status === "open").length,
+      inProgress: tickets.filter((t) => t.status === "in_progress").length,
+      resolved: tickets.filter((t) => t.status === "resolved").length,
+      urgent: tickets.filter((t) => t.priority === "urgent").length,
     };
   };
 
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.creator_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.school_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
+  const filteredTickets = tickets.filter((ticket) => {
+    const matchesSearch =
+      ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.creator_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.school_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || ticket.status === statusFilter;
+    const matchesPriority =
+      priorityFilter === "all" || ticket.priority === priorityFilter;
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
@@ -44,7 +56,9 @@ const SupportModule = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">
             Support Tickets Management
           </h1>
-          <p className="text-muted-foreground">Manage support requests from schools across the network</p>
+          <p className="text-muted-foreground">
+            Manage support requests from schools across the network
+          </p>
         </div>
       </div>
 
@@ -128,12 +142,7 @@ const SupportModule = () => {
       </div>
 
       {/* Admin Support Interface */}
-      <SupportTicketManagement 
-        title="All Support Tickets"
-        description="Manage support requests from all schools"
-        showCreateButton={false}
-      />
-        
+      <SupportTicketManagement showCreateButton={false} />
     </div>
   );
 };

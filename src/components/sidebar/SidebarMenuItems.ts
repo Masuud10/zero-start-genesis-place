@@ -25,13 +25,16 @@ import {
   Globe,
   PieChart,
   Banknote,
-  FolderKanban
+  FolderKanban,
+  BookOpen
 } from 'lucide-react';
+
+import { LucideIcon } from 'lucide-react';
 
 export interface MenuItem {
   id: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   roles: string[];
   permission?: string;
   subItems?: MenuItem[];
@@ -85,6 +88,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       ...baseItems,
       { id: 'school-management', label: 'School Management', icon: SchoolIcon, roles: ['principal'] },
       { id: 'grades', label: 'Grades Management', icon: GraduationCap, roles: ['principal'] },
+      { id: 'examinations', label: 'Examinations', icon: BookOpen, roles: ['principal'] },
       { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['principal'] },
       { id: 'attendance', label: 'Attendance Management', icon: CalendarCheck, roles: ['principal'] },
       { id: 'students', label: 'Student Management', icon: Users, roles: ['principal'] },

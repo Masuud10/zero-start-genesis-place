@@ -359,64 +359,16 @@ const SupportTicketManagement: React.FC<SupportTicketManagementProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">{title}</h2>
-          <p className="text-muted-foreground">{description}</p>
-        </div>
-        {showCreateButton && (
+      {showCreateButton && (
+        <div className="flex justify-end">
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Create New Ticket
           </Button>
-        )}
-      </div>
-
-      {/* Filter Controls for Admins */}
-      {isAdmin && (
-        <div className="flex gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Status:</label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Priority:</label>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Badge variant="outline" className="ml-auto">
-            Total: {filteredTickets.length} / {tickets.length}
-          </Badge>
         </div>
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>
-            {isAdmin ? "All Support Tickets" : "Your Support Tickets"}
-          </CardTitle>
-        </CardHeader>
         <CardContent>{renderContent()}</CardContent>
       </Card>
 

@@ -93,3 +93,36 @@ export interface TimetableSlot {
   teacherId: string;
   room?: string;
 }
+
+export interface Examination {
+  id: string;
+  name: string;
+  type: 'Written' | 'Practical' | 'Mock' | 'Final' | 'Mid-Term' | 'End-Term';
+  term: 'Term 1' | 'Term 2' | 'Term 3';
+  academic_year: string;
+  classes: string[]; // Array of class IDs
+  start_date: string;
+  end_date: string;
+  coordinator_id?: string;
+  remarks?: string;
+  school_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateExaminationData {
+  name: string;
+  type: 'Written' | 'Practical' | 'Mock' | 'Final' | 'Mid-Term' | 'End-Term';
+  term: 'Term 1' | 'Term 2' | 'Term 3';
+  academic_year: string;
+  classes: string[];
+  start_date: string;
+  end_date: string;
+  coordinator_id?: string;
+  remarks?: string;
+}
+
+export interface UpdateExaminationData extends Partial<CreateExaminationData> {
+  id: string;
+}

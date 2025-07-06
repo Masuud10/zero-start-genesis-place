@@ -124,6 +124,9 @@ const UniversalSupportModule = React.lazy(
 const TeacherTimetableModule = React.lazy(
   () => import("@/components/timetable/TeacherTimetableView")
 );
+const ExaminationsModule = React.lazy(
+  () => import("@/components/modules/ExaminationsModule")
+);
 
 interface ContentRendererProps {
   activeSection: string;
@@ -432,6 +435,16 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return renderLazyComponent(GradesModule, "GradesModule");
+      case "examinations":
+        // Only principals can access examinations
+        if (user?.role === "principal") {
+          return renderLazyComponent(ExaminationsModule, "ExaminationsModule");
+        }
+        return (
+          <div className="p-8 text-center text-red-600">
+            Access Denied: Only principals can manage examinations
+          </div>
+        );
       case "attendance":
         return renderLazyComponent(AttendanceModule, "AttendanceModule");
       case "students":

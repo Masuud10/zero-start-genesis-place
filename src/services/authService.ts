@@ -381,4 +381,148 @@ export class AuthService {
     }
     return 'school';
   }
+
+  /**
+   * Universal authentication method that determines user role and access type automatically
+   */
+  static async authenticateUserUniversal(
+    email: string, 
+    password: string
+  ): Promise<StrictLoginResult> {
+    try {
+      console.log('🔐 AuthService: Universal authentication for:', email);
+
+      // First, authenticate with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (authError) {
+        console.error('🔐 AuthService: Authentication error:', authError);
+        return {
+          success: false,
+          error: this.getUserFriendlyError(authError.message)
+        };
+      }
+
+      if (!authData.user) {
+        return {
+          success: false,
+          error: 'Authentication failed. Please check your credentials.'
+        };
+      }
+
+      // Get user profile to determine role and access type
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, name, school_id, avatar_url, mfa_enabled, status')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('🔐 AuthService: Profile fetch error:', profileError);
+        return {
+          success: false,
+          error: 'Unable to retrieve user profile. Please contact support.'
+        };
+      }
+
+      // Check account status
+      if (profile.status === 'inactive' || profile.status === 'suspended') {
+        return {
+          success: false,
+          error: 'Your account has been deactivated. Please contact your administrator.'
+        };
+      }
+
+      // Determine access type based on role
+      const accessType = this.isEduFamAdmin(profile.role) ? 'admin' : 'school';
+
+      // Create user object
+      const user: AuthUser = {
+        id: authData.user.id,
+        email: authData.user.email!,
+        role: profile.role,
+        name: profile.name,
+        school_id: profile.school_id,
+        avatar_url: profile.avatar_url,
+        mfa_enabled: profile.mfa_enabled || false,
+      };
+
+      console.log('🔐 AuthService: Universal authentication successful:', {
+        userId: user.id,
+        role: user.role,
+        accessType
+      });
+
+      return {
+        success: true,
+        user,
+        accessType
+      };
+
+    } catch (error) {
+      console.error('🔐 AuthService: Universal authentication exception:', error);
+      return {
+        success: false,
+        error: 'An unexpected error occurred. Please try again.'
+      };
+    }
+  }
+
+  /**
+   * Universal password reset that works for all user types
+   */
+  static async sendUniversalPasswordReset(
+    email: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('🔐 AuthService: Universal password reset for:', email);
+
+      // First, check if the user exists and get their profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, status')
+        .eq('email', email)
+        .single();
+
+      if (profileError) {
+        // Don't reveal if user exists or not for security
+        console.log('🔐 AuthService: Password reset requested for non-existent or invalid email:', email);
+        return { success: true }; // Return success to prevent email enumeration
+      }
+
+      // Check if user account is active
+      if (profile.status === 'inactive' || profile.status === 'suspended') {
+        return {
+          success: false,
+          error: 'Password reset is not available for deactivated accounts. Please contact your administrator.'
+        };
+      }
+
+      // Send password reset email
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        console.error('🔐 AuthService: Password reset error:', error);
+        return {
+          success: false,
+          error: this.getUserFriendlyError(error.message)
+        };
+      }
+
+      console.log('🔐 AuthService: Universal password reset email sent successfully');
+      return { success: true };
+
+    } catch (error) {
+      console.error('🔐 AuthService: Universal password reset exception:', error);
+      return {
+        success: false,
+        error: 'Failed to send password reset email. Please try again.'
+      };
+    }
+  }
 } 
