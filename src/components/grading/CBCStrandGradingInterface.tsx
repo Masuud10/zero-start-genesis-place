@@ -1,12 +1,17 @@
-
-import React, { useState, useEffect } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { CheckCircle, Target, TrendingUp, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { CheckCircle, Target, TrendingUp, MessageSquare } from "lucide-react";
 
 interface CBCCompetency {
   id: string;
@@ -18,7 +23,7 @@ interface CBCCompetency {
 }
 
 interface CBCStrandGradeValue {
-  performance_level: 'EM' | 'AP' | 'PR' | 'EX';
+  performance_level: "EM" | "AP" | "PR" | "EX";
   strand_scores: Record<string, string>; // strand name -> performance level
   teacher_remarks: string;
   assessment_type: string;
@@ -36,22 +41,44 @@ interface CBCStrandGradingInterfaceProps {
 }
 
 const CBC_PERFORMANCE_LEVELS = [
-  { value: 'EX', label: 'Exemplary', color: 'bg-green-100 text-green-800', description: 'Consistently demonstrates exceptional understanding' },
-  { value: 'PR', label: 'Proficient', color: 'bg-blue-100 text-blue-800', description: 'Demonstrates good understanding and application' },
-  { value: 'AP', label: 'Approaching Proficiency', color: 'bg-yellow-100 text-yellow-800', description: 'Shows developing understanding with support' },
-  { value: 'EM', label: 'Emerging', color: 'bg-red-100 text-red-800', description: 'Beginning to show understanding' }
+  {
+    value: "EX",
+    label: "Exemplary",
+    color: "bg-green-100 text-green-800",
+    description: "Consistently demonstrates exceptional understanding",
+  },
+  {
+    value: "PR",
+    label: "Proficient",
+    color: "bg-blue-100 text-blue-800",
+    description: "Demonstrates good understanding and application",
+  },
+  {
+    value: "AP",
+    label: "Approaching Proficiency",
+    color: "bg-yellow-100 text-yellow-800",
+    description: "Shows developing understanding with support",
+  },
+  {
+    value: "EM",
+    label: "Emerging",
+    color: "bg-red-100 text-red-800",
+    description: "Beginning to show understanding",
+  },
 ];
 
 const ASSESSMENT_TYPES = [
-  { value: 'observation', label: 'Observation' },
-  { value: 'written_work', label: 'Written Work' },
-  { value: 'project_work', label: 'Project Work' },
-  { value: 'group_activity', label: 'Group Activity' },
-  { value: 'oral_assessment', label: 'Oral Assessment' },
-  { value: 'practical_work', label: 'Practical Work' }
+  { value: "observation", label: "Observation" },
+  { value: "written_work", label: "Written Work" },
+  { value: "project_work", label: "Project Work" },
+  { value: "group_activity", label: "Group Activity" },
+  { value: "oral_assessment", label: "Oral Assessment" },
+  { value: "practical_work", label: "Practical Work" },
 ];
 
-export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps> = ({
+export const CBCStrandGradingInterface: React.FC<
+  CBCStrandGradingInterfaceProps
+> = ({
   studentId,
   subjectId,
   classId,
@@ -59,7 +86,7 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
   examType,
   value,
   onChange,
-  isReadOnly = false
+  isReadOnly = false,
 }) => {
   const { schoolId } = useSchoolScopedData();
   const [competencies, setCompetencies] = useState<CBCCompetency[]>([]);
@@ -75,63 +102,79 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('cbc_competencies')
-        .select('*')
-        .eq('subject_id', subjectId)
-        .eq('school_id', schoolId)
-        .order('competency_name');
+        .from("cbc_competencies")
+        .select("*")
+        .eq("subject_id", subjectId)
+        .eq("school_id", schoolId)
+        .order("competency_name");
 
       if (error) throw error;
 
-      const processedCompetencies = (data || []).map(comp => ({
+      const processedCompetencies = (data || []).map((comp) => ({
         ...comp,
-        strands: Array.isArray(comp.strands) ? comp.strands : 
-                 typeof comp.strands === 'string' ? JSON.parse(comp.strands) : [],
-        sub_strands: Array.isArray(comp.sub_strands) ? comp.sub_strands : 
-                     typeof comp.sub_strands === 'string' ? JSON.parse(comp.sub_strands) : []
+        strands: Array.isArray(comp.strands)
+          ? comp.strands
+          : typeof comp.strands === "string"
+          ? JSON.parse(comp.strands)
+          : [],
+        sub_strands: Array.isArray(comp.sub_strands)
+          ? comp.sub_strands
+          : typeof comp.sub_strands === "string"
+          ? JSON.parse(comp.sub_strands)
+          : [],
       })) as CBCCompetency[];
 
       setCompetencies(processedCompetencies);
     } catch (error) {
-      console.error('Error loading CBC competencies:', error);
+      console.error("Error loading CBC competencies:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStrandScoreChange = (strandName: string, performanceLevel: string) => {
+  const handleStrandScoreChange = (
+    strandName: string,
+    performanceLevel: string
+  ) => {
     if (isReadOnly) return;
 
     const newStrandScores = {
       ...value.strand_scores,
-      [strandName]: performanceLevel
+      [strandName]: performanceLevel,
     };
 
     onChange({
       ...value,
       strand_scores: newStrandScores,
-      performance_level: calculateOverallPerformance(newStrandScores)
+      performance_level: calculateOverallPerformance(newStrandScores),
     });
   };
 
-  const calculateOverallPerformance = (strandScores: Record<string, string>): 'EM' | 'AP' | 'PR' | 'EX' => {
-    const scores = Object.values(strandScores).filter(score => score);
-    if (scores.length === 0) return 'EM';
+  const calculateOverallPerformance = (
+    strandScores: Record<string, string>
+  ): "EM" | "AP" | "PR" | "EX" => {
+    const scores = Object.values(strandScores).filter((score) => score);
+    if (scores.length === 0) return "EM";
 
-    const levelValues = { 'EM': 1, 'AP': 2, 'PR': 3, 'EX': 4 };
-    const average = scores.reduce((sum, level) => sum + (levelValues[level as keyof typeof levelValues] || 1), 0) / scores.length;
+    const levelValues = { EM: 1, AP: 2, PR: 3, EX: 4 };
+    const average =
+      scores.reduce(
+        (sum, level) =>
+          sum + (levelValues[level as keyof typeof levelValues] || 1),
+        0
+      ) / scores.length;
 
-    if (average >= 3.5) return 'EX';
-    if (average >= 2.5) return 'PR';
-    if (average >= 1.5) return 'AP';
-    return 'EM';
+    if (average >= 3.5) return "EX";
+    if (average >= 2.5) return "PR";
+    if (average >= 1.5) return "AP";
+    return "EM";
   };
 
   const handleRemarksChange = (remarks: string) => {
     if (isReadOnly) return;
     onChange({
       ...value,
-      teacher_remarks: remarks
+      teacher_remarks: remarks,
     });
   };
 
@@ -139,19 +182,25 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
     if (isReadOnly) return;
     onChange({
       ...value,
-      assessment_type: assessmentType
+      assessment_type: assessmentType,
     });
   };
 
   const getPerformanceLevelInfo = (level: string) => {
-    return CBC_PERFORMANCE_LEVELS.find(l => l.value === level) || CBC_PERFORMANCE_LEVELS[3];
+    return (
+      CBC_PERFORMANCE_LEVELS.find((l) => l.value === level) ||
+      CBC_PERFORMANCE_LEVELS[3]
+    );
   };
 
-  const getStrandName = (strand: any, index: number): string => {
-    if (typeof strand === 'string') {
+  const getStrandName = (
+    strand: string | { name: string },
+    index: number
+  ): string => {
+    if (typeof strand === "string") {
       return strand;
     }
-    if (strand && typeof strand === 'object' && strand.name) {
+    if (strand && typeof strand === "object" && strand.name) {
       return strand.name;
     }
     return `Strand ${index + 1}`;
@@ -177,7 +226,7 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
         </CardHeader>
         <CardContent>
           <Select
-            value={value.assessment_type || ''}
+            value={value.assessment_type || ""}
             onValueChange={handleAssessmentTypeChange}
             disabled={isReadOnly}
           >
@@ -206,8 +255,13 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <Badge className={`${getPerformanceLevelInfo(value.performance_level).color} text-sm px-3 py-1`}>
-                {getPerformanceLevelInfo(value.performance_level).label} ({value.performance_level})
+              <Badge
+                className={`${
+                  getPerformanceLevelInfo(value.performance_level).color
+                } text-sm px-3 py-1`}
+              >
+                {getPerformanceLevelInfo(value.performance_level).label} (
+                {value.performance_level})
               </Badge>
               <p className="text-sm text-gray-600 mt-1">
                 {getPerformanceLevelInfo(value.performance_level).description}
@@ -230,23 +284,31 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
             <div className="text-center py-8 text-gray-500">
               <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No competencies configured for this subject</p>
-              <p className="text-sm">Contact administrator to set up CBC competencies</p>
+              <p className="text-sm">
+                Contact administrator to set up CBC competencies
+              </p>
             </div>
           ) : (
             competencies.map((competency) => (
-              <div key={competency.id} className="border rounded-lg p-4 space-y-3">
+              <div
+                key={competency.id}
+                className="border rounded-lg p-4 space-y-3"
+              >
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-gray-900">{competency.competency_name}</h4>
+                  <h4 className="font-medium text-gray-900">
+                    {competency.competency_name}
+                  </h4>
                   <Badge variant="outline" className="text-xs">
                     {competency.competency_code}
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {competency.strands.map((strand, index) => {
                     const strandName = getStrandName(strand, index);
-                    const currentLevel = value.strand_scores?.[strandName] || '';
-                    
+                    const currentLevel =
+                      value.strand_scores?.[strandName] || "";
+
                     return (
                       <div key={`${strandName}_${index}`} className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
@@ -254,7 +316,9 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
                         </label>
                         <Select
                           value={currentLevel}
-                          onValueChange={(level) => handleStrandScoreChange(strandName, level)}
+                          onValueChange={(level) =>
+                            handleStrandScoreChange(strandName, level)
+                          }
                           disabled={isReadOnly}
                         >
                           <SelectTrigger className="h-10">
@@ -264,7 +328,11 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
                             {CBC_PERFORMANCE_LEVELS.map((level) => (
                               <SelectItem key={level.value} value={level.value}>
                                 <div className="flex items-center gap-2">
-                                  <span className={`w-3 h-3 rounded-full ${level.color.replace('text-', 'bg-').replace('bg-', 'bg-')}`}></span>
+                                  <span
+                                    className={`w-3 h-3 rounded-full ${level.color
+                                      .replace("text-", "bg-")
+                                      .replace("bg-", "bg-")}`}
+                                  ></span>
                                   {level.label} ({level.value})
                                 </div>
                               </SelectItem>
@@ -292,14 +360,15 @@ export const CBCStrandGradingInterface: React.FC<CBCStrandGradingInterfaceProps>
         <CardContent>
           <Textarea
             placeholder="Enter specific observations, strengths, and areas for improvement..."
-            value={value.teacher_remarks || ''}
+            value={value.teacher_remarks || ""}
             onChange={(e) => handleRemarksChange(e.target.value)}
             disabled={isReadOnly}
             rows={4}
             className="w-full"
           />
           <div className="mt-2 text-sm text-gray-500">
-            Provide specific, constructive feedback based on CBC assessment criteria
+            Provide specific, constructive feedback based on CBC assessment
+            criteria
           </div>
         </CardContent>
       </Card>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
@@ -78,7 +77,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
 
         // Optimized parallel queries with proper limits and timeouts
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout for better reliability
 
         try {
           const [attendanceResult, feeResult, gradeResult] = await Promise.all([
@@ -132,7 +131,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
           let recentGrade = "";
           let recentSubject = "";
           if (gradeResult.data && gradeResult.data.length > 0) {
-            const grade = gradeResult.data[0] as any;
+            const grade = gradeResult.data[0] as { percentage: number; subjects?: { name: string } };
             const percent = grade.percentage;
             // Fixed: Added more comprehensive grade boundaries and validation
             if (percent !== undefined && percent !== null && !isNaN(percent)) {
@@ -167,7 +166,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
           throw queryError;
         }
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('📊 Parent dashboard stats error:', err);
         // Set safe defaults on error
         setStats({

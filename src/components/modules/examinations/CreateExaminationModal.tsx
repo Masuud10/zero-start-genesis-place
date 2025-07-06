@@ -51,8 +51,16 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const { createExamination } = useExaminations();
-  const { classes, loading: classesLoading, error: classesError } = useClasses();
-  const { teachers, loading: teachersLoading, error: teachersError } = useTeachers();
+  const {
+    classes,
+    loading: classesLoading,
+    error: classesError,
+  } = useClasses();
+  const {
+    teachers,
+    loading: teachersLoading,
+    error: teachersError,
+  } = useTeachers();
 
   const handleInputChange = (
     field: keyof CreateExaminationData,
@@ -273,16 +281,19 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
           <div>
             <Label htmlFor="coordinator">Exam Coordinator (Optional)</Label>
             <Select
-              value={formData.coordinator_id}
+              value={formData.coordinator_id || "none"}
               onValueChange={(value) =>
-                handleInputChange("coordinator_id", value)
+                handleInputChange(
+                  "coordinator_id",
+                  value === "none" ? "" : value
+                )
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a coordinator" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Coordinator</SelectItem>
+                <SelectItem value="none">No Coordinator</SelectItem>
                 {teachers && teachers.length > 0 ? (
                   teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.id}>
@@ -290,7 +301,7 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-teachers" disabled>
                     No teachers available
                   </SelectItem>
                 )}
@@ -303,13 +314,19 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2 max-h-40 overflow-y-auto border rounded-md p-3">
               {classes && classes.length > 0 ? (
                 classes.map((classItem) => (
-                  <div key={classItem.id} className="flex items-center space-x-2">
+                  <div
+                    key={classItem.id}
+                    className="flex items-center space-x-2"
+                  >
                     <Checkbox
                       id={`class-${classItem.id}`}
                       checked={formData.classes.includes(classItem.id)}
                       onCheckedChange={() => handleClassToggle(classItem.id)}
                     />
-                    <Label htmlFor={`class-${classItem.id}`} className="text-sm">
+                    <Label
+                      htmlFor={`class-${classItem.id}`}
+                      className="text-sm"
+                    >
                       {classItem.name}
                     </Label>
                   </div>

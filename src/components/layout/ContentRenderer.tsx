@@ -1,15 +1,35 @@
-import React, { memo, useMemo, useEffect } from "react";
+import React, {
+  memo,
+  useMemo,
+  useEffect,
+  Suspense,
+  startTransition,
+} from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigation } from "@/contexts/NavigationContext";
-import EduFamAdminDashboard from "@/components/dashboard/EduFamAdminDashboard";
-import PrincipalDashboard from "@/components/dashboard/PrincipalDashboard";
-import TeacherDashboard from "@/components/dashboard/TeacherDashboard";
-import ParentDashboard from "@/components/dashboard/ParentDashboard";
-import FinanceOfficerDashboard from "@/components/dashboard/FinanceOfficerDashboard";
 import ErrorFallback from "@/components/common/ErrorFallback";
-import PrincipalTimetableGenerator from "@/components/timetable/PrincipalTimetableGenerator";
 
-// Lazy load heavy components to improve performance
+// Lazy load all dashboard components for better performance
+const EduFamAdminDashboard = React.lazy(
+  () => import("@/components/dashboard/EduFamAdminDashboard")
+);
+const PrincipalDashboard = React.lazy(
+  () => import("@/components/dashboard/PrincipalDashboard")
+);
+const TeacherDashboard = React.lazy(
+  () => import("@/components/dashboard/TeacherDashboard")
+);
+const ParentDashboard = React.lazy(
+  () => import("@/components/dashboard/ParentDashboard")
+);
+const FinanceOfficerDashboard = React.lazy(
+  () => import("@/components/dashboard/FinanceOfficerDashboard")
+);
+const SchoolOwnerDashboard = React.lazy(
+  () => import("@/components/dashboard/SchoolOwnerDashboard")
+);
+
+// Lazy load heavy components with better chunking
 const GradesModule = React.lazy(
   () => import("@/components/modules/GradesModule")
 );
@@ -79,9 +99,6 @@ const EduFamAnalyticsOverview = React.lazy(
 const SchoolAnalyticsList = React.lazy(
   () => import("@/components/analytics/SchoolAnalyticsList")
 );
-const SchoolOwnerDashboard = React.lazy(
-  () => import("../dashboard/SchoolOwnerDashboard")
-);
 const MpesaPaymentsPanel = React.lazy(
   () => import("@/components/finance/MpesaPaymentsPanel")
 );
@@ -126,6 +143,15 @@ const TeacherTimetableModule = React.lazy(
 );
 const ExaminationsModule = React.lazy(
   () => import("@/components/modules/ExaminationsModule")
+);
+const PrincipalTimetableGenerator = React.lazy(
+  () => import("@/components/timetable/PrincipalTimetableGenerator")
+);
+const ParentFinanceView = React.lazy(
+  () => import("@/components/finance/ParentFinanceView")
+);
+const ParentTimetableView = React.lazy(
+  () => import("@/components/timetable/ParentTimetableView")
 );
 
 interface ContentRendererProps {
@@ -188,11 +214,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
 
     // Render other sections with lazy loading and error boundaries
     const renderLazyComponent = (
-      Component: React.LazyExoticComponent<React.ComponentType<any>>,
+      Component: React.LazyExoticComponent<
+        React.ComponentType<Record<string, unknown>>
+      >,
       componentName?: string
     ) => {
       const ErrorBoundary = React.forwardRef<
-        any,
+        HTMLDivElement,
         { children: React.ReactNode }
       >((props, ref) => {
         const [hasError, setHasError] = React.useState(false);
@@ -376,6 +404,20 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
             Access Denied: Finance access required
           </div>
         );
+      case "finance":
+        // Special case for parents - they get their own finance view
+        if (user?.role === "parent") {
+          return renderLazyComponent(ParentFinanceView, "ParentFinanceView");
+        }
+        // For other roles, check finance access
+        if (hasFinanceAccess) {
+          return renderLazyComponent(FinancialOverview, "FinancialOverview");
+        }
+        return (
+          <div className="p-8 text-center text-red-600">
+            Access Denied: Finance access required
+          </div>
+        );
       case "finance-settings":
         if (hasFinanceAccess) {
           return renderLazyComponent(
@@ -449,15 +491,6 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return renderLazyComponent(AttendanceModule, "AttendanceModule");
       case "students":
         return renderLazyComponent(StudentsModule, "StudentsModule");
-      case "finance":
-        if (hasFinanceAccess) {
-          return renderLazyComponent(FinancialOverview, "FinancialOverview");
-        }
-        return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
-          </div>
-        );
       case "timetable":
         // For principals, the useEffect above will handle the redirect
         // For other roles, render the appropriate timetable module
@@ -468,7 +501,29 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         if (user?.role === "principal") {
-          return <PrincipalTimetableGenerator />;
+          return (
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">
+                      Loading timetable generator...
+                    </p>
+                  </div>
+                </div>
+              }
+            >
+              <PrincipalTimetableGenerator />
+            </Suspense>
+          );
+        }
+        // Special case for parents - they get their own timetable view
+        if (user?.role === "parent") {
+          return renderLazyComponent(
+            ParentTimetableView,
+            "ParentTimetableView"
+          );
         }
         return renderLazyComponent(TimetableModule, "TimetableModule");
       case "announcements":

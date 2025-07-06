@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface TokenPair {
@@ -50,9 +49,10 @@ class TokenManager {
       }
 
       return { success: false, error: 'No session returned' };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string };
       console.error('Token rotation exception:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: err.message };
     }
   }
 

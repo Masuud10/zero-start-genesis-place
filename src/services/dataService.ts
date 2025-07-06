@@ -1,4 +1,3 @@
-
 import { StudentService, StudentData } from './studentService';
 import { GradeService, GradeData } from './gradeService';
 import { AttendanceService, AttendanceData } from './attendanceService';
@@ -9,6 +8,16 @@ import { ReportService } from './reportService';
 interface UserScope {
   isSystemAdmin: boolean;
   schoolId: string | null;
+}
+
+interface TransactionData {
+  student_id: string;
+  amount: number;
+  payment_method: string;
+  transaction_type: string;
+  reference_number?: string;
+  description?: string;
+  [key: string]: unknown;
 }
 
 // Legacy DataService that delegates to new modular services
@@ -54,7 +63,7 @@ export class DataService {
     return FinanceService.updateFee(id, updates);
   }
 
-  static async recordPayment(transactionData: any) {
+  static async recordPayment(transactionData: TransactionData) {
     return FinanceService.recordPayment(transactionData);
   }
 

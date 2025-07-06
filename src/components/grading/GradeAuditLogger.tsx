@@ -1,12 +1,38 @@
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { Shield, User, Clock, Edit, Search, Filter } from "lucide-react";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Shield, User, Clock, Edit, Search, Filter } from 'lucide-react';
+interface GradeValues {
+  score?: number;
+  percentage?: number;
+  letter_grade?: string;
+  cbc_performance_level?: string;
+  strand_scores?: Record<string, string>;
+  teacher_remarks?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface AuditMetadata {
+  class_id?: string;
+  subject_id?: string;
+  student_id?: string;
+  term?: string;
+  exam_type?: string;
+  reason?: string;
+  [key: string]: unknown;
+}
 
 interface AuditLog {
   id: string;
@@ -14,11 +40,26 @@ interface AuditLog {
   user_name: string;
   user_role: string;
   created_at: string;
-  old_values: any;
-  new_values: any;
-  metadata: any;
+  old_values: GradeValues | null;
+  new_values: GradeValues | null;
+  metadata: AuditMetadata | null;
   ip_address: string;
   user_agent: string;
+}
+
+interface DatabaseAuditLog {
+  id: string;
+  action: string;
+  created_at: string;
+  old_values: GradeValues | null;
+  new_values: GradeValues | null;
+  metadata: AuditMetadata | null;
+  ip_address: string;
+  user_agent: string;
+  profiles?: {
+    name: string;
+    role: string;
+  };
 }
 
 export const GradeAuditLogger: React.FC = () => {
@@ -26,9 +67,9 @@ export const GradeAuditLogger: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [actionFilter, setActionFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   useEffect(() => {
     loadAuditLogs();
@@ -44,26 +85,28 @@ export const GradeAuditLogger: React.FC = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('grade_audit_logs')
-        .select(`
+        .from("grade_audit_logs")
+        .select(
+          `
           *,
           profiles(name, role)
-        `)
-        .eq('school_id', schoolId)
-        .order('created_at', { ascending: false })
+        `
+        )
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: false })
         .limit(100);
 
       if (error) throw error;
 
-      const processedLogs = (data || []).map(log => ({
+      const processedLogs = (data || []).map((log: DatabaseAuditLog) => ({
         ...log,
-        user_name: (log as any).profiles?.name || 'Unknown User',
-        user_role: (log as any).profiles?.role || 'unknown'
+        user_name: log.profiles?.name || "Unknown User",
+        user_role: log.profiles?.role || "unknown",
       })) as AuditLog[];
 
       setAuditLogs(processedLogs);
     } catch (error) {
-      console.error('Error loading audit logs:', error);
+      console.error("Error loading audit logs:", error);
     } finally {
       setLoading(false);
     }
@@ -73,18 +116,19 @@ export const GradeAuditLogger: React.FC = () => {
     let filtered = auditLogs;
 
     if (searchTerm) {
-      filtered = filtered.filter(log =>
-        log.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (log) =>
+          log.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          log.action.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    if (actionFilter !== 'all') {
-      filtered = filtered.filter(log => log.action === actionFilter);
+    if (actionFilter !== "all") {
+      filtered = filtered.filter((log) => log.action === actionFilter);
     }
 
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter(log => log.user_role === roleFilter);
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((log) => log.user_role === roleFilter);
     }
 
     setFilteredLogs(filtered);
@@ -92,23 +136,35 @@ export const GradeAuditLogger: React.FC = () => {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'CREATE': return 'bg-green-100 text-green-800';
-      case 'UPDATE': return 'bg-blue-100 text-blue-800';
-      case 'DELETE': return 'bg-red-100 text-red-800';
-      case 'APPROVE': return 'bg-purple-100 text-purple-800';
-      case 'REJECT': return 'bg-orange-100 text-orange-800';
-      case 'RELEASE': return 'bg-cyan-100 text-cyan-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "CREATE":
+        return "bg-green-100 text-green-800";
+      case "UPDATE":
+        return "bg-blue-100 text-blue-800";
+      case "DELETE":
+        return "bg-red-100 text-red-800";
+      case "APPROVE":
+        return "bg-purple-100 text-purple-800";
+      case "REJECT":
+        return "bg-orange-100 text-orange-800";
+      case "RELEASE":
+        return "bg-cyan-100 text-cyan-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'principal': return 'bg-purple-100 text-purple-800';
-      case 'teacher': return 'bg-blue-100 text-blue-800';
-      case 'edufam_admin': return 'bg-red-100 text-red-800';
-      case 'elimisha_admin': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "principal":
+        return "bg-purple-100 text-purple-800";
+      case "teacher":
+        return "bg-blue-100 text-blue-800";
+      case "edufam_admin":
+        return "bg-red-100 text-red-800";
+      case "elimisha_admin":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -116,10 +172,13 @@ export const GradeAuditLogger: React.FC = () => {
     return new Date(timestamp).toLocaleString();
   };
 
-  const getChangesSummary = (oldValues: any, newValues: any) => {
-    if (!oldValues || !newValues) return 'No details available';
+  const getChangesSummary = (
+    oldValues: GradeValues | null,
+    newValues: GradeValues | null
+  ) => {
+    if (!oldValues || !newValues) return "No details available";
 
-    const changes = [];
+    const changes: string[] = [];
     for (const [key, newValue] of Object.entries(newValues)) {
       const oldValue = oldValues[key];
       if (oldValue !== newValue) {
@@ -127,7 +186,7 @@ export const GradeAuditLogger: React.FC = () => {
       }
     }
 
-    return changes.length > 0 ? changes.join(', ') : 'No changes detected';
+    return changes.length > 0 ? changes.join(", ") : "No changes detected";
   };
 
   return (
@@ -155,7 +214,7 @@ export const GradeAuditLogger: React.FC = () => {
               className="pl-10"
             />
           </div>
-          
+
           <Select value={actionFilter} onValueChange={setActionFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by action" />
@@ -196,7 +255,9 @@ export const GradeAuditLogger: React.FC = () => {
               <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No audit logs found</p>
               <p className="text-sm">
-                {auditLogs.length === 0 ? 'No grade activities recorded yet' : 'Try adjusting your filters'}
+                {auditLogs.length === 0
+                  ? "No grade activities recorded yet"
+                  : "Try adjusting your filters"}
               </p>
             </div>
           ) : (
@@ -208,7 +269,10 @@ export const GradeAuditLogger: React.FC = () => {
                       {log.action}
                     </Badge>
                     <span className="font-medium text-sm">{log.user_name}</span>
-                    <Badge className={getRoleColor(log.user_role)} variant="outline">
+                    <Badge
+                      className={getRoleColor(log.user_role)}
+                      variant="outline"
+                    >
                       {log.user_role}
                     </Badge>
                   </div>

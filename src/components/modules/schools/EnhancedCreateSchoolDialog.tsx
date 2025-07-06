@@ -172,7 +172,7 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
     try {
       console.log('Creating school with data:', formData);
       
-      let schoolData = { ...formData };
+      const schoolData = { ...formData };
 
       // Upload logo if provided
       if (logoFile) {

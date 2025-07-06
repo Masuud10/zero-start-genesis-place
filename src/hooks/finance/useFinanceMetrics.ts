@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,7 +18,7 @@ export const useFinanceMetrics = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     // Validate school ID before making queries
     if (!user?.school_id || user.school_id === 'null' || user.school_id === 'undefined') {
       console.warn('No valid school_id available for finance metrics:', user?.school_id);
@@ -151,9 +150,9 @@ export const useFinanceMetrics = () => {
       console.log('Finance metrics calculated successfully:', calculatedMetrics);
       setMetrics(calculatedMetrics);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching finance metrics:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error('Unknown error'));
       // Set default metrics even on error
       setMetrics({
         totalRevenue: 0,
@@ -167,11 +166,11 @@ export const useFinanceMetrics = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.school_id]);
 
   useEffect(() => {
     fetchMetrics();
-  }, [user?.school_id]);
+  }, [fetchMetrics]);
 
   return {
     metrics,

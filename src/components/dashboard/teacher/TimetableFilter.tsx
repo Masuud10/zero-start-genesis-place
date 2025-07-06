@@ -35,7 +35,7 @@ const TimetableFilter: React.FC<TimetableFilterProps> = ({
   ];
 
   const handleFilterChange = (field: string, value: string) => {
-    let newFilters: any = {};
+    const newFilters: any = {};
     
     if (field === 'day') {
       setSelectedDay(value);

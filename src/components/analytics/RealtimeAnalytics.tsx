@@ -1,22 +1,22 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Activity, 
-  Users, 
-  GraduationCap, 
-  DollarSign, 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Activity,
+  Users,
+  GraduationCap,
+  DollarSign,
   TrendingUp,
   Clock,
   Bell,
-  RefreshCw
-} from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
+  RefreshCw,
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchool } from "@/contexts/SchoolContext";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 interface RealtimeMetrics {
   activeUsers: number;
@@ -36,6 +36,42 @@ interface RecentActivity {
   school_name?: string;
 }
 
+interface AnalyticsEvent {
+  id: string;
+  event_type: string;
+  event_category: string;
+  timestamp: string;
+  metadata?: {
+    subject_name?: string;
+    class_name?: string;
+    amount?: string;
+  };
+  profiles?: {
+    name: string;
+  }[];
+  schools?: {
+    name: string;
+  }[];
+}
+
+interface DatabaseActivity {
+  id: string;
+  event_type: string;
+  event_category: string;
+  timestamp: string;
+  metadata?: {
+    subject_name?: string;
+    class_name?: string;
+    amount?: string;
+  };
+  profiles?: {
+    name: string;
+  }[];
+  schools?: {
+    name: string;
+  }[];
+}
+
 const RealtimeAnalytics: React.FC = () => {
   const { user } = useAuth();
   const { currentSchool } = useSchool();
@@ -44,57 +80,67 @@ const RealtimeAnalytics: React.FC = () => {
 
   // Real-time metrics query
   const { data: metrics, isLoading } = useQuery({
-    queryKey: ['realtime-metrics', currentSchool?.id, refreshKey],
+    queryKey: ["realtime-metrics", currentSchool?.id, refreshKey],
     queryFn: async (): Promise<RealtimeMetrics> => {
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
       try {
         // Get recent activities based on user role with type assertion
-        let baseQuery = (supabase as any).from('analytics_events').select('*');
-        
-        if (user?.role !== 'elimisha_admin' && user?.role !== 'edufam_admin') {
-          baseQuery = baseQuery.eq('school_id', currentSchool?.id || user?.school_id);
+        let baseQuery = (supabase as SupabaseClient)
+          .from("analytics_events")
+          .select("*");
+
+        if (user?.role !== "elimisha_admin" && user?.role !== "edufam_admin") {
+          baseQuery = baseQuery.eq(
+            "school_id",
+            currentSchool?.id || user?.school_id
+          );
         }
 
         const { data: recentEvents } = await baseQuery
-          .gte('timestamp', oneHourAgo.toISOString())
-          .order('timestamp', { ascending: false });
+          .gte("timestamp", oneHourAgo.toISOString())
+          .order("timestamp", { ascending: false });
 
         // Calculate metrics from recent events
         const events = recentEvents || [];
-        
+
         return {
           activeUsers: Math.floor(Math.random() * 25) + 5, // Mock active users
-          recentGrades: events.filter((e: any) => e.event_category === 'grades').length,
-          recentAttendance: events.filter((e: any) => e.event_category === 'attendance').length,
-          recentPayments: events.filter((e: any) => e.event_category === 'finance').length,
+          recentGrades: events.filter(
+            (e: AnalyticsEvent) => e.event_category === "grades"
+          ).length,
+          recentAttendance: events.filter(
+            (e: AnalyticsEvent) => e.event_category === "attendance"
+          ).length,
+          recentPayments: events.filter(
+            (e: AnalyticsEvent) => e.event_category === "finance"
+          ).length,
           systemAlerts: Math.floor(Math.random() * 3), // Mock alerts
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         };
       } catch (error) {
-        console.error('Failed to fetch realtime metrics:', error);
+        console.error("Failed to fetch realtime metrics:", error);
         return {
           activeUsers: 0,
           recentGrades: 0,
           recentAttendance: 0,
           recentPayments: 0,
           systemAlerts: 0,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         };
       }
     },
     refetchInterval: isRealtime ? 10000 : false, // Refresh every 10 seconds if realtime is enabled
-    staleTime: 5000
+    staleTime: 5000,
   });
 
   // Recent activities query
   const { data: recentActivities } = useQuery({
-    queryKey: ['recent-activities', currentSchool?.id, refreshKey],
+    queryKey: ["recent-activities", currentSchool?.id, refreshKey],
     queryFn: async (): Promise<RecentActivity[]> => {
       try {
-        let query = (supabase as any)
-          .from('analytics_events')
+        let query = (supabase as SupabaseClient).from("analytics_events")
           .select(`
             id,
             event_type,
@@ -105,47 +151,53 @@ const RealtimeAnalytics: React.FC = () => {
             schools!analytics_events_school_id_fkey(name)
           `);
 
-        if (user?.role !== 'elimisha_admin' && user?.role !== 'edufam_admin') {
-          query = query.eq('school_id', currentSchool?.id || user?.school_id);
+        if (user?.role !== "elimisha_admin" && user?.role !== "edufam_admin") {
+          query = query.eq("school_id", currentSchool?.id || user?.school_id);
         }
 
         const { data } = await query
-          .order('timestamp', { ascending: false })
+          .order("timestamp", { ascending: false })
           .limit(10);
 
-        return (data || []).map((activity: any) => ({
+        return (data || []).map((activity: DatabaseActivity) => ({
           id: activity.id,
           type: activity.event_category,
           description: formatActivityDescription(activity),
           timestamp: activity.timestamp,
-          user_name: activity.profiles?.name,
-          school_name: activity.schools?.name
+          user_name: activity.profiles?.[0]?.name,
+          school_name: activity.schools?.[0]?.name,
         }));
       } catch (error) {
-        console.error('Failed to fetch recent activities:', error);
+        console.error("Failed to fetch recent activities:", error);
         return [];
       }
     },
-    refetchInterval: isRealtime ? 15000 : false
+    refetchInterval: isRealtime ? 15000 : false,
   });
 
-  const formatActivityDescription = (activity: any): string => {
+  const formatActivityDescription = (activity: DatabaseActivity): string => {
     switch (activity.event_category) {
-      case 'grades':
-        return `Grade submitted for ${activity.metadata?.subject_name || 'subject'}`;
-      case 'attendance':
-        return `Attendance marked for ${activity.metadata?.class_name || 'class'}`;
-      case 'finance':
-        return `Payment of ${activity.metadata?.amount || 'unknown amount'} processed`;
-      case 'user_activity':
-        return `User ${activity.event_type.replace('_', ' ')}`;
+      case "grades":
+        return `Grade submitted for ${
+          activity.metadata?.subject_name || "subject"
+        }`;
+      case "attendance":
+        return `Attendance marked for ${
+          activity.metadata?.class_name || "class"
+        }`;
+      case "finance":
+        return `Payment of ${
+          activity.metadata?.amount || "unknown amount"
+        } processed`;
+      case "user_activity":
+        return `User ${activity.event_type.replace("_", " ")}`;
       default:
-        return `${activity.event_type.replace('_', ' ')}`;
+        return `${activity.event_type.replace("_", " ")}`;
     }
   };
 
   const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   };
 
   const toggleRealtime = () => {
@@ -162,13 +214,17 @@ const RealtimeAnalytics: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={toggleRealtime}
-            className={isRealtime ? 'bg-green-50 border-green-200' : ''}
+            className={isRealtime ? "bg-green-50 border-green-200" : ""}
           >
-            <Activity className={`h-4 w-4 mr-2 ${isRealtime ? 'text-green-600' : ''}`} />
-            {isRealtime ? 'Real-time ON' : 'Real-time OFF'}
+            <Activity
+              className={`h-4 w-4 mr-2 ${isRealtime ? "text-green-600" : ""}`}
+            />
+            {isRealtime ? "Real-time ON" : "Real-time OFF"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
           </Button>
         </div>
       </div>
@@ -265,14 +321,22 @@ const RealtimeAnalytics: React.FC = () => {
           <div className="space-y-3">
             {recentActivities?.length ? (
               recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div
+                  key={activity.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.description}</p>
+                    <p className="text-sm font-medium">
+                      {activity.description}
+                    </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {activity.user_name && <span>by {activity.user_name}</span>}
-                      {activity.school_name && user?.role === 'elimisha_admin' && (
-                        <span>• {activity.school_name}</span>
+                      {activity.user_name && (
+                        <span>by {activity.user_name}</span>
                       )}
+                      {activity.school_name &&
+                        user?.role === "elimisha_admin" && (
+                          <span>• {activity.school_name}</span>
+                        )}
                     </div>
                   </div>
                   <div className="text-right">

@@ -21,12 +21,12 @@ import {
 import DashboardWrapper from "../DashboardWrapper";
 
 // Import dashboard modules
-import SchoolsModule from "@/components/modules/schools/SchoolsModule";
-import UsersModule from "@/components/modules/users/UsersModule";
+import SchoolsModule from "@/components/modules/SchoolsModule";
+import UsersModule from "@/components/modules/UsersModule";
 import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
-import BillingModule from "@/components/modules/billing/BillingModule";
-import ReportsModule from "@/components/modules/reports/ReportsModule";
-import SupportModule from "@/components/modules/support/SupportModule";
+import BillingModule from "@/components/modules/BillingModule";
+import ReportsModule from "@/components/modules/ReportsModule";
+import SupportModule from "@/components/modules/SupportModule";
 import SystemSettings from "@/components/settings/SystemSettings";
 
 interface EduFamAdminDashboardProps {

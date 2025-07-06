@@ -9,7 +9,13 @@ export interface QueryErrorDetails {
   isNotFound: boolean;
 }
 
-export const analyzeQueryError = (error: any): QueryErrorDetails => {
+interface ErrorWithMessage {
+  message?: string;
+  code?: string;
+  name?: string;
+}
+
+export const analyzeQueryError = (error: unknown): QueryErrorDetails => {
   const details: QueryErrorDetails = {
     message: 'An unknown error occurred',
     isNetworkError: false,
@@ -22,8 +28,10 @@ export const analyzeQueryError = (error: any): QueryErrorDetails => {
     return details;
   }
 
+  const errorObj = error as ErrorWithMessage;
+
   // Handle Supabase PostgrestError
-  if (error.code && error.message) {
+  if (errorObj.code && errorObj.message) {
     const pgError = error as PostgrestError;
     details.code = pgError.code;
     details.message = pgError.message;
@@ -47,22 +55,22 @@ export const analyzeQueryError = (error: any): QueryErrorDetails => {
   }
 
   // Handle network errors
-  if (error.name === 'TypeError' && error.message.includes('fetch')) {
+  if (errorObj.name === 'TypeError' && errorObj.message?.includes('fetch')) {
     details.isNetworkError = true;
     details.message = 'Network connection error. Please check your internet connection.';
     return details;
   }
 
   // Handle generic JavaScript errors
-  if (error.message) {
-    details.message = error.message;
+  if (errorObj.message) {
+    details.message = errorObj.message;
     
     // Check for common error patterns
-    if (error.message.includes('unauthorized') || error.message.includes('authentication')) {
+    if (errorObj.message.includes('unauthorized') || errorObj.message.includes('authentication')) {
       details.isAuthError = true;
-    } else if (error.message.includes('permission') || error.message.includes('forbidden')) {
+    } else if (errorObj.message.includes('permission') || errorObj.message.includes('forbidden')) {
       details.isPermissionError = true;
-    } else if (error.message.includes('timeout') || error.message.includes('network')) {
+    } else if (errorObj.message.includes('timeout') || errorObj.message.includes('network')) {
       details.isNetworkError = true;
     }
   }
@@ -70,12 +78,12 @@ export const analyzeQueryError = (error: any): QueryErrorDetails => {
   return details;
 };
 
-export const getErrorMessage = (error: any, fallbackMessage: string = 'An error occurred'): string => {
+export const getErrorMessage = (error: unknown, fallbackMessage: string = 'An error occurred'): string => {
   const details = analyzeQueryError(error);
   return details.message || fallbackMessage;
 };
 
-export const isRetryableError = (error: any): boolean => {
+export const isRetryableError = (error: unknown): boolean => {
   const details = analyzeQueryError(error);
   // Retry on network errors but not on auth/permission errors
   return details.isNetworkError && !details.isAuthError && !details.isPermissionError;

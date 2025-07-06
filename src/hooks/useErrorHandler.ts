@@ -52,7 +52,7 @@ export const useErrorHandler = () => {
     // Determine user-friendly message based on error type
     let userMessage = errorDetails.message;
     let title = 'Error';
-    let variant: 'default' | 'destructive' = 'destructive';
+    const variant: 'default' | 'destructive' = 'destructive';
 
     // Parse common error patterns
     const message = errorDetails.message.toLowerCase();

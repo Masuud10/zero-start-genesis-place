@@ -1,14 +1,22 @@
-
 import { supabase } from '@/integrations/supabase/client';
+
+export interface DataIntegrityResult {
+  orphanedRecords: number;
+  missingSchools: string[];
+  totalRecords: number;
+  error?: string;
+}
+
+export interface QueryPerformanceResult {
+  avgResponseTime: number;
+  recordsPerSecond: number;
+  recommendedLimit: number;
+  error?: string;
+}
 
 export class BillingDiagnosticService {
   // Check for orphaned billing records
-  static async checkDataIntegrity(): Promise<{ 
-    orphanedRecords: number; 
-    missingSchools: string[]; 
-    totalRecords: number; 
-    error?: string 
-  }> {
+  static async checkDataIntegrity(): Promise<DataIntegrityResult> {
     try {
       console.log('🔍 BillingDiagnosticService: Starting data integrity check...');
 
@@ -49,24 +57,20 @@ export class BillingDiagnosticService {
         missingSchools,
         totalRecords: totalCount || 0
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ BillingDiagnosticService: Critical error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       return { 
         orphanedRecords: 0, 
         missingSchools: [], 
         totalRecords: 0, 
-        error: error.message 
+        error: errorMessage 
       };
     }
   }
 
   // Performance analysis of billing queries
-  static async analyzeQueryPerformance(): Promise<{
-    avgResponseTime: number;
-    recordsPerSecond: number;
-    recommendedLimit: number;
-    error?: string;
-  }> {
+  static async analyzeQueryPerformance(): Promise<QueryPerformanceResult> {
     try {
       console.log('🔍 BillingDiagnosticService: Analyzing query performance...');
 
@@ -106,13 +110,14 @@ export class BillingDiagnosticService {
         recordsPerSecond,
         recommendedLimit
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ BillingDiagnosticService: Performance analysis error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       return { 
         avgResponseTime: 0, 
         recordsPerSecond: 0, 
         recommendedLimit: 25, 
-        error: error.message 
+        error: errorMessage 
       };
     }
   }

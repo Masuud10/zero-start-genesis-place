@@ -21,10 +21,92 @@ export interface ReportFilter {
   term?: string;
 }
 
+// Specific data types for different reports
+export interface FeeStatementData {
+  student_name: string;
+  admission_number: string;
+  class_name: string;
+  fee_type: string;
+  amount: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  due_date: string;
+  status: string;
+}
+
+export interface PaymentSummaryData {
+  date: string;
+  total_payments: number;
+  total_amount: number;
+  payment_method: string;
+  transaction_count: number;
+}
+
+export interface OutstandingBalanceData {
+  student_name: string;
+  admission_number: string;
+  class_name: string;
+  total_outstanding: number;
+  days_overdue: number;
+  last_payment_date?: string;
+}
+
+export interface CollectionAnalysisData {
+  class_name: string;
+  total_expected: number;
+  total_collected: number;
+  collection_rate: number;
+  student_count: number;
+}
+
+export interface ExpenseReportData {
+  category: string;
+  amount: number;
+  date: string;
+  description?: string;
+  payment_method?: string;
+}
+
+export interface FinancialSummaryData {
+  total_revenue: number;
+  total_expenses: number;
+  net_income: number;
+  collection_rate: number;
+  outstanding_amount: number;
+  period: string;
+}
+
+export interface MonthlyRevenueData {
+  month: string;
+  revenue: number;
+  expenses: number;
+  net_income: number;
+  transaction_count: number;
+}
+
+export interface MpesaTransactionData {
+  transaction_id: string;
+  amount: number;
+  phone_number: string;
+  status: string;
+  date: string;
+  student_name?: string;
+}
+
+export type ReportDataType = 
+  | FeeStatementData
+  | PaymentSummaryData
+  | OutstandingBalanceData
+  | CollectionAnalysisData
+  | ExpenseReportData
+  | FinancialSummaryData
+  | MonthlyRevenueData
+  | MpesaTransactionData;
+
 export interface ReportData {
   title: string;
   generatedAt: string;
-  data: any[];
+  data: unknown[];
   summary: {
     totalRecords: number;
     totalAmount?: number;
@@ -53,8 +135,8 @@ export const useFinancialReports = () => {
       // Calculate date range
       const { startDate, endDate } = getDateRange(filters);
 
-      let data: any[] = [];
-      let summary: { totalRecords: number; totalAmount?: number; averageAmount?: number } = { 
+      let data: unknown[] = [];
+      const summary: { totalRecords: number; totalAmount?: number; averageAmount?: number } = { 
         totalRecords: 0 
       };
 
@@ -74,10 +156,11 @@ export const useFinancialReports = () => {
         case 'expense_reports':
           data = await generateExpenseReports(user.school_id, startDate, endDate);
           break;
-        case 'financial_summary':
+        case 'financial_summary': {
           const summaryData = await generateFinancialSummary(user.school_id, startDate, endDate);
           data = [summaryData]; // Wrap in array for consistency
           break;
+        }
         case 'monthly_revenue':
           data = await generateMonthlyRevenue(user.school_id, startDate, endDate);
           break;
@@ -91,8 +174,11 @@ export const useFinancialReports = () => {
       // Calculate summary
       summary.totalRecords = data.length;
       
-      if (data.length > 0 && 'amount' in data[0]) {
-        const amounts = data.map(item => Number(item.amount) || 0);
+      if (data.length > 0 && typeof data[0] === 'object' && data[0] !== null && 'amount' in data[0]) {
+        const amounts = data.map(item => {
+          const itemWithAmount = item as { amount?: number | string };
+          return Number(itemWithAmount.amount) || 0;
+        });
         summary.totalAmount = amounts.reduce((sum, amount) => sum + amount, 0);
         summary.averageAmount = amounts.length > 0 ? summary.totalAmount / amounts.length : 0;
       }
@@ -111,12 +197,13 @@ export const useFinancialReports = () => {
 
       return reportData;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error generating report:', err);
-      setError(err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: "Failed to generate report: " + err.message,
+        description: "Failed to generate report: " + errorMessage,
         variant: "destructive",
       });
       return null;
@@ -132,10 +219,11 @@ export const useFinancialReports = () => {
       } else {
         downloadAsPDF(reportData);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       toast({
         title: "Download Error",
-        description: "Failed to download report: " + err.message,
+        description: "Failed to download report: " + errorMessage,
         variant: "destructive",
       });
     }

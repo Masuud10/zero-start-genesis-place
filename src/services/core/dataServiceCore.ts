@@ -34,7 +34,7 @@ export class DataServiceCore {
     options?: { onConflict?: string }
   ) {
     try {
-      let query = supabase
+      const query = supabase
         .from(table as any)
         .upsert(data as any, {
           onConflict: options?.onConflict,

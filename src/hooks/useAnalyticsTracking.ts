@@ -1,8 +1,32 @@
-
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchool } from '@/contexts/SchoolContext';
 import { analyticsService, AnalyticsEvent } from '@/services/analyticsService';
+
+interface GradeData {
+  student_id: string;
+  subject_id: string;
+  score: number;
+  exam_type: string;
+}
+
+interface AttendanceData {
+  student_id: string;
+  class_id: string;
+  status: string;
+  session: string;
+}
+
+interface TransactionData {
+  student_id: string;
+  amount: number;
+  payment_method: string;
+  transaction_type: string;
+}
+
+interface ActivityDetails {
+  [key: string]: unknown;
+}
 
 export const useAnalyticsTracking = () => {
   const { user } = useAuth();
@@ -11,7 +35,7 @@ export const useAnalyticsTracking = () => {
   const trackEvent = useCallback(async (
     eventType: string,
     category: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ) => {
     try {
       const event: Omit<AnalyticsEvent, 'timestamp'> = {
@@ -33,7 +57,7 @@ export const useAnalyticsTracking = () => {
   }, [user, currentSchool]);
 
   // Specific tracking methods
-  const trackGradeSubmission = useCallback((gradeData: any) => {
+  const trackGradeSubmission = useCallback((gradeData: GradeData) => {
     trackEvent('grade_submitted', 'grades', {
       student_id: gradeData.student_id,
       subject_id: gradeData.subject_id,
@@ -42,7 +66,7 @@ export const useAnalyticsTracking = () => {
     });
   }, [trackEvent]);
 
-  const trackAttendanceUpdate = useCallback((attendanceData: any) => {
+  const trackAttendanceUpdate = useCallback((attendanceData: AttendanceData) => {
     trackEvent('attendance_marked', 'attendance', {
       student_id: attendanceData.student_id,
       class_id: attendanceData.class_id,
@@ -51,7 +75,7 @@ export const useAnalyticsTracking = () => {
     });
   }, [trackEvent]);
 
-  const trackFinanceTransaction = useCallback((transactionData: any) => {
+  const trackFinanceTransaction = useCallback((transactionData: TransactionData) => {
     trackEvent('payment_processed', 'finance', {
       student_id: transactionData.student_id,
       amount: transactionData.amount,
@@ -60,7 +84,7 @@ export const useAnalyticsTracking = () => {
     });
   }, [trackEvent]);
 
-  const trackUserActivity = useCallback((activity: string, details: any = {}) => {
+  const trackUserActivity = useCallback((activity: string, details: ActivityDetails = {}) => {
     trackEvent(activity, 'user_activity', {
       page: window.location.pathname,
       action: activity,
@@ -68,7 +92,7 @@ export const useAnalyticsTracking = () => {
     });
   }, [trackEvent]);
 
-  const trackSystemEvent = useCallback((eventType: string, details: any = {}) => {
+  const trackSystemEvent = useCallback((eventType: string, details: ActivityDetails = {}) => {
     trackEvent(eventType, 'system', details);
   }, [trackEvent]);
 

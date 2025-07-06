@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,7 +8,7 @@ export const useExpenseData = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const fetchExpenseData = async () => {
+  const fetchExpenseData = useCallback(async () => {
     if (!user?.school_id) {
       console.log('No school_id available for expense data');
       setExpenseBreakdown([]);
@@ -74,18 +73,18 @@ export const useExpenseData = () => {
         setExpenseBreakdown(expenseData);
       }
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching expense data:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error('Unknown error'));
       setExpenseBreakdown([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.school_id]);
 
   useEffect(() => {
     fetchExpenseData();
-  }, [user?.school_id]);
+  }, [fetchExpenseData]);
 
   return {
     expenseBreakdown,

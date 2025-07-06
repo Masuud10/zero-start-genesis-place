@@ -6,6 +6,20 @@ interface CircuitBreakerState {
   state: 'closed' | 'open' | 'half-open';
 }
 
+interface ErrorWithMessage {
+  message?: string;
+  name?: string;
+  status?: number;
+}
+
+interface PersistentFailureMetadata {
+  [key: string]: string | number | undefined;
+  operation_name: string;
+  attempts: number;
+  error_type?: string;
+  timestamp: string;
+}
+
 export class EnhancedErrorHandler {
   private static circuitBreakers = new Map<string, CircuitBreakerState>();
   private static readonly FAILURE_THRESHOLD = 5;
@@ -17,7 +31,7 @@ export class EnhancedErrorHandler {
     operationName: string,
     maxRetries: number = 3
   ): Promise<T> {
-    let lastError: any;
+    let lastError: ErrorWithMessage;
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       // Check circuit breaker
@@ -29,14 +43,14 @@ export class EnhancedErrorHandler {
         const result = await operation();
         this.recordSuccess(operationName);
         return result;
-      } catch (error: any) {
-        lastError = error;
+      } catch (error: unknown) {
+        lastError = error as ErrorWithMessage;
         this.recordFailure(operationName);
         
-        console.warn(`❌ Attempt ${attempt + 1} failed for ${operationName}:`, error?.message);
+        console.warn(`❌ Attempt ${attempt + 1} failed for ${operationName}:`, lastError?.message);
         
         // Don't retry certain errors
-        if (this.shouldNotRetry(error)) {
+        if (this.shouldNotRetry(lastError)) {
           break;
         }
         
@@ -52,7 +66,7 @@ export class EnhancedErrorHandler {
     throw lastError;
   }
 
-  private static shouldNotRetry(error: any): boolean {
+  private static shouldNotRetry(error: ErrorWithMessage): boolean {
     const message = error?.message?.toLowerCase() || '';
     
     // Don't retry auth errors, permission errors, or validation errors
@@ -121,12 +135,19 @@ export class EnhancedErrorHandler {
 
   private static async logPersistentFailure(
     operationName: string,
-    error: any,
+    error: ErrorWithMessage,
     attempts: number
   ): Promise<void> {
     try {
       // Don't block on logging
       setTimeout(async () => {
+        const metadata: PersistentFailureMetadata = {
+          operation_name: operationName,
+          attempts,
+          error_type: error?.name,
+          timestamp: new Date().toISOString()
+        };
+
         const { error: logError } = await supabase
           .from('security_audit_logs')
           .insert({
@@ -134,12 +155,7 @@ export class EnhancedErrorHandler {
             resource: 'application',
             success: false,
             error_message: error?.message || 'Unknown error',
-            metadata: {
-              operation_name: operationName,
-              attempts,
-              error_type: error?.name,
-              timestamp: new Date().toISOString()
-            }
+            metadata
           });
         
         if (logError) {

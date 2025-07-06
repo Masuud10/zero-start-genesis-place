@@ -22,7 +22,7 @@ const AttendanceModule: React.FC = () => {
     if (!isSummaryRole) {
         setLoading(false);
         return;
-    };
+    }
 
     if (user.role === 'edufam_admin') {
       supabase.from("schools")

@@ -63,8 +63,11 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Handle input changes
-  const handleInputChange = (field: keyof NewSubjectFormData, value: any) => {
-    let updatedFormData = {
+  const handleInputChange = (
+    field: keyof NewSubjectFormData,
+    value: string | number | boolean
+  ) => {
+    const updatedFormData = {
       ...formData,
       [field]: value,
     };
@@ -74,11 +77,11 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
       const selectedClass = classes.find((c) => c.id === value);
       if (selectedClass?.curriculum_type) {
         // Ensure curriculum type is valid
-        const validCurriculums = ["CBC", "IGCSE"] as const;
+        const validCurriculums = ["CBC", "IGCSE", "Standard"] as const;
         const curriculum = validCurriculums.includes(
-          selectedClass.curriculum_type as any
+          selectedClass.curriculum_type as (typeof validCurriculums)[number]
         )
-          ? (selectedClass.curriculum_type as "CBC" | "IGCSE")
+          ? (selectedClass.curriculum_type as "CBC" | "IGCSE" | "Standard")
           : "CBC";
         updatedFormData.curriculum = curriculum;
       }
@@ -219,7 +222,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
               ) : (
                 <Select
                   value={formData.curriculum}
-                  onValueChange={(value: "CBC" | "IGCSE") =>
+                  onValueChange={(value: "CBC" | "IGCSE" | "Standard") =>
                     handleInputChange("curriculum", value)
                   }
                 >
@@ -231,6 +234,7 @@ const NewSubjectCreationForm: React.FC<NewSubjectCreationFormProps> = ({
                       CBC (Competency Based Curriculum)
                     </SelectItem>
                     <SelectItem value="IGCSE">IGCSE (Cambridge)</SelectItem>
+                    <SelectItem value="Standard">Standard (8-4-4)</SelectItem>
                   </SelectContent>
                 </Select>
               )}

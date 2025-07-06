@@ -151,7 +151,7 @@ const PrincipalTimetableGenerator: React.FC = () => {
   const { setActiveSection } = useNavigation();
 
   // Get current user
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ["current-user"],
     queryFn: async () => {
       const {
@@ -162,7 +162,7 @@ const PrincipalTimetableGenerator: React.FC = () => {
   });
 
   // Get classes
-  const { data: classes = [] } = useQuery({
+  const { data: classes = [], isLoading: classesLoading } = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
@@ -179,7 +179,7 @@ const PrincipalTimetableGenerator: React.FC = () => {
   });
 
   // Get subjects for selected class
-  const { data: subjects = [] } = useQuery({
+  const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
     queryKey: ["subjects", selectedClass, schoolId],
     queryFn: async () => {
       if (!selectedClass || !schoolId) return [];
@@ -196,7 +196,7 @@ const PrincipalTimetableGenerator: React.FC = () => {
   });
 
   // Get teachers
-  const { data: teachers = [] } = useQuery({
+  const { data: teachers = [], isLoading: teachersLoading } = useQuery({
     queryKey: ["teachers", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
@@ -214,14 +214,15 @@ const PrincipalTimetableGenerator: React.FC = () => {
   });
 
   // Get existing timetable for selected class
-  const { data: existingTimetable = [] } = useQuery({
-    queryKey: ["existing-timetable", selectedClass],
-    queryFn: async () => {
-      if (!selectedClass) return [];
-      const { data, error } = await supabase
-        .from("timetables")
-        .select(
-          `
+  const { data: existingTimetable = [], isLoading: timetableLoading } =
+    useQuery({
+      queryKey: ["existing-timetable", selectedClass],
+      queryFn: async () => {
+        if (!selectedClass) return [];
+        const { data, error } = await supabase
+          .from("timetables")
+          .select(
+            `
           id,
           subject_id,
           teacher_id,
@@ -229,14 +230,21 @@ const PrincipalTimetableGenerator: React.FC = () => {
           start_time,
           end_time
         `
-        )
-        .eq("class_id", selectedClass);
+          )
+          .eq("class_id", selectedClass);
 
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedClass,
-  });
+        if (error) throw error;
+        return data || [];
+      },
+      enabled: !!selectedClass,
+    });
+
+  // Check if any data is still loading
+  const isLoading =
+    userLoading ||
+    classesLoading ||
+    teachersLoading ||
+    (selectedClass && (subjectsLoading || timetableLoading));
 
   // Mutations
   const saveTimetableMutation = useMutation({
@@ -255,7 +263,7 @@ const PrincipalTimetableGenerator: React.FC = () => {
             ...entry,
             class_id: selectedClass,
             school_id: schoolId,
-            created_by: currentUser.id,
+            created_by_principal_id: currentUser.id,
           }))
         )
         .select();
@@ -480,6 +488,23 @@ const PrincipalTimetableGenerator: React.FC = () => {
       setActiveTab("preview");
     }
   }, [existingTimetable]);
+
+  // Don't render until all required data is loaded
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg font-medium text-gray-900">
+            Loading Timetable Generator...
+          </p>
+          <p className="text-sm text-gray-600 mt-2">
+            Please wait while we prepare the interface
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

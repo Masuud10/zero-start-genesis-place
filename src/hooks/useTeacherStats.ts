@@ -42,7 +42,7 @@ export const useTeacherStats = () => {
       const timeoutId = setTimeout(() => {
         controller.abort();
         console.error('🔍 Teacher stats query timed out');
-      }, 8000); // 8 second timeout
+      }, 10000); // Increased to 10 seconds for better reliability
 
       try {
         // Optimized parallel queries

@@ -39,7 +39,7 @@ serve(async (req) => {
       if (error) throw error;
       schools = data;
     }
-    let results = [];
+    const results = [];
 
     // -- STEP 2: For each school, aggregate per-student analytics
     for (const school of schools) {
@@ -53,8 +53,8 @@ serve(async (req) => {
 
       for (const student of students) {
         // 2.1: Aggregated grade data (last & prev period)
-        let cur_period = period || null;
-        let latest_period = cur_period;
+        const cur_period = period || null;
+        const latest_period = cur_period;
         // Get this student's average for selected/reporting period & previous
         let [gradeThis, gradePrev] = [null, null];
 
@@ -66,8 +66,8 @@ serve(async (req) => {
           .order("created_at", { ascending: false });
         if (gradeErr) throw gradeErr;
         // Simple approach: pick last 2 unique periods in term/year, compute averages and improvement
-        let gradesByPeriod: Record<string, { scores: number[], maxScores: number[] }> = {};
-        for (let g of gradeRows) {
+        const gradesByPeriod: Record<string, { scores: number[], maxScores: number[] }> = {};
+        for (const g of gradeRows) {
           const key = g.term || "unknown";
           if (!gradesByPeriod[key]) gradesByPeriod[key] = { scores: [], maxScores: [] };
           gradesByPeriod[key].scores.push(g.score);
@@ -75,16 +75,16 @@ serve(async (req) => {
         }
         // flatten and sort periods by recency
         const periods = Object.keys(gradesByPeriod).sort((a, b) => b.localeCompare(a));
-        let p0 = periods[0];
-        let p1 = periods[1];
+        const p0 = periods[0];
+        const p1 = periods[1];
         gradeThis = p0 
           ? (gradesByPeriod[p0].scores.reduce((a,b)=>a+b,0)/gradesByPeriod[p0].scores.length) || null
           : null;
         gradePrev = p1 
           ? (gradesByPeriod[p1].scores.reduce((a,b)=>a+b,0)/gradesByPeriod[p1].scores.length) || null
           : null;
-        let improvement = (gradeThis && gradePrev) ? gradeThis - gradePrev : null;
-        let trend = improvement === null ? "stable"
+        const improvement = (gradeThis && gradePrev) ? gradeThis - gradePrev : null;
+        const trend = improvement === null ? "stable"
           : improvement > 5 ? "up"
           : improvement < -5 ? "down"
           : "stable";
@@ -108,7 +108,7 @@ serve(async (req) => {
         }
 
         // 2.3: Detect low attendance flag
-        let low_attendance = attendanceRate !== null && attendanceRate < 75;
+        const low_attendance = attendanceRate !== null && attendanceRate < 75;
 
         // -- UPSERT into student_analytics --
         const upsert = {

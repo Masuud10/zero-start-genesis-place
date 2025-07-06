@@ -50,7 +50,7 @@ export const useOptimizedFinanceMetrics = () => {
         controller.abort();
         console.error('💰 Finance metrics query timed out');
         setLoadingTimeout(true);
-      }, 4000); // Reduced to 4 seconds
+      }, 6000); // Increased to 6 seconds for better reliability
 
       // Optimized parallel queries with proper limits
       const [feesResult, studentsResult] = await Promise.allSettled([
@@ -101,9 +101,9 @@ export const useOptimizedFinanceMetrics = () => {
       setMetrics(newMetrics);
       setLoadingTimeout(false);
 
-    } catch (error) {
-      console.error('❌ Finance metrics error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch finance metrics';
+    } catch (err: unknown) {
+      console.error('\u274c Finance metrics error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch finance metrics';
       setError(new Error(errorMessage));
       setLoadingTimeout(false);
     } finally {

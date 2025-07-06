@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ManualFeeRecord {
@@ -9,8 +8,24 @@ export interface ManualFeeRecord {
   due_date: string;
 }
 
+export interface SubscriptionFeeCalculation {
+  student_count: number;
+  per_student_rate: number;
+  calculated_amount: number;
+}
+
+export interface BillingServiceResult<T = unknown> {
+  data: T | null;
+  error?: string;
+}
+
+export interface BillingOperationResult {
+  success: boolean;
+  error?: string;
+}
+
 export class BillingManagementService {
-  static async calculateSubscriptionFee(schoolId: string): Promise<{ data: any; error?: string }> {
+  static async calculateSubscriptionFee(schoolId: string): Promise<BillingServiceResult<SubscriptionFeeCalculation>> {
     try {
       // Get student count for the school
       const { data: students, error: studentError } = await supabase
@@ -32,12 +47,13 @@ export class BillingManagementService {
           calculated_amount: calculatedAmount
         }
       };
-    } catch (error: any) {
-      return { data: null, error: error.message };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return { data: null, error: errorMessage };
     }
   }
 
-  static async createManualFeeRecord(feeData: ManualFeeRecord): Promise<{ success: boolean; error?: string }> {
+  static async createManualFeeRecord(feeData: ManualFeeRecord): Promise<BillingOperationResult> {
     try {
       const { error } = await supabase
         .from('school_billing_records')
@@ -53,8 +69,9 @@ export class BillingManagementService {
       if (error) throw error;
 
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return { success: false, error: errorMessage };
     }
   }
 }

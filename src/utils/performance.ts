@@ -74,9 +74,9 @@ export class ImageOptimizer {
 
 // Cache utility for API responses
 export class CacheManager {
-  private static cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
+  private static cache: Map<string, { data: unknown; timestamp: number; ttl: number }> = new Map();
 
-  static set(key: string, data: any, ttlMs: number = 5 * 60 * 1000): void {
+  static set<T>(key: string, data: T, ttlMs: number = 5 * 60 * 1000): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -84,7 +84,7 @@ export class CacheManager {
     });
   }
 
-  static get(key: string): any | null {
+  static get<T>(key: string): T | null {
     const item = this.cache.get(key);
     if (!item) return null;
     
@@ -94,7 +94,7 @@ export class CacheManager {
       return null;
     }
     
-    return item.data;
+    return item.data as T;
   }
 
   static clear(): void {

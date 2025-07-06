@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,7 +8,7 @@ export const useFeeCollectionData = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const fetchFeeCollectionData = async () => {
+  const fetchFeeCollectionData = useCallback(async () => {
     if (!user?.school_id) {
       console.log('No school_id available for fee collection data');
       setFeeCollectionData([]);
@@ -107,18 +106,18 @@ export const useFeeCollectionData = () => {
         setFeeCollectionData(collectionData);
       }
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching fee collection data:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error('Unknown error'));
       setFeeCollectionData([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.school_id]);
 
   useEffect(() => {
     fetchFeeCollectionData();
-  }, [user?.school_id]);
+  }, [fetchFeeCollectionData]);
 
   return {
     feeCollectionData,

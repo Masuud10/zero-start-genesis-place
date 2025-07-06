@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +17,37 @@ interface ChildGrade {
   }[];
   average_score: number;
   total_subjects: number;
+}
+
+interface StudentWithClass {
+  id: string;
+  name: string;
+  class_id: string;
+  classes?: {
+    name: string;
+  };
+}
+
+interface GradeWithSubject {
+  student_id: string;
+  score: number | null;
+  max_score: number | null;
+  percentage: number | null;
+  letter_grade: string | null;
+  term: string;
+  exam_type: string | null;
+  created_at: string;
+  status: string;
+  subjects?: {
+    name: string;
+  };
+}
+
+interface QueryError {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
 }
 
 export const useParentChildrenGrades = () => {
@@ -40,10 +70,11 @@ export const useParentChildrenGrades = () => {
       const timeoutId = setTimeout(() => {
         controller.abort();
         console.error('📚 Parent grades query timed out');
-      }, 5000);
+      }, 10000); // Increased timeout to 10 seconds
 
       try {
         // Single optimized query to get parent's children using new index
+        console.log('📚 Fetching parent-student relationships...');
         const { data: parentStudents, error: parentStudentsError } = await supabase
           .from('parent_students')
           .select('student_id')
@@ -52,10 +83,12 @@ export const useParentChildrenGrades = () => {
           .abortSignal(controller.signal);
 
         if (parentStudentsError) {
-          throw new Error('Could not fetch your children information');
+          console.error('📚 Parent students query error:', parentStudentsError);
+          throw new Error(`Could not fetch your children information: ${parentStudentsError.message}`);
         }
 
         if (!parentStudents || parentStudents.length === 0) {
+          console.log('📚 No children found for parent');
           setChildrenGrades([]);
           setLoading(false);
           clearTimeout(timeoutId);
@@ -63,9 +96,10 @@ export const useParentChildrenGrades = () => {
         }
 
         const studentIds = parentStudents.map(ps => ps.student_id);
-        console.log('📚 Found students:', studentIds.length);
+        console.log('📚 Found students:', studentIds.length, 'Student IDs:', studentIds);
 
         // Optimized parallel queries with proper limits
+        console.log('📚 Fetching students and grades data...');
         const [studentsResult, gradesResult] = await Promise.all([
           // Get students with class info in single optimized query
           supabase
@@ -92,7 +126,8 @@ export const useParentChildrenGrades = () => {
               term,
               exam_type,
               created_at,
-              subjects!grades_subject_id_fkey(name)
+              status,
+              subjects!fk_grades_subject_id(name)
             `)
             .in('student_id', studentIds)
             .eq('status', 'released')
@@ -105,23 +140,27 @@ export const useParentChildrenGrades = () => {
         clearTimeout(timeoutId);
 
         if (studentsResult.error) {
-          throw new Error('Could not fetch student information');
+          console.error('📚 Students query error:', studentsResult.error);
+          throw new Error(`Could not fetch student information: ${studentsResult.error.message}`);
         }
 
         if (gradesResult.error) {
-          throw new Error('Could not fetch grades');
+          console.error('📚 Grades query error:', gradesResult.error);
+          throw new Error(`Could not fetch grades: ${gradesResult.error.message}`);
         }
+
+        console.log('📚 Students data:', studentsResult.data?.length || 0, 'records');
+        console.log('📚 Grades data:', gradesResult.data?.length || 0, 'records');
 
         // Process the data efficiently
         const childrenGradesMap: Record<string, ChildGrade> = {};
 
         // Initialize with student data
-        studentsResult.data?.forEach(student => {
-          const classes = student.classes as any;
+        studentsResult.data?.forEach((student: StudentWithClass) => {
           childrenGradesMap[student.id] = {
             student_id: student.id,
             student_name: student.name,
-            class_name: classes?.name || 'Unknown Class',
+            class_name: student.classes?.name || 'Unknown Class',
             recent_grades: [],
             average_score: 0,
             total_subjects: 0
@@ -129,11 +168,10 @@ export const useParentChildrenGrades = () => {
         });
 
         // Add grades data efficiently
-        gradesResult.data?.forEach(grade => {
+        gradesResult.data?.forEach((grade: GradeWithSubject) => {
           if (childrenGradesMap[grade.student_id]) {
-            const subjects = grade.subjects as any;
             childrenGradesMap[grade.student_id].recent_grades.push({
-              subject: subjects?.name || 'Unknown Subject',
+              subject: grade.subjects?.name || 'Unknown Subject',
               score: grade.score || 0,
               max_score: grade.max_score || 100,
               percentage: grade.percentage || 0,
@@ -174,9 +212,10 @@ export const useParentChildrenGrades = () => {
         throw queryError;
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('📚 Error fetching children grades:', error);
-      setError(error.message);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while fetching grades';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

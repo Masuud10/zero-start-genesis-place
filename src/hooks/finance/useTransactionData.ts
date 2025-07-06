@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,7 +8,7 @@ export const useTransactionData = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const fetchTransactionData = async () => {
+  const fetchTransactionData = useCallback(async () => {
     if (!user?.school_id) {
       console.log('No school_id available for transaction data');
       setDailyTransactions([]);
@@ -79,18 +78,18 @@ export const useTransactionData = () => {
         setDailyTransactions(dailyData);
       }
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching transaction data:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error('Unknown error'));
       setDailyTransactions([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.school_id]);
 
   useEffect(() => {
     fetchTransactionData();
-  }, [user?.school_id]);
+  }, [fetchTransactionData]);
 
   return {
     dailyTransactions,

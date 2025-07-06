@@ -1,18 +1,46 @@
-
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { ReportEnhancementService } from './system/reportEnhancementService';
 
-interface PDFReportData {
+interface CompanyDetails {
+  name?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+}
+
+interface ReportData {
   title: string;
   reportType: string;
-  data: any;
-  companyDetails: any;
+  data: Record<string, unknown>;
+  companyDetails: CompanyDetails;
   generatedAt: string;
 }
 
+interface SystemMetrics {
+  totalSchools: number;
+  totalUsers: number;
+  activeSchools: number;
+  systemUptime: number;
+}
+
+interface FinancialSummary {
+  totalFeesAssigned: number;
+  totalFeesCollected: number;
+  outstandingFees: number;
+  totalExpenses: number;
+  netRevenue: number;
+  collectionRate: number;
+}
+
+interface ComprehensiveReportData {
+  systemMetrics: SystemMetrics;
+  financialSummary: FinancialSummary;
+}
+
 export class PDFGenerationService {
-  private static addHeader(doc: jsPDF, companyDetails: any, title: string) {
+  private static addHeader(doc: jsPDF, companyDetails: CompanyDetails, title: string) {
     // Enhanced header background with gradient effect
     doc.setFillColor(25, 118, 210); // Blue primary
     doc.rect(0, 0, 210, 35, 'F');
@@ -72,7 +100,7 @@ export class PDFGenerationService {
     return yPos + 28; // Return Y position for content start
   }
 
-  private static addFooter(doc: jsPDF, pageNumber: number, totalPages: number, companyDetails: any) {
+  private static addFooter(doc: jsPDF, pageNumber: number, totalPages: number, companyDetails: CompanyDetails) {
     const pageHeight = doc.internal.pageSize.height;
     
     // Enhanced footer background
@@ -114,7 +142,7 @@ export class PDFGenerationService {
     try {
       console.log('Starting comprehensive PDF report generation...');
       
-      const reportData = await ReportEnhancementService.generateComprehensiveReport();
+      const reportData = await ReportEnhancementService.generateComprehensiveReport() as ComprehensiveReportData;
       const enhancedData = await ReportEnhancementService.enhanceReportWithCompanyData('comprehensive');
       
       if (!reportData) {
@@ -174,7 +202,7 @@ export class PDFGenerationService {
         ['Net Revenue', reportData.financialSummary.netRevenue.toLocaleString(), reportData.financialSummary.netRevenue > 0 ? '📈 Positive' : '📉 Negative', reportData.financialSummary.netRevenue > 0 ? '⭐ Excellent' : '⚠️ Review Required']
       ];
 
-      (doc as any).autoTable({
+      (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
         head: [financialData[0]],
         body: financialData.slice(1),
         startY: yPosition,
@@ -198,58 +226,11 @@ export class PDFGenerationService {
           1: { halign: 'right', cellWidth: 35 },
           2: { halign: 'center', cellWidth: 30 },
           3: { halign: 'center', cellWidth: 40 }
-        },
-        margin: { left: 20, right: 20 }
+        }
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 25;
-
-      // User Distribution Section
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(25, 118, 210);
-      doc.text('👥 User Distribution by Role', 20, yPosition);
-      yPosition += 20;
-
-      const userRoleData = Object.entries(reportData.userMetrics.usersByRole).map(([role, count]) => [
-        role.replace('_', ' ').toUpperCase(),
-        count.toString(),
-        `${((count as number / reportData.userMetrics.totalUsers) * 100).toFixed(1)}%`,
-        count as number > 10 ? '🟢 Active' : '🟡 Growing'
-      ]);
-
-      (doc as any).autoTable({
-        head: [['User Role', 'Total Count', 'Percentage', 'Activity Status']],
-        body: userRoleData,
-        startY: yPosition,
-        theme: 'grid',
-        headStyles: { 
-          fillColor: [76, 175, 80],
-          textColor: 255,
-          fontSize: 11,
-          fontStyle: 'bold',
-          halign: 'center'
-        },
-        bodyStyles: { 
-          fontSize: 10,
-          textColor: [60, 60, 60]
-        },
-        alternateRowStyles: { 
-          fillColor: [248, 249, 250] 
-        },
-        columnStyles: {
-          0: { fontStyle: 'bold' },
-          1: { halign: 'center' },
-          2: { halign: 'center' },
-          3: { halign: 'center' }
-        },
-        margin: { left: 20, right: 20 }
-      });
-
-      // Add professional footer
       this.addFooter(doc, 1, 1, enhancedData.companyDetails);
-
-      // Save with enhanced filename
+      
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `EduFam_Comprehensive_System_Report_${timestamp}.pdf`;
       doc.save(filename);
@@ -287,7 +268,7 @@ export class PDFGenerationService {
         ['Support Response Rate', `${systemMetrics.ticketResolutionRate.toFixed(1)}%`, '✅ Efficient Resolution', '⭐⭐⭐⭐ Excellent']
       ];
 
-      (doc as any).autoTable({
+      (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
         head: [performanceData[0]],
         body: performanceData.slice(1),
         startY: yPosition,
@@ -348,7 +329,7 @@ export class PDFGenerationService {
         ['Collection Efficiency', `${financialData.collectionRate.toFixed(1)}%`, '📈 Performance Metric', financialData.collectionRate > 85 ? '🏆 Excellent Performance' : '📊 Good Performance']
       ];
 
-      (doc as any).autoTable({
+      (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
         head: [summaryData[0]],
         body: summaryData.slice(1),
         startY: yPosition,
@@ -410,7 +391,7 @@ export class PDFGenerationService {
         ['Security Infrastructure', '🟢 Fully Protected', 'Multi-layer Security • Active Monitoring', '🛡️ Maximum Security']
       ];
 
-      (doc as any).autoTable({
+      (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
         head: [healthData[0]],
         body: healthData.slice(1),
         startY: yPosition,

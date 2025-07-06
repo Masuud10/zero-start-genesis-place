@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface AssignTeacherToClassParams {
@@ -20,41 +19,16 @@ interface LinkParentToStudentParams {
   isPrimaryContact?: boolean;
 }
 
-export const ClassManagementService = {
-  // Assign teacher to class with subject
+export const classManagementService = {
+  // Assign teacher to class
   assignTeacherToClass: async (params: AssignTeacherToClassParams) => {
     try {
-      // Get school_id from the class
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('school_id')
-        .eq('id', params.classId)
-        .single();
-      
-      if (classError) throw classError;
-      if (!classData?.school_id) throw new Error("Could not find school for the class");
-
-      // Check if this assignment already exists
-      const { data: existingAssignment } = await supabase
-        .from('teacher_classes')
-        .select('id')
-        .eq('teacher_id', params.teacherId)
-        .eq('class_id', params.classId)
-        .eq('subject_id', params.subjectId || null)
-        .eq('school_id', classData.school_id)
-        .single();
-
-      if (existingAssignment) {
-        throw new Error("This teacher is already assigned to this subject for this class");
-      }
-
       const { data, error } = await supabase
         .from('teacher_classes')
         .insert({
           teacher_id: params.teacherId,
           class_id: params.classId,
-          subject_id: params.subjectId || null,
-          school_id: classData.school_id
+          subject_id: params.subjectId || null
         })
         .select()
         .single();
@@ -65,9 +39,9 @@ export const ClassManagementService = {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in assignTeacherToClass:', error);
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   },
 
@@ -92,9 +66,9 @@ export const ClassManagementService = {
       }
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in removeTeacherFromClass:', error);
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   },
 
@@ -112,9 +86,9 @@ export const ClassManagementService = {
       }
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in unassignTeacher:', error);
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   },
 
@@ -149,9 +123,9 @@ export const ClassManagementService = {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in enrollStudent:', error);
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   },
 
@@ -169,9 +143,9 @@ export const ClassManagementService = {
       }
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in removeStudentFromClass:', error);
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   },
 
@@ -204,9 +178,9 @@ export const ClassManagementService = {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in linkParentToStudent:', error);
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   },
 
@@ -224,9 +198,9 @@ export const ClassManagementService = {
       }
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in unlinkParentFromStudent:', error);
-      throw new Error(error.message || 'Unknown error occurred');
+      throw new Error(error instanceof Error ? error.message : 'Unknown error occurred');
     }
   },
 
@@ -247,7 +221,7 @@ export const ClassManagementService = {
       }
 
       return { data: data || [], error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in getTeachersForClass:', error);
       return { data: null, error };
     }
@@ -259,7 +233,7 @@ export const ClassManagementService = {
         .from('student_classes')
         .select(`
           *,
-          student:students(id, name, admission_number, roll_number)
+          student:students(id, name, email, admission_number)
         `)
         .eq('class_id', classId)
         .eq('is_active', true);
@@ -270,7 +244,7 @@ export const ClassManagementService = {
       }
 
       return { data: data || [], error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in getStudentsForClass:', error);
       return { data: null, error };
     }
@@ -292,7 +266,7 @@ export const ClassManagementService = {
       }
 
       return { data: data || [], error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in getParentsForStudent:', error);
       return { data: null, error };
     }

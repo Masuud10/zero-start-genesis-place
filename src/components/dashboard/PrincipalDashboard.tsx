@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, startTransition, Suspense } from "react";
 import { AuthUser } from "@/types/auth";
 import { usePrincipalDashboardData } from "@/hooks/usePrincipalDashboardData";
 import CertificateGenerator from "@/components/certificates/CertificateGenerator";
@@ -53,17 +53,19 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
       );
       // Clear the flag first
       sessionStorage.removeItem("openTimetableModal");
-      // Set modal with a small delay to ensure proper state update
-      setTimeout(() => {
+      // Set modal with startTransition to prevent suspension
+      startTransition(() => {
         setActiveModal("generate-timetable");
-      }, 50);
+      });
       return;
     }
 
     // Fallback for direct timetable section access
     if (activeSection === "timetable") {
       console.log("🎓 PrincipalDashboard: Opening TimetableGenerator modal");
-      setActiveModal("generate-timetable");
+      startTransition(() => {
+        setActiveModal("generate-timetable");
+      });
     }
   }, [activeSection]);
 
@@ -203,7 +205,18 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
       )}
 
       {activeModal === "generate-timetable" && (
-        <>
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">
+                  Loading timetable generator...
+                </p>
+              </div>
+            </div>
+          }
+        >
           {console.log(
             "🎭 PrincipalDashboard: Rendering TimetableGenerator modal"
           )}
@@ -212,7 +225,7 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
             onClose={handleModalClose}
             onTimetableGenerated={handleSuccess}
           />
-        </>
+        </Suspense>
       )}
 
       {activeModal === "reports" && (

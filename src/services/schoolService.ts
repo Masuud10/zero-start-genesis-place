@@ -1,8 +1,12 @@
-
 import { CreateSchoolRequest, CreateSchoolResponse, SchoolData } from '@/types/schoolTypes';
 import { SchoolValidationService } from './school/schoolValidationService';
 import { SchoolDbService } from './school/schoolDbService';
 import { SchoolStorageService } from './school/schoolStorageService';
+
+interface ServiceResponse<T> {
+  data: T | null;
+  error: string | null;
+}
 
 export class SchoolService {
   static async createSchool(schoolData: CreateSchoolRequest): Promise<CreateSchoolResponse> {
@@ -61,8 +65,8 @@ export class SchoolService {
         error: 'Unexpected response from server'
       };
 
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to create school';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create school';
       console.error('🏫 SchoolService: Service error:', error);
       return {
         success: false,
@@ -71,11 +75,11 @@ export class SchoolService {
     }
   }
 
-  static async getAllSchools(): Promise<{ data: SchoolData[] | null; error: any }> {
+  static async getAllSchools(): Promise<ServiceResponse<SchoolData[]>> {
     return SchoolDbService.getAllSchools();
   }
 
-  static async getSchoolById(schoolId: string): Promise<{ data: SchoolData | null; error: any }> {
+  static async getSchoolById(schoolId: string): Promise<ServiceResponse<SchoolData>> {
     return SchoolDbService.getSchoolById(schoolId);
   }
 

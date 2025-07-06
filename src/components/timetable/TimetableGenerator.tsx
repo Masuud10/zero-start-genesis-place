@@ -166,7 +166,7 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   const queryClient = useQueryClient();
 
   // Get current user
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ["current-user"],
     queryFn: async () => {
       const {
@@ -177,7 +177,7 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   });
 
   // Get classes
-  const { data: classes = [] } = useQuery({
+  const { data: classes = [], isLoading: classesLoading } = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
@@ -194,7 +194,7 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   });
 
   // Get subjects for selected class
-  const { data: subjects = [] } = useQuery({
+  const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
     queryKey: ["subjects", selectedClass, schoolId],
     queryFn: async () => {
       if (!selectedClass || !schoolId) return [];
@@ -214,7 +214,7 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   });
 
   // Get teachers
-  const { data: teachers = [] } = useQuery({
+  const { data: teachers = [], isLoading: teachersLoading } = useQuery({
     queryKey: ["teachers", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
@@ -232,29 +232,30 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   });
 
   // Get existing timetable
-  const { data: existingTimetable = [] } = useQuery({
-    queryKey: ["timetable", selectedClass, schoolId],
-    queryFn: async () => {
-      if (!selectedClass || !schoolId) return [];
-      const { data, error } = await supabase
-        .from("timetables")
-        .select(
-          `
+  const { data: existingTimetable = [], isLoading: timetableLoading } =
+    useQuery({
+      queryKey: ["timetable", selectedClass, schoolId],
+      queryFn: async () => {
+        if (!selectedClass || !schoolId) return [];
+        const { data, error } = await supabase
+          .from("timetables")
+          .select(
+            `
           id, subject_id, teacher_id, day_of_week, start_time, end_time,
           subjects(name),
           profiles!timetables_teacher_id_fkey(name)
         `
-        )
-        .eq("class_id", selectedClass)
-        .eq("school_id", schoolId)
-        .order("day_of_week")
-        .order("start_time");
+          )
+          .eq("class_id", selectedClass)
+          .eq("school_id", schoolId)
+          .order("day_of_week")
+          .order("start_time");
 
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedClass && !!schoolId,
-  });
+        if (error) throw error;
+        return data || [];
+      },
+      enabled: !!selectedClass && !!schoolId,
+    });
 
   // AI-powered timetable generation algorithm
   const generateAITimetable = useMemo(() => {
@@ -370,46 +371,39 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
         .eq("school_id", schoolId);
 
       // Insert new entries
-      const timetableData = entries.map((entry) => ({
-        school_id: schoolId,
-        class_id: selectedClass,
-        subject_id: entry.subject_id,
-        teacher_id: entry.teacher_id,
-        day_of_week: entry.day_of_week,
-        start_time: entry.start_time,
-        end_time: entry.end_time,
-        created_by_principal_id: currentUser.id,
-        is_published: true,
-      }));
-
-      const { error } = await supabase.from("timetables").insert(timetableData);
+      const { error } = await supabase.from("timetables").insert(
+        entries.map((entry) => ({
+          class_id: selectedClass,
+          school_id: schoolId,
+          subject_id: entry.subject_id,
+          teacher_id: entry.teacher_id,
+          day_of_week: entry.day_of_week,
+          start_time: entry.start_time,
+          end_time: entry.end_time,
+          created_by_principal_id: currentUser.id,
+        }))
+      );
 
       if (error) throw error;
+      return entries;
     },
     onSuccess: () => {
-      toast({
-        title: "Timetable Saved",
-        description:
-          "Timetable has been saved successfully and is now available to teachers.",
+      queryClient.invalidateQueries({
+        queryKey: ["timetable", selectedClass, schoolId],
       });
-      queryClient.invalidateQueries({ queryKey: ["timetable"] });
-      onTimetableGenerated?.();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Save Failed",
-        description: error.message || "Failed to save timetable.",
-        variant: "destructive",
+      queryClient.invalidateQueries({
+        queryKey: ["principal-timetables", schoolId],
       });
     },
   });
 
   // Send to teachers mutation
   const sendToTeachersMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedClass || !schoolId) throw new Error("Missing required data");
+    mutationFn: async (entries: TimetableEntry[]) => {
+      if (!selectedClass || !schoolId || !currentUser?.id)
+        throw new Error("Missing required data");
 
-      // Update timetable to published status
+      // Update timetable entries to published
       const { error } = await supabase
         .from("timetables")
         .update({ is_published: true })
@@ -417,21 +411,52 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
         .eq("school_id", schoolId);
 
       if (error) throw error;
+      return entries;
     },
     onSuccess: () => {
-      toast({
-        title: "Timetable Sent",
-        description: "Timetable has been sent to all relevant teachers.",
+      queryClient.invalidateQueries({
+        queryKey: ["timetable", selectedClass, schoolId],
       });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Send Failed",
-        description: error.message || "Failed to send timetable to teachers.",
-        variant: "destructive",
+      queryClient.invalidateQueries({
+        queryKey: ["principal-timetables", schoolId],
       });
     },
   });
+
+  // Check if any data is still loading
+  const isLoading =
+    userLoading ||
+    classesLoading ||
+    teachersLoading ||
+    (selectedClass && (subjectsLoading || timetableLoading));
+
+  // Load existing timetable when class is selected
+  useEffect(() => {
+    if (existingTimetable.length > 0) {
+      const entries = existingTimetable.map((item) => ({
+        id: item.id,
+        subject_id: item.subject_id,
+        teacher_id: item.teacher_id,
+        day_of_week: item.day_of_week,
+        start_time: item.start_time,
+        end_time: item.end_time,
+      }));
+      setTimetableEntries(entries);
+      setActiveTab("preview");
+    }
+  }, [existingTimetable]);
+
+  // Don't render until all required data is loaded
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading timetable data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleClassChange = (classId: string) => {
     setSelectedClass(classId);
@@ -555,7 +580,7 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
   };
 
   const handleSendToTeachers = () => {
-    sendToTeachersMutation.mutate();
+    sendToTeachersMutation.mutate(timetableEntries);
   };
 
   const handleDownload = () => {
@@ -614,22 +639,6 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
     setActiveTab("setup");
     onClose?.();
   };
-
-  // Load existing timetable when class is selected
-  useEffect(() => {
-    if (existingTimetable.length > 0) {
-      const entries = existingTimetable.map((item) => ({
-        id: item.id,
-        subject_id: item.subject_id,
-        teacher_id: item.teacher_id,
-        day_of_week: item.day_of_week,
-        start_time: item.start_time,
-        end_time: item.end_time,
-      }));
-      setTimetableEntries(entries);
-      setActiveTab("preview");
-    }
-  }, [existingTimetable]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

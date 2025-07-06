@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PasswordValidationResult {
@@ -10,6 +9,10 @@ export interface RateLimitResult {
   allowed: boolean;
   remainingAttempts?: number;
   resetTime?: Date;
+}
+
+interface SecurityEventMetadata {
+  [key: string]: string | number | boolean | undefined;
 }
 
 export class SecurityUtils {
@@ -74,7 +77,7 @@ export class SecurityUtils {
     resourceId?: string,
     success: boolean = true,
     errorMessage?: string,
-    metadata: any = {}
+    metadata: SecurityEventMetadata = {}
   ): Promise<void> {
     try {
       await supabase.rpc('log_security_event', {

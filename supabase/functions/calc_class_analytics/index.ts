@@ -37,7 +37,7 @@ serve(async (req) => {
       if (error) throw error;
       schools = data;
     }
-    let results = [];
+    const results = [];
 
     for (const school of schools) {
       // Which classes in this school?
@@ -54,8 +54,8 @@ serve(async (req) => {
       // -- For each class, aggregate data
       for (const c of classes) {
         // 1. Grade performance (period, previous)
-        let cur_period = period || null;
-        let reportingPeriod = cur_period;
+        const cur_period = period || null;
+        const reportingPeriod = cur_period;
         let [avgGrade, prevAvgGrade] = [null, null];
 
         // Get all grades for this class
@@ -67,8 +67,8 @@ serve(async (req) => {
         if (gradeErr) throw gradeErr;
 
         // Aggregate by reporting period, subject
-        let gradesByTerm: Record<string, { scores: number[], maxScores: number[], bySubject: Record<string, number[]> }> = {};
-        for (let g of gradeRows) {
+        const gradesByTerm: Record<string, { scores: number[], maxScores: number[], bySubject: Record<string, number[]> }> = {};
+        for (const g of gradeRows) {
           const key = (g.term || "unknown") + "-" + (g.year || "");
           if (!gradesByTerm[key]) gradesByTerm[key] = { scores: [], maxScores: [], bySubject: {} };
           gradesByTerm[key].scores.push(g.score);
@@ -80,8 +80,8 @@ serve(async (req) => {
         }
         // Get periods sorted by recency
         const periods = Object.keys(gradesByTerm).sort((a, b) => b.localeCompare(a));
-        let p0 = periods[0];
-        let p1 = periods[1];
+        const p0 = periods[0];
+        const p1 = periods[1];
 
         avgGrade = p0
           ? (gradesByTerm[p0].scores.reduce((a, b) => a + b, 0) / gradesByTerm[p0].scores.length) || null
@@ -89,8 +89,8 @@ serve(async (req) => {
         prevAvgGrade = p1
           ? (gradesByTerm[p1].scores.reduce((a, b) => a + b, 0) / gradesByTerm[p1].scores.length) || null
           : null;
-        let improvement = (avgGrade && prevAvgGrade) ? avgGrade - prevAvgGrade : null;
-        let trend = improvement === null ? "stable"
+        const improvement = (avgGrade && prevAvgGrade) ? avgGrade - prevAvgGrade : null;
+        const trend = improvement === null ? "stable"
           : improvement > 5 ? "up"
           : improvement < -5 ? "down"
           : "stable";
@@ -106,7 +106,7 @@ serve(async (req) => {
         if (stErr) throw stErr;
         let top_students: Array<{ student_id: string, avg_grade: number }> = [];
         if (students && p0 && gradeRows.length) {
-          for (let s of students) {
+          for (const s of students) {
             const sGrades = gradeRows.filter(gr =>
               gr.term + "-" + (gr.year || "") === p0 && gr.student_id === s.id);
             if (sGrades.length) {
@@ -148,11 +148,11 @@ serve(async (req) => {
           const total = present + absent;
           attendanceRate = total > 0 ? (present * 100 / total) : null;
         }
-        let low_attendance_count = absent; // Could refine this metric
+        const low_attendance_count = absent; // Could refine this metric
 
         // Financials
         // Fees collected
-        let { data: feeRows, error: feeErr } = await supabase
+        const { data: feeRows, error: feeErr } = await supabase
           .from("fees")
           .select("amount, paid_amount, status")
           .eq("class_id", c.id)

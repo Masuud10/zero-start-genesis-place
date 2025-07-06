@@ -1,9 +1,13 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BillingStats } from './types';
 
+export interface BillingStatsResult {
+  data: BillingStats | null;
+  error: Error | null;
+}
+
 export class BillingStatsService {
-  static async getBillingStats(): Promise<{ data: BillingStats | null; error: any }> {
+  static async getBillingStats(): Promise<BillingStatsResult> {
     try {
       console.log('📊 BillingStatsService: Calculating billing statistics');
 
@@ -51,9 +55,10 @@ export class BillingStatsService {
       console.log('📊 BillingStatsService: Statistics calculated successfully');
       return { data: stats, error: null };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('📊 BillingStatsService: Error calculating statistics:', error);
-      return { data: null, error };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return { data: null, error: new Error(errorMessage) };
     }
   }
 }

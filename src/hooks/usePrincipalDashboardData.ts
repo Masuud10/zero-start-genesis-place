@@ -73,7 +73,8 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       // Set timeout for loading state
       const timeoutId = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 5000); // 5 second timeout
+        console.warn('🔍 Principal dashboard data loading timeout - showing partial data');
+      }, 8000); // Increased to 8 seconds for better reliability
 
       // Optimized parallel queries with proper error handling
       const controller = new AbortController();

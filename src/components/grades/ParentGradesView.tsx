@@ -1,12 +1,29 @@
-
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SubjectGrade {
   name: string;
@@ -34,131 +51,203 @@ const ParentGradesView = () => {
       setLoading(true);
       setError(null);
 
-      const { data: parentStudents, error: parentStudentsError } = await supabase
-        .from('parent_students')
-        .select('student_id')
-        .eq('parent_id', user.id);
+      try {
+        console.log("📚 ParentGradesView: Starting fetch for parent:", user.id);
 
-      if (parentStudentsError) {
-        setError('Could not fetch your children information.');
-        setLoading(false);
-        return;
-      }
+        const { data: parentStudents, error: parentStudentsError } =
+          await supabase
+            .from("parent_students")
+            .select("student_id")
+            .eq("parent_id", user.id);
 
-      if (!parentStudents || parentStudents.length === 0) {
-        setLoading(false);
-        return;
-      }
-      
-      const studentIds = parentStudents.map(ps => ps.student_id);
-
-      const { data: gradesData, error: gradesError } = await supabase
-        .from('grades')
-        .select(`
-          student_id, term, exam_type, score, letter_grade, cbc_performance_level, comments,
-          student:students!student_id(name),
-          subject:subjects!subject_id(name)
-        `)
-        .in('student_id', studentIds)
-        .eq('status', 'released');
-
-      if (gradesError) {
-        setError('Could not fetch grades.');
-        setLoading(false);
-        return;
-      }
-
-      const processedGrades: Record<string, { student_name: string, reports: Record<string, any[]> }> = {};
-
-      for (const grade of gradesData) {
-        const studentId = grade.student_id;
-        if (!studentId || !grade.student || !grade.subject) continue;
-
-        if (!processedGrades[studentId]) {
-          processedGrades[studentId] = {
-            student_name: grade.student.name,
-            reports: {}
-          };
+        if (parentStudentsError) {
+          console.error("📚 Parent students query error:", parentStudentsError);
+          setError(
+            `Could not fetch your children information: ${parentStudentsError.message}`
+          );
+          setLoading(false);
+          return;
         }
 
-        const reportKey = `${grade.term} - ${grade.exam_type}`;
-        if (!processedGrades[studentId].reports[reportKey]) {
-          processedGrades[studentId].reports[reportKey] = [];
+        if (!parentStudents || parentStudents.length === 0) {
+          console.log("📚 No children found for parent");
+          setLoading(false);
+          return;
         }
-        
-        processedGrades[studentId].reports[reportKey].push({
-            name: grade.subject.name,
+
+        const studentIds = parentStudents.map((ps) => ps.student_id);
+        console.log(
+          "📚 Found students:",
+          studentIds.length,
+          "Student IDs:",
+          studentIds
+        );
+
+        const { data: gradesData, error: gradesError } = await supabase
+          .from("grades")
+          .select(
+            `
+            student_id, term, exam_type, score, letter_grade, cbc_performance_level, comments, status,
+            students!fk_grades_student_id(name),
+            subjects!fk_grades_subject_id(name)
+          `
+          )
+          .in("student_id", studentIds)
+          .eq("status", "released");
+
+        if (gradesError) {
+          console.error("📚 Grades query error:", gradesError);
+          setError(`Could not fetch grades: ${gradesError.message}`);
+          setLoading(false);
+          return;
+        }
+
+        console.log("📚 Grades data:", gradesData?.length || 0, "records");
+
+        const processedGrades: Record<
+          string,
+          { student_name: string; reports: Record<string, SubjectGrade[]> }
+        > = {};
+
+        for (const grade of gradesData || []) {
+          const studentId = grade.student_id;
+          if (!studentId || !grade.students || !grade.subjects) continue;
+
+          if (!processedGrades[studentId]) {
+            processedGrades[studentId] = {
+              student_name: grade.students.name,
+              reports: {},
+            };
+          }
+
+          const reportKey = `${grade.term} - ${grade.exam_type}`;
+          if (!processedGrades[studentId].reports[reportKey]) {
+            processedGrades[studentId].reports[reportKey] = [];
+          }
+
+          processedGrades[studentId].reports[reportKey].push({
+            name: grade.subjects.name,
             score: grade.score,
             letter_grade: grade.letter_grade,
             cbc_performance_level: grade.cbc_performance_level,
             comments: grade.comments,
-        });
-      }
+          });
+        }
 
-      const finalStudentGrades = Object.entries(processedGrades).map(([id, data]) => ({
-        student_id: id,
-        student_name: data.student_name,
-        reports: data.reports,
-      }));
-      
-      setStudentGrades(finalStudentGrades);
-      setLoading(false);
+        const finalStudentGrades = Object.entries(processedGrades).map(
+          ([id, data]) => ({
+            student_id: id,
+            student_name: data.student_name,
+            reports: data.reports,
+          })
+        );
+
+        setStudentGrades(finalStudentGrades);
+        console.log(
+          "📚 Successfully processed grades for",
+          finalStudentGrades.length,
+          "students"
+        );
+      } catch (error: unknown) {
+        console.error("📚 Unexpected error in ParentGradesView:", error);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred";
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchGrades();
   }, [user]);
 
   if (loading) {
-    return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (error) {
-    return <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>;
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">My Children's Grades</h1>
+      <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        My Children's Grades
+      </h1>
       {studentGrades.length === 0 ? (
-        <Alert><AlertDescription>No released grades found for your children at the moment.</AlertDescription></Alert>
+        <Alert>
+          <AlertDescription>
+            No released grades found for your children at the moment.
+          </AlertDescription>
+        </Alert>
       ) : (
-        studentGrades.map(student => (
+        studentGrades.map((student) => (
           <Card key={student.student_id}>
             <CardHeader>
               <CardTitle>{student.student_name}</CardTitle>
-              <CardDescription>Academic performance overview. Only released results are shown here.</CardDescription>
+              <CardDescription>
+                Academic performance overview. Only released results are shown
+                here.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
                 {Object.keys(student.reports).length === 0 ? (
-                  <p className="text-muted-foreground">No reports available for {student.student_name}.</p>
-                ) : Object.entries(student.reports).map(([reportKey, subjectGrades]) => (
-                  <AccordionItem value={reportKey} key={reportKey}>
-                    <AccordionTrigger>{reportKey}</AccordionTrigger>
-                    <AccordionContent>
-                       <Table>
-                          <TableHeader>
+                  <p className="text-muted-foreground">
+                    No reports available for {student.student_name}.
+                  </p>
+                ) : (
+                  Object.entries(student.reports).map(
+                    ([reportKey, subjectGrades]) => (
+                      <AccordionItem value={reportKey} key={reportKey}>
+                        <AccordionTrigger>{reportKey}</AccordionTrigger>
+                        <AccordionContent>
+                          <Table>
+                            <TableHeader>
                               <TableRow>
-                                  <TableHead>Subject</TableHead>
-                                  <TableHead className="text-right">Grade/Score</TableHead>
-                                  <TableHead>Comments</TableHead>
+                                <TableHead>Subject</TableHead>
+                                <TableHead className="text-right">
+                                  Grade/Score
+                                </TableHead>
+                                <TableHead>Comments</TableHead>
                               </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {subjectGrades.map((subjectGrade: SubjectGrade) => (
+                            </TableHeader>
+                            <TableBody>
+                              {subjectGrades.map(
+                                (subjectGrade: SubjectGrade) => (
                                   <TableRow key={subjectGrade.name}>
-                                      <TableCell className="font-medium">{subjectGrade.name}</TableCell>
-                                      <TableCell className="text-right">
-                                          {subjectGrade.score ?? subjectGrade.letter_grade ?? subjectGrade.cbc_performance_level ?? 'N/A'}
-                                      </TableCell>
-                                      <TableCell>{subjectGrade.comments ?? '-'}</TableCell>
+                                    <TableCell className="font-medium">
+                                      {subjectGrade.name}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {subjectGrade.score ??
+                                        subjectGrade.letter_grade ??
+                                        subjectGrade.cbc_performance_level ??
+                                        "N/A"}
+                                    </TableCell>
+                                    <TableCell>
+                                      {subjectGrade.comments ?? "-"}
+                                    </TableCell>
                                   </TableRow>
-                              ))}
-                          </TableBody>
-                       </Table>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
+                                )
+                              )}
+                            </TableBody>
+                          </Table>
+                        </AccordionContent>
+                      </AccordionItem>
+                    )
+                  )
+                )}
               </Accordion>
             </CardContent>
           </Card>

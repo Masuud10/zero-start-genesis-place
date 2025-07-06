@@ -1,12 +1,26 @@
+import React, { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAnalyticsPermissions } from "@/hooks/useAnalyticsPermissions";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchool } from "@/contexts/SchoolContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import { SupabaseClient } from "@supabase/supabase-js";
 
-import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAnalyticsPermissions } from '@/hooks/useAnalyticsPermissions';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchool } from '@/contexts/SchoolContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+interface AnalyticsEvent {
+  event_category: string;
+  timestamp: string;
+}
+
+interface AnalyticsAccumulator {
+  totalEvents: number;
+  gradeEvents: number;
+  attendanceEvents: number;
+  financeEvents: number;
+  userActivityEvents: number;
+  lastEventTime: string | null;
+}
 
 interface SchoolAnalyticsData {
   totalEvents: number;
@@ -19,16 +33,17 @@ interface SchoolAnalyticsData {
 
 interface SchoolFilteredAnalyticsProps {
   schoolId?: string;
-  timeRange?: '24h' | '7d' | '30d' | '90d';
+  timeRange?: "24h" | "7d" | "30d" | "90d";
 }
 
 const SchoolFilteredAnalytics: React.FC<SchoolFilteredAnalyticsProps> = ({
   schoolId,
-  timeRange = '24h'
+  timeRange = "24h",
 }) => {
   const { user } = useAuth();
   const { currentSchool } = useSchool();
-  const { canViewSchoolAnalytics, allowedSchoolIds } = useAnalyticsPermissions();
+  const { canViewSchoolAnalytics, allowedSchoolIds } =
+    useAnalyticsPermissions();
 
   const targetSchoolId = schoolId || currentSchool?.id || user?.school_id;
 
@@ -36,90 +51,101 @@ const SchoolFilteredAnalytics: React.FC<SchoolFilteredAnalyticsProps> = ({
   const timeFilter = useMemo(() => {
     const now = new Date();
     const hours = {
-      '24h': 24,
-      '7d': 24 * 7,
-      '30d': 24 * 30,
-      '90d': 24 * 90
+      "24h": 24,
+      "7d": 24 * 7,
+      "30d": 24 * 30,
+      "90d": 24 * 90,
     };
-    return new Date(now.getTime() - hours[timeRange] * 60 * 60 * 1000).toISOString();
+    return new Date(
+      now.getTime() - hours[timeRange] * 60 * 60 * 1000
+    ).toISOString();
   }, [timeRange]);
 
-  const { data: analyticsData, isLoading, error } = useQuery({
-    queryKey: ['school-analytics', targetSchoolId, timeRange],
+  const {
+    data: analyticsData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["school-analytics", targetSchoolId, timeRange],
     queryFn: async (): Promise<SchoolAnalyticsData> => {
       // Verify permission to access this school's data
       if (!canViewSchoolAnalytics(targetSchoolId)) {
-        throw new Error('Insufficient permissions for this school');
+        throw new Error("Insufficient permissions for this school");
       }
 
       // Verify school is in allowed list for non-system admins
       if (allowedSchoolIds && !allowedSchoolIds.includes(targetSchoolId!)) {
-        throw new Error('School access denied');
+        throw new Error("School access denied");
       }
 
-      let query = (supabase as any)
-        .from('analytics_events')
-        .select('event_category, timestamp')
-        .gte('timestamp', timeFilter);
+      let query = (supabase as SupabaseClient)
+        .from("analytics_events")
+        .select("event_category, timestamp")
+        .gte("timestamp", timeFilter);
 
       // Apply school filter
       if (targetSchoolId) {
-        query = query.eq('school_id', targetSchoolId);
+        query = query.eq("school_id", targetSchoolId);
       }
 
       const { data: events, error } = await query;
 
       if (error) {
-        console.error('Analytics query error:', error);
+        console.error("Analytics query error:", error);
         throw error;
       }
 
       // Process events into analytics data
-      const processedData = (events || []).reduce((acc: any, event: any) => {
-        acc.totalEvents++;
-        
-        switch (event.event_category) {
-          case 'grades':
-            acc.gradeEvents++;
-            break;
-          case 'attendance':
-            acc.attendanceEvents++;
-            break;
-          case 'finance':
-            acc.financeEvents++;
-            break;
-          case 'user_activity':
-            acc.userActivityEvents++;
-            break;
-        }
+      const processedData = (events || []).reduce(
+        (acc: AnalyticsAccumulator, event: AnalyticsEvent) => {
+          acc.totalEvents++;
 
-        // Track latest event time
-        if (!acc.lastEventTime || event.timestamp > acc.lastEventTime) {
-          acc.lastEventTime = event.timestamp;
-        }
+          switch (event.event_category) {
+            case "grades":
+              acc.gradeEvents++;
+              break;
+            case "attendance":
+              acc.attendanceEvents++;
+              break;
+            case "finance":
+              acc.financeEvents++;
+              break;
+            case "user_activity":
+              acc.userActivityEvents++;
+              break;
+          }
 
-        return acc;
-      }, {
-        totalEvents: 0,
-        gradeEvents: 0,
-        attendanceEvents: 0,
-        financeEvents: 0,
-        userActivityEvents: 0,
-        lastEventTime: null
-      });
+          // Track latest event time
+          if (!acc.lastEventTime || event.timestamp > acc.lastEventTime) {
+            acc.lastEventTime = event.timestamp;
+          }
+
+          return acc;
+        },
+        {
+          totalEvents: 0,
+          gradeEvents: 0,
+          attendanceEvents: 0,
+          financeEvents: 0,
+          userActivityEvents: 0,
+          lastEventTime: null,
+        }
+      );
 
       return processedData;
     },
     enabled: !!targetSchoolId && canViewSchoolAnalytics(targetSchoolId),
     staleTime: 30000,
-    refetchInterval: 60000
+    refetchInterval: 60000,
   });
 
   if (!targetSchoolId) {
     return (
       <Card>
         <CardContent className="p-6">
-          <p className="text-muted-foreground">No school selected for analytics.</p>
+          <p className="text-muted-foreground">
+            No school selected for analytics.
+          </p>
         </CardContent>
       </Card>
     );
@@ -129,7 +155,9 @@ const SchoolFilteredAnalytics: React.FC<SchoolFilteredAnalyticsProps> = ({
     return (
       <Card className="border-red-200 bg-red-50">
         <CardContent className="p-6">
-          <p className="text-red-600">Access denied for this school's analytics.</p>
+          <p className="text-red-600">
+            Access denied for this school's analytics.
+          </p>
         </CardContent>
       </Card>
     );
@@ -152,7 +180,9 @@ const SchoolFilteredAnalytics: React.FC<SchoolFilteredAnalyticsProps> = ({
     return (
       <Card className="border-red-200 bg-red-50">
         <CardContent className="p-6">
-          <p className="text-red-600">Error loading analytics: {error.message}</p>
+          <p className="text-red-600">
+            Error loading analytics: {error.message}
+          </p>
         </CardContent>
       </Card>
     );
@@ -171,28 +201,28 @@ const SchoolFilteredAnalytics: React.FC<SchoolFilteredAnalyticsProps> = ({
             </div>
             <p className="text-xs text-muted-foreground">Total Events</p>
           </div>
-          
+
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
               {analyticsData?.gradeEvents || 0}
             </div>
             <p className="text-xs text-muted-foreground">Grades</p>
           </div>
-          
+
           <div className="text-center">
             <div className="text-2xl font-bold text-yellow-600">
               {analyticsData?.attendanceEvents || 0}
             </div>
             <p className="text-xs text-muted-foreground">Attendance</p>
           </div>
-          
+
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">
               {analyticsData?.financeEvents || 0}
             </div>
             <p className="text-xs text-muted-foreground">Finance</p>
           </div>
-          
+
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">
               {analyticsData?.userActivityEvents || 0}
@@ -200,10 +230,11 @@ const SchoolFilteredAnalytics: React.FC<SchoolFilteredAnalyticsProps> = ({
             <p className="text-xs text-muted-foreground">User Activity</p>
           </div>
         </div>
-        
+
         {analyticsData?.lastEventTime && (
           <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
-            Last activity: {new Date(analyticsData.lastEventTime).toLocaleString()}
+            Last activity:{" "}
+            {new Date(analyticsData.lastEventTime).toLocaleString()}
           </div>
         )}
       </CardContent>

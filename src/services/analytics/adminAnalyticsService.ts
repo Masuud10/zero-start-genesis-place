@@ -1,5 +1,34 @@
 import { supabase } from '@/integrations/supabase/client';
 
+interface GrowthDataItem {
+  created_at: string;
+}
+
+interface UsageDataItem {
+  last_login_at: string;
+  role: string;
+}
+
+interface BillingRecord {
+  created_at: string;
+  amount: string | number;
+}
+
+interface TransactionRecord {
+  processed_at: string;
+  amount: string | number;
+}
+
+interface GradeRecord {
+  created_at: string;
+  percentage: number;
+}
+
+interface AttendanceRecord {
+  date: string;
+  status: string;
+}
+
 export class AdminAnalyticsService {
   static async getUserGrowthData() {
     try {
@@ -425,7 +454,11 @@ export class AdminAnalyticsService {
   }
 
   // Helper methods for data processing
-  private static processMonthlyGrowthData(data: { students: any[], teachers: any[], schools: any[] }) {
+  private static processMonthlyGrowthData(data: { 
+    students: GrowthDataItem[], 
+    teachers: GrowthDataItem[], 
+    schools: GrowthDataItem[] 
+  }) {
     const monthlyData = new Map();
     
     // Initialize last 6 months
@@ -451,7 +484,7 @@ export class AdminAnalyticsService {
     return Array.from(monthlyData.values());
   }
 
-  private static processUsageTrends(data: any[]) {
+  private static processUsageTrends(data: UsageDataItem[]) {
     const dailyUsage = new Map();
     
     // Initialize last 14 days
@@ -477,8 +510,8 @@ export class AdminAnalyticsService {
         if (dailyUsage.has(loginDate)) {
           const dayData = dailyUsage.get(loginDate);
           dayData.total++;
-          if (dayData[user.role] !== undefined) {
-            dayData[user.role]++;
+          if (dayData[user.role as keyof typeof dayData] !== undefined) {
+            (dayData[user.role as keyof typeof dayData] as number)++;
           }
         }
       }
@@ -487,7 +520,10 @@ export class AdminAnalyticsService {
     return Array.from(dailyUsage.values());
   }
 
-  private static processRevenueData(data: { billing: any[], transactions: any[] }) {
+  private static processRevenueData(data: { 
+    billing: BillingRecord[], 
+    transactions: TransactionRecord[] 
+  }) {
     const monthlyRevenue = new Map();
     
     // Initialize last 6 months
@@ -508,7 +544,7 @@ export class AdminAnalyticsService {
       if (record.created_at && record.amount) {
         const month = new Date(record.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
         if (monthlyRevenue.has(month)) {
-          monthlyRevenue.get(month).billing += parseFloat(record.amount);
+          monthlyRevenue.get(month).billing += parseFloat(String(record.amount));
         }
       }
     });
@@ -518,7 +554,7 @@ export class AdminAnalyticsService {
       if (transaction.processed_at && transaction.amount) {
         const month = new Date(transaction.processed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
         if (monthlyRevenue.has(month)) {
-          monthlyRevenue.get(month).payments += parseFloat(transaction.amount);
+          monthlyRevenue.get(month).payments += parseFloat(String(transaction.amount));
         }
       }
     });
@@ -531,7 +567,10 @@ export class AdminAnalyticsService {
     return Array.from(monthlyRevenue.values());
   }
 
-  private static processPerformanceData(data: { grades: any[], attendance: any[] }) {
+  private static processPerformanceData(data: { 
+    grades: GradeRecord[], 
+    attendance: AttendanceRecord[] 
+  }) {
     // Calculate network-wide averages
     const totalGrades = data.grades.length;
     const averageGrade = totalGrades > 0 

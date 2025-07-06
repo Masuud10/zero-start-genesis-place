@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface EduFamAnalyticsSummary {
@@ -24,7 +23,7 @@ export interface EduFamAnalyticsSummary {
 }
 
 export class EduFamAnalyticsService {
-  static async getSystemAnalytics(): Promise<{ data: EduFamAnalyticsSummary | null; error: any }> {
+  static async getSystemAnalytics(): Promise<{ data: EduFamAnalyticsSummary | null; error: Error | null }> {
     try {
       console.log('📊 EduFamAnalyticsService: Fetching system-wide analytics');
 
@@ -116,9 +115,10 @@ export class EduFamAnalyticsService {
       console.log('📊 EduFamAnalyticsService: Analytics processed successfully');
       return { data: analyticsData, error: null };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('📊 EduFamAnalyticsService: Error fetching analytics:', error);
-      return { data: null, error };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return { data: null, error: new Error(errorMessage) };
     }
   }
 }

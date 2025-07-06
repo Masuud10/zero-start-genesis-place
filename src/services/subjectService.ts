@@ -1,5 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Subject } from '@/types/subject';
+import { PostgrestError } from '@supabase/supabase-js';
+
+interface SubjectData extends Subject {
+  curriculum: string;
+}
+
+interface QueryResult<T> {
+  data: T | null;
+  error: PostgrestError | null;
+}
 
 export class SubjectService {
   private static readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
@@ -40,7 +50,7 @@ export class SubjectService {
       }
 
       // CRITICAL FIX: Normalize curriculum field to lowercase to fix data inconsistency
-      const normalizedData = result.data.map((subject: any) => ({
+      const normalizedData = result.data.map((subject: SubjectData) => ({
         ...subject,
         curriculum: subject.curriculum?.toLowerCase() || 'cbc'
       })) as Subject[];
@@ -48,12 +58,12 @@ export class SubjectService {
       console.log('✅ SubjectService: Successfully fetched', normalizedData.length, 'subjects');
       return normalizedData;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ SubjectService: Critical error:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out. Please try again.');
       }
-      throw new Error(error.message || 'Failed to fetch subjects');
+      throw new Error(error instanceof Error ? error.message : 'Failed to fetch subjects');
     }
   }
 
@@ -88,12 +98,12 @@ export class SubjectService {
       console.log('✅ SubjectService: Subject updated successfully');
       return result.data as Subject;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ SubjectService: Critical error updating subject:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Update request timed out. Please try again.');
       }
-      throw new Error(error.message || 'Failed to update subject');
+      throw new Error(error instanceof Error ? error.message : 'Failed to update subject');
     }
   }
 
@@ -115,17 +125,17 @@ export class SubjectService {
 
       console.log('✅ SubjectService: Subject deleted successfully');
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ SubjectService: Critical error deleting subject:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Delete request timed out. Please try again.');
       }
-      throw new Error(error.message || 'Failed to delete subject');
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete subject');
     }
   }
 
   // NEW: Execute query with timeout
-  private static async executeWithTimeout<T>(query: any, timeoutMs: number): Promise<{ data: T | null; error: any }> {
+  private static async executeWithTimeout<T>(query: unknown, timeoutMs: number): Promise<QueryResult<T>> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log(`⏰ Query timeout after ${timeoutMs}ms`);
@@ -133,7 +143,7 @@ export class SubjectService {
     }, timeoutMs);
 
     try {
-      const result = await query.abortSignal(controller.signal);
+      const result = await (query as { abortSignal: (signal: AbortSignal) => Promise<QueryResult<T>> }).abortSignal(controller.signal);
       clearTimeout(timeoutId);
       return result;
     } catch (error) {
@@ -162,7 +172,7 @@ export class SubjectService {
       console.log('✅ Database connection test successful');
       return true;
     } catch (error) {
-      if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.error('❌ Database connection test timed out');
       } else {
         console.error('❌ Database connection test error:', error);

@@ -1,5 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { PostgrestError } from '@supabase/supabase-js';
+import { Json } from '@/integrations/supabase/types';
 
 export interface AuditLogEntry {
   id: string;
@@ -9,20 +10,34 @@ export interface AuditLogEntry {
   school_id?: string;
   timestamp: string;
   target_entity?: string;
-  old_value?: any;
-  new_value?: any;
+  old_value?: Json;
+  new_value?: Json;
   ip_address?: string;
   user_agent?: string;
-  metadata?: any;
+  metadata?: Json;
   created_at: string;
 }
 
 export interface CreateAuditLogParams {
   action: string;
   target_entity?: string;
-  old_value?: any;
-  new_value?: any;
-  metadata?: any;
+  old_value?: Json;
+  new_value?: Json;
+  metadata?: Json;
+}
+
+interface AuditLogFilters {
+  limit?: number;
+  offset?: number;
+  action?: string;
+  school_id?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+interface AuditLogResponse {
+  data: AuditLogEntry[];
+  error: PostgrestError | null;
 }
 
 class AuditLogService {
@@ -50,13 +65,7 @@ class AuditLogService {
   }
 
   // Get audit logs for school users (principals, teachers)
-  async getSchoolAuditLogs(filters?: {
-    limit?: number;
-    offset?: number;
-    action?: string;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<{ data: AuditLogEntry[]; error: any }> {
+  async getSchoolAuditLogs(filters?: AuditLogFilters): Promise<AuditLogResponse> {
     let query = supabase
       .from('audit_logs')
       .select(`
@@ -112,14 +121,7 @@ class AuditLogService {
   }
 
   // Get all audit logs for system admins
-  async getSystemAuditLogs(filters?: {
-    limit?: number;
-    offset?: number;
-    action?: string;
-    school_id?: string;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<{ data: AuditLogEntry[]; error: any }> {
+  async getSystemAuditLogs(filters?: AuditLogFilters): Promise<AuditLogResponse> {
     let query = supabase
       .from('audit_logs')
       .select(`
@@ -179,7 +181,7 @@ class AuditLogService {
   }
 
   // Convenience methods for logging specific actions
-  async logGradeAction(action: string, gradeId: string, oldValue?: any, newValue?: any) {
+  async logGradeAction(action: string, gradeId: string, oldValue?: Json, newValue?: Json) {
     return this.logAction({
       action: `Grade ${action}`,
       target_entity: `grade_id: ${gradeId}`,
@@ -188,7 +190,7 @@ class AuditLogService {
     });
   }
 
-  async logAttendanceAction(action: string, studentId: string, date: string, oldValue?: any, newValue?: any) {
+  async logAttendanceAction(action: string, studentId: string, date: string, oldValue?: Json, newValue?: Json) {
     return this.logAction({
       action: `Attendance ${action}`,
       target_entity: `student_id: ${studentId}, date: ${date}`,
@@ -197,7 +199,7 @@ class AuditLogService {
     });
   }
 
-  async logStudentAction(action: string, studentId: string, oldValue?: any, newValue?: any) {
+  async logStudentAction(action: string, studentId: string, oldValue?: Json, newValue?: Json) {
     return this.logAction({
       action: `Student ${action}`,
       target_entity: `student_id: ${studentId}`,
@@ -206,16 +208,17 @@ class AuditLogService {
     });
   }
 
-  async logPaymentAction(action: string, paymentId: string, amount?: number, metadata?: any) {
+  async logPaymentAction(action: string, paymentId: string, amount?: number, metadata?: Json) {
     return this.logAction({
       action: `Payment ${action}`,
       target_entity: `payment_id: ${paymentId}`,
+      old_value: { amount },
       new_value: { amount },
       metadata
     });
   }
 
-  async logUserAction(action: string, userId: string, oldValue?: any, newValue?: any) {
+  async logUserAction(action: string, userId: string, oldValue?: Json, newValue?: Json) {
     return this.logAction({
       action: `User ${action}`,
       target_entity: `user_id: ${userId}`,
@@ -224,7 +227,7 @@ class AuditLogService {
     });
   }
 
-  async logSchoolAction(action: string, schoolId: string, oldValue?: any, newValue?: any) {
+  async logSchoolAction(action: string, schoolId: string, oldValue?: Json, newValue?: Json) {
     return this.logAction({
       action: `School ${action}`,
       target_entity: `school_id: ${schoolId}`,
@@ -233,7 +236,7 @@ class AuditLogService {
     });
   }
 
-  async logSystemAction(action: string, metadata?: any) {
+  async logSystemAction(action: string, metadata?: Json) {
     return this.logAction({
       action: `System ${action}`,
       metadata

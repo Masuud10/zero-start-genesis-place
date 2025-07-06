@@ -1,4 +1,3 @@
-
 export interface Subject {
   id: string;
   name: string;
@@ -61,7 +60,7 @@ export interface CreateAssignmentData {
 export interface NewSubjectFormData {
   name: string;
   code: string;
-  curriculum: 'CBC' | 'IGCSE';
+  curriculum: 'CBC' | 'IGCSE' | 'Standard';
   category: 'core' | 'elective' | 'optional';
   class_id?: string;
   teacher_id?: string;

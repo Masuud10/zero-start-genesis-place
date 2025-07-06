@@ -21,7 +21,7 @@ export class InputSanitizer {
 
   static sanitizeEmail(email: string): string {
     // Remove whitespace and convert to lowercase
-    let sanitized = email.trim().toLowerCase();
+    const sanitized = email.trim().toLowerCase();
     
     // Basic email validation pattern
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

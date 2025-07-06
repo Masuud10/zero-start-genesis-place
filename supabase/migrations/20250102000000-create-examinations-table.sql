@@ -39,6 +39,17 @@ CREATE POLICY "Principals can manage their school examinations" ON public.examin
     )
   );
 
+-- Explicit INSERT policy for principals
+CREATE POLICY "Principals can insert examinations" ON public.examinations
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role = 'principal' 
+      AND school_id = examinations.school_id
+    )
+  );
+
 -- Teachers can view examinations for their school
 CREATE POLICY "Teachers can view their school examinations" ON public.examinations
   FOR SELECT USING (

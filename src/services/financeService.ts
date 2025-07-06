@@ -1,4 +1,3 @@
-
 import { DataServiceCore } from './core/dataServiceCore';
 import { validateUuid, safeUuidOrNull } from '@/utils/uuidValidation';
 
@@ -18,6 +17,28 @@ interface DatabaseFinancialInsert {
   discount_amount?: number;
   late_fee_amount?: number;
   installment_number?: number;
+}
+
+interface TransactionData {
+  student_id?: string;
+  school_id?: string;
+  fee_id?: string;
+  amount: number;
+  payment_method: string;
+  transaction_type: string;
+  reference_number?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+interface FeeFilters {
+  school_id?: string;
+  student_id?: string;
+  status?: string;
+  category?: string;
+  term?: string;
+  academic_year?: string;
+  [key: string]: unknown;
 }
 
 export interface FinancialData {
@@ -102,7 +123,7 @@ export class FinanceService {
     return DataServiceCore.updateRecord('fees', idValidation.sanitizedValue!, updates);
   }
 
-  static async getFees(filters?: Record<string, any>) {
+  static async getFees(filters?: FeeFilters) {
     // Validate any UUID filters
     if (filters?.school_id) {
       const schoolValidation = validateUuid(filters.school_id);
@@ -124,7 +145,7 @@ export class FinanceService {
     return DataServiceCore.fetchRecords<FinancialData>('fees', filters);
   }
 
-  static async recordPayment(transactionData: any) {
+  static async recordPayment(transactionData: TransactionData) {
     // Validate UUIDs in transaction data
     if (transactionData.school_id) {
       const schoolValidation = validateUuid(transactionData.school_id);

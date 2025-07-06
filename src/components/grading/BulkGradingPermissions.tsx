@@ -1,5 +1,15 @@
+import React from "react";
 
-import React from 'react';
+interface GradeData {
+  status:
+    | "draft"
+    | "submitted"
+    | "under_review"
+    | "approved"
+    | "rejected"
+    | "released";
+  [key: string]: unknown;
+}
 
 interface BulkGradingPermissionsProps {
   existingGradesStatus: string;
@@ -12,34 +22,33 @@ export const useBulkGradingPermissions = ({
   existingGradesStatus,
   isPrincipal,
   setIsReadOnly,
-  setExistingGradesStatus
+  setExistingGradesStatus,
 }: BulkGradingPermissionsProps) => {
-  
-  const updatePermissions = (data: any[]) => {
+  const updatePermissions = (data: GradeData[]) => {
     if (data && data.length > 0) {
       // Check status of existing grades
-      const statuses = [...new Set(data.map(g => g.status))];
-      const hasSubmitted = statuses.includes('submitted');
-      const hasApproved = statuses.includes('approved');
-      const hasReleased = statuses.includes('released');
+      const statuses = [...new Set(data.map((g) => g.status))];
+      const hasSubmitted = statuses.includes("submitted");
+      const hasApproved = statuses.includes("approved");
+      const hasReleased = statuses.includes("released");
 
-      console.log('Grade statuses found:', statuses);
+      console.log("Grade statuses found:", statuses);
 
       if (hasReleased) {
-        setExistingGradesStatus('released');
+        setExistingGradesStatus("released");
         setIsReadOnly(true);
       } else if (hasApproved) {
-        setExistingGradesStatus('approved');
+        setExistingGradesStatus("approved");
         setIsReadOnly(!isPrincipal); // Only principals can edit approved grades
       } else if (hasSubmitted) {
-        setExistingGradesStatus('submitted');
+        setExistingGradesStatus("submitted");
         setIsReadOnly(!isPrincipal); // Only principals can edit submitted grades
       } else {
-        setExistingGradesStatus('draft');
+        setExistingGradesStatus("draft");
         setIsReadOnly(false);
       }
     } else {
-      setExistingGradesStatus('');
+      setExistingGradesStatus("");
       setIsReadOnly(false);
     }
   };

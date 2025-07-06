@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface CreateUserParams {
@@ -61,9 +60,9 @@ export const AdminUserService = {
 
       return { error: 'Unknown response from user creation function.' };
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in createUser:', error);
-      return { error: error.message || 'Unknown error occurred' };
+      return { error: error instanceof Error ? error.message : 'Unknown error occurred' };
     }
   },
 
@@ -94,7 +93,7 @@ export const AdminUserService = {
       }
 
       return { data: data || [], error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in getUsersForSchool:', error);
       return { data: null, error };
     }
@@ -120,9 +119,9 @@ export const AdminUserService = {
       } else {
         return { success: false, error: response?.error || 'Failed to update user status' };
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error in updateUserStatus:', error);
-      return { success: false, error: error.message || 'Unknown error occurred' };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
     }
   },
 

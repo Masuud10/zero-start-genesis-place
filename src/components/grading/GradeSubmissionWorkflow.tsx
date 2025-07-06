@@ -35,7 +35,7 @@ export const GradeSubmissionWorkflow: React.FC<GradeSubmissionWorkflowProps> = (
   const [submitting, setSubmitting] = useState(false);
 
   const getGradeStats = () => {
-    let totalPossible = students.length * subjects.length;
+    const totalPossible = students.length * subjects.length;
     let gradesFilled = 0;
 
     students.forEach(student => {

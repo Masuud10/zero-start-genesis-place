@@ -245,16 +245,19 @@ const EditExaminationModal: React.FC<EditExaminationModalProps> = ({
           <div>
             <Label htmlFor="coordinator">Exam Coordinator (Optional)</Label>
             <Select
-              value={formData.coordinator_id || ""}
+              value={formData.coordinator_id || "none"}
               onValueChange={(value) =>
-                handleInputChange("coordinator_id", value)
+                handleInputChange(
+                  "coordinator_id",
+                  value === "none" ? "" : value
+                )
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a coordinator" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Coordinator</SelectItem>
+                <SelectItem value="none">No Coordinator</SelectItem>
                 {teachers.map((teacher) => (
                   <SelectItem key={teacher.id} value={teacher.id}>
                     {teacher.name}

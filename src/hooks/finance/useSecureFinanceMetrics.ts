@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { validateUuid, validateSchoolAccess, createUuidError, safeUuidOrNull } from '@/utils/uuidValidation';
@@ -20,7 +19,7 @@ export const useSecureFinanceMetrics = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const fetchSecureMetrics = async () => {
+  const fetchSecureMetrics = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -144,9 +143,9 @@ export const useSecureFinanceMetrics = () => {
       console.log('✅ Secure finance metrics calculated successfully:', calculatedMetrics);
       setMetrics(calculatedMetrics);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Secure finance metrics error:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error('Unknown error'));
       // Set safe default metrics on error
       setMetrics({
         totalRevenue: 0,
@@ -160,7 +159,7 @@ export const useSecureFinanceMetrics = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.school_id]);
 
   useEffect(() => {
     if (user?.school_id) {
@@ -169,7 +168,7 @@ export const useSecureFinanceMetrics = () => {
       setIsLoading(false);
       setError(new Error('No school associated with user'));
     }
-  }, [user?.school_id]);
+  }, [fetchSecureMetrics, user?.school_id]);
 
   return {
     metrics,

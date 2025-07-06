@@ -1,10 +1,71 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface MultiTenantAnalyticsConfig {
   enforceStrictTenancy: boolean;
   allowCrossTenantQueries: boolean;
   auditAccess: boolean;
+}
+
+interface GradeData {
+  percentage?: number;
+  score?: number;
+  subjects?: { name: string } | { error: true } & string;
+  letter_grade?: string;
+  created_at: string;
+  subject_id: string;
+}
+
+interface AttendanceData {
+  status: string;
+  date: string;
+  student_id: string;
+  created_at?: string;
+}
+
+interface StudentData {
+  id: string;
+  name: string;
+  class_id: string;
+  created_at: string;
+}
+
+interface FeeData {
+  amount: number;
+  paid_amount: number;
+  status: string;
+  category: string;
+  created_at: string;
+}
+
+interface AnalyticsData {
+  grades: GradeData[];
+  attendance: AttendanceData[];
+  students: StudentData[];
+  fees: FeeData[];
+}
+
+interface SubjectPerformance {
+  average: number;
+  count: number;
+}
+
+interface MonthlyTrends {
+  grades: { change: number; direction: 'up' | 'down' | 'stable' };
+  attendance: { change: number; direction: 'up' | 'down' | 'stable' };
+}
+
+interface AnalyticsSummary {
+  totalStudents: number;
+  totalGrades: number;
+  averageGrade: number;
+  attendanceRate: number;
+  totalFees: number;
+  collectedFees: number;
+  feeCollectionRate: number;
+  subjectPerformance: Record<string, SubjectPerformance>;
+  gradeDistribution: Record<string, number>;
+  monthlyTrends: MonthlyTrends;
+  lastUpdated: string;
 }
 
 export class MultiTenantAnalyticsService {
@@ -167,13 +228,8 @@ export class MultiTenantAnalyticsService {
     }
   }
 
-  private processAnalyticsData(data: {
-    grades: any[];
-    attendance: any[];
-    students: any[];
-    fees: any[];
-  }) {
-    const summary = {
+  private processAnalyticsData(data: AnalyticsData): AnalyticsSummary {
+    const summary: AnalyticsSummary = {
       totalStudents: data.students.length,
       totalGrades: data.grades.length,
       averageGrade: data.grades.length > 0 
@@ -187,7 +243,7 @@ export class MultiTenantAnalyticsService {
       feeCollectionRate: 0,
       
       // Subject breakdown
-      subjectPerformance: {} as Record<string, { average: number; count: number }>,
+      subjectPerformance: {} as Record<string, SubjectPerformance>,
       
       // Grade distribution
       gradeDistribution: {} as Record<string, number>,
@@ -205,7 +261,9 @@ export class MultiTenantAnalyticsService {
 
     // Process subject performance
     data.grades.forEach(grade => {
-      const subjectName = grade.subjects?.name || 'Unknown';
+      const subjectName = typeof grade.subjects === 'object' && 'name' in grade.subjects 
+        ? grade.subjects.name 
+        : 'Unknown';
       if (!summary.subjectPerformance[subjectName]) {
         summary.subjectPerformance[subjectName] = { average: 0, count: 0 };
       }
@@ -228,8 +286,8 @@ export class MultiTenantAnalyticsService {
     return summary;
   }
 
-  private calculateMonthlyTrends(grades: any[], attendance: any[]) {
-    const trends = {
+  private calculateMonthlyTrends(grades: GradeData[], attendance: AttendanceData[]): MonthlyTrends {
+    const trends: MonthlyTrends = {
       grades: this.calculateTrend(grades, 'grades'),
       attendance: this.calculateTrend(attendance, 'attendance')
     };
@@ -237,7 +295,7 @@ export class MultiTenantAnalyticsService {
     return trends;
   }
 
-  private calculateTrend(events: any[], category: string): { change: number; direction: 'up' | 'down' | 'stable' } {
+  private calculateTrend(events: (GradeData | AttendanceData)[], category: string): { change: number; direction: 'up' | 'down' | 'stable' } {
     if (events.length < 2) {
       return { change: 0, direction: 'stable' };
     }
@@ -247,12 +305,12 @@ export class MultiTenantAnalyticsService {
     const previousWeek = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
     const recentEvents = events.filter(e => {
-      const eventDate = new Date(e.created_at || e.date);
+      const eventDate = new Date(e.created_at || (e as AttendanceData).date);
       return eventDate >= lastWeek;
     });
 
     const previousEvents = events.filter(e => {
-      const eventDate = new Date(e.created_at || e.date);
+      const eventDate = new Date(e.created_at || (e as AttendanceData).date);
       return eventDate >= previousWeek && eventDate < lastWeek;
     });
 

@@ -1,13 +1,30 @@
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 
+interface User {
+  id: string;
+  email?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+interface Resource {
+  school_id?: string;
+  [key: string]: unknown;
+}
+
+interface QueryBuilder {
+  eq: (column: string, value: string) => QueryBuilder;
+  or: (condition: string) => QueryBuilder;
+  [key: string]: unknown;
+}
+
 export class MultiTenantValidator {
-  private user: any;
+  private user: User;
   private schoolId: string | null;
   private isSystemAdmin: boolean;
 
-  constructor(user: any, schoolId: string | null, isSystemAdmin: boolean) {
+  constructor(user: User, schoolId: string | null, isSystemAdmin: boolean) {
     this.user = user;
     this.schoolId = schoolId;
     this.isSystemAdmin = isSystemAdmin;
@@ -28,7 +45,7 @@ export class MultiTenantValidator {
     return this.schoolId === targetSchoolId;
   }
 
-  validateResourceAccess(resource: any, resourceSchoolId?: string): boolean {
+  validateResourceAccess(resource: Resource, resourceSchoolId?: string): boolean {
     // System admins have access to all resources
     if (this.isSystemAdmin) {
       return true;
@@ -45,7 +62,7 @@ export class MultiTenantValidator {
     return this.validateSchoolAccess(targetSchoolId);
   }
 
-  addSchoolFilter(query: any, tableName: string) {
+  addSchoolFilter(query: QueryBuilder, tableName: string): QueryBuilder {
     // System admins don't need school filtering
     if (this.isSystemAdmin) {
       return query;
@@ -76,11 +93,9 @@ export class MultiTenantValidator {
     // Default: return query as-is for tables without school_id
     return query;
   }
-
-  static useValidator() {
-    const { user } = useAuth();
-    const { schoolId, isSystemAdmin } = useSchoolScopedData();
-    
-    return new MultiTenantValidator(user, schoolId, isSystemAdmin);
-  }
 }
+
+// Factory function for creating validator instances
+export const createMultiTenantValidator = (user: User, schoolId: string | null, isSystemAdmin: boolean): MultiTenantValidator => {
+  return new MultiTenantValidator(user, schoolId, isSystemAdmin);
+};
