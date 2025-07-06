@@ -2291,6 +2291,100 @@ export type Database = {
           },
         ]
       }
+      examinations: {
+        Row: {
+          academic_year: string
+          classes: string[]
+          coordinator_id: string | null
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          name: string
+          remarks: string | null
+          school_id: string
+          start_date: string
+          term: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year: string
+          classes: string[]
+          coordinator_id?: string | null
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          name: string
+          remarks?: string | null
+          school_id: string
+          start_date: string
+          term: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string
+          classes?: string[]
+          coordinator_id?: string | null
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          name?: string
+          remarks?: string | null
+          school_id?: string
+          start_date?: string
+          term?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examinations_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examinations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "examinations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "examinations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "examinations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "examinations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
