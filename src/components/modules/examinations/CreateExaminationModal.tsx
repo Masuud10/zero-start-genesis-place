@@ -51,8 +51,8 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const { createExamination } = useExaminations();
-  const { classes } = useClasses();
-  const { teachers } = useTeachers();
+  const { classes, loading: classesLoading, error: classesError } = useClasses();
+  const { teachers, loading: teachersLoading, error: teachersError } = useTeachers();
 
   const handleInputChange = (
     field: keyof CreateExaminationData,
@@ -128,6 +128,42 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
       onClose();
     }
   };
+
+  // Show loading state if data is still being fetched
+  if (classesLoading || teachersLoading) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl">
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin mr-3" />
+            <span>Loading form data...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show error state if there's an issue loading required data
+  if (classesError || teachersError) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Error Loading Form</DialogTitle>
+          </DialogHeader>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {classesError || teachersError || "Failed to load required data"}
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-end mt-4">
+            <Button onClick={handleClose}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -247,11 +283,17 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">No Coordinator</SelectItem>
-                {teachers.map((teacher) => (
-                  <SelectItem key={teacher.id} value={teacher.id}>
-                    {teacher.name}
+                {teachers && teachers.length > 0 ? (
+                  teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      {teacher.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No teachers available
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -259,18 +301,24 @@ const CreateExaminationModal: React.FC<CreateExaminationModalProps> = ({
           <div>
             <Label>Target Classes *</Label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2 max-h-40 overflow-y-auto border rounded-md p-3">
-              {classes.map((classItem) => (
-                <div key={classItem.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`class-${classItem.id}`}
-                    checked={formData.classes.includes(classItem.id)}
-                    onCheckedChange={() => handleClassToggle(classItem.id)}
-                  />
-                  <Label htmlFor={`class-${classItem.id}`} className="text-sm">
-                    {classItem.name}
-                  </Label>
-                </div>
-              ))}
+              {classes && classes.length > 0 ? (
+                classes.map((classItem) => (
+                  <div key={classItem.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`class-${classItem.id}`}
+                      checked={formData.classes.includes(classItem.id)}
+                      onCheckedChange={() => handleClassToggle(classItem.id)}
+                    />
+                    <Label htmlFor={`class-${classItem.id}`} className="text-sm">
+                      {classItem.name}
+                    </Label>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 col-span-full text-center py-4">
+                  No classes available
+                </p>
+              )}
             </div>
             {formData.classes.length === 0 && (
               <p className="text-sm text-red-600 mt-1">
