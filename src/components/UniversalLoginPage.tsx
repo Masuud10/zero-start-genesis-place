@@ -275,34 +275,26 @@ function UniversalLoginForm() {
 
 const UniversalLoginPage: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-      <div className="w-full max-w-sm mx-auto">
-        {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mb-6 shadow-lg">
-            <Shield className="h-8 w-8 text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-md mx-auto">
+        {/* Login Form Container */}
+        <div className="bg-white rounded-lg shadow-lg p-8 min-h-[600px] flex flex-col justify-center">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+              Welcome Back
+            </h1>
+            <p className="text-gray-600">Sign in to Edufam</p>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            Welcome back
-          </h1>
-          <h2 className="text-xl text-gray-700 mb-2">Sign in to Edufam</h2>
-          <p className="text-sm text-gray-500">
-            Access your personalized dashboard
-          </p>
+
+          {/* Login Form */}
+          <UniversalLoginForm />
         </div>
 
-        {/* Main Login Form */}
-        <Card className="backdrop-blur-sm bg-white/80 border-white/20 shadow-2xl rounded-3xl overflow-hidden mb-8">
-          <CardContent className="p-8">
-            <UniversalLoginForm />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Footer Branding */}
-      <div className="mt-12 text-center">
-        <p className="text-sm text-gray-500 font-medium">Powered by Edufam</p>
-        <div className="mt-2 w-16 h-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full"></div>
+        {/* Footer */}
+        <div className="text-center mt-8">
+          <p className="text-sm text-gray-500">Powered by Edufam</p>
+        </div>
       </div>
     </div>
   );
