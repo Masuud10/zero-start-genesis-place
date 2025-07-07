@@ -193,43 +193,43 @@ function UniversalLoginForm() {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {error && (
-          <Alert className="border-red-200 bg-red-50">
+          <Alert className="border-red-200 bg-red-50 mb-8">
             <AlertDescription className="text-red-700">
               {error}
             </AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-6">
           <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
-            className="w-full px-4 py-3 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+            className="w-full px-4 py-4 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
             required
             autoComplete="email"
             disabled={isLoading || isSubmitting}
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-6">
           <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="w-full px-4 py-3 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+            className="w-full px-4 py-4 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
             required
             autoComplete="current-password"
             disabled={isLoading || isSubmitting}
           />
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
             <Checkbox
               id="remember-me"
               checked={rememberMe}
@@ -249,20 +249,22 @@ function UniversalLoginForm() {
           </button>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-3 rounded-lg font-medium transition-colors duration-200"
-          disabled={isLoading || isSubmitting}
-        >
-          {isLoading || isSubmitting ? (
-            <span className="flex items-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Signing in...
-            </span>
-          ) : (
-            "Sign In"
-          )}
-        </Button>
+        <div className="pt-4">
+          <Button
+            type="submit"
+            className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-4 rounded-lg font-medium transition-colors duration-200"
+            disabled={isLoading || isSubmitting}
+          >
+            {isLoading || isSubmitting ? (
+              <span className="flex items-center">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Signing in...
+              </span>
+            ) : (
+              "Sign In"
+            )}
+          </Button>
+        </div>
       </form>
 
       <ForgotPasswordModal
