@@ -1,22 +1,30 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TrendingUp, Users, DollarSign, Activity, AlertCircle, Loader2 } from 'lucide-react';
-import SystemGrowthTrendsChart from '../charts/SystemGrowthTrendsChart';
-import PlatformUsageChart from '../charts/PlatformUsageChart';
-import RevenueAnalyticsChart from '../charts/RevenueAnalyticsChart';
-import PerformanceInsightsChart from '../charts/PerformanceInsightsChart';
-import UserRoleDistributionChart from '../charts/UserRoleDistributionChart';
-import EnrollmentBySchoolChart from '../charts/EnrollmentBySchoolChart';
-import CurriculumDistributionPieChart from '../charts/CurriculumDistributionPieChart';
-import FinancialSummaryPieChart from '../charts/FinancialSummaryPieChart';
-import { useSystemAnalytics } from '@/hooks/useSystemAnalytics';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  TrendingUp,
+  Users,
+  DollarSign,
+  Activity,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import SystemGrowthTrendsChart from "../charts/SystemGrowthTrendsChart";
+import PlatformUsageChart from "../charts/PlatformUsageChart";
+import RevenueAnalyticsChart from "../charts/RevenueAnalyticsChart";
+import PerformanceInsightsChart from "../charts/PerformanceInsightsChart";
+import UserRoleDistributionChart from "../charts/UserRoleDistributionChart";
+import EnrollmentBySchoolChart from "../charts/EnrollmentBySchoolChart";
+import CurriculumDistributionPieChart from "../charts/CurriculumDistributionPieChart";
+import FinancialSummaryPieChart from "../charts/FinancialSummaryPieChart";
+import { useSystemAnalytics } from "@/hooks/useSystemAnalytics";
 
 const SystemAnalyticsChartsSection = () => {
-  console.log('📊 SystemAnalyticsChartsSection: Rendering system analytics charts section');
-  
-  const { data: analytics, isLoading, error } = useSystemAnalytics();
+  console.log(
+    "📊 SystemAnalyticsChartsSection: Rendering system analytics charts section"
+  );
+
+  const { analyticsData: analytics, isLoading, error } = useSystemAnalytics();
 
   if (isLoading) {
     return (
@@ -34,19 +42,18 @@ const SystemAnalyticsChartsSection = () => {
       <Alert className="bg-red-50 border-red-200">
         <AlertCircle className="h-4 w-4 text-red-600" />
         <AlertDescription className="text-red-700">
-          Unable to load system analytics. Please try refreshing the page or contact support if the issue persists.
+          Unable to load system analytics. Please try refreshing the page or
+          contact support if the issue persists.
         </AlertDescription>
       </Alert>
     );
   }
 
   // Calculate key metrics from analytics data with safety checks
-  const totalUsers = analytics?.userDistribution?.reduce((sum, item) => sum + item.count, 0) || 0;
-  const totalSchools = analytics?.schoolsOnboarded?.reduce((sum, item) => sum + item.count, 0) || 0;
-  const totalRevenue = analytics?.financeSummary?.total_subscriptions || 0;
-  const avgPerformance = analytics?.performanceTrends?.length > 0 
-    ? analytics.performanceTrends[analytics.performanceTrends.length - 1]?.average_grade || 0
-    : 0;
+  const totalUsers = analytics?.totalUsers || 0;
+  const totalSchools = analytics?.totalSchools || 0;
+  const totalRevenue = analytics?.totalRevenue || 0;
+  const avgPerformance = analytics?.averageResponseTime || 0;
 
   return (
     <div className="space-y-6">
@@ -57,7 +64,9 @@ const SystemAnalyticsChartsSection = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-blue-600">{totalUsers.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {totalUsers.toLocaleString()}
+                </p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
@@ -68,8 +77,12 @@ const SystemAnalyticsChartsSection = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Schools</p>
-                <p className="text-2xl font-bold text-green-600">{totalSchools.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Schools
+                </p>
+                <p className="text-2xl font-bold text-green-600">
+                  {totalSchools.toLocaleString()}
+                </p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-500" />
             </div>
@@ -80,8 +93,12 @@ const SystemAnalyticsChartsSection = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-purple-600">KES {totalRevenue.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Revenue
+                </p>
+                <p className="text-2xl font-bold text-purple-600">
+                  KES {totalRevenue.toLocaleString()}
+                </p>
               </div>
               <DollarSign className="h-8 w-8 text-purple-500" />
             </div>
@@ -92,8 +109,12 @@ const SystemAnalyticsChartsSection = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg Performance</p>
-                <p className="text-2xl font-bold text-orange-600">{avgPerformance.toFixed(1)}%</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Avg Performance
+                </p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {avgPerformance.toFixed(1)}%
+                </p>
               </div>
               <Activity className="h-8 w-8 text-orange-500" />
             </div>

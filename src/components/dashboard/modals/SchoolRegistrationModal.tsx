@@ -60,7 +60,6 @@ interface SchoolFormData {
   school_type: "primary" | "secondary" | "tertiary";
   term_structure: "3-term" | "2-term" | "trimester";
   year_established: number;
-  max_students: number;
   timezone: string;
 
   // Branding
@@ -113,7 +112,6 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
     school_type: "primary",
     term_structure: "3-term",
     year_established: new Date().getFullYear(),
-    max_students: 1000,
     timezone: "Africa/Nairobi",
 
     // Branding
@@ -186,11 +184,6 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
       errors.year_established = `Year must be between 1800 and ${currentYear}`;
     }
 
-    // Max students validation
-    if (formData.max_students < 1 || formData.max_students > 10000) {
-      errors.max_students = "Maximum students must be between 1 and 10,000";
-    }
-
     // MPESA validation if enabled
     if (formData.mpesa_enabled) {
       if (!formData.mpesa_paybill_number.trim()) {
@@ -234,7 +227,6 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
           school_type: data.school_type,
           term_structure: data.term_structure,
           year_established: data.year_established,
-          max_students: data.max_students,
           timezone: data.timezone,
 
           // Branding
@@ -266,7 +258,7 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
           mpesa_confirmation_key: data.mpesa_enabled
             ? data.mpesa_confirmation_key.trim()
             : null,
-        }
+        } as any
       );
 
       if (error) {
@@ -306,7 +298,6 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
           school_type: "primary",
           term_structure: "3-term",
           year_established: new Date().getFullYear(),
-          max_students: 1000,
           timezone: "Africa/Nairobi",
           logo_url: "",
           website_url: "",
@@ -568,28 +559,6 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="max_students">Maximum Number of Students</Label>
-                <Input
-                  id="max_students"
-                  type="number"
-                  value={formData.max_students}
-                  onChange={(e) =>
-                    handleInputChange("max_students", parseInt(e.target.value))
-                  }
-                  min="1"
-                  max="10000"
-                  className={
-                    validationErrors.max_students ? "border-red-500" : ""
-                  }
-                />
-                {validationErrors.max_students && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {validationErrors.max_students}
-                  </p>
-                )}
-              </div>
-
               <div>
                 <Label htmlFor="timezone">Timezone</Label>
                 <Select

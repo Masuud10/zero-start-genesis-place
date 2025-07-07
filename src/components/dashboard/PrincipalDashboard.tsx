@@ -217,9 +217,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
             </div>
           }
         >
-          {console.log(
-            "🎭 PrincipalDashboard: Rendering TimetableGenerator modal"
-          )}
           <TimetableGenerator
             open={true}
             onClose={handleModalClose}

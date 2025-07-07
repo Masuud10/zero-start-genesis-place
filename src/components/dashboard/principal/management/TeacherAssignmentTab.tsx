@@ -48,7 +48,7 @@ const TeacherAssignmentTab = () => {
 
   // Find the selected class and its curriculum
   const selectedClass = classList.find((c) => c.id === selectedClassId);
-  const classCurriculum = selectedClass?.curriculum;
+  const classCurriculum = selectedClass?.curriculum_type;
 
   // Filter subjects to only those matching the class curriculum
   const filteredSubjectList = subjectList.filter(

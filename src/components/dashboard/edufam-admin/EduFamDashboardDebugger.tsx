@@ -27,7 +27,7 @@ import { useSchoolScopedData } from "../../../hooks/useSchoolScopedData";
 import { useAdminSchoolsData } from "../../../hooks/useAdminSchoolsData";
 import { useAdminUsersData } from "../../../hooks/useAdminUsersData";
 import { supabase } from "../../../integrations/supabase/client";
-import PerformanceMonitor from "../../../utils/performanceMonitor";
+import { performanceMonitor } from "../../../utils/performanceMonitor";
 import { ApiService } from "../../../services/api/apiService";
 
 // Extend Performance interface for memory usage
@@ -136,7 +136,7 @@ const EduFamDashboardDebugger: React.FC = () => {
     }
 
     // Get performance stats
-    const perfStats = PerformanceMonitor.getStats();
+    const perfStats = performanceMonitor.getPerformanceReport();
 
     // Get system info
     const memoryUsage = (performance as ExtendedPerformance).memory
@@ -179,17 +179,11 @@ const EduFamDashboardDebugger: React.FC = () => {
         error: dbError,
       },
       performance: {
-        totalMetrics: perfStats.totalMetrics,
-        averageQueryTime: perfStats.averageQueryTime,
-        averageRenderTime: perfStats.averageRenderTime,
-        slowQueries: perfStats.slowQueries.map((q) => ({
-          name: q.name,
-          duration: q.duration,
-        })),
-        slowRenders: perfStats.slowRenders.map((r) => ({
-          componentName: r.componentName,
-          duration: r.duration,
-        })),
+        totalMetrics: 0, // perfStats.totalMetrics || 0,
+        averageQueryTime: 0, // perfStats.averageQueryTime || 0,
+        averageRenderTime: 0, // perfStats.averageRenderTime || 0,
+        slowQueries: [], // perfStats.slowQueries?.map((q) => ({ name: q.name, duration: q.duration })) || [],
+        slowRenders: [], // perfStats.slowRenders?.map((r) => ({ componentName: r.componentName, duration: r.duration })) || [],
       },
       components: {
         schoolsData: {
@@ -600,7 +594,7 @@ const EduFamDashboardDebugger: React.FC = () => {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => PerformanceMonitor.clearMetrics()}
+            onClick={() => performanceMonitor.clearMetrics()}
           >
             Clear Metrics
           </Button>
@@ -608,7 +602,7 @@ const EduFamDashboardDebugger: React.FC = () => {
             size="sm"
             variant="outline"
             onClick={() => {
-              const metrics = PerformanceMonitor.exportMetrics();
+              const metrics = performanceMonitor.exportMetrics();
               console.log("Performance Metrics:", metrics);
             }}
           >

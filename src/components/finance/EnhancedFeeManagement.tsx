@@ -29,6 +29,7 @@ import {
   CheckCircle,
   XCircle,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
@@ -39,44 +40,28 @@ import { supabase } from "@/integrations/supabase/client";
 interface FeeStructure {
   id: string;
   name: string;
-  class_id: string;
-  academic_year_id: string;
-  term_id: string;
-  amount: number;
-  category: string;
-  due_date: string;
+  academic_year: string;
+  term: string;
   is_active: boolean;
   created_at: string;
-  classes?: {
-    name: string;
-    curriculum_type: string;
-  };
-  academic_years?: {
-    year_name: string;
-  };
-  academic_terms?: {
-    term_name: string;
-  };
+  updated_at: string;
+  school_id: string;
 }
 
 interface StudentFee {
   id: string;
   student_id: string;
+  school_id: string;
+  fee_id: string;
   class_id: string;
-  fee_structure_id: string;
   amount: number;
-  paid_amount: number;
+  amount_paid: number;
   status: string;
   due_date: string;
-  academic_year_id: string;
-  term_id: string;
-  students?: {
-    name: string;
-    admission_number: string;
-  };
-  classes?: {
-    name: string;
-  };
+  academic_year: string;
+  term: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const EnhancedFeeManagement = () => {
@@ -113,14 +98,7 @@ const EnhancedFeeManagement = () => {
       if (!schoolId) return [];
       const { data, error } = await supabase
         .from("fee_structures")
-        .select(
-          `
-          *,
-          classes (name, curriculum_type),
-          academic_years (year_name),
-          academic_terms (term_name)
-        `
-        )
+        .select("*")
         .eq("school_id", schoolId)
         .order("created_at", { ascending: false });
 
@@ -143,9 +121,19 @@ const EnhancedFeeManagement = () => {
         .from("student_fees")
         .select(
           `
-          *,
-          students (name, admission_number),
-          classes (name)
+          id,
+          student_id,
+          school_id,
+          fee_id,
+          class_id,
+          amount,
+          amount_paid,
+          status,
+          due_date,
+          academic_year,
+          term,
+          created_at,
+          updated_at
         `
         )
         .eq("school_id", schoolId)
@@ -195,63 +183,65 @@ const EnhancedFeeManagement = () => {
     feeStructures?.filter((structure) => {
       const matchesSearch =
         structure.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        structure.classes?.name
-          ?.toLowerCase()
+        structure.academic_year
+          .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        structure.category.toLowerCase().includes(searchTerm.toLowerCase());
+        structure.term.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesClass =
-        classFilter === "all" || structure.class_id === classFilter;
-      const matchesTerm =
-        termFilter === "all" || structure.term_id === termFilter;
+      const matchesTerm = termFilter === "all" || structure.term === termFilter;
       const matchesYear =
-        yearFilter === "all" || structure.academic_year_id === yearFilter;
-      const matchesCategory =
-        categoryFilter === "all" || structure.category === categoryFilter;
+        yearFilter === "all" || structure.academic_year === yearFilter;
 
-      return (
-        matchesSearch &&
-        matchesClass &&
-        matchesTerm &&
-        matchesYear &&
-        matchesCategory
-      );
+      return matchesSearch && matchesTerm && matchesYear;
     }) || [];
+
+  // Type guard for StudentFee
+  function isStudentFee(fee: any): fee is StudentFee {
+    return (
+      typeof fee === "object" &&
+      typeof fee.id === "string" &&
+      typeof fee.amount === "number" &&
+      typeof fee.amount_paid === "number"
+    );
+  }
 
   // Filter student fees
   const filteredStudentFees =
     studentFees?.filter((fee) => {
-      const matchesSearch =
-        fee.students?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fee.students?.admission_number
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        fee.classes?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-
+      if (!isStudentFee(fee)) return false;
+      const matchesSearch = searchTerm === "";
       const matchesClass =
         classFilter === "all" || fee.class_id === classFilter;
-      const matchesTerm = termFilter === "all" || fee.term_id === termFilter;
+      const matchesTerm = termFilter === "all" || fee.term === termFilter;
       const matchesYear =
-        yearFilter === "all" || fee.academic_year_id === yearFilter;
-
+        yearFilter === "all" || fee.academic_year === yearFilter;
       return matchesSearch && matchesClass && matchesTerm && matchesYear;
     }) || [];
 
   // Calculate statistics
   const totalFeeAmount =
-    studentFees?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
+    studentFees?.reduce(
+      (sum, fee) => (isStudentFee(fee) ? sum + (fee.amount || 0) : sum),
+      0
+    ) || 0;
   const totalPaidAmount =
-    studentFees?.reduce((sum, fee) => sum + fee.paid_amount, 0) || 0;
+    studentFees?.reduce(
+      (sum, fee) => (isStudentFee(fee) ? sum + (fee.amount_paid || 0) : sum),
+      0
+    ) || 0;
   const totalOutstanding = totalFeeAmount - totalPaidAmount;
   const collectionRate =
     totalFeeAmount > 0 ? (totalPaidAmount / totalFeeAmount) * 100 : 0;
 
   const pendingFees =
-    studentFees?.filter((fee) => fee.status === "pending").length || 0;
+    studentFees?.filter((fee) => isStudentFee(fee) && fee.status === "unpaid")
+      .length || 0;
   const paidFees =
-    studentFees?.filter((fee) => fee.status === "paid").length || 0;
+    studentFees?.filter((fee) => isStudentFee(fee) && fee.status === "paid")
+      .length || 0;
   const overdueFees =
     studentFees?.filter((fee) => {
+      if (!isStudentFee(fee)) return false;
       const dueDate = new Date(fee.due_date);
       const now = new Date();
       return dueDate < now && fee.status !== "paid";
@@ -711,7 +701,8 @@ const EnhancedFeeManagement = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredStudentFees.map((fee) => {
-                    const balance = fee.amount - fee.paid_amount;
+                    if (!isStudentFee(fee)) return null;
+                    const balance = fee.amount - fee.amount_paid;
                     const isOverdue =
                       new Date(fee.due_date) < new Date() &&
                       fee.status !== "paid";
@@ -738,7 +729,7 @@ const EnhancedFeeManagement = () => {
                         </TableCell>
                         <TableCell>
                           <span className="text-green-600">
-                            KES {fee.paid_amount.toLocaleString()}
+                            KES {fee.amount_paid.toLocaleString()}
                           </span>
                         </TableCell>
                         <TableCell>
