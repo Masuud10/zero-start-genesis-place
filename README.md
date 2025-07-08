@@ -10,7 +10,7 @@ Academic calendar setup
 
 Class & subject management
 
-Teacher, student & parent onboarding
+Teacher, student and parent onboarding
 
 📝 Grading Module (CBC & IGCSE)
 Grade entry, editing & approval workflows
