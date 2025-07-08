@@ -13,13 +13,13 @@ interface Class {
   created_at: string;
 }
 
-function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+function createTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise((_, reject) =>
+    new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timed out')), ms)
     )
-  ]) as Promise<T>;
+  ]);
 }
 
 export const useClasses = () => {
@@ -48,15 +48,15 @@ export const useClasses = () => {
       }
 
       query = query.order('name');
-      const { data, error: fetchError } = await useTimeoutPromise(
-        Promise.resolve(query.then(x => x)),
+      const { data, error: fetchError } = await createTimeoutPromise(
+        Promise.resolve(query),
         7000
       );
       if (fetchError) throw fetchError;
       setClasses(data || []);
       setError(null);
-    } catch (err: any) {
-      const message = err?.message || 'Failed to fetch classes data';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch classes data';
       setError(message);
       setClasses([]);
       toast({

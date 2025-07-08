@@ -46,6 +46,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedReportGeneration } from "@/hooks/useEnhancedReportGeneration";
 import EnhancedReportDisplay from "@/components/reports/EnhancedReportDisplay";
 import { ReportFilters } from "@/services/enhancedReportService";
+import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegration";
 
 interface EnhancedReportGeneratorProps {
   userRole?: string;
@@ -79,6 +80,18 @@ const EnhancedReportGenerator: React.FC<EnhancedReportGeneratorProps> = ({
   const [userSchoolIdState, setUserSchoolIdState] = useState<string | null>(
     null
   );
+
+  // Academic context
+  const {
+    context,
+    isLoading,
+    error: academicError,
+    data: academicData,
+    isValid,
+    refreshData,
+    currentPeriod,
+    validation,
+  } = useAcademicModuleIntegration(["reports"]);
 
   // Load user context on mount
   useEffect(() => {
@@ -119,7 +132,7 @@ const EnhancedReportGenerator: React.FC<EnhancedReportGeneratorProps> = ({
     validationWarnings,
     generateReport,
     exportReport,
-    refreshData,
+    refreshData: enhancedReportRefreshData,
     clearReport,
     availableReports,
   } = useEnhancedReportGeneration();
@@ -503,7 +516,7 @@ const EnhancedReportGenerator: React.FC<EnhancedReportGeneratorProps> = ({
                     Export Excel
                   </Button>
                   <Button
-                    onClick={refreshData}
+                    onClick={enhancedReportRefreshData}
                     variant="outline"
                     className="flex items-center gap-2"
                   >

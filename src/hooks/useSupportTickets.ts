@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,15 +19,32 @@ export interface SupportTicket {
   school_name?: string;
 }
 
+interface DatabaseTicket {
+  id: string;
+  school_id?: string;
+  created_by: string;
+  title: string;
+  description: string;
+  type: string;
+  status: string;
+  priority: string;
+  assigned_to?: string;
+  attachments?: string[];
+  created_at: string;
+  resolved_at?: string;
+  profiles?: { name: string };
+  schools?: { name: string };
+}
+
 export type NewSupportTicket = Omit<SupportTicket, 'id' | 'created_at' | 'created_by' | 'school_id' | 'status' | 'creator_name' | 'resolved_at' | 'assigned_to' | 'attachments'>
 
-function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+function createTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise((_, reject) =>
+    new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timed out')), ms)
     )
-  ]) as Promise<T>;
+  ]);
 }
 
 export const useSupportTickets = () => {
@@ -58,14 +74,14 @@ export const useSupportTickets = () => {
 
       console.log('🎫 Fetching support tickets for user:', user.role, user.id);
 
-      const { data, error: fetchError } = await useTimeoutPromise(
-        Promise.resolve(query.then(x => x)),
+      const { data, error: fetchError } = await createTimeoutPromise(
+        Promise.resolve(query),
         7000
       );
 
       if (fetchError) throw fetchError;
 
-      const formattedData = data?.map(item => ({
+      const formattedData = data?.map((item: DatabaseTicket) => ({
         id: item.id,
         school_id: item.school_id,
         created_by: item.created_by,
@@ -85,8 +101,8 @@ export const useSupportTickets = () => {
       console.log('🎫 Support tickets fetched:', formattedData.length, 'tickets for role:', user.role);
       setTickets(formattedData);
       setError(null);
-    } catch (err: any) {
-      const message = err?.message || 'Failed to fetch support tickets';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch support tickets';
       console.error('🎫 Error fetching support tickets:', message);
       setError(message);
       setTickets([]);
@@ -123,9 +139,9 @@ export const useSupportTickets = () => {
       console.log('🎫 Support ticket created successfully:', data.id);
       await fetchTickets();
       return { data, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('🎫 Error creating support ticket:', error);
-      return { data: null, error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
     }
   };
 
@@ -152,9 +168,9 @@ export const useSupportTickets = () => {
       console.log('🎫 Ticket status updated successfully');
       await fetchTickets();
       return { data, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('🎫 Error updating ticket status:', error);
-      return { data: null, error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
     }
   };
 

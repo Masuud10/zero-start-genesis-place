@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EnhancedReportData, ReportFilters } from '@/services/enhancedReportService';
 import { useToast } from '@/hooks/use-toast';
 import { EnhancedReportService } from '@/services/enhancedReportService';
+import { useAcademicModuleIntegration } from '@/hooks/useAcademicModuleIntegration';
 
 export interface ReportGenerationOptions {
   reportType: string;
@@ -55,6 +56,13 @@ export const useEnhancedReportGeneration = (): UseEnhancedReportGenerationReturn
   const { user } = useAuth();
   const { schoolId: userSchoolId } = useSchoolScopedData();
   const { toast } = useToast();
+
+  const {
+    context,
+    isLoading: contextLoading,
+    error: contextError,
+    isValid: contextIsValid,
+  } = useAcademicModuleIntegration(['reports']);
 
   const clearReport = useCallback(() => {
     setReportData(null);

@@ -23,16 +23,18 @@ export const useAccessControl = () => {
     if (section === 'dashboard') return true;
 
     switch (section) {
-      case 'school-management':
+      case 'school-management': {
         // Only principals should have access to school management
         const hasSchoolManagementAccess = user.role === 'principal';
         console.log('🔒 useAccessControl: School management access:', hasSchoolManagementAccess);
         return hasSchoolManagementAccess;
-      case 'analytics':
+      }
+      case 'analytics': {
         // Teachers can access analytics for their classes, principals and school owners can access analytics for their school
         const hasAnalyticsAccess = user.role === 'teacher' || user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
         console.log('🔒 useAccessControl: Analytics access:', hasAnalyticsAccess);
         return hasAnalyticsAccess;
+      }
       case 'certificates':
         // Principals can generate certificates, school owners and EduFam admins can view
         return user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';

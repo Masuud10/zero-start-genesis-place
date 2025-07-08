@@ -46,7 +46,7 @@ export const useAuthSignOut = () => {
       
       // Force page reload for clean state
       window.location.href = '/';
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Secure sign out error:', error);
       // Force reload anyway
       window.location.href = '/';

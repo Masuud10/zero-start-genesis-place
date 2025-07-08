@@ -7,12 +7,33 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import { usePrincipalAnalyticsData } from "@/hooks/usePrincipalAnalyticsData";
-import { Loader2, AlertCircle, TrendingUp, RefreshCw } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  TrendingUp,
+  RefreshCw,
+  Users,
+  BookOpen,
+  GraduationCap,
+  Clock,
+} from "lucide-react";
 import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegration";
 
 interface PrincipalAnalyticsProps {
   schoolId?: string;
@@ -32,68 +53,102 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
   const { academicInfo, loading: academicInfoLoading } =
     useCurrentAcademicInfo(effectiveSchoolId);
 
+  const {
+    context,
+    isLoading: academicLoading,
+    error: academicError,
+    data: academicData,
+    isValid,
+    refreshData,
+    currentPeriod,
+    validation,
+  } = useAcademicModuleIntegration(["analytics"]);
+
   const chartConfig = {
     average: { label: "Average Score", color: "#3b82f6" },
     attendance: { label: "Attendance Rate", color: "#10b981" },
     improvement: { label: "Improvement", color: "#8b5cf6" },
   };
 
-  // Enhanced validation
-  if (!isReady) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading Analytics...</span>
-      </div>
-    );
-  }
+  // Colors for charts
+  const COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444"];
 
-  if (!effectiveSchoolId) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          No school context available for analytics. Please refresh the page.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  // Chart configurations
+  const classChartConfig = {
+    average: { label: "Academic Average (%)", color: "#3b82f6" },
+    attendance: { label: "Attendance Rate (%)", color: "#10b981" },
+  };
 
-  if (!validateSchoolAccess(effectiveSchoolId)) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Access denied. You do not have permission to view this school's
-          analytics.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const subjectChartConfig = {
+    average: { label: "Average Score (%)", color: "#10b981" },
+  };
 
-  if (isLoading || academicInfoLoading) {
+  // Debug logging
+  React.useEffect(() => {
+    if (data) {
+      console.log("📊 Principal Analytics Data:", {
+        keyMetrics: data.keyMetrics,
+        classPerformance: data.classPerformance,
+        subjectPerformance: data.subjectPerformance,
+        studentRankings: data.studentRankings,
+        teacherActivity: data.teacherActivity,
+        financialSummary: data.financialSummary,
+      });
+    }
+  }, [data]);
+
+  // Debug school context
+  React.useEffect(() => {
+    console.log("📊 School Context:", {
+      schoolId: effectiveSchoolId,
+      isSystemAdmin: true, // Assuming isSystemAdmin is always true for this component
+      isReady,
+      currentTerm: academicInfo?.term,
+      currentYear: academicInfo?.year,
+    });
+  }, [effectiveSchoolId, isReady, academicInfo]);
+
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading Analytics...</span>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-5 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
-    console.error("❌ PrincipalAnalytics: Error loading analytics:", error);
     return (
-      <Card className="flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-red-500" />
-        <CardTitle className="mt-4">Could not load analytics</CardTitle>
-        <p className="text-muted-foreground mt-2">
-          {error?.message || "Unknown error occurred"}
-        </p>
-        <Button variant="outline" className="mt-4" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
-        </Button>
-      </Card>
+      <div className="space-y-6">
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-red-700">
+            Failed to load analytics data. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
@@ -122,13 +177,30 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
     teacherActivity = [],
   } = data;
 
+  // Prepare chart data for class performance
+  const classChartData = classPerformance.map((cls) => ({
+    name: cls.class,
+    average: cls.average,
+    attendance: cls.attendance,
+    students: cls.studentCount,
+  }));
+
+  // Prepare chart data for subject performance
+  const subjectChartData = subjectPerformance.map((subject) => ({
+    name: subject.subject,
+    average: subject.average,
+    improvement: subject.improvement,
+    grades: subject.totalGrades,
+  }));
+
   return (
     <div className="space-y-6">
       {/* Key Metrics with enhanced validation */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-600" />
               Total Students
             </CardTitle>
           </CardHeader>
@@ -140,9 +212,10 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-green-600" />
               School Average
             </CardTitle>
           </CardHeader>
@@ -157,9 +230,10 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4 text-purple-600" />
               Attendance Rate
             </CardTitle>
           </CardHeader>
@@ -174,9 +248,10 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-orange-600" />
               Results Released
             </CardTitle>
           </CardHeader>
@@ -191,160 +266,246 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
       </div>
 
       {/* Class Performance Overview with enhanced error handling */}
-      {classPerformance && classPerformance.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Class Performance Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={classPerformance}>
-                <XAxis dataKey="class" tick={{ fontSize: 12 }} />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="average"
-                  fill="var(--color-average)"
-                  name="Academic Average (%)"
-                />
-                <Bar
-                  dataKey="attendance"
-                  fill="var(--color-attendance)"
-                  name="Attendance Rate (%)"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Class Performance Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No class performance data available.</p>
-              <p className="text-sm">
-                Add students and grades to see performance metrics.
-              </p>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-blue-600" />
+            Class Performance Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.classPerformance.length > 0 ? (
+            <div className="space-y-4">
+              <ChartContainer config={classChartConfig} className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.classPerformance}>
+                    <XAxis
+                      dataKey="class"
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar
+                      dataKey="average"
+                      fill={classChartConfig.average.color}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.classPerformance.map((cls, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{cls.class}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {cls.studentCount} students
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">{cls.average}%</p>
+                        <p className="text-xs text-muted-foreground">
+                          {cls.attendance}% attendance
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                No Class Performance Data Available
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                To see class performance metrics, you need to:
+              </p>
+              <div className="text-sm text-muted-foreground space-y-1 text-left">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Add students to your classes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Have teachers submit grades for assessments</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span>Record attendance data for students</span>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => refetch()}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Data
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subject Performance with enhanced validation */}
+        {/* Subject Performance */}
         <Card>
-          <CardHeader>
-            <CardTitle>Subject Performance</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Subject Performance
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refetch()}
+              className="h-8 w-8 p-0"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {subjectPerformance && subjectPerformance.length > 0 ? (
-                subjectPerformance.map((subject, index) => (
-                  <div
-                    key={`${subject.subject}-${index}`}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {subject.subject || "Unknown Subject"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Average:{" "}
-                        {subject.average ? subject.average.toFixed(1) : "0.0"}%
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Badge
-                        variant={
-                          (subject.improvement || 0) > 0
-                            ? "default"
-                            : (subject.improvement || 0) < 0
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className={
-                          (subject.improvement || 0) > 0
-                            ? "bg-green-100 text-green-800"
-                            : (subject.improvement || 0) < 0
-                            ? "bg-red-100 text-red-800"
-                            : ""
-                        }
-                      >
-                        {(subject.improvement || 0) >= 0 ? "+" : ""}
-                        {(subject.improvement || 0).toFixed(1)}%
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground py-4">
-                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No subject performance data available.</p>
-                </div>
-              )}
-            </div>
+            {data.subjectPerformance.length > 0 ? (
+              <ChartContainer config={subjectChartConfig} className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.subjectPerformance}>
+                    <XAxis
+                      dataKey="subject"
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar
+                      dataKey="average"
+                      fill={subjectChartConfig.average.color}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No Subject Performance Data
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                  Subject performance data will appear once teachers submit
+                  grades for assessments.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => refetch()}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Data
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Top Students with enhanced validation */}
+        {/* Top Student Rankings */}
         <Card>
-          <CardHeader>
-            <CardTitle>Top Student Rankings</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Top Student Rankings
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refetch()}
+              className="h-8 w-8 p-0"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {studentRankings && studentRankings.length > 0 ? (
-                studentRankings.map((student, index) => (
+            {data.studentRankings.length > 0 ? (
+              <div className="space-y-4">
+                {data.studentRankings.map((student, index) => (
                   <div
-                    key={`${student.name}-${index}`}
-                    className="flex items-center justify-between p-3 border rounded-lg"
+                    key={index}
+                    className="flex items-center justify-between p-3 rounded-lg border"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                        {student.position || index + 1}
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                        {student.position}
                       </div>
                       <div>
-                        <p className="font-medium">
-                          {student.name || "Unknown Student"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {student.class || "Unknown Class"}
+                        <p className="text-sm font-medium">{student.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {student.class}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">
-                        {student.average ? student.average.toFixed(1) : "0.0"}%
-                      </div>
+                      <p className="text-sm font-bold">{student.average}%</p>
+                      <p className="text-xs text-muted-foreground">Average</p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground py-4">
-                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No student ranking data available.</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <GraduationCap className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No Student Rankings Available
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                  Student rankings will appear once grades are submitted and
+                  processed.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => refetch()}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Data
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Teacher Activity Logs with enhanced validation */}
-      <Card>
+      <Card className="hover:shadow-md transition-shadow">
         <CardHeader>
-          <CardTitle>Teacher Grading Activity</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-orange-600" />
+            Teacher Grading Activity
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {teacherActivity && teacherActivity.length > 0 ? (
-              teacherActivity.map((teacher, index) => (
+          {teacherActivity && teacherActivity.length > 0 ? (
+            <div className="space-y-4">
+              {teacherActivity.map((teacher, index) => (
                 <div
                   key={`${teacher.teacher}-${index}`}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div>
                     <p className="font-medium">
@@ -352,6 +513,12 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {teacher.grades || 0} grades submitted
+                      {teacher.lastActivity && (
+                        <span className="ml-2">
+                          • Last activity:{" "}
+                          {new Date(teacher.lastActivity).toLocaleDateString()}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex gap-4 text-sm">
@@ -362,21 +529,32 @@ const PrincipalAnalytics: React.FC<PrincipalAnalyticsProps> = ({
                       <div className="text-muted-foreground">Submissions</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-medium text-green-600">
+                      <div
+                        className={`font-medium ${
+                          teacher.onTime >= 90
+                            ? "text-green-600"
+                            : teacher.onTime >= 70
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
+                      >
                         {teacher.onTime || 0}%
                       </div>
                       <div className="text-muted-foreground">On Time</div>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center text-muted-foreground py-4">
-                <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No teacher activity data available.</p>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-4">
+              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No teacher activity data available.</p>
+              <p className="text-sm">
+                Teachers will appear here once they start submitting grades.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,83 +1,125 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { detectCurriculumType } from '@/utils/curriculum-detector';
+import { detectCurriculumType, validateCurriculumType } from '@/utils/curriculum-detector';
 
 export type CurriculumType = 'standard' | 'cbc' | 'igcse';
+
+interface ClassCurriculumData {
+  id: string;
+  name: string;
+  curriculum_type?: string;
+  curriculum?: string;
+  school_id?: string;
+}
 
 export const useClassCurriculum = (classId: string | null) => {
   const [curriculumType, setCurriculumType] = useState<CurriculumType>('standard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [classData, setClassData] = useState<ClassCurriculumData | null>(null);
 
-  useEffect(() => {
-    const fetchClassCurriculum = async () => {
-      if (!classId) {
-        console.log('🎓 useClassCurriculum: No classId provided, using standard curriculum');
+  const fetchClassCurriculum = useCallback(async () => {
+    if (!classId) {
+      console.log('🎓 useClassCurriculum: No classId provided, using standard curriculum');
+      setCurriculumType('standard');
+      setLoading(false);
+      setError(null);
+      setClassData(null);
+      return;
+    }
+
+    try {
+      setError(null);
+      setLoading(true);
+
+      console.log('🎓 useClassCurriculum: Fetching curriculum for class:', classId);
+
+      // Get curriculum type from the specific class
+      const { data, error: fetchError } = await supabase
+        .from('classes')
+        .select('id, name, curriculum_type, curriculum, school_id')
+        .eq('id', classId)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Error fetching class curriculum type:', fetchError);
+        setError('Failed to fetch class curriculum type');
         setCurriculumType('standard');
-        setLoading(false);
+        setClassData(null);
         return;
       }
 
-      try {
-        setError(null);
-        setLoading(true);
-
-        console.log('🎓 useClassCurriculum: Fetching curriculum for class:', classId);
-
-        // Get curriculum type from the specific class
-        const { data, error: fetchError } = await supabase
-          .from('classes')
-          .select('curriculum_type, curriculum, name')
-          .eq('id', classId)
-          .single();
-
-        if (fetchError) {
-          console.error('❌ Error fetching class curriculum type:', fetchError);
-          setError('Failed to fetch class curriculum type');
-          setCurriculumType('standard');
-        } else {
-          // Check both curriculum_type and curriculum fields
-          const curriculumValue = data?.curriculum_type || data?.curriculum;
-          
-          console.log('🎓 useClassCurriculum: Raw curriculum data:', {
-            classId,
-            className: data?.name,
-            curriculum_type: data?.curriculum_type,
-            curriculum: data?.curriculum,
-            resolvedValue: curriculumValue
-          });
-          
-          if (!curriculumValue) {
-            console.warn('⚠️ No curriculum type assigned to class:', classId);
-            setError('No curriculum type assigned to this class');
-            setCurriculumType('standard');
-          } else {
-            const detectedType = detectCurriculumType(curriculumValue);
-            console.log('🎓 useClassCurriculum: Detected curriculum type:', {
-              original: curriculumValue,
-              detected: detectedType
-            });
-            
-            if (detectedType === 'standard' && curriculumValue.toLowerCase() !== 'standard') {
-              // If we got 'standard' but the value wasn't actually 'standard', it might be unrecognized
-              const errorMsg = `Unrecognized curriculum type: ${curriculumValue}. Please update to a valid type (cbc, igcse, standard)`;
-              console.warn('⚠️', errorMsg);
-              setError(errorMsg);
-            }
-            setCurriculumType(detectedType as CurriculumType);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error in useClassCurriculum:', error);
-        setError('Failed to fetch class curriculum type');
+      if (!data) {
+        console.warn('⚠️ No class data found for classId:', classId);
+        setError('Class not found');
         setCurriculumType('standard');
-      } finally {
-        setLoading(false);
+        setClassData(null);
+        return;
       }
-    };
 
-    fetchClassCurriculum();
+      setClassData(data);
+
+      // Check both curriculum_type and curriculum fields
+      const curriculumValue = data?.curriculum_type || data?.curriculum;
+      
+      console.log('🎓 useClassCurriculum: Raw curriculum data:', {
+        classId,
+        className: data?.name,
+        curriculum_type: data?.curriculum_type,
+        curriculum: data?.curriculum,
+        resolvedValue: curriculumValue
+      });
+      
+      if (!curriculumValue) {
+        console.warn('⚠️ No curriculum type assigned to class:', classId);
+        setError('No curriculum type assigned to this class');
+        setCurriculumType('standard');
+        return;
+      }
+
+      // Validate curriculum type
+      const validation = validateCurriculumType(curriculumValue);
+      
+      if (!validation.isValid) {
+        console.warn('⚠️ Invalid curriculum type:', validation.error);
+        setError(validation.error || 'Invalid curriculum type');
+        setCurriculumType('standard' as CurriculumType);
+        return;
+      }
+
+      const detectedType = detectCurriculumType(curriculumValue);
+      console.log('🎓 useClassCurriculum: Detected curriculum type:', {
+        original: curriculumValue,
+        detected: detectedType,
+        validation: validation
+      });
+      
+      setCurriculumType(detectedType as CurriculumType);
+      setError(null);
+    } catch (error) {
+      console.error('❌ Error in useClassCurriculum:', error);
+      setError('Failed to fetch class curriculum type');
+      setCurriculumType('standard');
+      setClassData(null);
+    } finally {
+      setLoading(false);
+    }
   }, [classId]);
 
-  return { curriculumType, loading, error };
+  useEffect(() => {
+    fetchClassCurriculum();
+  }, [fetchClassCurriculum]);
+
+  // Function to refresh curriculum data
+  const refreshCurriculum = useCallback(() => {
+    fetchClassCurriculum();
+  }, [fetchClassCurriculum]);
+
+  return { 
+    curriculumType, 
+    loading, 
+    error, 
+    classData,
+    refreshCurriculum 
+  };
 }; 

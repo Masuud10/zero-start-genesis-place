@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { useSchoolScopedData } from './useSchoolScopedData';
 import { useToast } from './use-toast';
 import { SystemIntegrationService } from '@/services/integration/SystemIntegrationService';
@@ -216,69 +217,82 @@ export const useAcademicPeriodIntegration = () => {
     }
   });
 
-  // Get class students
-  const getClassStudents = (classId: string, termId?: string) => {
-    return useQuery({
-      queryKey: ['classStudents', classId, termId || currentPeriod?.term?.id],
-      queryFn: async () => {
-        if (!classId) return [];
-        const result = await SystemIntegrationService.getClassStudents(
-          classId,
-          termId || currentPeriod?.term?.id
-        );
-        return result.students || [];
-      },
-      enabled: !!classId && !!(termId || currentPeriod?.term?.id),
-    });
-  };
+  // Get class students query
+  const classStudentsQuery = useQuery({
+    queryKey: ['classStudents', currentPeriod?.term?.id],
+    queryFn: async () => {
+      // This will be called with specific classId when needed
+      return [];
+    },
+    enabled: false, // Disabled by default, will be enabled when needed
+  });
 
-  // Get class subjects
-  const getClassSubjects = (classId: string, termId?: string) => {
-    return useQuery({
-      queryKey: ['classSubjects', classId, termId || currentPeriod?.term?.id],
-      queryFn: async () => {
-        if (!classId) return [];
-        const result = await SystemIntegrationService.getClassSubjects(
-          classId,
-          termId || currentPeriod?.term?.id
-        );
-        return result.subjects || [];
-      },
-      enabled: !!classId && !!(termId || currentPeriod?.term?.id),
-    });
-  };
+  // Get class subjects query
+  const classSubjectsQuery = useQuery({
+    queryKey: ['classSubjects', currentPeriod?.term?.id],
+    queryFn: async () => {
+      // This will be called with specific classId when needed
+      return [];
+    },
+    enabled: false, // Disabled by default, will be enabled when needed
+  });
 
-  // Get class examinations
-  const getClassExaminations = (classId: string, termId?: string) => {
-    return useQuery({
-      queryKey: ['classExaminations', classId, termId || currentPeriod?.term?.id],
-      queryFn: async () => {
-        if (!classId) return [];
-        const result = await SystemIntegrationService.getClassExaminations(
-          classId,
-          termId || currentPeriod?.term?.id
-        );
-        return result.examinations || [];
-      },
-      enabled: !!classId && !!(termId || currentPeriod?.term?.id),
-    });
-  };
+  // Get class examinations query
+  const classExaminationsQuery = useQuery({
+    queryKey: ['classExaminations', currentPeriod?.term?.id],
+    queryFn: async () => {
+      // This will be called with specific classId when needed
+      return [];
+    },
+    enabled: false, // Disabled by default, will be enabled when needed
+  });
 
-  // Get class fee structure
-  const getClassFeeStructure = (classId: string, termId?: string) => {
-    return useQuery({
-      queryKey: ['classFeeStructure', classId, termId || currentPeriod?.term?.id],
-      queryFn: async () => {
-        if (!classId) return [];
-        const result = await SystemIntegrationService.getClassFeeStructure(
-          classId,
-          termId || currentPeriod?.term?.id
-        );
-        return result.fees || [];
-      },
-      enabled: !!classId && !!(termId || currentPeriod?.term?.id),
-    });
-  };
+  // Get class fee structure query
+  const classFeeStructureQuery = useQuery({
+    queryKey: ['classFeeStructure', currentPeriod?.term?.id],
+    queryFn: async () => {
+      // This will be called with specific classId when needed
+      return [];
+    },
+    enabled: false, // Disabled by default, will be enabled when needed
+  });
+
+  // Helper functions to fetch data
+  const getClassStudents = useCallback(async (classId: string, termId?: string) => {
+    if (!classId) return [];
+    const result = await SystemIntegrationService.getClassStudents(
+      classId,
+      termId || currentPeriod?.term?.id
+    );
+    return result.students || [];
+  }, [currentPeriod?.term?.id]);
+
+  const getClassSubjects = useCallback(async (classId: string, termId?: string) => {
+    if (!classId) return [];
+    const result = await SystemIntegrationService.getClassSubjects(
+      classId,
+      termId || currentPeriod?.term?.id
+    );
+    return result.subjects || [];
+  }, [currentPeriod?.term?.id]);
+
+  const getClassExaminations = useCallback(async (classId: string, termId?: string) => {
+    if (!classId) return [];
+    const result = await SystemIntegrationService.getClassExaminations(
+      classId,
+      termId || currentPeriod?.term?.id
+    );
+    return result.examinations || [];
+  }, [currentPeriod?.term?.id]);
+
+  const getClassFeeStructure = useCallback(async (classId: string, termId?: string) => {
+    if (!classId) return [];
+    const result = await SystemIntegrationService.getClassFeeStructure(
+      classId,
+      termId || currentPeriod?.term?.id
+    );
+    return result.fees || [];
+  }, [currentPeriod?.term?.id]);
 
   // Enroll student in class
   const enrollStudent = useMutation({
@@ -355,7 +369,15 @@ export const useAcademicPeriodIntegration = () => {
 
   // Create examination schedule
   const createExaminationSchedule = useMutation({
-    mutationFn: async (examinationData: any) => {
+    mutationFn: async (examinationData: {
+      name: string;
+      start_date: string;
+      end_date: string;
+      academic_year_id: string;
+      term_id: string;
+      class_id: string;
+      description?: string;
+    }) => {
       return await SystemIntegrationService.createExaminationSchedule(examinationData);
     },
     onSuccess: (result) => {
@@ -375,7 +397,7 @@ export const useAcademicPeriodIntegration = () => {
 
   // Create fee structure
   const createFeeStructure = useMutation({
-    mutationFn: async (feeData: any) => {
+    mutationFn: async (feeData: Record<string, unknown>) => {
       return await SystemIntegrationService.createFeeStructure(feeData);
     },
     onSuccess: (result) => {
@@ -436,38 +458,26 @@ export const useAcademicPeriodIntegration = () => {
   });
 
   // Get student profile
-  const getStudentProfile = (studentId: string) => {
-    return useQuery({
-      queryKey: ['studentProfile', studentId],
-      queryFn: async () => {
-        if (!studentId) return null;
-        const result = await SystemIntegrationService.getStudentProfile(studentId);
-        return result.profile;
-      },
-      enabled: !!studentId,
-    });
-  };
+  const getStudentProfile = useCallback(async (studentId: string) => {
+    if (!studentId) return null;
+    const result = await SystemIntegrationService.getStudentProfile(studentId);
+    return result.profile;
+  }, []);
 
   // Get class analytics
-  const getClassAnalytics = (classId: string, termId?: string) => {
-    return useQuery({
-      queryKey: ['classAnalytics', classId, termId || currentPeriod?.term?.id],
-      queryFn: async () => {
-        if (!classId) return null;
-        const result = await SystemIntegrationService.getClassAnalytics(
-          classId,
-          termId || currentPeriod?.term?.id || ''
-        );
-        return result.analytics;
-      },
-      enabled: !!classId && !!(termId || currentPeriod?.term?.id),
-    });
-  };
+  const getClassAnalytics = useCallback(async (classId: string, termId?: string) => {
+    if (!classId) return null;
+    const result = await SystemIntegrationService.getClassAnalytics(
+      classId,
+      termId || currentPeriod?.term?.id || ''
+    );
+    return result.analytics;
+  }, [currentPeriod?.term?.id]);
 
   // Validate relationships
-  const validateRelationships = async (operation: string, data: any) => {
+  const validateRelationships = useCallback(async (operation: string, data: Record<string, unknown>) => {
     return await SystemIntegrationService.validateRelationships(operation, data);
-  };
+  }, []);
 
   // Check if current period is set
   const isCurrentPeriodSet = !!(currentPeriod?.year?.id && currentPeriod?.term?.id);

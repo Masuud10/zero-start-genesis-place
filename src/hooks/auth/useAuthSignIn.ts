@@ -59,9 +59,9 @@ export const useAuthSignIn = () => {
       }
 
       return { data, error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Secure sign in error:', error);
-      return { data: null, error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
     } finally {
       setIsLoading(false);
     }

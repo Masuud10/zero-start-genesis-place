@@ -17,13 +17,13 @@ export interface Announcement {
   creator_name?: string;
 }
 
-function useTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
+function createTimeoutPromise<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise((_, reject) =>
+    new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timed out')), ms)
     )
-  ]) as Promise<T>;
+  ]);
 }
 
 export const useAnnouncements = () => {
@@ -44,22 +44,22 @@ export const useAnnouncements = () => {
         `)
         .order('created_at', { ascending: false });
 
-      const { data, error: fetchError } = await useTimeoutPromise(
-        Promise.resolve(query.then(x => x)),
+      const { data, error: fetchError } = await createTimeoutPromise(
+        Promise.resolve(query),
         7000
       );
 
       if (fetchError) throw fetchError;
 
-      const formattedData = data?.map(item => ({
+      const formattedData = data?.map((item: Announcement & { profiles?: { name: string } }) => ({
         ...item,
         creator_name: item.profiles?.name
       })) || [];
 
       setAnnouncements(formattedData);
       setError(null);
-    } catch (err: any) {
-      const message = err?.message || 'Failed to fetch announcements';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch announcements';
       setError(message);
       setAnnouncements([]);
     } finally {
@@ -90,8 +90,8 @@ export const useAnnouncements = () => {
       if (error) throw error;
       await fetchAnnouncements();
       return { data, error: null };
-    } catch (error: any) {
-      return { data: null, error };
+    } catch (error: unknown) {
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
     }
   };
 

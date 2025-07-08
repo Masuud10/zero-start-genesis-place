@@ -17,6 +17,7 @@ import {
   Cell,
 } from "recharts";
 import { DollarSign, TrendingUp, GraduationCap } from "lucide-react";
+import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegration";
 
 interface GradeData {
   letter_grade: string | null;
@@ -126,6 +127,17 @@ const AnalyticsOverview = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  const {
+    context,
+    isLoading: academicLoading,
+    error: academicError,
+    data: academicData,
+    isValid,
+    refreshData,
+    currentPeriod,
+    validation,
+  } = useAcademicModuleIntegration(["analytics"]);
+
   const COLORS = [
     "#3B82F6",
     "#10B981",
@@ -135,7 +147,12 @@ const AnalyticsOverview = () => {
     "#06B6D4",
   ];
 
-  if (financialLoading || enrollmentLoading || gradesLoading) {
+  if (
+    financialLoading ||
+    enrollmentLoading ||
+    gradesLoading ||
+    academicLoading
+  ) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {[1, 2, 3].map((i) => (

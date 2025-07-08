@@ -1,7 +1,14 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useRef,
+  useCallback,
+} from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface School {
   id: string;
@@ -32,7 +39,7 @@ const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
 export const useSchool = () => {
   const context = useContext(SchoolContext);
   if (context === undefined) {
-    throw new Error('useSchool must be used within a SchoolProvider');
+    throw new Error("useSchool must be used within a SchoolProvider");
   }
   return context;
 };
@@ -49,22 +56,22 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   const lastFetchRef = useRef<number>(0);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  console.log('🏫 SchoolProvider: Initializing with user:', {
+  console.log("🏫 SchoolProvider: Initializing with user:", {
     hasUser: !!user,
     userRole: user?.role,
     userSchoolId: user?.school_id,
-    userEmail: user?.email
+    userEmail: user?.email,
   });
 
   const getCacheKey = (userRole: string, schoolId?: string) => {
-    return userRole === 'elimisha_admin' || userRole === 'edufam_admin' 
-      ? 'all_schools' 
+    return userRole === "elimisha_admin" || userRole === "edufam_admin"
+      ? "all_schools"
       : `school_${schoolId}`;
   };
 
-  const fetchSchools = async () => {
+  const fetchSchools = useCallback(async () => {
     if (!user) {
-      console.log('🏫 SchoolProvider: No authenticated user, clearing state');
+      console.log("🏫 SchoolProvider: No authenticated user, clearing state");
       setIsLoading(false);
       setSchools([]);
       setCurrentSchool(null);
@@ -74,16 +81,19 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
 
     // Prevent multiple simultaneous fetches
     if (fetchInProgressRef.current) {
-      console.log('🏫 SchoolProvider: Fetch already in progress, skipping');
+      console.log("🏫 SchoolProvider: Fetch already in progress, skipping");
       return;
     }
 
     const cacheKey = getCacheKey(user.role, user.school_id);
     const now = Date.now();
-    
+
     // Check cache first
-    if (schoolsCacheRef.current[cacheKey] && (now - lastFetchRef.current) < CACHE_DURATION) {
-      console.log('🏫 SchoolProvider: Using cached schools data');
+    if (
+      schoolsCacheRef.current[cacheKey] &&
+      now - lastFetchRef.current < CACHE_DURATION
+    ) {
+      console.log("🏫 SchoolProvider: Using cached schools data");
       const cachedSchools = schoolsCacheRef.current[cacheKey];
       setSchools(cachedSchools);
       if (cachedSchools.length === 1) {
@@ -97,35 +107,47 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       setError(null);
 
-      console.log('🏫 SchoolProvider: Fetching fresh schools for user role:', user.role, 'school_id:', user.school_id);
+      console.log(
+        "🏫 SchoolProvider: Fetching fresh schools for user role:",
+        user.role,
+        "school_id:",
+        user.school_id
+      );
 
       let schoolsData: School[] = [];
 
       // For system admins, fetch all schools
-      if (user.role === 'elimisha_admin' || user.role === 'edufam_admin') {
+      if (user.role === "elimisha_admin" || user.role === "edufam_admin") {
         const { data, error: fetchError } = await supabase
-          .from('schools')
-          .select('*')
-          .order('name');
+          .from("schools")
+          .select("*")
+          .order("name");
 
         if (fetchError) {
-          console.error('🏫 SchoolProvider: Admin school fetch error:', fetchError);
+          console.error(
+            "🏫 SchoolProvider: Admin school fetch error:",
+            fetchError
+          );
           throw fetchError;
         }
-        
+
         schoolsData = data || [];
-        console.log('🏫 SchoolProvider: Fetched', schoolsData.length, 'schools for admin');
-      } 
+        console.log(
+          "🏫 SchoolProvider: Fetched",
+          schoolsData.length,
+          "schools for admin"
+        );
+      }
       // For school-specific users, fetch their school
       else if (user.school_id) {
         const { data, error: fetchError } = await supabase
-          .from('schools')
-          .select('*')
-          .eq('id', user.school_id)
+          .from("schools")
+          .select("*")
+          .eq("id", user.school_id)
           .maybeSingle();
 
         if (fetchError) {
-          console.warn('🏫 SchoolProvider: School fetch error:', fetchError);
+          console.warn("🏫 SchoolProvider: School fetch error:", fetchError);
           setSchools([]);
           setCurrentSchool(null);
           setError(`Failed to fetch school: ${fetchError.message}`);
@@ -133,16 +155,21 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
         } else if (data) {
           schoolsData = [data];
           setCurrentSchool(data);
-          console.log('🏫 SchoolProvider: Fetched user school:', data.name);
+          console.log("🏫 SchoolProvider: Fetched user school:", data.name);
         } else {
-          console.warn('🏫 SchoolProvider: User school not found:', user.school_id);
+          console.warn(
+            "🏫 SchoolProvider: User school not found:",
+            user.school_id
+          );
           setSchools([]);
           setCurrentSchool(null);
-          setError('Your assigned school was not found. Please contact your administrator.');
+          setError(
+            "Your assigned school was not found. Please contact your administrator."
+          );
           return;
         }
       } else {
-        console.log('🏫 SchoolProvider: User has no school assignment');
+        console.log("🏫 SchoolProvider: User has no school assignment");
         setSchools([]);
         setCurrentSchool(null);
         setError(null);
@@ -152,19 +179,20 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       // Cache the results
       schoolsCacheRef.current[cacheKey] = schoolsData;
       lastFetchRef.current = now;
-      
+
       setSchools(schoolsData);
-      
-    } catch (error: any) {
-      console.error('🏫 SchoolProvider: Error fetching schools:', error);
-      setError(error.message || 'Failed to fetch schools');
+    } catch (error: unknown) {
+      console.error("🏫 SchoolProvider: Error fetching schools:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to fetch schools"
+      );
       setSchools([]);
       setCurrentSchool(null);
     } finally {
       setIsLoading(false);
       fetchInProgressRef.current = false;
     }
-  };
+  }, [user]);
 
   const refetch = async () => {
     // Clear cache and force refetch
@@ -176,10 +204,10 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
   // Effect to fetch schools when user changes
   useEffect(() => {
     if (user?.id) {
-      console.log('🏫 SchoolProvider: User authenticated, fetching schools');
+      console.log("🏫 SchoolProvider: User authenticated, fetching schools");
       fetchSchools();
     } else {
-      console.log('🏫 SchoolProvider: No user, clearing schools');
+      console.log("🏫 SchoolProvider: No user, clearing schools");
       setSchools([]);
       setCurrentSchool(null);
       setIsLoading(false);
@@ -188,7 +216,7 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
       schoolsCacheRef.current = {};
       lastFetchRef.current = 0;
     }
-  }, [user?.id, user?.role, user?.school_id]);
+  }, [user?.id, user?.role, user?.school_id, fetchSchools]);
 
   const value = {
     currentSchool,
@@ -197,12 +225,10 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
     error,
     setCurrentSchool,
     fetchSchools,
-    refetch
+    refetch,
   };
 
   return (
-    <SchoolContext.Provider value={value}>
-      {children}
-    </SchoolContext.Provider>
+    <SchoolContext.Provider value={value}>{children}</SchoolContext.Provider>
   );
 };

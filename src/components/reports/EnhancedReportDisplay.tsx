@@ -46,6 +46,7 @@ import {
   EnhancedReportData,
   ExportOptions,
 } from "@/services/enhancedReportService";
+import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegration";
 
 interface EnhancedReportDisplayProps {
   reportData: EnhancedReportData;
@@ -70,6 +71,17 @@ const EnhancedReportDisplay: React.FC<EnhancedReportDisplayProps> = ({
     errors: string[];
     warnings: string[];
   }>({ isValid: true, errors: [], warnings: [] });
+
+  const {
+    context,
+    isLoading,
+    error: academicError,
+    data: academicData,
+    isValid: academicIsValid,
+    refreshData,
+    currentPeriod,
+    validation: academicValidation,
+  } = useAcademicModuleIntegration(["reports"]);
 
   // Validate report data on mount
   useEffect(() => {

@@ -90,6 +90,14 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Determine if user is principal
+  const isPrincipal =
+    user?.role === "principal" || user?.role === "edufam_admin";
+
+  // Determine if view-only mode should be enforced (e.g., for past terms/years)
+  // For now, treat isReadOnly as the main flag, but you can add logic for past terms/years
+  const isViewOnly = isReadOnly;
+
   const loadGradingData = async () => {
     if (!schoolId || !classId || !term || !examType) {
       console.log("❌ DynamicGradingSheet: Missing required parameters", {
@@ -754,6 +762,8 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
             selectedClass={classId}
             selectedTerm={term}
             selectedExamType={examType}
+            isPrincipal={isPrincipal}
+            isViewOnly={isViewOnly}
           />
         );
       case "igcse":
@@ -767,6 +777,8 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
             selectedClass={classId}
             selectedTerm={term}
             selectedExamType={examType}
+            isPrincipal={isPrincipal}
+            isViewOnly={isViewOnly}
           />
         );
       default:
@@ -781,6 +793,8 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
             selectedClass={classId}
             selectedTerm={term}
             selectedExamType={examType}
+            isPrincipal={isPrincipal}
+            isViewOnly={isViewOnly}
           />
         );
     }

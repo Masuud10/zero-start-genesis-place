@@ -1,10 +1,37 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useToast } from "@/hooks/use-toast";
+import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegration";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Calendar,
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash,
+  Eye,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Users,
+  BookOpen,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,51 +41,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Search,
-  Plus,
-  Edit,
-  Eye,
-  Trash2,
-  Calendar,
-  BookOpen,
-  RefreshCw,
-  AlertCircle,
-  Loader2,
-  Users,
-  Clock,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
-import { useToast } from "@/hooks/use-toast";
-import { SystemIntegrationService } from "@/services/integration/SystemIntegrationService";
-import { supabase } from "@/integrations/supabase/client";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import CreateExaminationModal from "./CreateExaminationModal";
 import EditExaminationModal from "./EditExaminationModal";
 import ViewExaminationModal from "./ViewExaminationModal";
-import DeleteExaminationModal from "./DeleteExaminationModal";
-
-interface Examination {
-  id: string;
-  name: string;
-  type: string;
-  term_id: string;
-  academic_year_id: string;
-  classes: string[];
-  start_date: string;
-  end_date: string;
-  coordinator_id?: string;
-  remarks?: string;
-  is_active: boolean;
-  created_at: string;
-  academic_terms?: {
-    term_name: string;
-  };
-  academic_years?: {
-    year_name: string;
-  };
-}
 
 const EnhancedExaminationManagement = () => {
   const { user } = useAuth();
@@ -68,8 +59,6 @@ const EnhancedExaminationManagement = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [termFilter, setTermFilter] = useState("all");
-  const [yearFilter, setYearFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Modal states
@@ -77,59 +66,58 @@ const EnhancedExaminationManagement = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedExamination, setSelectedExamination] =
-    useState<Examination | null>(null);
+  const [selectedExamination, setSelectedExamination] = useState<{
+    id: string;
+    name: string;
+    type: string;
+    start_date: string;
+    end_date: string;
+    is_active: boolean;
+    academic_years?: { year_name: string };
+    academic_terms?: { term_name: string };
+    profiles?: { name: string };
+  } | null>(null);
 
-  // Get current academic period
-  const { data: currentPeriod, isLoading: loadingPeriod } = useQuery({
-    queryKey: ["currentAcademicPeriod", schoolId],
-    queryFn: async () => {
-      if (!schoolId) return null;
-      return await SystemIntegrationService.getCurrentAcademicPeriod(schoolId);
-    },
-    enabled: !!schoolId,
-  });
-
-  // Fetch examinations
+  // Use academic module integration
   const {
-    data: examinations,
-    isLoading: loadingExams,
-    error: examsError,
-  } = useQuery({
-    queryKey: ["examinations", schoolId],
-    queryFn: async () => {
-      if (!schoolId) return [];
-      const { data, error } = await supabase
+    context,
+    isLoading,
+    error,
+    data,
+    isValid,
+    createExamination,
+    refreshData,
+    currentPeriod,
+    validation,
+  } = useAcademicModuleIntegration(["examinations"]);
+
+  // Delete examination mutation
+  const deleteExaminationMutation = useMutation({
+    mutationFn: async (examinationId: string) => {
+      const { error } = await supabase
         .from("examinations")
-        .select(
-          `
-          *,
-          academic_terms (term_name),
-          academic_years (year_name),
-          profiles!examinations_coordinator_id_fkey (id, name, email)
-        `
-        )
-        .eq("school_id", schoolId)
-        .order("start_date", { ascending: false });
+        .delete()
+        .eq("id", examinationId)
+        .eq("school_id", schoolId);
 
-      if (error) throw new Error(error.message);
-      return data || [];
+      if (error) throw error;
     },
-    enabled: !!schoolId,
-  });
-
-  // Fetch available classes
-  const { data: availableClasses } = useQuery({
-    queryKey: ["availableClasses", schoolId, currentPeriod?.year?.id],
-    queryFn: async () => {
-      if (!schoolId) return [];
-      const result = await SystemIntegrationService.getAvailableClasses(
-        schoolId,
-        currentPeriod?.year?.id
-      );
-      return result.classes || [];
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Examination deleted successfully",
+      });
+      refreshData();
+      setDeleteModalOpen(false);
+      setSelectedExamination(null);
     },
-    enabled: !!schoolId && !!currentPeriod?.year?.id,
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete examination",
+        variant: "destructive",
+      });
+    },
   });
 
   // Check if user is principal
@@ -148,7 +136,7 @@ const EnhancedExaminationManagement = () => {
 
   // Filter examinations based on search and filters
   const filteredExaminations =
-    examinations?.filter((examination) => {
+    data.examinations?.filter((examination) => {
       const matchesSearch =
         examination.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         examination.academic_years?.year_name?.includes(searchTerm) ||
@@ -156,40 +144,22 @@ const EnhancedExaminationManagement = () => {
 
       const matchesType =
         typeFilter === "all" || examination.type === typeFilter;
-      const matchesTerm =
-        termFilter === "all" || examination.term_id === termFilter;
-      const matchesYear =
-        yearFilter === "all" || examination.academic_year_id === yearFilter;
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "active" && examination.is_active) ||
         (statusFilter === "inactive" && !examination.is_active);
 
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesTerm &&
-        matchesYear &&
-        matchesStatus
-      );
+      return matchesSearch && matchesType && matchesStatus;
     }) || [];
 
-  // Get unique academic years for filter
-  const academicYears = [
-    ...new Set(examinations?.map((exam) => exam.academic_year_id) || []),
-  ];
-
-  // Get unique terms for filter
-  const academicTerms = [
-    ...new Set(examinations?.map((exam) => exam.term_id) || []),
-  ];
-
+  // Handle create examination
   const handleCreateExamination = () => {
-    if (!currentPeriod?.year?.id || !currentPeriod?.term?.id) {
+    if (!isValid) {
       toast({
-        title: "Warning",
+        title: "Validation Error",
         description:
-          "Please set a current academic year and term before creating examinations.",
+          validation?.errors?.join(", ") ||
+          "Please set up academic year and term first",
         variant: "destructive",
       });
       return;
@@ -197,95 +167,79 @@ const EnhancedExaminationManagement = () => {
     setCreateModalOpen(true);
   };
 
-  const handleViewExamination = (examination: Examination) => {
-    setSelectedExamination(examination);
-    setViewModalOpen(true);
-  };
+  // Delete examination mutation
+  const deleteExaminationMutation = useMutation({
+    mutationFn: async (examinationId: string) => {
+      const { error } = await supabase
+        .from("examinations")
+        .delete()
+        .eq("id", examinationId)
+        .eq("school_id", schoolId);
 
-  const handleEditExamination = (examination: Examination) => {
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Examination deleted successfully",
+      });
+      refreshData();
+      setDeleteModalOpen(false);
+      setSelectedExamination(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete examination",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle edit examination
+  const handleEditExamination = (examination: typeof selectedExamination) => {
     setSelectedExamination(examination);
     setEditModalOpen(true);
   };
 
-  const handleDeleteExamination = (examination: Examination) => {
+  // Handle view examination
+  const handleViewExamination = (examination: typeof selectedExamination) => {
+    setSelectedExamination(examination);
+    setViewModalOpen(true);
+  };
+
+  // Handle delete examination
+  const handleDeleteExamination = (examination: typeof selectedExamination) => {
     setSelectedExamination(examination);
     setDeleteModalOpen(true);
   };
 
-  const getExaminationStatus = (examination: Examination) => {
-    const now = new Date();
-    const startDate = new Date(examination.start_date);
-    const endDate = new Date(examination.end_date);
+  // Get examination type options
+  const examinationTypes = [
+    "Written",
+    "Practical",
+    "Mock",
+    "Final",
+    "Mid-Term",
+    "End-Term",
+  ];
 
-    if (now < startDate) {
-      return {
-        status: "upcoming",
-        label: "Upcoming",
-        color: "bg-blue-100 text-blue-800",
-      };
-    } else if (now >= startDate && now <= endDate) {
-      return {
-        status: "ongoing",
-        label: "Ongoing",
-        color: "bg-green-100 text-green-800",
-      };
-    } else {
-      return {
-        status: "completed",
-        label: "Completed",
-        color: "bg-gray-100 text-gray-800",
-      };
-    }
-  };
-
-  const getExaminationTypeIcon = (type: string) => {
-    switch (type) {
-      case "Written":
-        return <BookOpen className="h-4 w-4" />;
-      case "Practical":
-        return <Users className="h-4 w-4" />;
-      case "Mock":
-        return <AlertCircle className="h-4 w-4" />;
-      case "Final":
-        return <CheckCircle className="h-4 w-4" />;
-      default:
-        return <Calendar className="h-4 w-4" />;
-    }
-  };
-
-  const getExaminationTypeColor = (type: string) => {
-    switch (type) {
-      case "Written":
-        return "bg-blue-100 text-blue-800";
-      case "Practical":
-        return "bg-green-100 text-green-800";
-      case "Mock":
-        return "bg-orange-100 text-orange-800";
-      case "Final":
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  if (loadingPeriod || loadingExams) {
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading examination data...</p>
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin mr-3" />
+        <span>Loading examination data...</span>
       </div>
     );
   }
 
-  if (examsError) {
+  if (error) {
     return (
-      <div className="space-y-6">
+      <div className="p-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Error loading examinations: {examsError.message}
+            Error loading examination data: {error}
           </AlertDescription>
         </Alert>
       </div>
@@ -302,10 +256,7 @@ const EnhancedExaminationManagement = () => {
             Manage examinations, schedules, and assessments for your school
           </p>
         </div>
-        <Button
-          onClick={handleCreateExamination}
-          disabled={!currentPeriod?.year?.id || !currentPeriod?.term?.id}
-        >
+        <Button onClick={handleCreateExamination} disabled={!isValid}>
           <Plus className="h-4 w-4 mr-2" />
           Create Examination
         </Button>
@@ -322,198 +273,86 @@ const EnhancedExaminationManagement = () => {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="font-medium">
-                  {currentPeriod.year?.year_name || "Year not set"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="font-medium">
-                  {currentPeriod.term?.term_name || "Term not set"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-blue-600" />
-                <span className="font-medium">
-                  {availableClasses?.length || 0} Available Classes
-                </span>
-              </div>
+              <Badge variant="outline" className="bg-blue-100">
+                {currentPeriod.year?.year_name || "Not Set"}
+              </Badge>
+              <Badge variant="outline" className="bg-blue-100">
+                {currentPeriod.term?.term_name || "Not Set"}
+              </Badge>
+              {!isValid && (
+                <Badge variant="destructive" className="text-xs">
+                  Context Invalid
+                </Badge>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Warning if no current period */}
-      {(!currentPeriod?.year?.id || !currentPeriod?.term?.id) && (
+      {/* Validation Errors */}
+      {!isValid && validation?.errors && (
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Warning:</strong> No current academic year or term is set.
-            Please set a current academic year and term in Academic Settings
-            before creating examinations.
+            <strong>Academic Context Issues:</strong>
+            <ul className="mt-2 list-disc list-inside">
+              {validation.errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Examinations
-                </p>
-                <p className="text-xl font-bold">{examinations?.length || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Active Examinations
-                </p>
-                <p className="text-xl font-bold">
-                  {examinations?.filter((e) => e.is_active).length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Upcoming</p>
-                <p className="text-xl font-bold">
-                  {examinations?.filter((e) => {
-                    const now = new Date();
-                    const startDate = new Date(e.start_date);
-                    return now < startDate;
-                  }).length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">This Term</p>
-                <p className="text-xl font-bold">
-                  {examinations?.filter(
-                    (e) => e.term_id === currentPeriod?.term?.id
-                  ).length || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Search</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search examinations..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <Input
+                placeholder="Search examinations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
             </div>
-
             <div>
-              <label className="text-sm font-medium mb-2 block">Type</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="all">All Types</option>
-                <option value="Written">Written</option>
-                <option value="Practical">Practical</option>
-                <option value="Mock">Mock</option>
-                <option value="Final">Final</option>
-                <option value="Mid-Term">Mid-Term</option>
-                <option value="End-Term">End-Term</option>
-              </select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {examinationTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
             <div>
-              <label className="text-sm font-medium mb-2 block">Term</label>
-              <select
-                value={termFilter}
-                onChange={(e) => setTermFilter(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="all">All Terms</option>
-                {academicTerms.map((termId) => {
-                  const term = examinations?.find((e) => e.term_id === termId);
-                  return (
-                    <option key={termId} value={termId}>
-                      {term?.academic_terms?.term_name || termId}
-                    </option>
-                  );
-                })}
-              </select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Year</label>
-              <select
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="all">All Years</option>
-                {academicYears.map((yearId) => {
-                  const year = examinations?.find(
-                    (e) => e.academic_year_id === yearId
-                  );
-                  return (
-                    <option key={yearId} value={yearId}>
-                      {year?.academic_years?.year_name || yearId}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {filteredExaminations.length} examinations
+              </Badge>
             </div>
           </div>
         </CardContent>
@@ -522,120 +361,122 @@ const EnhancedExaminationManagement = () => {
       {/* Examinations Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Examinations</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Examinations
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {filteredExaminations.length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                {examinations?.length === 0
-                  ? "No examinations found"
-                  : "No examinations match your filters"}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {examinations?.length === 0
-                  ? "Create your first examination to get started."
-                  : "Try adjusting your search or filter criteria."}
+            <div className="text-center py-8 text-muted-foreground">
+              <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No examinations found</p>
+              <p className="text-sm">
+                {searchTerm || typeFilter !== "all" || statusFilter !== "all"
+                  ? "Try adjusting your filters"
+                  : "Create your first examination to get started"}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Examination</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Classes</TableHead>
-                  <TableHead>Schedule</TableHead>
+                  <TableHead>Academic Period</TableHead>
+                  <TableHead>Date Range</TableHead>
+                  <TableHead>Coordinator</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredExaminations.map((examination) => {
-                  const examStatus = getExaminationStatus(examination);
-                  return (
-                    <TableRow key={examination.id}>
-                      <TableCell>
+                {filteredExaminations.map((examination) => (
+                  <TableRow key={examination.id}>
+                    <TableCell className="font-medium">
+                      {examination.name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{examination.type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
                         <div>
-                          <div className="font-medium">{examination.name}</div>
-                          {examination.remarks && (
-                            <div className="text-sm text-muted-foreground">
-                              {examination.remarks}
-                            </div>
-                          )}
+                          {examination.academic_years?.year_name || "N/A"}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={getExaminationTypeColor(examination.type)}
+                        <div className="text-muted-foreground">
+                          {examination.academic_terms?.term_name || "N/A"}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>
+                          {new Date(
+                            examination.start_date
+                          ).toLocaleDateString()}
+                        </div>
+                        <div className="text-muted-foreground">
+                          to{" "}
+                          {new Date(examination.end_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {examination.profiles?.name || "Not assigned"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          examination.is_active ? "default" : "secondary"
+                        }
+                        className={
+                          examination.is_active
+                            ? "bg-green-100 text-green-800"
+                            : ""
+                        }
+                      >
+                        {examination.is_active ? (
+                          <>
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Active
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-3 w-3 mr-1" />
+                            Inactive
+                          </>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewExamination(examination)}
                         >
-                          {getExaminationTypeIcon(examination.type)}
-                          <span className="ml-1">{examination.type}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>{examination.academic_terms?.term_name}</div>
-                          <div className="text-muted-foreground">
-                            {examination.academic_years?.year_name}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {examination.classes?.length || 0} classes
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>
-                            {new Date(
-                              examination.start_date
-                            ).toLocaleDateString()}
-                          </div>
-                          <div className="text-muted-foreground">
-                            to{" "}
-                            {new Date(
-                              examination.end_date
-                            ).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={examStatus.color}>
-                          {examStatus.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewExamination(examination)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditExamination(examination)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteExamination(examination)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditExamination(examination)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteExamination(examination)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
@@ -648,41 +489,73 @@ const EnhancedExaminationManagement = () => {
         onClose={() => setCreateModalOpen(false)}
         onSuccess={() => {
           setCreateModalOpen(false);
-          queryClient.invalidateQueries({
-            queryKey: ["examinations", schoolId],
-          });
+          refreshData();
         }}
+        context={context}
       />
 
       {selectedExamination && (
         <>
           <EditExaminationModal
             open={editModalOpen}
-            onClose={() => setEditModalOpen(false)}
+            onClose={() => {
+              setEditModalOpen(false);
+              setSelectedExamination(null);
+            }}
             onSuccess={() => {
               setEditModalOpen(false);
-              queryClient.invalidateQueries({
-                queryKey: ["examinations", schoolId],
-              });
+              setSelectedExamination(null);
+              refreshData();
             }}
             examination={selectedExamination}
+            context={context}
           />
+
           <ViewExaminationModal
             open={viewModalOpen}
-            onClose={() => setViewModalOpen(false)}
-            examination={selectedExamination}
-          />
-          <DeleteExaminationModal
-            open={deleteModalOpen}
-            onClose={() => setDeleteModalOpen(false)}
-            onSuccess={() => {
-              setDeleteModalOpen(false);
-              queryClient.invalidateQueries({
-                queryKey: ["examinations", schoolId],
-              });
+            onClose={() => {
+              setViewModalOpen(false);
+              setSelectedExamination(null);
             }}
             examination={selectedExamination}
           />
+
+          <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Examination</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete "{selectedExamination.name}"?
+                  This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteModalOpen(false)}
+                  disabled={deleteExaminationMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    deleteExaminationMutation.mutate(selectedExamination.id)
+                  }
+                  disabled={deleteExaminationMutation.isPending}
+                >
+                  {deleteExaminationMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

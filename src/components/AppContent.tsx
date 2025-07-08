@@ -45,7 +45,7 @@ const AppContent: React.FC = () => {
     checkConnection();
   }, []);
 
-  // Check route access when user or path changes
+  // Check route access when user changes
   useEffect(() => {
     const checkRouteAccess = async () => {
       if (!authState.user) {
@@ -70,7 +70,7 @@ const AppContent: React.FC = () => {
     };
 
     checkRouteAccess();
-  }, [authState.user, window.location.pathname]);
+  }, [authState.user]);
 
   // Defensive check for auth state
   if (!authState || typeof authState !== "object") {
