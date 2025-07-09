@@ -79,6 +79,11 @@ const RoleBasedReportGenerator: React.FC<RoleBasedReportGeneratorProps> = ({
     principal: {
       academic: [
         {
+          id: "academic-performance",
+          name: "Academic Performance Report",
+          description: "Comprehensive analysis of student academic performance",
+        },
+        {
           id: "class-performance",
           name: "Class Performance Report",
           description: "Detailed analysis of class academic performance",
@@ -97,6 +102,11 @@ const RoleBasedReportGenerator: React.FC<RoleBasedReportGeneratorProps> = ({
           id: "exam-results",
           name: "Exam Results Summary",
           description: "Comprehensive exam results analysis",
+        },
+        {
+          id: "school-performance",
+          name: "School Performance Report",
+          description: "Comprehensive school performance analysis",
         },
       ],
       attendance: [
@@ -265,8 +275,10 @@ const RoleBasedReportGenerator: React.FC<RoleBasedReportGeneratorProps> = ({
     },
   };
 
-  const currentReports: Record<string, Array<{id: string, name: string, description: string}>> =
-    reportConfigs[userRole as keyof typeof reportConfigs] || {};
+  const currentReports: Record<
+    string,
+    Array<{ id: string; name: string; description: string }>
+  > = reportConfigs[userRole as keyof typeof reportConfigs] || {};
 
   useEffect(() => {
     // Load classes and students for filters

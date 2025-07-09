@@ -491,6 +491,7 @@ export class UnifiedReportService {
       case 'principal':
         if (!schoolId) throw new Error('School ID is required for principal reports');
         switch (reportType) {
+          case 'academic-performance':
           case 'class-performance':
             return this.generatePrincipalAcademicReport(schoolId, user.id);
           case 'student-progress':
@@ -524,6 +525,8 @@ export class UnifiedReportService {
             return this.generatePrincipalFinancialReport(schoolId, user.id);
           case 'financial-summary':
             return this.generatePrincipalFinancialReport(schoolId, user.id);
+          case 'school-performance':
+            return this.generateSchoolPerformanceReport(schoolId, user.id);
           default:
             throw new Error(`Unknown report type: ${reportType}`);
         }
