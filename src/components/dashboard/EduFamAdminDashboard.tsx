@@ -61,9 +61,6 @@ interface School {
   logo_url?: string;
   owner_id?: string;
   principal_id?: string;
-  principal_name?: string;
-  principal_email?: string;
-  max_students?: number;
   term_structure?: string;
 }
 
@@ -378,9 +375,7 @@ const EduFamAdminDashboard = () => {
                         )}
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 flex-shrink-0" />
-                          <span>
-                            Max: {school.max_students || 1000} students
-                          </span>
+                          <span>Students: Managed per class</span>
                         </div>
                       </div>
 
@@ -405,33 +400,18 @@ const EduFamAdminDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Principal/Owner Information */}
-                      {(school.principal_name || school.owner_id) && (
+                      {/* Owner Information */}
+                      {school.owner_id && (
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           <div className="flex flex-wrap gap-4 text-sm">
-                            {school.principal_name && (
-                              <div>
-                                <span className="font-medium text-gray-700">
-                                  Principal:
-                                </span>{" "}
-                                {school.principal_name}
-                                {school.principal_email && (
-                                  <span className="text-gray-500 ml-1">
-                                    ({school.principal_email})
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {school.owner_id && (
-                              <div>
-                                <span className="font-medium text-gray-700">
-                                  Owner ID:
-                                </span>
-                                <span className="font-mono text-xs text-gray-500 ml-1">
-                                  {school.owner_id.slice(0, 8)}...
-                                </span>
-                              </div>
-                            )}
+                            <div>
+                              <span className="font-medium text-gray-700">
+                                Owner ID:
+                              </span>
+                              <span className="font-mono text-xs text-gray-500 ml-1">
+                                {school.owner_id.slice(0, 8)}...
+                              </span>
+                            </div>
                           </div>
                         </div>
                       )}

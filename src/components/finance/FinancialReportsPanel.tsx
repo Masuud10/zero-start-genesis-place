@@ -37,6 +37,7 @@ import {
   useFinancialReports,
   ReportType,
   ReportFilter,
+  ReportData,
 } from "@/hooks/finance/useFinancialReports";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -171,7 +172,7 @@ const FinancialReportsPanel: React.FC = () => {
 
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text(`School: ${user?.school_name || "Your School"}`, 20, 35);
+    doc.text(`School: ${user?.school_id || "Your School"}`, 20, 35);
     doc.text(
       `Generated: ${new Date(reportData.generatedAt).toLocaleString()}`,
       20,
@@ -215,9 +216,11 @@ const FinancialReportsPanel: React.FC = () => {
       const headers = Object.keys(reportData.data[0]);
       const data = reportData.data
         .slice(0, 20)
-        .map((row: any) => headers.map((header) => String(row[header] || "")));
+        .map((row: Record<string, unknown>) =>
+          headers.map((header) => String(row[header] || ""))
+        );
 
-      (doc as any).autoTable({
+      (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
         startY: yPos + 5,
         head: [headers],
         body: data,
@@ -243,7 +246,7 @@ const FinancialReportsPanel: React.FC = () => {
   const downloadAsExcel = async (reportData: ReportData) => {
     // Create CSV content with proper formatting
     let csvContent = `${reportData.title}\n`;
-    csvContent += `School: ${user?.school_name || "Your School"}\n`;
+    csvContent += `School: ${user?.school_id || "Your School"}\n`;
     csvContent += `Generated: ${new Date(
       reportData.generatedAt
     ).toLocaleString()}\n\n`;
@@ -269,7 +272,7 @@ const FinancialReportsPanel: React.FC = () => {
       const headers = Object.keys(reportData.data[0]);
       csvContent += headers.join(",") + "\n";
 
-      reportData.data.forEach((row: any) => {
+      reportData.data.forEach((row: Record<string, unknown>) => {
         csvContent +=
           headers.map((header) => `"${String(row[header] || "")}"`).join(",") +
           "\n";
@@ -323,7 +326,14 @@ const FinancialReportsPanel: React.FC = () => {
               <Label htmlFor="date-range">Date Range</Label>
               <Select
                 value={dateRange}
-                onValueChange={(value: any) => setDateRange(value)}
+                onValueChange={(
+                  value:
+                    | "current_term"
+                    | "current_year"
+                    | "last_month"
+                    | "last_quarter"
+                    | "custom"
+                ) => setDateRange(value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select date range" />
@@ -538,17 +548,19 @@ const FinancialReportsPanel: React.FC = () => {
                         <TableBody>
                           {lastGeneratedReport.data
                             .slice(0, 10)
-                            .map((row: any, index: number) => (
-                              <TableRow key={index}>
-                                {Object.values(row)
-                                  .slice(0, 6)
-                                  .map((value: any, i: number) => (
-                                    <TableCell key={i} className="text-sm">
-                                      {String(value)}
-                                    </TableCell>
-                                  ))}
-                              </TableRow>
-                            ))}
+                            .map(
+                              (row: Record<string, unknown>, index: number) => (
+                                <TableRow key={index}>
+                                  {Object.values(row)
+                                    .slice(0, 6)
+                                    .map((value: unknown, i: number) => (
+                                      <TableCell key={i} className="text-sm">
+                                        {String(value)}
+                                      </TableCell>
+                                    ))}
+                                </TableRow>
+                              )
+                            )}
                         </TableBody>
                       </Table>
                     </div>

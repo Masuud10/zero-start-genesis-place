@@ -54,8 +54,7 @@ export function useAdminSchoolsData(refreshKey = 0) {
               owner_information,
               school_type,
               status,
-              term_structure,
-              curriculum_type
+              term_structure
             `)
             .order('created_at', { ascending: false });
 

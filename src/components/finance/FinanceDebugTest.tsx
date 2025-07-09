@@ -31,7 +31,7 @@ interface TestResult {
   name: string;
   status: "pass" | "fail" | "loading";
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 const FinanceDebugTest: React.FC = () => {
@@ -267,7 +267,7 @@ const FinanceDebugTest: React.FC = () => {
           : "Some tables inaccessible",
         details: { tables: tableStatus },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       results.push({
         name: "Database Tables Check",
         status: "fail",
