@@ -90,19 +90,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     return [
       ...baseItems,
       { id: 'school-management', label: 'School Management', icon: SchoolIcon, roles: ['principal'] },
-      { 
-        id: 'academic-management', 
-        label: 'Academic Management', 
-        icon: BookOpen, 
-        roles: ['principal'],
-        subItems: [
-          { id: 'student-admission', label: 'Student Admission', icon: UserPlus, roles: ['principal'] },
-          { id: 'student-promotion', label: 'Student Promotion', icon: ArrowUpDown, roles: ['principal'] },
-          { id: 'student-information', label: 'Student Information', icon: Users, roles: ['principal'] },
-          { id: 'transfer-management', label: 'Transfer Management', icon: TrendingUp, roles: ['principal'] },
-          { id: 'exit-management', label: 'Exit Management', icon: Archive, roles: ['principal'] },
-        ]
-      },
+      { id: 'academic-management', label: 'Academic Management', icon: BookOpen, roles: ['principal'] },
       { id: 'grades', label: 'Grades Management', icon: GraduationCap, roles: ['principal'] },
       { id: 'examinations', label: 'Examinations', icon: BookOpen, roles: ['principal'] },
       { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['principal'] },

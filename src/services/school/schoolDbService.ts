@@ -99,7 +99,6 @@ export class SchoolDbService {
           created_at,
           updated_at,
           owner_id,
-          curriculum_type,
           location
         `)
         .order('created_at', { ascending: false });
@@ -141,7 +140,6 @@ export class SchoolDbService {
           created_at,
           updated_at,
           owner_id,
-          curriculum_type,
           location
         `)
         .eq('id', schoolId)

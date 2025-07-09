@@ -42,7 +42,6 @@ export interface SchoolData {
   year_established?: number;
   term_structure?: string;
   owner_information?: string;
-  curriculum_type?: string;
   school_type?: string;
   status?: string;
   created_at: string;
