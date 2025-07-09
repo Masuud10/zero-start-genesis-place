@@ -26,7 +26,10 @@ import {
   PieChart,
   Banknote,
   FolderKanban,
-  BookOpen
+  BookOpen,
+  UserPlus,
+  ArrowUpDown,
+  Archive
 } from 'lucide-react';
 
 import { LucideIcon } from 'lucide-react';
@@ -56,7 +59,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'company-management', label: 'Company Management', icon: Globe, roles: ['edufam_admin'] },
       { id: 'users', label: 'User Management', icon: UserCheck, roles: ['edufam_admin'] },
       { id: 'certificates', label: 'Certificate Management', icon: Award, roles: ['edufam_admin'] },
-      { id: 'announcements', label: 'All Announcements', icon: Megaphone, roles: ['edufam_admin'] },
+      { id: 'announcements', label: 'Communication Center', icon: Megaphone, roles: ['edufam_admin'] },
       { id: 'reports', label: 'System Reports', icon: FileText, roles: ['edufam_admin'] },
       { id: 'billing', label: 'Billing Management', icon: CreditCard, roles: ['edufam_admin'] },
       { id: 'system-health', label: 'System Health', icon: Activity, roles: ['edufam_admin'] },
@@ -87,6 +90,19 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     return [
       ...baseItems,
       { id: 'school-management', label: 'School Management', icon: SchoolIcon, roles: ['principal'] },
+      { 
+        id: 'academic-management', 
+        label: 'Academic Management', 
+        icon: BookOpen, 
+        roles: ['principal'],
+        subItems: [
+          { id: 'student-admission', label: 'Student Admission', icon: UserPlus, roles: ['principal'] },
+          { id: 'student-promotion', label: 'Student Promotion', icon: ArrowUpDown, roles: ['principal'] },
+          { id: 'student-information', label: 'Student Information', icon: Users, roles: ['principal'] },
+          { id: 'transfer-management', label: 'Transfer Management', icon: TrendingUp, roles: ['principal'] },
+          { id: 'exit-management', label: 'Exit Management', icon: Archive, roles: ['principal'] },
+        ]
+      },
       { id: 'grades', label: 'Grades Management', icon: GraduationCap, roles: ['principal'] },
       { id: 'examinations', label: 'Examinations', icon: BookOpen, roles: ['principal'] },
       { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['principal'] },

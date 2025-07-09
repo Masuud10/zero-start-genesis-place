@@ -1,18 +1,17 @@
-
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, FolderKanban, Calendar, BarChart3 } from 'lucide-react';
-import ProjectsList from './project-hub/ProjectsList';
-import ProjectsKanban from './project-hub/ProjectsKanban';
-import ProjectsTimeline from './project-hub/ProjectsTimeline';
-import ProjectsAnalytics from './project-hub/ProjectsAnalytics';
-import CreateProjectDialog from './project-hub/CreateProjectDialog';
-import { useProjects } from '@/hooks/useProjects';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, FolderKanban, Calendar, BarChart3 } from "lucide-react";
+import ProjectsList from "./project-hub/ProjectsList";
+import ProjectsKanban from "./project-hub/ProjectsKanban";
+import ProjectsTimeline from "./project-hub/ProjectsTimeline";
+import ProjectsAnalytics from "./project-hub/ProjectsAnalytics";
+import CreateProjectDialog from "./project-hub/CreateProjectDialog";
+import { useProjects } from "@/hooks/useProjects";
 
 const ProjectHubModule = () => {
-  const [activeTab, setActiveTab] = useState('list');
+  const [activeTab, setActiveTab] = useState("list");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { data: projects = [] } = useProjects();
 
@@ -29,7 +28,8 @@ const ProjectHubModule = () => {
               <div>
                 <h1 className="text-3xl font-bold">Project Hub</h1>
                 <p className="text-blue-100 text-base font-normal mt-1">
-                  Manage company-level projects, events, and campaigns ({projects.length} projects)
+                  Manage company-level projects, events, and campaigns (
+                  {projects.length} projects)
                 </p>
               </div>
             </CardTitle>
@@ -47,7 +47,11 @@ const ProjectHubModule = () => {
       {/* Navigation Tabs */}
       <Card className="shadow-lg">
         <CardContent className="p-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-4 h-auto p-2 bg-gray-50">
               <TabsTrigger
                 value="list"

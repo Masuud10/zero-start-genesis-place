@@ -1,17 +1,17 @@
-import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import TeacherReportsModule from '@/components/reports/TeacherReportsModule';
-import PrincipalReportsModule from '@/components/reports/PrincipalReportsModule';
-import FinanceReportsModule from '@/components/reports/FinanceReportsModule';
-import ParentReportsModule from '@/components/reports/ParentReportsModule';
-import SystemReportsModule from '@/components/reports/SystemReportsModule';
-import RoleGuard from '@/components/common/RoleGuard';
+import React from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import TeacherReportsModule from "@/components/reports/TeacherReportsModule";
+import PrincipalReportsModule from "@/components/reports/PrincipalReportsModule";
+import FinanceReportsModule from "@/components/reports/FinanceReportsModule";
+import ParentReportsModule from "@/components/reports/ParentReportsModule";
+import SystemReportsModule from "@/components/reports/SystemReportsModule";
+import RoleGuard from "@/components/common/RoleGuard";
 
 const ReportsModule = () => {
   const { user } = useAuth();
 
   // EduFam Admin gets system-wide reports
-  if (user?.role === 'edufam_admin') {
+  if (user?.role === "edufam_admin") {
     return (
       <div className="space-y-6">
         <div>
@@ -22,14 +22,14 @@ const ReportsModule = () => {
             Generate comprehensive system-wide reports and analytics.
           </p>
         </div>
-        
+
         <SystemReportsModule />
       </div>
     );
   }
 
   // Teachers get limited reports
-  if (user?.role === 'teacher') {
+  if (user?.role === "teacher") {
     return (
       <div className="space-y-6">
         <div>
@@ -40,14 +40,14 @@ const ReportsModule = () => {
             Generate grade and attendance reports for your classes.
           </p>
         </div>
-        
+
         <TeacherReportsModule />
       </div>
     );
   }
 
   // Finance officers get financial reports
-  if (user?.role === 'finance_officer') {
+  if (user?.role === "finance_officer") {
     return (
       <div className="space-y-6">
         <div>
@@ -55,17 +55,18 @@ const ReportsModule = () => {
             Finance Reports
           </h1>
           <p className="text-muted-foreground">
-            Generate financial summaries, fee collection, and transaction reports.
+            Generate financial summaries, fee collection, and transaction
+            reports.
           </p>
         </div>
-        
+
         <FinanceReportsModule />
       </div>
     );
   }
 
   // Parents get student reports
-  if (user?.role === 'parent') {
+  if (user?.role === "parent") {
     return (
       <div className="space-y-6">
         <div>
@@ -76,7 +77,7 @@ const ReportsModule = () => {
             View your child's academic progress and attendance reports.
           </p>
         </div>
-        
+
         <ParentReportsModule />
       </div>
     );
@@ -84,17 +85,21 @@ const ReportsModule = () => {
 
   // Principals and School Owners get comprehensive reports
   return (
-    <RoleGuard allowedRoles={['principal', 'school_owner']} requireSchoolAssignment>
+    <RoleGuard
+      allowedRoles={["principal", "school_owner"]}
+      requireSchoolAssignment
+    >
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
             School Reports
           </h1>
           <p className="text-muted-foreground">
-            Generate comprehensive academic, financial, and administrative reports.
+            Generate comprehensive academic, financial, and administrative
+            reports.
           </p>
         </div>
-        
+
         <PrincipalReportsModule />
       </div>
     </RoleGuard>

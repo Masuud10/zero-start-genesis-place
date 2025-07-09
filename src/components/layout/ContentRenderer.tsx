@@ -153,6 +153,9 @@ const ParentFinanceView = React.lazy(
 const ParentTimetableView = React.lazy(
   () => import("@/components/timetable/ParentTimetableView")
 );
+const AcademicManagementModule = React.lazy(
+  () => import("@/components/modules/AcademicManagementModule")
+);
 
 interface ContentRendererProps {
   activeSection: string;
@@ -485,6 +488,24 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return (
           <div className="p-8 text-center text-red-600">
             Access Denied: Only principals can manage examinations
+          </div>
+        );
+      case "academic-management":
+      case "student-admission":
+      case "student-promotion":
+      case "student-information":
+      case "transfer-management":
+      case "exit-management":
+        // Only principals can access academic management
+        if (user?.role === "principal") {
+          return renderLazyComponent(
+            AcademicManagementModule,
+            "AcademicManagementModule"
+          );
+        }
+        return (
+          <div className="p-8 text-center text-red-600">
+            Access Denied: Only principals can access Academic Management
           </div>
         );
       case "attendance":

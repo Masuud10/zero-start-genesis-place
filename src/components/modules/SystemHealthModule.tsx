@@ -1,22 +1,21 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useSystemHealth, useSystemMetrics } from '@/hooks/useSystemHealth';
-import { 
-  Activity, 
-  Server, 
-  Database, 
-  Wifi, 
-  AlertTriangle, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSystemHealth, useSystemMetrics } from "@/hooks/useSystemHealth";
+import {
+  Activity,
+  Server,
+  Database,
+  Wifi,
+  AlertTriangle,
   CheckCircle,
   RefreshCw,
   TrendingUp,
   Clock,
-  Users
-} from 'lucide-react';
+  Users,
+} from "lucide-react";
 import {
   LineChart,
   Line,
@@ -26,21 +25,21 @@ import {
   Tooltip,
   ResponsiveContainer,
   AreaChart,
-  Area
-} from 'recharts';
+  Area,
+} from "recharts";
 
 const SystemHealthModule = () => {
-  const { 
-    data: healthData, 
-    isLoading: healthLoading, 
+  const {
+    data: healthData,
+    isLoading: healthLoading,
     error: healthError,
-    refetch: refetchHealth 
+    refetch: refetchHealth,
   } = useSystemHealth();
 
-  const { 
-    data: metricsData, 
+  const {
+    data: metricsData,
     isLoading: metricsLoading,
-    refetch: refetchMetrics 
+    refetch: refetchMetrics,
   } = useSystemMetrics();
 
   const handleRefresh = () => {
@@ -50,30 +49,30 @@ const SystemHealthModule = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'healthy':
-      case 'operational':
-        return 'text-green-600';
-      case 'warning':
-      case 'degraded':
-        return 'text-yellow-600';
-      case 'critical':
-      case 'down':
-        return 'text-red-600';
+      case "healthy":
+      case "operational":
+        return "text-green-600";
+      case "warning":
+      case "degraded":
+        return "text-yellow-600";
+      case "critical":
+      case "down":
+        return "text-red-600";
       default:
-        return 'text-gray-600';
+        return "text-gray-600";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'healthy':
-      case 'operational':
+      case "healthy":
+      case "operational":
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'warning':
-      case 'degraded':
+      case "warning":
+      case "degraded":
         return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      case 'critical':
-      case 'down':
+      case "critical":
+      case "down":
         return <AlertTriangle className="h-4 w-4 text-red-600" />;
       default:
         return <Activity className="h-4 w-4 text-gray-600" />;
@@ -126,12 +125,12 @@ const SystemHealthModule = () => {
 
   // Sample metrics data for charts (would come from real system metrics)
   const performanceData = [
-    { time: '00:00', cpu: 45, memory: 62, response: 120 },
-    { time: '04:00', cpu: 52, memory: 58, response: 135 },
-    { time: '08:00', cpu: 68, memory: 71, response: 145 },
-    { time: '12:00', cpu: 73, memory: 76, response: 160 },
-    { time: '16:00', cpu: 59, memory: 69, response: 142 },
-    { time: '20:00', cpu: 48, memory: 63, response: 128 },
+    { time: "00:00", cpu: 45, memory: 62, response: 120 },
+    { time: "04:00", cpu: 52, memory: 58, response: 135 },
+    { time: "08:00", cpu: 68, memory: 71, response: 145 },
+    { time: "12:00", cpu: 73, memory: 76, response: 160 },
+    { time: "16:00", cpu: 59, memory: 69, response: 142 },
+    { time: "20:00", cpu: 48, memory: 63, response: 128 },
   ];
 
   return (
@@ -140,9 +139,14 @@ const SystemHealthModule = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">System Health</h2>
-          <p className="text-muted-foreground">Real-time system performance and health monitoring</p>
+          <p className="text-muted-foreground">
+            Real-time system performance and health monitoring
+          </p>
         </div>
-        <Button onClick={handleRefresh} className="bg-green-600 hover:bg-green-700">
+        <Button
+          onClick={handleRefresh}
+          className="bg-green-600 hover:bg-green-700"
+        >
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
@@ -152,7 +156,9 @@ const SystemHealthModule = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700">System Uptime</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-700">
+              System Uptime
+            </CardTitle>
             <Activity className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -165,7 +171,9 @@ const SystemHealthModule = () => {
 
         <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700">Response Time</CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-700">
+              Response Time
+            </CardTitle>
             <Clock className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -178,7 +186,9 @@ const SystemHealthModule = () => {
 
         <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium text-purple-700">
+              Active Users
+            </CardTitle>
             <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
@@ -191,7 +201,9 @@ const SystemHealthModule = () => {
 
         <Card className="bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700">Error Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-orange-700">
+              Error Rate
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
@@ -215,27 +227,31 @@ const SystemHealthModule = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                {getStatusIcon(healthData?.api_status || 'operational')}
+                {getStatusIcon(healthData?.api_status || "operational")}
                 <span className="font-medium">API Service</span>
               </div>
-              <Badge 
-                variant="outline" 
-                className={`border-current ${getStatusColor(healthData?.api_status || 'operational')}`}
+              <Badge
+                variant="outline"
+                className={`border-current ${getStatusColor(
+                  healthData?.api_status || "operational"
+                )}`}
               >
-                {healthData?.api_status || 'Operational'}
+                {healthData?.api_status || "Operational"}
               </Badge>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                {getStatusIcon(healthData?.database_status || 'healthy')}
+                {getStatusIcon(healthData?.database_status || "healthy")}
                 <span className="font-medium">Database</span>
               </div>
-              <Badge 
-                variant="outline" 
-                className={`border-current ${getStatusColor(healthData?.database_status || 'healthy')}`}
+              <Badge
+                variant="outline"
+                className={`border-current ${getStatusColor(
+                  healthData?.database_status || "healthy"
+                )}`}
               >
-                {healthData?.database_status || 'Healthy'}
+                {healthData?.database_status || "Healthy"}
               </Badge>
             </div>
 
@@ -244,7 +260,10 @@ const SystemHealthModule = () => {
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="font-medium">File Storage</span>
               </div>
-              <Badge variant="outline" className="border-current text-green-600">
+              <Badge
+                variant="outline"
+                className="border-current text-green-600"
+              >
                 Operational
               </Badge>
             </div>
@@ -254,7 +273,10 @@ const SystemHealthModule = () => {
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="font-medium">Authentication</span>
               </div>
-              <Badge variant="outline" className="border-current text-green-600">
+              <Badge
+                variant="outline"
+                className="border-current text-green-600"
+              >
                 Operational
               </Badge>
             </div>
@@ -290,7 +312,9 @@ const SystemHealthModule = () => {
               </div>
               <div className="text-center p-3 bg-orange-50 rounded-lg">
                 <div className="text-lg font-bold text-orange-900">
-                  {new Date(healthData?.last_updated || Date.now()).toLocaleTimeString()}
+                  {new Date(
+                    healthData?.last_updated || Date.now()
+                  ).toLocaleTimeString()}
                 </div>
                 <p className="text-sm text-orange-700">Last Updated</p>
               </div>
@@ -314,12 +338,12 @@ const SystemHealthModule = () => {
               <XAxis dataKey="time" />
               <YAxis />
               <Tooltip />
-              <Area 
-                type="monotone" 
-                dataKey="response" 
-                stackId="1" 
-                stroke="#3B82F6" 
-                fill="#DBEAFE" 
+              <Area
+                type="monotone"
+                dataKey="response"
+                stackId="1"
+                stroke="#3B82F6"
+                fill="#DBEAFE"
                 name="Response Time (ms)"
               />
             </AreaChart>

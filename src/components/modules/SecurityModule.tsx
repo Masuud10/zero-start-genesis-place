@@ -1,6 +1,5 @@
-
-import React from 'react';
-import SecuritySettings from '@/components/security/SecuritySettings';
+import React from "react";
+import SecuritySettings from "@/components/security/SecuritySettings";
 
 const SecurityModule: React.FC = () => {
   return (
