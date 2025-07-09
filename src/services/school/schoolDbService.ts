@@ -95,17 +95,12 @@ export class SchoolDbService {
           term_structure,
           owner_information,
           school_type,
-          principal_name,
-          principal_contact,
-          principal_email,
           status,
-          subscription_plan,
-          max_students,
-          timezone,
           created_at,
           updated_at,
           owner_id,
-          principal_id
+          curriculum_type,
+          location
         `)
         .order('created_at', { ascending: false });
 
@@ -142,17 +137,12 @@ export class SchoolDbService {
           term_structure,
           owner_information,
           school_type,
-          principal_name,
-          principal_contact,
-          principal_email,
           status,
-          subscription_plan,
-          max_students,
-          timezone,
           created_at,
           updated_at,
           owner_id,
-          principal_id
+          curriculum_type,
+          location
         `)
         .eq('id', schoolId)
         .single();

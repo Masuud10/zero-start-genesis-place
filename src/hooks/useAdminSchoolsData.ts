@@ -51,16 +51,11 @@ export function useAdminSchoolsData(refreshKey = 0) {
               slogan,
               registration_number,
               year_established,
-              principal_name,
-              principal_contact,
-              principal_email,
               owner_information,
               school_type,
               status,
-              subscription_plan,
-              max_students,
-              timezone,
-              term_structure
+              term_structure,
+              curriculum_type
             `)
             .order('created_at', { ascending: false });
 

@@ -33,6 +33,7 @@ export interface SchoolData {
   email: string;
   phone: string;
   address: string;
+  location?: string;
   logo_url?: string;
   website_url?: string;
   motto?: string;
@@ -43,17 +44,10 @@ export interface SchoolData {
   owner_information?: string;
   curriculum_type?: string;
   school_type?: string;
-  principal_name?: string;
-  principal_contact?: string;
-  principal_email?: string;
   status?: string;
-  subscription_plan?: string;
-  max_students?: number;
-  timezone?: string;
   created_at: string;
   updated_at: string;
   owner_id?: string;
-  principal_id?: string;
 }
 
 export interface CreateSchoolRpcResult {

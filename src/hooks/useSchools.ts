@@ -8,6 +8,7 @@ export interface School {
   email: string;
   phone: string;
   address: string;
+  location?: string;
   school_type?: string;
   term_structure?: string;
   registration_number?: string;
@@ -17,15 +18,9 @@ export interface School {
   motto?: string;
   slogan?: string;
   owner_information?: string;
-  principal_name?: string;
-  principal_contact?: string;
-  principal_email?: string;
   status?: string;
-  subscription_plan?: string;
-  max_students?: number;
-  timezone?: string;
   owner_id?: string;
-  principal_id?: string;
+  curriculum_type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -52,8 +47,6 @@ interface SchoolCreationData {
   website_url?: string;
   motto?: string;
   slogan?: string;
-  max_students?: number;
-  timezone?: string;
   owner_name?: string;
   owner_email?: string;
   owner_phone?: string;
@@ -87,17 +80,12 @@ export const useSchools = (refreshKey = 0) => {
             motto,
             slogan,
             owner_information,
-            principal_name,
-            principal_contact,
-            principal_email,
             status,
-            subscription_plan,
-            max_students,
-            timezone,
             owner_id,
-            principal_id,
             created_at,
-            updated_at
+            updated_at,
+            curriculum_type,
+            location
           `)
           .order('created_at', { ascending: false });
 
@@ -143,17 +131,12 @@ export const useSchool = (schoolId: string) => {
           motto,
           slogan,
           owner_information,
-          principal_name,
-          principal_contact,
-          principal_email,
           status,
-          subscription_plan,
-          max_students,
-          timezone,
           owner_id,
-          principal_id,
           created_at,
-          updated_at
+          updated_at,
+          curriculum_type,
+          location
         `)
         .eq('id', schoolId)
         .single();
