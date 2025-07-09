@@ -1,4 +1,10 @@
-import React, { useState, useEffect, startTransition, Suspense } from "react";
+import React, {
+  useState,
+  useEffect,
+  startTransition,
+  Suspense,
+  useCallback,
+} from "react";
 import { AuthUser } from "@/types/auth";
 import { usePrincipalDashboardData } from "@/hooks/usePrincipalDashboardData";
 import CertificateGenerator from "@/components/certificates/CertificateGenerator";
@@ -8,14 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useNavigation } from "@/contexts/NavigationContext";
 
 // Section components
 import PrincipalStatsSection from "./principal/sections/PrincipalStatsSection";
 import PrincipalAnalyticsSection from "./principal/sections/PrincipalAnalyticsSection";
 import PrincipalGradesSection from "./principal/sections/PrincipalGradesSection";
-import PrincipalTimetableSection from "./principal/sections/PrincipalTimetableSection";
 import PrincipalFinanceSection from "./principal/sections/PrincipalFinanceSection";
 import PrincipalCertificatesSection from "./principal/sections/PrincipalCertificatesSection";
 
@@ -36,6 +41,68 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
   const { toast } = useToast();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const { activeSection } = useNavigation();
+
+  // Memoized handlers to prevent unnecessary re-renders
+  const handleModalOpen = useCallback(
+    (modalType: string) => {
+      console.log(
+        "🎭 PrincipalDashboard: Opening modal:",
+        modalType,
+        "for school:",
+        schoolId
+      );
+
+      // Validate modal access based on school context
+      if (!schoolId) {
+        toast({
+          title: "Access Error",
+          description: "Cannot open modal - no school context available.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setActiveModal(modalType);
+
+      // Delegate specific modals to parent if available
+      if (
+        onModalOpen &&
+        ["studentAdmission", "teacherAdmission", "addClass"].includes(modalType)
+      ) {
+        onModalOpen(modalType);
+      }
+    },
+    [schoolId, toast, onModalOpen]
+  );
+
+  const handleModalClose = useCallback(() => {
+    console.log("🎭 PrincipalDashboard: Closing modal:", activeModal);
+    setActiveModal(null);
+  }, [activeModal]);
+
+  const handleSuccess = useCallback(
+    (message?: string) => {
+      console.log("✅ PrincipalDashboard: Operation completed successfully");
+      toast({
+        title: "Success",
+        description: message || "Operation completed successfully.",
+      });
+      setActiveModal(null);
+
+      // Refresh dashboard data after successful operations
+      if (refetch) {
+        refetch();
+      }
+    },
+    [toast, refetch]
+  );
+
+  const handleRetry = useCallback(() => {
+    console.log("🔄 PrincipalDashboard: Retrying data fetch");
+    if (refetch) {
+      refetch();
+    }
+  }, [refetch]);
 
   // Check for timetable modal flag on component mount and section changes
   useEffect(() => {
@@ -68,6 +135,14 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
       });
     }
   }, [activeSection]);
+
+  // Cleanup sessionStorage on unmount
+  useEffect(() => {
+    return () => {
+      // Clean up any leftover sessionStorage flags
+      sessionStorage.removeItem("openTimetableModal");
+    };
+  }, []);
 
   // Enhanced school assignment validation
   if (!isReady) {
@@ -115,61 +190,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
     );
   }
 
-  const handleModalOpen = (modalType: string) => {
-    console.log(
-      "🎭 PrincipalDashboard: Opening modal:",
-      modalType,
-      "for school:",
-      schoolId
-    );
-
-    // Validate modal access based on school context
-    if (!schoolId) {
-      toast({
-        title: "Access Error",
-        description: "Cannot open modal - no school context available.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setActiveModal(modalType);
-
-    // Delegate specific modals to parent if available
-    if (
-      onModalOpen &&
-      ["studentAdmission", "teacherAdmission", "addClass"].includes(modalType)
-    ) {
-      onModalOpen(modalType);
-    }
-  };
-
-  const handleModalClose = () => {
-    console.log("🎭 PrincipalDashboard: Closing modal:", activeModal);
-    setActiveModal(null);
-  };
-
-  const handleSuccess = (message?: string) => {
-    console.log("✅ PrincipalDashboard: Operation completed successfully");
-    toast({
-      title: "Success",
-      description: message || "Operation completed successfully.",
-    });
-    setActiveModal(null);
-
-    // Refresh dashboard data after successful operations
-    if (refetch) {
-      refetch();
-    }
-  };
-
-  const handleRetry = () => {
-    console.log("🔄 PrincipalDashboard: Retrying data fetch");
-    if (refetch) {
-      refetch();
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
@@ -187,8 +207,6 @@ const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
           schoolId={schoolId}
           onModalOpen={handleModalOpen}
         />
-
-        <PrincipalTimetableSection onModalOpen={handleModalOpen} />
 
         <PrincipalFinanceSection />
 

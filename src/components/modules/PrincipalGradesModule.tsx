@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ import {
   BookOpen,
   Calendar,
   FileText,
+  AlertCircle,
 } from "lucide-react";
 import { DynamicGradingSheet } from "@/components/grading/DynamicGradingSheet";
 import { useClasses } from "@/hooks/useClasses";
@@ -55,13 +56,14 @@ import { useSubjects } from "@/hooks/useSubjects";
 import { useClassCurriculum } from "@/hooks/useClassCurriculum";
 import { GradeManagementService } from "@/services/gradeManagementService";
 import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegration";
+import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface GradeRecord {
   id: string;
-  student_name: string;
-  subject_name: string;
-  class_name: string;
-  teacher_name: string;
+  student_id: string;
+  subject_id: string;
+  class_id: string;
   score: number;
   max_score: number;
   percentage: number;
@@ -79,6 +81,10 @@ interface GradeRecord {
   term: string;
   exam_type: string;
   curriculum_type: string;
+  students?: { name: string; admission_number: string };
+  subjects?: { name: string; code: string };
+  classes?: { name: string };
+  profiles?: { name: string };
 }
 
 interface GradeAction {
@@ -90,16 +96,24 @@ interface GradeAction {
 
 function getStatusBadge(status: string) {
   switch (status) {
+    case "submitted":
+      return <Badge variant="secondary">Pending Review</Badge>;
     case "approved":
-      return <span className="text-green-600">Approved</span>;
-    case "pending":
-      return <span className="text-yellow-600">Pending</span>;
+      return (
+        <Badge variant="default" className="bg-green-100 text-green-800">
+          Approved
+        </Badge>
+      );
     case "rejected":
-      return <span className="text-red-600">Rejected</span>;
+      return <Badge variant="destructive">Rejected</Badge>;
     case "released":
-      return <span className="text-blue-600">Released</span>;
+      return (
+        <Badge variant="outline" className="bg-blue-100 text-blue-800">
+          Released
+        </Badge>
+      );
     default:
-      return <span className="text-gray-500">Unknown</span>;
+      return <Badge variant="outline">Draft</Badge>;
   }
 }
 
@@ -107,8 +121,10 @@ const PrincipalGradesModule: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
-  const { classes } = useClasses();
-  const { subjects } = useSubjects();
+  const { classes, loading: classesLoading } = useClasses();
+  const { subjects, loading: subjectsLoading } = useSubjects();
+  const { academicInfo, loading: academicInfoLoading } =
+    useCurrentAcademicInfo(schoolId);
 
   // State management
   const [grades, setGrades] = useState<GradeRecord[]>([]);
@@ -129,16 +145,10 @@ const PrincipalGradesModule: React.FC = () => {
   const [overrideScore, setOverrideScore] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  // Get curriculum type for selected class
-  const {
-    curriculumType: classCurriculumType,
-    loading: classCurriculumLoading,
-  } = useClassCurriculum(selectedClass);
-
-  // Replace all direct context, class, subject, and student fetching with useAcademicModuleIntegration
+  // Academic context
   const {
     context,
-    isLoading,
+    isLoading: academicLoading,
     error: academicError,
     data: academicData,
     isValid,
@@ -146,6 +156,56 @@ const PrincipalGradesModule: React.FC = () => {
     currentPeriod,
     validation,
   } = useAcademicModuleIntegration(["grades"]);
+
+  // Get curriculum type for selected class
+  const {
+    curriculumType: classCurriculumType,
+    loading: classCurriculumLoading,
+    error: curriculumError,
+  } = useClassCurriculum(selectedClass !== "all" ? selectedClass : null);
+
+  // Available academic terms and years
+  const [availableTerms, setAvailableTerms] = useState<string[]>([]);
+  const [availableExamTypes, setAvailableExamTypes] = useState<string[]>([]);
+
+  // Load available terms and exam types
+  useEffect(() => {
+    const loadAvailableData = async () => {
+      if (!schoolId) return;
+
+      try {
+        // Load academic terms
+        const { data: termsData } = await supabase
+          .from("academic_terms")
+          .select("term_name")
+          .eq("school_id", schoolId)
+          .order("start_date");
+
+        if (termsData) {
+          const terms = termsData.map((t) => t.term_name).filter(Boolean);
+          setAvailableTerms(terms);
+        }
+
+        // Load exam types from existing grades
+        const { data: examTypesData } = await supabase
+          .from("grades")
+          .select("exam_type")
+          .eq("school_id", schoolId)
+          .not("exam_type", "is", null);
+
+        if (examTypesData) {
+          const examTypes = [
+            ...new Set(examTypesData.map((g) => g.exam_type).filter(Boolean)),
+          ];
+          setAvailableExamTypes(examTypes);
+        }
+      } catch (error) {
+        console.error("Error loading available data:", error);
+      }
+    };
+
+    loadAvailableData();
+  }, [schoolId]);
 
   // Load grades when filters change
   useEffect(() => {
@@ -162,113 +222,48 @@ const PrincipalGradesModule: React.FC = () => {
   ]);
 
   const fetchGrades = async () => {
+    if (!schoolId) return;
+
     setLoading(true);
     try {
-      let query = supabase
-        .from("grades")
-        .select(
-          `
-          id,
-          score,
-          max_score,
-          percentage,
-          letter_grade,
-          status,
-          submitted_at,
-          approved_by,
-          approved_at,
-          principal_notes,
-          released_by,
-          released_at,
-          term,
-          exam_type,
-          curriculum_type,
-          students!inner(name),
-          subjects!inner(name),
-          classes!inner(name),
-          profiles!inner(name)
-        `
-        )
-        .eq("school_id", schoolId);
-
-      // Apply filters
-      if (selectedClass && selectedClass !== "all")
-        query = query.eq("class_id", selectedClass);
-      if (selectedSubject && selectedSubject !== "all")
-        query = query.eq("subject_id", selectedSubject);
-      if (selectedStatus !== "all") query = query.eq("status", selectedStatus);
-      if (selectedTerm && selectedTerm !== "all")
-        query = query.eq("term", selectedTerm);
-      if (selectedExamType && selectedExamType !== "all")
-        query = query.eq("exam_type", selectedExamType);
-
-      const { data, error } = await query.order("submitted_at", {
-        ascending: false,
+      console.log("🎓 PrincipalGradesModule: Fetching grades with filters:", {
+        schoolId,
+        selectedClass,
+        selectedSubject,
+        selectedStatus,
+        selectedTerm,
+        selectedExamType,
       });
 
-      if (error) throw error;
-
-      const processedGrades: GradeRecord[] = (data || []).map(
-        (grade: {
-          id: string;
-          score: number | null;
-          max_score: number | null;
-          percentage: number | null;
-          letter_grade: string | null;
-          status: string | null;
-          submitted_at: string;
-          approved_by: string | null;
-          approved_at: string | null;
-          principal_notes: string | null;
-          released_by: string | null;
-          released_at: string | null;
-          term: string;
-          exam_type: string;
-          curriculum_type: string;
-          students: { name: string } | null;
-          subjects: { name: string } | null;
-          classes: { name: string } | null;
-          profiles: { name: string } | null;
-        }) => ({
-          id: grade.id,
-          student_name: grade.students?.name || "Unknown",
-          subject_name: grade.subjects?.name || "Unknown",
-          class_name: grade.classes?.name || "Unknown",
-          teacher_name: grade.profiles?.name || "Unknown",
-          score: grade.score || 0,
-          max_score: grade.max_score || 100,
-          percentage: grade.percentage || 0,
-          letter_grade: grade.letter_grade || "",
-          status:
-            (grade.status as
-              | "draft"
-              | "submitted"
-              | "approved"
-              | "rejected"
-              | "released") || "draft",
-          submitted_at: grade.submitted_at,
-          approved_by: grade.approved_by,
-          approved_at: grade.approved_at,
-          rejected_reason: "", // This column doesn't exist in the database yet
-          overridden_by: "", // This column doesn't exist in the database yet
-          overridden_at: "", // This column doesn't exist in the database yet
-          principal_notes: grade.principal_notes,
-          released_by: grade.released_by,
-          released_at: grade.released_at,
-          term: grade.term,
-          exam_type: grade.exam_type,
-          curriculum_type: grade.curriculum_type,
-        })
+      const result = await GradeManagementService.getGradesForPrincipal(
+        schoolId,
+        {
+          classId: selectedClass,
+          subjectId: selectedSubject,
+          status: selectedStatus,
+          term: selectedTerm,
+          examType: selectedExamType,
+        }
       );
 
-      setGrades(processedGrades);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setGrades(result.data || []);
+      console.log(
+        "✅ PrincipalGradesModule: Fetched grades:",
+        result.data?.length || 0
+      );
     } catch (error) {
-      console.error("Error fetching grades:", error);
+      console.error("❌ PrincipalGradesModule: Error fetching grades:", error);
       toast({
         title: "Error",
-        description: "Failed to load grades. Please try again.",
+        description:
+          error instanceof Error ? error.message : "Failed to fetch grades",
         variant: "destructive",
       });
+      setGrades([]);
     } finally {
       setLoading(false);
     }
@@ -292,9 +287,9 @@ const PrincipalGradesModule: React.FC = () => {
   ) => {
     if (selectedGrades.length === 0) {
       toast({
-        title: "No Grades Selected",
+        title: "No Selection",
         description: "Please select grades to perform this action.",
-        variant: "default",
+        variant: "destructive",
       });
       return;
     }
@@ -307,93 +302,79 @@ const PrincipalGradesModule: React.FC = () => {
   };
 
   const executeAction = async () => {
-    if (!currentAction || !user?.id) return;
+    if (!currentAction) return;
 
     setProcessing(true);
     try {
-      const { type, gradeIds, reason } = currentAction;
+      const { type, gradeIds, reason, overrideScore } = currentAction;
 
-      // Validate permission first
-      const permissionCheck =
-        await GradeManagementService.validateGradeActionPermission(
-          user.id,
-          schoolId,
-          type
-        );
-
-      if (!permissionCheck.canPerform) {
-        toast({
-          title: "Permission Denied",
-          description:
-            permissionCheck.error ||
-            "You don't have permission to perform this action.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      let result;
       switch (type) {
         case "approve":
-          result = await GradeManagementService.approveGrades(
+          await GradeManagementService.approveGrades(
             gradeIds,
-            user.id,
-            schoolId,
+            user?.id || "",
+            schoolId || "",
             reason
           );
+          toast({
+            title: "Success",
+            description: `${gradeIds.length} grade(s) approved successfully.`,
+          });
           break;
         case "reject":
-          result = await GradeManagementService.rejectGrades(
+          await GradeManagementService.rejectGrades(
             gradeIds,
-            user.id,
-            schoolId,
+            user?.id || "",
+            schoolId || "",
             reason || ""
           );
+          toast({
+            title: "Success",
+            description: `${gradeIds.length} grade(s) rejected.`,
+          });
           break;
         case "override":
-          result = await GradeManagementService.overrideGrades(
+          if (!overrideScore) {
+            throw new Error("Override score is required");
+          }
+          await GradeManagementService.overrideGrades(
             gradeIds,
-            user.id,
-            schoolId,
-            parseFloat(overrideScore),
+            user?.id || "",
+            schoolId || "",
+            Number(overrideScore),
             reason || ""
           );
+          toast({
+            title: "Success",
+            description: `${gradeIds.length} grade(s) overridden successfully.`,
+          });
           break;
         case "release":
-          result = await GradeManagementService.releaseGrades(
+          await GradeManagementService.releaseGrades(
             gradeIds,
-            user.id,
-            schoolId
+            user?.id || "",
+            schoolId || ""
           );
+          toast({
+            title: "Success",
+            description: `${gradeIds.length} grade(s) released to parents.`,
+          });
           break;
       }
 
-      if (result?.success) {
-        toast({
-          title: "Success",
-          description: `Grades ${type}d successfully.`,
-        });
-
-        setActionModalOpen(false);
-        setCurrentAction(null);
-        setActionReason("");
-        setOverrideScore("");
-        setSelectedGrades([]);
-        setSelectAll(false);
-        fetchGrades();
-      } else {
-        toast({
-          title: "Error",
-          description:
-            result?.error || `Failed to ${type} grades. Please try again.`,
-          variant: "destructive",
-        });
-      }
+      // Refresh grades and reset selection
+      await fetchGrades();
+      setSelectedGrades([]);
+      setSelectAll(false);
+      setActionModalOpen(false);
+      setCurrentAction(null);
+      setActionReason("");
+      setOverrideScore("");
     } catch (error) {
-      console.error("Error executing action:", error);
+      console.error("❌ Error executing action:", error);
       toast({
         title: "Error",
-        description: `Failed to ${currentAction.type} grades. Please try again.`,
+        description: error instanceof Error ? error.message : "Action failed",
         variant: "destructive",
       });
     } finally {
@@ -402,26 +383,43 @@ const PrincipalGradesModule: React.FC = () => {
   };
 
   const openGradingSheet = () => {
-    if (
-      selectedClass === "all" ||
-      selectedTerm === "all" ||
-      selectedExamType === "all"
-    ) {
+    if (!selectedClass || selectedClass === "all") {
       toast({
-        title: "Missing Information",
+        title: "Selection Required",
         description:
-          "Please select specific class, term, and exam type to open grading sheet.",
-        variant: "default",
+          "Please select a specific class to open the grading sheet.",
+        variant: "destructive",
       });
       return;
     }
+
+    if (!selectedTerm || selectedTerm === "all") {
+      toast({
+        title: "Selection Required",
+        description: "Please select a specific term to open the grading sheet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedExamType || selectedExamType === "all") {
+      toast({
+        title: "Selection Required",
+        description:
+          "Please select a specific exam type to open the grading sheet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setGradingSheetModalOpen(true);
   };
 
   const getFilteredGrades = (status: string) => {
-    return grades.filter(
-      (grade) => status === "all" || grade.status === status
-    );
+    return grades.filter((grade) => {
+      if (status !== "all" && grade.status !== status) return false;
+      return true;
+    });
   };
 
   const pendingGrades = getFilteredGrades("submitted");
@@ -429,21 +427,16 @@ const PrincipalGradesModule: React.FC = () => {
   const rejectedGrades = getFilteredGrades("rejected");
   const releasedGrades = getFilteredGrades("released");
 
-  const availableClasses = Array.isArray(academicData?.classes)
-    ? academicData.classes
-    : [];
-  const availableSubjects = Array.isArray(academicData?.subjects)
-    ? academicData.subjects
-    : [];
-  const students = Array.isArray(academicData?.students)
-    ? academicData.students
-    : [];
+  // Available classes and subjects for filters
+  const availableClasses = classes || [];
+  const availableSubjects = subjects || [];
 
-  const validGrades = Array.isArray(grades)
-    ? grades.filter(
-        (g) => g && typeof g === "object" && !("error" in g) && "id" in g
-      )
-    : [];
+  // Check if curriculum type is missing
+  const showCurriculumWarning =
+    selectedClass !== "all" &&
+    classCurriculumType === "standard" &&
+    curriculumError &&
+    !classCurriculumLoading;
 
   return (
     <div className="space-y-6">
@@ -475,7 +468,14 @@ const PrincipalGradesModule: React.FC = () => {
               <Button
                 size="sm"
                 onClick={openGradingSheet}
-                disabled={!selectedClass || !selectedTerm || !selectedExamType}
+                disabled={
+                  !selectedClass ||
+                  selectedClass === "all" ||
+                  !selectedTerm ||
+                  selectedTerm === "all" ||
+                  !selectedExamType ||
+                  selectedExamType === "all"
+                }
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Open Grading Sheet
@@ -484,6 +484,17 @@ const PrincipalGradesModule: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Curriculum Warning */}
+          {showCurriculumWarning && (
+            <Alert className="mb-4 border-orange-200 bg-orange-50">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                Curriculum type not assigned to this class. Please update class
+                settings.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-700">Class</label>
@@ -530,9 +541,11 @@ const PrincipalGradesModule: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Terms</SelectItem>
-                  <SelectItem value="Term 1">Term 1</SelectItem>
-                  <SelectItem value="Term 2">Term 2</SelectItem>
-                  <SelectItem value="Term 3">Term 3</SelectItem>
+                  {availableTerms.map((term) => (
+                    <SelectItem key={term} value={term}>
+                      {term}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -549,11 +562,11 @@ const PrincipalGradesModule: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Exams</SelectItem>
-                  <SelectItem value="OPENER">Opener</SelectItem>
-                  <SelectItem value="MID_TERM">Mid Term</SelectItem>
-                  <SelectItem value="END_TERM">End Term</SelectItem>
-                  <SelectItem value="CAT">CAT</SelectItem>
-                  <SelectItem value="ASSIGNMENT">Assignment</SelectItem>
+                  {availableExamTypes.map((examType) => (
+                    <SelectItem key={examType} value={examType}>
+                      {examType}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -715,53 +728,39 @@ const PrincipalGradesModule: React.FC = () => {
 
       {/* Action Modal */}
       <Dialog open={actionModalOpen} onOpenChange={setActionModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {currentAction?.type === "approve" && (
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              )}
-              {currentAction?.type === "reject" && (
-                <XCircle className="h-5 w-5 text-red-600" />
-              )}
-              {currentAction?.type === "override" && (
-                <Edit className="h-5 w-5 text-orange-600" />
-              )}
-              {currentAction?.type === "release" && (
-                <Send className="h-5 w-5 text-purple-600" />
-              )}
-              {currentAction?.type?.charAt(0).toUpperCase() +
-                currentAction?.type?.slice(1)}{" "}
-              Grades
+            <DialogTitle>
+              {currentAction?.type === "approve" && "Approve Grades"}
+              {currentAction?.type === "reject" && "Reject Grades"}
+              {currentAction?.type === "override" && "Override Grades"}
+              {currentAction?.type === "release" && "Release Grades"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Reason/Comment</Label>
+              <Label htmlFor="reason">Reason (Optional)</Label>
               <Textarea
+                id="reason"
                 value={actionReason}
                 onChange={(e) => setActionReason(e.target.value)}
-                placeholder={`Enter reason for ${currentAction?.type}ing grades...`}
-                className="mt-1"
+                placeholder="Enter reason for this action..."
               />
             </div>
             {currentAction?.type === "override" && (
               <div>
-                <Label>Override Score</Label>
+                <Label htmlFor="overrideScore">Override Score</Label>
                 <Input
+                  id="overrideScore"
                   type="number"
                   min="0"
                   max="100"
                   value={overrideScore}
                   onChange={(e) => setOverrideScore(e.target.value)}
-                  placeholder="Enter new score (0-100)"
-                  className="mt-1"
+                  placeholder="Enter new score..."
                 />
               </div>
             )}
-            <div className="text-sm text-gray-600">
-              This action will affect {currentAction?.gradeIds.length} grade(s).
-            </div>
           </div>
           <DialogFooter>
             <Button
@@ -771,42 +770,28 @@ const PrincipalGradesModule: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button
-              onClick={executeAction}
-              disabled={
-                processing ||
-                (currentAction?.type === "override" && !overrideScore)
-              }
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Processing...
-                </>
-              ) : (
-                `${
-                  currentAction?.type?.charAt(0).toUpperCase() +
-                  currentAction?.type?.slice(1)
-                }`
-              )}
+            <Button onClick={executeAction} disabled={processing}>
+              {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {currentAction?.type === "approve" && "Approve"}
+              {currentAction?.type === "reject" && "Reject"}
+              {currentAction?.type === "override" && "Override"}
+              {currentAction?.type === "release" && "Release"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Grading Sheet Modal */}
-      {gradingSheetModalOpen &&
-        selectedClass &&
-        selectedTerm &&
-        selectedExamType && (
-          <Dialog
-            open={gradingSheetModalOpen}
-            onOpenChange={setGradingSheetModalOpen}
-          >
-            <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Principal Grading Sheet</DialogTitle>
-              </DialogHeader>
+      <Dialog
+        open={gradingSheetModalOpen}
+        onOpenChange={setGradingSheetModalOpen}
+      >
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Grading Sheet</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[70vh]">
+            {selectedClass && selectedTerm && selectedExamType && (
               <DynamicGradingSheet
                 classId={selectedClass}
                 term={selectedTerm}
@@ -814,16 +799,12 @@ const PrincipalGradesModule: React.FC = () => {
                 onSubmissionSuccess={() => {
                   setGradingSheetModalOpen(false);
                   fetchGrades();
-                  toast({
-                    title: "Success",
-                    description: "Grades updated successfully.",
-                  });
                 }}
-                isReadOnly={false}
               />
-            </DialogContent>
-          </Dialog>
-        )}
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -866,15 +847,10 @@ const GradesTable: React.FC<GradesTableProps> = ({
   if (grades.length === 0) {
     return (
       <Card>
-        <CardContent className="p-8 text-center">
-          <div className="flex flex-col items-center space-y-2">
-            <FileText className="h-12 w-12 text-gray-400" />
-            <h3 className="text-lg font-medium text-gray-900">
-              No grades found
-            </h3>
-            <p className="text-gray-500">
-              No grades match the current filters.
-            </p>
+        <CardContent className="p-8">
+          <div className="text-center text-gray-500">
+            <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p>No grades found for the selected filters.</p>
           </div>
         </CardContent>
       </Card>
@@ -884,102 +860,112 @@ const GradesTable: React.FC<GradesTableProps> = ({
   return (
     <Card>
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox checked={selectAll} onCheckedChange={onSelectAll} />
-              </TableHead>
-              <TableHead>Student</TableHead>
-              <TableHead>Subject</TableHead>
-              <TableHead>Class</TableHead>
-              <TableHead>Teacher</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Submitted</TableHead>
-              {showActions && <TableHead>Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {grades.map((grade) => (
-              <TableRow key={grade.id}>
-                <TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
                   <Checkbox
-                    checked={selectedGrades.includes(grade.id)}
-                    onCheckedChange={() => onSelectGrade(grade.id)}
+                    checked={selectAll}
+                    onCheckedChange={onSelectAll}
+                    disabled={grades.length === 0}
                   />
-                </TableCell>
-                <TableCell className="font-medium">
-                  {grade.student_name}
-                </TableCell>
-                <TableCell>{grade.subject_name}</TableCell>
-                <TableCell>{grade.class_name}</TableCell>
-                <TableCell>{grade.teacher_name}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">
-                      {grade.score}/{grade.max_score}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      ({grade.percentage}%)
-                    </span>
-                    {grade.letter_grade && (
-                      <Badge variant="outline" className="text-xs">
-                        {grade.letter_grade}
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>{getStatusBadge(grade.status)}</TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-500">
-                    {new Date(grade.submitted_at).toLocaleDateString()}
-                  </div>
-                </TableCell>
-                {showActions && (
+                </TableHead>
+                <TableHead>Student</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Class</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Percentage</TableHead>
+                <TableHead>Grade</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Term</TableHead>
+                <TableHead>Exam Type</TableHead>
+                <TableHead>Submitted</TableHead>
+                {showActions && <TableHead>Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {grades.map((grade) => (
+                <TableRow key={grade.id}>
                   <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onAction("approve")}
-                        className="h-8 px-2"
-                      >
-                        <CheckCircle className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onAction("reject")}
-                        className="h-8 px-2"
-                      >
-                        <XCircle className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onAction("override")}
-                        className="h-8 px-2"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      {grade.status === "approved" && (
+                    <Checkbox
+                      checked={selectedGrades.includes(grade.id)}
+                      onCheckedChange={() => onSelectGrade(grade.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">
+                        {grade.students?.name || "Unknown Student"}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {grade.students?.admission_number || "No ID"}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">
+                        {grade.subjects?.name || "Unknown Subject"}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {grade.subjects?.code || ""}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {grade.classes?.name || "Unknown Class"}
+                  </TableCell>
+                  <TableCell>
+                    {grade.score}/{grade.max_score}
+                  </TableCell>
+                  <TableCell>{grade.percentage?.toFixed(1)}%</TableCell>
+                  <TableCell>{grade.letter_grade}</TableCell>
+                  <TableCell>{getStatusBadge(grade.status)}</TableCell>
+                  <TableCell>{grade.term}</TableCell>
+                  <TableCell>{grade.exam_type}</TableCell>
+                  <TableCell>
+                    {new Date(grade.submitted_at).toLocaleDateString()}
+                  </TableCell>
+                  {showActions && (
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAction("approve")}
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAction("reject")}
+                        >
+                          <XCircle className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAction("override")}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => onAction("release")}
-                          className="h-8 px-2"
                         >
                           <Send className="h-3 w-3" />
                         </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -30,16 +30,33 @@ export const usePrincipalGradeManagement = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Refs for cleanup and mounted state
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchGrades = useCallback(async () => {
     if (!user?.school_id || user.role !== 'principal') {
       console.log('🎓 usePrincipalGradeManagement: Invalid user or role');
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
       return;
     }
 
+    // Clean up previous requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     try {
-      setIsLoading(true);
+      if (isMountedRef.current) {
+        setIsLoading(true);
+      }
+      
+      // Create new abort controller
+      abortControllerRef.current = new AbortController();
+      
       console.log('🎓 usePrincipalGradeManagement: Fetching grades for school:', user.school_id);
 
       const { data, error } = await supabase
@@ -65,7 +82,8 @@ export const usePrincipalGradeManagement = () => {
         `)
         .eq('school_id', user.school_id)
         .in('status', ['submitted', 'approved', 'rejected'])
-        .order('submitted_at', { ascending: false });
+        .order('submitted_at', { ascending: false })
+        .abortSignal(abortControllerRef.current.signal);
 
       if (error) {
         console.error('❌ usePrincipalGradeManagement: Error fetching grades:', error);
@@ -74,7 +92,9 @@ export const usePrincipalGradeManagement = () => {
 
       console.log('✅ usePrincipalGradeManagement: Fetched grades:', data?.length || 0);
       
-      // Transform the data to match our interface
+      if (!isMountedRef.current) return;
+      
+      // Transform the data to match our interface with better type safety
       const transformedGrades: PrincipalGrade[] = (data || []).map(grade => ({
         id: grade.id,
         student_id: grade.student_id,
@@ -95,16 +115,23 @@ export const usePrincipalGradeManagement = () => {
         profiles: Array.isArray(grade.profiles) ? grade.profiles[0] || null : grade.profiles,
       }));
 
-      setGrades(transformedGrades);
-    } catch (error: any) {
+      if (isMountedRef.current) {
+        setGrades(transformedGrades);
+      }
+    } catch (error: unknown) {
       console.error('❌ usePrincipalGradeManagement: Fetch error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load grades for approval.",
-        variant: "destructive"
-      });
+      
+      if (isMountedRef.current) {
+        toast({
+          title: "Error",
+          description: "Failed to load grades for approval.",
+          variant: "destructive"
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [user?.school_id, user?.role, toast]);
 
@@ -112,6 +139,8 @@ export const usePrincipalGradeManagement = () => {
     if (!user?.id || user.role !== 'principal') {
       throw new Error('Only principals can approve grades');
     }
+
+    if (!isMountedRef.current) return;
 
     setProcessing('approve');
     try {
@@ -126,18 +155,23 @@ export const usePrincipalGradeManagement = () => {
       if (error) throw error;
 
       console.log('✅ usePrincipalGradeManagement: Grades approved successfully');
-      toast({
-        title: "Success",
-        description: `${gradeIds.length} grade(s) approved successfully.`,
-      });
+      
+      if (isMountedRef.current) {
+        toast({
+          title: "Success",
+          description: `${gradeIds.length} grade(s) approved successfully.`,
+        });
 
-      // Refresh grades
-      await fetchGrades();
-    } catch (error: any) {
+        // Refresh grades
+        await fetchGrades();
+      }
+    } catch (error: unknown) {
       console.error('❌ usePrincipalGradeManagement: Approve error:', error);
       throw error;
     } finally {
-      setProcessing(null);
+      if (isMountedRef.current) {
+        setProcessing(null);
+      }
     }
   };
 
@@ -145,6 +179,8 @@ export const usePrincipalGradeManagement = () => {
     if (!user?.id || user.role !== 'principal') {
       throw new Error('Only principals can reject grades');
     }
+
+    if (!isMountedRef.current) return;
 
     setProcessing('reject');
     try {
@@ -162,18 +198,23 @@ export const usePrincipalGradeManagement = () => {
       if (error) throw error;
 
       console.log('✅ usePrincipalGradeManagement: Grades rejected successfully');
-      toast({
-        title: "Success",
-        description: `${gradeIds.length} grade(s) rejected successfully.`,
-      });
+      
+      if (isMountedRef.current) {
+        toast({
+          title: "Success",
+          description: `${gradeIds.length} grade(s) rejected successfully.`,
+        });
 
-      // Refresh grades
-      await fetchGrades();
-    } catch (error: any) {
+        // Refresh grades
+        await fetchGrades();
+      }
+    } catch (error: unknown) {
       console.error('❌ usePrincipalGradeManagement: Reject error:', error);
       throw error;
     } finally {
-      setProcessing(null);
+      if (isMountedRef.current) {
+        setProcessing(null);
+      }
     }
   };
 
@@ -181,6 +222,8 @@ export const usePrincipalGradeManagement = () => {
     if (!user?.id || user.role !== 'principal') {
       throw new Error('Only principals can release grades');
     }
+
+    if (!isMountedRef.current) return;
 
     setProcessing('release');
     try {
@@ -195,23 +238,37 @@ export const usePrincipalGradeManagement = () => {
       if (error) throw error;
 
       console.log('✅ usePrincipalGradeManagement: Grades released successfully');
-      toast({
-        title: "Success",
-        description: `${gradeIds.length} grade(s) released to students and parents.`,
-      });
+      
+      if (isMountedRef.current) {
+        toast({
+          title: "Success",
+          description: `${gradeIds.length} grade(s) released to students and parents.`,
+        });
 
-      // Refresh grades
-      await fetchGrades();
-    } catch (error: any) {
+        // Refresh grades
+        await fetchGrades();
+      }
+    } catch (error: unknown) {
       console.error('❌ usePrincipalGradeManagement: Release error:', error);
       throw error;
     } finally {
-      setProcessing(null);
+      if (isMountedRef.current) {
+        setProcessing(null);
+      }
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchGrades();
+
+    // Cleanup function
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchGrades]);
 
   return {

@@ -84,9 +84,6 @@ const AcademicManagementModule: React.FC = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Academic Management
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Centralized management of all academic administrative operations
-          </p>
         </div>
         <Badge
           variant="outline"

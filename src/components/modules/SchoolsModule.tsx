@@ -18,12 +18,14 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { SchoolService, SchoolData } from "@/services/schoolService";
-import EnhancedSchoolRegistrationDialog from "./schools/EnhancedSchoolRegistrationDialog";
+import SchoolRegistrationModal from "@/components/dashboard/modals/SchoolRegistrationModal";
 import { Input } from "@/components/ui/input";
 
 const SchoolsModule: React.FC = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [schools, setSchools] = useState<SchoolData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -407,11 +409,12 @@ const SchoolsModule: React.FC = () => {
         </Card>
       )}
 
-      {/* Enhanced School Registration Dialog */}
-      <EnhancedSchoolRegistrationDialog
-        open={showCreateDialog}
+      {/* School Registration Modal */}
+      <SchoolRegistrationModal
+        isOpen={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
         onSuccess={handleCreateSuccess}
+        currentUser={user!}
       />
     </div>
   );

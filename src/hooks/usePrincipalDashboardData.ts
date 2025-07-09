@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +43,11 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  // Refs for cleanup and abort control
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   const fetchDashboardData = useCallback(async () => {
     if (!schoolId || !user?.id) {
@@ -63,6 +68,14 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       return;
     }
 
+    // Clean up previous requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -70,68 +83,71 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       
       console.log('🔍 usePrincipalDashboardData: Fetching data for school:', schoolId);
 
+      // Create new abort controller
+      abortControllerRef.current = new AbortController();
+
       // Set timeout for loading state
-      const timeoutId = setTimeout(() => {
-        setLoadingTimeout(true);
-        console.warn('🔍 Principal dashboard data loading timeout - showing partial data');
+      timeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          setLoadingTimeout(true);
+          console.warn('🔍 Principal dashboard data loading timeout - showing partial data');
+        }
       }, 8000); // Increased to 8 seconds for better reliability
 
       // Optimized parallel queries with proper error handling
-      const controller = new AbortController();
-      
       const queries = {
         students: supabase
           .from('students')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
           .eq('is_active', true)
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         teachers: supabase
           .from('profiles')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
           .eq('role', 'teacher')
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         parents: supabase
           .from('profiles')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
           .eq('role', 'parent')
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         classes: supabase
           .from('classes')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         subjects: supabase
           .from('subjects')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         grades: supabase
           .from('grades')
           .select('id, status, created_at')
           .eq('school_id', schoolId)
           .order('created_at', { ascending: false })
           .limit(10)
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         certificates: supabase
           .from('certificates')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         attendance: supabase
           .from('attendance')
           .select('status')
           .eq('school_id', schoolId)
           .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Last 30 days
           .limit(1000)
-          .abortSignal(controller.signal),
+          .abortSignal(abortControllerRef.current.signal),
         fees: supabase
           .from('fees')
           .select('amount, paid_amount, status')
           .eq('school_id', schoolId)
-          .abortSignal(controller.signal)
+          .abortSignal(abortControllerRef.current.signal)
       };
 
       const results = await Promise.allSettled([
@@ -146,7 +162,16 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         queries.fees
       ]);
 
-      clearTimeout(timeoutId);
+      // Clear timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      // Check if component is still mounted
+      if (!isMountedRef.current) {
+        return;
+      }
 
       // Process results safely with better error handling
       const [studentsResult, teachersResult, parentsResult, classesResult, subjectsResult, gradesResult, certificatesResult, attendanceResult, feesResult] = results;
@@ -192,29 +217,45 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       };
 
       console.log('✅ usePrincipalDashboardData: Fetched stats:', newStats);
-      setStats(newStats);
-      setLoadingTimeout(false);
+      
+      if (isMountedRef.current) {
+        setStats(newStats);
+        setLoadingTimeout(false);
+      }
 
     } catch (error: unknown) {
       console.error('❌ usePrincipalDashboardData: Error fetching data:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
-      setError(errorMessage);
-      setLoadingTimeout(false);
       
-      // Only show toast for non-timeout errors
-      if (error instanceof Error && error.name !== 'AbortError') {
-        toast({
-          title: "Error",
-          description: "Failed to load dashboard data. Please try again.",
-          variant: "destructive"
-        });
+      // Clear timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      if (isMountedRef.current) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
+        setError(errorMessage);
+        setLoadingTimeout(false);
+        
+        // Only show toast for non-timeout errors
+        if (error instanceof Error && error.name !== 'AbortError') {
+          toast({
+            title: "Error",
+            description: "Failed to load dashboard data. Please try again.",
+            variant: "destructive"
+          });
+        }
       }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [schoolId, user?.id, toast]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     // Only fetch if we have both schoolId and user
     if (schoolId && user?.id) {
       fetchDashboardData();
@@ -237,6 +278,17 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         recentGrades: []
       });
     }
+
+    // Cleanup function
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [schoolId, user?.id, fetchDashboardData]);
 
   return { 

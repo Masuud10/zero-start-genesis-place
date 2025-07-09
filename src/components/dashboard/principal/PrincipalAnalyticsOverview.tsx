@@ -18,20 +18,66 @@ import {
   Cell,
   Area,
   AreaChart,
+  CartesianGrid,
+  Tooltip,
 } from "recharts";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import {
   Loader2,
   TrendingUp,
   Users,
   BookOpen,
   AlertCircle,
+  DollarSign,
 } from "lucide-react";
 
 const PrincipalAnalyticsOverview = () => {
   const { data: analytics, isLoading, error } = useAnalyticsData();
+  const { schoolId } = useSchoolScopedData();
 
-  if (isLoading) {
+  // Fetch financial data
+  const { data: financialData, isLoading: financialLoading } = useQuery({
+    queryKey: ["financial-summary", schoolId],
+    queryFn: async () => {
+      if (!schoolId) return [];
+
+      // Get income data from financial_transactions
+      const { data: incomeData } = await supabase
+        .from("financial_transactions")
+        .select("amount")
+        .eq("school_id", schoolId)
+        .eq("transaction_type", "payment");
+
+      // Get expenses data
+      const { data: expensesData } = await supabase
+        .from("expenses")
+        .select("amount")
+        .eq("school_id", schoolId);
+
+      const totalIncome =
+        incomeData?.reduce(
+          (sum, item) => sum + parseFloat(String(item.amount || 0)),
+          0
+        ) || 0;
+      const totalExpenses =
+        expensesData?.reduce(
+          (sum, item) => sum + parseFloat(String(item.amount || 0)),
+          0
+        ) || 0;
+
+      return [
+        { name: "Income", amount: totalIncome },
+        { name: "Expenses", amount: totalExpenses },
+      ];
+    },
+    enabled: !!schoolId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading || financialLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
         {[1, 2, 3, 4].map((i) => (
@@ -229,8 +275,37 @@ const PrincipalAnalyticsOverview = () => {
         </Card>
       </div>
 
-      {/* Bottom Row - Attendance Trends Only */}
-      <div className="grid grid-cols-1 gap-6">
+      {/* Bottom Row - Financial Summary and Attendance Trends */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Financial Summary Bar Chart */}
+        <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <DollarSign className="h-5 w-5 text-green-600" />
+              School Financial Summary
+            </CardTitle>
+            <p className="text-muted-foreground text-sm">
+              Income vs Expenses overview
+            </p>
+          </CardHeader>
+          <CardContent className="p-4">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={financialData || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value) => [
+                    `KES ${Number(value).toLocaleString()}`,
+                    "Amount",
+                  ]}
+                />
+                <Bar dataKey="amount" fill="#10B981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
         {/* Monthly Attendance Trends */}
         <Card className="shadow-lg border-0 rounded-lg overflow-hidden">
           <CardHeader className="pb-4">

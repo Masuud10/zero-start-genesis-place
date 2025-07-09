@@ -78,11 +78,6 @@ describe("AcademicManagementModule", () => {
     renderWithRouter(<AcademicManagementModule />);
 
     expect(screen.getByText("Academic Management")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Centralized management of all academic administrative operations"
-      )
-    ).toBeInTheDocument();
   });
 
   it("renders all sub-feature tabs", () => {
