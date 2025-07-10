@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Save, Send, Loader2 } from "lucide-react";
+import { Save, Send, Loader2, Download, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
@@ -99,6 +99,7 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   // Convert marks to performance level for CBC
   const getPerformanceLevelFromMarks = (marks: number): string => {
@@ -333,6 +334,189 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
     }
   };
 
+  // Export to CSV
+  const exportToCSV = async () => {
+    try {
+      setExportLoading(true);
+
+      // Create CSV content
+      const headers = [
+        "Student Name",
+        "Admission Number",
+        ...subjects.map((subject) => subject.name),
+        "Remarks",
+      ];
+
+      const csvRows = [headers.join(",")];
+
+      students.forEach((student) => {
+        const row = [
+          student.name,
+          student.admission_number || "",
+          ...subjects.map((subject) => {
+            const grade = grades[student.id]?.[subject.id];
+            if (curriculumType === "cbc") {
+              return grade?.marks || grade?.cbc_performance_level || "";
+            } else {
+              return grade?.score || "";
+            }
+          }),
+          subjects
+            .map((subject) => {
+              const grade = grades[student.id]?.[subject.id];
+              return grade?.teacher_remarks || "";
+            })
+            .join("; "),
+        ];
+        csvRows.push(row.join(","));
+      });
+
+      const csvContent = csvRows.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `grades_${className}_${termName}_${selectedExamType}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "CSV Export",
+        description: "Grades exported to CSV successfully.",
+      });
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export CSV. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // Export to PDF
+  const exportToPDF = async () => {
+    try {
+      setExportLoading(true);
+
+      const currentDate = new Date().toLocaleDateString();
+      const curriculumInfo = curriculumType.toUpperCase();
+
+      const pdfContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Grade Sheet - ${className} - ${termName} ${selectedExamType}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+              .school-info { margin-bottom: 20px; }
+              .grade-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              .grade-table th, .grade-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+              .grade-table th { background-color: #f5f5f5; font-weight: bold; }
+              .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+              @media print { body { margin: 0; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Grade Sheet</h1>
+              <div class="school-info">
+                <p><strong>Academic Year:</strong> ${
+                  academicYearName || "N/A"
+                }</p>
+                <p><strong>Term:</strong> ${termName || "N/A"}</p>
+                <p><strong>Class:</strong> ${className || "N/A"}</p>
+                <p><strong>Exam Type:</strong> ${selectedExamType}</p>
+                <p><strong>Curriculum:</strong> ${curriculumInfo}</p>
+                <p><strong>Date:</strong> ${currentDate}</p>
+                <p><strong>Teacher:</strong> ${user?.name || "N/A"}</p>
+              </div>
+            </div>
+            
+            <table class="grade-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Admission No.</th>
+                  ${subjects
+                    .map((subject) => `<th>${subject.name}</th>`)
+                    .join("")}
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${students
+                  .map(
+                    (student) => `
+                  <tr>
+                    <td>${student.name}</td>
+                    <td>${student.admission_number || "N/A"}</td>
+                    ${subjects
+                      .map((subject) => {
+                        const grade = grades[student.id]?.[subject.id];
+                        if (curriculumType === "cbc") {
+                          return `<td>${
+                            grade?.marks ||
+                            grade?.cbc_performance_level ||
+                            "N/A"
+                          }</td>`;
+                        } else {
+                          return `<td>${grade?.score || "N/A"}</td>`;
+                        }
+                      })
+                      .join("")}
+                    <td>${
+                      subjects
+                        .map((subject) => {
+                          const grade = grades[student.id]?.[subject.id];
+                          return grade?.teacher_remarks || "";
+                        })
+                        .filter((remark) => remark)
+                        .join("; ") || "N/A"
+                    }</td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+            
+            <div class="footer">
+              <p>Powered by Edufam</p>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(pdfContent);
+        printWindow.document.close();
+        printWindow.print();
+        printWindow.close();
+      }
+
+      toast({
+        title: "PDF Export",
+        description: "PDF export initiated. Check your print dialog.",
+      });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   if (students.length === 0 || subjects.length === 0) {
     return (
       <Card>
@@ -384,6 +568,34 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
             </div>
             {!isReadOnly && !isViewOnly && (
               <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={exportToCSV}
+                  disabled={exportLoading}
+                  className="bg-white hover:bg-green-50 border-green-200 text-green-700"
+                >
+                  {exportLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={exportToPDF}
+                  disabled={exportLoading}
+                  className="bg-white hover:bg-red-50 border-red-200 text-red-700"
+                >
+                  {exportLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  Export PDF
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
