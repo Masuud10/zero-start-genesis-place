@@ -8,6 +8,7 @@ import React, {
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigation } from "@/contexts/NavigationContext";
 import ErrorFallback from "@/components/common/ErrorFallback";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 // Lazy load all dashboard components for better performance
 const EduFamAdminDashboard = React.lazy(
@@ -225,46 +226,16 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
       >,
       componentName?: string
     ) => {
-      const ErrorBoundary = React.forwardRef<
-        HTMLDivElement,
-        { children: React.ReactNode }
-      >((props, ref) => {
-        const [hasError, setHasError] = React.useState(false);
-        const [error, setError] = React.useState<Error | null>(null);
-
-        React.useEffect(() => {
-          const handleError = (event: ErrorEvent) => {
+      return (
+        <ErrorBoundary
+          onError={(error, errorInfo) => {
             console.error(
               `🚨 Error in ${componentName || "component"}:`,
-              event.error
+              error,
+              errorInfo
             );
-            setError(event.error);
-            setHasError(true);
-          };
-
-          window.addEventListener("error", handleError);
-          return () => window.removeEventListener("error", handleError);
-        }, []);
-
-        if (hasError) {
-          return (
-            <ErrorFallback
-              error={error || `Failed to load ${componentName || "component"}`}
-              resetError={() => {
-                setHasError(false);
-                setError(null);
-              }}
-              context={`${componentName || "component"} module`}
-              showDetails={process.env.NODE_ENV === "development"}
-            />
-          );
-        }
-
-        return <>{props.children}</>;
-      });
-
-      return (
-        <ErrorBoundary>
+          }}
+        >
           <React.Suspense
             fallback={
               <div className="flex items-center justify-center h-64">
