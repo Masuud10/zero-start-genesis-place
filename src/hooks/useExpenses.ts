@@ -1,215 +1,251 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSchoolScopedData } from './useSchoolScopedData';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Expense {
-  id: string;
-  school_id: string;
-  title?: string;
-  amount: number;
-  category: string;
-  date: string;
-  expense_date?: string;
-  description?: string;
-  approved_by?: string;
-  receipt_url?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CreateExpenseData {
-  title: string;
-  amount: number;
-  category: string;
-  expense_date: string;
-  description?: string;
-}
+import { 
+  expensesService, 
+  Expense, 
+  CreateExpenseData, 
+  UpdateExpenseData, 
+  ExpenseFilters 
+} from '@/services/expensesService';
 
 export const useExpenses = () => {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { isSystemAdmin, schoolId } = useSchoolScopedData();
+  const { user } = useAuth();
   const { toast } = useToast();
+  
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalExpenses: 0,
+    totalAmount: 0,
+    categoryBreakdown: {} as Record<string, number>,
+  });
 
-  const fetchExpenses = useCallback(async () => {
-    if (!schoolId && !isSystemAdmin) {
-      setExpenses([]);
-      setLoading(false);
+  // Load expenses with filters
+  const loadExpenses = useCallback(async (filters?: ExpenseFilters) => {
+    if (!user || user.role !== 'finance_officer') {
+      setError('Access denied: Only finance officers can view expenses');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
     try {
-      let query = supabase.from('expenses').select('*');
-
-      if (!isSystemAdmin && schoolId) {
-        query = query.eq('school_id', schoolId);
-      }
-
-      query = query.order('created_at', { ascending: false });
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) {
-        console.error('Expenses fetch error:', fetchError);
-        throw new Error(`Failed to fetch expenses: ${fetchError.message}`);
-      }
-
-      console.log('Fetched expenses:', data);
-      setExpenses(data || []);
+      setLoading(true);
       setError(null);
-    } catch (err: any) {
-      const message = err?.message || 'Failed to fetch expenses';
-      console.error('Expenses fetch error:', err);
-      setError(message);
-      setExpenses([]);
-      toast({
-        title: "Error Loading Expenses",
-        description: message,
-        variant: "destructive",
+      
+      const data = await expensesService.getExpenses(filters);
+      setExpenses(data);
+
+      // Calculate stats
+      const totalExpenses = data.length;
+      const totalAmount = data.reduce((sum, expense) => sum + expense.amount, 0);
+      const categoryBreakdown: Record<string, number> = {};
+      data.forEach(expense => {
+        categoryBreakdown[expense.category] = (categoryBreakdown[expense.category] || 0) + expense.amount;
       });
+
+      setStats({
+        totalExpenses,
+        totalAmount,
+        categoryBreakdown,
+      });
+    } catch (err) {
+      console.error('Error loading expenses:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load expenses');
     } finally {
       setLoading(false);
     }
-  }, [isSystemAdmin, schoolId, toast]);
+  }, [user]);
 
-  const createExpense = async (expenseData: CreateExpenseData) => {
-    if (!schoolId) {
-      const message = 'School ID is required to create expenses';
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
-      return { data: null, error: message };
+  // Create expense
+  const createExpense = useCallback(async (expenseData: CreateExpenseData) => {
+    if (!user || user.role !== 'finance_officer') {
+      throw new Error('Access denied: Only finance officers can create expenses');
     }
 
     try {
-      console.log('Creating expense with data:', expenseData);
-
-      const insertData = {
-        school_id: schoolId,
-        title: expenseData.title,
-        amount: expenseData.amount,
-        category: expenseData.category,
-        date: expenseData.expense_date,
-        description: expenseData.description || null,
-      };
-
-      console.log('Insert data:', insertData);
-
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Create expense error:', error);
-        throw new Error(`Failed to create expense: ${error.message}`);
-      }
-
-      console.log('Created expense:', data);
+      const newExpense = await expensesService.createExpense(expenseData, user.school_id!);
+      setExpenses(prev => [newExpense, ...prev]);
+      
+      // Update stats
+      setStats(prev => ({
+        totalExpenses: prev.totalExpenses + 1,
+        totalAmount: prev.totalAmount + newExpense.amount,
+        categoryBreakdown: {
+          ...prev.categoryBreakdown,
+          [newExpense.category]: (prev.categoryBreakdown[newExpense.category] || 0) + newExpense.amount,
+        },
+      }));
 
       toast({
-        title: "Success",
-        description: "Expense has been recorded successfully.",
+        title: 'Success',
+        description: 'Expense created successfully',
       });
 
-      await fetchExpenses();
-      return { data, error: null };
-    } catch (err: any) {
-      const message = err?.message || 'Failed to create expense';
-      console.error('Create expense error:', err);
+      return newExpense;
+    } catch (err) {
+      console.error('Error creating expense:', err);
       toast({
-        title: "Error Creating Expense",
-        description: message,
-        variant: "destructive",
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to create expense',
+        variant: 'destructive',
       });
-      return { data: null, error: message };
+      throw err;
     }
-  };
+  }, [user, toast]);
 
-  const updateExpense = async (id: string, updates: Partial<Expense>) => {
+  // Update expense
+  const updateExpense = useCallback(async (id: string, updateData: UpdateExpenseData) => {
+    if (!user || user.role !== 'finance_officer') {
+      throw new Error('Access denied: Only finance officers can update expenses');
+    }
+
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
+      const updatedExpense = await expensesService.updateExpense(id, updateData);
+      setExpenses(prev => prev.map(expense => 
+        expense.id === id ? updatedExpense : expense
+      ));
 
-      if (error) {
-        console.error('Update expense error:', error);
-        throw new Error(`Failed to update expense: ${error.message}`);
+      // Update stats if amount or category changed
+      if (updateData.amount !== undefined || updateData.category !== undefined) {
+        setStats(prev => {
+          const oldExpense = expenses.find(e => e.id === id);
+          if (!oldExpense) return prev;
+
+          const oldAmount = oldExpense.amount;
+          const newAmount = updateData.amount ?? oldExpense.amount;
+          const oldCategory = oldExpense.category;
+          const newCategory = updateData.category ?? oldExpense.category;
+
+          const newCategoryBreakdown = { ...prev.categoryBreakdown };
+          
+          // Remove from old category
+          if (oldCategory !== newCategory) {
+            newCategoryBreakdown[oldCategory] = (newCategoryBreakdown[oldCategory] || 0) - oldAmount;
+          }
+          
+          // Add to new category
+          newCategoryBreakdown[newCategory] = (newCategoryBreakdown[newCategory] || 0) + newAmount;
+
+          return {
+            ...prev,
+            totalAmount: prev.totalAmount - oldAmount + newAmount,
+            categoryBreakdown: newCategoryBreakdown,
+          };
+        });
       }
 
       toast({
-        title: "Success",
-        description: "Expense has been updated successfully.",
+        title: 'Success',
+        description: 'Expense updated successfully',
       });
 
-      await fetchExpenses();
-      return { data, error: null };
-    } catch (err: any) {
-      const message = err?.message || 'Failed to update expense';
-      console.error('Update expense error:', err);
+      return updatedExpense;
+    } catch (err) {
+      console.error('Error updating expense:', err);
       toast({
-        title: "Error Updating Expense",
-        description: message,
-        variant: "destructive",
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to update expense',
+        variant: 'destructive',
       });
-      return { data: null, error: message };
+      throw err;
     }
-  };
+  }, [user, toast, expenses]);
 
-  const deleteExpense = async (id: string) => {
+  // Delete expense
+  const deleteExpense = useCallback(async (id: string) => {
+    if (!user || user.role !== 'finance_officer') {
+      throw new Error('Access denied: Only finance officers can delete expenses');
+    }
+
     try {
-      const { error } = await supabase
-        .from('expenses')
-        .delete()
-        .eq('id', id);
+      await expensesService.deleteExpense(id);
+      
+      // Remove from state and update stats
+      setExpenses(prev => {
+        const expenseToDelete = prev.find(e => e.id === id);
+        if (!expenseToDelete) return prev;
 
-      if (error) {
-        console.error('Delete expense error:', error);
-        throw new Error(`Failed to delete expense: ${error.message}`);
+        setStats(prevStats => ({
+          totalExpenses: prevStats.totalExpenses - 1,
+          totalAmount: prevStats.totalAmount - expenseToDelete.amount,
+          categoryBreakdown: {
+            ...prevStats.categoryBreakdown,
+            [expenseToDelete.category]: (prevStats.categoryBreakdown[expenseToDelete.category] || 0) - expenseToDelete.amount,
+          },
+        }));
+
+        return prev.filter(e => e.id !== id);
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Expense deleted successfully',
+      });
+    } catch (err) {
+      console.error('Error deleting expense:', err);
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to delete expense',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  }, [user, toast]);
+
+  // Export expenses
+  const exportExpenses = useCallback(async (format: 'excel' | 'pdf', filters?: ExpenseFilters) => {
+    if (!user || user.role !== 'finance_officer') {
+      throw new Error('Access denied: Only finance officers can export expenses');
+    }
+
+    try {
+      let blob: Blob;
+      let filename: string;
+      
+      if (format === 'excel') {
+        blob = await expensesService.exportToExcel(filters);
+        filename = `expenses-${new Date().toISOString().split('T')[0]}.csv`;
+      } else {
+        blob = await expensesService.exportToPDF(filters);
+        filename = `expenses-${new Date().toISOString().split('T')[0]}.pdf`;
       }
 
-      toast({
-        title: "Success",
-        description: "Expense has been deleted successfully.",
-      });
+      // Download file
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
-      await fetchExpenses();
-      return { error: null };
-    } catch (err: any) {
-      const message = err?.message || 'Failed to delete expense';
-      console.error('Delete expense error:', err);
       toast({
-        title: "Error Deleting Expense",
-        description: message,
-        variant: "destructive",
+        title: 'Success',
+        description: `Expenses exported to ${format.toUpperCase()} successfully`,
       });
-      return { error: message };
+    } catch (err) {
+      console.error('Error exporting expenses:', err);
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to export expenses',
+        variant: 'destructive',
+      });
+      throw err;
     }
-  };
-
-  useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
+  }, [user, toast]);
 
   return {
     expenses,
     loading,
     error,
+    stats,
+    loadExpenses,
     createExpense,
     updateExpense,
     deleteExpense,
-    refetch: fetchExpenses
+    exportExpenses,
   };
 };

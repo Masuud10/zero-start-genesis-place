@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   BookOpen,
@@ -31,13 +30,13 @@ import {
   ChevronDown,
   Bell,
   Wrench,
-  Award
-} from 'lucide-react';
+  Award,
+} from "lucide-react";
 
 export interface MenuItem {
   id: string;
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   roles: string[];
   subItems?: MenuItem[];
 }
@@ -45,237 +44,267 @@ export interface MenuItem {
 export const getMenuItems = (userRole?: string): MenuItem[] => {
   const baseItems: MenuItem[] = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
+      id: "dashboard",
+      label: "Dashboard",
       icon: Home,
-      roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
+      roles: [
+        "edufam_admin",
+        "principal",
+        "teacher",
+        "parent",
+        "school_owner",
+        "finance_officer",
+      ],
     },
     {
-      id: 'project-hub',
-      label: 'Project Hub',
+      id: "project-hub",
+      label: "Project Hub",
       icon: FolderKanban,
-      roles: ['edufam_admin']
+      roles: ["edufam_admin"],
     },
     {
-      id: 'school-management',
-      label: 'School Management',
+      id: "school-management",
+      label: "School Management",
       icon: Building2,
-      roles: ['principal']
+      roles: ["principal"],
     },
     {
-      id: 'analytics',
-      label: 'Analytics',
+      id: "analytics",
+      label: "Analytics",
       icon: BarChart3,
-      roles: ['edufam_admin', 'principal', 'school_owner']
+      roles: ["edufam_admin", "principal", "school_owner"],
     },
     {
-      id: 'grades',
-      label: 'Grades',
+      id: "grades",
+      label: "Grades",
       icon: GraduationCap,
-      roles: ['principal', 'teacher', 'parent', 'school_owner']
+      roles: ["principal", "teacher", "parent", "school_owner"],
     },
     {
-      id: 'attendance',
-      label: 'Attendance',
+      id: "attendance",
+      label: "Attendance",
       icon: UserCheck,
-      roles: ['principal', 'teacher', 'school_owner']
+      roles: ["principal", "teacher", "school_owner"],
     },
     {
-      id: 'students',
-      label: 'Students',
+      id: "students",
+      label: "Students",
       icon: Users,
-      roles: ['principal', 'teacher', 'school_owner']
+      roles: ["principal", "teacher", "school_owner"],
     },
     {
-      id: 'finance',
-      label: 'Finance Overview',
+      id: "finance",
+      label: "Finance Overview",
       icon: DollarSign,
-      roles: ['finance_officer', 'school_owner', 'principal']
+      roles: ["finance_officer", "school_owner", "principal"],
     },
     {
-      id: 'payments',
-      label: 'Process Payments',
-      icon: CreditCard,
-      roles: ['finance_officer']
+      id: "finance-management",
+      label: "Finance Management",
+      icon: Calculator,
+      roles: ["finance_officer"],
+      subItems: [
+        {
+          id: "fee-management",
+          label: "Fee Management",
+          icon: Coins,
+          roles: ["finance_officer"],
+        },
+        {
+          id: "mpesa-payments",
+          label: "MPESA Payments",
+          icon: Banknote,
+          roles: ["finance_officer"],
+        },
+        {
+          id: "payments",
+          label: "Process Payments",
+          icon: CreditCard,
+          roles: ["finance_officer"],
+        },
+        {
+          id: "student-accounts",
+          label: "Student Accounts",
+          icon: Receipt,
+          roles: ["finance_officer"],
+        },
+        {
+          id: "finance-settings",
+          label: "Finance Settings",
+          icon: Settings,
+          roles: ["finance_officer"],
+        },
+      ],
     },
     {
-      id: 'student-accounts',
-      label: 'Student Accounts',
-      icon: Receipt,
-      roles: ['finance_officer']
+      id: "financial-reports",
+      label: "Financial Reports",
+      icon: FileText,
+      roles: ["finance_officer"],
     },
     {
-      id: 'fee-management',
-      label: 'Fee Management',
-      icon: Coins,
-      roles: ['finance_officer']
-    },
-    {
-      id: 'mpesa-payments',
-      label: 'MPESA Payments',
-      icon: Banknote,
-      roles: ['finance_officer']
-    },
-    {
-      id: 'financial-analytics',
-      label: 'Financial Analytics',
+      id: "financial-analytics",
+      label: "Financial Analytics",
       icon: BarChart3,
-      roles: ['finance_officer', 'principal', 'school_owner']
+      roles: ["finance_officer", "principal", "school_owner"],
     },
     {
-      id: 'financial-reports',
-      label: 'Financial Reports',
-      icon: FileText,
-      roles: ['finance_officer', 'principal', 'school_owner']
-    },
-    {
-      id: 'finance-settings',
-      label: 'Finance Settings',
-      icon: Settings,
-      roles: ['finance_officer']
-    },
-    {
-      id: 'certificates',
-      label: 'Certificates',
+      id: "certificates",
+      label: "Certificates",
       icon: Award,
-      roles: ['principal', 'school_owner', 'edufam_admin']
+      roles: ["principal", "school_owner", "edufam_admin"],
     },
     {
-      id: 'timetable',
-      label: 'Timetable',
+      id: "timetable",
+      label: "Timetable",
       icon: Calendar,
-      roles: ['principal', 'teacher', 'school_owner']
+      roles: ["principal", "teacher", "school_owner"],
     },
     {
-      id: 'announcements',
-      label: 'Announcements',
+      id: "announcements",
+      label: "Announcements",
       icon: Megaphone,
-      roles: ['edufam_admin', 'principal', 'teacher', 'school_owner']
+      roles: ["edufam_admin", "principal", "teacher", "school_owner"],
     },
     {
-      id: 'messages',
-      label: 'Messages',
+      id: "messages",
+      label: "Messages",
       icon: MessageSquare,
-      roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
+      roles: [
+        "edufam_admin",
+        "principal",
+        "teacher",
+        "parent",
+        "school_owner",
+        "finance_officer",
+      ],
     },
     {
-      id: 'reports',
-      label: 'Reports',
+      id: "reports",
+      label: "Reports",
       icon: FileText,
-      roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
+      roles: [
+        "edufam_admin",
+        "principal",
+        "teacher",
+        "parent",
+        "school_owner",
+        "finance_officer",
+      ],
     },
     {
-      id: 'school-activity-logs',
-      label: 'School Activity Logs',
+      id: "school-activity-logs",
+      label: "School Activity Logs",
       icon: ClipboardList,
-      roles: ['principal', 'school_owner']
+      roles: ["principal", "school_owner"],
     },
     {
-      id: 'system-audit-logs',
-      label: 'System Audit Logs',
+      id: "system-audit-logs",
+      label: "System Audit Logs",
       icon: Shield,
-      roles: ['edufam_admin']
+      roles: ["edufam_admin"],
     },
     {
-      id: 'support',
-      label: 'Support',
+      id: "support",
+      label: "Support",
       icon: HelpCircle,
-      roles: ['edufam_admin', 'principal', 'teacher', 'parent', 'school_owner', 'finance_officer']
-    }
+      roles: [
+        "edufam_admin",
+        "principal",
+        "teacher",
+        "parent",
+        "school_owner",
+        "finance_officer",
+      ],
+    },
   ];
 
   // Add System Settings with dropdown for EduFam Admins
-  if (userRole === 'edufam_admin') {
+  if (userRole === "edufam_admin") {
     baseItems.push({
-      id: 'system-settings',
-      label: 'System Settings',
+      id: "system-settings",
+      label: "System Settings",
       icon: Settings,
-      roles: ['edufam_admin'],
+      roles: ["edufam_admin"],
       subItems: [
         {
-          id: 'maintenance',
-          label: 'Maintenance',
+          id: "maintenance",
+          label: "Maintenance",
           icon: Wrench,
-          roles: ['edufam_admin']
+          roles: ["edufam_admin"],
         },
         {
-          id: 'database',
-          label: 'Database',
+          id: "database",
+          label: "Database",
           icon: Database,
-          roles: ['edufam_admin']
+          roles: ["edufam_admin"],
         },
         {
-          id: 'security',
-          label: 'Security',
+          id: "security",
+          label: "Security",
           icon: Shield,
-          roles: ['edufam_admin']
+          roles: ["edufam_admin"],
         },
         {
-          id: 'notifications',
-          label: 'Notifications',
+          id: "notifications",
+          label: "Notifications",
           icon: Bell,
-          roles: ['edufam_admin']
+          roles: ["edufam_admin"],
         },
         {
-          id: 'user-management',
-          label: 'User Management',
+          id: "user-management",
+          label: "User Management",
           icon: UserPlus,
-          roles: ['edufam_admin']
+          roles: ["edufam_admin"],
         },
         {
-          id: 'company-settings',
-          label: 'Company Settings',
+          id: "company-settings",
+          label: "Company Settings",
           icon: Building2,
-          roles: ['edufam_admin']
-        }
-      ]
+          roles: ["edufam_admin"],
+        },
+      ],
     });
   } else {
     // Regular settings for other roles
     baseItems.push({
-      id: 'settings',
-      label: 'Settings',
+      id: "settings",
+      label: "Settings",
       icon: Settings,
-      roles: ['principal', 'school_owner']
+      roles: ["principal", "school_owner"],
     });
   }
 
   baseItems.push(
     {
-      id: 'finance-settings',
-      label: 'Finance Settings',
-      icon: Calculator,
-      roles: ['finance_officer']
-    },
-    {
-      id: 'security',
-      label: 'Security',
+      id: "security",
+      label: "Security",
       icon: Shield,
-      roles: ['principal', 'school_owner']
+      roles: ["principal", "school_owner"],
     },
     {
-      id: 'schools',
-      label: 'Schools',
+      id: "schools",
+      label: "Schools",
       icon: School,
-      roles: ['edufam_admin']
+      roles: ["edufam_admin"],
     },
     {
-      id: 'users',
-      label: 'Users',
+      id: "users",
+      label: "Users",
       icon: UserPlus,
-      roles: ['edufam_admin']
+      roles: ["edufam_admin"],
     },
     {
-      id: 'billing',
-      label: 'Billing',
+      id: "billing",
+      label: "Billing",
       icon: Banknote,
-      roles: ['edufam_admin']
+      roles: ["edufam_admin"],
     },
     {
-      id: 'system-health',
-      label: 'System Health',
+      id: "system-health",
+      label: "System Health",
       icon: Activity,
-      roles: ['edufam_admin']
+      roles: ["edufam_admin"],
     }
   );
 

@@ -114,6 +114,9 @@ const StudentAccountsPanel = React.lazy(
 const FinanceSettingsPanel = React.lazy(
   () => import("@/components/finance/FinanceSettingsPanel")
 );
+const ExpensesPanel = React.lazy(
+  () => import("@/components/finance/ExpensesPanel")
+);
 const SchoolManagementDashboard = React.lazy(
   () => import("@/components/dashboard/principal/SchoolManagementDashboard")
 );
@@ -371,8 +374,19 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
             Access Denied: Finance access required
           </div>
         );
+      case "expenses":
+        // Strict role-based access: only finance officers can access expenses
+        if (user?.role === "finance_officer") {
+          return renderLazyComponent(ExpensesPanel, "ExpensesPanel");
+        }
+        return (
+          <div className="p-8 text-center text-red-600">
+            Access Denied: Expenses are restricted to Finance Officers only
+          </div>
+        );
       case "financial-reports":
-        if (hasFinanceAccess) {
+        // Strict role-based access: only finance officers can access financial reports
+        if (user?.role === "finance_officer") {
           return renderLazyComponent(
             FinancialReportsPanel,
             "FinancialReportsPanel"
@@ -380,7 +394,8 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         }
         return (
           <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
+            Access Denied: Financial Reports are restricted to Finance Officers
+            only
           </div>
         );
       case "financial-analytics":
