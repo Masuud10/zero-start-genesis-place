@@ -12,7 +12,6 @@ import BulkGradingModal from "@/components/grading/BulkGradingModal";
 import AttendanceModal from "@/components/modals/AttendanceModal";
 import GradesModal from "@/components/modals/GradesModal";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 
 interface TeacherDashboardProps {
   user: AuthUser;
@@ -26,7 +25,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const { isReady } = useSchoolScopedData();
   const { data: stats, isLoading } = useTeacherStats();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   // Modal states
   const [bulkGradingOpen, setBulkGradingOpen] = useState(false);

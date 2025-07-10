@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSchools } from "@/hooks/useSchools";
+import { useAdminSchoolsData } from "@/hooks/useAdminSchoolsData";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Building2,
   Users,
@@ -66,11 +68,20 @@ interface School {
 
 const EduFamAdminDashboard = () => {
   const { user } = useAuth();
+
+  // Debug user info
+  console.log("🏫 EduFamAdminDashboard: User info:", {
+    user: user?.email,
+    role: user?.role,
+    id: user?.id,
+  });
   const {
     data: schools = [],
     isLoading: schoolsLoading,
+    error: schoolsError,
     refetch: refetchSchools,
-  } = useSchools();
+    isRefetching: schoolsRefetching,
+  } = useAdminSchoolsData();
 
   // Modal states
   const [showUserManagement, setShowUserManagement] = useState(false);
@@ -84,21 +95,48 @@ const EduFamAdminDashboard = () => {
   const [showSchoolDetails, setShowSchoolDetails] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
-  // Calculate stats
-  const totalSchools = schools.length;
-  const activeSchools = schools.filter(
-    (school) => school.status === "active"
-  ).length;
-  const recentSchools = schools.filter((school) => {
-    const createdAt = new Date(school.created_at);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return createdAt >= thirtyDaysAgo;
-  }).length;
+  // Calculate stats with better error handling
+  const totalSchools = Array.isArray(schools) ? schools.length : 0;
+  const activeSchools = Array.isArray(schools)
+    ? schools.filter((school) => school.status === "active").length
+    : 0;
+  const recentSchools = Array.isArray(schools)
+    ? schools.filter((school) => {
+        const createdAt = new Date(school.created_at);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return createdAt >= thirtyDaysAgo;
+      }).length
+    : 0;
+
+  // Debug logging
+  console.log("🏫 EduFamAdminDashboard: Schools data:", {
+    totalSchools,
+    activeSchools,
+    recentSchools,
+    schoolsLoading,
+    schoolsError,
+    schoolsData: schools,
+  });
 
   const handleModalSuccess = () => {
     console.log("🏫 Refreshing school data after successful operation...");
     refetchSchools();
+  };
+
+  // Test function to manually fetch schools
+  const testFetchSchools = async () => {
+    console.log("🏫 Testing direct schools fetch...");
+    try {
+      const { data, error } = await supabase
+        .from("schools")
+        .select("*")
+        .limit(5);
+
+      console.log("🏫 Direct fetch result:", { data, error });
+    } catch (err) {
+      console.error("🏫 Direct fetch error:", err);
+    }
   };
 
   const handleViewSchool = (school: School) => {
@@ -137,6 +175,23 @@ const EduFamAdminDashboard = () => {
         return <AlertCircle className="h-3 w-3" />;
     }
   };
+
+  // Show error if there's a schools error
+  if (schoolsError) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading schools data: {schoolsError.message}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => refetchSchools()} variant="outline">
+          Retry Loading Schools
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -280,18 +335,28 @@ const EduFamAdminDashboard = () => {
                 Overview of all schools registered in the Edufam platform
               </CardDescription>
             </div>
-            <Button
-              onClick={() => refetchSchools()}
-              variant="outline"
-              size="sm"
-              disabled={schoolsLoading}
-            >
-              {schoolsLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Refresh"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  console.log(
+                    "🏫 EduFamAdminDashboard: Manual refresh triggered"
+                  );
+                  refetchSchools();
+                }}
+                variant="outline"
+                size="sm"
+                disabled={schoolsLoading || schoolsRefetching}
+              >
+                {schoolsLoading || schoolsRefetching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Refresh"
+                )}
+              </Button>
+              <Button onClick={testFetchSchools} variant="outline" size="sm">
+                Test Fetch
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -302,7 +367,7 @@ const EduFamAdminDashboard = () => {
                 <p className="text-gray-600">Loading schools...</p>
               </div>
             </div>
-          ) : schools.length === 0 ? (
+          ) : !Array.isArray(schools) || schools.length === 0 ? (
             <div className="text-center py-12">
               <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">

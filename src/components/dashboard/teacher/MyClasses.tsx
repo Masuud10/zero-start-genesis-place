@@ -1,24 +1,23 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import TeacherTimetableModal from '@/components/modals/TeacherTimetableModal';
-import TeacherGradeBookModal from '@/components/modals/TeacherGradeBookModal';
-import TeacherClassListModal from '@/components/modals/TeacherClassListModal';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { 
-  BookOpen, 
-  Users, 
-  ClipboardList, 
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import TeacherTimetableModal from "@/components/modals/TeacherTimetableModal";
+import TeacherGradeBookModal from "@/components/modals/TeacherGradeBookModal";
+import TeacherClassListModal from "@/components/modals/TeacherClassListModal";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import {
+  BookOpen,
+  Users,
+  ClipboardList,
   Calendar,
   ExternalLink,
   Loader2,
-  AlertCircle
-} from 'lucide-react';
+  AlertCircle,
+} from "lucide-react";
 
 interface ClassAssignment {
   class_id: string;
@@ -40,79 +39,104 @@ interface ClassAssignment {
 const MyClasses: React.FC = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
-  
-  const [timetableModal, setTimetableModal] = useState({ open: false, classId: '', className: '' });
-  const [gradeBookModal, setGradeBookModal] = useState({ open: false, classId: '', className: '' });
-  const [classListModal, setClassListModal] = useState({ open: false, classId: '', className: '' });
 
-  const { data: assignments, isLoading, error } = useQuery({
-    queryKey: ['teacher-assignments', user?.id, schoolId],
+  const [timetableModal, setTimetableModal] = useState({
+    open: false,
+    classId: "",
+    className: "",
+  });
+  const [gradeBookModal, setGradeBookModal] = useState({
+    open: false,
+    classId: "",
+    className: "",
+  });
+  const [classListModal, setClassListModal] = useState({
+    open: false,
+    classId: "",
+    className: "",
+  });
+
+  const {
+    data: assignments,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["teacher-assignments", user?.id, schoolId],
     queryFn: async () => {
       if (!user?.id || !schoolId) return [];
 
-      console.log('Fetching teacher assignments for:', user.id);
+      console.log("Fetching teacher assignments for:", user.id);
 
       // Get teacher's subject assignments with class and subject details
       const { data: assignmentData, error: assignmentError } = await supabase
-        .from('subject_teacher_assignments')
-        .select(`
+        .from("subject_teacher_assignments")
+        .select(
+          `
           class_id,
           subject_id,
           classes!inner(id, name, level, stream),
           subjects!inner(id, name, code)
-        `)
-        .eq('teacher_id', user.id)
-        .eq('school_id', schoolId)
-        .eq('is_active', true);
+        `
+        )
+        .eq("teacher_id", user.id)
+        .eq("school_id", schoolId)
+        .eq("is_active", true)
+        .not("class_id", "is", null)
+        .not("subject_id", "is", null);
 
       if (assignmentError) {
-        console.error('Error fetching assignments:', assignmentError);
+        console.error("Error fetching assignments:", assignmentError);
         throw assignmentError;
       }
 
       // Get student counts for each class
-      const classIds = [...new Set(assignmentData?.map(a => a.class_id) || [])];
+      const classIds = [
+        ...new Set(assignmentData?.map((a) => a.class_id) || []),
+      ];
       const studentCounts: { [key: string]: number } = {};
 
       for (const classId of classIds) {
         const { count } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
-          .eq('class_id', classId)
-          .eq('school_id', schoolId)
-          .eq('is_active', true);
-        
+          .from("students")
+          .select("*", { count: "exact", head: true })
+          .eq("class_id", classId)
+          .eq("school_id", schoolId)
+          .eq("is_active", true);
+
         studentCounts[classId] = count || 0;
       }
 
       // Transform the data
-      const assignments: ClassAssignment[] = assignmentData?.map(assignment => ({
-        class_id: assignment.class_id,
-        subject_id: assignment.subject_id,
-        class: assignment.classes,
-        subject: assignment.subjects,
-        student_count: studentCounts[assignment.class_id] || 0
-      })) || [];
+      const assignments: ClassAssignment[] =
+        assignmentData?.map((assignment) => ({
+          class_id: assignment.class_id,
+          subject_id: assignment.subject_id,
+          class: assignment.classes,
+          subject: assignment.subjects,
+          student_count: studentCounts[assignment.class_id] || 0,
+        })) || [];
 
       return assignments;
     },
     enabled: !!user?.id && !!schoolId,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Group assignments by class
-  const assignmentsByClass = assignments?.reduce((acc, assignment) => {
-    const classKey = assignment.class.id;
-    if (!acc[classKey]) {
-      acc[classKey] = {
-        class: assignment.class,
-        student_count: assignment.student_count,
-        subjects: []
-      };
-    }
-    acc[classKey].subjects.push(assignment.subject);
-    return acc;
-  }, {} as { [key: string]: { class: any; student_count: number; subjects: any[] } }) || {};
+  const assignmentsByClass =
+    assignments?.reduce((acc, assignment) => {
+      const classKey = assignment.class.id;
+      if (!acc[classKey]) {
+        acc[classKey] = {
+          class: assignment.class,
+          student_count: assignment.student_count,
+          subjects: [],
+        };
+      }
+      acc[classKey].subjects.push(assignment.subject);
+      return acc;
+    }, {} as { [key: string]: { class: ClassAssignment["class"]; student_count: number; subjects: ClassAssignment["subject"][] } }) ||
+    {};
 
   if (isLoading) {
     return (
@@ -136,7 +160,7 @@ const MyClasses: React.FC = () => {
   }
 
   if (error) {
-    console.error('My classes error:', error);
+    console.error("My classes error:", error);
     return (
       <Card>
         <CardHeader>
@@ -150,9 +174,9 @@ const MyClasses: React.FC = () => {
             <div className="text-center">
               <AlertCircle className="h-8 w-8 mx-auto mb-2" />
               <p>Unable to load assignments</p>
-              {process.env.NODE_ENV === 'development' && (
+              {process.env.NODE_ENV === "development" && (
                 <p className="text-xs mt-1 text-gray-500">
-                  {error instanceof Error ? error.message : 'Unknown error'}
+                  {error instanceof Error ? error.message : "Unknown error"}
                 </p>
               )}
             </div>
@@ -177,8 +201,12 @@ const MyClasses: React.FC = () => {
           <div className="text-center py-8 text-gray-500">
             <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="font-medium">No Class Assignments</p>
-            <p className="text-sm mt-1">You haven't been assigned any classes or subjects yet.</p>
-            <p className="text-sm text-blue-600 mt-2">Contact your administrator for class assignments.</p>
+            <p className="text-sm mt-1">
+              You haven't been assigned any classes or subjects yet.
+            </p>
+            <p className="text-sm text-blue-600 mt-2">
+              Contact your administrator for class assignments.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -194,7 +222,7 @@ const MyClasses: React.FC = () => {
             My Class Assignments
           </CardTitle>
           <Badge variant="outline" className="text-xs">
-            {classKeys.length} {classKeys.length === 1 ? 'Class' : 'Classes'}
+            {classKeys.length} {classKeys.length === 1 ? "Class" : "Classes"}
           </Badge>
         </div>
       </CardHeader>
@@ -203,7 +231,10 @@ const MyClasses: React.FC = () => {
           {classKeys.map((classKey) => {
             const classData = assignmentsByClass[classKey];
             return (
-              <div key={classKey} className="border rounded-lg p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+              <div
+                key={classKey}
+                className="border rounded-lg p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors"
+              >
                 {/* Class Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -211,16 +242,23 @@ const MyClasses: React.FC = () => {
                       <BookOpen className="h-4 w-4 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{classData.class.name}</h3>
+                      <h3 className="font-semibold text-gray-900">
+                        {classData.class.name}
+                      </h3>
                       {(classData.class.level || classData.class.stream) && (
                         <p className="text-sm text-gray-600">
-                          {classData.class.level} {classData.class.stream && `- ${classData.class.stream}`}
+                          {classData.class.level}{" "}
+                          {classData.class.stream &&
+                            `- ${classData.class.stream}`}
                         </p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="flex items-center gap-1">
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
                       <Users className="h-3 w-3" />
                       {classData.student_count} Students
                     </Badge>
@@ -235,11 +273,18 @@ const MyClasses: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {classData.subjects.map((subject) => (
-                      <div key={subject.id} className="flex items-center justify-between p-2 bg-white border rounded text-sm">
+                      <div
+                        key={subject.id}
+                        className="flex items-center justify-between p-2 bg-white border rounded text-sm"
+                      >
                         <div>
-                          <span className="font-medium text-gray-900">{subject.name}</span>
+                          <span className="font-medium text-gray-900">
+                            {subject.name}
+                          </span>
                           {subject.code && (
-                            <span className="text-gray-500 ml-1">({subject.code})</span>
+                            <span className="text-gray-500 ml-1">
+                              ({subject.code})
+                            </span>
                           )}
                         </div>
                       </div>
@@ -249,29 +294,47 @@ const MyClasses: React.FC = () => {
 
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2 mt-4 pt-3 border-t">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="text-xs"
-                    onClick={() => setTimetableModal({ open: true, classId: classData.class.id, className: classData.class.name })}
+                    onClick={() =>
+                      setTimetableModal({
+                        open: true,
+                        classId: classData.class.id,
+                        className: classData.class.name,
+                      })
+                    }
                   >
                     <Calendar className="h-3 w-3 mr-1" />
                     View Timetable
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="text-xs"
-                    onClick={() => setGradeBookModal({ open: true, classId: classData.class.id, className: classData.class.name })}
+                    onClick={() =>
+                      setGradeBookModal({
+                        open: true,
+                        classId: classData.class.id,
+                        className: classData.class.name,
+                      })
+                    }
                   >
                     <ClipboardList className="h-3 w-3 mr-1" />
                     Grade Book
                   </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="text-xs"
-                    onClick={() => setClassListModal({ open: true, classId: classData.class.id, className: classData.class.name })}
+                    onClick={() =>
+                      setClassListModal({
+                        open: true,
+                        classId: classData.class.id,
+                        className: classData.class.name,
+                      })
+                    }
                   >
                     <Users className="h-3 w-3 mr-1" />
                     Class List
@@ -287,15 +350,20 @@ const MyClasses: React.FC = () => {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="text-blue-700">
-                <strong>{classKeys.length}</strong> {classKeys.length === 1 ? 'Class' : 'Classes'}
+                <strong>{classKeys.length}</strong>{" "}
+                {classKeys.length === 1 ? "Class" : "Classes"}
               </span>
               <span className="text-blue-700">
                 <strong>{assignments?.length || 0}</strong> Subject Assignments
               </span>
               <span className="text-blue-700">
                 <strong>
-                  {Object.values(assignmentsByClass).reduce((sum, data) => sum + data.student_count, 0)}
-                </strong> Total Students
+                  {Object.values(assignmentsByClass).reduce(
+                    (sum, data) => sum + data.student_count,
+                    0
+                  )}
+                </strong>{" "}
+                Total Students
               </span>
             </div>
             <Badge variant="default" className="bg-blue-600">
@@ -307,21 +375,27 @@ const MyClasses: React.FC = () => {
         {/* Modals */}
         <TeacherTimetableModal
           open={timetableModal.open}
-          onClose={() => setTimetableModal({ open: false, classId: '', className: '' })}
+          onClose={() =>
+            setTimetableModal({ open: false, classId: "", className: "" })
+          }
           classId={timetableModal.classId}
           className={timetableModal.className}
         />
-        
+
         <TeacherGradeBookModal
           open={gradeBookModal.open}
-          onClose={() => setGradeBookModal({ open: false, classId: '', className: '' })}
+          onClose={() =>
+            setGradeBookModal({ open: false, classId: "", className: "" })
+          }
           classId={gradeBookModal.classId}
           className={gradeBookModal.className}
         />
-        
+
         <TeacherClassListModal
           open={classListModal.open}
-          onClose={() => setClassListModal({ open: false, classId: '', className: '' })}
+          onClose={() =>
+            setClassListModal({ open: false, classId: "", className: "" })
+          }
           classId={classListModal.classId}
           className={classListModal.className}
         />

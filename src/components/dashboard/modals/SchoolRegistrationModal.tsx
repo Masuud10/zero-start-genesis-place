@@ -207,8 +207,26 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
     mutationFn: async (data: SchoolFormData) => {
       console.log("🏫 Creating school with updated data:", data);
 
+      // Validate required fields
+      if (
+        !data.school_name?.trim() ||
+        !data.school_email?.trim() ||
+        !data.school_phone?.trim() ||
+        !data.school_address?.trim()
+      ) {
+        throw new Error(
+          "Missing required fields: school name, email, phone, and address"
+        );
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.school_email.trim())) {
+        throw new Error("Invalid email format");
+      }
+
       const { data: result, error } = await supabase.rpc(
-        "create_enhanced_school",
+        "create_comprehensive_school",
         {
           // Basic Information
           school_name: InputSanitizer.sanitizeAlphanumeric(
@@ -227,7 +245,6 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
           school_type: data.school_type,
           term_structure: data.term_structure,
           year_established: data.year_established,
-          timezone: data.timezone,
 
           // Branding
           logo_url: data.logo_url.trim() || null,
@@ -241,29 +258,23 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
           owner_phone: data.owner_phone.trim() || null,
           owner_information: data.owner_information.trim() || null,
 
-          // MPESA Configuration
-          mpesa_enabled: data.mpesa_enabled,
-          mpesa_paybill_number: data.mpesa_enabled
-            ? data.mpesa_paybill_number.trim()
-            : null,
-          mpesa_business_name: data.mpesa_enabled
-            ? data.mpesa_business_name.trim()
-            : null,
-          mpesa_callback_url: data.mpesa_enabled
-            ? data.mpesa_callback_url.trim()
-            : null,
-          mpesa_shortcode: data.mpesa_enabled
-            ? data.mpesa_shortcode.trim()
-            : null,
-          mpesa_confirmation_key: data.mpesa_enabled
-            ? data.mpesa_confirmation_key.trim()
-            : null,
-        } as any
+          // MPESA Configuration (simplified for comprehensive_school function)
+          mpesa_passkey:
+            data.mpesa_enabled && data.mpesa_confirmation_key
+              ? data.mpesa_confirmation_key.trim()
+              : null,
+        }
       );
 
       if (error) {
         console.error("🏫 Database function error:", error);
-        throw error;
+        console.error("🏫 Error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw new Error(`Database error: ${error.message}`);
       }
 
       console.log("🏫 Database function result:", result);
@@ -366,7 +377,15 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          console.log("🏫 SchoolRegistrationModal: Dialog closing");
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

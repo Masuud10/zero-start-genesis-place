@@ -73,6 +73,7 @@ const SchoolsModule: React.FC = () => {
   }, []);
 
   const handleCreateSuccess = () => {
+    setShowCreateDialog(false);
     loadSchools();
   };
 
@@ -150,7 +151,10 @@ const SchoolsModule: React.FC = () => {
           </p>
         </div>
         <Button
-          onClick={() => setShowCreateDialog(true)}
+          onClick={() => {
+            console.log("🏫 SchoolsModule: Register New School button clicked");
+            setShowCreateDialog(true);
+          }}
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -398,7 +402,12 @@ const SchoolsModule: React.FC = () => {
                 begin managing educational institutions.
               </p>
               <Button
-                onClick={() => setShowCreateDialog(true)}
+                onClick={() => {
+                  console.log(
+                    "🏫 SchoolsModule: Register First School button clicked"
+                  );
+                  setShowCreateDialog(true);
+                }}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -412,7 +421,10 @@ const SchoolsModule: React.FC = () => {
       {/* School Registration Modal */}
       <SchoolRegistrationModal
         isOpen={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
+        onClose={() => {
+          setShowCreateDialog(false);
+          // Reset any form state if needed
+        }}
         onSuccess={handleCreateSuccess}
         currentUser={user!}
       />

@@ -51,6 +51,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { DynamicGradingSheet } from "@/components/grading/DynamicGradingSheet";
+import { StableGradingSheet } from "@/components/grading/StableGradingSheet";
 import { useClasses } from "@/hooks/useClasses";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useClassCurriculum } from "@/hooks/useClassCurriculum";
@@ -781,25 +782,31 @@ const PrincipalGradesModule: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Grading Sheet Modal */}
+      {/* Enhanced Grading Sheet Modal */}
       <Dialog
         open={gradingSheetModalOpen}
         onOpenChange={setGradingSheetModalOpen}
       >
         <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Grading Sheet</DialogTitle>
+            <DialogTitle>Enhanced Grading Sheet</DialogTitle>
           </DialogHeader>
           <div className="overflow-auto max-h-[70vh]">
             {selectedClass && selectedTerm && selectedExamType && (
-              <DynamicGradingSheet
+              <StableGradingSheet
                 classId={selectedClass}
                 term={selectedTerm}
                 examType={selectedExamType}
                 onSubmissionSuccess={() => {
                   setGradingSheetModalOpen(false);
                   fetchGrades();
+                  toast({
+                    title: "Grades Updated",
+                    description: "Grade sheet has been updated successfully.",
+                  });
                 }}
+                isReadOnly={false}
+                isPrincipal={true}
               />
             )}
           </div>

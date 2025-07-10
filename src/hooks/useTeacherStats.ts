@@ -37,83 +37,62 @@ export const useTeacherStats = () => {
 
       console.log('🔍 Fetching teacher stats for:', { userId: user.id, schoolId });
 
-      // Set up timeout control
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.error('🔍 Teacher stats query timed out');
-      }, 10000); // Increased to 10 seconds for better reliability
-
       try {
-        // Optimized parallel queries
-        const [teacherClassesResult, subjectsResult, todayAttendanceResult, gradeStatsResult, attendanceDataResult] = await Promise.allSettled([
-          // Get teacher's assigned classes
-          supabase
-            .from('teacher_classes')
-            .select(`
-              class_id,
-              classes!inner(
-                id,
-                name,
-                level,
-                stream
-              )
-            `)
-            .eq('teacher_id', user.id)
-            .eq('school_id', schoolId)
-            .abortSignal(controller.signal),
+        // Step 1: Get teacher's assigned classes
+        const { data: teacherClassesData, error: classesError } = await supabase
+          .from('subject_teacher_assignments')
+          .select(`
+            class_id,
+            classes!inner(
+              id,
+              name,
+              level,
+              stream
+            )
+          `)
+          .eq('teacher_id', user.id)
+          .eq('school_id', schoolId)
+          .eq('is_active', true)
+          .not('class_id', 'is', null);
 
-          // Get teacher's subjects
-          supabase
-            .from('subject_teacher_assignments')
-            .select(`
-              subject_id,
-              subjects!inner(
-                id,
-                name,
-                code
-              )
-            `)
-            .eq('teacher_id', user.id)
-            .eq('school_id', schoolId)
-            .eq('is_active', true)
-            .abortSignal(controller.signal),
+        if (classesError) {
+          console.error('Error fetching teacher classes:', classesError);
+          throw classesError;
+        }
 
-          // Get today's attendance submissions
-          supabase
-            .from('attendance')
-            .select('*', { count: 'exact', head: true })
-            .eq('submitted_by', user.id)
-            .eq('date', new Date().toISOString().split('T')[0])
-            .eq('school_id', schoolId)
-            .abortSignal(controller.signal),
+        const teacherClasses = teacherClassesData || [];
+        const classIds = teacherClasses.map(tc => tc.class_id).filter(Boolean);
 
-          // Get grade statistics in one query
-          supabase
-            .from('grades')
-            .select('status')
-            .eq('submitted_by', user.id)
-            .eq('school_id', schoolId)
-            .abortSignal(controller.signal),
+        // Step 2: Get unique subjects for this teacher
+        const { data: subjectsData, error: subjectsError } = await supabase
+          .from('subject_teacher_assignments')
+          .select(`
+            subject_id,
+            subjects!inner(
+              id,
+              name,
+              code
+            )
+          `)
+          .eq('teacher_id', user.id)
+          .eq('school_id', schoolId)
+          .eq('is_active', true)
+          .not('subject_id', 'is', null);
 
-          // Get attendance data for percentage calculation
-          supabase
-            .from('attendance')
-            .select('status, class_id')
-            .eq('submitted_by', user.id)
-            .eq('school_id', schoolId)
-            .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-            .limit(1000)
-            .abortSignal(controller.signal)
-        ]);
+        if (subjectsError) {
+          console.error('Error fetching subjects:', subjectsError);
+          throw subjectsError;
+        }
 
-        clearTimeout(timeoutId);
+        // Get unique subjects
+        const uniqueSubjects = subjectsData
+          ?.map(s => s.subjects)
+          .filter(Boolean)
+          .filter((subject, index, self) => 
+            index === self.findIndex(s => s.id === subject.id)
+          ) || [];
 
-        // Process teacher classes
-        const teacherClasses = teacherClassesResult.status === 'fulfilled' ? teacherClassesResult.value.data : [];
-        const classIds = teacherClasses?.map(tc => tc.class_id) || [];
-
-        // Get student count across all classes efficiently
+        // Step 3: Get student count for assigned classes
         let studentCount = 0;
         const classesWithCounts = [];
         
@@ -123,6 +102,7 @@ export const useTeacherStats = () => {
               .from('students')
               .select('*', { count: 'exact', head: true })
               .eq('class_id', classId)
+              .eq('school_id', schoolId)
               .eq('is_active', true);
             return { classId, count: count || 0 };
           });
@@ -130,66 +110,96 @@ export const useTeacherStats = () => {
           const studentCounts = await Promise.all(studentCountPromises);
           
           for (const { classId, count } of studentCounts) {
-            const classItem = teacherClasses?.find(tc => tc.class_id === classId);
+            const classItem = teacherClasses.find(tc => tc.class_id === classId);
             studentCount += count;
             classesWithCounts.push({
               id: classId,
-              name: classItem?.classes?.name || 'Unknown',
+              name: classItem?.classes?.name || 'Unknown Class',
               student_count: count
             });
           }
         }
 
-        // Process subjects
-        const subjects = subjectsResult.status === 'fulfilled' ? subjectsResult.value.data : [];
+        // Step 4: Get today's attendance count
+        const { count: todayAttendanceCount, error: attendanceError } = await supabase
+          .from('attendance')
+          .select('*', { count: 'exact', head: true })
+          .eq('submitted_by', user.id)
+          .eq('date', new Date().toISOString().split('T')[0])
+          .eq('school_id', schoolId);
 
-        // Process today's attendance
-        const todayAttendance = todayAttendanceResult.status === 'fulfilled' ? (todayAttendanceResult.value.count || 0) : 0;
+        if (attendanceError) {
+          console.error('Error fetching today\'s attendance:', attendanceError);
+        }
 
-        // Process grade statistics
-        const gradeData = gradeStatsResult.status === 'fulfilled' ? gradeStatsResult.value.data : [];
-        const pendingGrades = gradeData.filter(g => ['draft', 'submitted'].includes(g.status)).length;
-        const submittedGrades = gradeData.filter(g => g.status === 'submitted').length;
-        const approvedGrades = gradeData.filter(g => g.status === 'approved').length;
+        // Step 5: Get grade statistics for teacher's assigned classes
+        let pendingGrades = 0;
+        let submittedGrades = 0;
+        let approvedGrades = 0;
 
-        // Calculate attendance percentage
-        const attendanceData = attendanceDataResult.status === 'fulfilled' ? attendanceDataResult.value.data : [];
-        const presentCount = attendanceData.filter(a => a.status === 'present').length;
-        const attendancePercentage = attendanceData.length > 0 ? Math.round((presentCount / attendanceData.length) * 100) : 0;
+        if (classIds.length > 0) {
+          const { data: gradeData, error: gradeError } = await supabase
+            .from('grades')
+            .select('status')
+            .eq('submitted_by', user.id)
+            .eq('school_id', schoolId)
+            .in('class_id', classIds);
+
+          if (!gradeError && gradeData) {
+            pendingGrades = gradeData.filter(g => ['draft', 'submitted'].includes(g.status)).length;
+            submittedGrades = gradeData.filter(g => g.status === 'submitted').length;
+            approvedGrades = gradeData.filter(g => g.status === 'approved').length;
+          }
+        }
+
+        // Step 6: Calculate attendance percentage for last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: attendanceData, error: attendanceDataError } = await supabase
+          .from('attendance')
+          .select('status')
+          .eq('submitted_by', user.id)
+          .eq('school_id', schoolId)
+          .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+          .limit(1000);
+
+        let attendancePercentage = 0;
+        if (!attendanceDataError && attendanceData && attendanceData.length > 0) {
+          const presentCount = attendanceData.filter(a => a.status === 'present').length;
+          attendancePercentage = Math.round((presentCount / attendanceData.length) * 100);
+        }
 
         const stats: TeacherStats = {
-          classCount: teacherClasses?.length || 0,
+          classCount: teacherClasses.length,
           studentCount,
-          subjectCount: subjects?.length || 0,
-          todayAttendance,
+          subjectCount: uniqueSubjects.length,
+          todayAttendance: todayAttendanceCount || 0,
           pendingGrades,
           submittedGrades,
           approvedGrades,
           attendancePercentage,
           classes: classesWithCounts,
-          subjects: subjects?.map(s => ({
-            id: s.subjects?.id || '',
-            name: s.subjects?.name || '',
-            code: s.subjects?.code || ''
-          })) || []
+          subjects: uniqueSubjects.map(s => ({
+            id: s.id || '',
+            name: s.name || '',
+            code: s.code || ''
+          }))
         };
 
         console.log('📊 Teacher stats compiled:', stats);
         return stats;
 
       } catch (error) {
-        clearTimeout(timeoutId);
-        if (error instanceof Error && error.name === 'AbortError') {
-          throw new Error('Teacher stats query timed out');
-        }
+        console.error('Error in useTeacherStats:', error);
         throw error;
       }
     },
     enabled: !!user?.id && !!schoolId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false, // Reduce unnecessary refetches
+    refetchOnWindowFocus: false,
     refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
-    retry: 1, // Only retry once to avoid overwhelming the database
+    retry: 1,
     retryDelay: 2000,
   });
 };

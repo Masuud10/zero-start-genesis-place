@@ -1,12 +1,29 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, TrendingDown, Users, AlertCircle } from 'lucide-react';
-import { usePrincipalFinancialData } from '@/hooks/usePrincipalFinancialData';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, LineChart, Line, ResponsiveContainer } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  AlertCircle,
+} from "lucide-react";
+import { usePrincipalFinancialData } from "@/hooks/usePrincipalFinancialData";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  LineChart,
+  Line,
+  ResponsiveContainer,
+} from "recharts";
+import { Loader2 } from "lucide-react";
 
 const FinancialOverviewReadOnly: React.FC = () => {
   const { data, isLoading, error } = usePrincipalFinancialData();
@@ -66,12 +83,13 @@ const FinancialOverviewReadOnly: React.FC = () => {
     );
   }
 
-  const { keyMetrics, feeCollectionData, dailyTransactions, defaultersList } = data;
+  const { keyMetrics, feeCollectionData, dailyTransactions, defaultersList } =
+    data;
 
   const chartConfig = {
-    collected: { label: 'Collected', color: '#10b981' },
-    expected: { label: 'Expected', color: '#3b82f6' },
-    amount: { label: 'Amount', color: '#8b5cf6' },
+    collected: { label: "Collected", color: "#10b981" },
+    expected: { label: "Expected", color: "#3b82f6" },
+    amount: { label: "Amount", color: "#8b5cf6" },
   };
 
   return (
@@ -89,7 +107,9 @@ const FinancialOverviewReadOnly: React.FC = () => {
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600">Total Collected</p>
+                  <p className="text-sm font-medium text-green-600">
+                    Total Collected
+                  </p>
                   <p className="text-2xl font-bold text-green-700">
                     KES {keyMetrics.totalCollected?.toLocaleString() || 0}
                   </p>
@@ -101,7 +121,9 @@ const FinancialOverviewReadOnly: React.FC = () => {
             <div className="bg-orange-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-600">Outstanding</p>
+                  <p className="text-sm font-medium text-orange-600">
+                    Outstanding
+                  </p>
                   <p className="text-2xl font-bold text-orange-700">
                     KES {keyMetrics.outstandingAmount?.toLocaleString() || 0}
                   </p>
@@ -113,7 +135,9 @@ const FinancialOverviewReadOnly: React.FC = () => {
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600">Collection Rate</p>
+                  <p className="text-sm font-medium text-blue-600">
+                    Collection Rate
+                  </p>
                   <p className="text-2xl font-bold text-blue-700">
                     {keyMetrics.collectionRate?.toFixed(1) || 0}%
                   </p>
@@ -125,7 +149,9 @@ const FinancialOverviewReadOnly: React.FC = () => {
             <div className="bg-purple-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600">Defaulters</p>
+                  <p className="text-sm font-medium text-purple-600">
+                    Defaulters
+                  </p>
                   <p className="text-2xl font-bold text-purple-700">
                     {keyMetrics.defaultersCount || 0}
                   </p>
@@ -138,14 +164,25 @@ const FinancialOverviewReadOnly: React.FC = () => {
           {/* Fee Collection Chart */}
           {feeCollectionData && feeCollectionData.length > 0 && (
             <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-3">Fee Collection by Class</h4>
+              <h4 className="text-lg font-semibold mb-3">
+                Fee Collection by Class
+              </h4>
               <ChartContainer config={chartConfig} className="h-64">
                 <BarChart data={feeCollectionData}>
                   <XAxis dataKey="class" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="collected" fill="var(--color-collected)" name="Collected (KES)" />
-                  <Bar dataKey="expected" fill="var(--color-expected)" name="Expected (KES)" opacity={0.6} />
+                  <Bar
+                    dataKey="collected"
+                    fill="var(--color-collected)"
+                    name="Collected (KES)"
+                  />
+                  <Bar
+                    dataKey="expected"
+                    fill="var(--color-expected)"
+                    name="Expected (KES)"
+                    opacity={0.6}
+                  />
                 </BarChart>
               </ChartContainer>
             </div>
@@ -154,16 +191,18 @@ const FinancialOverviewReadOnly: React.FC = () => {
           {/* Recent Transactions */}
           {dailyTransactions && dailyTransactions.length > 0 && (
             <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-3">Recent Transaction Trends</h4>
+              <h4 className="text-lg font-semibold mb-3">
+                Recent Transaction Trends
+              </h4>
               <ChartContainer config={chartConfig} className="h-48">
                 <LineChart data={dailyTransactions.slice(-7)}>
                   <XAxis dataKey="date" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="amount" 
-                    stroke="var(--color-amount)" 
+                  <Line
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="var(--color-amount)"
                     strokeWidth={2}
                     name="Daily Amount (KES)"
                   />
@@ -172,32 +211,7 @@ const FinancialOverviewReadOnly: React.FC = () => {
             </div>
           )}
 
-          {/* Top Defaulters */}
-          {defaultersList && defaultersList.length > 0 && (
-            <div>
-              <h4 className="text-lg font-semibold mb-3">Outstanding Fees Summary</h4>
-              <div className="space-y-2">
-                {defaultersList.slice(0, 5).map((defaulter, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <div>
-                      <p className="font-medium">{defaulter.student_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {defaulter.class_name} - {defaulter.admission_number}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-red-600">
-                        KES {defaulter.outstanding_amount?.toLocaleString()}
-                      </p>
-                      <Badge variant="destructive" className="text-xs">
-                        {defaulter.days_overdue} days overdue
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Outstanding Fees Summary section removed */}
         </CardContent>
       </Card>
     </div>

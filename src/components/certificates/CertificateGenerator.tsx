@@ -1,17 +1,30 @@
-
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { useCertificates } from '@/hooks/useCertificates';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Award, Download, Loader2, FileText } from 'lucide-react';
-import CertificateViewer from './CertificateViewer';
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useCertificates } from "@/hooks/useCertificates";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useAuth } from "@/contexts/AuthContext";
+import { Award, Download, Loader2, FileText, Shield } from "lucide-react";
+import CertificateViewer from "./CertificateViewer";
+import { CertificatePerformance } from "@/types/certificate";
 
 interface CertificateGeneratorProps {
   open?: boolean;
@@ -22,76 +35,121 @@ interface CertificateGeneratorProps {
 const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
   open = false,
   onClose,
-  onCertificateGenerated
+  onCertificateGenerated,
 }) => {
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState('');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
-  const [generatedCertificate, setGeneratedCertificate] = useState<any>(null);
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState("");
+  const [generatedCertificate, setGeneratedCertificate] =
+    useState<unknown>(null);
   const [showViewer, setShowViewer] = useState(false);
 
   const { toast } = useToast();
   const { generateCertificate, loading } = useCertificates();
   const { schoolId } = useSchoolScopedData();
+  const { user } = useAuth();
+
+  // Role-based access control
+  const allowedRoles = ["principal", "school_owner", "edufam_admin"];
+  const hasAccess = user?.role && allowedRoles.includes(user.role);
 
   // Get classes
   const { data: classes = [] } = useQuery({
-    queryKey: ['classes', schoolId],
+    queryKey: ["classes", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
       const { data, error } = await supabase
-        .from('classes')
-        .select('id, name, level, stream')
-        .eq('school_id', schoolId)
-        .order('name');
-      
+        .from("classes")
+        .select("id, name, level, stream")
+        .eq("school_id", schoolId)
+        .order("name");
+
       if (error) throw error;
       return data || [];
     },
-    enabled: !!schoolId
+    enabled: !!schoolId,
   });
 
   // Get students for selected class
   const { data: students = [] } = useQuery({
-    queryKey: ['students', selectedClass, schoolId],
+    queryKey: ["students", selectedClass, schoolId],
     queryFn: async () => {
       if (!selectedClass || !schoolId) return [];
       const { data, error } = await supabase
-        .from('students')
-        .select('id, name, admission_number, roll_number')
-        .eq('class_id', selectedClass)
-        .eq('school_id', schoolId)
-        .order('name');
-      
+        .from("students")
+        .select("id, name, admission_number, roll_number")
+        .eq("class_id", selectedClass)
+        .eq("school_id", schoolId)
+        .order("name");
+
       if (error) throw error;
       return data || [];
     },
-    enabled: !!selectedClass && !!schoolId
+    enabled: !!selectedClass && !!schoolId,
   });
 
   // Get academic years
   const { data: academicYears = [] } = useQuery({
-    queryKey: ['academic-years', schoolId],
+    queryKey: ["academic-years", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
       const { data, error } = await supabase
-        .from('academic_years')
-        .select('year_name')
-        .eq('school_id', schoolId)
-        .order('year_name', { ascending: false });
-      
+        .from("academic_years")
+        .select("year_name")
+        .eq("school_id", schoolId)
+        .order("year_name", { ascending: false });
+
       if (error) throw error;
-      return data?.map(ay => ay.year_name) || [new Date().getFullYear().toString()];
+      return (
+        data?.map((ay) => ay.year_name) || [new Date().getFullYear().toString()]
+      );
     },
-    enabled: !!schoolId
+    enabled: !!schoolId,
   });
+
+  const handleClose = () => {
+    setSelectedClass("");
+    setSelectedStudent("");
+    setSelectedAcademicYear("");
+    setGeneratedCertificate(null);
+    setShowViewer(false);
+    onClose?.();
+  };
+
+  // Check access after all hooks
+  if (!hasAccess) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Shield className="h-5 w-5" />
+              Access Denied
+            </DialogTitle>
+            <DialogDescription>
+              Only principals, school owners, and EduFam administrators can
+              generate certificates.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-600 mb-4">
+              Your current role: <strong>{user?.role || "None"}</strong>
+            </p>
+            <Button onClick={handleClose} variant="outline">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const handleGenerateCertificate = async () => {
     if (!selectedStudent || !selectedClass || !selectedAcademicYear) {
       toast({
         title: "Missing Information",
         description: "Please select a class, student, and academic year.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -107,29 +165,20 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
         setGeneratedCertificate(certificate);
         setShowViewer(true);
         onCertificateGenerated?.();
-        
+
         toast({
           title: "Certificate Generated",
           description: "Student certificate has been generated successfully.",
         });
       }
     } catch (error) {
-      console.error('Certificate generation error:', error);
+      console.error("Certificate generation error:", error);
       toast({
         title: "Generation Failed",
         description: "Failed to generate certificate. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
-  };
-
-  const handleClose = () => {
-    setSelectedClass('');
-    setSelectedStudent('');
-    setSelectedAcademicYear('');
-    setGeneratedCertificate(null);
-    setShowViewer(false);
-    onClose?.();
   };
 
   if (showViewer && generatedCertificate) {
@@ -140,25 +189,25 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
             <DialogTitle>Certificate Preview</DialogTitle>
           </DialogHeader>
           <div className="p-4">
-            <CertificateViewer certificate={{
-              id: 'preview',
-              school_id: schoolId || '',
-              student_id: selectedStudent,
-              class_id: selectedClass,
-              academic_year: selectedAcademicYear,
-              performance: generatedCertificate,
-              generated_by: '',
-              generated_at: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }} />
+            <CertificateViewer
+              certificate={{
+                id: "preview",
+                school_id: schoolId || "",
+                student_id: selectedStudent,
+                class_id: selectedClass,
+                academic_year: selectedAcademicYear,
+                performance: generatedCertificate as CertificatePerformance,
+                generated_by: "",
+                generated_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }}
+            />
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setShowViewer(false)}>
                 Close
               </Button>
-              <Button onClick={handleClose}>
-                Generate Another
-              </Button>
+              <Button onClick={handleClose}>Generate Another</Button>
             </div>
           </div>
         </DialogContent>
@@ -188,7 +237,10 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="class">Select Class</Label>
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <Select
+                    value={selectedClass}
+                    onValueChange={setSelectedClass}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choose class" />
                     </SelectTrigger>
@@ -204,7 +256,10 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
 
                 <div>
                   <Label htmlFor="academic-year">Academic Year</Label>
-                  <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear}>
+                  <Select
+                    value={selectedAcademicYear}
+                    onValueChange={setSelectedAcademicYear}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choose year" />
                     </SelectTrigger>
@@ -222,7 +277,10 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
               {selectedClass && (
                 <div>
                   <Label htmlFor="student">Select Student</Label>
-                  <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                  <Select
+                    value={selectedStudent}
+                    onValueChange={setSelectedStudent}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choose student" />
                     </SelectTrigger>
@@ -248,8 +306,8 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
                     Ready to Generate Certificate
                   </h3>
                   <p className="text-green-700 mb-4">
-                    Certificate will be generated for the selected student with their 
-                    academic performance and attendance data.
+                    Certificate will be generated for the selected student with
+                    their academic performance and attendance data.
                   </p>
                 </div>
               </CardContent>
@@ -260,9 +318,14 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
             <Button variant="outline" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleGenerateCertificate} 
-              disabled={!selectedStudent || !selectedClass || !selectedAcademicYear || loading}
+            <Button
+              onClick={handleGenerateCertificate}
+              disabled={
+                !selectedStudent ||
+                !selectedClass ||
+                !selectedAcademicYear ||
+                loading
+              }
             >
               {loading ? (
                 <>

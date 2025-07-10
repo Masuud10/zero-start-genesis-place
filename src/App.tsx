@@ -11,6 +11,7 @@ import MaintenanceGuard from "@/components/guards/MaintenanceGuard";
 import AppContent from "@/components/AppContent";
 import ResetPasswordPage from "@/components/ResetPasswordPage";
 import UnauthorizedPage from "@/components/UnauthorizedPage";
+import CertificateVerification from "@/pages/CertificateVerification";
 import "./App.css";
 import "./utils/maintenanceDebugConsole";
 
@@ -57,6 +58,10 @@ function App() {
                       <Route
                         path="/unauthorized"
                         element={<UnauthorizedPage />}
+                      />
+                      <Route
+                        path="/verify-certificate/:certificateId"
+                        element={<CertificateVerification />}
                       />
                       <Route path="*" element={<AppContent />} />
                     </Routes>

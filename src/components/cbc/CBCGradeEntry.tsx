@@ -1,16 +1,21 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { Loader2, Save, Send } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { Loader2, Save, Send } from "lucide-react";
 
 interface Student {
   id: string;
@@ -25,7 +30,7 @@ interface LearningArea {
   description: string;
 }
 
-type CBCPerformanceLevel = 'EM' | 'AP' | 'PR' | 'EX';
+type CBCPerformanceLevel = "EM" | "AP" | "PR" | "EX";
 
 interface CBCGrade {
   student_id: string;
@@ -41,16 +46,32 @@ interface CBCGradeEntryProps {
 }
 
 const CBC_LEVELS = [
-  { value: 'EM' as CBCPerformanceLevel, label: 'Emerging', color: 'bg-red-100 text-red-800' },
-  { value: 'AP' as CBCPerformanceLevel, label: 'Approaching Proficiency', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'PR' as CBCPerformanceLevel, label: 'Proficient', color: 'bg-blue-100 text-blue-800' },
-  { value: 'EX' as CBCPerformanceLevel, label: 'Exceeding Expectations', color: 'bg-green-100 text-green-800' }
+  {
+    value: "EM" as CBCPerformanceLevel,
+    label: "Emerging",
+    color: "bg-red-100 text-red-800",
+  },
+  {
+    value: "AP" as CBCPerformanceLevel,
+    label: "Approaching Proficiency",
+    color: "bg-yellow-100 text-yellow-800",
+  },
+  {
+    value: "PR" as CBCPerformanceLevel,
+    label: "Proficient",
+    color: "bg-blue-100 text-blue-800",
+  },
+  {
+    value: "EX" as CBCPerformanceLevel,
+    label: "Exceeding Expectations",
+    color: "bg-green-100 text-green-800",
+  },
 ];
 
 export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
   classId,
   term,
-  onSubmissionSuccess
+  onSubmissionSuccess,
 }) => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
@@ -58,7 +79,9 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
 
   const [students, setStudents] = useState<Student[]>([]);
   const [learningAreas, setLearningAreas] = useState<LearningArea[]>([]);
-  const [grades, setGrades] = useState<Record<string, Record<string, CBCGrade>>>({});
+  const [grades, setGrades] = useState<
+    Record<string, Record<string, CBCGrade>>
+  >({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -74,32 +97,33 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
     try {
       // Load students
       const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, name, admission_number')
-        .eq('class_id', classId)
-        .eq('school_id', schoolId)
-        .eq('is_active', true)
-        .order('name');
+        .from("students")
+        .select("id, name, admission_number")
+        .eq("class_id", classId)
+        .eq("school_id", schoolId)
+        .eq("is_active", true)
+        .order("name");
 
       if (studentsError) throw studentsError;
 
       // Load CBC learning areas
-      const { data: learningAreasData, error: learningAreasError } = await supabase
-        .from('cbc_learning_areas')
-        .select('*')
-        .eq('school_id', schoolId)
-        .order('learning_area_name');
+      const { data: learningAreasData, error: learningAreasError } =
+        await supabase
+          .from("cbc_learning_areas")
+          .select("*")
+          .eq("school_id", schoolId)
+          .order("learning_area_name");
 
       if (learningAreasError) throw learningAreasError;
 
       // Load existing grades
       const { data: existingGrades, error: gradesError } = await supabase
-        .from('cbc_grades')
-        .select('*')
-        .eq('class_id', classId)
-        .eq('term', term)
-        .eq('teacher_id', user?.id)
-        .eq('school_id', schoolId);
+        .from("cbc_grades")
+        .select("*")
+        .eq("class_id", classId)
+        .eq("term", term)
+        .eq("teacher_id", user?.id)
+        .eq("school_id", schoolId);
 
       if (gradesError) throw gradesError;
 
@@ -108,7 +132,7 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
 
       // Organize existing grades
       const gradesMap: Record<string, Record<string, CBCGrade>> = {};
-      existingGrades?.forEach(grade => {
+      existingGrades?.forEach((grade) => {
         if (!gradesMap[grade.student_id]) {
           gradesMap[grade.student_id] = {};
         }
@@ -116,36 +140,43 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
           student_id: grade.student_id,
           learning_area_id: grade.learning_area_id,
           performance_level: grade.performance_level as CBCPerformanceLevel,
-          teacher_remarks: grade.teacher_remarks || ''
+          teacher_remarks: grade.teacher_remarks || "",
         };
       });
 
       setGrades(gradesMap);
     } catch (error: any) {
-      console.error('Error loading CBC data:', error);
+      console.error("Error loading CBC data:", error);
       toast({
         title: "Error",
         description: "Failed to load CBC grading data",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const updateGrade = (studentId: string, learningAreaId: string, field: keyof CBCGrade, value: string) => {
-    setGrades(prev => ({
+  const updateGrade = (
+    studentId: string,
+    learningAreaId: string,
+    field: keyof CBCGrade,
+    value: string
+  ) => {
+    setGrades((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
         [learningAreaId]: {
           student_id: studentId,
           learning_area_id: learningAreaId,
-          performance_level: prev[studentId]?.[learningAreaId]?.performance_level || 'EM',
-          teacher_remarks: prev[studentId]?.[learningAreaId]?.teacher_remarks || '',
-          [field]: value
-        }
-      }
+          performance_level:
+            prev[studentId]?.[learningAreaId]?.performance_level || "EM",
+          teacher_remarks:
+            prev[studentId]?.[learningAreaId]?.teacher_remarks || "",
+          [field]: value,
+        },
+      },
     }));
   };
 
@@ -167,7 +198,7 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
               performance_level: grade.performance_level,
               teacher_remarks: grade.teacher_remarks,
               teacher_id: user?.id,
-              status: 'draft'
+              status: "draft",
             });
           }
         }
@@ -177,30 +208,27 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
         toast({
           title: "No Grades to Save",
           description: "Please enter at least one grade before saving",
-          variant: "default"
+          variant: "default",
         });
         return;
       }
 
-      const { error } = await supabase
-        .from('cbc_grades')
-        .upsert(gradesToSave, {
-          onConflict: 'school_id,student_id,learning_area_id,term,academic_year'
-        });
+      const { error } = await supabase.from("cbc_grades").upsert(gradesToSave, {
+        onConflict: "school_id,student_id,learning_area_id,term,academic_year",
+      });
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `${gradesToSave.length} CBC grades saved as draft`
+        description: `${gradesToSave.length} CBC grades saved as draft`,
       });
-
     } catch (error: any) {
-      console.error('Error saving CBC grades:', error);
+      console.error("Error saving CBC grades:", error);
       toast({
         title: "Save Failed",
         description: error.message || "Failed to save CBC grades",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -225,8 +253,8 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
               performance_level: grade.performance_level,
               teacher_remarks: grade.teacher_remarks,
               teacher_id: user?.id,
-              status: 'submitted',
-              submitted_at: new Date().toISOString()
+              status: "submitted",
+              submitted_at: new Date().toISOString(),
             });
           }
         }
@@ -236,52 +264,55 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
         toast({
           title: "No Grades to Submit",
           description: "Please enter at least one grade before submitting",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
       const { error } = await supabase
-        .from('cbc_grades')
+        .from("cbc_grades")
         .upsert(gradesToSubmit, {
-          onConflict: 'school_id,student_id,learning_area_id,term,academic_year'
+          onConflict:
+            "school_id,student_id,learning_area_id,term,academic_year",
         });
 
       if (error) throw error;
 
       // Create submission batch
       const { error: batchError } = await supabase
-        .from('cbc_grade_batches')
-        .upsert({
-          school_id: schoolId,
-          class_id: classId,
-          term: term,
-          academic_year: new Date().getFullYear().toString(),
-          teacher_id: user?.id,
-          batch_name: `CBC ${term} - ${new Date().toLocaleDateString()}`,
-          total_students: students.length,
-          grades_entered: gradesToSubmit.length,
-          status: 'submitted',
-          submitted_at: new Date().toISOString()
-        }, {
-          onConflict: 'school_id,class_id,term,academic_year,teacher_id'
-        });
+        .from("cbc_grade_batches")
+        .upsert(
+          {
+            school_id: schoolId,
+            class_id: classId,
+            term: term,
+            academic_year: new Date().getFullYear().toString(),
+            teacher_id: user?.id,
+            batch_name: `CBC ${term} - ${new Date().toLocaleDateString()}`,
+            total_students: students.length,
+            grades_entered: gradesToSubmit.length,
+            status: "submitted",
+            submitted_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "school_id,class_id,term,academic_year,teacher_id",
+          }
+        );
 
-      if (batchError) console.warn('Batch creation warning:', batchError);
+      if (batchError) console.warn("Batch creation warning:", batchError);
 
       toast({
         title: "Success",
-        description: `${gradesToSubmit.length} CBC grades submitted for principal approval`
+        description: `${gradesToSubmit.length} CBC grades submitted for principal approval`,
       });
 
       if (onSubmissionSuccess) onSubmissionSuccess();
-
     } catch (error: any) {
-      console.error('Error submitting CBC grades:', error);
+      console.error("Error submitting CBC grades:", error);
       toast({
         title: "Submission Failed",
         description: error.message || "Failed to submit CBC grades",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSubmitting(false);
@@ -304,35 +335,17 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            CBC Grade Entry - {term}
-            <Badge variant="outline" className="bg-green-100 text-green-800">
-              CBC Curriculum
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 grid grid-cols-4 gap-2">
-            {CBC_LEVELS.map(level => (
-              <div key={level.value} className={`p-2 rounded text-center text-sm ${level.color}`}>
-                <div className="font-semibold">{level.value}</div>
-                <div className="text-xs">{level.label}</div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b bg-gray-50">
                   <th className="text-left p-3 font-medium">Student</th>
-                  {learningAreas.map(area => (
-                    <th key={area.id} className="text-center p-3 font-medium min-w-[200px]">
+                  {learningAreas.map((area) => (
+                    <th
+                      key={area.id}
+                      className="text-center p-3 font-medium min-w-[200px]"
+                    >
                       {area.learning_area_name}
                       <div className="text-xs text-gray-500 font-normal">
                         {area.learning_area_code}
@@ -342,25 +355,40 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {students.map(student => (
+                {students.map((student) => (
                   <tr key={student.id} className="border-b hover:bg-gray-50">
                     <td className="p-3">
                       <div className="font-medium">{student.name}</div>
-                      <div className="text-sm text-gray-500">{student.admission_number}</div>
+                      <div className="text-sm text-gray-500">
+                        {student.admission_number}
+                      </div>
                     </td>
-                    {learningAreas.map(area => (
+                    {learningAreas.map((area) => (
                       <td key={area.id} className="p-3">
                         <div className="space-y-2">
                           <Select
-                            value={grades[student.id]?.[area.id]?.performance_level || ''}
-                            onValueChange={(value) => updateGrade(student.id, area.id, 'performance_level', value)}
+                            value={
+                              grades[student.id]?.[area.id]
+                                ?.performance_level || ""
+                            }
+                            onValueChange={(value) =>
+                              updateGrade(
+                                student.id,
+                                area.id,
+                                "performance_level",
+                                value
+                              )
+                            }
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select Level" />
                             </SelectTrigger>
                             <SelectContent>
-                              {CBC_LEVELS.map(level => (
-                                <SelectItem key={level.value} value={level.value}>
+                              {CBC_LEVELS.map((level) => (
+                                <SelectItem
+                                  key={level.value}
+                                  value={level.value}
+                                >
                                   {level.value} - {level.label}
                                 </SelectItem>
                               ))}
@@ -368,8 +396,18 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
                           </Select>
                           <Textarea
                             placeholder="Teacher remarks..."
-                            value={grades[student.id]?.[area.id]?.teacher_remarks || ''}
-                            onChange={(e) => updateGrade(student.id, area.id, 'teacher_remarks', e.target.value)}
+                            value={
+                              grades[student.id]?.[area.id]?.teacher_remarks ||
+                              ""
+                            }
+                            onChange={(e) =>
+                              updateGrade(
+                                student.id,
+                                area.id,
+                                "teacher_remarks",
+                                e.target.value
+                              )
+                            }
                             className="w-full text-sm"
                             rows={2}
                           />
@@ -388,12 +426,13 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              CBC Assessment Entry for {students.length} students across {learningAreas.length} learning areas
+              CBC Assessment Entry for {students.length} students across{" "}
+              {learningAreas.length} learning areas
             </div>
             <div className="flex gap-3">
-              <Button 
+              <Button
                 variant="outline"
-                onClick={saveAsDraft} 
+                onClick={saveAsDraft}
                 disabled={saving}
                 className="flex items-center gap-2"
               >
@@ -409,9 +448,9 @@ export const CBCGradeEntry: React.FC<CBCGradeEntryProps> = ({
                   </>
                 )}
               </Button>
-              
-              <Button 
-                onClick={submitForApproval} 
+
+              <Button
+                onClick={submitForApproval}
                 disabled={submitting}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
               >

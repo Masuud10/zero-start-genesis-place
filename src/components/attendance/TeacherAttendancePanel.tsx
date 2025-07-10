@@ -1,18 +1,39 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useCurrentAcademicInfo } from '@/hooks/useCurrentAcademicInfo';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Save, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
-import AttendanceSessionValidator from './AttendanceSessionValidator';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Calendar,
+  Users,
+  Save,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
+import AttendanceSessionValidator from "./AttendanceSessionValidator";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TeacherAttendancePanelProps {
   userId: string;
@@ -20,27 +41,35 @@ interface TeacherAttendancePanelProps {
   userRole: string;
 }
 
-const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId, schoolId, userRole }) => {
+const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
+  userId,
+  schoolId,
+  userRole,
+}) => {
   const { academicInfo } = useCurrentAcademicInfo(schoolId);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [selectedClass, setSelectedClass] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedSession, setSelectedSession] = useState('morning');
-  const [sessionError, setSessionError] = useState('');
-  const [attendance, setAttendance] = useState<Record<string, { status: string; remarks: string }>>({});
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [selectedSession, setSelectedSession] = useState("morning");
+  const [sessionError, setSessionError] = useState("");
+  const [attendance, setAttendance] = useState<
+    Record<string, { status: string; remarks: string }>
+  >({});
 
   const { data: classes } = useQuery({
-    queryKey: ['classes', schoolId],
+    queryKey: ["classes", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
       const { data, error } = await supabase
-        .from('classes')
-        .select('id, name')
-        .eq('school_id', schoolId)
-        .order('name');
-      
+        .from("classes")
+        .select("id, name")
+        .eq("school_id", schoolId)
+        .order("name");
+
       if (error) throw new Error(error.message);
       return data || [];
     },
@@ -48,18 +77,18 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
   });
 
   const { data: students, isLoading: loadingStudents } = useQuery({
-    queryKey: ['students', schoolId, selectedClass],
+    queryKey: ["students", schoolId, selectedClass],
     queryFn: async () => {
       if (!schoolId || !selectedClass) return [];
-      
+
       const { data, error } = await supabase
-        .from('students')
-        .select('id, name, admission_number')
-        .eq('school_id', schoolId)
-        .eq('class_id', selectedClass)
-        .eq('is_active', true)
-        .order('name');
-      
+        .from("students")
+        .select("id, name, admission_number")
+        .eq("school_id", schoolId)
+        .eq("class_id", selectedClass)
+        .eq("is_active", true)
+        .order("name");
+
       if (error) throw new Error(error.message);
       return data || [];
     },
@@ -67,18 +96,24 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
   });
 
   const { data: existingAttendance } = useQuery({
-    queryKey: ['attendance', schoolId, selectedClass, selectedDate, selectedSession],
+    queryKey: [
+      "attendance",
+      schoolId,
+      selectedClass,
+      selectedDate,
+      selectedSession,
+    ],
     queryFn: async () => {
       if (!schoolId || !selectedClass || !selectedDate) return [];
-      
+
       const { data, error } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('school_id', schoolId)
-        .eq('class_id', selectedClass)
-        .eq('date', selectedDate)
-        .eq('session', selectedSession);
-      
+        .from("attendance")
+        .select("*")
+        .eq("school_id", schoolId)
+        .eq("class_id", selectedClass)
+        .eq("date", selectedDate)
+        .eq("session", selectedSession);
+
       if (error) throw new Error(error.message);
       return data || [];
     },
@@ -89,8 +124,8 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
     if (existingAttendance) {
       const attendanceMap = existingAttendance.reduce((acc, att) => {
         acc[att.student_id] = {
-          status: att.status || 'present',
-          remarks: att.remarks || ''
+          status: att.status || "present",
+          remarks: att.remarks || "",
         };
         return acc;
       }, {} as Record<string, { status: string; remarks: string }>);
@@ -100,92 +135,113 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
 
   const submitAttendance = useMutation({
     mutationFn: async () => {
-      if (!selectedSession || !['morning', 'afternoon', 'full_day'].includes(selectedSession)) {
-        throw new Error('Please select a valid session (morning, afternoon, or full day)');
+      if (
+        !selectedSession ||
+        !["morning", "afternoon", "full_day"].includes(selectedSession)
+      ) {
+        throw new Error(
+          "Please select a valid session (morning, afternoon, or full day)"
+        );
       }
 
-      if (!schoolId || !selectedClass || !selectedDate || !academicInfo.term || !academicInfo.year) {
-        throw new Error('Missing required information. Please ensure all fields are selected.');
+      if (
+        !schoolId ||
+        !selectedClass ||
+        !selectedDate ||
+        !academicInfo.term ||
+        !academicInfo.year
+      ) {
+        throw new Error(
+          "Missing required information. Please ensure all fields are selected."
+        );
       }
 
       if (Object.keys(attendance).length === 0) {
-        throw new Error('No attendance data to submit');
+        throw new Error("No attendance data to submit");
       }
 
-      const attendanceRecords = Object.entries(attendance).map(([studentId, record]) => ({
-        student_id: studentId,
-        class_id: selectedClass,
-        school_id: schoolId,
-        date: selectedDate,
-        status: record.status,
-        session: selectedSession, // Ensure session is always included
-        remarks: record.remarks || null,
-        term: academicInfo.term,
-        academic_year: academicInfo.year,
-        submitted_by: userId,
-        submitted_at: new Date().toISOString(),
-      }));
+      const attendanceRecords = Object.entries(attendance).map(
+        ([studentId, record]) => ({
+          student_id: studentId,
+          class_id: selectedClass,
+          school_id: schoolId,
+          date: selectedDate,
+          status: record.status,
+          session: selectedSession, // Ensure session is always included
+          remarks: record.remarks || null,
+          term: academicInfo.term,
+          academic_year: academicInfo.year,
+          submitted_by: userId,
+          submitted_at: new Date().toISOString(),
+        })
+      );
 
-      console.log('Submitting attendance records:', attendanceRecords);
+      console.log("Submitting attendance records:", attendanceRecords);
 
       const { error } = await supabase
-        .from('attendance')
+        .from("attendance")
         .upsert(attendanceRecords, {
-          onConflict: 'school_id,class_id,student_id,date,session',
-          ignoreDuplicates: false
+          onConflict: "school_id,class_id,student_id,date,session",
+          ignoreDuplicates: false,
         });
 
       if (error) {
-        console.error('Attendance upsert error:', error);
-        throw new Error(error.message || 'Failed to save attendance');
+        console.error("Attendance upsert error:", error);
+        throw new Error(error.message || "Failed to save attendance");
       }
     },
     onSuccess: () => {
-      toast({ 
-        title: "Success", 
-        description: `Attendance submitted successfully for ${Object.keys(attendance).length} students.` 
+      toast({
+        title: "Success",
+        description: `Attendance submitted successfully for ${
+          Object.keys(attendance).length
+        } students.`,
       });
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      setSessionError('');
+      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      setSessionError("");
     },
     onError: (error) => {
-      console.error('Attendance submission error:', error);
-      if (error.message.includes('session')) {
+      console.error("Attendance submission error:", error);
+      if (error.message.includes("session")) {
         setSessionError(error.message);
       }
-      toast({ title: "Error", description: error.message, variant: 'destructive' });
-    }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const handleSessionChange = (session: string) => {
     setSelectedSession(session);
-    setSessionError('');
+    setSessionError("");
   };
 
   const handleStatusChange = (studentId: string, status: string) => {
-    setAttendance(prev => ({
+    setAttendance((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
         status,
-      }
+      },
     }));
   };
 
   const handleRemarksChange = (studentId: string, remarks: string) => {
-    setAttendance(prev => ({
+    setAttendance((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
         remarks,
-      }
+      },
     }));
   };
 
   const markAllPresent = () => {
     if (students) {
       const allPresent = students.reduce((acc, student) => {
-        acc[student.id] = { status: 'present', remarks: '' };
+        acc[student.id] = { status: "present", remarks: "" };
         return acc;
       }, {} as Record<string, { status: string; remarks: string }>);
       setAttendance(allPresent);
@@ -194,13 +250,13 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'present':
+      case "present":
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'absent':
+      case "absent":
         return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'late':
+      case "late":
         return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'excused':
+      case "excused":
         return <AlertTriangle className="h-4 w-4 text-blue-600" />;
       default:
         return null;
@@ -209,26 +265,34 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'present':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'absent':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'late':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'excused':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case "present":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "absent":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "late":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "excused":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   const attendanceStats = React.useMemo(() => {
     const total = Object.keys(attendance).length;
-    const present = Object.values(attendance).filter(a => a.status === 'present').length;
-    const absent = Object.values(attendance).filter(a => a.status === 'absent').length;
-    const late = Object.values(attendance).filter(a => a.status === 'late').length;
-    const excused = Object.values(attendance).filter(a => a.status === 'excused').length;
-    
+    const present = Object.values(attendance).filter(
+      (a) => a.status === "present"
+    ).length;
+    const absent = Object.values(attendance).filter(
+      (a) => a.status === "absent"
+    ).length;
+    const late = Object.values(attendance).filter(
+      (a) => a.status === "late"
+    ).length;
+    const excused = Object.values(attendance).filter(
+      (a) => a.status === "excused"
+    ).length;
+
     return { total, present, absent, late, excused };
   }, [attendance]);
 
@@ -244,18 +308,6 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-white" />
-            </div>
-            Attendance Management
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
       {/* Controls */}
       <Card>
         <CardHeader>
@@ -274,7 +326,9 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
                 </SelectTrigger>
                 <SelectContent>
                   {classes?.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -300,15 +354,23 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
             </div>
 
             <div className="flex items-end">
-              <Button onClick={markAllPresent} variant="outline" className="w-full">
+              <Button
+                onClick={markAllPresent}
+                variant="outline"
+                className="w-full"
+              >
                 Mark All Present
               </Button>
             </div>
           </div>
 
           <div className="flex gap-4 mt-4 text-sm">
-            <Badge variant="outline">Term: {academicInfo.term || 'Not Set'}</Badge>
-            <Badge variant="outline">Year: {academicInfo.year || 'Not Set'}</Badge>
+            <Badge variant="outline">
+              Term: {academicInfo.term || "Not Set"}
+            </Badge>
+            <Badge variant="outline">
+              Year: {academicInfo.year || "Not Set"}
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -319,23 +381,33 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
           <CardContent className="p-4">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
               <div className="p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{attendanceStats.total}</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {attendanceStats.total}
+                </div>
                 <div className="text-sm text-blue-600">Total</div>
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{attendanceStats.present}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {attendanceStats.present}
+                </div>
                 <div className="text-sm text-green-600">Present</div>
               </div>
               <div className="p-3 bg-red-50 rounded-lg">
-                <div className="text-2xl font-bold text-red-600">{attendanceStats.absent}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {attendanceStats.absent}
+                </div>
                 <div className="text-sm text-red-600">Absent</div>
               </div>
               <div className="p-3 bg-yellow-50 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600">{attendanceStats.late}</div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {attendanceStats.late}
+                </div>
                 <div className="text-sm text-yellow-600">Late</div>
               </div>
               <div className="p-3 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{attendanceStats.excused}</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {attendanceStats.excused}
+                </div>
                 <div className="text-sm text-purple-600">Excused</div>
               </div>
             </div>
@@ -349,13 +421,16 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Student Attendance</CardTitle>
-              <Button 
-                onClick={() => submitAttendance.mutate()} 
-                disabled={Object.keys(attendance).length === 0 || submitAttendance.isPending}
+              <Button
+                onClick={() => submitAttendance.mutate()}
+                disabled={
+                  Object.keys(attendance).length === 0 ||
+                  submitAttendance.isPending
+                }
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {submitAttendance.isPending ? 'Saving...' : 'Save Attendance'}
+                {submitAttendance.isPending ? "Saving..." : "Save Attendance"}
               </Button>
             </div>
           </CardHeader>
@@ -370,8 +445,12 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold">Student Name</TableHead>
-                      <TableHead className="font-semibold">Admission No.</TableHead>
+                      <TableHead className="font-semibold">
+                        Student Name
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        Admission No.
+                      </TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold">Remarks</TableHead>
                     </TableRow>
@@ -379,16 +458,28 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
                   <TableBody>
                     {students.map((student) => (
                       <TableRow key={student.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell className="text-gray-600">{student.admission_number}</TableCell>
+                        <TableCell className="font-medium">
+                          {student.name}
+                        </TableCell>
+                        <TableCell className="text-gray-600">
+                          {student.admission_number}
+                        </TableCell>
                         <TableCell>
-                          <Select 
-                            value={attendance[student.id]?.status || 'present'} 
-                            onValueChange={(value) => handleStatusChange(student.id, value)}
+                          <Select
+                            value={attendance[student.id]?.status || "present"}
+                            onValueChange={(value) =>
+                              handleStatusChange(student.id, value)
+                            }
                           >
-                            <SelectTrigger className={`w-32 ${getStatusColor(attendance[student.id]?.status || 'present')}`}>
+                            <SelectTrigger
+                              className={`w-32 ${getStatusColor(
+                                attendance[student.id]?.status || "present"
+                              )}`}
+                            >
                               <div className="flex items-center gap-2">
-                                {getStatusIcon(attendance[student.id]?.status || 'present')}
+                                {getStatusIcon(
+                                  attendance[student.id]?.status || "present"
+                                )}
                                 <SelectValue />
                               </div>
                             </SelectTrigger>
@@ -422,8 +513,10 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
                         </TableCell>
                         <TableCell>
                           <Textarea
-                            value={attendance[student.id]?.remarks || ''}
-                            onChange={(e) => handleRemarksChange(student.id, e.target.value)}
+                            value={attendance[student.id]?.remarks || ""}
+                            onChange={(e) =>
+                              handleRemarksChange(student.id, e.target.value)
+                            }
                             placeholder="Add remarks (optional)"
                             className="min-h-[60px] resize-none"
                           />
@@ -437,7 +530,8 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({ userId,
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-muted-foreground">
-                  No students found for the selected class. Please check class setup and student assignments.
+                  No students found for the selected class. Please check class
+                  setup and student assignments.
                 </p>
               </div>
             )}

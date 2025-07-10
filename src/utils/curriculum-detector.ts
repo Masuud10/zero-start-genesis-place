@@ -39,26 +39,28 @@ export const detectCurriculumType = (curriculumValue: string | undefined | null)
 };
 
 export const getCurriculumDisplayName = (curriculumType: string): string => {
-  const normalized = curriculumType?.toLowerCase() || '';
-  switch (normalized) {
-    case 'cbc':
-      return 'CBC (Competency-Based Curriculum)';
-    case 'igcse':
-      return 'IGCSE (International General Certificate)';
+  switch (curriculumType?.toLowerCase()) {
+    case "cbc":
+      return "CBC Curriculum";
+    case "igcse":
+      return "IGCSE Curriculum";
+    case "standard":
+      return "Standard Curriculum";
     default:
-      return 'Standard Curriculum';
+      return "Standard Curriculum";
   }
 };
 
 export const getCurriculumBadgeColor = (curriculumType: string): string => {
-  const normalized = curriculumType?.toLowerCase() || '';
-  switch (normalized) {
-    case 'cbc':
-      return 'bg-green-100 text-green-800 border-green-200';
-    case 'igcse':
-      return 'bg-purple-100 text-purple-800 border-purple-200';
+  switch (curriculumType?.toLowerCase()) {
+    case "cbc":
+      return "bg-green-100 text-green-800 border-green-200";
+    case "igcse":
+      return "bg-purple-100 text-purple-800 border-purple-200";
+    case "standard":
+      return "bg-blue-100 text-blue-800 border-blue-200";
     default:
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return "bg-gray-100 text-gray-800 border-gray-200";
   }
 };
 
