@@ -142,11 +142,20 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
     isPrincipal || user?.role === "principal" || user?.role === "edufam_admin";
 
   // Determine if view-only mode should be enforced
-  const isViewOnly =
-    isReadOnly ||
-    grades[Object.keys(grades)[0]]?.[
-      Object.keys(grades[Object.keys(grades)[0]] || {})[0]
-    ]?.status === "released";
+  const isViewOnly = React.useMemo(() => {
+    if (isReadOnly) return true;
+    // If there are no grades, not view only
+    const studentIds = Object.keys(grades);
+    if (studentIds.length === 0) return false;
+    const allReleased = studentIds.every((studentId) => {
+      const subjectIds = Object.keys(grades[studentId] || {});
+      if (subjectIds.length === 0) return false;
+      return subjectIds.every(
+        (subjectId) => grades[studentId][subjectId]?.status === "released"
+      );
+    });
+    return allReleased;
+  }, [isReadOnly, grades]);
 
   // Load grading data
   const loadGradingData = useCallback(async () => {
@@ -351,8 +360,14 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
 
   // Save as draft
   const saveAsDraft = useCallback(async () => {
-    if (!schoolId || !classId || !term || !examType || !hasUnsavedChanges)
+    if (!schoolId || !classId || !term || !examType || !hasUnsavedChanges) {
+      toast({
+        title: "Missing Required Fields",
+        description: "School, class, term, or exam type is missing.",
+        variant: "destructive",
+      });
       return;
+    }
 
     try {
       setSaving(true);
@@ -367,6 +382,7 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
             subject_id: subjectId,
             term,
             exam_type: examType,
+            academic_year: new Date().getFullYear().toString(),
             score: gradeData.score,
             letter_grade: gradeData.letter_grade,
             cbc_performance_level: gradeData.cbc_performance_level,
@@ -381,12 +397,45 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
           }))
       );
 
+      // Check for required fields in each grade
+      for (const g of gradesToSave) {
+        if (
+          !g.school_id ||
+          !g.class_id ||
+          !g.student_id ||
+          !g.subject_id ||
+          !g.term ||
+          !g.exam_type
+        ) {
+          toast({
+            title: "Missing Required Fields",
+            description: `A grade is missing a required field: ${JSON.stringify(
+              g
+            )}`,
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+      }
+
       // Use upsert to handle both insert and update
       const { error } = await supabase.from("grades").upsert(gradesToSave, {
-        onConflict: "school_id,class_id,student_id,subject_id,term,exam_type",
+        onConflict:
+          "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Error saving grades:", error, gradesToSave);
+        setSaving(false);
+        toast({
+          title: "Save Failed",
+          description:
+            error.message || "Failed to save grades. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       setHasUnsavedChanges(false);
       setLastSaved(new Date());
@@ -427,7 +476,14 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
 
   // Submit grades for approval
   const handleSubmitGrades = useCallback(async () => {
-    if (!schoolId || !classId || !term || !examType) return;
+    if (!schoolId || !classId || !term || !examType) {
+      toast({
+        title: "Missing Required Fields",
+        description: "School, class, term, or exam type is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -449,6 +505,7 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
           description: "Please fill in all grades before submitting.",
           variant: "destructive",
         });
+        setSubmitting(false);
         return;
       }
 
@@ -461,6 +518,7 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
             subject_id: subjectId,
             term,
             exam_type: examType,
+            academic_year: new Date().getFullYear().toString(),
             score: gradeData.score,
             letter_grade: gradeData.letter_grade,
             cbc_performance_level: gradeData.cbc_performance_level,
@@ -476,11 +534,44 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
           }))
       );
 
+      // Check for required fields in each grade
+      for (const g of gradesToSubmit) {
+        if (
+          !g.school_id ||
+          !g.class_id ||
+          !g.student_id ||
+          !g.subject_id ||
+          !g.term ||
+          !g.exam_type
+        ) {
+          toast({
+            title: "Missing Required Fields",
+            description: `A grade is missing a required field: ${JSON.stringify(
+              g
+            )}`,
+            variant: "destructive",
+          });
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from("grades").upsert(gradesToSubmit, {
-        onConflict: "school_id,class_id,student_id,subject_id,term,exam_type",
+        onConflict:
+          "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Error submitting grades:", error, gradesToSubmit);
+        setSubmitting(false);
+        toast({
+          title: "Submission Failed",
+          description:
+            error.message || "Failed to submit grades. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       setHasUnsavedChanges(false);
       setSubmitting(false);

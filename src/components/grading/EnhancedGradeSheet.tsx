@@ -1,16 +1,28 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import { useToast } from '@/hooks/use-toast';
-import { Save, Send, FileSpreadsheet, Users, CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Save,
+  Send,
+  FileSpreadsheet,
+  Users,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
 
 interface Student {
   id: string;
@@ -44,7 +56,7 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
   classId,
   term,
   examType,
-  onSubmissionSuccess
+  onSubmissionSuccess,
 }) => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
@@ -52,7 +64,9 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
 
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [grades, setGrades] = useState<Record<string, Record<string, GradeEntry>>>({});
+  const [grades, setGrades] = useState<
+    Record<string, Record<string, GradeEntry>>
+  >({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -69,68 +83,76 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
     try {
       // Load students
       const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, name, admission_number, roll_number')
-        .eq('class_id', classId)
-        .eq('school_id', schoolId)
-        .eq('is_active', true)
-        .order('name');
+        .from("students")
+        .select("id, name, admission_number, roll_number")
+        .eq("class_id", classId)
+        .eq("school_id", schoolId)
+        .eq("is_active", true)
+        .order("name");
 
       if (studentsError) throw studentsError;
 
       // Load subjects for teacher
       const { data: subjectsData, error: subjectsError } = await supabase
-        .from('subject_teacher_assignments')
-        .select(`
+        .from("subject_teacher_assignments")
+        .select(
+          `
           subject:subjects(id, name, code, max_score)
-        `)
-        .eq('teacher_id', user?.id)
-        .eq('class_id', classId)
-        .eq('school_id', schoolId)
-        .eq('is_active', true);
+        `
+        )
+        .eq("teacher_id", user?.id)
+        .eq("class_id", classId)
+        .eq("school_id", schoolId)
+        .eq("is_active", true);
 
       if (subjectsError) throw subjectsError;
 
-      const processedSubjects = subjectsData
-        ?.map((item: any) => item.subject)
-        .filter((s: any) => s && s.id) || [];
+      const processedSubjects =
+        subjectsData
+          ?.map((item: any) => item.subject)
+          .filter((s: any) => s && s.id) || [];
 
       setStudents(studentsData || []);
       setSubjects(processedSubjects);
 
       // Load existing grades
       await loadExistingGrades(studentsData || [], processedSubjects);
-
     } catch (error) {
-      console.error('Error loading class data:', error);
+      console.error("Error loading class data:", error);
       toast({
         title: "Error",
         description: "Failed to load class data",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const loadExistingGrades = async (studentsList: Student[], subjectsList: Subject[]) => {
+  const loadExistingGrades = async (
+    studentsList: Student[],
+    subjectsList: Subject[]
+  ) => {
     if (!studentsList.length || !subjectsList.length) return;
 
     try {
       const { data: existingGrades, error } = await supabase
-        .from('grades')
-        .select('*')
-        .eq('class_id', classId)
-        .eq('term', term)
-        .eq('exam_type', examType)
-        .eq('school_id', schoolId)
-        .in('subject_id', subjectsList.map(s => s.id));
+        .from("grades")
+        .select("*")
+        .eq("class_id", classId)
+        .eq("term", term)
+        .eq("exam_type", examType)
+        .eq("school_id", schoolId)
+        .in(
+          "subject_id",
+          subjectsList.map((s) => s.id)
+        );
 
       if (error) throw error;
 
       const gradesMap: Record<string, Record<string, GradeEntry>> = {};
-      
-      existingGrades?.forEach(grade => {
+
+      existingGrades?.forEach((grade) => {
         if (!gradesMap[grade.student_id]) {
           gradesMap[grade.student_id] = {};
         }
@@ -138,7 +160,7 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
           student_id: grade.student_id,
           subject_id: grade.subject_id,
           score: grade.score,
-          comments: grade.comments
+          comments: grade.comments,
         };
       });
 
@@ -146,28 +168,32 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
 
       // Check for existing batch
       const { data: batchData } = await supabase
-        .from('grade_submission_batches')
-        .select('id')
-        .eq('class_id', classId)
-        .eq('term', term)
-        .eq('exam_type', examType)
-        .eq('submitted_by', user?.id)
-        .eq('school_id', schoolId)
+        .from("grade_submission_batches")
+        .select("id")
+        .eq("class_id", classId)
+        .eq("term", term)
+        .eq("exam_type", examType)
+        .eq("submitted_by", user?.id)
+        .eq("school_id", schoolId)
         .single();
 
       if (batchData) {
         setBatchId(batchData.id);
       }
-
     } catch (error) {
-      console.error('Error loading existing grades:', error);
+      console.error("Error loading existing grades:", error);
     }
   };
 
-  const updateGrade = (studentId: string, subjectId: string, score: string, comments?: string) => {
-    const numericScore = score === '' ? null : parseFloat(score);
-    
-    setGrades(prev => ({
+  const updateGrade = (
+    studentId: string,
+    subjectId: string,
+    score: string,
+    comments?: string
+  ) => {
+    const numericScore = score === "" ? null : parseFloat(score);
+
+    setGrades((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
@@ -175,14 +201,18 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
           student_id: studentId,
           subject_id: subjectId,
           score: numericScore,
-          comments: comments || prev[studentId]?.[subjectId]?.comments
-        }
-      }
+          comments: comments || prev[studentId]?.[subjectId]?.comments,
+        },
+      },
     }));
   };
 
-  const updateComments = (studentId: string, subjectId: string, comments: string) => {
-    setGrades(prev => ({
+  const updateComments = (
+    studentId: string,
+    subjectId: string,
+    comments: string
+  ) => {
+    setGrades((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
@@ -190,9 +220,9 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
           ...prev[studentId]?.[subjectId],
           student_id: studentId,
           subject_id: subjectId,
-          comments: comments
-        }
-      }
+          comments: comments,
+        },
+      },
     }));
   };
 
@@ -200,9 +230,9 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
     setSaving(true);
     try {
       const gradesToSave: any[] = [];
-      
-      Object.values(grades).forEach(studentGrades => {
-        Object.values(studentGrades).forEach(grade => {
+
+      Object.values(grades).forEach((studentGrades) => {
+        Object.values(studentGrades).forEach((grade) => {
           if (grade.score !== null || grade.comments) {
             gradesToSave.push({
               student_id: grade.student_id,
@@ -211,11 +241,13 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
               term,
               exam_type: examType,
               score: grade.score,
-              max_score: subjects.find(s => s.id === grade.subject_id)?.max_score || 100,
+              max_score:
+                subjects.find((s) => s.id === grade.subject_id)?.max_score ||
+                100,
               comments: grade.comments,
               submitted_by: user?.id,
               school_id: schoolId,
-              status: 'draft'
+              status: "draft",
             });
           }
         });
@@ -225,17 +257,16 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
         toast({
           title: "No Grades to Save",
           description: "Please enter some grades before saving",
-          variant: "default"
+          variant: "default",
         });
         return;
       }
 
       // Upsert grades
-      const { error } = await supabase
-        .from('grades')
-        .upsert(gradesToSave, {
-          onConflict: 'student_id,subject_id,class_id,term,exam_type'
-        });
+      const { error } = await supabase.from("grades").upsert(gradesToSave, {
+        onConflict:
+          "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
+      });
 
       if (error) throw error;
 
@@ -243,13 +274,12 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
         title: "Grades Saved",
         description: `${gradesToSave.length} grades saved successfully`,
       });
-
     } catch (error) {
-      console.error('Error saving grades:', error);
+      console.error("Error saving grades:", error);
       toast({
         title: "Save Failed",
         description: "Failed to save grades",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -270,11 +300,11 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
         school_id: schoolId,
         submitted_by: user?.id,
         batch_name: `${term} - ${examType} - ${new Date().toLocaleDateString()}`,
-        curriculum_type: 'standard',
+        curriculum_type: "standard",
         academic_year: new Date().getFullYear().toString(),
         total_students: students.length,
         grades_entered: Object.keys(grades).length,
-        status: 'submitted'
+        status: "submitted",
       };
 
       let currentBatchId = batchId;
@@ -282,20 +312,20 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
       if (batchId) {
         // Update existing batch
         const { error } = await supabase
-          .from('grade_submission_batches')
+          .from("grade_submission_batches")
           .update({
             ...batchData,
-            submitted_at: new Date().toISOString()
+            submitted_at: new Date().toISOString(),
           })
-          .eq('id', batchId);
+          .eq("id", batchId);
 
         if (error) throw error;
       } else {
         // Create new batch
         const { data, error } = await supabase
-          .from('grade_submission_batches')
+          .from("grade_submission_batches")
           .insert(batchData)
-          .select('id')
+          .select("id")
           .single();
 
         if (error) throw error;
@@ -305,16 +335,16 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
 
       // Update grades status to submitted
       const { error: updateError } = await supabase
-        .from('grades')
+        .from("grades")
         .update({
-          status: 'submitted',
+          status: "submitted",
           submission_batch_id: currentBatchId,
-          submitted_at: new Date().toISOString()
+          submitted_at: new Date().toISOString(),
         })
-        .eq('class_id', classId)
-        .eq('term', term)
-        .eq('exam_type', examType)
-        .eq('submitted_by', user?.id);
+        .eq("class_id", classId)
+        .eq("term", term)
+        .eq("exam_type", examType)
+        .eq("submitted_by", user?.id);
 
       if (updateError) throw updateError;
 
@@ -324,13 +354,12 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
       });
 
       onSubmissionSuccess?.();
-
     } catch (error) {
-      console.error('Error submitting grades:', error);
+      console.error("Error submitting grades:", error);
       toast({
         title: "Submission Failed",
         description: "Failed to submit grades for approval",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setSubmitting(false);
@@ -341,8 +370,8 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
     let totalGrades = 0;
     let enteredGrades = 0;
 
-    students.forEach(student => {
-      subjects.forEach(subject => {
+    students.forEach((student) => {
+      subjects.forEach((subject) => {
         totalGrades++;
         if (grades[student.id]?.[subject.id]?.score !== null) {
           enteredGrades++;
@@ -404,7 +433,7 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
-              {saving ? 'Saving...' : 'Save Draft'}
+              {saving ? "Saving..." : "Save Draft"}
             </Button>
             <Button
               onClick={submitForApproval}
@@ -412,7 +441,7 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
             >
               <Send className="h-4 w-4" />
-              {submitting ? 'Submitting...' : 'Submit for Approval'}
+              {submitting ? "Submitting..." : "Submit for Approval"}
             </Button>
           </div>
         </CardContent>
@@ -428,11 +457,16 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
                   <th className="p-4 text-left font-medium text-gray-900 min-w-[200px]">
                     Student
                   </th>
-                  {subjects.map(subject => (
-                    <th key={subject.id} className="p-4 text-center font-medium text-gray-900 min-w-[120px]">
+                  {subjects.map((subject) => (
+                    <th
+                      key={subject.id}
+                      className="p-4 text-center font-medium text-gray-900 min-w-[120px]"
+                    >
                       <div>
                         <div>{subject.name}</div>
-                        <div className="text-xs text-gray-500">/{subject.max_score}</div>
+                        <div className="text-xs text-gray-500">
+                          /{subject.max_score}
+                        </div>
                       </div>
                     </th>
                   ))}
@@ -440,16 +474,22 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
               </thead>
               <tbody>
                 {students.map((student, index) => (
-                  <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}>
+                  <tr
+                    key={student.id}
+                    className={index % 2 === 0 ? "bg-white" : "bg-gray-25"}
+                  >
                     <td className="p-4 border-r">
                       <div>
-                        <div className="font-medium text-gray-900">{student.name}</div>
+                        <div className="font-medium text-gray-900">
+                          {student.name}
+                        </div>
                         <div className="text-sm text-gray-500">
-                          {student.admission_number} • Roll: {student.roll_number}
+                          {student.admission_number} • Roll:{" "}
+                          {student.roll_number}
                         </div>
                       </div>
                     </td>
-                    {subjects.map(subject => (
+                    {subjects.map((subject) => (
                       <td key={subject.id} className="p-2 text-center border-r">
                         <div className="space-y-2">
                           <Input
@@ -457,14 +497,30 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
                             min="0"
                             max={subject.max_score}
                             step="0.5"
-                            value={grades[student.id]?.[subject.id]?.score || ''}
-                            onChange={(e) => updateGrade(student.id, subject.id, e.target.value)}
+                            value={
+                              grades[student.id]?.[subject.id]?.score || ""
+                            }
+                            onChange={(e) =>
+                              updateGrade(
+                                student.id,
+                                subject.id,
+                                e.target.value
+                              )
+                            }
                             className="text-center h-12 text-lg font-medium"
                             placeholder="--"
                           />
                           <Textarea
-                            value={grades[student.id]?.[subject.id]?.comments || ''}
-                            onChange={(e) => updateComments(student.id, subject.id, e.target.value)}
+                            value={
+                              grades[student.id]?.[subject.id]?.comments || ""
+                            }
+                            onChange={(e) =>
+                              updateComments(
+                                student.id,
+                                subject.id,
+                                e.target.value
+                              )
+                            }
                             placeholder="Comments..."
                             className="text-xs h-16 resize-none"
                             rows={2}
@@ -486,7 +542,8 @@ export const EnhancedGradeSheet: React.FC<EnhancedGradeSheetProps> = ({
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
               <span className="text-orange-800">
-                {totalGrades - enteredGrades} grades remaining to complete the grade sheet
+                {totalGrades - enteredGrades} grades remaining to complete the
+                grade sheet
               </span>
             </div>
           </CardContent>

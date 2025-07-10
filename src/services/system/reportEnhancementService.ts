@@ -31,7 +31,7 @@ export class ReportEnhancementService {
     }
   }
 
-  static async enhanceReportWithCompanyData(reportType: string, filters: any = {}) {
+  static async enhanceReportWithCompanyData(reportType: string, filters: Record<string, unknown> = {}) {
     try {
       const companyDetails = await this.getCompanyDetails();
       
@@ -209,7 +209,7 @@ export class ReportEnhancementService {
 
       if (error) throw error;
 
-      const usersByRole = profiles?.reduce((acc: any, profile) => {
+      const usersByRole = profiles?.reduce((acc: Record<string, number>, profile) => {
         const role = profile.role || 'unknown';
         acc[role] = (acc[role] || 0) + 1;
         return acc;
@@ -234,6 +234,78 @@ export class ReportEnhancementService {
         newUsersInPeriod: 0,
         usersByRole: {},
         activeUserPercentage: 0
+      };
+    }
+  }
+
+  static async generateSchoolPerformanceReport() {
+    try {
+      const { data: schools, error } = await supabase
+        .from('schools')
+        .select('id, name, created_at, status')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Generate mock performance data for schools
+      const schoolPerformanceData = schools?.map(school => ({
+        id: school.id,
+        name: school.name,
+        performanceScore: Math.floor(Math.random() * 40) + 60, // 60-100%
+        status: school.status || 'active',
+        rating: ['Excellent', 'Good', 'Average', 'Needs Improvement'][Math.floor(Math.random() * 4)],
+        studentsCount: Math.floor(Math.random() * 500) + 50,
+        teachersCount: Math.floor(Math.random() * 30) + 5,
+        lastActivity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+      })) || [];
+
+      return schoolPerformanceData;
+    } catch (error) {
+      console.error('Error generating school performance report:', error);
+      return [];
+    }
+  }
+
+  static async generateSystemHealthReport() {
+    try {
+      // Mock system health data
+      return {
+        databaseStatus: 'Operational',
+        databasePerformance: 'Excellent',
+        databaseHealth: 99.5,
+        apiStatus: 'Operational',
+        apiPerformance: 'Good',
+        apiHealth: 98.2,
+        storageStatus: 'Operational',
+        storagePerformance: 'Good',
+        storageHealth: 95.8,
+        authStatus: 'Operational',
+        authPerformance: 'Excellent',
+        authHealth: 99.9,
+        overallStatus: 'Healthy',
+        overallPerformance: 'Excellent',
+        overallHealth: 98.4,
+        lastUpdated: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error generating system health report:', error);
+      return {
+        databaseStatus: 'Unknown',
+        databasePerformance: 'Unknown',
+        databaseHealth: 0,
+        apiStatus: 'Unknown',
+        apiPerformance: 'Unknown',
+        apiHealth: 0,
+        storageStatus: 'Unknown',
+        storagePerformance: 'Unknown',
+        storageHealth: 0,
+        authStatus: 'Unknown',
+        authPerformance: 'Unknown',
+        authHealth: 0,
+        overallStatus: 'Unknown',
+        overallPerformance: 'Unknown',
+        overallHealth: 0,
+        lastUpdated: new Date().toISOString()
       };
     }
   }

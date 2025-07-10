@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -8,39 +8,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  FileText,
-  Download,
-  Calendar,
-  CheckCircle,
-  AlertCircle,
-  FileSpreadsheet,
-  School,
-  Users,
-  GraduationCap,
-  DollarSign,
-  BarChart3,
-  Clock,
-} from "lucide-react";
+import { Calendar, Download, FileText, BarChart3, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import {
   UnifiedReportService,
   ReportData,
 } from "@/services/unifiedReportService";
 import { reportExportService } from "@/services/reportExportService";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 
 interface UnifiedReportGeneratorProps {
-  userRole: string;
-  onReportGenerated?: (reportData: ReportData) => void;
+  onReportGenerated?: (report: ReportData) => void;
 }
 
 const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
-  userRole,
   onReportGenerated,
 }) => {
   const [reportType, setReportType] = useState<string>("");
@@ -48,86 +31,62 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  const [classId, setClassId] = useState<string>("");
-  const [studentId, setStudentId] = useState<string>("");
-  const [schoolId, setSchoolId] = useState<string>("");
-
+  const { toast } = useToast();
   const { user } = useAuth();
   const { schoolId: userSchoolId } = useSchoolScopedData();
-  const { toast } = useToast();
 
-  // Define available report types for each role
-  const getAvailableReports = () => {
-    switch (userRole) {
-      case "principal":
-        return [
-          {
-            value: "principal-academic",
-            label: "Academic Performance Report",
-            icon: <GraduationCap className="h-4 w-4" />,
-          },
-          {
-            value: "principal-attendance",
-            label: "Attendance Overview Report",
-            icon: <Calendar className="h-4 w-4" />,
-          },
-          {
-            value: "principal-financial",
-            label: "Financial Overview Report",
-            icon: <DollarSign className="h-4 w-4" />,
-          },
-        ];
-      case "teacher":
-        return [
-          {
-            value: "teacher-class",
-            label: "Class Performance Report",
-            icon: <School className="h-4 w-4" />,
-          },
-        ];
-      case "finance_officer":
-        return [
-          {
-            value: "finance-collection",
-            label: "Fee Collection Report",
-            icon: <DollarSign className="h-4 w-4" />,
-          },
-          {
-            value: "finance-analytics",
-            label: "Financial Analytics Report",
-            icon: <BarChart3 className="h-4 w-4" />,
-          },
-        ];
-      case "parent":
-        return [
-          {
-            value: "parent-student",
-            label: "Student Academic Report",
-            icon: <Users className="h-4 w-4" />,
-          },
-        ];
-      case "edufam_admin":
-        return [
-          {
-            value: "system-overview",
-            label: "System Overview Report",
-            icon: <BarChart3 className="h-4 w-4" />,
-          },
-        ];
-      case "school_owner":
-        return [
-          {
-            value: "school-owner",
-            label: "School Owner Summary Report",
-            icon: <School className="h-4 w-4" />,
-          },
-        ];
-      default:
-        return [];
-    }
-  };
+  const availableReports = [
+    {
+      value: "principal-academic",
+      label: "Academic Performance Report",
+      description: "Comprehensive academic performance analysis",
+      icon: FileText,
+      category: "academic",
+    },
+    {
+      value: "principal-attendance",
+      label: "Attendance Summary Report",
+      description: "Student attendance patterns and trends",
+      icon: Calendar,
+      category: "attendance",
+    },
+    {
+      value: "principal-financial",
+      label: "Financial Overview Report",
+      description: "School financial performance and revenue analysis",
+      icon: BarChart3,
+      category: "financial",
+    },
+    {
+      value: "finance-collection",
+      label: "Fee Collection Report",
+      description: "Detailed fee collection and outstanding balances",
+      icon: Download,
+      category: "financial",
+    },
+    {
+      value: "finance-analytics",
+      label: "Financial Analytics Report",
+      description: "Advanced financial metrics and trends",
+      icon: BarChart3,
+      category: "financial",
+    },
+    {
+      value: "system-overview",
+      label: "System Overview Report",
+      description: "Platform-wide statistics and performance metrics",
+      icon: BarChart3,
+      category: "system",
+    },
+    {
+      value: "school-owner",
+      label: "School Owner Dashboard Report",
+      description: "Comprehensive school management overview",
+      icon: FileText,
+      category: "management",
+    },
+  ];
 
-  const availableReports = getAvailableReports();
   const selectedReport = availableReports.find((r) => r.value === reportType);
 
   const handleGenerateReport = async () => {
@@ -145,10 +104,11 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
     try {
       let reportData: ReportData;
 
-      // Generate report based on type
+      // Generate report based on type with enhanced error handling
       switch (reportType) {
         case "principal-academic":
-          if (!userSchoolId) throw new Error("School ID required");
+          if (!userSchoolId)
+            throw new Error("School ID required for academic report");
           reportData =
             await UnifiedReportService.generatePrincipalAcademicReport(
               userSchoolId,
@@ -157,7 +117,8 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
           break;
 
         case "principal-attendance":
-          if (!userSchoolId) throw new Error("School ID required");
+          if (!userSchoolId)
+            throw new Error("School ID required for attendance report");
           reportData =
             await UnifiedReportService.generatePrincipalAttendanceReport(
               userSchoolId,
@@ -168,7 +129,8 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
           break;
 
         case "principal-financial":
-          if (!userSchoolId) throw new Error("School ID required");
+          if (!userSchoolId)
+            throw new Error("School ID required for financial report");
           reportData =
             await UnifiedReportService.generatePrincipalFinancialReport(
               userSchoolId,
@@ -177,7 +139,8 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
           break;
 
         case "finance-collection":
-          if (!userSchoolId) throw new Error("School ID required");
+          if (!userSchoolId)
+            throw new Error("School ID required for collection report");
           reportData =
             await UnifiedReportService.generateFinanceCollectionReport(
               userSchoolId,
@@ -188,7 +151,8 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
           break;
 
         case "finance-analytics":
-          if (!userSchoolId) throw new Error("School ID required");
+          if (!userSchoolId)
+            throw new Error("School ID required for analytics report");
           reportData =
             await UnifiedReportService.generateFinanceAnalyticsReport(
               userSchoolId,
@@ -203,7 +167,8 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
           break;
 
         case "school-owner":
-          if (!userSchoolId) throw new Error("School ID required");
+          if (!userSchoolId)
+            throw new Error("School ID required for school owner report");
           reportData = await UnifiedReportService.generateSchoolOwnerReport(
             userSchoolId,
             user.id
@@ -211,10 +176,15 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
           break;
 
         default:
-          throw new Error("Invalid report type");
+          throw new Error("Invalid report type selected");
       }
 
-      // Export the report
+      // Validate report data before export
+      if (!reportData) {
+        throw new Error("Failed to generate report data");
+      }
+
+      // Export the report using enhanced export service
       const exportOptions = {
         format,
         includeLogo: true,
@@ -222,7 +192,10 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
         includeFooter: true,
       };
 
-      await reportExportService.exportReport(reportData, 'generated_report', format);
+      const fileName = `${reportType.replace(/-/g, "_")}_${
+        new Date().toISOString().split("T")[0]
+      }`;
+      await reportExportService.exportReport(reportData, fileName, format);
 
       // Success notification
       toast({
@@ -243,7 +216,7 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
         description:
           error instanceof Error
             ? error.message
-            : "An error occurred while generating the report.",
+            : "An error occurred while generating the report. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -256,155 +229,106 @@ const UnifiedReportGenerator: React.FC<UnifiedReportGeneratorProps> = ({
     "finance-collection",
   ].includes(reportType);
   const needsClassId = reportType === "teacher-class";
-  const needsStudentId = reportType === "parent-student";
-  const needsSchoolId = reportType === "school-performance";
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-        <CardTitle className="flex items-center gap-2 text-blue-900">
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          EduFam Report Generator
+          Generate Professional Reports
         </CardTitle>
-        <p className="text-sm text-blue-700">
-          Generate professional reports with real-time data and EduFam branding
-        </p>
       </CardHeader>
-
-      <CardContent className="space-y-6 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Report Type Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="report-type">Report Type</Label>
-            <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger id="report-type" className="w-full">
-                <SelectValue placeholder="Select a report type" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableReports.map((type) => (
-                  <SelectItem
-                    key={type.value}
-                    value={type.value}
-                    className="py-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      {type.icon}
-                      <span className="font-medium">{type.label}</span>
+      <CardContent className="space-y-6">
+        {/* Report Type Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="reportType">Report Type</Label>
+          <Select value={reportType} onValueChange={setReportType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a report type" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableReports.map((report) => (
+                <SelectItem key={report.value} value={report.value}>
+                  <div className="flex items-center gap-2">
+                    <report.icon className="h-4 w-4" />
+                    <div>
+                      <div className="font-medium">{report.label}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {report.description}
+                      </div>
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {/* Export Format Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="export-format">Export Format</Label>
-            <Select
-              value={format}
-              onValueChange={(value: "pdf" | "excel") => setFormat(value)}
+        {/* Date Range Selection */}
+        {needsDateRange && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start Date</Label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endDate">End Date</Label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Export Format Selection */}
+        <div className="space-y-2">
+          <Label>Export Format</Label>
+          <div className="flex gap-2">
+            <Button
+              variant={format === "pdf" ? "default" : "outline"}
+              onClick={() => setFormat("pdf")}
+              className="flex-1"
             >
-              <SelectTrigger id="export-format">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pdf">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-red-600" />
-                    <span>Professional PDF</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="excel">
-                  <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                    <span>Excel/CSV</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              <FileText className="mr-2 h-4 w-4" />
+              PDF Document
+            </Button>
+            <Button
+              variant={format === "excel" ? "default" : "outline"}
+              onClick={() => setFormat("excel")}
+              className="flex-1"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Excel Spreadsheet
+            </Button>
           </div>
         </div>
 
-        {/* Conditional Fields */}
-        {needsDateRange && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="start-date">Start Date</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="end-date">End Date</Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
-        {needsClassId && (
-          <div className="space-y-2">
-            <Label htmlFor="class-id">Class ID</Label>
-            <Input
-              id="class-id"
-              placeholder="Enter class ID"
-              value={classId}
-              onChange={(e) => setClassId(e.target.value)}
-            />
-          </div>
-        )}
-
-        {needsStudentId && (
-          <div className="space-y-2">
-            <Label htmlFor="student-id">Student ID</Label>
-            <Input
-              id="student-id"
-              placeholder="Enter student ID"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-            />
-          </div>
-        )}
-
-        {needsSchoolId && (
-          <div className="space-y-2">
-            <Label htmlFor="school-id">School ID</Label>
-            <Input
-              id="school-id"
-              placeholder="Enter school ID"
-              value={schoolId}
-              onChange={(e) => setSchoolId(e.target.value)}
-            />
-          </div>
-        )}
-
         {/* Report Preview */}
         {selectedReport && (
-          <div className="bg-gray-50 p-4 rounded-lg border">
-            <h4 className="font-medium text-gray-900 mb-2">Report Preview</h4>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>School Logo & Branding</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>Real Database Data</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>Timestamp & Metadata</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 text-green-600" />
-                <span>Powered by EduFam Footer</span>
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <selectedReport.icon className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-900">
+                  {selectedReport.label}
+                </h4>
+                <p className="text-sm text-blue-700 mt-1">
+                  {selectedReport.description}
+                </p>
+                <p className="text-xs text-blue-600 mt-2">
+                  Category: {selectedReport.category} • Format:{" "}
+                  {format.toUpperCase()}
+                </p>
               </div>
             </div>
           </div>

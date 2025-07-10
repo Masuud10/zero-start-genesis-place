@@ -57,6 +57,7 @@ import {
   FinancialReportData,
   FinancialReportFilters,
 } from "@/services/financialReportService";
+import { reportExportService } from "@/services/reportExportService";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -310,72 +311,11 @@ const FinancialReportsPanel: React.FC = () => {
     return acc;
   }, {} as Record<string, typeof reportTypes>);
 
-  const handleGenerateReport = async (type: EnhancedReportType) => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to generate reports.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleGenerateReport = async (type: string) => {
     if (!schoolId) {
       toast({
-        title: "School Required",
-        description: "School information is required to generate reports.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate custom date range if selected
-    if (dateRange === "custom") {
-      if (!startDate || !endDate) {
-        toast({
-          title: "Date Range Required",
-          description:
-            "Please select both start and end dates for custom range.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (start > end) {
-        toast({
-          title: "Invalid Date Range",
-          description: "Start date must be before end date.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate date range is not too large (e.g., max 2 years)
-      const daysDiff = Math.ceil(
-        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysDiff > 730) {
-        // 2 years
-        toast({
-          title: "Date Range Too Large",
-          description: "Please select a date range of 2 years or less.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Validate user access
-    const accessValidation = FinancialReportService.validateUserAccess(user);
-    if (!accessValidation.isValid) {
-      toast({
-        title: "Access Denied",
-        description:
-          accessValidation.error ||
-          "You don't have permission to generate reports.",
+        title: "Error",
+        description: "School ID is required to generate reports.",
         variant: "destructive",
       });
       return;
@@ -383,7 +323,11 @@ const FinancialReportsPanel: React.FC = () => {
 
     setReportStates((prev) => ({
       ...prev,
-      [type]: { ...prev[type], isGenerating: true, error: null },
+      [type]: {
+        ...prev[type],
+        isGenerating: true,
+        error: null,
+      },
     }));
 
     try {
@@ -398,11 +342,16 @@ const FinancialReportsPanel: React.FC = () => {
       };
 
       const reportData = await FinancialReportService.generateReport(
-        type as string, // Fix: Cast to string to match service method signature
+        type as string,
         schoolId,
         filters,
         user
       );
+
+      // Validate report data before processing
+      if (!reportData) {
+        throw new Error("Failed to generate report data");
+      }
 
       setReportStates((prev) => ({
         ...prev,
@@ -416,8 +365,8 @@ const FinancialReportsPanel: React.FC = () => {
       }));
 
       toast({
-        title: "Report Generated",
-        description: `${reportData.title} has been generated successfully.`,
+        title: "Report Generated Successfully",
+        description: `${reportData.title} has been generated and is ready for download.`,
       });
     } catch (error: unknown) {
       const errorMessage =
@@ -440,57 +389,38 @@ const FinancialReportsPanel: React.FC = () => {
     }
   };
 
-  const handleDownloadReport = async (
-    type: EnhancedReportType,
-    format: "pdf" | "excel" = "pdf"
-  ) => {
-    const reportState = reportStates[type];
-    if (!reportState?.lastGenerated) {
+  const handleDownloadReport = async (type: string) => {
+    const state = reportStates[type];
+    if (!state?.lastGenerated) {
       toast({
-        title: "Error",
-        description: "No report to download. Please generate a report first.",
+        title: "No Report Available",
+        description: "Please generate a report first before downloading.",
         variant: "destructive",
       });
       return;
     }
 
-    setReportStates((prev) => ({
-      ...prev,
-      [type]: { ...prev[type], isDownloading: true },
-    }));
-
     try {
-      const reportData = reportState.lastGenerated;
-      if (!reportData) {
-        throw new Error("Report data is missing");
-      }
-
-      const timestamp = new Date().toISOString().split("T")[0];
-      const filename = `${type}_${timestamp}`;
-
-      if (format === "pdf") {
-        await generatePDF(reportData, filename);
-      } else {
-        await generateExcel(reportData, filename);
-      }
+      const fileName = `${type.replace(/_/g, "_")}_${
+        new Date().toISOString().split("T")[0]
+      }`;
+      await reportExportService.exportReport(
+        state.lastGenerated,
+        fileName,
+        "pdf"
+      );
 
       toast({
-        title: "Download Complete",
-        description: `${format.toUpperCase()} report downloaded successfully`,
+        title: "Download Successful",
+        description: "Report has been downloaded successfully.",
       });
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to download report";
+    } catch (error) {
+      console.error("Download error:", error);
       toast({
-        title: "Download Error",
-        description: errorMessage,
+        title: "Download Failed",
+        description: "Failed to download the report. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setReportStates((prev) => ({
-        ...prev,
-        [type]: { ...prev[type], isDownloading: false },
-      }));
     }
   };
 
@@ -990,10 +920,7 @@ const FinancialReportsPanel: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() =>
-                                        handleDownloadReport(
-                                          report.value,
-                                          "pdf"
-                                        )
+                                        handleDownloadReport(report.value)
                                       }
                                       disabled={state.isDownloading}
                                       className="flex items-center gap-2"
@@ -1009,10 +936,7 @@ const FinancialReportsPanel: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() =>
-                                        handleDownloadReport(
-                                          report.value,
-                                          "excel"
-                                        )
+                                        handleDownloadReport(report.value)
                                       }
                                       disabled={state.isDownloading}
                                       className="flex items-center gap-2"
@@ -1161,10 +1085,7 @@ const FinancialReportsPanel: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() =>
-                                        handleDownloadReport(
-                                          report.value,
-                                          "pdf"
-                                        )
+                                        handleDownloadReport(report.value)
                                       }
                                       disabled={state.isDownloading}
                                       className="flex items-center gap-2"
@@ -1180,10 +1101,7 @@ const FinancialReportsPanel: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() =>
-                                        handleDownloadReport(
-                                          report.value,
-                                          "excel"
-                                        )
+                                        handleDownloadReport(report.value)
                                       }
                                       disabled={state.isDownloading}
                                       className="flex items-center gap-2"
@@ -1339,10 +1257,7 @@ const FinancialReportsPanel: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() =>
-                                        handleDownloadReport(
-                                          report.value,
-                                          "pdf"
-                                        )
+                                        handleDownloadReport(report.value)
                                       }
                                       disabled={state.isDownloading}
                                       className="flex items-center gap-2"
@@ -1358,10 +1273,7 @@ const FinancialReportsPanel: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() =>
-                                        handleDownloadReport(
-                                          report.value,
-                                          "excel"
-                                        )
+                                        handleDownloadReport(report.value)
                                       }
                                       disabled={state.isDownloading}
                                       className="flex items-center gap-2"

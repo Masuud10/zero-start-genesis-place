@@ -387,7 +387,8 @@ export const EnhancedGradingSheetWithExport: React.FC<
 
       // Use upsert to handle both insert and update
       const { error } = await supabase.from("grades").upsert(gradesToSave, {
-        onConflict: "school_id,class_id,student_id,subject_id,term,exam_type",
+        onConflict:
+          "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
       });
 
       if (error) throw error;
@@ -482,7 +483,8 @@ export const EnhancedGradingSheetWithExport: React.FC<
       );
 
       const { error } = await supabase.from("grades").upsert(gradesToSubmit, {
-        onConflict: "school_id,class_id,student_id,subject_id,term,exam_type",
+        onConflict:
+          "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
       });
 
       if (error) throw error;

@@ -614,7 +614,7 @@ const EnhancedReportGenerator: React.FC<EnhancedReportGeneratorProps> = ({
                     </div>
                   </div>
                   <div className="border rounded-lg p-4 bg-white">
-                    <ReportDisplay reportData={reportData} />
+                    <ReportDisplay report={reportData} />
                   </div>
                 </div>
               ) : (

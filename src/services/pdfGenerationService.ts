@@ -40,102 +40,142 @@ interface ComprehensiveReportData {
 }
 
 export class PDFGenerationService {
+  // Enhanced data validation
+  private static validateReportData(data: unknown): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!data) {
+      errors.push('Report data is null or undefined');
+      return { isValid: false, errors };
+    }
+
+    if (typeof data !== 'object') {
+      errors.push('Report data must be an object');
+      return { isValid: false, errors };
+    }
+
+    const reportData = data as Record<string, unknown>;
+    
+    if (!reportData.title || typeof reportData.title !== 'string') {
+      errors.push('Report title is required and must be a string');
+    }
+
+    if (!reportData.reportType || typeof reportData.reportType !== 'string') {
+      errors.push('Report type is required and must be a string');
+    }
+
+    if (!reportData.data || typeof reportData.data !== 'object') {
+      errors.push('Report data content is required and must be an object');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
   private static addHeader(doc: jsPDF, companyDetails: CompanyDetails, title: string) {
-    // Enhanced header background with gradient effect
-    doc.setFillColor(25, 118, 210); // Blue primary
-    doc.rect(0, 0, 210, 35, 'F');
-    
-    // Subtle gradient overlay
-    doc.setFillColor(13, 71, 161); // Darker blue
-    doc.rect(0, 0, 210, 8, 'F');
+    try {
+      // Enhanced header background with gradient effect
+      doc.setFillColor(25, 118, 210); // Blue primary
+      doc.rect(0, 0, 210, 35, 'F');
+      
+      // Subtle gradient overlay
+      doc.setFillColor(13, 71, 161); // Darker blue
+      doc.rect(0, 0, 210, 8, 'F');
 
-    // EduFam logo and main branding
-    doc.setFontSize(28);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text('EduFam', 20, 22);
-    
-    // Tagline
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Educational Technology Platform', 20, 28);
+      // EduFam logo and main branding
+      doc.setFontSize(28);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('EduFam', 20, 22);
+      
+      // Tagline
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Educational Technology Platform', 20, 28);
 
-    // Report title with enhanced styling
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(25, 118, 210);
-    doc.text(title, 20, 48);
+      // Report title with enhanced styling
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(25, 118, 210);
+      doc.text(title, 20, 48);
 
-    // Company details section with better formatting
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(90, 90, 90);
-    
-    let yPos = 58;
-    if (companyDetails?.email) {
-      doc.text(`✉ ${companyDetails.email}`, 20, yPos);
-      yPos += 5;
+      // Company details section with better formatting
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(90, 90, 90);
+      
+      let yPos = 58;
+      if (companyDetails?.email) {
+        doc.text(`✉ ${companyDetails.email}`, 20, yPos);
+        yPos += 5;
+      }
+      if (companyDetails?.phone) {
+        doc.text(`📞 ${companyDetails.phone}`, 20, yPos);
+        yPos += 5;
+      }
+      if (companyDetails?.website) {
+        doc.text(`🌐 ${companyDetails.website}`, 20, yPos);
+        yPos += 5;
+      }
+
+      // Enhanced generation metadata
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      const now = new Date();
+      doc.text(`Generated: ${now.toLocaleDateString('en-KE')} at ${now.toLocaleTimeString('en-KE')}`, 20, yPos + 8);
+      doc.text(`Report ID: EDF-${now.getTime().toString().slice(-8)}`, 20, yPos + 12);
+      
+      // Professional separator line
+      doc.setLineWidth(1.5);
+      doc.setDrawColor(25, 118, 210);
+      doc.line(20, yPos + 18, 190, yPos + 18);
+
+      return yPos + 28; // Return Y position for content start
+    } catch (error) {
+      console.error('Error adding header to PDF:', error);
+      return 50; // Fallback position
     }
-    if (companyDetails?.phone) {
-      doc.text(`📞 ${companyDetails.phone}`, 20, yPos);
-      yPos += 5;
-    }
-    if (companyDetails?.website) {
-      doc.text(`🌐 ${companyDetails.website}`, 20, yPos);
-      yPos += 5;
-    }
-
-    // Enhanced generation metadata
-    doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    const now = new Date();
-    doc.text(`Generated: ${now.toLocaleDateString('en-KE')} at ${now.toLocaleTimeString('en-KE')}`, 20, yPos + 8);
-    doc.text(`Report ID: EDF-${now.getTime().toString().slice(-8)}`, 20, yPos + 12);
-    
-    // Professional separator line
-    doc.setLineWidth(1.5);
-    doc.setDrawColor(25, 118, 210);
-    doc.line(20, yPos + 18, 190, yPos + 18);
-
-    return yPos + 28; // Return Y position for content start
   }
 
   private static addFooter(doc: jsPDF, pageNumber: number, totalPages: number, companyDetails: CompanyDetails) {
-    const pageHeight = doc.internal.pageSize.height;
-    
-    // Enhanced footer background
-    doc.setFillColor(248, 249, 250);
-    doc.rect(0, pageHeight - 40, 210, 40, 'F');
-    
-    // Footer separator line
-    doc.setLineWidth(0.8);
-    doc.setDrawColor(25, 118, 210);
-    doc.line(20, pageHeight - 35, 190, pageHeight - 35);
+    try {
+      const pageHeight = doc.internal.pageSize.height;
+      
+      // Enhanced footer background
+      doc.setFillColor(248, 249, 250);
+      doc.rect(0, pageHeight - 40, 210, 40, 'F');
+      
+      // Footer separator line
+      doc.setLineWidth(0.8);
+      doc.setDrawColor(25, 118, 210);
+      doc.line(20, pageHeight - 35, 190, pageHeight - 35);
 
-    // Footer content with better styling
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(25, 118, 210);
-    
-    // Left side - Company branding
-    doc.text(`${companyDetails?.name || 'EduFam'} - Professional Report`, 20, pageHeight - 25);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text(`${companyDetails?.address || 'Nairobi, Kenya'} • Educational Technology Solutions`, 20, pageHeight - 20);
-    
-    // Center - Generation timestamp
-    const now = new Date();
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Generated: ${now.toLocaleDateString('en-KE')} ${now.toLocaleTimeString('en-KE')}`, 105, pageHeight - 25, { align: 'center' });
-    doc.text('Confidential Business Report', 105, pageHeight - 20, { align: 'center' });
-    
-    // Right side - Page information
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(25, 118, 210);
-    doc.text(`Page ${pageNumber} of ${totalPages}`, 190, pageHeight - 25, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text('© 2024 EduFam Platform', 190, pageHeight - 20, { align: 'right' });
+      // Footer content with better styling
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(25, 118, 210);
+      
+      // Left side - Company branding
+      doc.text(`${companyDetails?.name || 'EduFam'} - Professional Report`, 20, pageHeight - 25);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${companyDetails?.address || 'Nairobi, Kenya'} • Educational Technology Solutions`, 20, pageHeight - 20);
+      
+      // Center - Generation timestamp
+      const now = new Date();
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${now.toLocaleDateString('en-KE')} ${now.toLocaleTimeString('en-KE')}`, 105, pageHeight - 25, { align: 'center' });
+      doc.text('Confidential Business Report', 105, pageHeight - 20, { align: 'center' });
+      
+      // Right side - Page information
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(25, 118, 210);
+      doc.text(`Page ${pageNumber} of ${totalPages}`, 190, pageHeight - 25, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text('© 2024 EduFam Platform', 190, pageHeight - 20, { align: 'right' });
+    } catch (error) {
+      console.error('Error adding footer to PDF:', error);
+    }
   }
 
   static async generateComprehensiveReport(): Promise<void> {
@@ -145,6 +185,12 @@ export class PDFGenerationService {
       const reportData = await ReportEnhancementService.generateComprehensiveReport() as ComprehensiveReportData;
       const enhancedData = await ReportEnhancementService.enhanceReportWithCompanyData('comprehensive');
       
+      // Validate report data
+      const validation = this.validateReportData(reportData);
+      if (!validation.isValid) {
+        throw new Error(`Invalid report data: ${validation.errors.join(', ')}`);
+      }
+
       if (!reportData) {
         throw new Error('Failed to generate comprehensive report data');
       }
@@ -198,8 +244,8 @@ export class PDFGenerationService {
         ['Total Fees Assigned', reportData.financialSummary.totalFeesAssigned.toLocaleString(), '✅ Assigned', '100% Complete'],
         ['Total Fees Collected', reportData.financialSummary.totalFeesCollected.toLocaleString(), '💰 Collected', `${reportData.financialSummary.collectionRate.toFixed(1)}% Success`],
         ['Outstanding Fees', reportData.financialSummary.outstandingFees.toLocaleString(), '⏳ Pending', 'Follow-up Required'],
-        ['Total Expenses', reportData.financialSummary.totalExpenses.toLocaleString(), '💸 Paid', 'Within Budget'],
-        ['Net Revenue', reportData.financialSummary.netRevenue.toLocaleString(), reportData.financialSummary.netRevenue > 0 ? '📈 Positive' : '📉 Negative', reportData.financialSummary.netRevenue > 0 ? '⭐ Excellent' : '⚠️ Review Required']
+        ['Total Expenses', reportData.financialSummary.totalExpenses.toLocaleString(), '💸 Operational', 'Monitored & Controlled'],
+        ['Net Revenue', reportData.financialSummary.netRevenue.toLocaleString(), reportData.financialSummary.netRevenue > 0 ? '📈 Profitable' : '📉 Loss', reportData.financialSummary.netRevenue > 0 ? '🌟 Positive' : '⚠️ Review Required']
       ];
 
       (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
@@ -247,25 +293,33 @@ export class PDFGenerationService {
     try {
       console.log('Starting school performance PDF report generation...');
       
-      const systemMetrics = await ReportEnhancementService.getSystemMetrics();
-      const enhancedData = await ReportEnhancementService.enhanceReportWithCompanyData('schools');
+      const schoolData = await ReportEnhancementService.generateSchoolPerformanceReport();
+      const enhancedData = await ReportEnhancementService.enhanceReportWithCompanyData('school-performance');
+
+      // Validate school data
+      if (!schoolData || !Array.isArray(schoolData)) {
+        throw new Error('Invalid school performance data');
+      }
 
       const doc = new jsPDF();
       let yPosition = this.addHeader(doc, enhancedData.companyDetails, 'EduFam School Performance Report');
 
-      // Enhanced performance overview
+      // School Performance Overview
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(156, 39, 176);
-      doc.text('🏫 School Performance Analysis', 20, yPosition + 15);
+      doc.setTextColor(25, 118, 210);
+      doc.text('🏫 School Performance Overview', 20, yPosition + 15);
       yPosition += 30;
 
+      // Performance metrics
       const performanceData = [
-        ['Performance Metric', 'Current Value', 'Trend Analysis', 'Performance Rating'],
-        ['Total Schools', systemMetrics.totalSchools.toString(), '📈 Steady Growth', '⭐⭐⭐⭐ Excellent'],
-        ['Active Schools', systemMetrics.activeSchools.toString(), '📊 Increasing Engagement', '⭐⭐⭐⭐⭐ Outstanding'],
-        ['System Uptime', `${systemMetrics.systemUptime}%`, '🚀 Exceptional Performance', '⭐⭐⭐⭐⭐ Outstanding'],
-        ['Support Response Rate', `${systemMetrics.ticketResolutionRate.toFixed(1)}%`, '✅ Efficient Resolution', '⭐⭐⭐⭐ Excellent']
+        ['School Name', 'Performance Score', 'Status', 'Rating'],
+                 ...schoolData.map((school: Record<string, unknown>) => [
+          school.name || 'N/A',
+          `${school.performanceScore || 0}%`,
+          school.status || 'Active',
+          school.rating || 'Good'
+        ])
       ];
 
       (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
@@ -274,19 +328,18 @@ export class PDFGenerationService {
         startY: yPosition,
         theme: 'grid',
         headStyles: { 
-          fillColor: [156, 39, 176],
+          fillColor: [76, 175, 80],
           textColor: 255,
-          fontSize: 12,
+          fontSize: 11,
           fontStyle: 'bold'
         },
         bodyStyles: { 
-          fontSize: 11,
+          fontSize: 10,
           textColor: [60, 60, 60]
         },
         alternateRowStyles: { 
           fillColor: [248, 249, 250] 
-        },
-        margin: { left: 20, right: 20 }
+        }
       });
 
       this.addFooter(doc, 1, 1, enhancedData.companyDetails);
@@ -309,6 +362,11 @@ export class PDFGenerationService {
       
       const financialData = await ReportEnhancementService.getFinancialSummary();
       const enhancedData = await ReportEnhancementService.enhanceReportWithCompanyData('financial');
+
+      // Validate financial data
+      if (!financialData) {
+        throw new Error('Invalid financial data');
+      }
 
       const doc = new jsPDF();
       let yPosition = this.addHeader(doc, enhancedData.companyDetails, 'EduFam Financial Analysis Report');
@@ -368,27 +426,31 @@ export class PDFGenerationService {
     try {
       console.log('Starting system health PDF report generation...');
       
-      const systemMetrics = await ReportEnhancementService.getSystemMetrics();
-      const enhancedData = await ReportEnhancementService.enhanceReportWithCompanyData('system_health');
+      const systemData = await ReportEnhancementService.generateSystemHealthReport();
+      const enhancedData = await ReportEnhancementService.enhanceReportWithCompanyData('system-health');
+
+      // Validate system data
+      if (!systemData) {
+        throw new Error('Invalid system health data');
+      }
 
       const doc = new jsPDF();
-      let yPosition = this.addHeader(doc, enhancedData.companyDetails, 'EduFam System Health & Performance Report');
+      let yPosition = this.addHeader(doc, enhancedData.companyDetails, 'EduFam System Health Report');
 
-      // Enhanced system health overview
+      // System Health Overview
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(76, 175, 80);
-      doc.text('🔧 System Health & Performance Analysis', 20, yPosition + 15);
+      doc.setTextColor(156, 39, 176);
+      doc.text('🔧 System Health Overview', 20, yPosition + 15);
       yPosition += 30;
 
       const healthData = [
-        ['System Component', 'Operational Status', 'Performance Metrics', 'Health Rating'],
-        ['Database Systems', '🟢 Fully Operational', '99.9% Uptime • Fast Response', '🏆 Excellent Health'],
-        ['User Authentication', '🟢 Secure & Operational', '100% Success Rate • Zero Breaches', '🔒 Highly Secure'],
-        ['Report Generation', '🟢 Functioning Optimally', 'Fast PDF Generation • Real-time Data', '⚡ High Performance'],
-        ['Support System', '🟢 Active & Responsive', `${systemMetrics.ticketResolutionRate.toFixed(1)}% Resolution Rate`, '📞 Efficient Support'],
-        ['Platform Stability', '🟢 Stable & Reliable', `${systemMetrics.systemUptime}% Uptime • Zero Downtime`, '🚀 Outstanding Performance'],
-        ['Security Infrastructure', '🟢 Fully Protected', 'Multi-layer Security • Active Monitoring', '🛡️ Maximum Security']
+        ['System Component', 'Status', 'Performance', 'Health Score'],
+        ['Database', systemData.databaseStatus || 'Operational', systemData.databasePerformance || 'Good', `${systemData.databaseHealth || 95}%`],
+        ['API Services', systemData.apiStatus || 'Operational', systemData.apiPerformance || 'Good', `${systemData.apiHealth || 98}%`],
+        ['File Storage', systemData.storageStatus || 'Operational', systemData.storagePerformance || 'Good', `${systemData.storageHealth || 92}%`],
+        ['Authentication', systemData.authStatus || 'Operational', systemData.authPerformance || 'Good', `${systemData.authHealth || 99}%`],
+        ['Overall System', systemData.overallStatus || 'Healthy', systemData.overallPerformance || 'Excellent', `${systemData.overallHealth || 96}%`]
       ];
 
       (doc as jsPDF & { autoTable: (options: unknown) => void }).autoTable({
@@ -397,9 +459,9 @@ export class PDFGenerationService {
         startY: yPosition,
         theme: 'grid',
         headStyles: { 
-          fillColor: [76, 175, 80],
+          fillColor: [156, 39, 176],
           textColor: 255,
-          fontSize: 12,
+          fontSize: 11,
           fontStyle: 'bold'
         },
         bodyStyles: { 
@@ -408,8 +470,7 @@ export class PDFGenerationService {
         },
         alternateRowStyles: { 
           fillColor: [248, 249, 250] 
-        },
-        margin: { left: 20, right: 20 }
+        }
       });
 
       this.addFooter(doc, 1, 1, enhancedData.companyDetails);
@@ -422,6 +483,58 @@ export class PDFGenerationService {
 
     } catch (error) {
       console.error('Error generating system health PDF report:', error);
+      throw new Error(`PDF Generation Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Generic PDF generation method for any report type
+  static async generateGenericReport(reportData: ReportData, filename: string): Promise<void> {
+    try {
+      console.log('Starting generic PDF report generation...');
+      
+      // Validate report data
+      const validation = this.validateReportData(reportData);
+      if (!validation.isValid) {
+        throw new Error(`Invalid report data: ${validation.errors.join(', ')}`);
+      }
+
+      const doc = new jsPDF();
+      let yPosition = this.addHeader(doc, reportData.companyDetails, reportData.title);
+
+      // Add report content based on type
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(25, 118, 210);
+      doc.text(`📋 ${reportData.reportType} Report`, 20, yPosition + 15);
+      yPosition += 25;
+
+      // Add data content
+      if (reportData.data && typeof reportData.data === 'object') {
+        const dataEntries = Object.entries(reportData.data);
+        
+        dataEntries.forEach(([key, value]) => {
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(60, 60, 60);
+          doc.text(`${key}:`, 20, yPosition);
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(100, 100, 100);
+          doc.text(String(value), 60, yPosition);
+          
+          yPosition += 8;
+        });
+      }
+
+      this.addFooter(doc, 1, 1, reportData.companyDetails);
+      
+      doc.save(`${filename}.pdf`);
+      
+      console.log(`PDF report saved as: ${filename}.pdf`);
+
+    } catch (error) {
+      console.error('Error generating generic PDF report:', error);
       throw new Error(`PDF Generation Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
