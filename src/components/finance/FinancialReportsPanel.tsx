@@ -141,7 +141,7 @@ const FinancialReportsPanel: React.FC = () => {
 
   const { toast } = useToast();
   const { user } = useAuth();
-  const { schoolId } = useSchoolScopedData();
+  const { schoolId, isReady } = useSchoolScopedData();
 
   // Strict role validation
   useEffect(() => {
@@ -175,6 +175,8 @@ const FinancialReportsPanel: React.FC = () => {
         setSchoolInfo(data);
       } catch (err) {
         console.error("Error fetching school info:", err);
+        // Don't show toast for school info fetch errors as it's not critical
+        // The component can still function without school info
       }
     };
 
@@ -288,11 +290,14 @@ const FinancialReportsPanel: React.FC = () => {
 
   // Filter report types based on user role
   const reportTypes = allReportTypes.filter((report) => {
+    // If no user, don't show any reports
+    if (!user) return false;
+
     // If report is restricted to specific roles, check if user has access
     if (report.restrictedTo.length > 0) {
-      return report.restrictedTo.includes(user?.role || "");
+      return report.restrictedTo.includes(user.role);
     }
-    // If no restrictions, show to all users
+    // If no restrictions, show to all authenticated users
     return true;
   });
 
@@ -322,6 +327,45 @@ const FinancialReportsPanel: React.FC = () => {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate custom date range if selected
+    if (dateRange === "custom") {
+      if (!startDate || !endDate) {
+        toast({
+          title: "Date Range Required",
+          description:
+            "Please select both start and end dates for custom range.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (start > end) {
+        toast({
+          title: "Invalid Date Range",
+          description: "Start date must be before end date.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate date range is not too large (e.g., max 2 years)
+      const daysDiff = Math.ceil(
+        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysDiff > 730) {
+        // 2 years
+        toast({
+          title: "Date Range Too Large",
+          description: "Please select a date range of 2 years or less.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Validate user access
@@ -354,7 +398,7 @@ const FinancialReportsPanel: React.FC = () => {
       };
 
       const reportData = await FinancialReportService.generateReport(
-        type,
+        type as string, // Fix: Cast to string to match service method signature
         schoolId,
         filters,
         user
@@ -401,7 +445,7 @@ const FinancialReportsPanel: React.FC = () => {
     format: "pdf" | "excel" = "pdf"
   ) => {
     const reportState = reportStates[type];
-    if (!reportState.lastGenerated) {
+    if (!reportState?.lastGenerated) {
       toast({
         title: "Error",
         description: "No report to download. Please generate a report first.",
@@ -417,6 +461,10 @@ const FinancialReportsPanel: React.FC = () => {
 
     try {
       const reportData = reportState.lastGenerated;
+      if (!reportData) {
+        throw new Error("Report data is missing");
+      }
+
       const timestamp = new Date().toISOString().split("T")[0];
       const filename = `${type}_${timestamp}`;
 
@@ -450,174 +498,216 @@ const FinancialReportsPanel: React.FC = () => {
     reportData: FinancialReportData,
     filename: string
   ) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    let yPosition = 20;
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      let yPosition = 20;
 
-    // Add header with school name
-    if (schoolInfo?.name) {
-      doc.setFontSize(18);
+      // Add header with school name
+      if (schoolInfo?.name) {
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        doc.text(schoolInfo.name, margin, yPosition);
+        yPosition += 10;
+      }
+
+      // Add report title
+      doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text(schoolInfo.name, margin, yPosition);
+      doc.text(reportData.title || "Financial Report", margin, yPosition);
       yPosition += 10;
-    }
 
-    // Add report title
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text(reportData.title, margin, yPosition);
-    yPosition += 10;
-
-    // Add generation timestamp
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      `Generated: ${new Date(reportData.generatedAt).toLocaleString()}`,
-      margin,
-      yPosition
-    );
-    yPosition += 15;
-
-    // Add summary section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Summary", margin, yPosition);
-    yPosition += 8;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      `Total Records: ${reportData.summary.totalRecords}`,
-      margin,
-      yPosition
-    );
-    yPosition += 6;
-
-    if (reportData.summary.totalAmount !== undefined) {
+      // Add generation timestamp
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
       doc.text(
-        `Total Amount: KES ${reportData.summary.totalAmount.toLocaleString()}`,
+        `Generated: ${new Date(
+          reportData.generatedAt || Date.now()
+        ).toLocaleString()}`,
         margin,
         yPosition
       );
-      yPosition += 6;
-    }
+      yPosition += 15;
 
-    if (reportData.summary.averageAmount !== undefined) {
-      doc.text(
-        `Average Amount: KES ${reportData.summary.averageAmount.toLocaleString()}`,
-        margin,
-        yPosition
-      );
-      yPosition += 6;
-    }
-
-    if (reportData.summary.collectionRate !== undefined) {
-      doc.text(
-        `Collection Rate: ${reportData.summary.collectionRate.toFixed(1)}%`,
-        margin,
-        yPosition
-      );
-      yPosition += 6;
-    }
-
-    if (reportData.summary.outstandingAmount !== undefined) {
-      doc.text(
-        `Outstanding Amount: KES ${reportData.summary.outstandingAmount.toLocaleString()}`,
-        margin,
-        yPosition
-      );
-      yPosition += 6;
-    }
-
-    yPosition += 10;
-
-    // Add data table if available
-    if (reportData.data.length > 0) {
-      doc.setFontSize(12);
+      // Add summary section
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Report Data", margin, yPosition);
+      doc.text("Summary", margin, yPosition);
       yPosition += 8;
 
-      const headers = Object.keys(reportData.data[0] || {});
-      const tableData = reportData.data
-        .slice(0, 50) // Limit to first 50 records for PDF
-        .map((item: Record<string, unknown>) =>
-          Object.values(item).map((val) => String(val || ""))
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `Total Records: ${reportData.summary?.totalRecords || 0}`,
+        margin,
+        yPosition
+      );
+      yPosition += 6;
+
+      if (
+        reportData.summary?.totalAmount !== undefined &&
+        reportData.summary.totalAmount !== null
+      ) {
+        doc.text(
+          `Total Amount: KES ${Number(
+            reportData.summary.totalAmount
+          ).toLocaleString()}`,
+          margin,
+          yPosition
         );
+        yPosition += 6;
+      }
 
-      // Use jsPDF autoTable with proper typing
-      const docWithAutoTable = doc as jsPDF & {
-        autoTable: (options: {
-          head: string[][];
-          body: string[][];
-          startY: number;
-          styles: { fontSize: number; cellPadding: number };
-          headStyles: { fillColor: number[]; textColor: number[] };
-          alternateRowStyles: { fillColor: number[] };
-          margin: { top: number };
-        }) => void;
-      };
+      if (
+        reportData.summary?.averageAmount !== undefined &&
+        reportData.summary.averageAmount !== null
+      ) {
+        doc.text(
+          `Average Amount: KES ${Number(
+            reportData.summary.averageAmount
+          ).toLocaleString()}`,
+          margin,
+          yPosition
+        );
+        yPosition += 6;
+      }
 
-      docWithAutoTable.autoTable({
-        head: [headers.map((h) => h.replace(/_/g, " ").toUpperCase())],
-        body: tableData,
-        startY: yPosition,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [66, 139, 202], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { top: 5 },
+      if (
+        reportData.summary?.collectionRate !== undefined &&
+        reportData.summary.collectionRate !== null
+      ) {
+        doc.text(
+          `Collection Rate: ${Number(reportData.summary.collectionRate).toFixed(
+            1
+          )}%`,
+          margin,
+          yPosition
+        );
+        yPosition += 6;
+      }
+
+      if (
+        reportData.summary?.outstandingAmount !== undefined &&
+        reportData.summary.outstandingAmount !== null
+      ) {
+        doc.text(
+          `Outstanding Amount: KES ${Number(
+            reportData.summary.outstandingAmount
+          ).toLocaleString()}`,
+          margin,
+          yPosition
+        );
+        yPosition += 6;
+      }
+
+      yPosition += 10;
+
+      // Add data table if available
+      if (reportData.data && reportData.data.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Report Data", margin, yPosition);
+        yPosition += 8;
+
+        const firstRecord = reportData.data[0];
+        if (firstRecord && typeof firstRecord === "object") {
+          const headers = Object.keys(firstRecord);
+          const tableData = reportData.data
+            .slice(0, 50) // Limit to first 50 records for PDF
+            .map((item: Record<string, unknown>) =>
+              Object.values(item).map((val) => String(val || ""))
+            );
+
+          // Use jsPDF autoTable with proper typing
+          const docWithAutoTable = doc as jsPDF & {
+            autoTable: (options: {
+              head: string[][];
+              body: string[][];
+              startY: number;
+              styles: { fontSize: number; cellPadding: number };
+              headStyles: { fillColor: number[]; textColor: number[] };
+              alternateRowStyles: { fillColor: number[] };
+              margin: { top: number };
+            }) => void;
+          };
+
+          docWithAutoTable.autoTable({
+            head: [headers.map((h) => h.replace(/_/g, " ").toUpperCase())],
+            body: tableData,
+            startY: yPosition,
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: {
+              fillColor: [66, 139, 202],
+              textColor: [255, 255, 255],
+            },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { top: 5 },
+          });
+        }
+      }
+
+      // Add footer
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.text("Powered by EduFam", pageWidth / 2, pageHeight - 10, {
+        align: "center",
       });
+
+      doc.save(`${filename}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      throw new Error("Failed to generate PDF report");
     }
-
-    // Add footer
-    const pageHeight = doc.internal.pageSize.getHeight();
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    doc.text("Powered by EduFam", pageWidth / 2, pageHeight - 10, {
-      align: "center",
-    });
-
-    doc.save(`${filename}.pdf`);
   };
 
   const generateExcel = async (
     reportData: FinancialReportData,
     filename: string
   ) => {
-    // Create main data sheet
-    const ws = XLSX.utils.json_to_sheet(reportData.data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Report Data");
+    try {
+      // Create main data sheet
+      const ws = XLSX.utils.json_to_sheet(reportData.data || []);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Report Data");
 
-    // Add summary sheet
-    const summaryData = [
-      { Metric: "Total Records", Value: reportData.summary.totalRecords },
-      {
-        Metric: "Total Amount",
-        Value: reportData.summary.totalAmount || 0,
-      },
-      {
-        Metric: "Average Amount",
-        Value: reportData.summary.averageAmount || 0,
-      },
-      {
-        Metric: "Collection Rate",
-        Value: reportData.summary.collectionRate || 0,
-      },
-      {
-        Metric: "Outstanding Amount",
-        Value: reportData.summary.outstandingAmount || 0,
-      },
-    ];
-    const summaryWs = XLSX.utils.json_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+      // Add summary sheet
+      const summaryData = [
+        {
+          Metric: "Total Records",
+          Value: reportData.summary?.totalRecords || 0,
+        },
+        {
+          Metric: "Total Amount",
+          Value: reportData.summary?.totalAmount || 0,
+        },
+        {
+          Metric: "Average Amount",
+          Value: reportData.summary?.averageAmount || 0,
+        },
+        {
+          Metric: "Collection Rate",
+          Value: reportData.summary?.collectionRate || 0,
+        },
+        {
+          Metric: "Outstanding Amount",
+          Value: reportData.summary?.outstandingAmount || 0,
+        },
+      ];
+      const summaryWs = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
 
-    XLSX.writeFile(wb, `${filename}.xlsx`);
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+    } catch (error) {
+      console.error("Error generating Excel:", error);
+      throw new Error("Failed to generate Excel report");
+    }
   };
 
   const getReportStatus = (type: EnhancedReportType) => {
     const state = reportStates[type];
+    if (!state) return "idle";
     if (state.isGenerating) return "generating";
     if (state.isDownloading) return "downloading";
     if (state.lastGenerated) return "generated";
@@ -656,6 +746,18 @@ const FinancialReportsPanel: React.FC = () => {
         return "Not Generated";
     }
   };
+
+  // Show loading state while data is being initialized
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading financial reports...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -770,599 +872,656 @@ const FinancialReportsPanel: React.FC = () => {
       </Card>
 
       {/* Reports Grid */}
-      <div className="space-y-6">
-        {/* Collection and Outstanding Reports Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Collection Reports */}
-          {groupedReports["Collection"] && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Collection Reports
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {groupedReports["Collection"].map((report) => {
-                    const status = getReportStatus(report.value);
-                    const state = reportStates[report.value];
-
-                    return (
-                      <Card
-                        key={report.value}
-                        className={`hover:shadow-lg transition-all duration-200 border-2 ${
-                          status === "generated"
-                            ? "border-green-200 bg-green-50/50"
-                            : status === "error"
-                            ? "border-red-200 bg-red-50/50"
-                            : status === "generating"
-                            ? "border-blue-200 bg-blue-50/50"
-                            : "border-gray-200"
-                        }`}
-                      >
-                        <CardHeader className="pb-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-3 rounded-lg ${report.color}`}>
-                                <report.icon className="h-6 w-6" />
-                              </div>
-                              <div className="flex-1">
-                                <CardTitle className="text-lg mb-1">
-                                  {report.label}
-                                </CardTitle>
-                                <p className="text-sm text-muted-foreground">
-                                  {report.description}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className="pt-0">
-                          <div className="space-y-4">
-                            {/* Status Indicator */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {getStatusIcon(report.value)}
-                                <span className="text-sm font-medium">
-                                  {getStatusText(report.value)}
-                                </span>
-                              </div>
-                              {state.lastGenerated && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    setSelectedReport(report.value)
-                                  }
-                                  className="h-8 px-2"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-
-                            {/* Generate Button */}
-                            <Button
-                              variant="outline"
-                              onClick={() => handleGenerateReport(report.value)}
-                              disabled={state.isGenerating}
-                              className="w-full"
-                            >
-                              {state.isGenerating ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Generating Report...
-                                </>
-                              ) : (
-                                <>
-                                  <BarChart3 className="h-4 w-4 mr-2" />
-                                  Generate Report
-                                </>
-                              )}
-                            </Button>
-
-                            {/* Download Buttons */}
-                            {state.lastGenerated && (
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleDownloadReport(report.value, "pdf")
-                                  }
-                                  disabled={state.isDownloading}
-                                  className="flex items-center gap-2"
-                                >
-                                  {state.isDownloading ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <FileDown className="h-3 w-3" />
-                                  )}
-                                  PDF
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleDownloadReport(report.value, "excel")
-                                  }
-                                  disabled={state.isDownloading}
-                                  className="flex items-center gap-2"
-                                >
-                                  {state.isDownloading ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <FileSpreadsheet className="h-3 w-3" />
-                                  )}
-                                  Excel
-                                </Button>
-                              </div>
-                            )}
-
-                            {/* Error Display */}
-                            {state.error && (
-                              <Alert variant="destructive" className="text-sm">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>
-                                  {state.error}
-                                </AlertDescription>
-                              </Alert>
-                            )}
-
-                            {/* Last Generated Info */}
-                            {state.lastGeneratedAt && (
-                              <div className="text-xs text-muted-foreground text-center">
-                                Last generated:{" "}
-                                {new Date(
-                                  state.lastGeneratedAt
-                                ).toLocaleString()}
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Outstanding Reports */}
-          {groupedReports["Outstanding"] && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Outstanding Reports
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {groupedReports["Outstanding"].map((report) => {
-                    const status = getReportStatus(report.value);
-                    const state = reportStates[report.value];
-
-                    return (
-                      <Card
-                        key={report.value}
-                        className={`hover:shadow-lg transition-all duration-200 border-2 ${
-                          status === "generated"
-                            ? "border-green-200 bg-green-50/50"
-                            : status === "error"
-                            ? "border-red-200 bg-red-50/50"
-                            : status === "generating"
-                            ? "border-blue-200 bg-blue-50/50"
-                            : "border-gray-200"
-                        }`}
-                      >
-                        <CardHeader className="pb-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-3 rounded-lg ${report.color}`}>
-                                <report.icon className="h-6 w-6" />
-                              </div>
-                              <div className="flex-1">
-                                <CardTitle className="text-lg mb-1">
-                                  {report.label}
-                                </CardTitle>
-                                <p className="text-sm text-muted-foreground">
-                                  {report.description}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className="pt-0">
-                          <div className="space-y-4">
-                            {/* Status Indicator */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                {getStatusIcon(report.value)}
-                                <span className="text-sm font-medium">
-                                  {getStatusText(report.value)}
-                                </span>
-                              </div>
-                              {state.lastGenerated && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    setSelectedReport(report.value)
-                                  }
-                                  className="h-8 px-2"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-
-                            {/* Generate Button */}
-                            <Button
-                              variant="outline"
-                              onClick={() => handleGenerateReport(report.value)}
-                              disabled={state.isGenerating}
-                              className="w-full"
-                            >
-                              {state.isGenerating ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Generating Report...
-                                </>
-                              ) : (
-                                <>
-                                  <BarChart3 className="h-4 w-4 mr-2" />
-                                  Generate Report
-                                </>
-                              )}
-                            </Button>
-
-                            {/* Download Buttons */}
-                            {state.lastGenerated && (
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleDownloadReport(report.value, "pdf")
-                                  }
-                                  disabled={state.isDownloading}
-                                  className="flex items-center gap-2"
-                                >
-                                  {state.isDownloading ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <FileDown className="h-3 w-3" />
-                                  )}
-                                  PDF
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleDownloadReport(report.value, "excel")
-                                  }
-                                  disabled={state.isDownloading}
-                                  className="flex items-center gap-2"
-                                >
-                                  {state.isDownloading ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <FileSpreadsheet className="h-3 w-3" />
-                                  )}
-                                  Excel
-                                </Button>
-                              </div>
-                            )}
-
-                            {/* Error Display */}
-                            {state.error && (
-                              <Alert variant="destructive" className="text-sm">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>
-                                  {state.error}
-                                </AlertDescription>
-                              </Alert>
-                            )}
-
-                            {/* Last Generated Info */}
-                            {state.lastGeneratedAt && (
-                              <div className="text-xs text-muted-foreground text-center">
-                                Last generated:{" "}
-                                {new Date(
-                                  state.lastGeneratedAt
-                                ).toLocaleString()}
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Other Report Categories in 2-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {Object.entries(groupedReports)
-            .filter(
-              ([category]) =>
-                category !== "Collection" && category !== "Outstanding"
-            )
-            .map(([category, reports]) => (
-              <Card key={category}>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    {category} Reports
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {reports.map((report) => {
-                      const status = getReportStatus(report.value);
-                      const state = reportStates[report.value];
-
-                      return (
-                        <Card
-                          key={report.value}
-                          className={`hover:shadow-lg transition-all duration-200 border-2 ${
-                            status === "generated"
-                              ? "border-green-200 bg-green-50/50"
-                              : status === "error"
-                              ? "border-red-200 bg-red-50/50"
-                              : status === "generating"
-                              ? "border-blue-200 bg-blue-50/50"
-                              : "border-gray-200"
-                          }`}
-                        >
-                          <CardHeader className="pb-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`p-3 rounded-lg ${report.color}`}
-                                >
-                                  <report.icon className="h-6 w-6" />
-                                </div>
-                                <div className="flex-1">
-                                  <CardTitle className="text-lg mb-1">
-                                    {report.label}
-                                  </CardTitle>
-                                  <p className="text-sm text-muted-foreground">
-                                    {report.description}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </CardHeader>
-
-                          <CardContent className="pt-0">
-                            <div className="space-y-4">
-                              {/* Status Indicator */}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  {getStatusIcon(report.value)}
-                                  <span className="text-sm font-medium">
-                                    {getStatusText(report.value)}
-                                  </span>
-                                </div>
-                                {state.lastGenerated && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      setSelectedReport(report.value)
-                                    }
-                                    className="h-8 px-2"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-
-                              {/* Generate Button */}
-                              <Button
-                                variant="outline"
-                                onClick={() =>
-                                  handleGenerateReport(report.value)
-                                }
-                                disabled={state.isGenerating}
-                                className="w-full"
-                              >
-                                {state.isGenerating ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Generating Report...
-                                  </>
-                                ) : (
-                                  <>
-                                    <BarChart3 className="h-4 w-4 mr-2" />
-                                    Generate Report
-                                  </>
-                                )}
-                              </Button>
-
-                              {/* Download Buttons */}
-                              {state.lastGenerated && (
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleDownloadReport(report.value, "pdf")
-                                    }
-                                    disabled={state.isDownloading}
-                                    className="flex items-center gap-2"
-                                  >
-                                    {state.isDownloading ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <FileDown className="h-3 w-3" />
-                                    )}
-                                    PDF
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleDownloadReport(
-                                        report.value,
-                                        "excel"
-                                      )
-                                    }
-                                    disabled={state.isDownloading}
-                                    className="flex items-center gap-2"
-                                  >
-                                    {state.isDownloading ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <FileSpreadsheet className="h-3 w-3" />
-                                    )}
-                                    Excel
-                                  </Button>
-                                </div>
-                              )}
-
-                              {/* Error Display */}
-                              {state.error && (
-                                <Alert
-                                  variant="destructive"
-                                  className="text-sm"
-                                >
-                                  <AlertCircle className="h-4 w-4" />
-                                  <AlertDescription>
-                                    {state.error}
-                                  </AlertDescription>
-                                </Alert>
-                              )}
-
-                              {/* Last Generated Info */}
-                              {state.lastGeneratedAt && (
-                                <div className="text-xs text-muted-foreground text-center">
-                                  Last generated:{" "}
-                                  {new Date(
-                                    state.lastGeneratedAt
-                                  ).toLocaleString()}
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-        </div>
-      </div>
-
-      {/* Report Preview Modal */}
-      {selectedReport && reportStates[selectedReport].lastGenerated && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Report Preview:{" "}
-              {reportStates[selectedReport].lastGenerated?.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="text-center p-4 border rounded-lg bg-blue-50">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {
-                      reportStates[selectedReport].lastGenerated?.summary
-                        .totalRecords
-                    }
-                  </div>
-                  <p className="text-sm text-muted-foreground">Total Records</p>
-                </div>
-                <div className="text-center p-4 border rounded-lg bg-green-50">
-                  <div className="text-2xl font-bold text-green-600">
-                    KES{" "}
-                    {reportStates[
-                      selectedReport
-                    ].lastGenerated?.summary.totalAmount?.toLocaleString() ||
-                      "0"}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
-                </div>
-                <div className="text-center p-4 border rounded-lg bg-orange-50">
-                  <div className="text-2xl font-bold text-orange-600">
-                    KES{" "}
-                    {reportStates[
-                      selectedReport
-                    ].lastGenerated?.summary.averageAmount?.toLocaleString() ||
-                      "0"}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Average Amount
-                  </p>
-                </div>
-                <div className="text-center p-4 border rounded-lg bg-purple-50">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {reportStates[
-                      selectedReport
-                    ].lastGenerated?.summary.collectionRate?.toFixed(1) || "0"}
-                    %
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Collection Rate
-                  </p>
-                </div>
-              </div>
-
-              {/* Sample Data Table */}
-              {reportStates[selectedReport].lastGenerated?.data.length > 0 && (
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-3 border-b">
-                    <h4 className="font-medium">
-                      Sample Data (First 10 Records)
-                    </h4>
-                  </div>
-                  <div className="max-h-96 overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          {Object.keys(
-                            reportStates[selectedReport].lastGenerated!
-                              .data[0] || {}
-                          ).map((key) => (
-                            <TableHead key={key} className="text-xs">
-                              {key.replace(/_/g, " ").toUpperCase()}
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {reportStates[selectedReport]
-                          .lastGenerated!.data.slice(0, 10)
-                          .map((row, index) => (
-                            <TableRow key={index}>
-                              {Object.values(row).map((value, cellIndex) => (
-                                <TableCell key={cellIndex} className="text-xs">
-                                  {String(value || "")}
-                                </TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
+      {reportTypes.length === 0 ? (
+        <Card>
+          <CardContent className="flex items-center justify-center h-32">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-muted-foreground">
+                No reports available for your role. Please contact your
+                administrator.
+              </p>
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <div className="space-y-6">
+          {/* Collection and Outstanding Reports Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Collection Reports */}
+            {groupedReports["Collection"] &&
+              groupedReports["Collection"].length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Collection Reports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {groupedReports["Collection"].map((report) => {
+                        const status = getReportStatus(report.value);
+                        const state = reportStates[report.value];
+
+                        return (
+                          <Card
+                            key={report.value}
+                            className={`hover:shadow-lg transition-all duration-200 border-2 ${
+                              status === "generated"
+                                ? "border-green-200 bg-green-50/50"
+                                : status === "error"
+                                ? "border-red-200 bg-red-50/50"
+                                : status === "generating"
+                                ? "border-blue-200 bg-blue-50/50"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <CardHeader className="pb-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`p-3 rounded-lg ${report.color}`}
+                                  >
+                                    <report.icon className="h-6 w-6" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <CardTitle className="text-lg mb-1">
+                                      {report.label}
+                                    </CardTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                      {report.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+
+                            <CardContent className="pt-0">
+                              <div className="space-y-4">
+                                {/* Status Indicator */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(report.value)}
+                                    <span className="text-sm font-medium">
+                                      {getStatusText(report.value)}
+                                    </span>
+                                  </div>
+                                  {state.lastGenerated && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        setSelectedReport(report.value)
+                                      }
+                                      className="h-8 px-2"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+
+                                {/* Generate Button */}
+                                <Button
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleGenerateReport(report.value)
+                                  }
+                                  disabled={state.isGenerating}
+                                  className="w-full"
+                                >
+                                  {state.isGenerating ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Generating Report...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <BarChart3 className="h-4 w-4 mr-2" />
+                                      Generate Report
+                                    </>
+                                  )}
+                                </Button>
+
+                                {/* Download Buttons */}
+                                {state.lastGenerated && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDownloadReport(
+                                          report.value,
+                                          "pdf"
+                                        )
+                                      }
+                                      disabled={state.isDownloading}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {state.isDownloading ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <FileDown className="h-3 w-3" />
+                                      )}
+                                      PDF
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDownloadReport(
+                                          report.value,
+                                          "excel"
+                                        )
+                                      }
+                                      disabled={state.isDownloading}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {state.isDownloading ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <FileSpreadsheet className="h-3 w-3" />
+                                      )}
+                                      Excel
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Error Display */}
+                                {state.error && (
+                                  <Alert
+                                    variant="destructive"
+                                    className="text-sm"
+                                  >
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                      {state.error}
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+
+                                {/* Last Generated Info */}
+                                {state.lastGeneratedAt && (
+                                  <div className="text-xs text-muted-foreground text-center">
+                                    Last generated:{" "}
+                                    {new Date(
+                                      state.lastGeneratedAt
+                                    ).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+            {/* Outstanding Reports */}
+            {groupedReports["Outstanding"] &&
+              groupedReports["Outstanding"].length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Outstanding Reports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {groupedReports["Outstanding"].map((report) => {
+                        const status = getReportStatus(report.value);
+                        const state = reportStates[report.value];
+
+                        return (
+                          <Card
+                            key={report.value}
+                            className={`hover:shadow-lg transition-all duration-200 border-2 ${
+                              status === "generated"
+                                ? "border-green-200 bg-green-50/50"
+                                : status === "error"
+                                ? "border-red-200 bg-red-50/50"
+                                : status === "generating"
+                                ? "border-blue-200 bg-blue-50/50"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <CardHeader className="pb-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`p-3 rounded-lg ${report.color}`}
+                                  >
+                                    <report.icon className="h-6 w-6" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <CardTitle className="text-lg mb-1">
+                                      {report.label}
+                                    </CardTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                      {report.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+
+                            <CardContent className="pt-0">
+                              <div className="space-y-4">
+                                {/* Status Indicator */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(report.value)}
+                                    <span className="text-sm font-medium">
+                                      {getStatusText(report.value)}
+                                    </span>
+                                  </div>
+                                  {state.lastGenerated && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        setSelectedReport(report.value)
+                                      }
+                                      className="h-8 px-2"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+
+                                {/* Generate Button */}
+                                <Button
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleGenerateReport(report.value)
+                                  }
+                                  disabled={state.isGenerating}
+                                  className="w-full"
+                                >
+                                  {state.isGenerating ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Generating Report...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <BarChart3 className="h-4 w-4 mr-2" />
+                                      Generate Report
+                                    </>
+                                  )}
+                                </Button>
+
+                                {/* Download Buttons */}
+                                {state.lastGenerated && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDownloadReport(
+                                          report.value,
+                                          "pdf"
+                                        )
+                                      }
+                                      disabled={state.isDownloading}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {state.isDownloading ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <FileDown className="h-3 w-3" />
+                                      )}
+                                      PDF
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDownloadReport(
+                                          report.value,
+                                          "excel"
+                                        )
+                                      }
+                                      disabled={state.isDownloading}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {state.isDownloading ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <FileSpreadsheet className="h-3 w-3" />
+                                      )}
+                                      Excel
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Error Display */}
+                                {state.error && (
+                                  <Alert
+                                    variant="destructive"
+                                    className="text-sm"
+                                  >
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                      {state.error}
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+
+                                {/* Last Generated Info */}
+                                {state.lastGeneratedAt && (
+                                  <div className="text-xs text-muted-foreground text-center">
+                                    Last generated:{" "}
+                                    {new Date(
+                                      state.lastGeneratedAt
+                                    ).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+          </div>
+
+          {/* Other Report Categories in 2-Column Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {Object.entries(groupedReports)
+              .filter(
+                ([category]) =>
+                  category !== "Collection" && category !== "Outstanding"
+              )
+              .filter(([category, reports]) => reports && reports.length > 0)
+              .map(([category, reports]) => (
+                <Card key={category}>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      {category} Reports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {reports.map((report) => {
+                        const status = getReportStatus(report.value);
+                        const state = reportStates[report.value];
+
+                        return (
+                          <Card
+                            key={report.value}
+                            className={`hover:shadow-lg transition-all duration-200 border-2 ${
+                              status === "generated"
+                                ? "border-green-200 bg-green-50/50"
+                                : status === "error"
+                                ? "border-red-200 bg-red-50/50"
+                                : status === "generating"
+                                ? "border-blue-200 bg-blue-50/50"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <CardHeader className="pb-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`p-3 rounded-lg ${report.color}`}
+                                  >
+                                    <report.icon className="h-6 w-6" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <CardTitle className="text-lg mb-1">
+                                      {report.label}
+                                    </CardTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                      {report.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+
+                            <CardContent className="pt-0">
+                              <div className="space-y-4">
+                                {/* Status Indicator */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(report.value)}
+                                    <span className="text-sm font-medium">
+                                      {getStatusText(report.value)}
+                                    </span>
+                                  </div>
+                                  {state.lastGenerated && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        setSelectedReport(report.value)
+                                      }
+                                      className="h-8 px-2"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+
+                                {/* Generate Button */}
+                                <Button
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleGenerateReport(report.value)
+                                  }
+                                  disabled={state.isGenerating}
+                                  className="w-full"
+                                >
+                                  {state.isGenerating ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Generating Report...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <BarChart3 className="h-4 w-4 mr-2" />
+                                      Generate Report
+                                    </>
+                                  )}
+                                </Button>
+
+                                {/* Download Buttons */}
+                                {state.lastGenerated && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDownloadReport(
+                                          report.value,
+                                          "pdf"
+                                        )
+                                      }
+                                      disabled={state.isDownloading}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {state.isDownloading ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <FileDown className="h-3 w-3" />
+                                      )}
+                                      PDF
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleDownloadReport(
+                                          report.value,
+                                          "excel"
+                                        )
+                                      }
+                                      disabled={state.isDownloading}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {state.isDownloading ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <FileSpreadsheet className="h-3 w-3" />
+                                      )}
+                                      Excel
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Error Display */}
+                                {state.error && (
+                                  <Alert
+                                    variant="destructive"
+                                    className="text-sm"
+                                  >
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                      {state.error}
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+
+                                {/* Last Generated Info */}
+                                {state.lastGeneratedAt && (
+                                  <div className="text-xs text-muted-foreground text-center">
+                                    Last generated:{" "}
+                                    {new Date(
+                                      state.lastGeneratedAt
+                                    ).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+
+          {/* Report Preview Modal */}
+          {selectedReport && reportStates[selectedReport]?.lastGenerated && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  Report Preview:{" "}
+                  {reportStates[selectedReport]?.lastGenerated?.title ||
+                    "Financial Report"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="text-center p-4 border rounded-lg bg-blue-50">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {reportStates[selectedReport]?.lastGenerated?.summary
+                          ?.totalRecords || 0}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Total Records
+                      </p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg bg-green-50">
+                      <div className="text-2xl font-bold text-green-600">
+                        KES{" "}
+                        {Number(
+                          reportStates[selectedReport]?.lastGenerated?.summary
+                            ?.totalAmount || 0
+                        ).toLocaleString()}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Total Amount
+                      </p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg bg-orange-50">
+                      <div className="text-2xl font-bold text-orange-600">
+                        KES{" "}
+                        {Number(
+                          reportStates[selectedReport]?.lastGenerated?.summary
+                            ?.averageAmount || 0
+                        ).toLocaleString()}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Average Amount
+                      </p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg bg-purple-50">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {Number(
+                          reportStates[selectedReport]?.lastGenerated?.summary
+                            ?.collectionRate || 0
+                        ).toFixed(1)}
+                        %
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Collection Rate
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sample Data Table */}
+                  {reportStates[selectedReport]?.lastGenerated?.data &&
+                    reportStates[selectedReport].lastGenerated.data.length >
+                      0 && (
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 px-4 py-3 border-b">
+                          <h4 className="font-medium">
+                            Sample Data (First 10 Records)
+                          </h4>
+                        </div>
+                        <div className="max-h-96 overflow-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                {Object.keys(
+                                  reportStates[selectedReport]?.lastGenerated
+                                    ?.data[0] || {}
+                                ).map((key) => (
+                                  <TableHead key={key} className="text-xs">
+                                    {key.replace(/_/g, " ").toUpperCase()}
+                                  </TableHead>
+                                ))}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {reportStates[selectedReport]?.lastGenerated?.data
+                                .slice(0, 10)
+                                .map((row, index) => (
+                                  <TableRow key={index}>
+                                    {Object.values(row).map(
+                                      (value, cellIndex) => (
+                                        <TableCell
+                                          key={cellIndex}
+                                          className="text-xs"
+                                        >
+                                          {String(value || "")}
+                                        </TableCell>
+                                      )
+                                    )}
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );

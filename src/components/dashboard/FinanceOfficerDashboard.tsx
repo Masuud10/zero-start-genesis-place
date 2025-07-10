@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AuthUser } from "@/types/auth";
 import { useOptimizedFinanceMetrics } from "@/hooks/finance/useOptimizedFinanceMetrics";
+import { useNavigation } from "@/contexts/NavigationContext";
 import {
   Loader2,
   AlertCircle,
@@ -28,6 +29,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
   );
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const { setActiveSection } = useNavigation();
   const { metrics, isLoading, error, loadingTimeout, refetch } =
     useOptimizedFinanceMetrics();
 
@@ -243,19 +245,28 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <button className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setActiveSection("fee-management")}
+              className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors"
+            >
               <div className="font-medium">View Fee Management</div>
               <div className="text-sm text-muted-foreground">
                 Manage student fees and payments
               </div>
             </button>
-            <button className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setActiveSection("financial-reports")}
+              className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors"
+            >
               <div className="font-medium">Generate Reports</div>
               <div className="text-sm text-muted-foreground">
                 Export financial summaries
               </div>
             </button>
-            <button className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setActiveSection("financial-analytics")}
+              className="w-full p-3 text-left border rounded hover:bg-gray-50 transition-colors"
+            >
               <div className="font-medium">View Analytics</div>
               <div className="text-sm text-muted-foreground">
                 Detailed financial insights
