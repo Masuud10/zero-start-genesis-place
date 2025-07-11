@@ -26,7 +26,9 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
       setIsChecking(true);
       console.log(
         "🔍 MaintenanceGuard: Checking maintenance status for user:",
-        user?.id
+        user?.id,
+        "role:",
+        user?.role
       );
 
       const status = await MaintenanceModeService.getMaintenanceStatus(
@@ -39,6 +41,16 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
         inMaintenance: status.inMaintenance,
         canAccess: status.canBypass,
         message: status.message,
+      });
+
+      // Additional debug logging
+      console.log("🔍 MaintenanceGuard: Final decision:", {
+        inMaintenance: status.inMaintenance,
+        canBypass: status.canBypass,
+        userRole: user?.role,
+        shouldBlock: status.inMaintenance && !status.canBypass,
+        shouldShowWarning: status.inMaintenance && status.canBypass,
+        shouldAllow: !status.inMaintenance || status.canBypass,
       });
     } catch (error) {
       console.error(
@@ -69,11 +81,17 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
 
   // If in maintenance mode and user cannot access, show maintenance page
   if (maintenanceStatus?.inMaintenance && !maintenanceStatus?.canAccess) {
+    console.log(
+      "🚫 MaintenanceGuard: Blocking user access - showing maintenance page"
+    );
     return <MaintenancePage />;
   }
 
   // If user can access during maintenance, show warning but allow access
   if (maintenanceStatus?.inMaintenance && maintenanceStatus?.canAccess) {
+    console.log(
+      "⚠️ MaintenanceGuard: User can bypass maintenance - showing warning"
+    );
     return (
       <div>
         {/* Maintenance warning banner for admins */}
@@ -107,6 +125,7 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
   }
 
   // Normal access
+  console.log("✅ MaintenanceGuard: Allowing normal access");
   return <>{children}</>;
 };
 

@@ -1,14 +1,16 @@
-
-import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
-import ErrorBoundary from '@/components/common/ErrorBoundary';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { ErrorMessage } from '@/components/common/ErrorMessage';
-import EduFamAdminDashboard from './edufam-admin/EduFamAdminDashboard';
-import SchoolAdminDashboard from './school-admin/SchoolAdminDashboard';
-import TeacherDashboard from './TeacherDashboard';
-import ParentDashboard from './parent/ParentDashboard';
+import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useRoleValidation } from "@/hooks/useRoleValidation";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { ErrorMessage } from "@/components/common/ErrorMessage";
+import EduFamAdminDashboard from "./edufam-admin/EduFamAdminDashboard";
+import SchoolAdminDashboard from "./school-admin/SchoolAdminDashboard";
+import TeacherDashboard from "./TeacherDashboard";
+import ParentDashboard from "./parent/ParentDashboard";
+import MaintenanceNotification from "@/components/common/MaintenanceNotification";
+import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 
 const AdminDashboard = () => {
   const { user, isLoading, error } = useAuth();
@@ -24,7 +26,7 @@ const AdminDashboard = () => {
 
   if (error) {
     return (
-      <ErrorMessage 
+      <ErrorMessage
         error={error}
         onRetry={() => window.location.reload()}
         className="max-w-md mx-auto mt-20"
@@ -34,7 +36,7 @@ const AdminDashboard = () => {
 
   if (!user) {
     return (
-      <ErrorMessage 
+      <ErrorMessage
         error="Please log in to access the dashboard."
         className="max-w-md mx-auto mt-20"
       />
@@ -42,27 +44,29 @@ const AdminDashboard = () => {
   }
 
   const handleModalOpen = (modalType: string) => {
-    console.log('AdminDashboard: Opening modal:', modalType);
+    console.log("AdminDashboard: Opening modal:", modalType);
     // Handle modal opening logic here
   };
 
   // Role-based dashboard rendering with proper error boundaries
   return (
     <ErrorBoundary>
+      <MaintenanceNotification />
+      <AdminCommunicationsBanner />
       {(() => {
         switch (user.role) {
-          case 'edufam_admin':
+          case "edufam_admin":
             return (
               <ErrorBoundary>
                 <EduFamAdminDashboard onModalOpen={handleModalOpen} />
               </ErrorBoundary>
             );
-          
-          case 'principal':
-          case 'school_owner':
+
+          case "principal":
+          case "school_owner":
             if (!schoolId) {
               return (
-                <ErrorMessage 
+                <ErrorMessage
                   error="Your account needs to be assigned to a school. Please contact the system administrator."
                   className="max-w-md mx-auto mt-20"
                 />
@@ -70,14 +74,17 @@ const AdminDashboard = () => {
             }
             return (
               <ErrorBoundary>
-                <SchoolAdminDashboard user={user} onModalOpen={handleModalOpen} />
+                <SchoolAdminDashboard
+                  user={user}
+                  onModalOpen={handleModalOpen}
+                />
               </ErrorBoundary>
             );
-          
-          case 'teacher':
+
+          case "teacher":
             if (!schoolId) {
               return (
-                <ErrorMessage 
+                <ErrorMessage
                   error="Your account needs to be assigned to a school. Please contact your principal."
                   className="max-w-md mx-auto mt-20"
                 />
@@ -88,17 +95,17 @@ const AdminDashboard = () => {
                 <TeacherDashboard user={user} onModalOpen={handleModalOpen} />
               </ErrorBoundary>
             );
-          
-          case 'parent':
+
+          case "parent":
             return (
               <ErrorBoundary>
                 <ParentDashboard />
               </ErrorBoundary>
             );
-          
+
           default:
             return (
-              <ErrorMessage 
+              <ErrorMessage
                 error={`Invalid user role: ${user.role}. Please contact support.`}
                 className="max-w-md mx-auto mt-20"
               />

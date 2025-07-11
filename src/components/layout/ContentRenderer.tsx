@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigation } from "@/contexts/NavigationContext";
 import ErrorFallback from "@/components/common/ErrorFallback";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import MaintenanceNotification from "@/components/common/MaintenanceNotification";
+import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 
 // Lazy load all dashboard components for better performance
 const EduFamAdminDashboard = React.lazy(
@@ -216,7 +218,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
 
     // Return dashboard component if it's the dashboard section
     if (dashboardComponent) {
-      return dashboardComponent;
+      return (
+        <div>
+          <MaintenanceNotification />
+          <AdminCommunicationsBanner />
+          {dashboardComponent}
+        </div>
+      );
     }
 
     // Render other sections with lazy loading and error boundaries
@@ -227,30 +235,34 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
       componentName?: string
     ) => {
       return (
-        <ErrorBoundary
-          onError={(error, errorInfo) => {
-            console.error(
-              `🚨 Error in ${componentName || "component"}:`,
-              error,
-              errorInfo
-            );
-          }}
-        >
-          <React.Suspense
-            fallback={
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-pulse flex items-center gap-2">
-                  <div className="h-6 w-6 bg-primary/20 rounded animate-spin"></div>
-                  <span className="text-muted-foreground">
-                    Loading {componentName || "component"}...
-                  </span>
-                </div>
-              </div>
-            }
+        <div>
+          <MaintenanceNotification />
+          <AdminCommunicationsBanner />
+          <ErrorBoundary
+            onError={(error, errorInfo) => {
+              console.error(
+                `🚨 Error in ${componentName || "component"}:`,
+                error,
+                errorInfo
+              );
+            }}
           >
-            <Component />
-          </React.Suspense>
-        </ErrorBoundary>
+            <React.Suspense
+              fallback={
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-pulse flex items-center gap-2">
+                    <div className="h-6 w-6 bg-primary/20 rounded animate-spin"></div>
+                    <span className="text-muted-foreground">
+                      Loading {componentName || "component"}...
+                    </span>
+                  </div>
+                </div>
+              }
+            >
+              <Component />
+            </React.Suspense>
+          </ErrorBoundary>
+        </div>
       );
     };
 
@@ -263,8 +275,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         );
       }
       return (
-        <div className="p-8 text-center text-red-600">
-          Access Denied: Principal access required
+        <div>
+          <MaintenanceNotification />
+          <div className="p-8 text-center text-red-600">
+            Access Denied: Principal access required
+          </div>
         </div>
       );
     }
@@ -275,8 +290,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return renderLazyComponent(SystemSettings, "SystemSettings");
       }
       return (
-        <div className="p-8 text-center text-red-600">
-          Access Denied: EduFam Admin access required
+        <div>
+          <MaintenanceNotification />
+          <div className="p-8 text-center text-red-600">
+            Access Denied: EduFam Admin access required
+          </div>
         </div>
       );
     }
@@ -290,8 +308,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         );
       }
       return (
-        <div className="p-8 text-center text-red-600">
-          Access Denied: EduFam Admin access required
+        <div>
+          <MaintenanceNotification />
+          <div className="p-8 text-center text-red-600">
+            Access Denied: EduFam Admin access required
+          </div>
         </div>
       );
     }
@@ -316,8 +337,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         );
       }
       return (
-        <div className="p-8 text-center text-red-600">
-          Access Denied: Analytics access restricted
+        <div>
+          <MaintenanceNotification />
+          <div className="p-8 text-center text-red-600">
+            Access Denied: Analytics access restricted
+          </div>
         </div>
       );
     }
@@ -332,8 +356,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Finance access required
+            </div>
           </div>
         );
       case "mpesa-payments":
@@ -341,8 +368,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           return renderLazyComponent(MpesaPaymentsPanel, "MpesaPaymentsPanel");
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Finance access required
+            </div>
           </div>
         );
       case "expenses":
@@ -351,8 +381,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           return renderLazyComponent(ExpensesPanel, "ExpensesPanel");
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Expenses are restricted to Finance Officers only
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Expenses are restricted to Finance Officers only
+            </div>
           </div>
         );
       case "financial-reports":
@@ -364,9 +397,12 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Financial Reports are restricted to Finance Officers
-            only
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Financial Reports are restricted to Finance
+              Officers only
+            </div>
           </div>
         );
       case "financial-analytics":
@@ -377,8 +413,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Finance access required
+            </div>
           </div>
         );
       case "student-accounts":
@@ -389,8 +428,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Finance access required
+            </div>
           </div>
         );
       case "finance":
@@ -403,8 +445,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           return renderLazyComponent(FinancialOverview, "FinancialOverview");
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Finance access required
+            </div>
           </div>
         );
       case "finance-settings":
@@ -415,8 +460,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Finance access required
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Finance access required
+            </div>
           </div>
         );
 
@@ -426,7 +474,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           return renderLazyComponent(ProjectHubModule, "ProjectHubModule");
         }
         return (
-          <div>Project Hub access restricted to EduFam administrators</div>
+          <div>
+            <MaintenanceNotification />
+            <div>Project Hub access restricted to EduFam administrators</div>
+          </div>
         );
       case "school-analytics":
         if (user?.role === "edufam_admin") {
@@ -436,7 +487,12 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return (
-          <div>School Analytics access restricted to EduFam administrators</div>
+          <div>
+            <MaintenanceNotification />
+            <div>
+              School Analytics access restricted to EduFam administrators
+            </div>
+          </div>
         );
       case "company-management":
         if (user?.role === "edufam_admin") {
@@ -447,7 +503,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         }
         return (
           <div>
-            Company Management access restricted to EduFam administrators
+            <MaintenanceNotification />
+            <div>
+              Company Management access restricted to EduFam administrators
+            </div>
           </div>
         );
       case "grades":
@@ -472,8 +531,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           return renderLazyComponent(ExaminationsModule, "ExaminationsModule");
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Only principals can manage examinations
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Only principals can manage examinations
+            </div>
           </div>
         );
       case "academic-management":
@@ -490,8 +552,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         return (
-          <div className="p-8 text-center text-red-600">
-            Access Denied: Only principals can access Academic Management
+          <div>
+            <MaintenanceNotification />
+            <div className="p-8 text-center text-red-600">
+              Access Denied: Only principals can access Academic Management
+            </div>
           </div>
         );
       case "attendance":
@@ -509,20 +574,23 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         }
         if (user?.role === "principal") {
           return (
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center h-64">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">
-                      Loading timetable generator...
-                    </p>
+            <div>
+              <MaintenanceNotification />
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">
+                        Loading timetable generator...
+                      </p>
+                    </div>
                   </div>
-                </div>
-              }
-            >
-              <PrincipalTimetableGenerator />
-            </Suspense>
+                }
+              >
+                <PrincipalTimetableGenerator />
+              </Suspense>
+            </div>
           );
         }
         // Special case for parents - they get their own timetable view

@@ -37,6 +37,8 @@ export class MaintenanceModeService {
         .eq('setting_key', 'maintenance_mode')
         .single();
 
+      console.log('🔍 MaintenanceModeService: Database query result:', { data, error });
+
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
         console.error('🔍 MaintenanceModeService: Database error:', error);
         throw error;
@@ -74,6 +76,7 @@ export class MaintenanceModeService {
         };
       }
 
+      console.log('🔍 MaintenanceModeService: Returning parsed settings:', parsedValue);
       return {
         data: parsedValue,
         error: null
@@ -159,12 +162,18 @@ export class MaintenanceModeService {
 
   static async getMaintenanceStatus(userRole?: string): Promise<MaintenanceStatus> {
     try {
+      console.log('🔍 MaintenanceModeService: getMaintenanceStatus called for role:', userRole);
+      
       const { data, error } = await this.getMaintenanceModeSettings();
+      
+      console.log('🔍 MaintenanceModeService: getMaintenanceStatus - settings result:', { data, error });
       
       if (error || !data) {
         console.log('🔍 MaintenanceModeService: getMaintenanceStatus - no data or error, returning default');
         return { inMaintenance: false, canBypass: true };
       }
+
+      console.log('🔍 MaintenanceModeService: getMaintenanceStatus - maintenance enabled:', data.enabled);
 
       if (!data.enabled) {
         console.log('🔍 MaintenanceModeService: getMaintenanceStatus - maintenance disabled');
@@ -182,12 +191,15 @@ export class MaintenanceModeService {
         maintenanceEnabled: data.enabled
       });
 
-      return {
+      const result = {
         inMaintenance: true,
         message: data.message,
         canBypass,
         estimatedDuration: data.estimated_duration
       };
+
+      console.log('🔍 MaintenanceModeService: getMaintenanceStatus - returning result:', result);
+      return result;
     } catch (error) {
       console.error('Error getting maintenance status:', error);
       return { inMaintenance: false, canBypass: true };
@@ -225,6 +237,8 @@ export class MaintenanceModeService {
 
   static async enableMaintenanceMode(message: string, estimatedDuration?: string): Promise<{ success: boolean; error?: unknown }> {
     try {
+      console.log('🔧 MaintenanceModeService: Enabling maintenance mode with:', { message, estimatedDuration });
+      
       const settings: MaintenanceModeSettings = {
         enabled: true,
         message,
@@ -236,10 +250,13 @@ export class MaintenanceModeService {
       console.log('🔧 MaintenanceModeService: Enabling maintenance mode', {
         message,
         estimatedDuration,
-        allowedRoles: settings.allowed_roles
+        allowedRoles: settings.allowed_roles,
+        fullSettings: settings
       });
 
       const result = await this.updateMaintenanceMode(settings);
+      
+      console.log('🔧 MaintenanceModeService: updateMaintenanceMode result:', result);
       
       if (result.success) {
         console.log('🔧 MaintenanceModeService: Successfully enabled maintenance mode');

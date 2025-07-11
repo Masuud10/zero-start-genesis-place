@@ -1,11 +1,18 @@
-
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { AuthUser } from '@/types/auth';
-import { School } from '@/types/school';
-import UserProfileDropdown from './UserProfileDropdown';
-import NotificationsDropdown from '@/components/notifications/NotificationsDropdown';
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AuthUser } from "@/types/auth";
+import { School } from "@/types/school";
+import UserProfileDropdown from "./UserProfileDropdown";
+import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
+import MaintenanceNotification from "@/components/common/MaintenanceNotification";
+import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 
 interface DashboardContainerProps {
   user: AuthUser;
@@ -22,12 +29,19 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   onLogout,
   showHeader = true,
   showGreetings = true,
-  children
+  children,
 }) => {
-  console.log('🏗️ DashboardContainer: Rendering with user:', user?.email, 'school:', currentSchool?.name, 'showGreetings:', showGreetings);
+  console.log(
+    "🏗️ DashboardContainer: Rendering with user:",
+    user?.email,
+    "school:",
+    currentSchool?.name,
+    "showGreetings:",
+    showGreetings
+  );
 
   if (!user) {
-    console.log('🏗️ DashboardContainer: No user provided, showing error');
+    console.log("🏗️ DashboardContainer: No user provided, showing error");
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card>
@@ -44,18 +58,18 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'edufam_admin':
-        return 'EduFam Admin';
-      case 'school_owner':
-        return 'School Owner';
-      case 'principal':
-        return 'Principal';
-      case 'teacher':
-        return 'Teacher';
-      case 'finance_officer':
-        return 'Finance Officer';
-      case 'parent':
-        return 'Parent';
+      case "edufam_admin":
+        return "EduFam Admin";
+      case "school_owner":
+        return "School Owner";
+      case "principal":
+        return "Principal";
+      case "teacher":
+        return "Teacher";
+      case "finance_officer":
+        return "Finance Officer";
+      case "parent":
+        return "Parent";
       default:
         return role;
     }
@@ -63,20 +77,20 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'edufam_admin':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'school_owner':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'principal':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'teacher':
-        return 'bg-cyan-100 text-cyan-800 border-cyan-200';
-      case 'finance_officer':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'parent':
-        return 'bg-pink-100 text-pink-800 border-pink-200';
+      case "edufam_admin":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "school_owner":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "principal":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "teacher":
+        return "bg-cyan-100 text-cyan-800 border-cyan-200";
+      case "finance_officer":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "parent":
+        return "bg-pink-100 text-pink-800 border-pink-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
@@ -98,7 +112,6 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
         <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-start justify-between gap-4">
-              
               {/* Left side: Greeting and info */}
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
@@ -110,11 +123,15 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
                 <div className="mt-4 flex items-center flex-wrap gap-x-4 gap-y-2 text-xs">
                   <div className="flex items-center gap-1.5">
                     <span className="text-gray-500 font-medium">Role:</span>
-                    <Badge className={`${getRoleBadgeColor(user.role)} font-medium px-1.5 py-0.5 text-xs`}>
+                    <Badge
+                      className={`${getRoleBadgeColor(
+                        user.role
+                      )} font-medium px-1.5 py-0.5 text-xs`}
+                    >
                       {getRoleDisplayName(user.role)}
                     </Badge>
                   </div>
-                  
+
                   {currentSchool && (
                     <div className="flex items-center gap-1.5">
                       <span className="text-gray-400">•</span>
@@ -144,7 +161,11 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
                 <NotificationsDropdown />
 
                 {/* User Profile Dropdown */}
-                <UserProfileDropdown user={user} currentSchool={currentSchool} onLogout={onLogout} />
+                <UserProfileDropdown
+                  user={user}
+                  currentSchool={currentSchool}
+                  onLogout={onLogout}
+                />
               </div>
             </div>
           </div>
@@ -154,6 +175,12 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          {/* Maintenance Notification - shows across all dashboards */}
+          <MaintenanceNotification />
+
+          {/* Admin Communications Banner - shows across all dashboards */}
+          <AdminCommunicationsBanner />
+
           {children}
         </div>
       </main>

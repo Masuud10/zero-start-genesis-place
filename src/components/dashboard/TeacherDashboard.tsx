@@ -12,6 +12,8 @@ import BulkGradingModal from "@/components/grading/BulkGradingModal";
 import AttendanceModal from "@/components/modals/AttendanceModal";
 import GradesModal from "@/components/modals/GradesModal";
 import { useToast } from "@/hooks/use-toast";
+import MaintenanceNotification from "@/components/common/MaintenanceNotification";
+import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 
 interface TeacherDashboardProps {
   user: AuthUser;
@@ -79,11 +81,15 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   return (
     <RoleGuard allowedRoles={["teacher"]} requireSchoolAssignment={true}>
       <div className="min-h-screen bg-background">
+        <MaintenanceNotification />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           {/* Stats Overview */}
           <div className="w-full">
             <TeacherStatsCards stats={stats} loading={isLoading} />
           </div>
+
+          {/* Admin Communications Banner */}
+          <AdminCommunicationsBanner />
 
           {/* Class Analytics Overview Section */}
           <div id="class-analytics-section">

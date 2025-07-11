@@ -8,6 +8,8 @@ import FinanceOfficerDashboard from "./dashboard/FinanceOfficerDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
+import MaintenanceNotification from "@/components/common/MaintenanceNotification";
+import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 
 const Dashboard: React.FC = () => {
   const { user, isLoading, error: authError } = useAuth();
@@ -126,24 +128,54 @@ const Dashboard: React.FC = () => {
       case "edufam_admin":
       case "elimisha_admin":
         console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard");
-        return <EduFamAdminDashboard />;
+        return (
+          <div>
+            <MaintenanceNotification />
+            <AdminCommunicationsBanner />
+            <EduFamAdminDashboard />
+          </div>
+        );
 
       case "principal":
       case "school_owner":
         console.log("🎯 Dashboard: Routing to Principal Dashboard");
-        return <PrincipalDashboard user={user} />;
+        return (
+          <div>
+            <MaintenanceNotification />
+            <AdminCommunicationsBanner />
+            <PrincipalDashboard user={user} />
+          </div>
+        );
 
       case "teacher":
         console.log("🎯 Dashboard: Routing to Teacher Dashboard");
-        return <TeacherDashboard user={user} />;
+        return (
+          <div>
+            <MaintenanceNotification />
+            <AdminCommunicationsBanner />
+            <TeacherDashboard user={user} />
+          </div>
+        );
 
       case "finance_officer":
         console.log("🎯 Dashboard: Routing to Finance Officer Dashboard");
-        return <FinanceOfficerDashboard user={user} />;
+        return (
+          <div>
+            <MaintenanceNotification />
+            <AdminCommunicationsBanner />
+            <FinanceOfficerDashboard user={user} />
+          </div>
+        );
 
       case "parent":
         console.log("🎯 Dashboard: Routing to Parent Dashboard");
-        return <ParentDashboard user={user} />;
+        return (
+          <div>
+            <MaintenanceNotification />
+            <AdminCommunicationsBanner />
+            <ParentDashboard user={user} />
+          </div>
+        );
 
       default:
         console.warn("🎯 Dashboard: Unknown user role:", user.role);
