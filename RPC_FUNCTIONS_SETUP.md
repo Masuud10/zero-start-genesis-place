@@ -4,7 +4,7 @@ This guide explains how to apply the missing RPC functions to your Supabase data
 
 ## Overview
 
-The following RPC functions have been created to support the analytics and reporting features in your application:
+The following RPC functions have been created to support the analytics and reporting features in your applicatioN;
 
 ### Analytics Functions
 
