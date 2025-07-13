@@ -7,7 +7,7 @@ export interface AdminCommunication {
   expires_at?: string;
   target_roles: string[];
   is_active: boolean;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'critical';
   dismissible: boolean;
   updated_at?: string;
 }
@@ -17,7 +17,7 @@ export interface AdminCommunicationCreate {
   message: string;
   target_roles: string[];
   expires_at?: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'critical';
   dismissible: boolean;
 }
 
@@ -26,7 +26,7 @@ export interface AdminCommunicationUpdate {
   message?: string;
   target_roles?: string[];
   expires_at?: string;
-  priority?: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high' | 'critical';
   dismissible?: boolean;
   is_active?: boolean;
 }

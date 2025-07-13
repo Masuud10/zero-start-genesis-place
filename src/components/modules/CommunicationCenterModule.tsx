@@ -31,7 +31,7 @@ const CommunicationCenterModule = () => {
   const [adminCommForm, setAdminCommForm] = useState({
     title: '',
     message: '',
-    priority: 'medium' as 'low' | 'medium' | 'high',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
     target_roles: [] as string[],
     expires_at: '',
     dismissible: true
@@ -207,18 +207,76 @@ const CommunicationCenterModule = () => {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {canCreateBroadcast && (
-            <BroadcastAnnouncementDialog 
-              open={isCreateOpen} 
-              onOpenChange={setIsCreateOpen}
-              onSubmit={handleCreateBroadcast}
-            >
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                <Send className="w-4 h-4 mr-2" />
-                Create Broadcast
-              </Button>
-            </BroadcastAnnouncementDialog>
+            <>
+              <Dialog open={isAdminCommCreateOpen} onOpenChange={setIsAdminCommCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Send Communication
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Send Admin Communication</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Input
+                      placeholder="Communication Title"
+                      value={adminCommForm.title}
+                      onChange={(e) => setAdminCommForm(prev => ({...prev, title: e.target.value}))}
+                    />
+                    <Textarea
+                      placeholder="Message Content"
+                      value={adminCommForm.message}
+                      onChange={(e) => setAdminCommForm(prev => ({...prev, message: e.target.value}))}
+                      rows={4}
+                    />
+                    <Select value={adminCommForm.priority} onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => 
+                      setAdminCommForm(prev => ({...prev, priority: value}))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Priority Level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Target Roles:</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {availableRoles.map(role => (
+                          <div key={role} className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={adminCommForm.target_roles.includes(role)}
+                              onCheckedChange={() => handleRoleToggle(role)}
+                            />
+                            <label className="text-sm capitalize">{role.replace('_', ' ')}</label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <Button onClick={handleCreateAdminComm} className="w-full">
+                      Send Communication
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
+              <BroadcastAnnouncementDialog 
+                open={isCreateOpen} 
+                onOpenChange={setIsCreateOpen}
+                onSubmit={handleCreateBroadcast}
+              >
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Send className="w-4 h-4 mr-2" />
+                  Create Broadcast
+                </Button>
+              </BroadcastAnnouncementDialog>
+            </>
           )}
         </div>
       </div>
@@ -247,12 +305,8 @@ const CommunicationCenterModule = () => {
         onBulkArchive={handleBulkArchive}
       />
 
-      <Tabs defaultValue="admin-comms" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="admin-comms" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Admin Communications ({allCommunications?.length || 0})
-          </TabsTrigger>
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
             Announcements ({activeAnnouncements.length})
@@ -267,98 +321,6 @@ const CommunicationCenterModule = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* PHASE 3: Admin Communications Tab */}
-        <TabsContent value="admin-comms" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Admin Communications</h3>
-            <Dialog open={isAdminCommCreateOpen} onOpenChange={setIsAdminCommCreateOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Send New Communication
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Create Admin Communication</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Communication Title"
-                    value={adminCommForm.title}
-                    onChange={(e) => setAdminCommForm(prev => ({...prev, title: e.target.value}))}
-                  />
-                  <Textarea
-                    placeholder="Message Content"
-                    value={adminCommForm.message}
-                    onChange={(e) => setAdminCommForm(prev => ({...prev, message: e.target.value}))}
-                    rows={4}
-                  />
-                  <Select value={adminCommForm.priority} onValueChange={(value: 'low' | 'medium' | 'high') => 
-                    setAdminCommForm(prev => ({...prev, priority: value}))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low Priority</SelectItem>
-                      <SelectItem value="medium">Medium Priority</SelectItem>
-                      <SelectItem value="high">High Priority</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Target Roles:</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableRoles.map(role => (
-                        <div key={role} className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={adminCommForm.target_roles.includes(role)}
-                            onCheckedChange={() => handleRoleToggle(role)}
-                          />
-                          <label className="text-sm capitalize">{role.replace('_', ' ')}</label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <Button onClick={handleCreateAdminComm} className="w-full">
-                    Send Communication
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Communications List */}
-          <div className="space-y-3">
-            {allCommunications?.map(comm => (
-              <Card key={comm.id} className="p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold">{comm.title}</h4>
-                      <Badge variant={comm.priority === 'high' ? 'destructive' : 'secondary'}>
-                        {comm.priority}
-                      </Badge>
-                      {comm.is_active && <Badge variant="default">Active</Badge>}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{comm.message}</p>
-                    <div className="text-xs text-gray-500">
-                      Target: {comm.target_roles.join(', ')} | 
-                      Created: {new Date(comm.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteAdminComm(comm.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </Card>
-            )) || <p className="text-gray-500 text-center py-8">No communications yet</p>}
-          </div>
-        </TabsContent>
 
         <TabsContent value="active" className="space-y-4">
           {/* Search and Filters */}

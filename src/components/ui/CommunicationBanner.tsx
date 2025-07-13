@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 interface CommunicationBannerProps {
   title: string;
   message: string;
-  priority?: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high' | 'critical';
   onDismiss: () => void;
 }
 
@@ -17,14 +17,16 @@ const CommunicationBanner: React.FC<CommunicationBannerProps> = ({
 }) => {
   const getPriorityStyles = (priority: string) => {
     switch (priority) {
+      case 'critical':
+        return 'bg-red-500 border-red-600 text-white';
       case 'high':
-        return 'bg-red-50 border-red-200 text-red-900';
+        return 'bg-yellow-400 border-yellow-500 text-gray-900';
       case 'medium':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-900';
+        return 'bg-cyan-100 border-cyan-200 text-cyan-900';
       case 'low':
-        return 'bg-blue-50 border-blue-200 text-blue-900';
+        return 'bg-gray-100 border-gray-200 text-gray-800';
       default:
-        return 'bg-yellow-50 border-yellow-200 text-yellow-900';
+        return 'bg-gray-100 border-gray-200 text-gray-800';
     }
   };
 

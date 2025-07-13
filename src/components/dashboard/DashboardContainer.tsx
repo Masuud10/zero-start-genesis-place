@@ -117,32 +117,19 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
     return fullName?.split(" ")[0] || "User";
   };
 
-  // Filter out dismissed banners and show only active communications
-  const activeCommunications = (!isLoading && communications) ? communications.filter(
-    comm => comm.is_active && !dismissedBanners.includes(comm.id)
-  ) : [];
+  // PHASE 1: Show only the latest unread communication as a single banner
+  const latestCommunication = (!isLoading && communications) ? 
+    communications
+      .filter(comm => comm.is_active && !dismissedBanners.includes(comm.id))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+    : null;
 
-  // PHASE 1 DEBUG: Log active communications
-  console.log('🚨 ACTIVE COMMUNICATIONS:', activeCommunications);
+  // PHASE 1 DEBUG: Log latest communication
+  console.log('🚨 LATEST COMMUNICATION FOR BANNER:', latestCommunication, 'isLoading:', isLoading);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Prominent Communication Banners - at the very top */}
-      {!isLoading && activeCommunications.length > 0 && (
-        <div className="communication-banners-container relative z-[999] w-full bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
-          <div className="max-w-7xl mx-auto">
-            {activeCommunications.map(comm => (
-              <CommunicationBanner
-                key={comm.id}
-                title={comm.title}
-                message={comm.message}
-                priority={comm.priority}
-                onDismiss={() => handleBannerDismiss(comm.id)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Single Communication Banner - positioned under greetings */}
 
       {/* Compact Greetings Container - Only show when showGreetings is true */}
       {showGreetings && (
@@ -205,6 +192,20 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
                 />
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 1: Single Communication Banner - positioned directly after greetings */}
+      {!isLoading && latestCommunication && (
+        <div className="communication-banners-container relative z-[999] w-full bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
+          <div className="max-w-7xl mx-auto">
+            <CommunicationBanner
+              title={latestCommunication.title}
+              message={latestCommunication.message}
+              priority={latestCommunication.priority}
+              onDismiss={() => handleBannerDismiss(latestCommunication.id)}
+            />
           </div>
         </div>
       )}
