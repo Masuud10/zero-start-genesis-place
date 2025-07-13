@@ -3444,6 +3444,7 @@ export type Database = {
           is_immutable: boolean | null
           is_released: boolean | null
           letter_grade: string | null
+          marks: number | null
           max_score: number | null
           overridden_grade: number | null
           percentage: number | null
@@ -3488,6 +3489,7 @@ export type Database = {
           is_immutable?: boolean | null
           is_released?: boolean | null
           letter_grade?: string | null
+          marks?: number | null
           max_score?: number | null
           overridden_grade?: number | null
           percentage?: number | null
@@ -3532,6 +3534,7 @@ export type Database = {
           is_immutable?: boolean | null
           is_released?: boolean | null
           letter_grade?: string | null
+          marks?: number | null
           max_score?: number | null
           overridden_grade?: number | null
           percentage?: number | null
