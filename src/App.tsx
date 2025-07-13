@@ -65,7 +65,7 @@ const AppRouter: React.FC = () => {
   );
 };
 
-// Main App Logic Component with Global Maintenance Check
+// Main App Logic Component - FORENSIC DEBUGGING VERSION
 const AppLogic: React.FC = () => {
   const { user, isLoading: userLoading, isInitialized } = useAuth();
   const { data: settings, isLoading: settingsLoading } = useQuery({
@@ -92,25 +92,55 @@ const AppLogic: React.FC = () => {
     enabled: !userLoading && isInitialized && !!user // Wait for auth to be fully loaded
   });
 
-  // Determine the application's state
-  const isMaintenanceMode = settings?.maintenance_mode === true;
-  const isAllowedRole = settings?.allowed_roles?.includes(user?.role || '') || false;
   const isLoading = settingsLoading || userLoading || !isInitialized;
 
-  console.log('🔧 APP GLOBAL CHECK:', {
-    isMaintenanceMode,
-    userRole: user?.role,
-    isAllowedRole,
-    allowedRoles: settings?.allowed_roles,
-    isLoading,
-    shouldShowMaintenance: isMaintenanceMode && !isAllowedRole
-  });
+  // --- START OF FORENSIC LOGGING ---
+  // This block will run every time the component re-renders.
+  console.group('🔧 === MAINTENANCE MODE FORENSIC DIAGNOSTIC ===');
+  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
+  console.log(`🔄 Is the application currently loading data?`, isLoading);
+  console.log(`👤 User loading state:`, userLoading);
+  console.log(`🔐 Auth initialized state:`, isInitialized);
+  console.log(`⚙️ Settings loading state:`, settingsLoading);
+  
+  if (!isLoading) {
+    console.log('📊 Raw settings object from database query:', settings);
+    console.log('👤 Raw user object from Auth context:', user);
+
+    const isMaintenanceMode = settings?.maintenance_mode === true;
+    const isAllowedRole = settings?.allowed_roles?.includes(user?.role || '') || false;
+    
+    console.log(`🔧 Does settings.maintenance_mode exist?`, settings?.maintenance_mode);
+    console.log(`🔧 Type of settings.maintenance_mode:`, typeof settings?.maintenance_mode);
+    console.log(`🔧 CALCULATED: Is Maintenance Mode ON?`, isMaintenanceMode);
+    
+    console.log(`👤 Does user.role exist?`, user?.role);
+    console.log(`👤 Type of user.role:`, typeof user?.role);
+    console.log(`👤 Allowed roles array:`, settings?.allowed_roles);
+    console.log(`👤 CALCULATED: Is User in allowed roles?`, isAllowedRole);
+
+    const shouldBlock = isMaintenanceMode && !isAllowedRole;
+    console.log(`🚫 FINAL CHECK: Should block user? (isMaintenanceMode && !isAllowedRole)`, shouldBlock);
+    
+    if (shouldBlock) {
+      console.log('🔴 RESULT: User will be blocked - showing MaintenancePage');
+    } else {
+      console.log('🟢 RESULT: User will be allowed - showing main application');
+    }
+  } else {
+    console.log('⏳ Still loading... showing LoadingSpinner');
+  }
+  console.groupEnd();
+  // --- END OF FORENSIC LOGGING ---
 
   // Render based on the state. This is the core logic.
   if (isLoading) {
     // Show a loading spinner while we check the status
     return <LoadingSpinner />;
   }
+
+  const isMaintenanceMode = settings?.maintenance_mode === true;
+  const isAllowedRole = settings?.allowed_roles?.includes(user?.role || '') || false;
 
   if (isMaintenanceMode && !isAllowedRole) {
     // If maintenance mode is ON and the user is NOT in allowed roles,
