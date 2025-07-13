@@ -8,9 +8,9 @@ interface MaintenanceGuardProps {
 }
 
 const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading, isInitialized } = useAuth();
 
-  const { data: maintenanceStatus, isLoading } = useQuery({
+  const { data: maintenanceStatus, isLoading: maintenanceLoading } = useQuery({
     queryKey: ['maintenance-lockout'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -31,15 +31,17 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
       const maintenanceData = data?.setting_value as { enabled?: boolean; message?: string; allowed_roles?: string[] } | null;
       const isMaintenanceEnabled = maintenanceData?.enabled || false;
       
-      // Only EduFam Admin can bypass maintenance mode
+      // CRITICAL: Only EduFam Admin can bypass maintenance mode
       const isEduFamAdmin = user?.role === 'edufam_admin';
       
-      console.log('🔧 MaintenanceGuard: Status check', {
+      console.log('🔧 MaintenanceGuard: CRITICAL ACCESS CHECK', {
         maintenanceEnabled: isMaintenanceEnabled,
         userRole: user?.role,
-        isEduFamAdmin,
         userEmail: user?.email,
-        shouldBlock: isMaintenanceEnabled && !isEduFamAdmin
+        isEduFamAdmin,
+        shouldBlock: isMaintenanceEnabled && !isEduFamAdmin,
+        userInitialized: isInitialized,
+        authLoading
       });
       
       return {
@@ -49,11 +51,11 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
       };
     },
     refetchInterval: 2000, // Check every 2 seconds for faster updates
-    enabled: !!user // Only run when user is authenticated
+    enabled: !authLoading && isInitialized && !!user // Wait for auth to be fully loaded
   });
 
-  // Show loading state
-  if (isLoading) {
+  // Show loading state while auth or maintenance status is loading
+  if (authLoading || !isInitialized || maintenanceLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

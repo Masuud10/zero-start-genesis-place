@@ -9,7 +9,6 @@ import EduFamAdminDashboard from "./edufam-admin/EduFamAdminDashboard";
 import SchoolAdminDashboard from "./school-admin/SchoolAdminDashboard";
 import TeacherDashboard from "./TeacherDashboard";
 import ParentDashboard from "./parent/ParentDashboard";
-import MaintenanceNotification from "@/components/common/MaintenanceNotification";
 import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 
 const AdminDashboard = () => {
@@ -51,7 +50,6 @@ const AdminDashboard = () => {
   // Role-based dashboard rendering with proper error boundaries
   return (
     <ErrorBoundary>
-      <MaintenanceNotification />
       <AdminCommunicationsBanner />
       {(() => {
         switch (user.role) {
