@@ -93,8 +93,8 @@ const ProjectHubModule = React.lazy(
 const CompanyManagementModule = React.lazy(
   () => import("@/components/modules/CompanyManagementModule")
 );
-const SystemSettings = React.lazy(
-  () => import("@/components/settings/SystemSettings")
+const EduFamSystemSettings = React.lazy(
+  () => import("@/components/modules/settings/EduFamSystemSettings")
 );
 const EduFamAnalyticsOverview = React.lazy(
   () => import("@/components/analytics/EduFamAnalyticsOverview")
@@ -287,7 +287,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
     // System Settings - Only for EduFam Admins
     if (activeSection === "settings") {
       if (user?.role === "edufam_admin") {
-        return renderLazyComponent(SystemSettings, "SystemSettings");
+        return renderLazyComponent(EduFamSystemSettings, "EduFamSystemSettings");
       }
       return (
         <div>
