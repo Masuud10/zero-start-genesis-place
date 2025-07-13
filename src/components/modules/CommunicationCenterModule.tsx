@@ -209,74 +209,16 @@ const CommunicationCenterModule = () => {
 
         <div className="flex gap-2 flex-wrap">
           {canCreateBroadcast && (
-            <>
-              <Dialog open={isAdminCommCreateOpen} onOpenChange={setIsAdminCommCreateOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Send Communication
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Send Admin Communication</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Input
-                      placeholder="Communication Title"
-                      value={adminCommForm.title}
-                      onChange={(e) => setAdminCommForm(prev => ({...prev, title: e.target.value}))}
-                    />
-                    <Textarea
-                      placeholder="Message Content"
-                      value={adminCommForm.message}
-                      onChange={(e) => setAdminCommForm(prev => ({...prev, message: e.target.value}))}
-                      rows={4}
-                    />
-                    <Select value={adminCommForm.priority} onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => 
-                      setAdminCommForm(prev => ({...prev, priority: value}))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Priority Level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Target Roles:</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {availableRoles.map(role => (
-                          <div key={role} className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={adminCommForm.target_roles.includes(role)}
-                              onCheckedChange={() => handleRoleToggle(role)}
-                            />
-                            <label className="text-sm capitalize">{role.replace('_', ' ')}</label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <Button onClick={handleCreateAdminComm} className="w-full">
-                      Send Communication
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              
-              <BroadcastAnnouncementDialog 
-                open={isCreateOpen} 
-                onOpenChange={setIsCreateOpen}
-                onSubmit={handleCreateBroadcast}
-              >
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  <Send className="w-4 h-4 mr-2" />
-                  Create Broadcast
-                </Button>
-              </BroadcastAnnouncementDialog>
-            </>
+            <BroadcastAnnouncementDialog 
+              open={isCreateOpen} 
+              onOpenChange={setIsCreateOpen}
+              onSubmit={handleCreateBroadcast}
+            >
+              <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                <Send className="w-4 h-4 mr-2" />
+                Create Broadcast
+              </Button>
+            </BroadcastAnnouncementDialog>
           )}
         </div>
       </div>
@@ -294,16 +236,6 @@ const CommunicationCenterModule = () => {
       {/* Metrics Overview */}
       <AnnouncementMetrics announcements={announcements} />
 
-      {/* Quick Actions */}
-      <AnnouncementQuickActions
-        totalAnnouncements={activeAnnouncements.length}
-        urgentCount={urgentAnnouncements.length}
-        archivedCount={archivedAnnouncements.length}
-        averageEngagement={averageEngagement}
-        onRefresh={handleRefresh}
-        onExport={handleExport}
-        onBulkArchive={handleBulkArchive}
-      />
 
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
