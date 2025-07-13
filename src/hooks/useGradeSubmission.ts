@@ -166,7 +166,7 @@ export const useGradeSubmission = () => {
         student_id: gradeData.student_id,
         subject_id: gradeData.subject_id,
         score: gradeData.score,
-        max_score: gradeData.max_score,
+        max_score: gradeData.max_score || 100,
         exam_type: gradeData.exam_type,
         term: gradeData.term
       });

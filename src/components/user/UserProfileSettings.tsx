@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { User, Palette, Settings, Save } from 'lucide-react';
 
+type Theme = 'light' | 'dark' | 'system';
+
 const UserProfileSettings = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -29,10 +31,10 @@ const UserProfileSettings = () => {
     if (user) {
       setFormData({
         name: user.name || '',
-        theme_preference: user.user_metadata?.theme_preference || theme,
-        showGreetings: user.user_metadata?.dashboard_preferences?.showGreetings ?? true,
-        compactMode: user.user_metadata?.dashboard_preferences?.compactMode ?? false,
-        defaultView: user.user_metadata?.dashboard_preferences?.defaultView || 'dashboard'
+        theme_preference: (user.user_metadata?.theme_preference as Theme) || theme,
+        showGreetings: (user.user_metadata?.dashboard_preferences as any)?.showGreetings ?? true,
+        compactMode: (user.user_metadata?.dashboard_preferences as any)?.compactMode ?? false,
+        defaultView: (user.user_metadata?.dashboard_preferences as any)?.defaultView || 'dashboard'
       });
     }
   }, [user, theme]);

@@ -28,7 +28,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Get user's saved theme preference
   useEffect(() => {
     if (user?.user_metadata?.theme_preference) {
-      setTheme(user.user_metadata.theme_preference);
+      setTheme(user.user_metadata.theme_preference as Theme);
     } else {
       // Check localStorage for saved theme
       const savedTheme = localStorage.getItem('theme') as Theme;

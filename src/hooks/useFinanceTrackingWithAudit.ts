@@ -68,7 +68,7 @@ export const useFinanceTrackingWithAudit = () => {
         amount: paymentData.amount,
         payment_method: paymentData.payment_method,
         transaction_type: paymentData.transaction_type,
-        reference_number: paymentData.reference_number
+        reference_number: paymentData.reference_number || `REF-${Date.now()}`
       });
 
       // Log successful transaction
