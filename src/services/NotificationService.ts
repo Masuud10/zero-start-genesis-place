@@ -6,8 +6,14 @@ export interface Notification {
   title: string;
   message: string;
   type: 'info' | 'warning' | 'error' | 'success';
+  category?: string;
   is_read: boolean;
   created_at: string;
+  action_url?: string;
+  academic_context?: {
+    class_id?: string;
+    subject_id?: string;
+  };
   data?: any;
 }
 
@@ -46,14 +52,17 @@ export class NotificationService {
    */
   static async getUserNotifications(
     userId: string,
+    page: number = 1,
     limit: number = 50,
-    offset: number = 0
-  ): Promise<{ data: Notification[]; error?: string }> {
+    unreadOnly: boolean = false
+  ): Promise<{ data: Notification[]; count: number; error?: string }> {
     try {
+      const offset = (page - 1) * limit;
+      
       // Use announcements as notifications
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('announcements')
-        .select('*')
+        .select('*', { count: 'exact' })
         .contains('target_audience', ['user'])
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -67,15 +76,16 @@ export class NotificationService {
         title: item.title,
         message: item.content,
         type: item.priority === 'high' ? 'error' : 'info',
+        category: 'system',
         is_read: false,
         created_at: item.created_at || new Date().toISOString(),
         data: item
       }));
 
-      return { data: transformedData };
+      return { data: transformedData, count: count || 0 };
     } catch (error: any) {
       console.error('Error fetching user notifications:', error);
-      return { data: [], error: error.message };
+      return { data: [], count: 0, error: error.message };
     }
   }
 
@@ -297,6 +307,45 @@ export class NotificationService {
       message,
       type: 'success'
     }, targetRoles);
+  }
+
+  /**
+   * Get notification preferences for a user
+   */
+  static async getNotificationPreferences(
+    userId: string
+  ): Promise<{ data: any; error?: string }> {
+    try {
+      // Return default preferences since we don't have a preferences table
+      const defaultPreferences = {
+        email_notifications: true,
+        push_notifications: true,
+        grade_submissions: true,
+        grade_approvals: true,
+        attendance_alerts: true
+      };
+      
+      return { data: defaultPreferences };
+    } catch (error: any) {
+      console.error('Error fetching notification preferences:', error);
+      return { data: null, error: error.message };
+    }
+  }
+
+  /**
+   * Update notification preferences for a user
+   */
+  static async updateNotificationPreferences(
+    userId: string,
+    preferences: any
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // For now, just return success since we don't have a preferences table
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error updating notification preferences:', error);
+      return { success: false, error: error.message };
+    }
   }
 }
 

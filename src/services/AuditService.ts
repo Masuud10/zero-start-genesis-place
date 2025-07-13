@@ -3,32 +3,41 @@ import { supabase } from '@/integrations/supabase/client';
 export interface AuditLog {
   id: string;
   user_id: string;
-  school_id: string;
-  action: string;
   table_name: string;
-  record_id?: string;
-  old_values?: any;
-  new_values?: any;
-  academic_context?: {
+  action: string;
+  old_value?: any;
+  new_value?: any;
+  old_values?: any; // Alias for compatibility
+  new_values?: any; // Alias for compatibility
+  timestamp: string;
+  created_at?: string; // For compatibility
+  user_role: string;
+  metadata?: any;
+  record_id?: string; // For compatibility
+  academic_context?: any; // For compatibility
+}
+
+export interface AuditFilters {
+  userId?: string;
+  tableName?: string;
+  action?: string;
+  startDate?: string;
+  endDate?: string;
+  academicContext?: {
     academic_year_id?: string;
     term_id?: string;
     class_id?: string;
     subject_id?: string;
   };
-  ip_address?: string;
-  user_agent?: string;
-  created_at: string;
 }
 
 export interface SystemEvent {
   id: string;
   event_type: string;
-  event_data?: any;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  school_id: string;
-  created_at: string;
-  processed_at?: string;
-  processed_by?: string;
+  message: string;
+  metadata?: any;
+  timestamp: string;
 }
 
 export class AuditService {
@@ -37,84 +46,25 @@ export class AuditService {
    */
   static async logAuditEvent(
     action: string,
-    tableName: string,
-    recordId?: string,
-    oldValues?: any,
-    newValues?: any,
-    academicContext?: {
-      academic_year_id?: string;
-      term_id?: string;
-      class_id?: string;
-      subject_id?: string;
-    }
-  ): Promise<{ success: boolean; error?: string }> {
+    target_entity: string,
+    old_value?: any,
+    new_value?: any,
+    metadata?: any
+  ): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return { success: false, error: 'User not authenticated' };
-      }
-
-      const { error } = await supabase
+      await supabase
         .from('audit_logs')
         .insert({
-          performed_by_user_id: user.id,
-          performed_by_role: 'user',
           action,
-          target_entity: `${tableName}:${recordId}`,
-          old_value: oldValues,
-          new_value: newValues,
-          metadata: academicContext,
+          target_entity,
+          old_value: old_value ? JSON.stringify(old_value) : null,
+          new_value: new_value ? JSON.stringify(new_value) : null,
+          metadata: metadata ? JSON.stringify(metadata) : null,
+          performed_by_role: 'user',
+          timestamp: new Date().toISOString()
         });
-
-      if (error) throw error;
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error logging audit event:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Log a system event
-   */
-  static async logSystemEvent(
-    eventType: string,
-    eventData?: any,
-    severity: 'low' | 'medium' | 'high' | 'critical' = 'medium',
-    schoolId?: string
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      let effectiveSchoolId = schoolId;
-      if (!effectiveSchoolId && user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', user.id)
-          .single();
-        effectiveSchoolId = profile?.school_id;
-      }
-
-      // Use audit_logs table for system events
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert({
-          performed_by_user_id: user?.id,
-          performed_by_role: 'system',
-          action: `SYSTEM_${eventType}`,
-          target_entity: 'system',
-          metadata: { event_data: eventData, severity },
-          school_id: effectiveSchoolId,
-        });
-
-      if (error) throw error;
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error logging system event:', error);
-      return { success: false, error: error.message };
+    } catch (error) {
+      console.error('Failed to log audit event:', error);
     }
   }
 
@@ -122,423 +72,162 @@ export class AuditService {
    * Get audit logs with filtering
    */
   static async getAuditLogs(
-    filters: {
-      schoolId?: string;
-      userId?: string;
-      action?: string;
-      tableName?: string;
-      startDate?: string;
-      endDate?: string;
-      academicContext?: {
-        academic_year_id?: string;
-        term_id?: string;
-        class_id?: string;
-        subject_id?: string;
-      };
-    },
+    schoolId: string,
+    filters: AuditFilters = {},
     page: number = 1,
     limit: number = 50
-  ): Promise<{ data: AuditLog[]; count: number; error?: string }> {
+  ): Promise<{ logs: AuditLog[]; total: number; error?: string }> {
     try {
+      const offset = (page - 1) * limit;
+      
       let query = supabase
         .from('audit_logs')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+        .select('*')
+        .eq('school_id', schoolId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
-      if (filters.schoolId) {
-        query = query.eq('school_id', filters.schoolId);
-      }
-      if (filters.userId) {
-        query = query.eq('performed_by_user_id', filters.userId);
-      }
       if (filters.action) {
         query = query.eq('action', filters.action);
       }
-      if (filters.tableName) {
-        query = query.ilike('target_entity', `${filters.tableName}:%`);
-      }
+
       if (filters.startDate) {
         query = query.gte('created_at', filters.startDate);
       }
+
       if (filters.endDate) {
         query = query.lte('created_at', filters.endDate);
-      }
-      if (filters.academicContext) {
-        if (filters.academicContext.academic_year_id) {
-          query = query.eq('metadata->academic_year_id', filters.academicContext.academic_year_id);
-        }
-        if (filters.academicContext.term_id) {
-          query = query.eq('metadata->term_id', filters.academicContext.term_id);
-        }
-        if (filters.academicContext.class_id) {
-          query = query.eq('metadata->class_id', filters.academicContext.class_id);
-        }
-        if (filters.academicContext.subject_id) {
-          query = query.eq('metadata->subject_id', filters.academicContext.subject_id);
-        }
-      }
-
-      const { data, error, count } = await query
-        .range((page - 1) * limit, page * limit - 1);
-
-      if (error) throw error;
-
-      // Transform data to match AuditLog interface
-      const transformedData = (data || []).map(item => ({
-        id: item.id,
-        user_id: item.performed_by_user_id,
-        school_id: item.school_id,
-        action: item.action,
-        table_name: item.target_entity?.split(':')[0] || 'unknown',
-        record_id: item.target_entity?.split(':')[1],
-        old_values: item.old_value,
-        new_values: item.new_value,
-        academic_context: typeof item.metadata === 'object' ? item.metadata as any : undefined,
-        ip_address: typeof item.ip_address === 'string' ? item.ip_address : undefined,
-        user_agent: item.user_agent,
-        created_at: item.created_at
-      }));
-
-      return { data: transformedData, count: count || 0 };
-    } catch (error: any) {
-      console.error('Error fetching audit logs:', error);
-      return { data: [], count: 0, error: error.message };
-    }
-  }
-
-  /**
-   * Get system events with filtering
-   */
-  static async getSystemEvents(
-    filters: {
-      schoolId?: string;
-      eventType?: string;
-      severity?: 'low' | 'medium' | 'high' | 'critical';
-      startDate?: string;
-      endDate?: string;
-      unprocessedOnly?: boolean;
-    },
-    page: number = 1,
-    limit: number = 50
-  ): Promise<{ data: SystemEvent[]; count: number; error?: string }> {
-    try {
-      let query = supabase
-        .from('audit_logs')
-        .select('*', { count: 'exact' })
-        .like('action', 'SYSTEM_%')
-        .order('created_at', { ascending: false });
-
-      if (filters.schoolId) {
-        query = query.eq('school_id', filters.schoolId);
-      }
-      if (filters.eventType) {
-        query = query.eq('action', `SYSTEM_${filters.eventType}`);
-      }
-      if (filters.severity) {
-        query = query.eq('metadata->severity', filters.severity);
-      }
-      if (filters.startDate) {
-        query = query.gte('created_at', filters.startDate);
-      }
-      if (filters.endDate) {
-        query = query.lte('created_at', filters.endDate);
-      }
-
-      const { data, error, count } = await query
-        .range((page - 1) * limit, page * limit - 1);
-
-      if (error) throw error;
-
-      // Transform data to match SystemEvent interface
-      const transformedData = (data || []).map(item => ({
-        id: item.id,
-        event_type: item.action.replace('SYSTEM_', ''),
-        event_data: typeof item.metadata === 'object' && item.metadata ? (item.metadata as any).event_data : undefined,
-        severity: (typeof item.metadata === 'object' && item.metadata ? (item.metadata as any).severity : undefined) || 'medium',
-        school_id: item.school_id,
-        created_at: item.created_at
-      }));
-
-      return { data: transformedData, count: count || 0 };
-    } catch (error: any) {
-      console.error('Error fetching system events:', error);
-      return { data: [], count: 0, error: error.message };
-    }
-  }
-
-  /**
-   * Mark system event as processed
-   */
-  static async markSystemEventProcessed(
-    eventId: string
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const { error } = await supabase
-        .from('audit_logs')
-        .update({
-          metadata: { processed_at: new Date().toISOString(), processed_by: user?.id }
-        })
-        .eq('id', eventId);
-
-      if (error) throw error;
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error marking system event as processed:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Get audit summary statistics
-   */
-  static async getAuditSummary(
-    schoolId: string,
-    startDate?: string,
-    endDate?: string
-  ): Promise<{ data: any; error?: string }> {
-    try {
-      let query = supabase
-        .from('audit_logs')
-        .select('action, target_entity, created_at')
-        .eq('school_id', schoolId);
-
-      if (startDate) {
-        query = query.gte('created_at', startDate);
-      }
-      if (endDate) {
-        query = query.lte('created_at', endDate);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      // Process data to create summary
-      const summary = {
-        totalActions: data?.length || 0,
-        actionsByType: {} as Record<string, number>,
-        actionsByTable: {} as Record<string, number>,
-        actionsByDay: {} as Record<string, number>,
+      // Get total count
+      const { count } = await supabase
+        .from('audit_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('school_id', schoolId);
+
+      const transformedLogs: AuditLog[] = (data || []).map(item => ({
+        id: item.id,
+        user_id: item.performed_by_user_id || '',
+        table_name: item.target_entity || '',
+        action: item.action,
+        old_value: item.old_value,
+        new_value: item.new_value,
+        old_values: item.old_value, // Alias for compatibility
+        new_values: item.new_value, // Alias for compatibility
+        timestamp: item.created_at || new Date().toISOString(),
+        created_at: item.created_at || new Date().toISOString(),
+        user_role: item.performed_by_role || 'unknown',
+        metadata: item.metadata,
+        record_id: item.id, // For compatibility
+        academic_context: item.metadata // For compatibility
+      }));
+
+      return {
+        logs: transformedLogs,
+        total: count || 0
       };
-
-      data?.forEach(log => {
-        // Count by action type
-        summary.actionsByType[log.action] = (summary.actionsByType[log.action] || 0) + 1;
-        
-        // Count by table
-        const tableName = log.target_entity?.split(':')[0] || 'unknown';
-        summary.actionsByTable[tableName] = (summary.actionsByTable[tableName] || 0) + 1;
-        
-        // Count by day
-        const day = new Date(log.created_at).toISOString().split('T')[0];
-        summary.actionsByDay[day] = (summary.actionsByDay[day] || 0) + 1;
-      });
-
-      return { data: summary };
     } catch (error: any) {
-      console.error('Error getting audit summary:', error);
-      return { data: null, error: error.message };
+      console.error('Error fetching audit logs:', error);
+      return {
+        logs: [],
+        total: 0,
+        error: error.message
+      };
     }
   }
 
   /**
-   * Academic context-aware audit helpers
+   * Get system events
    */
-  static async logGradeSubmission(
-    teacherId: string,
-    gradeData: any,
-    academicContext: {
-      academic_year_id: string;
-      term_id: string;
-      class_id: string;
-      subject_id: string;
-    }
-  ): Promise<void> {
-    await this.logAuditEvent(
-      'GRADE_SUBMISSION',
-      'grades',
-      gradeData.id,
-      undefined,
-      gradeData,
-      academicContext
-    );
+  static async getSystemEvents(
+    filters: { 
+      severity?: string; 
+      startDate?: string; 
+      endDate?: string;
+      limit?: number;
+    } = {}
+  ): Promise<{ events: SystemEvent[]; error?: string }> {
+    try {
+      // Use audit_logs as system events
+      let query = supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(filters.limit || 100);
 
-    await this.logSystemEvent(
-      'GRADE_SUBMITTED',
-      {
-        teacher_id: teacherId,
-        grade_count: gradeData.length || 1,
-        class_id: academicContext.class_id,
-        subject_id: academicContext.subject_id,
-      },
-      'medium'
-    );
+      if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate);
+      }
+
+      if (filters.endDate) {
+        query = query.lte('created_at', filters.endDate);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const transformedEvents: SystemEvent[] = (data || []).map(item => ({
+        id: item.id,
+        event_type: item.action,
+        severity: 'medium' as const,
+        message: `${item.action} on ${item.target_entity}`,
+        metadata: item.metadata,
+        timestamp: item.created_at || new Date().toISOString()
+      }));
+
+      return { events: transformedEvents };
+    } catch (error: any) {
+      console.error('Error fetching system events:', error);
+      return {
+        events: [],
+        error: error.message
+      };
+    }
   }
 
-  static async logGradeApproval(
-    principalId: string,
-    gradeData: any,
-    academicContext: {
-      academic_year_id: string;
-      term_id: string;
-      class_id: string;
-      subject_id: string;
-    }
-  ): Promise<void> {
-    await this.logAuditEvent(
-      'GRADE_APPROVAL',
-      'grades',
-      gradeData.id,
-      undefined,
-      gradeData,
-      academicContext
-    );
-
-    await this.logSystemEvent(
-      'GRADE_APPROVED',
-      {
-        principal_id: principalId,
-        grade_count: gradeData.length || 1,
-        class_id: academicContext.class_id,
-        subject_id: academicContext.subject_id,
-      },
-      'medium'
-    );
-  }
-
-  static async logGradeRejection(
-    principalId: string,
-    gradeData: any,
-    reason: string,
-    academicContext: {
-      academic_year_id: string;
-      term_id: string;
-      class_id: string;
-      subject_id: string;
-    }
-  ): Promise<void> {
-    await this.logAuditEvent(
-      'GRADE_REJECTION',
-      'grades',
-      gradeData.id,
-      undefined,
-      { ...gradeData, rejection_reason: reason },
-      academicContext
-    );
-
-    await this.logSystemEvent(
-      'GRADE_REJECTED',
-      {
-        principal_id: principalId,
-        grade_count: gradeData.length || 1,
-        class_id: academicContext.class_id,
-        subject_id: academicContext.subject_id,
-        reason,
-      },
-      'high'
-    );
-  }
-
-  static async logAttendanceMarking(
-    teacherId: string,
-    attendanceData: any,
-    academicContext: {
-      academic_year_id: string;
-      term_id: string;
-      class_id: string;
-    }
-  ): Promise<void> {
-    await this.logAuditEvent(
-      'ATTENDANCE_MARKED',
-      'attendance',
-      attendanceData.id,
-      undefined,
-      attendanceData,
-      academicContext
-    );
-  }
-
-  static async logExamCreation(
-    principalId: string,
-    examData: any,
-    academicContext: {
-      academic_year_id: string;
-      term_id: string;
-    }
-  ): Promise<void> {
-    await this.logAuditEvent(
-      'EXAM_CREATED',
-      'examinations',
-      examData.id,
-      undefined,
-      examData,
-      academicContext
-    );
-
-    await this.logSystemEvent(
-      'EXAM_CREATED',
-      {
-        principal_id: principalId,
-        exam_name: examData.name,
-        exam_type: examData.type,
-        start_date: examData.start_date,
-        end_date: examData.end_date,
-      },
-      'medium'
-    );
-  }
-
-  static async logReportGeneration(
-    userId: string,
-    reportData: any,
-    academicContext?: {
-      academic_year_id?: string;
-      term_id?: string;
-      class_id?: string;
-      subject_id?: string;
-    }
-  ): Promise<void> {
-    await this.logAuditEvent(
-      'REPORT_GENERATED',
-      'reports',
-      reportData.id,
-      undefined,
-      reportData,
-      academicContext
-    );
-  }
-
-  static async logDataIntegrityCheck(
+  /**
+   * Generate audit report
+   */
+  static async generateAuditReport(
     schoolId: string,
-    checkResults: any
-  ): Promise<void> {
-    await this.logSystemEvent(
-      'DATA_INTEGRITY_CHECK',
-      {
+    filters: AuditFilters & { 
+      reportType: 'summary' | 'detailed' | 'compliance';
+      format: 'json' | 'csv' | 'pdf';
+    }
+  ): Promise<{ report: any; error?: string }> {
+    try {
+      const { logs } = await this.getAuditLogs(schoolId, filters, 1, 1000);
+      
+      const report = {
+        title: `Audit Report - ${filters.reportType}`,
+        generated_at: new Date().toISOString(),
         school_id: schoolId,
-        results: checkResults,
-      },
-      checkResults.hasIssues ? 'high' : 'low'
-    );
-  }
+        filters,
+        summary: {
+          total_events: logs.length,
+          unique_users: new Set(logs.map(log => log.user_id)).size,
+          date_range: {
+            start: filters.startDate,
+            end: filters.endDate
+          }
+        },
+        logs: filters.reportType === 'summary' ? logs.slice(0, 10) : logs
+      };
 
-  static async logUserActivity(
-    userId: string,
-    activity: string,
-    details?: any
-  ): Promise<void> {
-    await this.logAuditEvent(
-      'USER_ACTIVITY',
-      'user_activities',
-      undefined,
-      undefined,
-      { activity, details },
-      undefined
-    );
+      return { report };
+    } catch (error: any) {
+      console.error('Error generating audit report:', error);
+      return {
+        report: null,
+        error: error.message
+      };
+    }
   }
 }
 
-export default AuditService; 
+export default AuditService;

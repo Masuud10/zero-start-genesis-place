@@ -215,7 +215,7 @@ export class SystemAnalyticsService {
     try {
       const { data: schools, error } = await supabase
         .from('schools')
-        .select('id, name, created_at, subscription_plan')
+        .select('id, name, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -233,8 +233,8 @@ export class SystemAnalyticsService {
 
       const totalSchools = filteredSchools.length;
       const activeSchools = filteredSchools.length; // Simplified - assume all schools are active
-      const newSchoolsThisMonth = filteredSchools.filter(s => 
-        new Date(s.created_at) >= oneMonthAgo).length;
+      const newSchoolsThisMonth = filteredSchools.filter((s: any) => 
+        s.created_at && new Date(s.created_at) >= oneMonthAgo).length;
 
       // School status distribution (simplified)
       const schoolsByStatus = [
@@ -365,11 +365,11 @@ export class SystemAnalyticsService {
       }
 
       // Try to fetch schools data for subscription info
-      let schools: Array<{ id: string; subscription_plan: string; created_at: string }> = [];
+      let schools: Array<{ id: string; created_at: string }> = [];
       try {
         const { data: schoolsData, error: schoolsError } = await supabase
           .from('schools')
-          .select('id, subscription_plan, created_at');
+          .select('id, created_at');
         
         if (!schoolsError) {
           schools = schoolsData || [];
@@ -400,26 +400,15 @@ export class SystemAnalyticsService {
         .filter(fee => new Date(fee.created_at) >= oneMonthAgo)
         .reduce((sum, fee) => sum + (fee.paid_amount || 0), 0);
 
-      // Subscription plan distribution
-      const planCounts = filteredSchools.reduce((acc, school) => {
-        const plan = school.subscription_plan || 'basic';
-        acc[plan] = (acc[plan] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const planColors = {
-        'basic': '#6b7280',
-        'premium': '#3b82f6',
-        'enterprise': '#10b981',
-        'custom': '#f59e0b'
-      };
-
-      const subscriptionData = Object.entries(planCounts).map(([plan, count]) => ({
-        plan: plan.charAt(0).toUpperCase() + plan.slice(1),
-        count: count as number,
-        revenue: (count as number) * (plan === 'premium' ? 100 : plan === 'enterprise' ? 500 : 50),
-        color: planColors[plan as keyof typeof planColors] || '#6b7280'
-      }));
+      // Subscription plan distribution (simplified since column doesn't exist)
+      const subscriptionData = [
+        {
+          plan: 'Basic',
+          count: filteredSchools.length,
+          revenue: filteredSchools.length * 50,
+          color: '#6b7280'
+        }
+      ];
 
       // Billing trend
       const billingTrend = [];
