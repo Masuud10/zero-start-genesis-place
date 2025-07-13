@@ -1,162 +1,171 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { CreateSchoolRequest, CreateSchoolRpcResult, SchoolData } from '@/types/schoolTypes';
 
-export class SchoolDbService {
-  static async checkRegistrationNumberUnique(registrationNumber: string): Promise<boolean> {
-    const { data: existingSchool, error: checkError } = await supabase
+export interface SchoolData {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  logo_url?: string;
+  website_url?: string;
+  motto?: string;
+  slogan?: string;
+  school_type?: string;
+  registration_number?: string;
+  year_established?: number;
+  term_structure?: string;
+  owner_information?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateSchoolResponse {
+  success: boolean;
+  school_id?: string;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Creates a new school in the database
+ */
+export async function createSchool(schoolData: SchoolData): Promise<CreateSchoolResponse> {
+  try {
+    const { data, error } = await supabase
       .from('schools')
-      .select('id')
-      .eq('registration_number', registrationNumber)
-      .maybeSingle();
+      .insert([schoolData])
+      .select()
+      .single();
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
+    if (error) {
+      console.error('Error creating school:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
 
-    return !existingSchool;
+    return {
+      success: true,
+      school_id: data.id,
+      message: 'School created successfully'
+    };
+  } catch (error) {
+    console.error('Unexpected error creating school:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
   }
+}
 
-  static async createComprehensiveSchool(schoolData: any): Promise<CreateSchoolRpcResult> {
-    console.log('🏫 SchoolDbService: Creating comprehensive school:', schoolData);
-    
-    // Remove curriculum_type from schoolData as it no longer exists in the database
-    const { curriculum_type, ...cleanSchoolData } = schoolData;
-    const { data: rpcData, error: rpcError } = await supabase.rpc('create_comprehensive_school', cleanSchoolData);
+/**
+ * Updates an existing school in the database
+ */
+export async function updateSchool(schoolId: string, updates: Partial<SchoolData>): Promise<CreateSchoolResponse> {
+  try {
+    const { data, error } = await supabase
+      .from('schools')
+      .update(updates)
+      .eq('id', schoolId)
+      .select()
+      .single();
 
-    if (rpcError) {
-      console.error('🏫 SchoolDbService: Database function error:', rpcError);
-      throw rpcError;
+    if (error) {
+      console.error('Error updating school:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
 
-    console.log('🏫 SchoolDbService: Success result:', rpcData);
-    return rpcData as CreateSchoolRpcResult;
+    return {
+      success: true,
+      school_id: data.id,
+      message: 'School updated successfully'
+    };
+  } catch (error) {
+    console.error('Unexpected error updating school:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
   }
+}
 
-  static async createSchoolWithRpc(schoolData: CreateSchoolRequest): Promise<CreateSchoolRpcResult> {
-    const { data: rpcData, error: rpcError } = await supabase.rpc('create_school', {
-      school_name: schoolData.name,
-      school_email: schoolData.email,
-      school_phone: schoolData.phone,
-      school_address: schoolData.address,
-      owner_email: schoolData.ownerEmail || null,
-      owner_name: schoolData.ownerName || null
-    });
+/**
+ * Fetches a school by ID
+ */
+export async function getSchool(schoolId: string): Promise<SchoolData | null> {
+  try {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('*')
+      .eq('id', schoolId)
+      .single();
 
-    if (rpcError) {
-      console.error('🏫 SchoolDbService: Database function error:', rpcError);
-      throw rpcError;
+    if (error) {
+      console.error('Error fetching school:', error);
+      return null;
     }
 
-    return rpcData as CreateSchoolRpcResult;
+    return data;
+  } catch (error) {
+    console.error('Unexpected error fetching school:', error);
+    return null;
   }
+}
 
-  static async updateSchoolAdditionalFields(schoolId: string, schoolData: CreateSchoolRequest): Promise<void> {
-    const updateData: Record<string, any> = {};
-    
-    if (schoolData.logo_url) updateData.logo_url = schoolData.logo_url;
-    if (schoolData.website_url) updateData.website_url = schoolData.website_url;
-    if (schoolData.motto) updateData.motto = schoolData.motto;
-    if (schoolData.slogan) updateData.slogan = schoolData.slogan;
-    if (schoolData.registration_number) updateData.registration_number = schoolData.registration_number;
-    if (schoolData.year_established) updateData.year_established = schoolData.year_established;
-    if (schoolData.term_structure) updateData.term_structure = schoolData.term_structure;
-    if (schoolData.owner_information) updateData.owner_information = schoolData.owner_information;
-    // curriculum_type is now handled at class level, not school level
-    
-    if (Object.keys(updateData).length > 0) {
-      const { error: updateError } = await supabase
-        .from('schools')
-        .update(updateData)
-        .eq('id', schoolId);
-        
-      if (updateError) {
-        console.warn('🏫 SchoolDbService: Failed to update additional fields:', updateError);
-      }
+/**
+ * Fetches all schools
+ */
+export async function getAllSchools(): Promise<SchoolData[]> {
+  try {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching schools:', error);
+      return [];
     }
+
+    return data || [];
+  } catch (error) {
+    console.error('Unexpected error fetching schools:', error);
+    return [];
   }
+}
 
-  static async getAllSchools(): Promise<{ data: SchoolData[] | null; error: any }> {
-    try {
-      console.log('🏫 SchoolDbService: Fetching all schools...');
-      
-      const { data, error } = await supabase
-        .from('schools')
-        .select(`
-          id,
-          name,
-          email,
-          phone,
-          address,
-          logo_url,
-          website_url,
-          motto,
-          slogan,
-          registration_number,
-          year_established,
-          term_structure,
-          owner_information,
-          school_type,
-          status,
-          created_at,
-          updated_at,
-          owner_id,
-          location
-        `)
-        .order('created_at', { ascending: false });
+/**
+ * Deletes a school by ID
+ */
+export async function deleteSchool(schoolId: string): Promise<CreateSchoolResponse> {
+  try {
+    const { error } = await supabase
+      .from('schools')
+      .delete()
+      .eq('id', schoolId);
 
-      if (error) {
-        console.error('🏫 SchoolDbService: Error fetching schools:', error);
-        return { data: null, error };
-      }
-
-      console.log('🏫 SchoolDbService: Schools fetched:', data?.length || 0);
-      const schoolsData = (data || []) as SchoolData[];
-      return { data: schoolsData, error: null };
-    } catch (error) {
-      console.error('🏫 SchoolDbService: Service error:', error);
-      return { data: null, error };
+    if (error) {
+      console.error('Error deleting school:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
-  }
 
-  static async getSchoolById(schoolId: string): Promise<{ data: SchoolData | null; error: any }> {
-    try {
-      const { data, error } = await supabase
-        .from('schools')
-        .select(`
-          id,
-          name,
-          email,
-          phone,
-          address,
-          logo_url,
-          website_url,
-          motto,
-          slogan,
-          registration_number,
-          year_established,
-          term_structure,
-          owner_information,
-          school_type,
-          status,
-          created_at,
-          updated_at,
-          owner_id,
-          location
-        `)
-        .eq('id', schoolId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('🏫 SchoolDbService: Error fetching school:', error);
-        return { data: null, error };
-      }
-
-      const schoolData = data as SchoolData;
-      return { data: schoolData, error: null };
-    } catch (error) {
-      console.error('🏫 SchoolDbService: Service error:', error);
-      return { data: null, error };
-    }
+    return {
+      success: true,
+      message: 'School deleted successfully'
+    };
+  } catch (error) {
+    console.error('Unexpected error deleting school:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
   }
 }

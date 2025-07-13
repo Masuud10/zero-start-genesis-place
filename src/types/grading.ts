@@ -29,12 +29,20 @@ export interface CBCGradeData {
   class_id: string;
   term: string;
   exam_type: string;
-  performance_level: 'EX' | 'PR' | 'AP' | 'EM';
-  strand_scores: Record<string, string>;
-  teacher_remarks?: string;
-  assessment_type?: string;
-  curriculum_type: 'CBC';
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
+  academic_year: string;
+  competencies: {
+    competency_id: string;
+    strand_scores: Record<string, number>;
+    overall_score: number;
+    level: string;
+  }[];
+  overall_score: number;
+  overall_level: string;
+  teacher_notes?: string;
+  principal_notes?: string;
+  is_approved?: boolean;
+  approved_by?: string;
+  approved_at?: string;
 }
 
 export interface StandardGradeData {
@@ -43,12 +51,37 @@ export interface StandardGradeData {
   class_id: string;
   term: string;
   exam_type: string;
+  academic_year: string;
   score: number;
-  max_score: number;
   percentage: number;
-  letter_grade?: string;
-  curriculum_type: 'standard' | 'IGCSE';
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
+  grade: string;
+  teacher_notes?: string;
+  principal_notes?: string;
+  is_approved?: boolean;
+  approved_by?: string;
+  approved_at?: string;
+}
+
+export interface IGCSEGradeData {
+  student_id: string;
+  subject_id: string;
+  class_id: string;
+  term: string;
+  exam_type: string;
+  academic_year: string;
+  components: {
+    component_name: string;
+    score: number;
+    max_score: number;
+    percentage: number;
+  }[];
+  overall_score: number;
+  overall_grade: string;
+  teacher_notes?: string;
+  principal_notes?: string;
+  is_approved?: boolean;
+  approved_by?: string;
+  approved_at?: string;
 }
 
 export type GradeData = CBCGradeData | StandardGradeData;

@@ -144,7 +144,6 @@ export interface CreateSchoolParams {
   max_students?: number;
   timezone?: string;
   term_structure?: string;
-  curriculum_type?: string;
   [key: string]: unknown;
 }
 
@@ -345,12 +344,12 @@ export class ApiService {
    * Sanitize input data to prevent injection attacks
    */
   private static sanitizeInput<T extends Record<string, unknown>>(data: T): T {
-    const sanitized = {} as T;
+    const sanitized = { ...data };
     
-    for (const [key, value] of Object.entries(data)) {
+    for (const [key, value] of Object.entries(sanitized)) {
       if (typeof value === 'string') {
         // Remove potentially dangerous characters
-        (sanitized as Record<string, unknown>)[key] = value.replace(/[<>\"'&]/g, '');
+        (sanitized as Record<string, unknown>)[key] = value.replace(/[<>"'&]/g, '');
       } else {
         (sanitized as Record<string, unknown>)[key] = value;
       }
@@ -884,11 +883,16 @@ export class ApiService {
       const cacheKey = `analytics:school:${schoolId}`;
       
       return ApiService.fetch(async () => {
-        const { data, error } = await (supabase as any).rpc('get_school_analytics', {
-          p_school_id: schoolId
-        });
+        // Placeholder - analytics RPC functions don't exist yet
+        const data: AnalyticsData = {
+          total_students: 0,
+          total_teachers: 0,
+          total_classes: 0,
+          attendance_rate: 0,
+          average_grades: 0
+        };
         
-        return { data: data as AnalyticsData, error };
+        return { data, error: null };
       }, 'Fetch School Analytics', { useCache: true, cacheKey, timeoutMs: 45000 });
     },
 
@@ -896,9 +900,15 @@ export class ApiService {
       const cacheKey = 'analytics:system';
       
       return ApiService.fetch(async () => {
-        const { data, error } = await (supabase as any).rpc('get_system_analytics');
+        // Placeholder - analytics RPC functions don't exist yet
+        const data: AnalyticsData = {
+          total_schools: 0,
+          total_users: 0,
+          system_uptime: 0,
+          active_sessions: 0
+        };
         
-        return { data: data as AnalyticsData, error };
+        return { data, error: null };
       }, 'Fetch System Analytics', { useCache: true, cacheKey, timeoutMs: 45000 });
     },
 
@@ -907,11 +917,15 @@ export class ApiService {
       const cacheKey = `analytics:class:${classId}`;
       
       return ApiService.fetch(async () => {
-        const { data, error } = await (supabase as any).rpc('get_class_analytics', {
-          p_class_id: classId
-        });
+        // Placeholder - analytics RPC functions don't exist yet
+        const data: AnalyticsData = {
+          total_students: 0,
+          average_attendance: 0,
+          average_grades: 0,
+          top_performers: []
+        };
         
-        return { data: data as AnalyticsData, error };
+        return { data, error: null };
       }, 'Fetch Class Analytics', { useCache: true, cacheKey, timeoutMs: 45000 });
     }
   };

@@ -1,6 +1,6 @@
 import { CreateSchoolRequest, CreateSchoolResponse, SchoolData } from '@/types/schoolTypes';
 import { SchoolValidationService } from './school/schoolValidationService';
-import { SchoolDbService } from './school/schoolDbService';
+import { createSchool, getAllSchools, getSchool, updateSchool } from './school/schoolDbService';
 import { SchoolStorageService } from './school/schoolStorageService';
 
 interface ServiceResponse<T> {
@@ -22,21 +22,10 @@ export class SchoolService {
         };
       }
 
-      // Check if registration number is unique
-      if (schoolData.registration_number) {
-        const isUnique = await SchoolDbService.checkRegistrationNumberUnique(schoolData.registration_number);
-        if (!isUnique) {
-          return {
-            success: false,
-            error: 'Registration number already exists'
-          };
-        }
-      }
-
-      // Create school using database function
-      const responseData = await SchoolDbService.createSchoolWithRpc(schoolData);
+      // Create school using the new function-based approach
+      const responseData = await createSchool(schoolData);
       
-      if (responseData?.error) {
+      if (responseData.error) {
         console.error('🏫 SchoolService: Function returned error:', responseData.error);
         return {
           success: false,
@@ -44,18 +33,12 @@ export class SchoolService {
         };
       }
 
-      if (responseData?.success === true) {
+      if (responseData.success) {
         console.log('🏫 SchoolService: School created successfully:', responseData);
-        
-        // Update additional fields if school was created successfully
-        if (responseData.school_id) {
-          await SchoolDbService.updateSchoolAdditionalFields(responseData.school_id, schoolData);
-        }
         
         return {
           success: true,
           school_id: responseData.school_id,
-          owner_id: responseData.owner_id,
           message: responseData.message || 'School created successfully'
         };
       }
@@ -76,11 +59,33 @@ export class SchoolService {
   }
 
   static async getAllSchools(): Promise<ServiceResponse<SchoolData[]>> {
-    return SchoolDbService.getAllSchools();
+    try {
+      const schools = await getAllSchools();
+      return {
+        data: schools,
+        error: null
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Failed to fetch schools'
+      };
+    }
   }
 
   static async getSchoolById(schoolId: string): Promise<ServiceResponse<SchoolData>> {
-    return SchoolDbService.getSchoolById(schoolId);
+    try {
+      const school = await getSchool(schoolId);
+      return {
+        data: school,
+        error: null
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Failed to fetch school'
+      };
+    }
   }
 
   static async uploadSchoolLogo(file: File, schoolId: string): Promise<{ url?: string; error?: string }> {

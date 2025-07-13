@@ -1,20 +1,32 @@
-export type ValidCurriculumType = 'cbc' | 'igcse' | 'standard';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CurriculumValidationResult {
   isValid: boolean;
-  curriculumType: ValidCurriculumType;
+  curriculumType: string;
+  message: string;
   error?: string;
   suggestions?: string[];
 }
 
+export interface ClassCurriculumData {
+  id: string;
+  name: string;
+  curriculum_type?: string;
+  curriculum?: string;
+  school_id: string;
+}
+
 /**
  * Validates curriculum type and provides helpful error messages
+ * @param curriculumValue - The curriculum value to validate
+ * @returns CurriculumValidationResult
  */
 export const validateCurriculumType = (curriculumValue: string | null | undefined): CurriculumValidationResult => {
   if (!curriculumValue) {
     return {
       isValid: false,
       curriculumType: 'standard',
+      message: 'No curriculum type assigned to this class',
       error: 'No curriculum type assigned to this class',
       suggestions: [
         'Update the class details to assign a curriculum type',
@@ -33,14 +45,16 @@ export const validateCurriculumType = (curriculumValue: string | null | undefine
     case 'competency based':
       return {
         isValid: true,
-        curriculumType: 'cbc'
+        curriculumType: 'cbc',
+        message: 'Valid CBC curriculum type'
       };
     case 'igcse':
     case 'cambridge':
     case 'cambridge igcse':
       return {
         isValid: true,
-        curriculumType: 'igcse'
+        curriculumType: 'igcse',
+        message: 'Valid IGCSE curriculum type'
       };
     case 'standard':
     case 'traditional':
@@ -48,12 +62,14 @@ export const validateCurriculumType = (curriculumValue: string | null | undefine
     case '844':
       return {
         isValid: true,
-        curriculumType: 'standard'
+        curriculumType: 'standard',
+        message: 'Valid Standard curriculum type'
       };
     default:
       return {
         isValid: false,
         curriculumType: 'standard',
+        message: `Unrecognized curriculum type: ${curriculumValue}`,
         error: `Unrecognized curriculum type: ${curriculumValue}`,
         suggestions: [
           'Valid curriculum types are: CBC, IGCSE, Standard',
@@ -68,9 +84,13 @@ export const validateCurriculumType = (curriculumValue: string | null | undefine
 
 /**
  * Gets curriculum display information
+ * @param curriculumType - The curriculum type
+ * @returns Curriculum info object
  */
-export const getCurriculumInfo = (curriculumType: ValidCurriculumType) => {
-  switch (curriculumType) {
+export const getCurriculumInfo = (curriculumType: string) => {
+  const normalized = curriculumType.toLowerCase();
+  
+  switch (normalized) {
     case 'cbc':
       return {
         name: 'Competency-Based Curriculum (CBC)',
@@ -95,11 +115,155 @@ export const getCurriculumInfo = (curriculumType: ValidCurriculumType) => {
         color: 'green',
         icon: '📊'
       };
+    default:
+      return {
+        name: 'Unknown Curriculum',
+        description: 'Curriculum type not recognized',
+        gradingSystem: 'Unknown',
+        color: 'gray',
+        icon: '❓'
+      };
   }
 };
 
 /**
+ * Validates curriculum type for a class
+ * @param classId - The class ID to validate
+ * @returns Promise<CurriculumValidationResult>
+ */
+export async function validateClassCurriculum(classId: string): Promise<CurriculumValidationResult> {
+  try {
+    // Fetch class data including curriculum information
+    const { data, error } = await supabase
+      .from('classes')
+      .select('id, name, curriculum_type, curriculum, school_id')
+      .eq('id', classId)
+      .single();
+
+    if (error) {
+      return {
+        isValid: false,
+        curriculumType: 'unknown',
+        message: `Failed to fetch class data: ${error.message}`,
+        suggestions: ['Check if the class exists', 'Verify database connection']
+      };
+    }
+
+    if (!data) {
+      return {
+        isValid: false,
+        curriculumType: 'unknown',
+        message: 'Class not found',
+        suggestions: ['Verify the class ID is correct']
+      };
+    }
+
+    // Check both curriculum_type and curriculum fields
+    const curriculumValue = data.curriculum_type || data.curriculum;
+    
+    if (!curriculumValue) {
+      return {
+        isValid: false,
+        curriculumType: 'unknown',
+        message: 'No curriculum type specified for this class',
+        suggestions: [
+          'Set curriculum_type to "CBC", "IGCSE", or "Standard"',
+          'Update the class configuration'
+        ]
+      };
+    }
+
+    // Validate curriculum type
+    const validCurriculums = ['CBC', 'IGCSE', 'Standard', 'cbc', 'igcse', 'standard'];
+    const normalizedCurriculum = curriculumValue.toLowerCase();
+    
+    if (!validCurriculums.includes(curriculumValue) && !validCurriculums.includes(normalizedCurriculum)) {
+      return {
+        isValid: false,
+        curriculumType: curriculumValue,
+        message: `Invalid curriculum type: ${curriculumValue}`,
+        suggestions: [
+          'Use "CBC" for Kenyan Competency-Based Curriculum',
+          'Use "IGCSE" for International General Certificate of Secondary Education',
+          'Use "Standard" for traditional curriculum'
+        ]
+      };
+    }
+
+    // Normalize to uppercase for consistency
+    const dbCurriculumType = curriculumValue.toUpperCase();
+    
+    // Update the database with normalized value if different
+    if (dbCurriculumType !== curriculumValue) {
+      const { error: updateError } = await supabase
+        .from('classes')
+        .update({ 
+          curriculum_type: dbCurriculumType,
+          curriculum: dbCurriculumType 
+        })
+        .eq('id', classId);
+
+      if (updateError) {
+        console.warn('Failed to normalize curriculum type:', updateError);
+      }
+    }
+
+    return {
+      isValid: true,
+      curriculumType: dbCurriculumType,
+      message: `Valid curriculum type: ${dbCurriculumType}`
+    };
+
+  } catch (error) {
+    console.error('Curriculum validation error:', error);
+    return {
+      isValid: false,
+      curriculumType: 'unknown',
+      message: 'Unexpected error during curriculum validation',
+      suggestions: ['Check console for detailed error information']
+    };
+  }
+}
+
+/**
+ * Gets curriculum type for a class
+ * @param classId - The class ID
+ * @returns Promise<string> - The curriculum type
+ */
+export async function getClassCurriculumType(classId: string): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('classes')
+      .select('curriculum_type, curriculum')
+      .eq('id', classId)
+      .single();
+
+    if (error || !data) {
+      return 'Standard'; // Default fallback
+    }
+
+    return (data.curriculum_type || data.curriculum || 'Standard').toUpperCase();
+  } catch (error) {
+    console.error('Error getting class curriculum type:', error);
+    return 'Standard'; // Default fallback
+  }
+}
+
+/**
+ * Validates if a curriculum type is supported
+ * @param curriculumType - The curriculum type to validate
+ * @returns boolean
+ */
+export function isSupportedCurriculum(curriculumType: string): boolean {
+  const supported = ['CBC', 'IGCSE', 'STANDARD', 'cbc', 'igcse', 'standard'];
+  return supported.includes(curriculumType);
+}
+
+/**
  * Validates if a class has proper curriculum setup
+ * @param classId - The class ID to validate
+ * @param supabase - Supabase client instance
+ * @returns Promise with validation result
  */
 export const validateClassCurriculumSetup = async (classId: string, supabase: {
   from: (table: string) => {
@@ -144,105 +308,5 @@ export const validateClassCurriculumSetup = async (classId: string, supabase: {
       error: 'Database connection error',
       details: error instanceof Error ? error.message : 'Unknown error'
     };
-  }
-};
-
-/**
- * Fixes curriculum type for a class by updating the database
- */
-export const fixClassCurriculumType = async (
-  classId: string, 
-  newCurriculumType: ValidCurriculumType,
-  supabase: {
-    from: (table: string) => {
-      update: (data: { curriculum_type: string; curriculum: string }) => {
-        eq: (column: string, value: string) => Promise<{ 
-          data: unknown; 
-          error: { message: string } | null 
-        }>;
-      };
-    };
-  }
-) => {
-  try {
-    // Convert to uppercase for database storage
-    const dbCurriculumType = newCurriculumType.toUpperCase();
-    
-    const { data, error } = await supabase
-      .from('classes')
-      .update({ 
-        curriculum_type: dbCurriculumType,
-        curriculum: dbCurriculumType 
-      })
-      .eq('id', classId);
-
-    if (error) {
-      return {
-        success: false,
-        error: 'Failed to update curriculum type',
-        details: error.message
-      };
-    }
-
-    return {
-      success: true,
-      message: `Curriculum type updated to ${newCurriculumType.toUpperCase()}`,
-      data
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Database update error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-/**
- * Gets curriculum-specific grading sheet component name
- */
-export const getCurriculumGradingSheetComponent = (curriculumType: ValidCurriculumType): string => {
-  switch (curriculumType) {
-    case 'cbc':
-      return 'CBCGradingSheet';
-    case 'igcse':
-      return 'IGCSEGradingSheet';
-    case 'standard':
-      return 'EnhancedGradingSheet';
-    default:
-      return 'EnhancedGradingSheet';
-  }
-};
-
-/**
- * Gets curriculum-specific assessment types
- */
-export const getCurriculumAssessmentTypes = (curriculumType: ValidCurriculumType): string[] => {
-  switch (curriculumType) {
-    case 'cbc':
-      return [
-        'observation',
-        'written_work', 
-        'project_work',
-        'group_activity',
-        'oral_assessment',
-        'practical_work'
-      ];
-    case 'igcse':
-      return [
-        'coursework',
-        'examination',
-        'practical',
-        'oral'
-      ];
-    case 'standard':
-      return [
-        'OPENER',
-        'MID_TERM',
-        'END_TERM',
-        'FINAL'
-      ];
-    default:
-      return ['OPENER', 'MID_TERM', 'END_TERM'];
   }
 }; 

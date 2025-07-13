@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import NewSubjectCreationForm from "./NewSubjectCreationForm";
 import { NewSubjectFormData } from "@/types/subject";
-import { SubjectDatabaseService } from "@/services/subject/subjectDatabaseService";
+import { createSubject } from "@/services/subject/subjectDatabaseService";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface NewSubjectCreationModalProps {
@@ -38,7 +38,7 @@ const NewSubjectCreationModal: React.FC<NewSubjectCreationModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await SubjectDatabaseService.createSubject(user.school_id, data);
+      await createSubject({ ...data, class_id: data.class_id });
       toast.success("Subject created successfully!");
       onSuccess?.();
       onClose();
