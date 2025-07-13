@@ -1,19 +1,20 @@
-
-import React from 'react';
-import { SidebarFooter as ShadcnSidebarFooter } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { cleanupAuthState } from '@/utils/authCleanup';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { SidebarFooter as ShadcnSidebarFooter } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { cleanupAuthState } from "@/utils/authCleanup";
 
 const SidebarFooter = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      console.log('🔓 Sidebar: Initiating logout');
+      console.log("🔓 Sidebar: Initiating logout");
 
       // Immediate feedback
       toast({
@@ -25,18 +26,16 @@ const SidebarFooter = () => {
       cleanupAuthState();
 
       await signOut();
-      console.log('✅ Sidebar: Logout completed, redirecting to login');
+      console.log("✅ Sidebar: Logout completed, redirecting to login");
     } catch (error) {
-      console.error('❌ Sidebar: Logout error:', error);
+      console.error("❌ Sidebar: Logout error:", error);
       toast({
         title: "Signed out",
         description: "You have been signed out successfully.",
         variant: "default",
       });
       // Force redirect to login as fallback
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 1000);
+      navigate("/login", { replace: true });
     }
   };
 
@@ -46,7 +45,7 @@ const SidebarFooter = () => {
         <div className="flex items-center space-x-3 mb-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
             <span className="text-white text-sm font-bold">
-              {user?.name?.charAt(0) || 'U'}
+              {user?.name?.charAt(0) || "U"}
             </span>
           </div>
           <div className="flex-1 min-w-0">
@@ -58,9 +57,9 @@ const SidebarFooter = () => {
             </p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={handleLogout}
           className="w-full flex items-center gap-2"
         >

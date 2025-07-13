@@ -1,28 +1,29 @@
-
-import React, { useState } from 'react';
-import Navigation from './landing/Navigation';
-import HeroSection from './landing/HeroSection';
-import FeaturesSection from './landing/FeaturesSection';
-import TestimonialsSection from './landing/TestimonialsSection';
-import RevolutionSection from './landing/RevolutionSection';
-import Footer from './landing/Footer';
-import VideoModal from './landing/VideoModal';
-import PricingPage from './landing/PricingPage';
-import AboutPage from '@/components/pages/AboutPage';
-import FeaturesPage from '@/components/pages/FeaturesPage';
-import ContactPage from '@/components/pages/ContactPage';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navigation from "./landing/Navigation";
+import HeroSection from "./landing/HeroSection";
+import FeaturesSection from "./landing/FeaturesSection";
+import TestimonialsSection from "./landing/TestimonialsSection";
+import RevolutionSection from "./landing/RevolutionSection";
+import Footer from "./landing/Footer";
+import VideoModal from "./landing/VideoModal";
+import PricingPage from "./landing/PricingPage";
+import AboutPage from "@/components/pages/AboutPage";
+import FeaturesPage from "@/components/pages/FeaturesPage";
+import ContactPage from "@/components/pages/ContactPage";
 
 interface LandingPageProps {
-  onLoginClick: () => void;
+  onLoginClick?: () => void;
 }
 
 const LandingPage = ({ onLoginClick }: LandingPageProps) => {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState("home");
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const navigate = useNavigate();
 
   // Fixed button handlers
   const handleGetStarted = () => {
-    onLoginClick();
+    navigate("/login");
   };
 
   const handleWatchDemo = () => {
@@ -34,67 +35,70 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
   };
 
   const handleContactSales = () => {
-    window.open('mailto:sales@edufam.co.ke?subject=Sales Inquiry - EduFam School Management System&body=Hello, I am interested in learning more about EduFam for my school. Please contact me to discuss pricing and features specific to Kenyan schools.', '_blank');
+    window.open(
+      "mailto:sales@edufam.co.ke?subject=Sales Inquiry - EduFam School Management System&body=Hello, I am interested in learning more about EduFam for my school. Please contact me to discuss pricing and features specific to Kenyan schools.",
+      "_blank"
+    );
   };
 
   const handleContactUs = () => {
-    setCurrentPage('contact');
+    setCurrentPage("contact");
   };
 
   const handleScheduleDemo = () => {
-    window.open('https://calendly.com/edufam-demo', '_blank');
+    window.open("https://calendly.com/edufam-demo", "_blank");
   };
 
   const handlePricing = () => {
-    setCurrentPage('pricing');
+    setCurrentPage("pricing");
   };
 
   const handleNavClick = (section: string) => {
-    if (section === 'features') {
-      setCurrentPage('features');
-    } else if (section === 'about') {
-      setCurrentPage('about');
-    } else if (section === 'contact') {
-      setCurrentPage('contact');
+    if (section === "features") {
+      setCurrentPage("features");
+    } else if (section === "about") {
+      setCurrentPage("about");
+    } else if (section === "contact") {
+      setCurrentPage("contact");
     } else {
-      setCurrentPage('home');
+      setCurrentPage("home");
       const element = document.getElementById(section);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+        element.scrollIntoView({ behavior: "smooth" });
       }
     }
   };
 
   const handleBackToHome = () => {
-    setCurrentPage('home');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentPage("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Home Page Component
   const HomePage = () => (
     <div className="min-h-screen">
-      <Navigation 
+      <Navigation
         onNavClick={handleNavClick}
         onGetStarted={handleGetStarted}
         onPricing={handlePricing}
       />
-      
-      <HeroSection 
+
+      <HeroSection
         onGetStarted={handleGetStarted}
         onWatchDemo={handleWatchDemo}
       />
-      
+
       <FeaturesSection />
-      
+
       <TestimonialsSection />
-      
-      <RevolutionSection 
+
+      <RevolutionSection
         onGetStarted={handleGetStarted}
         onContactSales={handleContactSales}
         onScheduleDemo={handleScheduleDemo}
       />
-      
-      <Footer 
+
+      <Footer
         onNavClick={handleNavClick}
         onPricing={handlePricing}
         onScheduleDemo={handleScheduleDemo}
@@ -105,14 +109,32 @@ const LandingPage = ({ onLoginClick }: LandingPageProps) => {
   // Render current page based on state
   const renderCurrentPage = () => {
     switch (currentPage) {
-      case 'about':
-        return <AboutPage onBack={handleBackToHome} onContactUs={handleContactUs} onGetStarted={handleGetStarted} />;
-      case 'features':
-        return <FeaturesPage onBack={handleBackToHome} onGetStarted={handleGetStarted} onScheduleDemo={handleScheduleDemo} />;
-      case 'contact':
+      case "about":
+        return (
+          <AboutPage
+            onBack={handleBackToHome}
+            onContactUs={handleContactUs}
+            onGetStarted={handleGetStarted}
+          />
+        );
+      case "features":
+        return (
+          <FeaturesPage
+            onBack={handleBackToHome}
+            onGetStarted={handleGetStarted}
+            onScheduleDemo={handleScheduleDemo}
+          />
+        );
+      case "contact":
         return <ContactPage onBack={handleBackToHome} />;
-      case 'pricing':
-        return <PricingPage onBackToHome={handleBackToHome} onContactSales={handleContactSales} onScheduleDemo={handleScheduleDemo} />;
+      case "pricing":
+        return (
+          <PricingPage
+            onBackToHome={handleBackToHome}
+            onContactSales={handleContactSales}
+            onScheduleDemo={handleScheduleDemo}
+          />
+        );
       default:
         return <HomePage />;
     }

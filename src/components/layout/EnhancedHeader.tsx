@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { useQuery } from "@tanstack/react-query";
@@ -55,6 +56,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   const { schoolId } = useSchoolScopedData();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
   const [auditLogsOpen, setAuditLogsOpen] = useState(false);
@@ -87,10 +89,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account",
-      });
+      // Navigation is handled by the signOut function now
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to sign out";
@@ -99,6 +98,8 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
         description: errorMessage,
         variant: "destructive",
       });
+      // Fallback navigation
+      navigate("/login", { replace: true });
     }
   };
 

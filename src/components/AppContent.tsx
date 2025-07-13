@@ -148,20 +148,12 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // No user authenticated - show login/landing based on URL or state
+  // No user authenticated - this should not happen with ProtectedRoute
   if (!user) {
-    console.log("🎯 AppContent: No user - checking URL path");
-
-    // Check current path to determine what to show
-    const currentPath = window.location.pathname;
-
-    // If user is on login path or has requested login, show login form
-    if (currentPath === "/login" || showLogin) {
-      return <UniversalLoginPage />;
-    }
-
-    // Otherwise show landing page
-    return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+    console.log(
+      "🎯 AppContent: No user - this should not happen with ProtectedRoute"
+    );
+    return <LoadingScreen />;
   }
 
   // Check if user account is deactivated

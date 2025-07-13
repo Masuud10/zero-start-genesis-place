@@ -1,16 +1,17 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Lock, Mail } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Lock, Mail } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DeactivatedAccountMessage: React.FC = () => {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleContactSupport = () => {
     // You can customize this to open a support ticket form or redirect to support page
-    window.location.href = '/support';
+    window.location.href = "/support";
   };
 
   const handleSignOut = async () => {
@@ -34,20 +35,21 @@ const DeactivatedAccountMessage: React.FC = () => {
               Your account has been deactivated by the system administrator.
             </p>
             <p>
-              If you believe this is a mistake or require further assistance, please contact support.
+              If you believe this is a mistake or require further assistance,
+              please contact support.
             </p>
           </div>
-          
+
           <div className="space-y-3">
-            <Button 
+            <Button
               onClick={handleContactSupport}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Mail className="w-4 h-4 mr-2" />
               Contact Support
             </Button>
-            
-            <Button 
+
+            <Button
               onClick={handleSignOut}
               variant="outline"
               className="w-full"

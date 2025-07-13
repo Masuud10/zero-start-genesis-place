@@ -12,6 +12,9 @@ import ResetPasswordPage from "@/components/ResetPasswordPage";
 import UnauthorizedPage from "@/components/UnauthorizedPage";
 import CertificateVerification from "@/pages/CertificateVerification";
 import MaintenanceModeTest from "@/components/debug/MaintenanceModeTest";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import UniversalLoginPage from "@/components/UniversalLoginPage";
+import LandingPage from "@/components/LandingPage";
 import "./App.css";
 import "./utils/maintenanceDebugConsole";
 
@@ -44,6 +47,9 @@ const queryClient = new QueryClient({
 const AppRouter: React.FC = () => {
   return (
     <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<UniversalLoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route
@@ -51,7 +57,11 @@ const AppRouter: React.FC = () => {
         element={<CertificateVerification />}
       />
       <Route path="/debug/maintenance-test" element={<MaintenanceModeTest />} />
-      <Route path="*" element={<AppContent />} />
+
+      {/* Protected Dashboard Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="*" element={<AppContent />} />
+      </Route>
     </Routes>
   );
 };

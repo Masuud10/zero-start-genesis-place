@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,6 +9,7 @@ import { RouteGuard } from "@/utils/routeGuard";
 
 const UnauthorizedPage: React.FC = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleGoBack = () => {
     window.history.back();
@@ -17,14 +19,14 @@ const UnauthorizedPage: React.FC = () => {
     if (user) {
       const sections = RouteGuard.getUserAccessibleSections(user);
       if (sections.primarySection === "admin") {
-        window.location.href = "/admin/dashboard";
+        navigate("/admin/dashboard");
       } else if (sections.primarySection === "school") {
-        window.location.href = "/dashboard";
+        navigate("/dashboard");
       } else {
-        window.location.href = "/";
+        navigate("/");
       }
     } else {
-      window.location.href = "/";
+      navigate("/");
     }
   };
 

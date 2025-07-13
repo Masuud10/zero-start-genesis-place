@@ -1,10 +1,13 @@
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthService } from '@/services/authService';
 import { LoginCredentials } from '@/types/auth';
 import { cleanupAuthState } from '@/utils/authCleanup';
 
 export const useAuthActions = () => {
+  const navigate = useNavigate();
+  
   const signIn = useCallback(async (credentials: LoginCredentials) => {
     console.log('🔑 AuthActions: Attempting sign in for', credentials.email, {
       strictValidation: credentials.strictValidation,
@@ -85,20 +88,16 @@ export const useAuthActions = () => {
       }
       console.log('✅ AuthActions: Logout completed');
 
-      // Force redirect to login page instead of landing page
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 100);
+      // Immediately navigate to login page using React Router
+      navigate('/login', { replace: true });
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Logout failed';
       console.error('❌ AuthActions: Logout error:', error);
-      // Fallback hard reload to login
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 100);
+      // Fallback to login page
+      navigate('/login', { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   return {
     signIn,
