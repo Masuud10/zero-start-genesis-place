@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -47,7 +47,10 @@ const queryClient = new QueryClient({
 const AppRouter: React.FC = () => {
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* ====================================================== */}
+      {/* PUBLIC ROUTES - Anyone can access these.              */}
+      {/* They are NOT wrapped by ProtectedRoute.               */}
+      {/* ====================================================== */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<UniversalLoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -58,10 +61,38 @@ const AppRouter: React.FC = () => {
       />
       <Route path="/debug/maintenance-test" element={<MaintenanceModeTest />} />
 
-      {/* Protected Dashboard Routes */}
+      {/* ====================================================== */}
+      {/* PROTECTED ROUTES - Only logged-in users can access.   */}
+      {/* These are all nested inside the ProtectedRoute element. */}
+      {/* ====================================================== */}
       <Route element={<ProtectedRoute />}>
-        <Route path="*" element={<AppContent />} />
+        <Route path="/dashboard" element={<AppContent />} />
+        <Route path="/finance" element={<AppContent />} />
+        <Route path="/admin" element={<AppContent />} />
+        <Route path="/profile" element={<AppContent />} />
+        <Route path="/settings" element={<AppContent />} />
+        <Route path="/reports" element={<AppContent />} />
+        <Route path="/attendance" element={<AppContent />} />
+        <Route path="/grades" element={<AppContent />} />
+        <Route path="/students" element={<AppContent />} />
+        <Route path="/teachers" element={<AppContent />} />
+        <Route path="/classes" element={<AppContent />} />
+        <Route path="/timetable" element={<AppContent />} />
+        <Route path="/certificates" element={<AppContent />} />
+        <Route path="/communications" element={<AppContent />} />
+        <Route path="/analytics" element={<AppContent />} />
+        <Route path="/billing" element={<AppContent />} />
+        <Route path="/maintenance" element={<AppContent />} />
+        <Route path="/support" element={<AppContent />} />
+        <Route path="/audit" element={<AppContent />} />
+        <Route path="/debug" element={<AppContent />} />
       </Route>
+
+      {/* ====================================================== */}
+      {/* CATCH-ALL ROUTE - If no other route matches,          */}
+      {/* redirect to the landing page.                         */}
+      {/* ====================================================== */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
