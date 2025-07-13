@@ -3424,6 +3424,7 @@ export type Database = {
       }
       grades: {
         Row: {
+          academic_year: string
           approval_workflow_stage: string | null
           approved_at: string | null
           approved_by: string | null
@@ -3467,6 +3468,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          academic_year?: string
           approval_workflow_stage?: string | null
           approved_at?: string | null
           approved_by?: string | null
@@ -3510,6 +3512,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          academic_year?: string
           approval_workflow_stage?: string | null
           approved_at?: string | null
           approved_by?: string | null
