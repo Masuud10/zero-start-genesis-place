@@ -65,62 +65,8 @@ const AppRouter: React.FC = () => {
   );
 };
 
-// Main App Logic with Global Maintenance Check
+// Main App Logic Component
 const AppLogic: React.FC = () => {
-  // 1. Get the system settings and user data
-  const { user, isLoading: userLoading, isInitialized } = useAuth();
-
-  const { data: maintenanceStatus, isLoading: settingsLoading } = useQuery({
-    queryKey: ['maintenance-global-check'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'maintenance_mode')
-        .maybeSingle();
-
-      if (error) {
-        console.error('🔧 APP: Error fetching maintenance status:', error);
-        return { enabled: false, message: '' };
-      }
-
-      const maintenanceData = data?.setting_value as { enabled?: boolean; message?: string } | null;
-      return {
-        enabled: maintenanceData?.enabled || false,
-        message: maintenanceData?.message || ''
-      };
-    },
-    refetchInterval: 2000, // Check every 2 seconds for faster updates
-    enabled: !userLoading && isInitialized && !!user // Wait for auth to be fully loaded
-  });
-
-  // 2. Determine the application's state
-  const isMaintenanceMode = maintenanceStatus?.enabled === true;
-  const isEduFamAdmin = user?.role === 'edufam_admin';
-  const isLoading = settingsLoading || userLoading || !isInitialized;
-
-  console.log('🔧 APP GLOBAL CHECK:', {
-    isMaintenanceMode,
-    userRole: user?.role,
-    isEduFamAdmin,
-    isLoading,
-    shouldShowMaintenance: isMaintenanceMode && !isEduFamAdmin
-  });
-
-  // 3. Render based on the state. This is the core logic.
-  if (isLoading) {
-    // Show a loading spinner while we check the status
-    return <LoadingSpinner />;
-  }
-
-  if (isMaintenanceMode && !isEduFamAdmin) {
-    // If maintenance mode is ON and the user is NOT an admin,
-    // show ONLY the maintenance page.
-    return <MaintenancePage />;
-  }
-
-  // If maintenance mode is OFF, OR if the user IS an admin,
-  // render the rest of the application.
   return (
     <>
       <AppRouter />
