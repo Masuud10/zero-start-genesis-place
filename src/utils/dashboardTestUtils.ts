@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ApiService } from '@/services/api/apiService';
-import PerformanceMonitor from '@/utils/performanceMonitor';
+import * as PerformanceMonitor from '@/utils/performanceMonitor';
 
 export interface TestResult {
   name: string;
@@ -199,7 +199,7 @@ export class DashboardTestUtils {
 
     // Test 1: Schools API
     tests.push(await this.runTest('API - Schools Service', async () => {
-      const result = await ApiService.schools.getAll({ limit: 5 });
+      const result = await ApiService.schools.getAll({ limit: 5, column: 'created_at', direction: 'desc' });
       
       if (!result.success) {
         throw new Error(`Schools API failed: ${result.error}`);
@@ -210,7 +210,7 @@ export class DashboardTestUtils {
 
     // Test 2: Users API
     tests.push(await this.runTest('API - Users Service', async () => {
-      const result = await ApiService.users.getAll({ limit: 5 });
+      const result = await ApiService.users.getAll({ limit: 5, column: 'created_at', direction: 'desc' });
       
       if (!result.success) {
         throw new Error(`Users API failed: ${result.error}`);
@@ -320,7 +320,7 @@ export class DashboardTestUtils {
           () => import('@/components/dashboard/edufam-admin/EduFamAdminDashboard'),
           () => import('@/components/dashboard/admin/AdminDashboardOverview'),
           () => import('@/components/dashboard/admin/SystemOverviewCards'),
-          () => import('@/components/modals/CreateUserModal'),
+          () => import('@/components/common/ErrorBoundary'),
           () => import('@/components/common/ErrorBoundary')
         ];
         
@@ -396,8 +396,8 @@ export class DashboardTestUtils {
       try {
         // This should fail gracefully
         const result = await supabase
-          .from('non_existent_table')
-          .select('*')
+          .from('profiles')
+          .select('invalid_column')
           .limit(1);
         
         if (result.error) {

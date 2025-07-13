@@ -163,7 +163,7 @@ export interface CBCStrandWithSubStrands extends CBCStrand {
   sub_strands: CBCSubStrand[];
 }
 
-export interface CBCSubStrandWithOutcomes extends CBCSubStrand {
+export interface CBCSubStrandWithOutcomes extends Omit<CBCSubStrand, 'learning_outcomes'> {
   learning_outcomes: CBCLearningOutcome[];
 }
 

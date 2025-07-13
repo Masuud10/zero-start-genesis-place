@@ -159,7 +159,7 @@ class PerformanceMonitor {
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const startTime = performance.now();
-      const url = typeof args[0] === 'string' ? args[0] : args[0].url;
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
 
       try {
         const response = await originalFetch(...args);

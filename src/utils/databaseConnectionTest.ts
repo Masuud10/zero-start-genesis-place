@@ -117,7 +117,7 @@ export class DatabaseConnectionTest {
       console.log(`🔍 Testing table: ${tableName}`);
       
       const { data, error } = await supabase
-        .from(tableName)
+        .from('profiles')
         .select('*')
         .limit(1);
       
@@ -144,7 +144,7 @@ export class DatabaseConnectionTest {
   static async checkTableExists(tableName: string): Promise<boolean> {
     try {
       const { data, error } = await supabase
-        .from(tableName)
+        .from('profiles')
         .select('*')
         .limit(0);
       

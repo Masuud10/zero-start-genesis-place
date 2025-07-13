@@ -18,11 +18,7 @@ export const useDatabaseBackup = () => {
     queryKey: ['backup-history'],
     queryFn: async () => {
       console.log('🗄️ useDatabaseBackup: Fetching backup history...');
-      const { data, error } = await DatabaseBackupService.getBackupHistory();
-      if (error) {
-        console.error('🗄️ useDatabaseBackup: Error fetching backup history:', error);
-        throw new Error(error);
-      }
+      const data = await DatabaseBackupService.getBackupHistory();
       console.log('🗄️ useDatabaseBackup: Backup history fetched successfully');
       return data;
     },
