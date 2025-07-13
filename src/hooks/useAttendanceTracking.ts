@@ -48,8 +48,7 @@ export const useAttendanceTracking = () => {
         student_id: attendanceData.student_id,
         class_id: attendanceData.class_id,
         status: attendanceData.status,
-        session: attendanceData.session,
-        date: attendanceData.date || new Date().toISOString().split('T')[0]
+        session: attendanceData.session
       });
 
       return { success: true, data };

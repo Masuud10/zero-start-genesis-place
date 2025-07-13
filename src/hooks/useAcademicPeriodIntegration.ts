@@ -378,7 +378,13 @@ export const useAcademicPeriodIntegration = () => {
       class_id: string;
       description?: string;
     }) => {
-      return await SystemIntegrationService.createExaminationSchedule(examinationData);
+      const scheduleData = {
+        ...examinationData,
+        is_active: true,
+        type: 'examination',
+        class_ids: [examinationData.class_id]
+      };
+      return await SystemIntegrationService.createExaminationSchedule(scheduleData);
     },
     onSuccess: (result) => {
       if (result.success) {
@@ -398,7 +404,18 @@ export const useAcademicPeriodIntegration = () => {
   // Create fee structure
   const createFeeStructure = useMutation({
     mutationFn: async (feeData: Record<string, unknown>) => {
-      return await SystemIntegrationService.createFeeStructure(feeData);
+      const structureData = {
+        academic_year_id: String(feeData.academic_year_id || ''),
+        class_id: String(feeData.class_id || ''),
+        term_id: String(feeData.term_id || ''),
+        name: String(feeData.name || 'Fee'),
+        is_active: true,
+        amount: Number(feeData.amount || 0),
+        currency: String(feeData.currency || 'KES'),
+        category: String(feeData.category || 'tuition'),
+        due_date: String(feeData.due_date || new Date().toISOString().split('T')[0])
+      };
+      return await SystemIntegrationService.createFeeStructure(structureData);
     },
     onSuccess: (result) => {
       if (result.success) {

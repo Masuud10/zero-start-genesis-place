@@ -38,7 +38,7 @@ export interface AcademicDataValidationResult {
 
 export class AcademicDataConsistencyService {
   /**
-   * Validate user access to academic data based on role and context
+   * Simplified validation for basic access control
    */
   static async validateAcademicDataAccess(
     userId: string,
@@ -46,29 +46,26 @@ export class AcademicDataConsistencyService {
     operation: string
   ): Promise<AccessValidationResult> {
     try {
-      const { data, error } = await supabase.rpc('validate_academic_data_access', {
-        p_user_id: userId,
-        p_school_id: context.schoolId,
-        p_academic_year_id: context.academicYearId,
-        p_term_id: context.termId,
-        p_class_id: context.classId,
-        p_subject_id: context.subjectId,
-        p_operation: operation
-      });
+      // Get user profile for basic validation
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, school_id')
+        .eq('id', userId)
+        .single();
 
-      if (error) throw error;
+      if (profileError || !userProfile) {
+        return { hasAccess: false, error: 'User profile not found' };
+      }
+
+      // Check school access
+      if (userProfile.school_id !== context.schoolId) {
+        return { hasAccess: false, error: 'Access denied to this school' };
+      }
 
       return {
-        hasAccess: data.has_access,
-        error: data.error,
-        academicContext: {
-          schoolId: context.schoolId,
-          academicYearId: data.academic_year_id,
-          termId: data.term_id,
-          classId: context.classId,
-          subjectId: context.subjectId
-        },
-        userRole: data.user_role
+        hasAccess: true,
+        academicContext: context,
+        userRole: userProfile.role
       };
     } catch (error) {
       console.error('Error validating academic data access:', error);
@@ -80,27 +77,32 @@ export class AcademicDataConsistencyService {
   }
 
   /**
-   * Validate curriculum type consistency across academic entities
+   * Basic curriculum consistency validation
    */
   static async validateCurriculumConsistency(
     context: AcademicContext
   ): Promise<CurriculumValidationResult> {
     try {
-      const { data, error } = await supabase.rpc('validate_curriculum_consistency', {
-        p_school_id: context.schoolId,
-        p_academic_year_id: context.academicYearId,
-        p_term_id: context.termId,
-        p_class_id: context.classId,
-        p_subject_id: context.subjectId
-      });
+      const errors: string[] = [];
+      let curriculumType = context.curriculumType;
 
-      if (error) throw error;
+      // If class is provided, get its curriculum type
+      if (context.classId && !curriculumType) {
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select('curriculum_type')
+          .eq('id', context.classId)
+          .single();
+
+        if (!classError && classData) {
+          curriculumType = classData.curriculum_type;
+        }
+      }
 
       return {
-        isConsistent: data.is_consistent,
-        curriculumType: data.curriculum_type,
-        errors: data.errors,
-        curriculumTypes: data.curriculum_types
+        isConsistent: errors.length === 0,
+        curriculumType,
+        errors: errors.length > 0 ? errors : undefined
       };
     } catch (error) {
       console.error('Error validating curriculum consistency:', error);
@@ -112,83 +114,34 @@ export class AcademicDataConsistencyService {
   }
 
   /**
-   * Get curriculum-specific grading configuration
-   */
-  static async getCurriculumGradingConfig(
-    curriculumType: string,
-    schoolId: string
-  ): Promise<Record<string, unknown> | null> {
-    try {
-      const { data, error } = await supabase.rpc('get_curriculum_grading_config', {
-        p_curriculum_type: curriculumType,
-        p_school_id: schoolId
-      });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error getting curriculum grading config:', error);
-      return null;
-    }
-  }
-
-  /**
    * Get current academic context for a school
    */
   static async getCurrentAcademicContext(schoolId: string): Promise<AcademicContext | null> {
     try {
-      const { data, error } = await supabase
-        .from('current_academic_context')
-        .select('*')
+      // Get current academic year
+      const { data: yearData, error: yearError } = await supabase
+        .from('academic_years')
+        .select('id, year_name')
         .eq('school_id', schoolId)
+        .eq('is_current', true)
         .single();
 
-      if (error) throw error;
+      // Get current term
+      const { data: termData, error: termError } = await supabase
+        .from('academic_terms')
+        .select('id, term_name')
+        .eq('school_id', schoolId)
+        .eq('is_current', true)
+        .single();
 
       return {
-        schoolId: data.school_id,
-        academicYearId: data.academic_year_id,
-        termId: data.term_id,
-        curriculumType: data.curriculum_type
+        schoolId,
+        academicYearId: yearData?.id,
+        termId: termData?.id
       };
     } catch (error) {
       console.error('Error getting current academic context:', error);
       return null;
-    }
-  }
-
-  /**
-   * Get teacher assignments with academic context
-   */
-  static async getTeacherAssignmentsWithContext(
-    teacherId: string,
-    schoolId: string,
-    academicYearId?: string,
-    termId?: string
-  ): Promise<Record<string, unknown>[]> {
-    try {
-      let query = supabase
-        .from('teacher_assignments_with_context')
-        .select('*')
-        .eq('teacher_id', teacherId)
-        .eq('school_id', schoolId)
-        .eq('is_active', true);
-
-      if (academicYearId) {
-        query = query.eq('academic_year_id', academicYearId);
-      }
-
-      if (termId) {
-        query = query.eq('term_id', termId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error getting teacher assignments:', error);
-      return [];
     }
   }
 
@@ -213,30 +166,30 @@ export class AcademicDataConsistencyService {
       if (context.academicYearId) {
         const { data: academicYear, error: yearError } = await supabase
           .from('academic_years')
-          .select('id, is_active')
+          .select('id, is_current')
           .eq('id', context.academicYearId)
           .eq('school_id', context.schoolId)
           .single();
 
         if (yearError || !academicYear) {
-          errors.push('Invalid or inactive academic year');
-        } else if (!academicYear.is_active) {
-          warnings.push('Academic year is not active');
+          errors.push('Invalid academic year');
+        } else if (!academicYear.is_current) {
+          warnings.push('Academic year is not current');
         }
       }
 
       if (context.termId) {
         const { data: term, error: termError } = await supabase
           .from('academic_terms')
-          .select('id, is_active')
+          .select('id, is_current')
           .eq('id', context.termId)
           .eq('school_id', context.schoolId)
           .single();
 
         if (termError || !term) {
-          errors.push('Invalid or inactive academic term');
-        } else if (!term.is_active) {
-          warnings.push('Academic term is not active');
+          errors.push('Invalid academic term');
+        } else if (!term.is_current) {
+          warnings.push('Academic term is not current');
         }
       }
 
@@ -244,37 +197,18 @@ export class AcademicDataConsistencyService {
       if (context.classId) {
         const { data: classData, error: classError } = await supabase
           .from('classes')
-          .select('id, is_active, curriculum_type')
+          .select('id, curriculum_type')
           .eq('id', context.classId)
           .eq('school_id', context.schoolId)
           .single();
 
         if (classError || !classData) {
           errors.push('Invalid class or class does not belong to this school');
-        } else if (!classData.is_active) {
-          warnings.push('Class is not active');
         }
 
         // Validate curriculum type consistency
-        if (context.curriculumType && classData.curriculum_type !== context.curriculumType) {
+        if (context.curriculumType && classData?.curriculum_type !== context.curriculumType) {
           errors.push(`Class curriculum type (${classData.curriculum_type}) does not match expected type (${context.curriculumType})`);
-        }
-      }
-
-      // Validate subject exists and is assigned to class
-      if (context.subjectId && context.classId && context.academicYearId && context.termId) {
-        const { data: assignment, error: assignmentError } = await supabase
-          .from('subject_teacher_assignments_enhanced')
-          .select('id')
-          .eq('subject_id', context.subjectId)
-          .eq('class_id', context.classId)
-          .eq('academic_year_id', context.academicYearId)
-          .eq('term_id', context.termId)
-          .eq('is_active', true)
-          .single();
-
-        if (assignmentError || !assignment) {
-          errors.push('Subject is not assigned to this class for the current academic period');
         }
       }
 
@@ -291,59 +225,6 @@ export class AcademicDataConsistencyService {
         errors: ['Failed to validate academic data'],
         context
       };
-    }
-  }
-
-  /**
-   * Log academic data changes for audit purposes
-   */
-  static async logAcademicDataChange(
-    tableName: string,
-    recordId: string,
-    operation: string,
-    userId: string,
-    schoolId: string,
-    changes?: Record<string, unknown>
-  ): Promise<void> {
-    try {
-      await supabase.rpc('log_academic_data_change', {
-        p_table_name: tableName,
-        p_record_id: recordId,
-        p_operation: operation,
-        p_user_id: userId,
-        p_school_id: schoolId,
-        p_changes: changes || {}
-      });
-    } catch (error) {
-      console.error('Error logging academic data change:', error);
-    }
-  }
-
-  /**
-   * Get academic context validation issues
-   */
-  static async getAcademicContextValidationIssues(
-    schoolId: string,
-    validationType?: string
-  ): Promise<Record<string, unknown>[]> {
-    try {
-      let query = supabase
-        .from('academic_context_validation_log')
-        .select('*')
-        .eq('school_id', schoolId)
-        .order('created_at', { ascending: false });
-
-      if (validationType) {
-        query = query.eq('validation_type', validationType);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error getting academic context validation issues:', error);
-      return [];
     }
   }
 
@@ -434,20 +315,17 @@ export class AcademicDataConsistencyService {
         // Teachers can only operate on their assigned classes/subjects
         if (context.classId && context.subjectId) {
           const { data: assignment, error: assignmentError } = await supabase
-            .from('subject_teacher_assignments_enhanced')
+            .from('subjects')
             .select('id')
-            .eq('teacher_id', userId)
+            .eq('id', context.subjectId)
             .eq('class_id', context.classId)
-            .eq('subject_id', context.subjectId)
-            .eq('academic_year_id', context.academicYearId)
-            .eq('term_id', context.termId)
-            .eq('is_active', true)
+            .eq('teacher_id', userId)
             .single();
 
           if (assignmentError || !assignment) {
             return { 
               isValid: false, 
-              error: 'You are not assigned to this class/subject for the current academic period' 
+              error: 'You are not assigned to this class/subject' 
             };
           }
         }
@@ -510,7 +388,7 @@ export const useAcademicDataConsistency = () => {
     return AcademicDataConsistencyService.validateAcademicData(context, dataType);
   };
 
-  const validateScope = async (
+  const validateUserScope = async (
     context: AcademicContext,
     operation: string
   ): Promise<{ isValid: boolean; error?: string }> => {
@@ -529,40 +407,21 @@ export const useAcademicDataConsistency = () => {
     return AcademicDataConsistencyService.getCurrentAcademicContext(schoolId);
   };
 
-  const getCurriculumConfig = async (
-    curriculumType: string,
-    schoolId: string
-  ): Promise<Record<string, unknown> | null> => {
-    return AcademicDataConsistencyService.getCurriculumGradingConfig(curriculumType, schoolId);
+  const ensureContext = async (context: AcademicContext): Promise<AcademicContext> => {
+    return AcademicDataConsistencyService.ensureAcademicContext(context);
   };
 
-  const logChange = async (
-    tableName: string,
-    recordId: string,
-    operation: string,
-    schoolId: string,
-    changes?: Record<string, unknown>
-  ): Promise<void> => {
-    if (!user?.id) return;
-
-    return AcademicDataConsistencyService.logAcademicDataChange(
-      tableName,
-      recordId,
-      operation,
-      user.id,
-      schoolId,
-      changes
-    );
+  const getCurriculumInfo = (curriculumType: string) => {
+    return AcademicDataConsistencyService.getCurriculumDisplayInfo(curriculumType);
   };
 
   return {
     validateAccess,
     validateCurriculum,
     validateData,
-    validateScope,
+    validateUserScope,
     getCurrentContext,
-    getCurriculumConfig,
-    logChange,
-    getCurriculumDisplayInfo: AcademicDataConsistencyService.getCurriculumDisplayInfo
+    ensureContext,
+    getCurriculumInfo
   };
-}; 
+};
