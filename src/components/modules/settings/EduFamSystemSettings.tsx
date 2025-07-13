@@ -2,13 +2,11 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Database, FileText, Cog, Mail } from 'lucide-react';
+import { Settings, Database, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import MaintenanceModeSection from './MaintenanceModeSection';
 import DataBackupSection from './DataBackupSection';
 import AuditLogsSection from './AuditLogsSection';
-import SystemConfigSection from './SystemConfigSection';
-import SystemNotificationSection from './SystemNotificationSection';
 
 const EduFamSystemSettings = () => {
   const { user } = useAuth();
@@ -34,26 +32,18 @@ const EduFamSystemSettings = () => {
       </div>
 
       <Tabs defaultValue="maintenance" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 h-12">
+        <TabsList className="grid w-full grid-cols-3 h-12">
           <TabsTrigger value="maintenance" className="flex items-center gap-2 text-sm">
             <Settings className="w-4 h-4" />
             <span className="hidden sm:inline">Maintenance</span>
           </TabsTrigger>
           <TabsTrigger value="backup" className="flex items-center gap-2 text-sm">
             <Database className="w-4 h-4" />
-            <span className="hidden sm:inline">Backup</span>
+            <span className="hidden sm:inline">Backup & Restore</span>
           </TabsTrigger>
           <TabsTrigger value="audit" className="flex items-center gap-2 text-sm">
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Audit Logs</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2 text-sm">
-            <Mail className="w-4 h-4" />
-            <span className="hidden sm:inline">Notifications</span>
-          </TabsTrigger>
-          <TabsTrigger value="config" className="flex items-center gap-2 text-sm">
-            <Cog className="w-4 h-4" />
-            <span className="hidden sm:inline">System Config</span>
           </TabsTrigger>
         </TabsList>
 
@@ -67,14 +57,6 @@ const EduFamSystemSettings = () => {
 
         <TabsContent value="audit" className="mt-6">
           <AuditLogsSection />
-        </TabsContent>
-
-        <TabsContent value="notifications" className="mt-6">
-          <SystemNotificationSection />
-        </TabsContent>
-
-        <TabsContent value="config" className="mt-6">
-          <SystemConfigSection />
         </TabsContent>
       </Tabs>
     </div>

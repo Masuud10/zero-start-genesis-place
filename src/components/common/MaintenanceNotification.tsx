@@ -8,6 +8,11 @@ const MaintenanceNotification: React.FC = () => {
   const { user } = useAuth();
   const { maintenanceStatus, maintenanceSettings } = useMaintenanceMode();
 
+  // NEVER show notification for EduFam Admins - they should have clean access
+  if (user?.role === 'edufam_admin') {
+    return null;
+  }
+
   // Only show notification if maintenance mode is enabled
   if (!maintenanceStatus?.inMaintenance) {
     return null;

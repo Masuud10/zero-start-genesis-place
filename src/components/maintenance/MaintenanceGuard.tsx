@@ -21,7 +21,11 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
 
       if (error) {
         console.error('🔧 MaintenanceGuard: Error fetching maintenance status:', error);
-        throw error;
+        return {
+          enabled: false,
+          message: '',
+          isAdmin: true
+        };
       }
 
       const maintenanceData = data?.setting_value as { enabled?: boolean; message?: string; allowed_roles?: string[] } | null;
@@ -34,7 +38,8 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
         maintenanceEnabled: isMaintenanceEnabled,
         userRole: user?.role,
         isEduFamAdmin,
-        userEmail: user?.email
+        userEmail: user?.email,
+        shouldBlock: isMaintenanceEnabled && !isEduFamAdmin
       });
       
       return {
@@ -43,45 +48,56 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
         isAdmin: isEduFamAdmin
       };
     },
-    refetchInterval: 5000, // Check every 5 seconds for real-time updates
+    refetchInterval: 2000, // Check every 2 seconds for faster updates
     enabled: !!user // Only run when user is authenticated
   });
 
   // Show loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // If maintenance is enabled and user is NOT an admin, show clean maintenance page
+  // CRITICAL: If maintenance is enabled and user is NOT an EduFam admin, show maintenance page
   if (maintenanceStatus?.enabled && !maintenanceStatus?.isAdmin) {
+    console.log('🚫 MaintenanceGuard: Blocking user access - showing maintenance page for role:', user?.role);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-8">
+      <div className="min-h-screen flex items-center justify-center bg-background p-8">
         <div className="max-w-md w-full text-center space-y-8">
-          {/* Simple Edufam Logo */}
+          {/* Edufam Logo */}
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-xl font-bold text-white">EF</span>
+            <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center shadow-xl">
+              <span className="text-2xl font-bold text-primary-foreground">EF</span>
             </div>
           </div>
 
-          {/* Clean maintenance message */}
+          {/* Maintenance message */}
           <div className="space-y-6">
             <div className="space-y-4">
-              <h1 className="text-2xl font-semibold text-gray-900">
-                System Under Maintenance
+              <h1 className="text-3xl font-bold text-foreground">
+                🛠️ System Under Maintenance
               </h1>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-lg">
                 {maintenanceStatus.message}
               </p>
             </div>
 
-            {/* Simple footer */}
-            <div className="pt-8 border-t border-gray-200">
-              <p className="text-xs text-gray-400">
+            {/* Contact info */}
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Need urgent support? Contact us at{' '}
+                <a href="mailto:admin@edufam.io" className="text-primary font-medium hover:underline">
+                  admin@edufam.io
+                </a>
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-6 border-t border-border">
+              <p className="text-xs text-muted-foreground">
                 Powered by Edufam
               </p>
             </div>
@@ -91,8 +107,8 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
     );
   }
 
-  // For EduFam Admins: NO maintenance notifications/banners - just normal access
-  // Normal operation - render children without any maintenance notifications
+  // For EduFam Admins: Normal access without any maintenance notifications
+  console.log('✅ MaintenanceGuard: Allowing access for role:', user?.role);
   return <>{children}</>;
 };
 
