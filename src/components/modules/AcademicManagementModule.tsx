@@ -17,14 +17,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 
 // Import sub-components
-import StudentAdmissionTab from "./academic-management/StudentAdmissionTab";
 import StudentPromotionTab from "./academic-management/StudentPromotionTab";
 import StudentInformationTab from "./academic-management/StudentInformationTab";
 import TransferManagementTab from "./academic-management/TransferManagementTab";
 import ExitManagementTab from "./academic-management/ExitManagementTab";
 
 const AcademicManagementModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("student-admission");
+  const [activeTab, setActiveTab] = useState("student-promotion");
   const { user } = useAuth();
   const { schoolId, isReady } = useSchoolScopedData();
 
@@ -95,22 +94,6 @@ const AcademicManagementModule: React.FC = () => {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <UserPlus className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-blue-600 font-medium">
-                  Student Admission
-                </p>
-                <p className="text-xs text-blue-500">Enroll new students</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -166,14 +149,7 @@ const AcademicManagementModule: React.FC = () => {
       <Card>
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5 mb-6">
-              <TabsTrigger
-                value="student-admission"
-                className="flex items-center gap-2"
-              >
-                <UserPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Admission</span>
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger
                 value="student-promotion"
                 className="flex items-center gap-2"
@@ -203,10 +179,6 @@ const AcademicManagementModule: React.FC = () => {
                 <span className="hidden sm:inline">Exit</span>
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="student-admission">
-              <StudentAdmissionTab />
-            </TabsContent>
 
             <TabsContent value="student-promotion">
               <StudentPromotionTab />
