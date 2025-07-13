@@ -13,7 +13,7 @@ interface Notification {
   priority: 'low' | 'medium' | 'high' | 'critical';
   read_at?: string;
   created_at: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   admin_communications?: {
     id: string;
     title: string;
@@ -32,7 +32,12 @@ export const useNotifications = () => {
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) {
+        console.log('🔔 FORENSIC LOG: No user ID, returning empty array');
+        return [];
+      }
+
+      console.log('🔔 FORENSIC LOG: Fetching notifications for user:', user.id);
 
       try {
         // Fetch from new notifications table with admin_communications join
@@ -55,6 +60,9 @@ export const useNotifications = () => {
           .eq('is_read', false)
           .order('created_at', { ascending: false });
 
+        console.log('🔔 FORENSIC LOG: Raw notifications data:', notificationsData);
+        console.log('🔔 FORENSIC LOG: Supabase error:', error);
+
         if (error) {
           console.warn('🔔 Notifications: Error fetching notifications:', error);
           return [];
@@ -64,6 +72,7 @@ export const useNotifications = () => {
 
         // Process notifications
         notificationsData?.forEach(item => {
+          console.log('🔔 FORENSIC LOG: Processing notification item:', item);
           if (item.admin_communications) {
             notificationsList.push({
               id: item.id,
@@ -75,14 +84,18 @@ export const useNotifications = () => {
               created_at: item.created_at,
               admin_communications: item.admin_communications
             });
+          } else {
+            console.log('🔔 FORENSIC LOG: Notification item missing admin_communications:', item);
           }
         });
+
+        console.log('🔔 FORENSIC LOG: Final processed notifications:', notificationsList);
 
         return notificationsList.sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       } catch (error) {
-        console.error('🔔 Notifications: Failed to fetch notifications:', error);
+        console.error('🔔 FORENSIC LOG: Exception in notification fetch:', error);
         return [];
       }
     },

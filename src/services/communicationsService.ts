@@ -79,23 +79,43 @@ export class CommunicationsService {
         return { success: false, error: 'User not authenticated' };
       }
 
-      const { error } = await supabase
+      // FORENSIC LOGGING: Log the communication data being sent
+      console.log('🔔 FORENSIC LOG: Creating communication with data:', {
+        title: communication.title,
+        message: communication.message,
+        target_roles: communication.target_roles,
+        priority: communication.priority,
+        dismissible: communication.dismissible,
+        expires_at: communication.expires_at,
+        created_by: user.id
+      });
+
+      const insertData = {
+        ...communication,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // FORENSIC LOGGING: Log the exact data being inserted
+      console.log('🔔 FORENSIC LOG: Inserting into admin_communications:', insertData);
+
+      const { data, error } = await supabase
         .from('admin_communications')
-        .insert({
-          ...communication,
-          created_by: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        .insert(insertData)
+        .select();
 
       if (error) {
-        console.error('📢 CommunicationsService: Error creating communication:', error);
+        console.error('🔔 FORENSIC LOG: Error creating communication:', error);
         return { success: false, error: error.message };
       }
 
+      // FORENSIC LOGGING: Log successful creation
+      console.log('🔔 FORENSIC LOG: Communication created successfully:', data);
+
       return { success: true };
     } catch (error) {
-      console.error('📢 CommunicationsService: Error in createCommunication:', error);
+      console.error('🔔 FORENSIC LOG: Exception in createCommunication:', error);
       return { success: false, error: 'Failed to create communication' };
     }
   }
