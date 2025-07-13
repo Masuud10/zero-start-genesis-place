@@ -33,9 +33,12 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   showGreetings = true,
   children,
 }) => {
-  const { communications } = useAdminCommunications();
+  const { communications, isLoading } = useAdminCommunications();
   const [dismissedBanners, setDismissedBanners] = useState<string[]>([]);
 
+  // PHASE 1 DEBUG: Log communications data
+  console.log('🚨 COMMUNICATIONS FOR BANNER:', communications, 'isLoading:', isLoading);
+  
   console.log(
     "🏗️ DashboardContainer: Rendering with user:",
     user?.email,
@@ -115,15 +118,18 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   };
 
   // Filter out dismissed banners and show only active communications
-  const activeCommunications = communications?.filter(
+  const activeCommunications = (!isLoading && communications) ? communications.filter(
     comm => comm.is_active && !dismissedBanners.includes(comm.id)
-  ) || [];
+  ) : [];
+
+  // PHASE 1 DEBUG: Log active communications
+  console.log('🚨 ACTIVE COMMUNICATIONS:', activeCommunications);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Prominent Communication Banners - at the very top */}
-      {activeCommunications.length > 0 && (
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
+      {!isLoading && activeCommunications.length > 0 && (
+        <div className="communication-banners-container relative z-[999] w-full bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
           <div className="max-w-7xl mx-auto">
             {activeCommunications.map(comm => (
               <CommunicationBanner
