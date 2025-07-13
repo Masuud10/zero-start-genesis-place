@@ -62,6 +62,21 @@ interface BillingRecord {
   };
 }
 
+interface SchoolBillingData {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  setupCost: number;
+  subscriptionCost: number;
+  totalPaid: number;
+  outstandingBalance: number;
+  studentCount: number;
+  lastBilledDate: string;
+  billingStatus: "active" | "inactive" | "suspended";
+  totalRecords: number;
+}
+
 const EnhancedBillingManagement: React.FC = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState<
     string | undefined
@@ -110,7 +125,14 @@ const EnhancedBillingManagement: React.FC = () => {
   };
 
   const handleEditRecord = (record: BillingRecord) => {
+    console.log("✏️ Editing billing record:", record.id);
     setEditingRecord(record);
+    setShowEditModal(true);
+  };
+
+  const handleEditSchoolRecord = (record: SchoolBillingData) => {
+    console.log("✏️ Editing billing record for school:", record.id);
+    // TODO: Implement proper edit functionality for school billing data
     setShowEditModal(true);
   };
 
@@ -272,7 +294,7 @@ const EnhancedBillingManagement: React.FC = () => {
             <SchoolBillingTable
               schools={billingData?.schools || []}
               onSelectSchool={handleSelectSchool}
-              onEditRecord={handleEditRecord}
+              onEditRecord={handleEditSchoolRecord}
             />
           </TabsContent>
 

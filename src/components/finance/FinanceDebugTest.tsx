@@ -112,12 +112,13 @@ const FinanceDebugTest: React.FC = () => {
           ? { error: error.message }
           : { count: data?.length || 0 },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       results.push({
         name: "Database Connection",
         status: "fail",
-        message: `Database connection error: ${err.message}`,
-        details: { error: err.message },
+        message: `Database connection error: ${errorMessage}`,
+        details: { error: errorMessage },
       });
     }
 
@@ -226,12 +227,13 @@ const FinanceDebugTest: React.FC = () => {
             }
           : null,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       results.push({
         name: "Report Generation Test",
         status: "fail",
-        message: `Report generation error: ${err.message}`,
-        details: { error: err.message },
+        message: `Report generation error: ${errorMessage}`,
+        details: { error: errorMessage },
       });
     }
 
@@ -245,9 +247,20 @@ const FinanceDebugTest: React.FC = () => {
         "expenses",
       ];
       const tableResults = await Promise.allSettled(
-        tables.map((table) =>
-          supabase.from(table).select("count", { count: "exact", head: true })
-        )
+        tables.map((table) => {
+          // Use type assertion for dynamic table access
+          const client = supabase as unknown as {
+            from: (table: string) => {
+              select: (
+                columns: string,
+                options?: { count: string; head: boolean }
+              ) => Promise<{ data: unknown; error: unknown; count?: number }>;
+            };
+          };
+          return client
+            .from(table)
+            .select("count", { count: "exact", head: true });
+        })
       );
 
       const tableStatus = tableResults.map((result, index) => ({
@@ -268,11 +281,12 @@ const FinanceDebugTest: React.FC = () => {
         details: { tables: tableStatus },
       });
     } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       results.push({
         name: "Database Tables Check",
         status: "fail",
-        message: `Database tables check error: ${err.message}`,
-        details: { error: err.message },
+        message: `Database tables check error: ${errorMessage}`,
+        details: { error: errorMessage },
       });
     }
 

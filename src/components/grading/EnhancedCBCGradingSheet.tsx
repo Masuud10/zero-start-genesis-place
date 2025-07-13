@@ -50,8 +50,8 @@ interface Subject {
 }
 
 interface CBCGradeData {
-  student_id: string;
-  subject_id: string;
+  student_id?: string;
+  subject_id?: string;
   formative_score?: number; // 40% weight
   summative_score?: number; // 60% weight
   total_score?: number; // calculated
@@ -216,7 +216,7 @@ export const EnhancedCBCGradingSheet: React.FC<
         ? undefined
         : Math.min(100, Math.max(0, parseFloat(value) || 0));
     const currentGrade = grades[studentId]?.[subjectId] || {};
-    const summativeScore = currentGrade.summative_score || 0;
+    const summativeScore = (currentGrade as CBCGradeData).summative_score || 0;
 
     const totalScore =
       formativeScore !== undefined
@@ -248,7 +248,7 @@ export const EnhancedCBCGradingSheet: React.FC<
         ? undefined
         : Math.min(100, Math.max(0, parseFloat(value) || 0));
     const currentGrade = grades[studentId]?.[subjectId] || {};
-    const formativeScore = currentGrade.formative_score || 0;
+    const formativeScore = (currentGrade as CBCGradeData).formative_score || 0;
 
     const totalScore =
       summativeScore !== undefined
@@ -313,12 +313,13 @@ export const EnhancedCBCGradingSheet: React.FC<
     return students.filter((student) =>
       subjects.some((subject) => {
         const grade = grades[student.id]?.[subject.id];
+        const cbcGrade = grade as CBCGradeData;
         return (
           !grade ||
-          grade.formative_score === undefined ||
-          grade.summative_score === undefined ||
-          grade.formative_score === null ||
-          grade.summative_score === null
+          cbcGrade.formative_score === undefined ||
+          cbcGrade.summative_score === undefined ||
+          cbcGrade.formative_score === null ||
+          cbcGrade.summative_score === null
         );
       })
     );
@@ -333,22 +334,24 @@ export const EnhancedCBCGradingSheet: React.FC<
     );
 
     const eeCount = allGrades.filter(
-      (g) => g?.competency_grade === "EE"
+      (g) => (g as CBCGradeData)?.competency_grade === "EE"
     ).length;
     const meCount = allGrades.filter(
-      (g) => g?.competency_grade === "ME"
+      (g) => (g as CBCGradeData)?.competency_grade === "ME"
     ).length;
     const aeCount = allGrades.filter(
-      (g) => g?.competency_grade === "AE"
+      (g) => (g as CBCGradeData)?.competency_grade === "AE"
     ).length;
     const beCount = allGrades.filter(
-      (g) => g?.competency_grade === "BE"
+      (g) => (g as CBCGradeData)?.competency_grade === "BE"
     ).length;
     const totalGrades = allGrades.length;
 
     const averageTotal =
-      allGrades.reduce((sum, g) => sum + (g?.total_score || 0), 0) /
-      totalGrades;
+      allGrades.reduce(
+        (sum, g) => sum + ((g as CBCGradeData)?.total_score || 0),
+        0
+      ) / totalGrades;
 
     return {
       eeCount,
@@ -542,8 +545,9 @@ export const EnhancedCBCGradingSheet: React.FC<
                     </TableCell>
                     {subjects.map((subject) => {
                       const grade = grades[student.id]?.[subject.id] || {};
+                      const cbcGrade = grade as CBCGradeData;
                       const performanceLevel = getPerformanceLevelInfo(
-                        grade.competency_grade || ""
+                        cbcGrade.competency_grade || ""
                       );
 
                       return (
@@ -556,7 +560,7 @@ export const EnhancedCBCGradingSheet: React.FC<
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={grade.formative_score || ""}
+                                value={cbcGrade.formative_score || ""}
                                 onChange={(e) =>
                                   handleFormativeScoreChange(
                                     student.id,
@@ -578,7 +582,7 @@ export const EnhancedCBCGradingSheet: React.FC<
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={grade.summative_score || ""}
+                                value={cbcGrade.summative_score || ""}
                                 onChange={(e) =>
                                   handleSummativeScoreChange(
                                     student.id,
@@ -594,18 +598,18 @@ export const EnhancedCBCGradingSheet: React.FC<
                             </div>
 
                             {/* Total Score */}
-                            {grade.total_score !== undefined && (
+                            {cbcGrade.total_score !== undefined && (
                               <div className="text-sm font-medium">
-                                Total: {grade.total_score}%
+                                Total: {cbcGrade.total_score}%
                               </div>
                             )}
 
                             {/* Competency Grade */}
-                            {grade.competency_grade && (
+                            {cbcGrade.competency_grade && (
                               <div className="flex justify-center">
                                 {isPrincipal && !viewMode ? (
                                   <Select
-                                    value={grade.competency_grade}
+                                    value={cbcGrade.competency_grade}
                                     onValueChange={(
                                       value: "EE" | "ME" | "AE" | "BE"
                                     ) =>
@@ -640,7 +644,7 @@ export const EnhancedCBCGradingSheet: React.FC<
 
                             {/* Teacher Remarks */}
                             <Textarea
-                              value={grade.teacher_remarks || ""}
+                              value={cbcGrade.teacher_remarks || ""}
                               onChange={(e) =>
                                 handleRemarksChange(
                                   student.id,

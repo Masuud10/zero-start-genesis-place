@@ -86,7 +86,28 @@ export const CurriculumGradingTest: React.FC<CurriculumGradingTestProps> = ({
 
     if (classId) {
       try {
-        const result = await validateClassCurriculumSetup(classId, supabase);
+        const result = await validateClassCurriculumSetup(
+          classId,
+          supabase as unknown as {
+            from: (table: string) => {
+              select: (columns: string) => {
+                eq: (
+                  column: string,
+                  value: string
+                ) => {
+                  single: () => Promise<{
+                    data: {
+                      curriculum_type?: string;
+                      curriculum?: string;
+                      name?: string;
+                    } | null;
+                    error: { message: string } | null;
+                  }>;
+                };
+              };
+            };
+          }
+        );
         setValidationResult(result);
 
         if (!result.isValid) {

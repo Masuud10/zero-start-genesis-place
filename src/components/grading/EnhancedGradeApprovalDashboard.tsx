@@ -126,20 +126,34 @@ const EnhancedGradeApprovalDashboard = () => {
       console.log("Batch submissions loaded:", batchData?.length || 0);
 
       // Process batch data
-      const processedBatches =
-        batchData?.map((batch: BatchData) => ({
-          id: batch.id,
-          class_name: batch.classes?.name || "Unknown Class",
-          subject_names: ["Multiple Subjects"], // We'll enhance this later
-          teacher_name: batch.profiles?.name || "Unknown Teacher",
-          term: batch.term || "Unknown Term",
-          exam_type: batch.exam_type || "Unknown Exam",
-          total_students: batch.total_students || 0,
-          grades_entered: batch.grades_entered || 0,
-          submitted_at: batch.submitted_at,
-          status: batch.status,
-          batch_name: batch.batch_name || `${batch.term} - ${batch.exam_type}`,
-        })) || [];
+      const processedBatches: GradeSubmissionBatch[] =
+        batchData?.map(
+          (batch: {
+            id: string;
+            classes?: { name: string };
+            profiles?: { name: string };
+            term?: string;
+            exam_type?: string;
+            total_students?: number;
+            grades_entered?: number;
+            submitted_at: string;
+            status: string;
+            batch_name?: string;
+          }) => ({
+            id: batch.id,
+            class_name: batch.classes?.name || "Unknown Class",
+            subject_names: ["Multiple Subjects"], // We'll enhance this later
+            teacher_name: batch.profiles?.name || "Unknown Teacher",
+            term: batch.term || "Unknown Term",
+            exam_type: batch.exam_type || "Unknown Exam",
+            total_students: batch.total_students || 0,
+            grades_entered: batch.grades_entered || 0,
+            submitted_at: batch.submitted_at,
+            status: batch.status,
+            batch_name:
+              batch.batch_name || `${batch.term} - ${batch.exam_type}`,
+          })
+        ) || [];
 
       // Also fetch individual grade submissions not in batches
       const { data: individualGrades, error: gradesError } = await supabase
@@ -170,31 +184,43 @@ const EnhancedGradeApprovalDashboard = () => {
 
       // Group individual grades by submission context
       const individualSubmissions = new Map();
-      individualGrades?.forEach((grade: GradeData) => {
-        const key = `${grade.class_id}-${grade.term}-${grade.exam_type}-${grade.submitted_by}`;
-        if (!individualSubmissions.has(key)) {
-          individualSubmissions.set(key, {
-            id: `individual-${key}`,
-            class_name: grade.classes?.name || "Unknown Class",
-            subject_names: [],
-            teacher_name: grade.profiles?.name || "Unknown Teacher",
-            term: grade.term || "Unknown Term",
-            exam_type: grade.exam_type || "Unknown Exam",
-            total_students: 0,
-            grades_entered: 0,
-            submitted_at: grade.submitted_at,
-            status: grade.status,
-            batch_name: `${grade.term} - ${grade.exam_type} (Individual)`,
-          });
+      individualGrades?.forEach(
+        (grade: {
+          class_id: string;
+          term?: string;
+          exam_type?: string;
+          submitted_by: string;
+          classes?: { name: string };
+          profiles?: { name: string };
+          subjects?: { name: string };
+          submitted_at: string;
+          status: string;
+        }) => {
+          const key = `${grade.class_id}-${grade.term}-${grade.exam_type}-${grade.submitted_by}`;
+          if (!individualSubmissions.has(key)) {
+            individualSubmissions.set(key, {
+              id: `individual-${key}`,
+              class_name: grade.classes?.name || "Unknown Class",
+              subject_names: [],
+              teacher_name: grade.profiles?.name || "Unknown Teacher",
+              term: grade.term || "Unknown Term",
+              exam_type: grade.exam_type || "Unknown Exam",
+              total_students: 0,
+              grades_entered: 0,
+              submitted_at: grade.submitted_at,
+              status: grade.status,
+              batch_name: `${grade.term} - ${grade.exam_type} (Individual)`,
+            });
+          }
+          const submission = individualSubmissions.get(key);
+          if (!submission.subject_names.includes(grade.subjects?.name)) {
+            submission.subject_names.push(
+              grade.subjects?.name || "Unknown Subject"
+            );
+          }
+          submission.grades_entered++;
         }
-        const submission = individualSubmissions.get(key);
-        if (!submission.subject_names.includes(grade.subjects?.name)) {
-          submission.subject_names.push(
-            grade.subjects?.name || "Unknown Subject"
-          );
-        }
-        submission.grades_entered++;
-      });
+      );
 
       const allSubmissions = [
         ...processedBatches,

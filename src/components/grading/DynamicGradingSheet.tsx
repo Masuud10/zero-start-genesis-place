@@ -147,20 +147,21 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
       let subjectsList: Subject[] = [];
 
       // First, try class_subjects table
-      const { data: classSubjectsData, error: classSubjectsError } =
-        await supabase
-          .from("class_subjects")
-          .select(
-            `
+      const { data: classSubjectsData, error: classSubjectsError } = await (
+        supabase as any
+      )
+        .from("class_subjects")
+        .select(
+          `
           subjects (
             id,
             name,
             code
           )
         `
-          )
-          .eq("class_id", classId)
-          .eq("is_active", true);
+        )
+        .eq("class_id", classId)
+        .eq("is_active", true);
 
       if (!classSubjectsError && classSubjectsData) {
         subjectsList =
@@ -740,13 +741,12 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
     )
   );
 
+  const curriculumInfo = getCurriculumInfo(curriculumType);
   const curriculumDisplayName =
-    getCurriculumInfo(curriculumType)?.displayName ||
-    curriculumType?.toUpperCase() ||
-    "STANDARD";
-  const curriculumBadgeColor =
-    getCurriculumInfo(curriculumType)?.badgeColor ||
-    "bg-gray-100 text-gray-800";
+    curriculumInfo?.name || curriculumType?.toUpperCase() || "STANDARD";
+  const curriculumBadgeColor = `bg-${
+    curriculumInfo?.color || "gray"
+  }-100 text-${curriculumInfo?.color || "gray"}-800`;
 
   // Render appropriate grading sheet based on curriculum type
   const renderGradingSheet = () => {

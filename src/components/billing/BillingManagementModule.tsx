@@ -1,70 +1,103 @@
+import React, { useState } from "react";
+import {
+  useBillingRecords,
+  useBillingStats,
+} from "@/hooks/useBillingManagement";
+import BillingStatsCards from "./BillingStatsCards";
+import SchoolBillingList from "./SchoolBillingList";
+import SchoolBillingDetails from "./SchoolBillingDetails";
+import BillingLoadingFallback from "./BillingLoadingFallback";
+import BillingEmptyState from "./BillingEmptyState";
+import BillingErrorBoundary from "./BillingErrorBoundary";
+import CreateBillingRecordModal from "./CreateBillingRecordModal";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
-import React, { useState } from 'react';
-import { useBillingRecords, useBillingStats } from '@/hooks/useBillingManagement';
-import BillingStatsCards from './BillingStatsCards';
-import SchoolBillingList from './SchoolBillingList';
-import SchoolBillingDetails from './SchoolBillingDetails';
-import BillingLoadingFallback from './BillingLoadingFallback';
-import BillingEmptyState from './BillingEmptyState';
-import BillingErrorBoundary from './BillingErrorBoundary';
-import CreateBillingRecordModal from './CreateBillingRecordModal';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+interface BillingRecord {
+  id: string;
+  school_id: string;
+  billing_type: "setup_fee" | "subscription_fee";
+  amount: number;
+  currency: string;
+  billing_period_start?: string;
+  billing_period_end?: string;
+  student_count?: number;
+  status: "pending" | "paid" | "overdue" | "cancelled";
+  invoice_number: string;
+  description: string;
+  due_date: string;
+  paid_date?: string;
+  payment_method?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 const BillingManagementModule: React.FC = () => {
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>();
+  const [selectedSchoolId, setSelectedSchoolId] = useState<
+    string | undefined
+  >();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
+
   // Fetch billing data with enhanced error handling
-  const { 
-    data: billingRecords, 
-    isLoading: recordsLoading, 
+  const {
+    data: billingRecords,
+    isLoading: recordsLoading,
     error: recordsError,
-    refetch: refetchRecords
+    refetch: refetchRecords,
   } = useBillingRecords();
-  
-  const { 
-    data: billingStats, 
-    isLoading: statsLoading, 
+
+  const {
+    data: billingStats,
+    isLoading: statsLoading,
     error: statsError,
-    refetch: refetchStats
+    refetch: refetchStats,
   } = useBillingStats();
 
   const isLoading = recordsLoading || statsLoading;
   const hasError = recordsError || statsError;
   const errorMessage = recordsError?.message || statsError?.message || null;
 
-  console.log('🔍 BillingManagementModule: Current state:', {
+  console.log("🔍 BillingManagementModule: Current state:", {
     isLoading,
     hasError,
     errorMessage,
     recordsCount: billingRecords?.length || 0,
-    statsData: billingStats ? 'loaded' : 'null'
+    statsData: billingStats ? "loaded" : "null",
   });
 
   const handleSelectSchool = (schoolId: string) => {
-    console.log('🏫 BillingManagementModule: Selecting school:', schoolId);
+    console.log("🏫 BillingManagementModule: Selecting school:", schoolId);
     setSelectedSchoolId(schoolId);
   };
 
   const handleBackToList = () => {
-    console.log('⬅️ BillingManagementModule: Going back to list');
+    console.log("⬅️ BillingManagementModule: Going back to list");
     setSelectedSchoolId(undefined);
   };
 
+  const handleEditRecord = (record: BillingRecord) => {
+    console.log("✏️ BillingManagementModule: Editing record:", record.id);
+    // TODO: Implement edit functionality
+    // For now, just log the action
+  };
+
   const handleRetry = () => {
-    console.log('🔄 BillingManagementModule: Retrying data fetch');
+    console.log("🔄 BillingManagementModule: Retrying data fetch");
     refetchRecords();
     refetchStats();
   };
 
   const handleCreateRecords = () => {
-    console.log('📝 BillingManagementModule: Opening create billing records modal');
+    console.log(
+      "📝 BillingManagementModule: Opening create billing records modal"
+    );
     setShowCreateModal(true);
   };
 
   const handleCreateSuccess = () => {
-    console.log('✅ BillingManagementModule: Billing record created successfully');
+    console.log(
+      "✅ BillingManagementModule: Billing record created successfully"
+    );
     setShowCreateModal(false);
     refetchRecords();
     refetchStats();
@@ -84,9 +117,9 @@ const BillingManagementModule: React.FC = () => {
               Manage setup fees and subscription fees for all schools
             </p>
           </div>
-          
+
           {/* Create Billing Records Button - Always Visible */}
-          <Button 
+          <Button
             onClick={handleCreateRecords}
             className="flex items-center gap-2"
             size="default"
@@ -133,12 +166,13 @@ const BillingManagementModule: React.FC = () => {
                 isRefreshing={isLoading}
               />
             ) : selectedSchoolId ? (
-              <SchoolBillingDetails 
-                schoolId={selectedSchoolId} 
+              <SchoolBillingDetails
+                schoolId={selectedSchoolId}
                 onBack={handleBackToList}
+                onEditRecord={handleEditRecord}
               />
             ) : (
-              <SchoolBillingList 
+              <SchoolBillingList
                 onSelectSchool={handleSelectSchool}
                 selectedSchoolId={selectedSchoolId}
               />
