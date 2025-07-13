@@ -127,13 +127,12 @@ const EnhancedStudentAdmissionModal: React.FC<
         setAvailableClasses(classesResult.classes);
       }
 
-      // Load parents
+      // Load parents - simplified query without is_active column  
       const { data: parentsData, error: parentsError } = await supabase
         .from("profiles")
         .select("id, name, email, phone")
         .eq("school_id", schoolId!)
         .eq("role", "parent")
-        .eq("is_active", true)
         .order("name");
 
       if (parentsError) {
@@ -298,13 +297,14 @@ const EnhancedStudentAdmissionModal: React.FC<
           school_id: schoolId,
         }));
 
-        const { error: feeError } = await supabase
-          .from("student_fees")
-          .insert(feeRecords);
+        // Note: Fee records creation is commented out as table structure is not compatible
+        // const { error: feeError } = await supabase
+        //   .from("student_fees")
+        //   .insert(feeRecords);
 
-        if (feeError) {
-          console.warn("Warning: Could not create fee records:", feeError);
-        }
+        // if (feeError) {
+        //   console.warn("Warning: Could not create fee records:", feeError);
+        // }
       }
 
       toast({

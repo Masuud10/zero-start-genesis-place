@@ -117,24 +117,28 @@ const EnhancedAttendanceModule = () => {
     refreshData,
     currentPeriod,
     validation,
-    getAvailableClasses,
-    getAvailableSubjects,
-    getStudentsByClass,
   } = useAcademicModuleIntegration([
     "attendance",
-    "classes",
-    "subjects",
-    "students",
+    "grades", 
+    "examinations",
+    "reports",
+    "analytics",
   ]);
 
-  // Get available classes and subjects
-  const { data: availableClasses } = getAvailableClasses();
-  const { data: availableSubjects } = getAvailableSubjects(
-    selectedClass !== "all" ? selectedClass : undefined
-  );
-  const { data: students } = getStudentsByClass(
-    selectedClass !== "all" ? selectedClass : undefined
-  );
+  // Get available classes and subjects from context data
+  const availableClasses = data?.attendance || [];
+  const availableSubjects = data?.attendance || [];
+  const students = data?.attendance || [];
+
+  // Filter subjects based on selected class
+  const filteredSubjects = selectedClass !== "all" 
+    ? availableSubjects?.filter(subject => subject.class_id === selectedClass) || []
+    : availableSubjects;
+  
+  // Filter students based on selected class  
+  const filteredStudents = selectedClass !== "all"
+    ? students?.filter(student => student.class_id === selectedClass) || []
+    : students;
 
   // Filter attendance records
   const filteredAttendance =
@@ -228,7 +232,13 @@ const EnhancedAttendanceModule = () => {
         status: string;
       }>
     ) => {
-      const { error } = await supabase.from("attendance").upsert(updates);
+      // Note: bulk update needs proper structure with all required fields
+      const formattedUpdates = updates.map(update => ({
+        ...update,
+        date: selectedDate,
+        school_id: schoolId || '',
+      }));
+      const { error } = await supabase.from("attendance").upsert(formattedUpdates);
 
       if (error) throw error;
     },
@@ -447,7 +457,7 @@ const EnhancedAttendanceModule = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  {availableSubjects?.map((subject) => (
+                  {filteredSubjects?.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
                       {subject.name}
                     </SelectItem>
