@@ -24,27 +24,20 @@ import { formatDistanceToNow } from 'date-fns';
 
 const NotificationsDropdown = () => {
   const { notifications, unreadCount, isLoading, markAsRead } = useNotifications();
-  const { communications, dismissCommunication } = useAdminCommunications();
   
-  // PHASE 2: State for modal
+  // PHASE 3: State for modal
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // PHASE 2: Combine notifications and communications
-  const allItems = [
-    ...(notifications || []).map(n => ({ ...n, type: 'notification', source: 'notifications' })),
-    ...(communications || []).filter(c => c.is_active).map(c => ({ 
-      ...c, 
-      type: 'communication', 
-      source: 'communications',
-      content: c.message,
-      created_at: c.created_at,
-      priority: c.priority || 'medium'
-    }))
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  // PHASE 3: Use only the new notifications system (no more dual system)
+  const allItems = (notifications || []).map(n => ({ 
+    ...n, 
+    type: 'notification', 
+    source: 'notifications'
+  })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  // PHASE 2: Calculate total unread count (notifications + active communications)
-  const totalUnreadCount = unreadCount + (communications?.filter(c => c.is_active)?.length || 0);
+  // PHASE 3: Use only the unread count from notifications
+  const totalUnreadCount = unreadCount;
 
   const getNotificationIcon = (type: string, source?: string) => {
     if (source === 'communications') {
@@ -77,18 +70,18 @@ const NotificationsDropdown = () => {
     }
   };
 
-  // PHASE 2: Enhanced click handler with modal
+  // PHASE 3: Enhanced click handler with modal (mark as read when opened)
   const handleItemClick = (item: any) => {
-    if (item.source === 'notifications' && !('read_at' in item ? item.read_at : false)) {
+    if (item.source === 'notifications' && !item.read_at) {
       markAsRead(item.id);
     }
     setSelectedItem(item);
     setModalOpen(true);
   };
 
-  // PHASE 2: Mark communication as read
-  const handleCommunicationMarkAsRead = (communicationId: string) => {
-    dismissCommunication(communicationId);
+  // PHASE 3: Mark notification as read and close modal
+  const handleMarkAsRead = (notificationId: string) => {
+    markAsRead(notificationId);
     setModalOpen(false);
   };
 
@@ -130,7 +123,7 @@ const NotificationsDropdown = () => {
               <DropdownMenuItem
                 key={`${item.source}-${item.id}`}
                 className={`flex flex-col items-start p-3 cursor-pointer border-l-4 ${getPriorityColor(item.priority)} ${
-                  (item.source === 'communications' || !('read_at' in item) || !item.read_at) ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'
+                  !item.read_at ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'
                 }`}
                 onClick={() => handleItemClick(item)}
               >
@@ -141,7 +134,7 @@ const NotificationsDropdown = () => {
                       <p className="font-medium text-sm truncate">
                         {item.title}
                       </p>
-                      {(item.source === 'communications' || !('read_at' in item) || !item.read_at) && (
+                      {!item.read_at && (
                         <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
                       )}
                     </div>
@@ -183,7 +176,7 @@ const NotificationsDropdown = () => {
               {selectedItem?.title}
             </DialogTitle>
             <DialogDescription className="text-left">
-              {selectedItem?.source === 'communications' ? 'Admin Communication' : 'System Notification'}
+              Admin Communication
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -201,12 +194,12 @@ const NotificationsDropdown = () => {
             <div className="text-xs text-gray-500">
               {selectedItem && formatDistanceToNow(new Date(selectedItem.created_at), { addSuffix: true })}
             </div>
-            {selectedItem?.source === 'communications' && (
+            {selectedItem && !selectedItem.read_at && (
               <Button 
-                onClick={() => handleCommunicationMarkAsRead(selectedItem.id)}
+                onClick={() => handleMarkAsRead(selectedItem.id)}
                 className="w-full"
               >
-                Mark as Read & Dismiss
+                Mark as Read
               </Button>
             )}
           </div>

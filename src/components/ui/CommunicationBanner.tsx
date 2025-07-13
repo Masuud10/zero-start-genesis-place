@@ -20,9 +20,9 @@ const CommunicationBanner: React.FC<CommunicationBannerProps> = ({
       case 'critical':
         return 'bg-red-500 border-red-600 text-white';
       case 'high':
-        return 'bg-yellow-400 border-yellow-500 text-gray-900';
+        return 'bg-orange-500 border-orange-600 text-white';
       case 'medium':
-        return 'bg-cyan-100 border-cyan-200 text-cyan-900';
+        return 'bg-blue-100 border-blue-200 text-blue-900';
       case 'low':
         return 'bg-gray-100 border-gray-200 text-gray-800';
       default:

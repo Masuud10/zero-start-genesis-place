@@ -4386,6 +4386,44 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          announcement_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          read_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          read_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          read_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "admin_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parent_engagements: {
         Row: {
           competencies_addressed: string[] | null

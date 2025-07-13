@@ -12,9 +12,9 @@ import { School } from "@/types/school";
 import UserProfileDropdown from "./UserProfileDropdown";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 import MaintenanceNotification from "@/components/common/MaintenanceNotification";
-import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 import CommunicationBanner from "@/components/ui/CommunicationBanner";
 import { useAdminCommunications } from "@/hooks/useAdminCommunications";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface DashboardContainerProps {
   user: AuthUser;
@@ -33,11 +33,8 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   showGreetings = true,
   children,
 }) => {
-  const { communications, isLoading } = useAdminCommunications();
-  const [dismissedBanners, setDismissedBanners] = useState<string[]>([]);
-
-  // PHASE 1 DEBUG: Log communications data
-  console.log('🚨 COMMUNICATIONS FOR BANNER:', communications, 'isLoading:', isLoading);
+  // PHASE 2: Use the new notifications system instead of admin communications
+  const { notifications, unreadCount, isLoading, markAsRead } = useNotifications();
   
   console.log(
     "🏗️ DashboardContainer: Rendering with user:",
@@ -48,8 +45,9 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
     showGreetings
   );
 
-  const handleBannerDismiss = (communicationId: string) => {
-    setDismissedBanners(prev => [...prev, communicationId]);
+  // PHASE 2: Handle banner dismiss by marking notification as read
+  const handleBannerDismiss = (notificationId: string) => {
+    markAsRead(notificationId);
   };
 
   if (!user) {
@@ -117,15 +115,11 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
     return fullName?.split(" ")[0] || "User";
   };
 
-  // PHASE 1: Show only the latest unread communication as a single banner
-  const latestCommunication = (!isLoading && communications) ? 
-    communications
-      .filter(comm => comm.is_active && !dismissedBanners.includes(comm.id))
+  // PHASE 2: Find the SINGLE latest unread notification (definitive single banner rule)
+  const latestNotification = (!isLoading && notifications && notifications.length > 0) ? 
+    notifications
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
     : null;
-
-  // PHASE 1 DEBUG: Log latest communication
-  console.log('🚨 LATEST COMMUNICATION FOR BANNER:', latestCommunication, 'isLoading:', isLoading);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -196,15 +190,15 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
         </div>
       )}
 
-      {/* PHASE 1: Single Communication Banner - positioned directly after greetings */}
-      {!isLoading && latestCommunication && (
+      {/* PHASE 2: Single Notification Banner - positioned directly after greetings */}
+      {!isLoading && latestNotification && (
         <div className="communication-banners-container relative z-[999] w-full bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
           <div className="max-w-7xl mx-auto">
             <CommunicationBanner
-              title={latestCommunication.title}
-              message={latestCommunication.message}
-              priority={latestCommunication.priority}
-              onDismiss={() => handleBannerDismiss(latestCommunication.id)}
+              title={latestNotification.title}
+              message={latestNotification.content}
+              priority={latestNotification.priority as 'low' | 'medium' | 'high' | 'critical'}
+              onDismiss={() => handleBannerDismiss(latestNotification.id)}
             />
           </div>
         </div>
