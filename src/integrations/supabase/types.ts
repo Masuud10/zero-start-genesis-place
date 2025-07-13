@@ -189,6 +189,48 @@ export type Database = {
           },
         ]
       }
+      admin_communications: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          dismissible: boolean | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          message: string
+          priority: string
+          target_roles: string[]
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          dismissible?: boolean | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          priority?: string
+          target_roles?: string[]
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          dismissible?: boolean | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          priority?: string
+          target_roles?: string[]
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -4045,8 +4087,10 @@ export type Database = {
           id: string
           is_read: boolean | null
           receiver_id: string | null
-          school_id: string | null
+          receiver_name: string | null
+          school_id: string
           sender_id: string | null
+          sender_name: string | null
         }
         Insert: {
           attachments?: string[] | null
@@ -4056,8 +4100,10 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           receiver_id?: string | null
-          school_id?: string | null
+          receiver_name?: string | null
+          school_id: string
           sender_id?: string | null
+          sender_name?: string | null
         }
         Update: {
           attachments?: string[] | null
@@ -4067,8 +4113,10 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           receiver_id?: string | null
-          school_id?: string | null
+          receiver_name?: string | null
+          school_id?: string
           sender_id?: string | null
+          sender_name?: string | null
         }
         Relationships: [
           {
@@ -7186,6 +7234,35 @@ export type Database = {
           },
         ]
       }
+      user_dismissed_communications: {
+        Row: {
+          communication_id: string
+          dismissed_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          communication_id: string
+          dismissed_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          communication_id?: string
+          dismissed_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_dismissed_communications_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "admin_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_login_details: {
         Row: {
           access_level: number | null
@@ -7459,6 +7536,10 @@ export type Database = {
           p_window_minutes?: number
         }
         Returns: boolean
+      }
+      cleanup_expired_communications: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       create_admin_user: {
         Args: {
