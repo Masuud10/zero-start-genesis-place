@@ -145,7 +145,7 @@ export class SchoolDbService {
           location
         `)
         .eq('id', schoolId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('🏫 SchoolDbService: Error fetching school:', error);

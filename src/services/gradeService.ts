@@ -55,7 +55,7 @@ export class GradeService {
         .from('classes')
         .select('school_id')
         .eq('id', gradeData.class_id)
-        .single();
+        .maybeSingle();
     
     if (classError) throw classError;
     if (!classData?.school_id) throw new Error("Could not find school for the class");
