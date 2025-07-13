@@ -7572,6 +7572,30 @@ export type Database = {
               principal_phone?: string
               mpesa_passkey?: string
             }
+          | {
+              school_name: string
+              school_email: string
+              school_phone: string
+              school_address: string
+              school_type?: string
+              term_structure?: string
+              registration_number?: string
+              year_established?: number
+              logo_url?: string
+              website_url?: string
+              motto?: string
+              slogan?: string
+              owner_name?: string
+              owner_email?: string
+              owner_phone?: string
+              principal_name?: string
+              principal_email?: string
+              principal_phone?: string
+              mpesa_paybill_number?: string
+              mpesa_consumer_key?: string
+              mpesa_consumer_secret?: string
+              mpesa_passkey?: string
+            }
         Returns: Json
       }
       create_enhanced_school: {
