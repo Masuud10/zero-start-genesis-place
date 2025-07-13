@@ -41,11 +41,11 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
       
       return {
         enabled: isMaintenanceEnabled,
-        message: maintenanceData?.message || '🔧 EduFam is currently undergoing maintenance. Please check back later.',
+        message: maintenanceData?.message || 'We are performing routine system maintenance. Please check back later.',
         isAdmin: isEduFamAdmin
       };
     },
-    refetchInterval: 15000, // Check every 15 seconds for faster updates
+    refetchInterval: 10000, // Check every 10 seconds for updates
     enabled: !!user, // Only run when user is authenticated
   });
 
@@ -58,7 +58,7 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
     );
   }
 
-  // If maintenance is enabled and user is not an admin, show maintenance page
+  // If maintenance is enabled and user is NOT an admin, show maintenance page
   if (maintenanceStatus?.enabled && !maintenanceStatus?.isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -105,6 +105,12 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
                   </p>
                 </div>
               </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
+                  Powered by EduFam
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -116,22 +122,8 @@ const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ children }) => {
     );
   }
 
-  // Show admin maintenance banner if in maintenance mode
-  if (maintenanceStatus?.enabled && maintenanceStatus?.isAdmin) {
-    return (
-      <div className="space-y-0">
-        <Alert className="border-amber-200 bg-amber-50 rounded-none border-x-0 border-t-0">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            <strong>System is in maintenance mode.</strong> You have admin access, but other users are locked out.
-          </AlertDescription>
-        </Alert>
-        {children}
-      </div>
-    );
-  }
-
-  // Normal operation - render children
+  // For EduFam Admins: NO maintenance notifications/banners - just normal access
+  // Normal operation - render children without any maintenance notifications
   return <>{children}</>;
 };
 
