@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { supabase } from "@/integrations/supabase/client";
+import { usePrincipalGradeManagement } from "@/hooks/usePrincipalGradeManagement";
 import {
   Award,
   CheckCircle,
@@ -82,243 +83,99 @@ const EnhancedGradeApprovalDashboard = () => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
 
+  // Use the hook that already handles the database relationships properly
+  const {
+    grades,
+    isLoading,
+    processing,
+    handleApproveGrades,
+    handleRejectGrades,
+    handleReleaseGrades,
+  } = usePrincipalGradeManagement();
+
   const [submissions, setSubmissions] = useState<GradeSubmissionBatch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState<string | null>(null);
 
-  const fetchSubmissions = async () => {
-    if (!schoolId) {
-      setLoading(false);
-      return;
-    }
+  // Process grades into submission batches
+  useEffect(() => {
+    if (!grades) return;
 
-    try {
-      console.log("Fetching grade submission batches for school:", schoolId);
-
-      // First fetch from grade_submission_batches table
-      const { data: batchData, error: batchError } = await supabase
-        .from("grade_submission_batches")
-        .select(
-          `
-          id,
-          class_id,
-          term,
-          exam_type,
-          submitted_by,
-          batch_name,
-          total_students,
-          grades_entered,
-          submitted_at,
-          status,
-          classes!inner(name),
-          profiles!grade_submission_batches_submitted_by_fkey(name)
-        `
-        )
-        .eq("school_id", schoolId)
-        .in("status", ["submitted", "approved"])
-        .order("submitted_at", { ascending: false });
-
-      if (batchError) {
-        console.error("Error fetching batch submissions:", batchError);
-        throw batchError;
+    const submissionMap = new Map<string, GradeSubmissionBatch>();
+    
+    grades.forEach((grade) => {
+      if (!grade.students?.name || !grade.subjects?.name || !grade.classes?.name) {
+        return; // Skip if missing required relationship data
       }
-
-      console.log("Batch submissions loaded:", batchData?.length || 0);
-
-      // Process batch data
-      const processedBatches: GradeSubmissionBatch[] =
-        batchData?.map(
-          (batch: {
-            id: string;
-            classes?: { name: string };
-            profiles?: { name: string };
-            term?: string;
-            exam_type?: string;
-            total_students?: number;
-            grades_entered?: number;
-            submitted_at: string;
-            status: string;
-            batch_name?: string;
-          }) => ({
-            id: batch.id,
-            class_name: batch.classes?.name || "Unknown Class",
-            subject_names: ["Multiple Subjects"], // We'll enhance this later
-            teacher_name: batch.profiles?.name || "Unknown Teacher",
-            term: batch.term || "Unknown Term",
-            exam_type: batch.exam_type || "Unknown Exam",
-            total_students: batch.total_students || 0,
-            grades_entered: batch.grades_entered || 0,
-            submitted_at: batch.submitted_at,
-            status: batch.status,
-            batch_name:
-              batch.batch_name || `${batch.term} - ${batch.exam_type}`,
-          })
-        ) || [];
-
-      // Also fetch individual grade submissions not in batches
-      const { data: individualGrades, error: gradesError } = await supabase
-        .from("grades")
-        .select(
-          `
-          id,
-          term,
-          exam_type,
-          submitted_at,
-          status,
-          class_id,
-          submitted_by,
-          subject_id,
-          subjects!inner(name),
-          classes!inner(name),
-          profiles!grades_submitted_by_fkey(name)
-        `
-        )
-        .eq("school_id", schoolId)
-        .in("status", ["submitted", "approved"])
-        .is("submission_batch_id", null)
-        .order("submitted_at", { ascending: false });
-
-      if (gradesError) {
-        console.warn("Error fetching individual grades:", gradesError);
-      }
-
-      // Group individual grades by submission context
-      const individualSubmissions = new Map();
-      individualGrades?.forEach(
-        (grade: {
-          class_id: string;
-          term?: string;
-          exam_type?: string;
-          submitted_by: string;
-          classes?: { name: string };
-          profiles?: { name: string };
-          subjects?: { name: string };
-          submitted_at: string;
-          status: string;
-        }) => {
-          const key = `${grade.class_id}-${grade.term}-${grade.exam_type}-${grade.submitted_by}`;
-          if (!individualSubmissions.has(key)) {
-            individualSubmissions.set(key, {
-              id: `individual-${key}`,
-              class_name: grade.classes?.name || "Unknown Class",
-              subject_names: [],
-              teacher_name: grade.profiles?.name || "Unknown Teacher",
-              term: grade.term || "Unknown Term",
-              exam_type: grade.exam_type || "Unknown Exam",
-              total_students: 0,
-              grades_entered: 0,
-              submitted_at: grade.submitted_at,
-              status: grade.status,
-              batch_name: `${grade.term} - ${grade.exam_type} (Individual)`,
-            });
-          }
-          const submission = individualSubmissions.get(key);
-          if (!submission.subject_names.includes(grade.subjects?.name)) {
-            submission.subject_names.push(
-              grade.subjects?.name || "Unknown Subject"
-            );
-          }
-          submission.grades_entered++;
+      
+      const key = `${grade.class_id}-${grade.term}-${grade.exam_type}-${grade.submitted_by}`;
+      
+      if (!submissionMap.has(key)) {
+        submissionMap.set(key, {
+          id: key,
+          class_name: grade.classes.name,
+          subject_names: [grade.subjects.name],
+          teacher_name: grade.profiles?.name || "Unknown Teacher",
+          term: grade.term,
+          exam_type: grade.exam_type,
+          total_students: 1,
+          grades_entered: 1,
+          submitted_at: grade.submitted_at,
+          status: grade.status,
+          batch_name: `${grade.term} - ${grade.exam_type}`,
+        });
+      } else {
+        const submission = submissionMap.get(key)!;
+        submission.grades_entered++;
+        
+        // Add subject if not already included
+        if (!submission.subject_names.includes(grade.subjects.name)) {
+          submission.subject_names.push(grade.subjects.name);
         }
-      );
+      }
+    });
 
-      const allSubmissions = [
-        ...processedBatches,
-        ...Array.from(individualSubmissions.values()),
-      ];
-
-      console.log("All submissions processed:", allSubmissions.length);
-      setSubmissions(allSubmissions);
-    } catch (error: unknown) {
-      console.error("Error fetching submissions:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to load grade submissions";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    setSubmissions(Array.from(submissionMap.values()));
+  }, [grades]);
 
   const handleBatchAction = async (
     submissionId: string,
     action: "approve" | "reject" | "release"
   ) => {
-    setProcessing(submissionId);
     try {
-      let updateData: UpdateData = { status: "" };
-      let statusMessage = "";
+      // Extract grade IDs from the submission
+      const submission = submissions.find((s) => s.id === submissionId);
+      if (!submission) return;
 
+      // Find matching grades from the hook data
+      const matchingGrades = grades.filter(
+        (grade) =>
+          grade.class_id === submission.id.split('-')[0] &&
+          grade.term === submission.term &&
+          grade.exam_type === submission.exam_type
+      );
+
+      const gradeIds = matchingGrades.map((g) => g.id);
+
+      if (gradeIds.length === 0) {
+        toast({
+          title: "Error",
+          description: "No grades found for this submission",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Use the hook's methods which already handle the database relationships
       switch (action) {
         case "approve":
-          updateData = {
-            status: "approved",
-            approval_workflow_stage: "approved",
-            approved_by: user?.id,
-            approved_at: new Date().toISOString(),
-          };
-          statusMessage = "Grades approved successfully";
+          await handleApproveGrades(gradeIds);
           break;
         case "reject":
-          updateData = {
-            status: "rejected",
-            approval_workflow_stage: "rejected",
-          };
-          statusMessage = "Grades rejected and returned to teacher";
+          await handleRejectGrades(gradeIds);
           break;
         case "release":
-          updateData = {
-            status: "released",
-            approval_workflow_stage: "released",
-            is_released: true,
-            released_to_parents: true,
-            released_by: user?.id,
-            released_at: new Date().toISOString(),
-          };
-          statusMessage = "Grades released to parents successfully";
+          await handleReleaseGrades(gradeIds);
           break;
       }
-
-      // Update batch if it exists
-      if (!submissionId.startsWith("individual-")) {
-        const { error: batchError } = await supabase
-          .from("grade_submission_batches")
-          .update({ status: updateData.status })
-          .eq("id", submissionId);
-
-        if (batchError) {
-          console.warn("Error updating batch:", batchError);
-        }
-      }
-
-      // Update individual grades
-      const submission = submissions.find((s) => s.id === submissionId);
-      if (submission) {
-        const { error: gradesError } = await supabase
-          .from("grades")
-          .update(updateData)
-          .eq("class_id", submission.class_name) // This needs to be fixed to use actual class_id
-          .eq("term", submission.term)
-          .eq("exam_type", submission.exam_type)
-          .eq("school_id", schoolId);
-
-        if (gradesError) {
-          console.error("Error updating grades:", gradesError);
-          throw gradesError;
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: statusMessage,
-      });
-
-      fetchSubmissions();
     } catch (error: unknown) {
       console.error(`Error ${action}ing grades:`, error);
       const errorMessage =
@@ -328,16 +185,8 @@ const EnhancedGradeApprovalDashboard = () => {
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setProcessing(null);
     }
   };
-
-  useEffect(() => {
-    if (schoolId) {
-      fetchSubmissions();
-    }
-  }, [schoolId]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -386,7 +235,7 @@ const EnhancedGradeApprovalDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border border-gray-200">
         <CardContent className="p-6">
