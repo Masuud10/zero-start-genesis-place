@@ -216,9 +216,6 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
           {/* Maintenance Notification - shows across all dashboards */}
           <MaintenanceNotification />
 
-          {/* Admin Communications Banner - shows across all dashboards */}
-          <AdminCommunicationsBanner />
-
           {children}
         </div>
       </main>
