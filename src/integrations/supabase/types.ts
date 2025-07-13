@@ -3466,6 +3466,7 @@ export type Database = {
           submitted_at: string | null
           submitted_by: string | null
           teacher_id: string | null
+          teacher_remarks: string | null
           term: string
           updated_at: string | null
         }
@@ -3512,6 +3513,7 @@ export type Database = {
           submitted_at?: string | null
           submitted_by?: string | null
           teacher_id?: string | null
+          teacher_remarks?: string | null
           term: string
           updated_at?: string | null
         }
@@ -3558,6 +3560,7 @@ export type Database = {
           submitted_at?: string | null
           submitted_by?: string | null
           teacher_id?: string | null
+          teacher_remarks?: string | null
           term?: string
           updated_at?: string | null
         }
