@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,6 +13,8 @@ import UserProfileDropdown from "./UserProfileDropdown";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 import MaintenanceNotification from "@/components/common/MaintenanceNotification";
 import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
+import CommunicationBanner from "@/components/ui/CommunicationBanner";
+import { useAdminCommunications } from "@/hooks/useAdminCommunications";
 
 interface DashboardContainerProps {
   user: AuthUser;
@@ -31,6 +33,9 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   showGreetings = true,
   children,
 }) => {
+  const { communications } = useAdminCommunications();
+  const [dismissedBanners, setDismissedBanners] = useState<string[]>([]);
+
   console.log(
     "🏗️ DashboardContainer: Rendering with user:",
     user?.email,
@@ -39,6 +44,10 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
     "showGreetings:",
     showGreetings
   );
+
+  const handleBannerDismiss = (communicationId: string) => {
+    setDismissedBanners(prev => [...prev, communicationId]);
+  };
 
   if (!user) {
     console.log("🏗️ DashboardContainer: No user provided, showing error");
@@ -105,8 +114,30 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
     return fullName?.split(" ")[0] || "User";
   };
 
+  // Filter out dismissed banners and show only active communications
+  const activeCommunications = communications?.filter(
+    comm => comm.is_active && !dismissedBanners.includes(comm.id)
+  ) || [];
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Prominent Communication Banners - at the very top */}
+      {activeCommunications.length > 0 && (
+        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
+          <div className="max-w-7xl mx-auto">
+            {activeCommunications.map(comm => (
+              <CommunicationBanner
+                key={comm.id}
+                title={comm.title}
+                message={comm.message}
+                priority={comm.priority}
+                onDismiss={() => handleBannerDismiss(comm.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Compact Greetings Container - Only show when showGreetings is true */}
       {showGreetings && (
         <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200">
