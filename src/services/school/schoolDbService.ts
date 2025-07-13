@@ -20,7 +20,9 @@ export class SchoolDbService {
   static async createComprehensiveSchool(schoolData: any): Promise<CreateSchoolRpcResult> {
     console.log('🏫 SchoolDbService: Creating comprehensive school:', schoolData);
     
-    const { data: rpcData, error: rpcError } = await supabase.rpc('create_comprehensive_school', schoolData);
+    // Remove curriculum_type from schoolData as it no longer exists in the database
+    const { curriculum_type, ...cleanSchoolData } = schoolData;
+    const { data: rpcData, error: rpcError } = await supabase.rpc('create_comprehensive_school', cleanSchoolData);
 
     if (rpcError) {
       console.error('🏫 SchoolDbService: Database function error:', rpcError);
