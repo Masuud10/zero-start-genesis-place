@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -138,14 +139,25 @@ function ForgotPasswordModal({
 }
 
 function UniversalLoginForm() {
-  const { signIn, isLoading } = useAuth();
+  const { signIn, isLoading, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  // Redirect to dashboard after successful authentication
+  useEffect(() => {
+    if (user && !isLoading) {
+      console.log(
+        "🔐 UniversalLoginForm: User authenticated, redirecting to dashboard"
+      );
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,9 +194,10 @@ function UniversalLoginForm() {
         return;
       }
 
+      // Success message - redirect will be handled by useEffect
       toast({
         title: "Login Successful",
-        description: "Redirecting to your dashboard...",
+        description: "Welcome back!",
       });
     } catch (error) {
       setError("An unexpected error occurred. Please try again.");
@@ -221,7 +234,10 @@ function UniversalLoginForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+          <Label
+            htmlFor="password"
+            className="text-sm font-medium text-gray-700"
+          >
             Password
           </Label>
           <Input
@@ -287,26 +303,29 @@ const UniversalLoginPage: React.FC = () => {
       <Card className="w-full max-w-6xl shadow-2xl rounded-2xl overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
           {/* Left Column - Branding/Image */}
-          <div 
+          <div
             className="relative bg-cover bg-center bg-no-repeat flex flex-col justify-between p-8 text-white"
-            style={{ backgroundImage: `linear-gradient(rgba(0, 71, 171, 0.7), rgba(0, 58, 140, 0.7)), url(${loginBackground})` }}
+            style={{
+              backgroundImage: `linear-gradient(rgba(0, 71, 171, 0.7), rgba(0, 58, 140, 0.7)), url(${loginBackground})`,
+            }}
           >
             {/* Logo at top */}
             <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png" 
-                alt="Edufam Logo" 
+              <img
+                src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png"
+                alt="Edufam Logo"
                 className="h-12 w-auto"
               />
             </div>
-            
+
             {/* Content at bottom */}
             <div>
               <h2 className="text-3xl font-bold mb-4">
                 Empowering Education in Kenya
               </h2>
               <p className="text-lg opacity-90">
-                Modern school management system designed for the future of education.
+                Modern school management system designed for the future of
+                education.
               </p>
             </div>
           </div>
@@ -318,9 +337,7 @@ const UniversalLoginPage: React.FC = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 Welcome to Edufam
               </h1>
-              <p className="text-gray-600 text-lg">
-                Sign in to your dashboard
-              </p>
+              <p className="text-gray-600 text-lg">Sign in to your dashboard</p>
             </div>
 
             {/* Login Form */}

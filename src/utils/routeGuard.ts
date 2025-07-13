@@ -114,7 +114,7 @@ export class RouteGuard {
       };
     }
 
-    // School user routes
+    // Dashboard and school user routes - allow both school users and admin users
     if (pathname.startsWith('/dashboard') || 
         pathname.startsWith('/school') || 
         pathname.startsWith('/students') ||
@@ -124,7 +124,7 @@ export class RouteGuard {
         pathname.startsWith('/finance') ||
         pathname.startsWith('/reports')) {
       return {
-        allowedRoles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'],
+        allowedRoles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'],
         redirectTo: '/unauthorized',
         requireAuth: true
       };
