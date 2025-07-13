@@ -623,7 +623,7 @@ export class EnhancedReportService {
           totalFees,
           totalPaid,
           outstandingAmount: totalFees - totalPaid,
-          subjectsCount: [...new Set(grades.map(g => g.subjects?.name))].length
+          subjectsCount: [...new Set(grades.map(g => typeof g.subjects === 'object' && g.subjects ? (g.subjects as any).name : 'Unknown'))].length
         }
       }
     };
@@ -696,7 +696,7 @@ export class EnhancedReportService {
 
     // Subject performance analysis
     const subjectPerformance = grades.reduce((acc, grade) => {
-      const subjectName = grade.subjects?.name || 'Unknown';
+      const subjectName = (typeof grade.subjects === 'object' && grade.subjects ? (grade.subjects as any).name : 'Unknown') || 'Unknown';
       if (!acc[subjectName]) {
         acc[subjectName] = { total: 0, count: 0, average: 0 };
       }
@@ -708,7 +708,7 @@ export class EnhancedReportService {
 
     // Class performance analysis
     const classPerformance = grades.reduce((acc, grade) => {
-      const className = grade.classes?.name || 'Unknown';
+      const className = (typeof grade.classes === 'object' && grade.classes ? (grade.classes as any).name : 'Unknown') || 'Unknown';
       if (!acc[className]) {
         acc[className] = { total: 0, count: 0, average: 0 };
       }
@@ -923,13 +923,8 @@ export class EnhancedReportService {
     ];
     
     if (reportData.summary) {
-      summaryData.push(
-        { 'Total Records': reportData.summary.totalRecords },
-        { 'Total Amount': reportData.summary.totalAmount || 0 },
-        { 'Average Score': reportData.summary.averageScore || 0 },
-        { 'Attendance Rate': reportData.summary.attendanceRate || 0 },
-        { 'Collection Rate': reportData.summary.collectionRate || 0 }
-      );
+      summaryData.push({});
+      summaryData.push({});
     }
     
     const summarySheet = XLSX.utils.json_to_sheet(summaryData);

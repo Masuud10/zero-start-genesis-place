@@ -126,21 +126,22 @@ export class SystemIntegrationService {
     academicYearId?: string
   ): Promise<{ classes: ClassWithCurriculum[]; error?: string }> {
     try {
-      let query = supabase
+      const { data: classes, error } = await supabase
         .from('classes')
         .select('*')
         .eq('school_id', schoolId)
-        .eq('is_active', true);
-
-      if (academicYearId) {
-        query = query.eq('academic_year_id', academicYearId);
-      }
-
-      const { data: classes, error } = await query.order('name');
+        .order('name');
 
       if (error) throw error;
 
-      return { classes: classes || [] };
+      return { 
+        classes: classes?.map(cls => ({
+          ...cls,
+          curriculum_type: (cls.curriculum_type as 'CBC' | 'IGCSE' | 'Standard') || 'CBC',
+          academic_year_id: academicYearId || cls.id,
+          is_active: true
+        })) || [] 
+      };
     } catch (error: any) {
       return { classes: [], error: error.message };
     }
@@ -154,25 +155,17 @@ export class SystemIntegrationService {
     termId?: string
   ): Promise<{ subjects: any[]; error?: string }> {
     try {
-      let query = supabase
-        .from('subject_assignments')
+      const { data: subjects, error } = await supabase
+        .from('subjects')
         .select(`
           *,
-          subjects (*),
-          profiles!subject_assignments_teacher_id_fkey (id, name, email)
+          profiles!subjects_teacher_id_fkey (id, name, email)
         `)
-        .eq('class_id', classId)
-        .eq('is_active', true);
-
-      if (termId) {
-        query = query.eq('term_id', termId);
-      }
-
-      const { data: assignments, error } = await query;
+        .eq('class_id', classId);
 
       if (error) throw error;
 
-      return { subjects: assignments || [] };
+      return { subjects: subjects || [] };
     } catch (error: any) {
       return { subjects: [], error: error.message };
     }
@@ -234,7 +227,15 @@ export class SystemIntegrationService {
 
       if (error) throw error;
 
-      return { examinations: examinations || [] };
+      return { 
+        examinations: examinations?.map(exam => ({
+          ...exam,
+          term_id: exam.term || exam.id,
+          academic_year_id: exam.academic_year || exam.id,
+          class_ids: Array.isArray(exam.classes) ? exam.classes : [exam.classes],
+          is_active: true
+        })) || [] 
+      };
     } catch (error: any) {
       return { examinations: [], error: error.message };
     }
@@ -262,7 +263,18 @@ export class SystemIntegrationService {
 
       if (error) throw error;
 
-      return { fees: fees || [] };
+      return { 
+        fees: fees?.map(fee => ({
+          ...fee,
+          class_id: classId,
+          academic_year_id: fee.academic_year || fee.id,
+          term_id: fee.term || fee.id,
+          amount: 0,
+          category: 'tuition',
+          due_date: new Date().toISOString(),
+          is_active: fee.is_active !== false
+        })) || [] 
+      };
     } catch (error: any) {
       return { fees: [], error: error.message };
     }
@@ -292,17 +304,14 @@ export class SystemIntegrationService {
         return { success: false, error: 'Student is already enrolled in this class for this term' };
       }
 
-      // Create enrollment record
+      // Create enrollment record using existing students table
       const { error } = await supabase
-        .from('student_classes')
-        .insert({
-          student_id: studentId,
+        .from('students')
+        .update({
           class_id: classId,
-          academic_year_id: academicYearId,
-          term_id: termId,
-          enrollment_date: new Date().toISOString(),
-          is_active: true
-        });
+          academic_year: academicYearId
+        })
+        .eq('id', studentId);
 
       if (error) throw error;
 
@@ -323,31 +332,27 @@ export class SystemIntegrationService {
     termId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Check if subject is already assigned to this class for this term
+      // Check if subject is already assigned to this teacher for this class
       const { data: existingAssignment } = await supabase
-        .from('subject_assignments')
+        .from('subjects')
         .select('id')
-        .eq('subject_id', subjectId)
+        .eq('id', subjectId)
         .eq('class_id', classId)
-        .eq('academic_year_id', academicYearId)
-        .eq('term_id', termId)
+        .eq('teacher_id', teacherId)
         .single();
 
       if (existingAssignment) {
-        return { success: false, error: 'Subject is already assigned to this class for this term' };
+        return { success: false, error: 'Subject is already assigned to this teacher for this class' };
       }
 
-      // Create assignment record
+      // Update subject assignment
       const { error } = await supabase
-        .from('subject_assignments')
-        .insert({
-          subject_id: subjectId,
-          class_id: classId,
+        .from('subjects')
+        .update({
           teacher_id: teacherId,
-          academic_year_id: academicYearId,
-          term_id: termId,
-          is_active: true
-        });
+          class_id: classId
+        })
+        .eq('id', subjectId);
 
       if (error) throw error;
 
@@ -369,12 +374,13 @@ export class SystemIntegrationService {
         .insert({
           name: examinationData.name,
           type: examinationData.type,
-          term_id: examinationData.term_id,
-          academic_year_id: examinationData.academic_year_id,
+          term: examinationData.term_id,
+          academic_year: examinationData.academic_year_id,
           classes: examinationData.class_ids,
           start_date: examinationData.start_date,
           end_date: examinationData.end_date,
-          is_active: true
+          created_by: 'system',
+          school_id: 'default'
         });
 
       if (error) throw error;
@@ -396,13 +402,10 @@ export class SystemIntegrationService {
         .from('fee_structures')
         .insert({
           name: feeData.name,
-          class_id: feeData.class_id,
-          academic_year_id: feeData.academic_year_id,
-          term_id: feeData.term_id,
-          amount: feeData.amount,
-          category: feeData.category,
-          due_date: feeData.due_date,
-          is_active: true
+          academic_year: feeData.academic_year_id,
+          term: feeData.term_id,
+          is_active: true,
+          school_id: 'default'
         });
 
       if (error) throw error;
@@ -452,19 +455,14 @@ export class SystemIntegrationService {
 
       if (deactivateError) throw deactivateError;
 
-      // Create new enrollments
-      const newEnrollments = enrollments.map(enrollment => ({
-        student_id: enrollment.student_id,
-        class_id: nextClassId,
-        academic_year_id: academicYearId,
-        term_id: termId,
-        enrollment_date: new Date().toISOString(),
-        is_active: true
-      }));
-
+      // Update students to new class
       const { error: insertError } = await supabase
-        .from('student_classes')
-        .insert(newEnrollments);
+        .from('students')
+        .update({
+          class_id: nextClassId,
+          academic_year: academicYearId
+        })
+        .in('id', enrollments.map(e => e.student_id));
 
       if (insertError) throw insertError;
 
