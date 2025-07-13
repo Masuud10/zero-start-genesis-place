@@ -68,7 +68,6 @@ export interface ComprehensiveSchoolData {
   
   // School Details
   school_type: 'primary' | 'secondary' | 'college';
-  curriculum_type: 'cbc' | 'igcse' | 'cambridge';
   term_structure: '3-term' | '2-semester' | 'other';
   registration_number?: string;
   year_established?: number;

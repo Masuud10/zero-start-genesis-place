@@ -54,7 +54,6 @@ interface School {
   status?: string;
   created_at: string;
   school_type?: string;
-  curriculum_type?: string;
   website_url?: string;
   registration_number?: string;
   year_established?: number;

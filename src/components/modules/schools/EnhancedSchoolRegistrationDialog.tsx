@@ -1,17 +1,33 @@
-
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { ComprehensiveSchoolData } from '@/types/schoolTypes';
-import { SchoolCreationService } from './SchoolCreationService';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Building2, User, Settings } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { ComprehensiveSchoolData } from "@/types/schoolTypes";
+import { SchoolCreationService } from "./SchoolCreationService";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Building2, User, Settings } from "lucide-react";
 
 interface EnhancedSchoolRegistrationDialogProps {
   open: boolean;
@@ -19,45 +35,45 @@ interface EnhancedSchoolRegistrationDialogProps {
   onSuccess: () => void;
 }
 
-const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialogProps> = ({
-  open,
-  onClose,
-  onSuccess
-}) => {
+const EnhancedSchoolRegistrationDialog: React.FC<
+  EnhancedSchoolRegistrationDialogProps
+> = ({ open, onClose, onSuccess }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState<ComprehensiveSchoolData>({
-    school_name: '',
-    school_email: '',
-    school_phone: '',
-    school_address: '',
-    school_type: 'primary',
-    curriculum_type: 'cbc',
-    term_structure: '3-term',
-    registration_number: '',
+    school_name: "",
+    school_email: "",
+    school_phone: "",
+    school_address: "",
+    school_type: "primary",
+    term_structure: "3-term",
+    registration_number: "",
     year_established: new Date().getFullYear(),
-    logo_url: '',
-    website_url: '',
-    motto: '',
-    slogan: '',
-    owner_name: '',
-    owner_email: '',
-    owner_phone: '',
-    owner_information: '',
-    principal_name: '',
-    principal_email: '',
-    principal_contact: '',
-    mpesa_paybill_number: '',
-    mpesa_consumer_key: '',
-    mpesa_consumer_secret: '',
-    mpesa_passkey: ''
+    logo_url: "",
+    website_url: "",
+    motto: "",
+    slogan: "",
+    owner_name: "",
+    owner_email: "",
+    owner_phone: "",
+    owner_information: "",
+    principal_name: "",
+    principal_email: "",
+    principal_contact: "",
+    mpesa_paybill_number: "",
+    mpesa_consumer_key: "",
+    mpesa_consumer_secret: "",
+    mpesa_passkey: "",
   });
 
-  const handleInputChange = (field: keyof ComprehensiveSchoolData, value: string | number) => {
-    setFormData(prev => ({
+  const handleInputChange = (
+    field: keyof ComprehensiveSchoolData,
+    value: string | number
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -66,7 +82,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       toast({
         title: "Validation Error",
         description: "School name is required",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -75,7 +91,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       toast({
         title: "Validation Error",
         description: "School email is required",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -84,7 +100,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       toast({
         title: "Validation Error",
         description: "School phone is required",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -93,7 +109,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       toast({
         title: "Validation Error",
         description: "School address is required",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -104,7 +120,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       toast({
         title: "Validation Error",
         description: "Please enter a valid school email address",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -114,8 +130,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       if (!formData.owner_email || !formData.owner_name) {
         toast({
           title: "Validation Error",
-          description: "Both owner email and name are required if creating an owner account",
-          variant: "destructive"
+          description:
+            "Both owner email and name are required if creating an owner account",
+          variant: "destructive",
         });
         return false;
       }
@@ -124,7 +141,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
         toast({
           title: "Validation Error",
           description: "Please enter a valid owner email address",
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
@@ -135,8 +152,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       if (!formData.principal_email || !formData.principal_name) {
         toast({
           title: "Validation Error",
-          description: "Both principal email and name are required if creating a principal account",
-          variant: "destructive"
+          description:
+            "Both principal email and name are required if creating a principal account",
+          variant: "destructive",
         });
         return false;
       }
@@ -145,7 +163,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
         toast({
           title: "Validation Error",
           description: "Please enter a valid principal email address",
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
@@ -156,48 +174,52 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
 
     try {
-      console.log('🏫 EnhancedSchoolRegistrationDialog: Submitting school creation', formData);
-      
+      console.log(
+        "🏫 EnhancedSchoolRegistrationDialog: Submitting school creation",
+        formData
+      );
+
       const result = await SchoolCreationService.createSchool(formData);
 
       if (result.success) {
         toast({
           title: "School Created Successfully",
-          description: result.message || "The school has been registered and is ready for use.",
+          description:
+            result.message ||
+            "The school has been registered and is ready for use.",
         });
 
         // Reset form
         setFormData({
-          school_name: '',
-          school_email: '',
-          school_phone: '',
-          school_address: '',
-          school_type: 'primary',
-          curriculum_type: 'cbc',
-          term_structure: '3-term',
-          registration_number: '',
+          school_name: "",
+          school_email: "",
+          school_phone: "",
+          school_address: "",
+          school_type: "primary",
+          term_structure: "3-term",
+          registration_number: "",
           year_established: new Date().getFullYear(),
-          logo_url: '',
-          website_url: '',
-          motto: '',
-          slogan: '',
-          owner_name: '',
-          owner_email: '',
-          owner_phone: '',
-          owner_information: '',
-          principal_name: '',
-          principal_email: '',
-          principal_contact: '',
-          mpesa_paybill_number: '',
-          mpesa_consumer_key: '',
-          mpesa_consumer_secret: '',
-          mpesa_passkey: ''
+          logo_url: "",
+          website_url: "",
+          motto: "",
+          slogan: "",
+          owner_name: "",
+          owner_email: "",
+          owner_phone: "",
+          owner_information: "",
+          principal_name: "",
+          principal_email: "",
+          principal_contact: "",
+          mpesa_paybill_number: "",
+          mpesa_consumer_key: "",
+          mpesa_consumer_secret: "",
+          mpesa_passkey: "",
         });
 
         onSuccess();
@@ -205,16 +227,25 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
       } else {
         toast({
           title: "Failed to Create School",
-          description: result.error || "An unexpected error occurred while creating the school",
-          variant: "destructive"
+          description:
+            result.error ||
+            "An unexpected error occurred while creating the school",
+          variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error('🏫 EnhancedSchoolRegistrationDialog: Error creating school:', error);
+    } catch (error: unknown) {
+      console.error(
+        "🏫 EnhancedSchoolRegistrationDialog: Error creating school:",
+        error
+      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to register school. Please try again.";
       toast({
         title: "Registration Error",
-        description: error.message || "Failed to register school. Please try again.",
-        variant: "destructive"
+        description: errorMessage,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -250,7 +281,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                   <Input
                     id="school_name"
                     value={formData.school_name}
-                    onChange={(e) => handleInputChange('school_name', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("school_name", e.target.value)
+                    }
                     placeholder="e.g., Sunshine Primary School"
                     required
                   />
@@ -261,7 +294,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                     id="school_email"
                     type="email"
                     value={formData.school_email}
-                    onChange={(e) => handleInputChange('school_email', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("school_email", e.target.value)
+                    }
                     placeholder="info@school.edu"
                     required
                   />
@@ -274,17 +309,23 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                   <Input
                     id="school_phone"
                     value={formData.school_phone}
-                    onChange={(e) => handleInputChange('school_phone', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("school_phone", e.target.value)
+                    }
                     placeholder="+254 123 456 789"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="registration_number">Registration Number</Label>
+                  <Label htmlFor="registration_number">
+                    Registration Number
+                  </Label>
                   <Input
                     id="registration_number"
                     value={formData.registration_number}
-                    onChange={(e) => handleInputChange('registration_number', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("registration_number", e.target.value)
+                    }
                     placeholder="REG/2024/001"
                   />
                 </div>
@@ -295,7 +336,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                 <Textarea
                   id="school_address"
                   value={formData.school_address}
-                  onChange={(e) => handleInputChange('school_address', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("school_address", e.target.value)
+                  }
                   placeholder="Full address of the school"
                   rows={3}
                   required
@@ -307,32 +350,19 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                   <Label htmlFor="school_type">School Type</Label>
                   <Select
                     value={formData.school_type}
-                    onValueChange={(value) => handleInputChange('school_type', value)}
+                    onValueChange={(value) =>
+                      handleInputChange("school_type", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select school type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="primary">Primary School</SelectItem>
-                      <SelectItem value="secondary">Secondary School</SelectItem>
+                      <SelectItem value="secondary">
+                        Secondary School
+                      </SelectItem>
                       <SelectItem value="college">College</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="curriculum_type">Curriculum Type</Label>
-                  <Select
-                    value={formData.curriculum_type}
-                    onValueChange={(value) => handleInputChange('curriculum_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select curriculum" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cbc">Kenyan CBC</SelectItem>
-                      <SelectItem value="igcse">IGCSE (British International)</SelectItem>
-                      <SelectItem value="cambridge">Cambridge International</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -341,14 +371,18 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                   <Label htmlFor="term_structure">Term Structure</Label>
                   <Select
                     value={formData.term_structure}
-                    onValueChange={(value) => handleInputChange('term_structure', value)}
+                    onValueChange={(value) =>
+                      handleInputChange("term_structure", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select term structure" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="3-term">3-Term System</SelectItem>
-                      <SelectItem value="2-semester">2-Semester System</SelectItem>
+                      <SelectItem value="2-semester">
+                        2-Semester System
+                      </SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -362,7 +396,12 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                     id="year_established"
                     type="number"
                     value={formData.year_established}
-                    onChange={(e) => handleInputChange('year_established', parseInt(e.target.value))}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "year_established",
+                        parseInt(e.target.value)
+                      )
+                    }
                     min="1900"
                     max={new Date().getFullYear()}
                   />
@@ -373,7 +412,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                     id="website_url"
                     type="url"
                     value={formData.website_url}
-                    onChange={(e) => handleInputChange('website_url', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("website_url", e.target.value)
+                    }
                     placeholder="https://www.school.edu"
                   />
                 </div>
@@ -385,7 +426,7 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                   <Input
                     id="motto"
                     value={formData.motto}
-                    onChange={(e) => handleInputChange('motto', e.target.value)}
+                    onChange={(e) => handleInputChange("motto", e.target.value)}
                     placeholder="Excellence in Education"
                   />
                 </div>
@@ -394,7 +435,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                   <Input
                     id="slogan"
                     value={formData.slogan}
-                    onChange={(e) => handleInputChange('slogan', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("slogan", e.target.value)
+                    }
                     placeholder="Nurturing Future Leaders"
                   />
                 </div>
@@ -410,7 +453,8 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                 School Owner (Optional)
               </CardTitle>
               <CardDescription>
-                Create an owner account for this school. If left blank, you can assign an owner later.
+                Create an owner account for this school. If left blank, you can
+                assign an owner later.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -420,7 +464,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                   <Input
                     id="owner_name"
                     value={formData.owner_name}
-                    onChange={(e) => handleInputChange('owner_name', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("owner_name", e.target.value)
+                    }
                     placeholder="John Doe"
                   />
                 </div>
@@ -430,7 +476,9 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                     id="owner_email"
                     type="email"
                     value={formData.owner_email}
-                    onChange={(e) => handleInputChange('owner_email', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("owner_email", e.target.value)
+                    }
                     placeholder="owner@school.edu"
                   />
                 </div>
@@ -440,12 +488,17 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
                 <Input
                   id="owner_phone"
                   value={formData.owner_phone}
-                  onChange={(e) => handleInputChange('owner_phone', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("owner_phone", e.target.value)
+                  }
                   placeholder="+254 123 456 789"
                 />
               </div>
               <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
-                <strong>Note:</strong> If you provide owner details, a school owner account will be created with a temporary password (TempPassword123!). The owner should change this password on first login.
+                <strong>Note:</strong> If you provide owner details, a school
+                owner account will be created with a temporary password
+                (TempPassword123!). The owner should change this password on
+                first login.
               </div>
             </CardContent>
           </Card>
@@ -453,16 +506,16 @@ const EnhancedSchoolRegistrationDialog: React.FC<EnhancedSchoolRegistrationDialo
           <Separator />
 
           <div className="flex justify-end gap-3">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isLoading}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Creating School...' : 'Create School'}
+              {isLoading ? "Creating School..." : "Create School"}
             </Button>
           </div>
         </form>

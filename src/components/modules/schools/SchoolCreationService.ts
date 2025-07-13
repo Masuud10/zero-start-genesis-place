@@ -114,7 +114,6 @@ export class SchoolCreationService {
         school_phone: schoolData.school_phone,
         school_address: schoolData.school_address,
         school_type: schoolData.school_type || 'primary',
-        curriculum_type: schoolData.curriculum_type || 'cbc',
         term_structure: schoolData.term_structure || '3-term',
         registration_number: schoolData.registration_number || null,
         year_established: schoolData.year_established || null,
@@ -125,13 +124,9 @@ export class SchoolCreationService {
         owner_name: schoolData.owner_name || null,
         owner_email: schoolData.owner_email || null,
         owner_phone: schoolData.owner_phone || null,
-        owner_information: schoolData.owner_information || null,
         principal_name: schoolData.principal_name || null,
         principal_email: schoolData.principal_email || null,
-        principal_contact: schoolData.principal_contact || null,
-        mpesa_paybill_number: schoolData.mpesa_paybill_number || null,
-        mpesa_consumer_key: schoolData.mpesa_consumer_key || null,
-        mpesa_consumer_secret: schoolData.mpesa_consumer_secret || null,
+        principal_phone: schoolData.principal_contact || null,
         mpesa_passkey: schoolData.mpesa_passkey || null
       });
 

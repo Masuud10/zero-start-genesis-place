@@ -20,7 +20,6 @@ export interface School {
   owner_information?: string;
   status?: string;
   owner_id?: string;
-  curriculum_type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -40,7 +39,6 @@ interface SchoolCreationData {
   school_phone: string;
   school_address: string;
   school_type?: string;
-  curriculum_type?: string;
   term_structure?: string;
   registration_number?: string;
   year_established?: number;
@@ -84,7 +82,6 @@ export const useSchools = (refreshKey = 0) => {
             owner_id,
             created_at,
             updated_at,
-            curriculum_type,
             location
           `)
           .order('created_at', { ascending: false });
@@ -135,7 +132,6 @@ export const useSchool = (schoolId: string) => {
           owner_id,
           created_at,
           updated_at,
-          curriculum_type,
           location
         `)
         .eq('id', schoolId)
