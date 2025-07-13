@@ -65,6 +65,10 @@ interface IGCSEGradingSheetProps {
   selectedExamType: string;
   isPrincipal?: boolean;
   isViewOnly?: boolean;
+  cellRefs?: React.MutableRefObject<Record<string, HTMLInputElement | HTMLTextAreaElement>>;
+  onKeyDown?: (e: React.KeyboardEvent, studentId: string, subjectId: string) => void;
+  editingCell?: { studentId: string; subjectId: string } | null;
+  setEditingCell?: React.Dispatch<React.SetStateAction<{ studentId: string; subjectId: string } | null>>;
 }
 
 export const IGCSEGradingSheet: React.FC<IGCSEGradingSheetProps> = ({
@@ -115,16 +119,7 @@ export const IGCSEGradingSheet: React.FC<IGCSEGradingSheetProps> = ({
 
       // Parse the JSON data and convert to proper types
       const processedData: GradingConfig[] = (data || []).map(
-        (config: {
-          id: string;
-          subject_id: string;
-          coursework_percentage: number;
-          exam_percentage: number;
-          grade_boundaries: string | IGCSEGradeBoundaries;
-          school_id: string;
-          class_id: string;
-          curriculum_type: string;
-        }) => ({
+        (config: any) => ({
           id: config.id,
           subject_id: config.subject_id,
           coursework_percentage: config.coursework_percentage || 30,

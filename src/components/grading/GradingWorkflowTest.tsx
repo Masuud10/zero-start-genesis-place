@@ -87,25 +87,17 @@ export const GradingWorkflowTest: React.FC<GradingWorkflowTestProps> = ({
         .eq("is_active", true)
         .limit(3); // Limit for testing
 
-      // Load subjects
+      // Load subjects - directly from subjects table with class_id filter
       const { data: subjects } = await supabase
-        .from("class_subjects")
-        .select(
-          `
-          subjects (
-            id,
-            name
-          )
-        `
-        )
+        .from("subjects")
+        .select("id, name")
         .eq("class_id", selectedTestClass)
+        .eq("school_id", schoolId)
         .eq("is_active", true)
         .limit(2); // Limit for testing
 
       if (students && subjects) {
-        const subjectsList = subjects
-          .map((cs: any) => cs.subjects)
-          .filter(Boolean);
+        const subjectsList = subjects;
 
         // Initialize test grades
         const initialGrades: Record<string, Record<string, any>> = {};

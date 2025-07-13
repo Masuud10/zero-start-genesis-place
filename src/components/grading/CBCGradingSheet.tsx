@@ -50,6 +50,10 @@ interface CBCGradingSheetProps {
   selectedExamType: string;
   isPrincipal?: boolean;
   isViewOnly?: boolean;
+  cellRefs?: React.MutableRefObject<Record<string, HTMLInputElement | HTMLTextAreaElement>>;
+  onKeyDown?: (e: React.KeyboardEvent, studentId: string, subjectId: string) => void;
+  editingCell?: { studentId: string; subjectId: string } | null;
+  setEditingCell?: React.Dispatch<React.SetStateAction<{ studentId: string; subjectId: string } | null>>;
 }
 
 const CBC_PERFORMANCE_LEVELS = [

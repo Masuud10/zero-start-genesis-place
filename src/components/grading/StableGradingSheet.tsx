@@ -221,32 +221,28 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
         // Principals can see all subjects for the class
         const { data: classSubjectsData, error: classSubjectsError } =
           await supabase
-            .from("class_subjects")
-            .select("subjects(id, name, code)")
+            .from("subjects")
+            .select("id, name, code")
             .eq("class_id", classId)
+            .eq("school_id", schoolId)
             .eq("is_active", true);
 
         if (!classSubjectsError && classSubjectsData) {
-          subjectsList =
-            classSubjectsData
-              ?.map((cs: { subjects: Subject }) => cs.subjects)
-              .filter(Boolean) || [];
+          subjectsList = classSubjectsData || [];
         }
       } else {
         // Teachers can only see their assigned subjects
         const { data: teacherSubjectsData, error: teacherSubjectsError } =
           await supabase
-            .from("subject_teacher_assignments")
-            .select("subject:subjects(id, name, code)")
+            .from("subjects")
+            .select("id, name, code")
             .eq("teacher_id", user?.id)
             .eq("class_id", classId)
+            .eq("school_id", schoolId)
             .eq("is_active", true);
 
         if (!teacherSubjectsError && teacherSubjectsData) {
-          subjectsList =
-            teacherSubjectsData
-              ?.map((ts: { subject: Subject }) => ts.subject)
-              .filter(Boolean) || [];
+          subjectsList = teacherSubjectsData || [];
         }
       }
 
@@ -277,10 +273,10 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
             letter_grade: existingGrade?.letter_grade || null,
             cbc_performance_level: existingGrade?.cbc_performance_level || null,
             percentage: existingGrade?.percentage || null,
-            strand_scores: existingGrade?.strand_scores || {},
+            strand_scores: (existingGrade?.strand_scores as Record<string, string>) || {},
             teacher_remarks: existingGrade?.teacher_remarks || "",
-            assessment_type: existingGrade?.assessment_type || examType,
-            performance_level: existingGrade?.performance_level || null,
+            assessment_type: examType,
+            performance_level: (existingGrade?.cbc_performance_level as "EM" | "AP" | "PR" | "EX") || null,
             status: existingGrade?.status || "draft",
             is_locked:
               existingGrade?.status === "released" ||
@@ -790,7 +786,7 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
               <p><strong>Class:</strong> ${classId}</p>
               <p><strong>Term:</strong> ${term}</p>
               <p><strong>Exam Type:</strong> ${examType}</p>
-              <p><strong>Curriculum:</strong> ${curriculumInfo.displayName}</p>
+               <p><strong>Curriculum:</strong> ${curriculumInfo.name}</p>
               <p><strong>Date:</strong> ${currentDate}</p>
               <p><strong>Teacher:</strong> ${user?.name || "N/A"}</p>
             </div>
@@ -877,7 +873,7 @@ export const StableGradingSheet: React.FC<StableGradingSheetProps> = ({
               <p><strong>Class:</strong> ${classId}</p>
               <p><strong>Term:</strong> ${term}</p>
               <p><strong>Exam Type:</strong> ${examType}</p>
-              <p><strong>Curriculum:</strong> ${curriculumInfo.displayName}</p>
+              <p><strong>Curriculum:</strong> ${curriculumInfo.name}</p>
               <p><strong>Date:</strong> ${currentDate}</p>
               <p><strong>Teacher:</strong> ${user?.name || "N/A"}</p>
             </div>
