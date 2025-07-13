@@ -43,7 +43,7 @@ export class CommunicationsService {
       const filteredCommunications = communications?.filter(comm => !dismissedIds.includes(comm.id)) || [];
 
       console.log('📢 CommunicationsService: Returning communications:', filteredCommunications.length);
-      return filteredCommunications;
+      return filteredCommunications as AdminCommunication[];
     } catch (error) {
       console.error('📢 CommunicationsService: Error in getUserCommunications:', error);
       return [];
@@ -63,7 +63,7 @@ export class CommunicationsService {
         throw error;
       }
 
-      return data || [];
+      return (data || []) as AdminCommunication[];
     } catch (error) {
       console.error('📢 CommunicationsService: Error in getAllCommunications:', error);
       return [];

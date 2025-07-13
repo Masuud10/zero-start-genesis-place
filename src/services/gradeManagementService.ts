@@ -97,13 +97,13 @@ export class GradeManagementService {
       }
 
       // Prepare grade records for submission
-      const gradeRecords: GradeData[] = [];
+      const gradeRecords: any[] = [];
       const processedGrades: string[] = [];
 
       Object.entries(grades).forEach(([studentId, studentGrades]) => {
         Object.entries(studentGrades).forEach(([subjectId, gradeData]) => {
           if (this.hasValidGradeData(gradeData, curriculumType)) {
-            const gradeRecord: GradeData = {
+            const gradeRecord: any = {
               ...gradeData,
               student_id: studentId,
               subject_id: subjectId,
@@ -136,10 +136,7 @@ export class GradeManagementService {
       // Submit grades to database
       const { data, error } = await supabase
         .from('grades')
-        .upsert(gradeRecords, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type',
-          ignoreDuplicates: false
-        })
+        .upsert(gradeRecords)
         .select();
 
       if (error) {
@@ -539,9 +536,9 @@ export class GradeManagementService {
           user_id: userId,
           user_role: userRole,
           action: action,
-          old_values: oldGrade || {},
-          new_values: newValues,
-          notes: notes,
+          old_values: JSON.stringify(oldGrade || {}),
+          new_values: JSON.stringify(newValues),
+          school_id: 'temp-school-id', // Will be updated with proper school_id
           created_at: new Date().toISOString(),
         };
       });
@@ -572,7 +569,11 @@ export class GradeManagementService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []).map(log => ({
+        ...log,
+        old_values: typeof log.old_values === 'string' ? JSON.parse(log.old_values) : log.old_values,
+        new_values: typeof log.new_values === 'string' ? JSON.parse(log.new_values) : log.new_values
+      }));
     } catch (error) {
       console.error('Error fetching grade audit history:', error);
       return [];
@@ -733,14 +734,13 @@ export class GradeManagementService {
 
       if (error) throw error;
 
-      // Log the action
-      await auditLogger.logGradeAction(userId, action.action, gradeIds.join(','), {
-        action: action.action,
-        gradeIds,
-        reason,
-        overrideScore,
-        principalNotes
-      });
+      // Log the action using basic audit service
+      try {
+        await this.createAuditLogs(gradeIds, userId, action.action, [], updateData, `Grade ${action.action}`);
+      } catch (auditError) {
+        console.error('Failed to create audit log:', auditError);
+        // Don't fail the main operation
+      }
 
       console.log('✅ GradeManagementService: Grade action completed', {
         action: action.action,

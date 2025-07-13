@@ -76,8 +76,8 @@ export class AttendanceExportService {
       .from("attendance")
       .select(`
         *,
-        students!inner(id, name, admission_number),
-        classes!inner(id, name)
+        students!student_id(name, admission_number),
+        classes!class_id(name)
       `)
       .in("class_id", options.classes)
       .in("status", options.statusFilter)
@@ -90,7 +90,18 @@ export class AttendanceExportService {
       throw new Error(`Failed to fetch attendance data: ${error.message}`);
     }
 
-    const attendanceRecords = records || [];
+    // Transform data to match AttendanceRecord interface
+    const attendanceRecords: AttendanceRecord[] = (records || []).map(record => ({
+      ...record,
+      students: record.students ? { 
+        name: record.students.name, 
+        admission_number: record.students.admission_number 
+      } : undefined,
+      classes: record.classes ? { 
+        name: record.classes.name 
+      } : undefined
+    }));
+    
     const summary = this.calculateSummary(attendanceRecords);
 
     return { records: attendanceRecords, summary };

@@ -76,16 +76,10 @@ const AuditLogsViewer: React.FC<AuditLogsViewerProps> = ({
   } = useQuery({
     queryKey: ["audit-logs", schoolId, page, filters],
     queryFn: async () => {
-      if (!schoolId) return { data: [], count: 0 };
+      if (!schoolId) return { logs: [], total: 0 };
       return await AuditService.getAuditLogs(
-        {
-          schoolId,
-          action: filters.action || undefined,
-          tableName: filters.tableName || undefined,
-          userId: filters.userId || undefined,
-          startDate: filters.startDate || undefined,
-          endDate: filters.endDate || undefined,
-        },
+        schoolId,
+        filters,
         page,
         50
       );
@@ -153,11 +147,11 @@ const AuditLogsViewer: React.FC<AuditLogsViewerProps> = ({
 
   // Export audit logs
   const handleExport = () => {
-    if (!auditLogsData?.data) return;
+    if (!auditLogsData?.logs) return;
 
     const csvContent = [
       ["Timestamp", "User", "Action", "Table", "Record ID", "Academic Context"],
-      ...auditLogsData.data.map((log) => [
+      ...auditLogsData.logs.map((log) => [
         format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss"),
         log.user_id,
         log.action,
@@ -187,7 +181,7 @@ const AuditLogsViewer: React.FC<AuditLogsViewerProps> = ({
           <DialogTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
             Audit Logs
-            <Badge variant="secondary">{auditLogsData?.count || 0} total</Badge>
+            <Badge variant="secondary">{auditLogsData?.total || 0} total</Badge>
           </DialogTitle>
         </DialogHeader>
 
@@ -273,7 +267,7 @@ const AuditLogsViewer: React.FC<AuditLogsViewerProps> = ({
                 Error loading audit logs: {error.message}
               </AlertDescription>
             </Alert>
-          ) : auditLogsData?.data?.length === 0 ? (
+          ) : auditLogsData?.logs?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No audit logs found</p>
@@ -297,7 +291,7 @@ const AuditLogsViewer: React.FC<AuditLogsViewerProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {auditLogsData?.data?.map((log: AuditLog) => (
+                {auditLogsData?.logs?.map((log: AuditLog) => (
                   <TableRow key={log.id}>
                     <TableCell className="text-sm">
                       <div className="flex items-center gap-1">
@@ -371,7 +365,7 @@ const AuditLogsViewer: React.FC<AuditLogsViewerProps> = ({
         </div>
 
         {/* Pagination */}
-        {auditLogsData && auditLogsData.count > 50 && (
+        {auditLogsData && auditLogsData.total > 50 && (
           <div className="flex items-center justify-between pt-4 border-t">
             <Button
               variant="outline"
@@ -382,13 +376,13 @@ const AuditLogsViewer: React.FC<AuditLogsViewerProps> = ({
               Previous
             </Button>
             <span className="text-sm text-muted-foreground">
-              Page {page} of {Math.ceil(auditLogsData.count / 50)}
+              Page {page} of {Math.ceil(auditLogsData.total / 50)}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setPage(page + 1)}
-              disabled={page >= Math.ceil(auditLogsData.count / 50)}
+              disabled={page >= Math.ceil(auditLogsData.total / 50)}
             >
               Next
             </Button>

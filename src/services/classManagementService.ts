@@ -23,12 +23,23 @@ export const classManagementService = {
   // Assign teacher to class
   assignTeacherToClass: async (params: AssignTeacherToClassParams) => {
     try {
+      // Get school_id from class
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('school_id')
+        .eq('id', params.classId)
+        .single();
+
+      if (classError) throw classError;
+      if (!classData?.school_id) throw new Error("Could not find school for the class");
+
       const { data, error } = await supabase
         .from('teacher_classes')
         .insert({
           teacher_id: params.teacherId,
           class_id: params.classId,
-          subject_id: params.subjectId || null
+          subject_id: params.subjectId || null,
+          school_id: classData.school_id
         })
         .select()
         .single();

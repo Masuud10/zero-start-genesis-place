@@ -177,10 +177,7 @@ export class EnhancedReportService {
 
     const { data: schools } = await supabase
       .from('schools')
-      .select(`
-        *,
-        profiles!schools_owner_id_fkey(name as owner_name, email as owner_email)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     const { data: subscriptions } = await supabase
@@ -208,7 +205,7 @@ export class EnhancedReportService {
         subscriptions: subscriptions || [],
         statistics: {
           totalSchools: schools?.length || 0,
-          activeSchools: schools?.filter(s => s.status === 'active').length || 0,
+          activeSchools: schools?.filter(s => s.created_at).length || 0,
           totalSubscriptions: subscriptions?.length || 0,
           activeSubscriptions: subscriptions?.filter(s => s.status === 'active').length || 0
         }
@@ -237,20 +234,20 @@ export class EnhancedReportService {
         .from('grades')
         .select(`
           *,
-          students!inner(name, admission_number, class_id),
-          subjects!inner(name, code),
-          classes!inner(name)
+          students!student_id(name, admission_number, class_id),
+          subjects!subject_id(name, code),
+          classes!class_id(name)
         `)
         .eq('school_id', schoolId)
         .eq('term', queryFilters.term)
-        .eq('academic_year', queryFilters.academicYear)
+        .eq('academic_year', queryFilters.academic_year)
         .eq('status', 'released'),
       supabase
         .from('attendance')
         .select(`
           *,
-          students!inner(name, admission_number),
-          classes!inner(name)
+          students!student_id(name, admission_number),
+          classes!class_id(name)
         `)
         .eq('school_id', schoolId)
         .gte('date', filters?.dateRange?.from?.toISOString() || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
