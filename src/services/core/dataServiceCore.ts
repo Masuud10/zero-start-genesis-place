@@ -18,7 +18,7 @@ export class DataServiceCore {
         .from(table as any)
         .insert(data as any)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data: result, error: null };
@@ -41,7 +41,7 @@ export class DataServiceCore {
           ignoreDuplicates: false
         })
         .select()
-        .single();
+        .maybeSingle();
 
       const { data: result, error } = await query;
 
@@ -64,7 +64,7 @@ export class DataServiceCore {
         .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return { data, error: null };
