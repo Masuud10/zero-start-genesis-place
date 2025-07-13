@@ -57,13 +57,13 @@ export class AuditService {
       const { error } = await supabase
         .from('audit_logs')
         .insert({
-          user_id: user.id,
+          performed_by_user_id: user.id,
+          performed_by_role: 'user',
           action,
-          table_name: tableName,
-          record_id: recordId,
-          old_values: oldValues ? JSON.stringify(oldValues) : null,
-          new_values: newValues ? JSON.stringify(newValues) : null,
-          academic_context: academicContext,
+          target_entity: `${tableName}:${recordId}`,
+          old_value: oldValues,
+          new_value: newValues,
+          metadata: academicContext,
         });
 
       if (error) throw error;
@@ -97,12 +97,15 @@ export class AuditService {
         effectiveSchoolId = profile?.school_id;
       }
 
+      // Use audit_logs table for system events
       const { error } = await supabase
-        .from('system_events')
+        .from('audit_logs')
         .insert({
-          event_type: eventType,
-          event_data: eventData,
-          severity,
+          performed_by_user_id: user?.id,
+          performed_by_role: 'system',
+          action: `SYSTEM_${eventType}`,
+          target_entity: 'system',
+          metadata: { event_data: eventData, severity },
           school_id: effectiveSchoolId,
         });
 
@@ -146,13 +149,13 @@ export class AuditService {
         query = query.eq('school_id', filters.schoolId);
       }
       if (filters.userId) {
-        query = query.eq('user_id', filters.userId);
+        query = query.eq('performed_by_user_id', filters.userId);
       }
       if (filters.action) {
         query = query.eq('action', filters.action);
       }
       if (filters.tableName) {
-        query = query.eq('table_name', filters.tableName);
+        query = query.ilike('target_entity', `${filters.tableName}:%`);
       }
       if (filters.startDate) {
         query = query.gte('created_at', filters.startDate);
@@ -162,16 +165,16 @@ export class AuditService {
       }
       if (filters.academicContext) {
         if (filters.academicContext.academic_year_id) {
-          query = query.eq('academic_context->academic_year_id', filters.academicContext.academic_year_id);
+          query = query.eq('metadata->academic_year_id', filters.academicContext.academic_year_id);
         }
         if (filters.academicContext.term_id) {
-          query = query.eq('academic_context->term_id', filters.academicContext.term_id);
+          query = query.eq('metadata->term_id', filters.academicContext.term_id);
         }
         if (filters.academicContext.class_id) {
-          query = query.eq('academic_context->class_id', filters.academicContext.class_id);
+          query = query.eq('metadata->class_id', filters.academicContext.class_id);
         }
         if (filters.academicContext.subject_id) {
-          query = query.eq('academic_context->subject_id', filters.academicContext.subject_id);
+          query = query.eq('metadata->subject_id', filters.academicContext.subject_id);
         }
       }
 
@@ -180,7 +183,23 @@ export class AuditService {
 
       if (error) throw error;
 
-      return { data: data || [], count: count || 0 };
+      // Transform data to match AuditLog interface
+      const transformedData = (data || []).map(item => ({
+        id: item.id,
+        user_id: item.performed_by_user_id,
+        school_id: item.school_id,
+        action: item.action,
+        table_name: item.target_entity?.split(':')[0] || 'unknown',
+        record_id: item.target_entity?.split(':')[1],
+        old_values: item.old_value,
+        new_values: item.new_value,
+        academic_context: typeof item.metadata === 'object' ? item.metadata as any : undefined,
+        ip_address: typeof item.ip_address === 'string' ? item.ip_address : undefined,
+        user_agent: item.user_agent,
+        created_at: item.created_at
+      }));
+
+      return { data: transformedData, count: count || 0 };
     } catch (error: any) {
       console.error('Error fetching audit logs:', error);
       return { data: [], count: 0, error: error.message };
@@ -204,18 +223,19 @@ export class AuditService {
   ): Promise<{ data: SystemEvent[]; count: number; error?: string }> {
     try {
       let query = supabase
-        .from('system_events')
+        .from('audit_logs')
         .select('*', { count: 'exact' })
+        .like('action', 'SYSTEM_%')
         .order('created_at', { ascending: false });
 
       if (filters.schoolId) {
         query = query.eq('school_id', filters.schoolId);
       }
       if (filters.eventType) {
-        query = query.eq('event_type', filters.eventType);
+        query = query.eq('action', `SYSTEM_${filters.eventType}`);
       }
       if (filters.severity) {
-        query = query.eq('severity', filters.severity);
+        query = query.eq('metadata->severity', filters.severity);
       }
       if (filters.startDate) {
         query = query.gte('created_at', filters.startDate);
@@ -223,16 +243,23 @@ export class AuditService {
       if (filters.endDate) {
         query = query.lte('created_at', filters.endDate);
       }
-      if (filters.unprocessedOnly) {
-        query = query.is('processed_at', null);
-      }
 
       const { data, error, count } = await query
         .range((page - 1) * limit, page * limit - 1);
 
       if (error) throw error;
 
-      return { data: data || [], count: count || 0 };
+      // Transform data to match SystemEvent interface
+      const transformedData = (data || []).map(item => ({
+        id: item.id,
+        event_type: item.action.replace('SYSTEM_', ''),
+        event_data: typeof item.metadata === 'object' && item.metadata ? (item.metadata as any).event_data : undefined,
+        severity: (typeof item.metadata === 'object' && item.metadata ? (item.metadata as any).severity : undefined) || 'medium',
+        school_id: item.school_id,
+        created_at: item.created_at
+      }));
+
+      return { data: transformedData, count: count || 0 };
     } catch (error: any) {
       console.error('Error fetching system events:', error);
       return { data: [], count: 0, error: error.message };
@@ -249,10 +276,9 @@ export class AuditService {
       const { data: { user } } = await supabase.auth.getUser();
       
       const { error } = await supabase
-        .from('system_events')
+        .from('audit_logs')
         .update({
-          processed_at: new Date().toISOString(),
-          processed_by: user?.id,
+          metadata: { processed_at: new Date().toISOString(), processed_by: user?.id }
         })
         .eq('id', eventId);
 
@@ -276,7 +302,7 @@ export class AuditService {
     try {
       let query = supabase
         .from('audit_logs')
-        .select('action, table_name, created_at')
+        .select('action, target_entity, created_at')
         .eq('school_id', schoolId);
 
       if (startDate) {
@@ -303,7 +329,8 @@ export class AuditService {
         summary.actionsByType[log.action] = (summary.actionsByType[log.action] || 0) + 1;
         
         // Count by table
-        summary.actionsByTable[log.table_name] = (summary.actionsByTable[log.table_name] || 0) + 1;
+        const tableName = log.target_entity?.split(':')[0] || 'unknown';
+        summary.actionsByTable[tableName] = (summary.actionsByTable[tableName] || 0) + 1;
         
         // Count by day
         const day = new Date(log.created_at).toISOString().split('T')[0];
