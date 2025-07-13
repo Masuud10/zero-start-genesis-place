@@ -5277,23 +5277,16 @@ export type Database = {
           id: string
           location: string | null
           logo_url: string | null
-          max_students: number | null
           motto: string | null
           name: string
           owner_id: string | null
           owner_information: string | null
           phone: string | null
-          principal_contact: string | null
-          principal_email: string | null
-          principal_id: string | null
-          principal_name: string | null
           registration_number: string | null
           school_type: string | null
           slogan: string | null
           status: string | null
-          subscription_plan: string | null
           term_structure: string | null
-          timezone: string | null
           updated_at: string | null
           website_url: string | null
           year_established: number | null
@@ -5305,23 +5298,16 @@ export type Database = {
           id?: string
           location?: string | null
           logo_url?: string | null
-          max_students?: number | null
           motto?: string | null
           name: string
           owner_id?: string | null
           owner_information?: string | null
           phone?: string | null
-          principal_contact?: string | null
-          principal_email?: string | null
-          principal_id?: string | null
-          principal_name?: string | null
           registration_number?: string | null
           school_type?: string | null
           slogan?: string | null
           status?: string | null
-          subscription_plan?: string | null
           term_structure?: string | null
-          timezone?: string | null
           updated_at?: string | null
           website_url?: string | null
           year_established?: number | null
@@ -5333,23 +5319,16 @@ export type Database = {
           id?: string
           location?: string | null
           logo_url?: string | null
-          max_students?: number | null
           motto?: string | null
           name?: string
           owner_id?: string | null
           owner_information?: string | null
           phone?: string | null
-          principal_contact?: string | null
-          principal_email?: string | null
-          principal_id?: string | null
-          principal_name?: string | null
           registration_number?: string | null
           school_type?: string | null
           slogan?: string | null
           status?: string | null
-          subscription_plan?: string | null
           term_structure?: string | null
-          timezone?: string | null
           updated_at?: string | null
           website_url?: string | null
           year_established?: number | null
@@ -5358,13 +5337,6 @@ export type Database = {
           {
             foreignKeyName: "schools_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schools_principal_id_fkey"
-            columns: ["principal_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

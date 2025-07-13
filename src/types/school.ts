@@ -3,7 +3,6 @@ export interface School {
   id: string;
   name: string;
   ownerId?: string;
-  principalId?: string;
   address?: string;
   phone?: string;
   email?: string;
