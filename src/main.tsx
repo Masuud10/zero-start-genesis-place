@@ -2,7 +2,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
-import MaintenanceGate from "./components/auth/MaintenanceGate";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -15,9 +14,6 @@ console.log('🚀 Application starting...');
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    {/* The MaintenanceGate now wraps the ENTIRE App component */}
-    <MaintenanceGate>
-      <App />
-    </MaintenanceGate>
+    <App />
   </React.StrictMode>
 );
