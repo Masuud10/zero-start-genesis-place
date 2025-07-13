@@ -180,7 +180,6 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
           const grade = grades[studentId][subjectId];
           if (
             grade.score !== null ||
-            grade.marks !== null ||
             grade.cbc_performance_level
           ) {
             gradesToSave.push({
@@ -191,9 +190,8 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
               term: selectedTerm,
               exam_type: selectedExamType,
               academic_year: new Date().getFullYear().toString(),
-              score: grade.score,
-              marks: grade.marks,
-              letter_grade: grade.letter_grade,
+               score: grade.score,
+               letter_grade: grade.letter_grade,
               cbc_performance_level: grade.cbc_performance_level,
               percentage: grade.percentage,
               teacher_remarks: grade.teacher_remarks,
@@ -248,7 +246,6 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
       Object.values(studentGrades).some(
         (grade) =>
           grade.score !== null ||
-          grade.marks !== null ||
           grade.cbc_performance_level !== null
       )
     );
@@ -272,7 +269,6 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
           const grade = grades[studentId][subjectId];
           if (
             grade.score !== null ||
-            grade.marks !== null ||
             grade.cbc_performance_level !== null
           ) {
             gradesToSubmit.push({
@@ -284,7 +280,6 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
               exam_type: selectedExamType,
               academic_year: new Date().getFullYear().toString(),
               score: grade.score,
-              marks: grade.marks,
               letter_grade: grade.letter_grade,
               cbc_performance_level: grade.cbc_performance_level,
               percentage: grade.percentage,
