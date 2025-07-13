@@ -16,7 +16,7 @@ export interface ClassWithCurriculum {
   level: string;
   stream: string;
   capacity: number;
-  curriculum_type: string;
+  curriculum_type: 'CBC' | 'IGCSE' | 'Standard';
   academic_year_id: string | null;
   is_active: boolean;
   school_id: string;
@@ -67,6 +67,21 @@ export interface SystemIntegrationConfig {
   mappings: Record<string, string>;
 }
 
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  classes?: T;
+  students?: T;
+  subjects?: T;
+  examinations?: T;
+  fees?: T;
+  promotedCount?: number;
+  year?: T;
+  term?: T;
+  profile?: T;
+}
+
 export class SystemIntegrationService {
   /**
    * Get comprehensive school data for integration
@@ -107,7 +122,7 @@ export class SystemIntegrationService {
         level: cls.level || '',
         stream: cls.stream || '',
         capacity: cls.capacity || 40,
-        curriculum_type: cls.curriculum_type || 'CBC',
+        curriculum_type: (cls.curriculum_type || 'CBC') as 'CBC' | 'IGCSE' | 'Standard',
         academic_year_id: null,
         is_active: true,
         school_id: cls.school_id
@@ -344,6 +359,409 @@ export class SystemIntegrationService {
     xml += '</school_data>';
     
     return xml;
+  }
+
+  /**
+   * Get current academic period
+   */
+  static async getCurrentAcademicPeriod(schoolId: string, setLoading?: (loading: boolean) => void): Promise<ApiResponse<any>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('academic_years')
+        .select('*, academic_terms(*)')
+        .eq('school_id', schoolId)
+        .eq('is_current', true)
+        .single();
+
+      if (error) throw error;
+      
+      return { success: true, data, year: data, term: data };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching current academic period:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Get available classes
+   */
+  static async getAvailableClasses(schoolId: string, setLoading?: (loading: boolean) => void): Promise<ApiResponse<ClassWithCurriculum[]>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('school_id', schoolId);
+
+      if (error) throw error;
+
+      const mappedClasses = (data || []).map(cls => ({
+        id: cls.id,
+        name: cls.name,
+        level: cls.level || '',
+        stream: cls.stream || '',
+        capacity: cls.capacity || 40,
+        curriculum_type: (cls.curriculum_type || 'CBC') as 'CBC' | 'IGCSE' | 'Standard',
+        academic_year_id: null,
+        is_active: true,
+        school_id: cls.school_id
+      }));
+
+      return { success: true, data: mappedClasses, classes: mappedClasses };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching available classes:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Enroll student
+   */
+  static async enrollStudent(
+    studentId: string, 
+    classId: string, 
+    schoolId: string, 
+    enrollment: any, 
+    setLoading?: (loading: boolean) => void
+  ): Promise<ApiResponse<void>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { error } = await supabase
+        .from('students')
+        .upsert({
+          id: studentId,
+          class_id: classId,
+          school_id: schoolId,
+          is_active: true,
+          name: enrollment.name || 'Unknown',
+          admission_number: enrollment.admission_number || 'TBD'
+        });
+
+      if (error) throw error;
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error enrolling student:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Get class fee structure
+   */
+  static async getClassFeeStructure(classId: string, setLoading?: (loading: boolean) => void): Promise<ApiResponse<FeeStructure[]>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('fee_structures')
+        .select('*')
+        .eq('class_id', classId);
+
+      if (error) throw error;
+
+      const mappedFees = (data || []).map(fee => ({
+        id: fee.id,
+        name: fee.name,
+        class_id: classId,
+        academic_year: fee.academic_year,
+        academic_year_id: null,
+        term: fee.term,
+        term_id: null,
+        amount: (fee as any).amount || 0,
+        due_date: (fee as any).due_date || new Date().toISOString().split('T')[0],
+        is_active: fee.is_active,
+        school_id: fee.school_id,
+        created_at: fee.created_at,
+        updated_at: fee.updated_at
+      }));
+
+      return { success: true, data: mappedFees, fees: mappedFees };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching class fee structure:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Get class students
+   */
+  static async getClassStudents(classId: string, setLoading?: (loading: boolean) => void): Promise<ApiResponse<any[]>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', classId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      
+      return { success: true, data: data || [], students: data || [] };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching class students:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Get class subjects
+   */
+  static async getClassSubjects(classId: string, setLoading?: (loading: boolean) => void): Promise<ApiResponse<any[]>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('class_id', classId);
+
+      if (error) throw error;
+      
+      return { success: true, data: data || [], subjects: data || [] };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching class subjects:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Get class examinations
+   */
+  static async getClassExaminations(classId: string, setLoading?: (loading: boolean) => void): Promise<ApiResponse<ExaminationSchedule[]>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('examinations')
+        .select('*')
+        .contains('classes', [classId]);
+
+      if (error) throw error;
+
+      const mappedExams = (data || []).map(exam => ({
+        id: exam.id,
+        name: exam.name,
+        type: exam.type,
+        term: exam.term,
+        term_id: null,
+        academic_year: exam.academic_year,
+        academic_year_id: null,
+        start_date: exam.start_date,
+        end_date: exam.end_date,
+        classes: exam.classes || [],
+        class_ids: exam.classes || [],
+        coordinator_id: exam.coordinator_id,
+        school_id: exam.school_id,
+        is_active: true,
+        created_by: exam.created_by,
+        created_at: exam.created_at,
+        updated_at: exam.updated_at
+      }));
+
+      return { success: true, data: mappedExams, examinations: mappedExams };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching class examinations:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Assign subject to class
+   */
+  static async assignSubjectToClass(
+    classId: string, 
+    subjectId: string, 
+    teacherId: string, 
+    assignment: any, 
+    setLoading?: (loading: boolean) => void
+  ): Promise<ApiResponse<void>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { error } = await supabase
+        .from('subjects')
+        .update({ class_id: classId, teacher_id: teacherId })
+        .eq('id', subjectId);
+
+      if (error) throw error;
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error assigning subject to class:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Create examination schedule
+   */
+  static async createExaminationSchedule(schedule: any): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('examinations')
+        .insert({
+          name: schedule.name,
+          type: schedule.type,
+          term: schedule.term,
+          academic_year: schedule.academic_year,
+          start_date: schedule.start_date,
+          end_date: schedule.end_date,
+          classes: schedule.classes,
+          coordinator_id: schedule.coordinator_id,
+          school_id: schedule.school_id,
+          created_by: schedule.created_by
+        });
+
+      if (error) throw error;
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error creating examination schedule:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create fee structure
+   */
+  static async createFeeStructure(feeStructure: any): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('fee_structures')
+        .insert({
+          name: feeStructure.name,
+          class_id: feeStructure.class_id,
+          academic_year: feeStructure.academic_year,
+          term: feeStructure.term,
+          amount: feeStructure.amount,
+          due_date: feeStructure.due_date,
+          school_id: feeStructure.school_id,
+          is_active: true
+        });
+
+      if (error) throw error;
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error creating fee structure:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Promote students
+   */
+  static async promoteStudents(
+    promotions: any[], 
+    fromClassId: string, 
+    toClassId: string, 
+    academicYear: string, 
+    setLoading?: (loading: boolean) => void
+  ): Promise<ApiResponse<any>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      for (const promotion of promotions) {
+        const { error } = await supabase
+          .from('students')
+          .update({ class_id: promotion.new_class_id })
+          .eq('id', promotion.student_id);
+
+        if (error) throw error;
+      }
+      
+      return { success: true, promotedCount: promotions.length };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error promoting students:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Get student profile
+   */
+  static async getStudentProfile(studentId: string, setLoading?: (loading: boolean) => void): Promise<ApiResponse<any>> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('students')
+        .select('*, classes(*)')
+        .eq('id', studentId)
+        .single();
+
+      if (error) throw error;
+      
+      return { success: true, data, profile: data };
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching student profile:', error);
+      return { success: false, error: error.message };
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  }
+
+  /**
+   * Get class analytics
+   */
+  static async getClassAnalytics(classId: string): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('class_analytics')
+        .select('*')
+        .eq('class_id', classId);
+
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error fetching class analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate relationships
+   */
+  static async validateRelationships(data: any, setLoading?: (loading: boolean) => void): Promise<boolean> {
+    try {
+      if (setLoading) setLoading(true);
+      
+      // Basic validation logic - can be expanded
+      if (!data.school_id) return false;
+      if (data.class_id && !data.school_id) return false;
+      if (data.student_id && !data.class_id) return false;
+      
+      return true;
+    } catch (error: any) {
+      console.error('❌ SystemIntegrationService: Error validating relationships:', error);
+      return false;
+    } finally {
+      if (setLoading) setLoading(false);
+    }
   }
 }
 
