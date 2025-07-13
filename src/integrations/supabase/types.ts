@@ -7611,25 +7611,44 @@ export type Database = {
         Returns: Json
       }
       create_enhanced_school: {
-        Args: {
-          school_name: string
-          school_email: string
-          school_phone: string
-          school_address: string
-          logo_url?: string
-          website_url?: string
-          motto?: string
-          slogan?: string
-          school_type?: string
-          registration_number?: string
-          year_established?: number
-          term_structure?: string
-          owner_information?: string
-          owner_email?: string
-          owner_name?: string
-          owner_phone?: string
-          curriculum_type?: string
-        }
+        Args:
+          | {
+              school_name: string
+              school_email: string
+              school_phone: string
+              school_address: string
+              logo_url?: string
+              website_url?: string
+              motto?: string
+              slogan?: string
+              school_type?: string
+              registration_number?: string
+              year_established?: number
+              term_structure?: string
+              owner_information?: string
+              owner_email?: string
+              owner_name?: string
+              owner_phone?: string
+            }
+          | {
+              school_name: string
+              school_email: string
+              school_phone: string
+              school_address: string
+              logo_url?: string
+              website_url?: string
+              motto?: string
+              slogan?: string
+              school_type?: string
+              registration_number?: string
+              year_established?: number
+              term_structure?: string
+              owner_information?: string
+              owner_email?: string
+              owner_name?: string
+              owner_phone?: string
+              curriculum_type?: string
+            }
         Returns: Json
       }
       create_monthly_subscription_fees: {
