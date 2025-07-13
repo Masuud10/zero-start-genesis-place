@@ -65,8 +65,61 @@ const AppRouter: React.FC = () => {
   );
 };
 
-// Main App Logic Component
+// Main App Logic Component with Global Maintenance Check
 const AppLogic: React.FC = () => {
+  const { user, isLoading: userLoading, isInitialized } = useAuth();
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'maintenance_mode')
+        .maybeSingle();
+
+      if (error) {
+        console.error('🔧 APP: Error fetching maintenance status:', error);
+        return { maintenance_mode: false, allowed_roles: ['edufam_admin'] };
+      }
+
+      const maintenanceData = data?.setting_value as { enabled?: boolean; allowed_roles?: string[] } | null;
+      return {
+        maintenance_mode: maintenanceData?.enabled || false,
+        allowed_roles: maintenanceData?.allowed_roles || ['edufam_admin']
+      };
+    },
+    refetchInterval: 2000, // Check every 2 seconds for faster updates
+    enabled: !userLoading && isInitialized && !!user // Wait for auth to be fully loaded
+  });
+
+  // Determine the application's state
+  const isMaintenanceMode = settings?.maintenance_mode === true;
+  const isAllowedRole = settings?.allowed_roles?.includes(user?.role || '') || false;
+  const isLoading = settingsLoading || userLoading || !isInitialized;
+
+  console.log('🔧 APP GLOBAL CHECK:', {
+    isMaintenanceMode,
+    userRole: user?.role,
+    isAllowedRole,
+    allowedRoles: settings?.allowed_roles,
+    isLoading,
+    shouldShowMaintenance: isMaintenanceMode && !isAllowedRole
+  });
+
+  // Render based on the state. This is the core logic.
+  if (isLoading) {
+    // Show a loading spinner while we check the status
+    return <LoadingSpinner />;
+  }
+
+  if (isMaintenanceMode && !isAllowedRole) {
+    // If maintenance mode is ON and the user is NOT in allowed roles,
+    // show ONLY the maintenance page.
+    return <MaintenancePage />;
+  }
+
+  // If maintenance mode is OFF, OR if the user IS in allowed roles,
+  // render the rest of the application.
   return (
     <>
       <AppRouter />

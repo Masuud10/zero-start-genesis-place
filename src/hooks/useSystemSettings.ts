@@ -111,6 +111,34 @@ export const useSecuritySettings = () => {
   });
 };
 
+// Hook to get system settings including maintenance mode
+export const useSystemSettings = () => {
+  return useQuery({
+    queryKey: ['system-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_key, setting_value')
+        .eq('setting_key', 'maintenance_mode')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching system settings:', error);
+        return { maintenance_mode: false };
+      }
+
+      const maintenanceData = data?.setting_value as { enabled?: boolean; message?: string; allowed_roles?: string[] } | null;
+      return {
+        maintenance_mode: maintenanceData?.enabled || false,
+        maintenance_message: maintenanceData?.message || 'System is currently under maintenance.',
+        allowed_roles: maintenanceData?.allowed_roles || ['edufam_admin']
+      };
+    },
+    refetchInterval: 2000, // Check every 2 seconds
+    staleTime: 1000, // Consider data stale after 1 second
+  });
+};
+
 export const useSystemMaintenance = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
