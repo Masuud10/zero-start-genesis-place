@@ -11,7 +11,7 @@ import AppContent from "@/components/AppContent";
 import ResetPasswordPage from "@/components/ResetPasswordPage";
 import UnauthorizedPage from "@/components/UnauthorizedPage";
 import CertificateVerification from "@/pages/CertificateVerification";
-import MaintenanceGate from "@/components/auth/MaintenanceGate";
+import MaintenanceModeTest from "@/components/debug/MaintenanceModeTest";
 import "./App.css";
 import "./utils/maintenanceDebugConsole";
 
@@ -44,30 +44,25 @@ const queryClient = new QueryClient({
 const AppRouter: React.FC = () => {
   return (
     <Routes>
-      <Route
-        path="/reset-password"
-        element={<ResetPasswordPage />}
-      />
-      <Route
-        path="/unauthorized"
-        element={<UnauthorizedPage />}
-      />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route
         path="/verify-certificate/:certificateId"
         element={<CertificateVerification />}
       />
+      <Route path="/debug/maintenance-test" element={<MaintenanceModeTest />} />
       <Route path="*" element={<AppContent />} />
     </Routes>
   );
 };
 
-// Main App Logic Component 
+// Main App Logic Component
 const AppLogic: React.FC = () => {
   return (
-    <MaintenanceGate>
+    <>
       <AppRouter />
       <Toaster />
-    </MaintenanceGate>
+    </>
   );
 };
 
