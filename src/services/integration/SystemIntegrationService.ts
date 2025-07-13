@@ -463,22 +463,24 @@ export class SystemIntegrationService {
     try {
       if (setLoading) setLoading(true);
       
-      const response = await supabase.from('fee_structures').select('*').eq('class_id', classId);
-      const { data, error } = response;
+      const { data, error } = await supabase
+        .from('fee_structures' as any)
+        .select('*')
+        .eq('class_id', classId);
 
       if (error) throw error;
 
-      const mappedFees = (data || []).map(fee => ({
+      const mappedFees = (data || []).map((fee: any) => ({
         id: fee.id,
-        name: fee.name,
+        name: fee.name || 'Fee Structure',
         class_id: classId,
-        academic_year: fee.academic_year,
+        academic_year: fee.academic_year || new Date().getFullYear().toString(),
         academic_year_id: null,
-        term: fee.term,
+        term: fee.term || 'Term 1',
         term_id: null,
-        amount: (fee as any).amount || 0,
-        due_date: (fee as any).due_date || new Date().toISOString().split('T')[0],
-        is_active: fee.is_active,
+        amount: fee.amount || 0,
+        due_date: fee.due_date || new Date().toISOString().split('T')[0],
+        is_active: fee.is_active || true,
         school_id: fee.school_id,
         created_at: fee.created_at,
         updated_at: fee.updated_at
