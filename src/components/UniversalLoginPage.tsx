@@ -4,10 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/services/authService";
+import loginBackground from "@/assets/login-background.jpg";
 
 function ForgotPasswordModal({
   isOpen,
@@ -193,43 +195,49 @@ function UniversalLoginForm() {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
-          <Alert className="border-red-200 bg-red-50 mb-8">
+          <Alert className="border-red-200 bg-red-50">
             <AlertDescription className="text-red-700">
               {error}
             </AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+            Email Address
+          </Label>
           <Input
+            id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="w-full px-4 py-4 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             required
             autoComplete="email"
             disabled={isLoading || isSubmitting}
           />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+            Password
+          </Label>
           <Input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full px-4 py-4 border-0 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             required
             autoComplete="current-password"
             disabled={isLoading || isSubmitting}
           />
         </div>
 
-        <div className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <Checkbox
               id="remember-me"
               checked={rememberMe}
@@ -243,28 +251,26 @@ function UniversalLoginForm() {
           <button
             type="button"
             onClick={() => setShowForgotPassword(true)}
-            className="text-sm text-[#0047AB] hover:text-[#003A8C] hover:underline transition-colors"
+            className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
           >
             Forgot password?
           </button>
         </div>
 
-        <div className="pt-4">
-          <Button
-            type="submit"
-            className="w-full bg-[#0047AB] hover:bg-[#003A8C] text-white py-4 rounded-lg font-medium transition-colors duration-200"
-            disabled={isLoading || isSubmitting}
-          >
-            {isLoading || isSubmitting ? (
-              <span className="flex items-center">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Signing in...
-              </span>
-            ) : (
-              "Sign In"
-            )}
-          </Button>
-        </div>
+        <Button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition-colors duration-200"
+          disabled={isLoading || isSubmitting}
+        >
+          {isLoading || isSubmitting ? (
+            <span className="flex items-center justify-center">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Signing in...
+            </span>
+          ) : (
+            "Sign In"
+          )}
+        </Button>
       </form>
 
       <ForgotPasswordModal
@@ -277,27 +283,58 @@ function UniversalLoginForm() {
 
 const UniversalLoginPage: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md mx-auto">
-        {/* Login Form Container */}
-        <div className="bg-white rounded-lg shadow-lg p-8 min-h-[600px] flex flex-col justify-center">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-gray-600">Sign in to Edufam</p>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-6xl shadow-2xl rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
+          {/* Left Column - Branding/Image */}
+          <div 
+            className="relative bg-cover bg-center bg-no-repeat flex flex-col justify-between p-8 text-white"
+            style={{ backgroundImage: `linear-gradient(rgba(0, 71, 171, 0.7), rgba(0, 58, 140, 0.7)), url(${loginBackground})` }}
+          >
+            {/* Logo at top */}
+            <div className="flex items-center">
+              <img 
+                src="/edufam-logo.svg" 
+                alt="Edufam Logo" 
+                className="h-12 w-auto"
+              />
+            </div>
+            
+            {/* Content at bottom */}
+            <div>
+              <h2 className="text-3xl font-bold mb-4">
+                Empowering Education in Kenya
+              </h2>
+              <p className="text-lg opacity-90">
+                Modern school management system designed for the future of education.
+              </p>
+            </div>
           </div>
 
-          {/* Login Form */}
-          <UniversalLoginForm />
-        </div>
+          {/* Right Column - Form */}
+          <div className="bg-white p-8 lg:p-12 flex flex-col justify-center">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Welcome to Edufam
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Sign in to your dashboard
+              </p>
+            </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">Powered by Edufam</p>
+            {/* Login Form */}
+            <div className="mb-8">
+              <UniversalLoginForm />
+            </div>
+
+            {/* Footer */}
+            <div className="text-center">
+              <p className="text-sm text-gray-400">Powered by Edufam</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };
