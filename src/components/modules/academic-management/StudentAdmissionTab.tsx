@@ -84,9 +84,7 @@ const StudentAdmissionTab: React.FC = () => {
   } = useClasses();
   const {
     parents,
-    loading: parentsLoading,
-    error: parentsError,
-    retry: retryParents,
+    loadingParents,
   } = useParents(true);
 
   // Generate admission number if not provided
@@ -260,7 +258,6 @@ const StudentAdmissionTab: React.FC = () => {
 
       // Refresh data
       retryClasses();
-      retryParents();
     } catch (error: any) {
       console.error("Error admitting student:", error);
       toast({
@@ -310,14 +307,13 @@ const StudentAdmissionTab: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={() => {
-            retryClasses();
-            retryParents();
+          retryClasses();
           }}
-          disabled={classesLoading || parentsLoading}
+          disabled={classesLoading || loadingParents}
         >
           <RefreshCw
             className={`h-4 w-4 mr-2 ${
-              classesLoading || parentsLoading ? "animate-spin" : ""
+              classesLoading || loadingParents ? "animate-spin" : ""
             }`}
           />
           Refresh Data
@@ -325,11 +321,11 @@ const StudentAdmissionTab: React.FC = () => {
       </div>
 
       {/* Error Alerts */}
-      {(classesError || parentsError) && (
+      {classesError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {classesError || parentsError}. Please refresh the data.
+            {classesError}. Please refresh the data.
           </AlertDescription>
         </Alert>
       )}

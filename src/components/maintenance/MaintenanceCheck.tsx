@@ -5,6 +5,12 @@ import { AlertTriangle, RefreshCw, Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MaintenancePage from "./MaintenancePage";
+
+interface MaintenancePageProps {
+  message: string;
+  estimatedDuration: string;
+  onRetry: () => Promise<void>;
+}
 import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
 import { MaintenanceModeService } from "@/services/system/maintenanceModeService";
 
@@ -171,13 +177,7 @@ const MaintenanceCheck: React.FC<MaintenanceCheckProps> = ({ children }) => {
       estimatedDuration,
     });
 
-    return (
-      <MaintenancePage
-        message={maintenanceMessage}
-        estimatedDuration={estimatedDuration}
-        onRetry={handleRetry}
-      />
-    );
+    return <MaintenancePage />;
   }
 
   // Log successful access for debugging

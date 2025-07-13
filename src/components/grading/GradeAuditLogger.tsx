@@ -51,15 +51,15 @@ interface DatabaseAuditLog {
   id: string;
   action: string;
   created_at: string;
-  old_values: GradeValues | null;
-  new_values: GradeValues | null;
-  metadata: AuditMetadata | null;
-  ip_address: string;
-  user_agent: string;
+  old_value: any;
+  new_value: any;
+  metadata: any;
+  ip_address: unknown;
+  user_agent: string | null;
   profiles?: {
     name: string;
     role: string;
-  };
+  } | null;
 }
 
 export const GradeAuditLogger: React.FC = () => {
@@ -85,11 +85,11 @@ export const GradeAuditLogger: React.FC = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("grade_audit_logs")
+        .from("audit_logs")
         .select(
           `
           *,
-          profiles(name, role)
+          profiles!audit_logs_performed_by_user_id_fkey(name, role)
         `
         )
         .eq("school_id", schoolId)
@@ -98,8 +98,15 @@ export const GradeAuditLogger: React.FC = () => {
 
       if (error) throw error;
 
-      const processedLogs = (data || []).map((log: DatabaseAuditLog) => ({
-        ...log,
+      const processedLogs = (data || []).map((log: any) => ({
+        id: log.id,
+        action: log.action,
+        created_at: log.created_at,
+        old_values: log.old_value as GradeValues | null,
+        new_values: log.new_value as GradeValues | null,
+        metadata: log.metadata as AuditMetadata | null,
+        ip_address: log.ip_address ? String(log.ip_address) : "",
+        user_agent: log.user_agent || "",
         user_name: log.profiles?.name || "Unknown User",
         user_role: log.profiles?.role || "unknown",
       })) as AuditLog[];
