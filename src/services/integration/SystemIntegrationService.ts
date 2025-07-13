@@ -406,7 +406,7 @@ export class SystemIntegrationService {
         level: cls.level || '',
         stream: cls.stream || '',
         capacity: cls.capacity || 40,
-        curriculum_type: (cls.curriculum_type || 'CBC') as 'CBC' | 'IGCSE' | 'Standard',
+        curriculum_type: 'CBC' as const,
         academic_year_id: null,
         is_active: true,
         school_id: cls.school_id
@@ -463,10 +463,8 @@ export class SystemIntegrationService {
     try {
       if (setLoading) setLoading(true);
       
-      const { data, error } = await supabase
-        .from('fee_structures')
-        .select('*')
-        .eq('class_id', classId);
+      const response = await supabase.from('fee_structures').select('*').eq('class_id', classId);
+      const { data, error } = response;
 
       if (error) throw error;
 

@@ -345,11 +345,10 @@ export const useAcademicPeriodIntegration = () => {
       termId: string;
     }) => {
       return await SystemIntegrationService.assignSubjectToClass(
-        subjectId,
         classId,
+        subjectId,
         teacherId,
-        academicYearId,
-        termId
+        { academicYearId, termId }
       );
     },
     onSuccess: (result) => {
@@ -448,11 +447,10 @@ export const useAcademicPeriodIntegration = () => {
       studentIds?: string[];
     }) => {
       return await SystemIntegrationService.promoteStudents(
+        studentIds.map(id => ({ student_id: id, new_class_id: nextClassId })),
         currentClassId,
         nextClassId,
-        academicYearId,
-        termId,
-        studentIds
+        academicYearId
       );
     },
     onSuccess: (result) => {
@@ -484,16 +482,13 @@ export const useAcademicPeriodIntegration = () => {
   // Get class analytics
   const getClassAnalytics = useCallback(async (classId: string, termId?: string) => {
     if (!classId) return null;
-    const result = await SystemIntegrationService.getClassAnalytics(
-      classId,
-      termId || currentPeriod?.term?.id || ''
-    );
+    const result = await SystemIntegrationService.getClassAnalytics(classId);
     return result.analytics;
   }, [currentPeriod?.term?.id]);
 
   // Validate relationships
   const validateRelationships = useCallback(async (operation: string, data: Record<string, unknown>) => {
-    return await SystemIntegrationService.validateRelationships(operation, data);
+    return await SystemIntegrationService.validateRelationships(data);
   }, []);
 
   // Check if current period is set
