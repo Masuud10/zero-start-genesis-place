@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SchoolProvider } from "@/contexts/SchoolContext";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
-import MaintenanceGuard from "@/components/guards/MaintenanceGuard";
+import MaintenanceGuard from "@/components/maintenance/MaintenanceGuard";
 import AppContent from "@/components/AppContent";
 import ResetPasswordPage from "@/components/ResetPasswordPage";
 import UnauthorizedPage from "@/components/UnauthorizedPage";
