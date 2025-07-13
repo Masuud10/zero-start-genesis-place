@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -50,8 +51,8 @@ interface Subject {
 }
 
 interface IGCSEGradeData {
-  student_id: string;
-  subject_id: string;
+  student_id?: string;
+  subject_id?: string;
   coursework_score?: number; // Coursework component
   exam_score?: number; // Examination component
   total_score?: number; // calculated total

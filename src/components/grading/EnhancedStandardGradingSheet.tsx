@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -53,8 +54,8 @@ interface Subject {
 }
 
 interface StandardGradeData {
-  student_id: string;
-  subject_id: string;
+  student_id?: string;
+  subject_id?: string;
   score?: number; // 0-100 scale
   letter_grade?: string; // A+, A, A-, B+, etc.
   percentage?: number; // calculated percentage

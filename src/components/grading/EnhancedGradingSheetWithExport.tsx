@@ -50,7 +50,7 @@ import {
 import {
   validateCurriculumType,
   getCurriculumInfo,
-} from "@/utils/curriculum-validator";
+} from "@/utils/curriculum-detector";
 import { CBCGradingSheet } from "./CBCGradingSheet";
 import { IGCSEGradingSheet } from "./IGCSEGradingSheet";
 import { EnhancedGradingSheet } from "./EnhancedGradingSheet";
@@ -212,12 +212,30 @@ export const EnhancedGradingSheetWithExport: React.FC<
 
       if (isPrincipalUser) {
         // Principals can see all subjects for the class
-        const { data: classSubjectsData, error: classSubjectsError } =
-          await supabase
-            .from("class_subjects")
-            .select("subjects(id, name, code)")
-            .eq("class_id", classId)
-            .eq("is_active", true);
+        const { data: classSubjectsData, error: classSubjectsError } = await (
+          supabase as unknown as {
+            from: (table: string) => {
+              select: (columns: string) => {
+                eq: (
+                  column: string,
+                  value: string
+                ) => {
+                  eq: (
+                    column: string,
+                    value: boolean
+                  ) => Promise<{
+                    data: { subjects: Subject }[] | null;
+                    error: unknown;
+                  }>;
+                };
+              };
+            };
+          }
+        )
+          .from("class_subjects")
+          .select("subjects(id, name, code)")
+          .eq("class_id", classId)
+          .eq("is_active", true);
 
         if (!classSubjectsError && classSubjectsData) {
           subjectsList =
@@ -270,10 +288,16 @@ export const EnhancedGradingSheetWithExport: React.FC<
             letter_grade: existingGrade?.letter_grade || null,
             cbc_performance_level: existingGrade?.cbc_performance_level || null,
             percentage: existingGrade?.percentage || null,
-            strand_scores: existingGrade?.strand_scores || {},
-            teacher_remarks: existingGrade?.teacher_remarks || "",
-            assessment_type: existingGrade?.assessment_type || examType,
-            performance_level: existingGrade?.performance_level || null,
+            strand_scores:
+              (existingGrade?.strand_scores as Record<string, string>) || {},
+            teacher_remarks: existingGrade?.comments || "",
+            assessment_type: examType,
+            performance_level:
+              (existingGrade?.cbc_performance_level as
+                | "EM"
+                | "AP"
+                | "PR"
+                | "EX") || null,
             status: existingGrade?.status || "draft",
             is_locked:
               existingGrade?.status === "released" ||
@@ -313,8 +337,6 @@ export const EnhancedGradingSheetWithExport: React.FC<
     curriculumType,
     user?.id,
     isPrincipalUser,
-    validateAccess,
-    logChange,
     toast,
   ]);
 
@@ -427,7 +449,6 @@ export const EnhancedGradingSheetWithExport: React.FC<
     hasUnsavedChanges,
     user?.id,
     curriculumType,
-    logChange,
     toast,
   ]);
 
@@ -523,7 +544,6 @@ export const EnhancedGradingSheetWithExport: React.FC<
     grades,
     user?.id,
     curriculumType,
-    logChange,
     toast,
     onSubmissionSuccess,
   ]);
