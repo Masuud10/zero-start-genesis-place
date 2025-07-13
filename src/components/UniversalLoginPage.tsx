@@ -294,7 +294,7 @@ const UniversalLoginPage: React.FC = () => {
             {/* Logo at top */}
             <div className="flex items-center">
               <img 
-                src="/edufam-logo.svg" 
+                src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png" 
                 alt="Edufam Logo" 
                 className="h-12 w-auto"
               />
