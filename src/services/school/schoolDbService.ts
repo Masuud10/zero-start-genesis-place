@@ -1,12 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { SchoolData } from '@/types/schoolTypes';
 
-export interface SchoolData {
-  id: string;
+export interface CreateSchoolData {
   name: string;
   email: string;
-  phone?: string;
-  address?: string;
+  phone: string;
+  address: string;
   logo_url?: string;
   website_url?: string;
   motto?: string;
@@ -16,8 +16,6 @@ export interface SchoolData {
   year_established?: number;
   term_structure?: string;
   owner_information?: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface CreateSchoolResponse {
@@ -30,7 +28,7 @@ export interface CreateSchoolResponse {
 /**
  * Creates a new school in the database
  */
-export async function createSchool(schoolData: SchoolData): Promise<CreateSchoolResponse> {
+export async function createSchool(schoolData: CreateSchoolData): Promise<CreateSchoolResponse> {
   try {
     const { data, error } = await supabase
       .from('schools')
@@ -63,7 +61,7 @@ export async function createSchool(schoolData: SchoolData): Promise<CreateSchool
 /**
  * Updates an existing school in the database
  */
-export async function updateSchool(schoolId: string, updates: Partial<SchoolData>): Promise<CreateSchoolResponse> {
+export async function updateSchool(schoolId: string, updates: Partial<CreateSchoolData>): Promise<CreateSchoolResponse> {
   try {
     const { data, error } = await supabase
       .from('schools')

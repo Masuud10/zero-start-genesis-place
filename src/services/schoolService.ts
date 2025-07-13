@@ -1,6 +1,6 @@
 import { CreateSchoolRequest, CreateSchoolResponse, SchoolData } from '@/types/schoolTypes';
 import { SchoolValidationService } from './school/schoolValidationService';
-import { createSchool, getAllSchools, getSchool, updateSchool } from './school/schoolDbService';
+import { createSchool, getAllSchools, getSchool, updateSchool, CreateSchoolData } from './school/schoolDbService';
 import { SchoolStorageService } from './school/schoolStorageService';
 
 interface ServiceResponse<T> {
@@ -22,8 +22,25 @@ export class SchoolService {
         };
       }
 
+      // Convert CreateSchoolRequest to CreateSchoolData for database insertion
+      const createSchoolData: CreateSchoolData = {
+        name: schoolData.name,
+        email: schoolData.email,
+        phone: schoolData.phone,
+        address: schoolData.address,
+        logo_url: schoolData.logo_url,
+        website_url: schoolData.website_url,
+        motto: schoolData.motto,
+        slogan: schoolData.slogan,
+        school_type: schoolData.school_type,
+        registration_number: schoolData.registration_number,
+        year_established: schoolData.year_established,
+        term_structure: schoolData.term_structure,
+        owner_information: schoolData.owner_information
+      };
+
       // Create school using the new function-based approach
-      const responseData = await createSchool(schoolData);
+      const responseData = await createSchool(createSchoolData);
       
       if (responseData.error) {
         console.error('🏫 SchoolService: Function returned error:', responseData.error);
