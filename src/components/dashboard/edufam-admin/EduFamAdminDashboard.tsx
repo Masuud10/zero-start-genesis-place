@@ -27,7 +27,7 @@ import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
 import BillingModule from "@/components/modules/BillingModule";
 import ReportsModule from "@/components/modules/ReportsModule";
 import SupportModule from "@/components/modules/SupportModule";
-import SystemSettings from "@/components/settings/SystemSettings";
+import EduFamSystemSettings from "@/components/modules/settings/EduFamSystemSettings";
 
 interface EduFamAdminDashboardProps {
   onModalOpen?: (modalType: string) => void;
@@ -93,7 +93,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
         {/* Main dashboard content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="schools">Schools</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
@@ -101,6 +101,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -242,6 +243,11 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
           {/* Support Tab */}
           <TabsContent value="support" className="space-y-6">
             <SupportModule />
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <EduFamSystemSettings />
           </TabsContent>
         </Tabs>
       </div>
