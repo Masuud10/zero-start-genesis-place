@@ -51,8 +51,10 @@ import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegrati
 interface EnhancedReportDisplayProps {
   reportData: EnhancedReportData;
   onExport?: (format: "pdf" | "excel") => void;
+  onRefresh?: () => void;
   showExportControls?: boolean;
   showPreview?: boolean;
+  showExportButtons?: boolean;
   userRole?: string;
 }
 
@@ -147,8 +149,8 @@ const EnhancedReportDisplay: React.FC<EnhancedReportDisplayProps> = ({
     try {
       const options: ExportOptions = {
         format,
-        includeTables: true,
-        branding: true,
+        includeCharts: true,
+        includeSummary: true,
       };
 
       if (format === "pdf") {

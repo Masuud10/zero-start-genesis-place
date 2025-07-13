@@ -92,7 +92,7 @@ const ReportGenerationTest: React.FC = () => {
     };
 
     // This should not throw an error
-    await EnhancedReportService.generatePDF(validData);
+    await EnhancedReportService.generatePDF(validData, { format: 'pdf' });
   };
 
   const testPDFGeneration = async () => {
@@ -200,7 +200,7 @@ const ReportGenerationTest: React.FC = () => {
       },
     };
 
-    await EnhancedReportService.generatePDF(testData);
+    await EnhancedReportService.generatePDF(testData, { format: 'pdf' });
   };
 
   const testExcelGeneration = async () => {
@@ -253,7 +253,7 @@ const ReportGenerationTest: React.FC = () => {
       },
     };
 
-    await EnhancedReportService.generateExcel(testData);
+    await EnhancedReportService.generateExcel(testData, { format: 'excel' });
   };
 
   const testExportService = async () => {

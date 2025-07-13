@@ -46,7 +46,11 @@ const SchoolRegistrationDetails = () => {
         .single();
       
       if (error) throw error;
-      return data as SchoolDetails;
+      return {
+        ...data,
+        principal_name: data.owner_information || '',
+        principal_contact: data.phone || ''
+      } as SchoolDetails;
     },
     enabled: !!schoolId,
   });

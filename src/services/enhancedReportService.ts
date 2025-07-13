@@ -37,6 +37,9 @@ export interface ReportFilters {
 
 export interface ReportSummary {
   totalRecords: number;
+  totalStudents?: number;
+  totalTeachers?: number;
+  averageGrade?: number;
   totalAmount?: number;
   averageScore?: number;
   attendanceRate?: number;
@@ -45,6 +48,7 @@ export interface ReportSummary {
 
 export interface ExportOptions {
   format: 'pdf' | 'excel';
+  includeTables?: boolean;
   includeLogo?: boolean;
   includeTimestamp?: boolean;
   includeFooter?: boolean;

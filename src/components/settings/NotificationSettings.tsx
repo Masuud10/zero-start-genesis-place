@@ -70,7 +70,7 @@ const NotificationSettings: React.FC = () => {
       title: announcement.title,
       content: announcement.message,
       type: "system",
-      priority: announcement.priority,
+      priority: "medium",
       target_audience: announcement.targetAudience,
     });
 

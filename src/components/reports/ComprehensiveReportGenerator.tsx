@@ -397,7 +397,7 @@ const ComprehensiveReportGenerator: React.FC<
                         Export {exportFormat.toUpperCase()}
                       </Button>
                       <Button
-                        onClick={refreshReport}
+                        onClick={() => refreshReport()}
                         disabled={isGenerating}
                         variant="outline"
                       >
@@ -410,7 +410,7 @@ const ComprehensiveReportGenerator: React.FC<
                 <CardContent>
                   <EnhancedReportDisplay
                     reportData={generatedReport}
-                    onRefresh={refreshReport}
+                    onRefresh={() => refreshReport()}
                     showExportButtons={false}
                   />
                 </CardContent>

@@ -167,43 +167,14 @@ const EnhancedExaminationManagement = () => {
     setCreateModalOpen(true);
   };
 
-  // Delete examination mutation
-  const deleteExaminationMutation = useMutation({
-    mutationFn: async (examinationId: string) => {
-      const { error } = await supabase
-        .from("examinations")
-        .delete()
-        .eq("id", examinationId)
-        .eq("school_id", schoolId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Examination deleted successfully",
-      });
-      refreshData();
-      setDeleteModalOpen(false);
-      setSelectedExamination(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete examination",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Handle edit examination
-  const handleEditExamination = (examination: typeof selectedExamination) => {
+  const handleEditExamination = (examination: any) => {
+    console.log("Editing examination:", examination);
     setSelectedExamination(examination);
     setEditModalOpen(true);
   };
 
-  // Handle view examination
-  const handleViewExamination = (examination: typeof selectedExamination) => {
+  const handleViewExamination = (examination: any) => {
+    console.log("Viewing examination:", examination);
     setSelectedExamination(examination);
     setViewModalOpen(true);
   };
@@ -491,7 +462,6 @@ const EnhancedExaminationManagement = () => {
           setCreateModalOpen(false);
           refreshData();
         }}
-        context={context}
       />
 
       {selectedExamination && (
@@ -507,8 +477,17 @@ const EnhancedExaminationManagement = () => {
               setSelectedExamination(null);
               refreshData();
             }}
-            examination={selectedExamination}
-            context={context}
+            examination={{
+              ...selectedExamination,
+              type: (selectedExamination.type || 'Written') as "Written" | "Practical" | "Mock" | "Final" | "Mid-Term" | "End-Term",
+              term: (selectedExamination.academic_terms?.term_name || 'Term 1') as "Term 1" | "Term 2" | "Term 3",
+              academic_year: selectedExamination.academic_years?.year_name || new Date().getFullYear().toString(),
+              classes: [],
+              school_id: context.school_id || '',
+              created_by: selectedExamination.profiles?.name || '',
+              updated_at: new Date().toISOString(),
+              created_at: new Date().toISOString()
+            }}
           />
 
           <ViewExaminationModal
@@ -517,7 +496,17 @@ const EnhancedExaminationManagement = () => {
               setViewModalOpen(false);
               setSelectedExamination(null);
             }}
-            examination={selectedExamination}
+            examination={{
+              ...selectedExamination,
+              type: (selectedExamination.type || 'Written') as "Written" | "Practical" | "Mock" | "Final" | "Mid-Term" | "End-Term",
+              term: (selectedExamination.academic_terms?.term_name || 'Term 1') as "Term 1" | "Term 2" | "Term 3",
+              academic_year: selectedExamination.academic_years?.year_name || new Date().getFullYear().toString(),
+              classes: [],
+              school_id: context.school_id || '',
+              created_by: selectedExamination.profiles?.name || '',
+              updated_at: new Date().toISOString(),
+              created_at: new Date().toISOString()
+            }}
           />
 
           <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
