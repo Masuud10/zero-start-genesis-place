@@ -57,7 +57,10 @@ export const useParentChildrenGrades = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchChildrenGrades = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -219,6 +222,7 @@ export const useParentChildrenGrades = () => {
           }
 
           setChildrenGrades(result);
+          setLoading(false); // FIXED: Set loading to false on success
           console.log('📚 Successfully loaded grades for', Object.keys(childrenGradesMap).length, 'children');
           return; // Success, exit retry loop
 
@@ -238,6 +242,7 @@ export const useParentChildrenGrades = () => {
         if (attempts >= maxAttempts) {
           const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while fetching grades';
           setError(errorMessage);
+          setLoading(false); // FIXED: Set loading to false on final failure
           break;
         }
         
@@ -245,6 +250,9 @@ export const useParentChildrenGrades = () => {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
       }
     }
+    
+    // FIXED: Ensure loading is set to false if we somehow exit the loop without setting it
+    setLoading(false);
   }, [user]);
 
   useEffect(() => {

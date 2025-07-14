@@ -177,6 +177,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
             }
 
             setStats(resultStats);
+            setLoading(false); // FIXED: Set loading to false on success
             console.log('📊 Parent dashboard stats compiled:', resultStats);
             return; // Success, exit retry loop
 
@@ -202,6 +203,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
               recentGrade: "-",
               recentSubject: "N/A",
             });
+            setLoading(false); // FIXED: Set loading to false on final failure
             break;
           }
           
@@ -209,6 +211,9 @@ export const useParentDashboardStats = (user: AuthUser) => {
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
         }
       }
+      
+      // FIXED: Ensure loading is set to false if we somehow exit the loop without setting it
+      setLoading(false);
     };
 
     fetchStats();
