@@ -25,7 +25,7 @@ export const useMessages = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadMessages = async () => {
+  const loadConversations = async () => {
     if (!user) {
       setLoading(false);
       setError("No user found");
@@ -36,7 +36,7 @@ export const useMessages = () => {
       setLoading(true);
       setError(null);
 
-      // Use the edge function to get conversations with correct schema
+      // Single API call to get conversations - avoid duplicate calls
       const { data: conversationsResponse, error: conversationsError } = await supabase.functions.invoke('get-conversations');
 
       if (conversationsError) {
@@ -47,19 +47,19 @@ export const useMessages = () => {
       
       // Transform to match the expected Conversation interface
       const transformedConversations: Conversation[] = conversationsData.map((conv: any) => ({
-        id: conv.other_participant.id, // Use participant ID as conversation identifier
+        id: conv.other_participant.id,
         name: conv.other_participant.name,
         role: conv.other_participant.role
       }));
 
       setConversations(transformedConversations);
       
-      // Get all messages for display (you can enhance this to get messages per conversation)
+      // Clear messages initially - they will be loaded per conversation
       setMessages([]);
       setError(null);
     } catch (err: unknown) {
-      console.error('Error loading messages:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load messages. Please try again.';
+      console.error('Error loading conversations:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations. Please try again.';
       setError(errorMessage);
       setMessages([]);
       setConversations([]);
@@ -69,7 +69,7 @@ export const useMessages = () => {
   };
 
   useEffect(() => {
-    loadMessages();
+    loadConversations();
   }, [user]);
 
   const sendMessage = async (receiverId: string, content: string) => {
@@ -117,7 +117,7 @@ export const useMessages = () => {
       setMessages(prev => [newMessage, ...prev]);
       
       // Reload conversations to get the updated list
-      await loadMessages();
+      await loadConversations();
       
       return { error: null };
     } catch (err: unknown) {
@@ -140,6 +140,6 @@ export const useMessages = () => {
     error,
     sendMessage,
     markAsRead,
-    retry: loadMessages,
+    retry: loadConversations,
   };
 };

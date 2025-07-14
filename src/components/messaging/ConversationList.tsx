@@ -40,6 +40,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     if (!user) return;
 
     try {
+      // Reduced API calls - only fetch when necessary
       const { data, error } = await supabase.functions.invoke('get-conversations');
       
       if (error) {
@@ -66,24 +67,26 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   };
 
   useEffect(() => {
+    // Only fetch once on mount to prevent duplicate API calls
     fetchConversations();
   }, [user]);
 
-  // Subscribe to realtime updates for conversations
+  // Reduced realtime subscriptions to prevent excessive API calls
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel('conversations_changes')
+      .channel('conversations_minimal')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'conversations'
         },
         () => {
-          console.log('Conversation updated, refetching...');
+          // Only refetch on new conversations, not on every change
+          console.log('New conversation created, refetching...');
           fetchConversations();
         }
       )

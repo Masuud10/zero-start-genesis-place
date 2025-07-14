@@ -32,6 +32,16 @@
     --chart-4: 205 100% 40%;
     --chart-5: 200 100% 35%;
     --radius: 0.75rem;
+    
+    /* WhatsApp-inspired messaging colors */
+    --message-bg: 181 65% 96%;
+    --message-own-bg: 175 82% 91%;
+    --message-text: 180 8% 25%;
+    --message-own-text: 175 20% 20%;
+    --message-border: 181 25% 88%;
+    --chat-bg: 180 5% 98%;
+    --chat-header-bg: 175 55% 50%;
+    --online-indicator: 142 76% 36%;
   }
 
   .dark {
