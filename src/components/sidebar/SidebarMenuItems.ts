@@ -67,7 +67,6 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'support', label: 'Support Center', icon: Headphones, roles: ['edufam_admin'] },
       { id: 'security', label: 'Security', icon: Shield, roles: ['edufam_admin'] },
       { id: 'settings', label: 'System Settings', icon: Settings, roles: ['edufam_admin'] },
-      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['edufam_admin'] },
     ];
   }
 
