@@ -74,6 +74,7 @@ export const useFeeData = () => {
         }
 
         console.log('✅ Fees data fetched:', data?.length || 0, 'records');
+        console.log('🔍 Sample fee record:', data?.[0]);
 
         if (!data || data.length === 0) {
           setFees([]);

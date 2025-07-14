@@ -182,6 +182,12 @@ export const useStudentFees = (studentId?: string) => {
     fetchStudentFees();
   }, [user?.school_id, studentId]);
 
+  // Add a refetch function that can be called externally
+  const refetch = () => {
+    console.log('🔄 Manual refetch triggered for student fees');
+    fetchStudentFees();
+  };
+
   return {
     studentFees,
     loading,

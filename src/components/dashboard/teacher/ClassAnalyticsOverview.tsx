@@ -81,226 +81,280 @@ const ClassAnalyticsOverview: React.FC = () => {
 
       console.log("Fetching class analytics for teacher:", user.id);
 
-      // Get teacher's assigned classes with proper filtering
-      const { data: teacherAssignments, error: assignmentsError } =
-        await supabase
-          .from("subject_teacher_assignments")
-          .select(
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (attempts < maxAttempts) {
+        try {
+          // Get teacher's assigned classes with proper filtering
+          const { data: teacherAssignments, error: assignmentsError } =
+            await supabase
+              .from("subject_teacher_assignments")
+              .select(
+                `
+              class_id,
+              classes!inner(id, name, level, stream)
             `
-          class_id,
-          classes!inner(id, name, level, stream)
-        `
-          )
-          .eq("teacher_id", user.id)
-          .eq("school_id", schoolId)
-          .eq("is_active", true)
-          .not("class_id", "is", null);
-
-      if (assignmentsError) {
-        console.error("Error fetching teacher assignments:", assignmentsError);
-        throw assignmentsError;
-      }
-
-      const uniqueClasses =
-        teacherAssignments
-          ?.filter((ta) => ta.classes)
-          .map((ta) => ta.classes)
-          .filter(
-            (cls, index, self) =>
-              index === self.findIndex((c) => c.id === cls.id)
-          ) || [];
-
-      const classIds = uniqueClasses.map((c) => c.id);
-
-      if (classIds.length === 0) {
-        return {
-          classPerformance: [],
-          attendanceTrend: [],
-          gradeDistribution: [],
-          gradingStatus: [],
-          termPerformance: [],
-        };
-      }
-
-      // Get class performance data
-      const classPerformance = [];
-      for (const classItem of uniqueClasses) {
-        // Get average grades for this class (only approved grades)
-        const { data: grades } = await supabase
-          .from("grades")
-          .select("percentage, score, max_score")
-          .eq("class_id", classItem.id)
-          .eq("school_id", schoolId)
-          .in("status", ["approved", "released"])
-          .not("percentage", "is", null);
-
-        // Get student count
-        const { count: studentCount } = await supabase
-          .from("students")
-          .select("*", { count: "exact", head: true })
-          .eq("class_id", classItem.id)
-          .eq("school_id", schoolId)
-          .eq("is_active", true);
-
-        // Get attendance rate for last 30 days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const { data: attendance } = await supabase
-          .from("attendance")
-          .select("status")
-          .eq("class_id", classItem.id)
-          .eq("school_id", schoolId)
-          .gte("date", thirtyDaysAgo.toISOString().split("T")[0]);
-
-        const attendanceRate =
-          attendance && attendance.length > 0
-            ? Math.round(
-                (attendance.filter((a) => a.status === "present").length /
-                  attendance.length) *
-                  100
               )
-            : 0;
+              .eq("teacher_id", user.id)
+              .eq("school_id", schoolId)
+              .eq("is_active", true)
+              .not("class_id", "is", null);
 
-        const averageGrade =
-          grades && grades.length > 0
-            ? Math.round(
-                grades.reduce((sum, g) => sum + (g.percentage || 0), 0) /
-                  grades.length
-              )
-            : 0;
+          if (assignmentsError) {
+            console.error(
+              "Error fetching teacher assignments:",
+              assignmentsError
+            );
+            throw assignmentsError;
+          }
 
-        classPerformance.push({
-          className: classItem.name || "Unknown Class",
-          averageGrade,
-          studentCount: studentCount || 0,
-          attendanceRate,
-        });
-      }
+          const uniqueClasses =
+            teacherAssignments
+              ?.filter((ta) => ta.classes)
+              .map((ta) => ta.classes)
+              .filter(
+                (cls, index, self) =>
+                  index === self.findIndex((c) => c.id === cls.id)
+              ) || [];
 
-      // Get attendance trend for last 7 days
-      const attendanceTrend = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split("T")[0];
+          const classIds = uniqueClasses.map((c) => c.id);
 
-        const { data: dayAttendance } = await supabase
-          .from("attendance")
-          .select("status")
-          .in("class_id", classIds)
-          .eq("date", dateStr)
-          .eq("school_id", schoolId);
+          if (classIds.length === 0) {
+            console.log("No classes assigned to teacher");
+            return {
+              classPerformance: [],
+              attendanceTrend: [],
+              gradeDistribution: [],
+              gradingStatus: [],
+              termPerformance: [],
+            };
+          }
 
-        const rate =
-          dayAttendance && dayAttendance.length > 0
-            ? Math.round(
-                (dayAttendance.filter((a) => a.status === "present").length /
-                  dayAttendance.length) *
-                  100
-              )
-            : 0;
+          // Get class performance data
+          const classPerformance = [];
+          for (const classItem of uniqueClasses) {
+            // Get average grades for this class (only approved grades)
+            const { data: grades } = await supabase
+              .from("grades")
+              .select("percentage, score, max_score")
+              .eq("class_id", classItem.id)
+              .eq("school_id", schoolId)
+              .in("status", ["approved", "released"])
+              .not("percentage", "is", null);
 
-        attendanceTrend.push({
-          date: date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          }),
-          rate,
-        });
-      }
+            // Get student count
+            const { count: studentCount } = await supabase
+              .from("students")
+              .select("*", { count: "exact", head: true })
+              .eq("class_id", classItem.id)
+              .eq("school_id", schoolId)
+              .eq("is_active", true);
 
-      // Get grade distribution (only for approved/released grades)
-      const { data: allGrades } = await supabase
-        .from("grades")
-        .select("letter_grade, cbc_performance_level, curriculum_type")
-        .in("class_id", classIds)
-        .eq("school_id", schoolId)
-        .in("status", ["approved", "released"])
-        .or("letter_grade.not.is.null,cbc_performance_level.not.is.null");
+            // Get attendance rate for last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const gradeCounts: { [key: string]: number } = {};
-      allGrades?.forEach((g) => {
-        const grade =
-          g.curriculum_type === "cbc"
-            ? g.cbc_performance_level
-            : g.letter_grade;
-        if (grade) {
-          gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+            const { data: attendance } = await supabase
+              .from("attendance")
+              .select("status")
+              .eq("class_id", classItem.id)
+              .eq("school_id", schoolId)
+              .gte("date", thirtyDaysAgo.toISOString().split("T")[0])
+              .limit(1000);
+
+            // Add warning if attendance data might be truncated
+            if (attendance && attendance.length === 1000) {
+              console.warn(
+                `⚠️ Attendance data for class ${classItem.name} may be truncated (1000 records fetched)`
+              );
+            }
+
+            const attendanceRate =
+              attendance && attendance.length > 0
+                ? Math.round(
+                    (attendance.filter((a) => a.status === "present").length /
+                      attendance.length) *
+                      100
+                  )
+                : 0;
+
+            const averageGrade =
+              grades && grades.length > 0
+                ? Math.round(
+                    grades.reduce((sum, g) => sum + (g.percentage || 0), 0) /
+                      grades.length
+                  )
+                : 0;
+
+            classPerformance.push({
+              className: classItem.name || "Unknown Class",
+              averageGrade,
+              studentCount: studentCount || 0,
+              attendanceRate,
+            });
+          }
+
+          // Get attendance trend for last 7 days
+          const attendanceTrend = [];
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split("T")[0];
+
+            const { data: dayAttendance } = await supabase
+              .from("attendance")
+              .select("status")
+              .in("class_id", classIds)
+              .eq("date", dateStr)
+              .eq("school_id", schoolId);
+
+            const rate =
+              dayAttendance && dayAttendance.length > 0
+                ? Math.round(
+                    (dayAttendance.filter((a) => a.status === "present")
+                      .length /
+                      dayAttendance.length) *
+                      100
+                  )
+                : 0;
+
+            attendanceTrend.push({
+              date: date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              }),
+              rate,
+            });
+          }
+
+          // Get grade distribution (only for approved/released grades)
+          const { data: allGrades } = await supabase
+            .from("grades")
+            .select("letter_grade, cbc_performance_level, curriculum_type")
+            .in("class_id", classIds)
+            .eq("school_id", schoolId)
+            .in("status", ["approved", "released"])
+            .or("letter_grade.not.is.null,cbc_performance_level.not.is.null");
+
+          const gradeCounts: { [key: string]: number } = {};
+          allGrades?.forEach((g) => {
+            const grade =
+              g.curriculum_type === "cbc"
+                ? g.cbc_performance_level
+                : g.letter_grade;
+            if (grade) {
+              gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+            }
+          });
+
+          const totalGrades = Object.values(gradeCounts).reduce(
+            (sum, count) => sum + count,
+            0
+          );
+          const gradeDistribution = Object.entries(gradeCounts).map(
+            ([grade, count]) => ({
+              grade,
+              count,
+              percentage:
+                totalGrades > 0 ? Math.round((count / totalGrades) * 100) : 0,
+            })
+          );
+
+          // Get grading status data
+          const gradingStatus = [];
+          for (const classItem of uniqueClasses) {
+            // Get total students in class
+            const { count: totalStudents } = await supabase
+              .from("students")
+              .select("*", { count: "exact", head: true })
+              .eq("class_id", classItem.id)
+              .eq("school_id", schoolId)
+              .eq("is_active", true);
+
+            // Get submitted grades for this class
+            const { count: submittedGrades } = await supabase
+              .from("grades")
+              .select("*", { count: "exact", head: true })
+              .eq("class_id", classItem.id)
+              .eq("school_id", schoolId)
+              .eq("submitted_by", user.id)
+              .in("status", ["submitted", "approved", "released"]);
+
+            const total = totalStudents || 0;
+            const submitted = submittedGrades || 0;
+
+            let status: "complete" | "pending" | "not-started";
+            if (submitted === 0) {
+              status = "not-started";
+            } else if (submitted === total) {
+              status = "complete";
+            } else {
+              status = "pending";
+            }
+
+            gradingStatus.push({
+              exam: `${classItem.name} - All Subjects`,
+              submitted,
+              total,
+              status,
+            });
+          }
+
+          // Get term performance data (mock data for now, would be enhanced with actual term data)
+          const termPerformance = [
+            { term: "Term 1", average: 75, improvement: 5 },
+            { term: "Term 2", average: 78, improvement: 3 },
+            { term: "Term 3", average: 82, improvement: 4 },
+          ];
+
+          const result = {
+            classPerformance,
+            attendanceTrend,
+            gradeDistribution,
+            gradingStatus,
+            termPerformance,
+          };
+
+          // Add warning if all analytics data is empty
+          if (
+            classPerformance.length === 0 &&
+            gradeDistribution.length === 0 &&
+            gradingStatus.length === 0
+          ) {
+            console.warn(
+              "⚠️ All analytics data is empty - possible data or assignment issue"
+            );
+          }
+
+          return result;
+        } catch (error) {
+          attempts++;
+          console.error(
+            `Error in ClassAnalyticsOverview (attempt ${attempts}/${maxAttempts}):`,
+            error
+          );
+
+          // If this is the last attempt, throw the error
+          if (attempts >= maxAttempts) {
+            throw error;
+          }
+
+          // Wait before retrying (exponential backoff)
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, attempts) * 1000)
+          );
         }
-      });
-
-      const totalGrades = Object.values(gradeCounts).reduce(
-        (sum, count) => sum + count,
-        0
-      );
-      const gradeDistribution = Object.entries(gradeCounts).map(
-        ([grade, count]) => ({
-          grade,
-          count,
-          percentage:
-            totalGrades > 0 ? Math.round((count / totalGrades) * 100) : 0,
-        })
-      );
-
-      // Get grading status data
-      const gradingStatus = [];
-      for (const classItem of uniqueClasses) {
-        // Get total students in class
-        const { count: totalStudents } = await supabase
-          .from("students")
-          .select("*", { count: "exact", head: true })
-          .eq("class_id", classItem.id)
-          .eq("school_id", schoolId)
-          .eq("is_active", true);
-
-        // Get submitted grades for this class
-        const { count: submittedGrades } = await supabase
-          .from("grades")
-          .select("*", { count: "exact", head: true })
-          .eq("class_id", classItem.id)
-          .eq("school_id", schoolId)
-          .eq("submitted_by", user.id)
-          .in("status", ["submitted", "approved", "released"]);
-
-        const total = totalStudents || 0;
-        const submitted = submittedGrades || 0;
-
-        let status: "complete" | "pending" | "not-started";
-        if (submitted === 0) {
-          status = "not-started";
-        } else if (submitted === total) {
-          status = "complete";
-        } else {
-          status = "pending";
-        }
-
-        gradingStatus.push({
-          exam: `${classItem.name} - All Subjects`,
-          submitted,
-          total,
-          status,
-        });
       }
 
-      // Get term performance data (mock data for now, would be enhanced with actual term data)
-      const termPerformance = [
-        { term: "Term 1", average: 75, improvement: 5 },
-        { term: "Term 2", average: 78, improvement: 3 },
-        { term: "Term 3", average: 82, improvement: 4 },
-      ];
-
-      return {
-        classPerformance,
-        attendanceTrend,
-        gradeDistribution,
-        gradingStatus,
-        termPerformance,
-      };
+      // This should never be reached, but TypeScript requires it
+      throw new Error(
+        "Failed to fetch class analytics after all retry attempts"
+      );
     },
     enabled: !!user?.id && !!schoolId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    retry: 1, // Let our custom retry logic handle it
   });
 
   const chartConfig = {

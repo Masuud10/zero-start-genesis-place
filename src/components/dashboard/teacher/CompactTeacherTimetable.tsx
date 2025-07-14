@@ -54,46 +54,81 @@ const CompactTeacherTimetable: React.FC = () => {
 
       console.log("Fetching teacher timetable for:", user.id);
 
-      const { data, error: timetableError } = await supabase
-        .from("timetables")
-        .select(
-          `
-          id,
-          day_of_week,
-          start_time,
-          end_time,
-          room,
-          subjects!inner(name, code),
-          classes!inner(name)
-        `
-        )
-        .eq("teacher_id", user.id)
-        .eq("school_id", schoolId)
-        .eq("is_published", true)
-        .not("day_of_week", "is", null)
-        .not("start_time", "is", null)
-        .order("day_of_week")
-        .order("start_time");
+      let attempts = 0;
+      const maxAttempts = 3;
 
-      if (timetableError) {
-        console.error("Error fetching timetable:", timetableError);
-        throw timetableError;
+      while (attempts < maxAttempts) {
+        try {
+          const { data, error: timetableError } = await supabase
+            .from("timetables")
+            .select(
+              `
+              id,
+              day_of_week,
+              start_time,
+              end_time,
+              room,
+              subjects!inner(name, code),
+              classes!inner(name)
+            `
+            )
+            .eq("teacher_id", user.id)
+            .eq("school_id", schoolId)
+            .eq("is_published", true)
+            .not("day_of_week", "is", null)
+            .not("start_time", "is", null)
+            .order("day_of_week")
+            .order("start_time");
+
+          if (timetableError) {
+            console.error("Error fetching timetable:", timetableError);
+            throw timetableError;
+          }
+
+          const result =
+            data?.map((entry) => ({
+              id: entry.id,
+              day_of_week: entry.day_of_week,
+              start_time: entry.start_time,
+              end_time: entry.end_time,
+              room: entry.room,
+              subject: entry.subjects,
+              class: entry.classes,
+            })) || [];
+
+          // Add warning if no timetable entries found
+          if (result.length === 0) {
+            console.warn("⚠️ No timetable entries found for teacher");
+          }
+
+          return result;
+        } catch (error) {
+          attempts++;
+          console.error(
+            `Error in CompactTeacherTimetable (attempt ${attempts}/${maxAttempts}):`,
+            error
+          );
+
+          // If this is the last attempt, throw the error
+          if (attempts >= maxAttempts) {
+            throw error;
+          }
+
+          // Wait before retrying (exponential backoff)
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, attempts) * 1000)
+          );
+        }
       }
 
-      return (
-        data?.map((entry) => ({
-          id: entry.id,
-          day_of_week: entry.day_of_week,
-          start_time: entry.start_time,
-          end_time: entry.end_time,
-          room: entry.room,
-          subject: entry.subjects,
-          class: entry.classes,
-        })) || []
+      // This should never be reached, but TypeScript requires it
+      throw new Error(
+        "Failed to fetch teacher timetable after all retry attempts"
       );
     },
     enabled: !!user?.id && !!schoolId,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 1, // Let our custom retry logic handle it
   });
 
   const formatTime = (timeString: string) => {

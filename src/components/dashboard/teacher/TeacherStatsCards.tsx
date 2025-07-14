@@ -165,8 +165,11 @@ const TeacherStatsCards: React.FC<TeacherStatsCardsProps> = ({
           {stats.classes.length > 0 && (
             <div className="mt-1">
               <p className="text-xs text-green-600">
-                Avg: {Math.round(stats.studentCount / stats.classCount)} per
-                class
+                Avg:{" "}
+                {stats.classCount > 0
+                  ? Math.round(stats.studentCount / stats.classCount)
+                  : 0}{" "}
+                per class
               </p>
             </div>
           )}

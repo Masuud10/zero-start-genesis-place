@@ -67,59 +67,103 @@ const MyClasses: React.FC = () => {
 
       console.log("Fetching teacher assignments for:", user.id);
 
-      // Get teacher's subject assignments with class and subject details
-      const { data: assignmentData, error: assignmentError } = await supabase
-        .from("subject_teacher_assignments")
-        .select(
-          `
-          class_id,
-          subject_id,
-          classes!inner(id, name, level, stream),
-          subjects!inner(id, name, code)
-        `
-        )
-        .eq("teacher_id", user.id)
-        .eq("school_id", schoolId)
-        .eq("is_active", true)
-        .not("class_id", "is", null)
-        .not("subject_id", "is", null);
+      let attempts = 0;
+      const maxAttempts = 3;
 
-      if (assignmentError) {
-        console.error("Error fetching assignments:", assignmentError);
-        throw assignmentError;
+      while (attempts < maxAttempts) {
+        try {
+          // Get teacher's subject assignments with class and subject details
+          const { data: assignmentData, error: assignmentError } =
+            await supabase
+              .from("subject_teacher_assignments")
+              .select(
+                `
+              class_id,
+              subject_id,
+              classes!inner(id, name, level, stream),
+              subjects!inner(id, name, code)
+            `
+              )
+              .eq("teacher_id", user.id)
+              .eq("school_id", schoolId)
+              .eq("is_active", true)
+              .not("class_id", "is", null)
+              .not("subject_id", "is", null);
+
+          if (assignmentError) {
+            console.error("Error fetching assignments:", assignmentError);
+            throw assignmentError;
+          }
+
+          if (!assignmentData || assignmentData.length === 0) {
+            console.log("No assignments found for teacher");
+            return [];
+          }
+
+          // Get student counts for each class
+          const classIds = [
+            ...new Set(assignmentData?.map((a) => a.class_id) || []),
+          ];
+          const studentCounts: { [key: string]: number } = {};
+
+          for (const classId of classIds) {
+            const { count } = await supabase
+              .from("students")
+              .select("*", { count: "exact", head: true })
+              .eq("class_id", classId)
+              .eq("school_id", schoolId)
+              .eq("is_active", true);
+
+            studentCounts[classId] = count || 0;
+          }
+
+          // Transform the data
+          const assignments: ClassAssignment[] =
+            assignmentData?.map((assignment) => ({
+              class_id: assignment.class_id,
+              subject_id: assignment.subject_id,
+              class: assignment.classes,
+              subject: assignment.subjects,
+              student_count: studentCounts[assignment.class_id] || 0,
+            })) || [];
+
+          // Add warning if no students found in any class
+          const totalStudents = Object.values(studentCounts).reduce(
+            (sum, count) => sum + count,
+            0
+          );
+          if (totalStudents === 0 && classIds.length > 0) {
+            console.warn("⚠️ No students found in teacher's assigned classes");
+          }
+
+          return assignments;
+        } catch (error) {
+          attempts++;
+          console.error(
+            `Error in MyClasses (attempt ${attempts}/${maxAttempts}):`,
+            error
+          );
+
+          // If this is the last attempt, throw the error
+          if (attempts >= maxAttempts) {
+            throw error;
+          }
+
+          // Wait before retrying (exponential backoff)
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, attempts) * 1000)
+          );
+        }
       }
 
-      // Get student counts for each class
-      const classIds = [
-        ...new Set(assignmentData?.map((a) => a.class_id) || []),
-      ];
-      const studentCounts: { [key: string]: number } = {};
-
-      for (const classId of classIds) {
-        const { count } = await supabase
-          .from("students")
-          .select("*", { count: "exact", head: true })
-          .eq("class_id", classId)
-          .eq("school_id", schoolId)
-          .eq("is_active", true);
-
-        studentCounts[classId] = count || 0;
-      }
-
-      // Transform the data
-      const assignments: ClassAssignment[] =
-        assignmentData?.map((assignment) => ({
-          class_id: assignment.class_id,
-          subject_id: assignment.subject_id,
-          class: assignment.classes,
-          subject: assignment.subjects,
-          student_count: studentCounts[assignment.class_id] || 0,
-        })) || [];
-
-      return assignments;
+      // This should never be reached, but TypeScript requires it
+      throw new Error(
+        "Failed to fetch teacher assignments after all retry attempts"
+      );
     },
     enabled: !!user?.id && !!schoolId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Let our custom retry logic handle it
   });
 
   // Group assignments by class

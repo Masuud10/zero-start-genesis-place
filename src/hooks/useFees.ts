@@ -251,41 +251,63 @@ export const useFees = () => {
         throw new Error('School ID is required');
       }
 
-      // Create a single fee record for the class
-      const { data: createdFee, error: feeError } = await supabase
+      // Get all students in the class
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('class_id', feeData.class_id)
+        .eq('school_id', schoolId)
+        .eq('is_active', true);
+
+      if (studentsError) {
+        console.error('Error fetching students:', studentsError);
+        throw studentsError;
+      }
+
+      if (!students || students.length === 0) {
+        throw new Error('No active students found in the selected class');
+      }
+
+      console.log(`Found ${students.length} students in class`);
+
+      // Create individual fee records for each student
+      const feeRecords = students.map(student => ({
+        school_id: schoolId,
+        student_id: student.id,
+        class_id: feeData.class_id,
+        amount: feeData.amount,
+        term: feeData.term,
+        category: feeData.category || 'General',
+        due_date: feeData.due_date,
+        academic_year: feeData.academic_year || new Date().getFullYear().toString(),
+        status: 'pending',
+        paid_amount: 0,
+        discount_amount: 0,
+        late_fee_amount: 0,
+        installment_number: 1,
+      }));
+
+      console.log('Creating fee records for students:', feeRecords.length);
+
+      const { data: createdFees, error: feeError } = await supabase
         .from('fees')
-        .insert({
-          school_id: schoolId,
-          class_id: feeData.class_id,
-          amount: feeData.amount,
-          term: feeData.term,
-          category: feeData.category || 'General',
-          due_date: feeData.due_date,
-          academic_year: feeData.academic_year || new Date().getFullYear().toString(),
-          status: 'pending',
-          paid_amount: 0,
-          discount_amount: 0,
-          late_fee_amount: 0,
-          installment_number: 1,
-        })
-        .select()
-        .single();
+        .insert(feeRecords)
+        .select();
 
       if (feeError) {
-        console.error('Error creating class fee:', feeError);
+        console.error('Error creating student fees:', feeError);
         throw feeError;
       }
 
-      console.log('Successfully created class fee:', createdFee);
+      console.log('Successfully created fees for students:', createdFees?.length || 0);
 
-      // The database trigger will automatically assign this fee to all students in the class
       toast({
         title: "Class Fee Assigned Successfully",
-        description: `Fee assigned to all students in the selected class.`,
+        description: `Fee assigned to ${students.length} students in the selected class.`,
       });
 
       fetchFees();
-      return { data: createdFee, error: null };
+      return { data: createdFees, error: null };
     } catch (err: any) {
       console.error('Class fee assignment error:', err);
       const message = err?.message || 'Failed to assign fee to class';

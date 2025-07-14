@@ -36,28 +36,65 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const handleModalClose = (modalType: string) => {
     console.log("TeacherDashboard: Closing modal:", modalType);
 
-    switch (modalType) {
-      case "bulkGrading":
-        setBulkGradingOpen(false);
-        break;
-      case "attendance":
-        setAttendanceModalOpen(false);
-        break;
-      case "grades":
-        setGradesModalOpen(false);
-        break;
+    try {
+      switch (modalType) {
+        case "bulkGrading":
+          setBulkGradingOpen(false);
+          break;
+        case "attendance":
+          setAttendanceModalOpen(false);
+          break;
+        case "grades":
+          setGradesModalOpen(false);
+          break;
+        default:
+          console.warn("Unknown modal type:", modalType);
+      }
+    } catch (error) {
+      console.error("Error closing modal:", modalType, error);
+      toast({
+        title: "Error",
+        description: "Failed to close modal. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleModalSuccess = (modalType: string, message?: string) => {
-    handleModalClose(modalType);
-    if (message) {
+    try {
+      handleModalClose(modalType);
+      if (message) {
+        toast({
+          title: "Success",
+          description: message,
+        });
+      }
+    } catch (error) {
+      console.error("Error handling modal success:", modalType, error);
       toast({
-        title: "Success",
-        description: message,
+        title: "Error",
+        description: "Failed to process modal success. Please try again.",
+        variant: "destructive",
       });
     }
   };
+
+  // Validate user role and school assignment
+  if (!user || user.role !== "teacher") {
+    console.error("TeacherDashboard: Invalid user role", user?.role);
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="bg-card p-8 rounded-lg border shadow-sm max-w-md w-full">
+          <div className="text-center text-red-600">
+            <p>Access Denied</p>
+            <p className="text-sm mt-1">
+              This dashboard is only available for teachers.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Prevent render before role/school_id are ready
   if (!isReady) {

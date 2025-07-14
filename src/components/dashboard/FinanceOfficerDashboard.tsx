@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Users,
   CreditCard,
+  AlertTriangle,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -29,15 +30,31 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
   );
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { setActiveSection } = useNavigation();
-  const { metrics, isLoading, error, loadingTimeout, refetch } =
-    useOptimizedFinanceMetrics();
+  const {
+    metrics,
+    isLoading,
+    error,
+    loadingTimeout,
+    dataTruncated,
+    retryCount,
+    refetch,
+  } = useOptimizedFinanceMetrics();
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     console.log("Refreshing finance dashboard...");
+    setIsRefreshing(true);
     setRefreshKey((prev) => prev + 1);
-    if (refetch) {
-      refetch();
+
+    try {
+      if (refetch) {
+        await refetch();
+      }
+    } catch (refreshError) {
+      console.error("Error during refresh:", refreshError);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -48,6 +65,11 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-muted-foreground">Loading financial overview...</p>
+          {retryCount > 0 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Retry attempt {retryCount}/2
+            </p>
+          )}
         </div>
       </div>
     );
@@ -76,12 +98,26 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
                 </small>
               </>
             )}
+            {retryCount > 0 && (
+              <>
+                <br />
+                <small className="text-xs mt-2 block">
+                  Retry attempts: {retryCount}/2
+                </small>
+              </>
+            )}
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry Loading
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+            {isRefreshing ? "Refreshing..." : "Retry Loading"}
           </Button>
         </div>
       </div>
@@ -99,10 +135,29 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
     defaultersCount: 0,
   };
 
+  // Validate metrics for display
+  const hasValidData =
+    safeMetrics.totalRevenue > 0 || safeMetrics.totalStudents > 0;
+  const hasZeroMetrics =
+    safeMetrics.totalRevenue === 0 && safeMetrics.totalStudents === 0;
+
   return (
     <div className="space-y-8" key={refreshKey}>
-      {/* Quick Stats Cards */}
+      {/* Data truncation warning */}
+      {dataTruncated && (
+        <Alert variant="default" className="border-yellow-200 bg-yellow-50">
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">
+            Data Truncation Warning
+          </AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            Some financial data may be truncated due to large datasets. For
+            complete analysis, use the detailed reports.
+          </AlertDescription>
+        </Alert>
+      )}
 
+      {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -162,7 +217,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
       </div>
 
       {/* Financial Analytics Charts */}
-      <FinanceAnalyticsCharts />
+      {hasValidData && <FinanceAnalyticsCharts />}
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -219,7 +274,8 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
               <span>Other Methods</span>
               <span className="font-semibold">
                 KES{" "}
-                {(
+                {Math.max(
+                  0,
                   safeMetrics.totalCollected - safeMetrics.totalMpesaPayments
                 ).toLocaleString()}
               </span>
@@ -277,7 +333,7 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
       </div>
 
       {/* Data Status Info */}
-      {safeMetrics.totalRevenue === 0 && safeMetrics.totalStudents === 0 && (
+      {hasZeroMetrics && (
         <div className="text-center py-8">
           <div className="bg-blue-50 rounded-lg shadow-sm border p-6">
             <h3 className="text-lg font-medium text-blue-900 mb-2">
@@ -298,6 +354,21 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Refresh button for manual refresh */}
+      <div className="flex justify-center">
+        <Button
+          onClick={handleRefresh}
+          variant="outline"
+          disabled={isRefreshing}
+          className="mt-4"
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+          {isRefreshing ? "Refreshing..." : "Refresh Dashboard"}
+        </Button>
+      </div>
     </div>
   );
 };

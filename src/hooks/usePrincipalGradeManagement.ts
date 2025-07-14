@@ -117,6 +117,14 @@ export const usePrincipalGradeManagement = () => {
 
       if (isMountedRef.current) {
         setGrades(transformedGrades);
+        if (transformedGrades.length === 0) {
+          console.warn('⚠️ No grades found for approval.');
+          toast({
+            title: 'No Grades',
+            description: 'No grades found for approval, review, or release.',
+            variant: 'default',
+          });
+        }
       }
     } catch (error: unknown) {
       console.error('❌ usePrincipalGradeManagement: Fetch error:', error);
@@ -142,12 +150,18 @@ export const usePrincipalGradeManagement = () => {
 
     if (!isMountedRef.current) return;
 
+    // Filter out grades that are already approved
+    const toApprove = grades.filter(g => gradeIds.includes(g.id) && g.status !== 'approved').map(g => g.id);
+    if (toApprove.length === 0) {
+      toast({ title: 'No Action', description: 'All selected grades are already approved.', variant: 'default' });
+      return;
+    }
     setProcessing('approve');
     try {
-      console.log('🎓 usePrincipalGradeManagement: Approving grades:', gradeIds);
+      console.log('🎓 usePrincipalGradeManagement: Approving grades:', toApprove);
 
       const { data, error } = await supabase.rpc('update_grade_status', {
-        grade_ids: gradeIds,
+        grade_ids: toApprove,
         new_status: 'approved',
         user_id: user.id
       });
@@ -159,7 +173,7 @@ export const usePrincipalGradeManagement = () => {
       if (isMountedRef.current) {
         toast({
           title: "Success",
-          description: `${gradeIds.length} grade(s) approved successfully.`,
+          description: `${toApprove.length} grade(s) approved successfully.`,
         });
 
         // Refresh grades
@@ -182,9 +196,15 @@ export const usePrincipalGradeManagement = () => {
 
     if (!isMountedRef.current) return;
 
+    // Filter out grades that are already rejected
+    const toReject = grades.filter(g => gradeIds.includes(g.id) && g.status !== 'rejected').map(g => g.id);
+    if (toReject.length === 0) {
+      toast({ title: 'No Action', description: 'All selected grades are already rejected.', variant: 'default' });
+      return;
+    }
     setProcessing('reject');
     try {
-      console.log('🎓 usePrincipalGradeManagement: Rejecting grades:', gradeIds);
+      console.log('🎓 usePrincipalGradeManagement: Rejecting grades:', toReject);
 
       const { error } = await supabase
         .from('grades')
@@ -193,7 +213,7 @@ export const usePrincipalGradeManagement = () => {
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString()
         })
-        .in('id', gradeIds);
+        .in('id', toReject);
 
       if (error) throw error;
 
@@ -202,7 +222,7 @@ export const usePrincipalGradeManagement = () => {
       if (isMountedRef.current) {
         toast({
           title: "Success",
-          description: `${gradeIds.length} grade(s) rejected successfully.`,
+          description: `${toReject.length} grade(s) rejected successfully.`,
         });
 
         // Refresh grades
@@ -225,12 +245,18 @@ export const usePrincipalGradeManagement = () => {
 
     if (!isMountedRef.current) return;
 
+    // Filter out grades that are already released
+    const toRelease = grades.filter(g => gradeIds.includes(g.id) && g.status !== 'released').map(g => g.id);
+    if (toRelease.length === 0) {
+      toast({ title: 'No Action', description: 'All selected grades are already released.', variant: 'default' });
+      return;
+    }
     setProcessing('release');
     try {
-      console.log('🎓 usePrincipalGradeManagement: Releasing grades:', gradeIds);
+      console.log('🎓 usePrincipalGradeManagement: Releasing grades:', toRelease);
 
       const { data, error } = await supabase.rpc('update_grade_status', {
-        grade_ids: gradeIds,
+        grade_ids: toRelease,
         new_status: 'released',
         user_id: user.id
       });
@@ -242,7 +268,7 @@ export const usePrincipalGradeManagement = () => {
       if (isMountedRef.current) {
         toast({
           title: "Success",
-          description: `${gradeIds.length} grade(s) released to students and parents.`,
+          description: `${toRelease.length} grade(s) released to students and parents.`,
         });
 
         // Refresh grades
