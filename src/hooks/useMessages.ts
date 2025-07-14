@@ -38,55 +38,119 @@ export const useMessages = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch real messages from Supabase
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(name),
-          receiver:profiles!messages_receiver_id_fkey(name)
-        `)
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
-
-      if (messagesError) {
-        throw messagesError;
-      }
-
-      // Transform messages data
-      const transformedMessages: Message[] = (messagesData || []).map(msg => ({
-        id: msg.id,
-        sender_id: msg.sender_id,
-        receiver_id: msg.receiver_id,
-        content: msg.content,
-        created_at: msg.created_at,
-        is_read: msg.is_read,
-        sender_name: msg.sender?.name || 'Unknown',
-        receiver_name: msg.receiver?.name || 'Unknown'
-      }));
-
-      // Fetch potential conversation partners from the same school
+      // First, get conversations for the current user
       const { data: conversationsData, error: conversationsError } = await supabase
-        .from('profiles')
-        .select('id, name, role')
-        .eq('school_id', user.school_id)
-        .neq('id', user.id);
+        .from('conversations')
+        .select(`
+          id,
+          participant_1_id,
+          participant_2_id,
+          last_message_preview,
+          last_message_at,
+          updated_at
+        `)
+        .or(`participant_1_id.eq.${user.id},participant_2_id.eq.${user.id}`)
+        .order('updated_at', { ascending: false });
 
       if (conversationsError) {
         throw conversationsError;
       }
 
-      const transformedConversations: Conversation[] = (conversationsData || []).map(profile => ({
-        id: profile.id,
-        name: profile.name,
-        role: profile.role
-      }));
+      // Transform conversations and get participant details
+      const transformedConversations: Conversation[] = [];
+      const conversationIds = conversationsData?.map(conv => conv.id) || [];
 
-      setMessages(transformedMessages);
-      setConversations(transformedConversations);
+      if (conversationIds.length > 0) {
+        // Get messages for all conversations
+        const { data: messagesData, error: messagesError } = await supabase
+          .from('messages')
+          .select(`
+            id,
+            conversation_id,
+            sender_id,
+            receiver_id,
+            content,
+            created_at,
+            is_read,
+            sender:profiles!messages_sender_id_fkey(name),
+            receiver:profiles!messages_receiver_id_fkey(name)
+          `)
+          .in('conversation_id', conversationIds)
+          .order('created_at', { ascending: false });
+
+        if (messagesError) {
+          throw messagesError;
+        }
+
+        // Transform messages data
+        const transformedMessages: Message[] = (messagesData || []).map(msg => ({
+          id: msg.id,
+          sender_id: msg.sender_id,
+          receiver_id: msg.receiver_id,
+          content: msg.content,
+          created_at: msg.created_at,
+          is_read: msg.is_read,
+          sender_name: msg.sender?.name || 'Unknown',
+          receiver_name: msg.receiver?.name || 'Unknown'
+        }));
+
+        setMessages(transformedMessages);
+
+        // Transform conversations with participant details
+        for (const conv of conversationsData || []) {
+          const otherParticipantId = conv.participant_1_id === user.id 
+            ? conv.participant_2_id 
+            : conv.participant_1_id;
+
+          // Get other participant's profile
+          const { data: participantProfile } = await supabase
+            .from('profiles')
+            .select('id, name, role')
+            .eq('id', otherParticipantId)
+            .single();
+
+          if (participantProfile) {
+            transformedConversations.push({
+              id: conv.id,
+              name: participantProfile.name || 'Unknown',
+              role: participantProfile.role || 'unknown'
+            });
+          }
+        }
+      }
+
+      // Get potential conversation partners from the same school
+      const { data: potentialPartners, error: partnersError } = await supabase
+        .from('profiles')
+        .select('id, name, role')
+        .eq('school_id', user.school_id)
+        .neq('id', user.id);
+
+      if (partnersError) {
+        throw partnersError;
+      }
+
+      // Add potential partners who don't have conversations yet
+      const existingPartnerIds = transformedConversations.map(conv => conv.id);
+      const newPartners = (potentialPartners || []).filter(partner => 
+        !existingPartnerIds.includes(partner.id)
+      );
+
+      const allConversations = [
+        ...transformedConversations,
+        ...newPartners.map(partner => ({
+          id: partner.id,
+          name: partner.name || 'Unknown',
+          role: partner.role || 'unknown'
+        }))
+      ];
+
+      setConversations(allConversations);
       setError(null);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load messages. Please try again.');
+    } catch (err: unknown) {
+      console.error('Error loading messages:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load messages. Please try again.';
+      setError(errorMessage);
       setMessages([]);
       setConversations([]);
     } finally {
@@ -108,8 +172,37 @@ export const useMessages = () => {
     }
 
     try {
-      const conversationId = [user.id, receiverId].sort().join('-');
+      // First, check if a conversation exists between these users
+      const { data: existingConversation, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(participant_1_id.eq.${user.id},participant_2_id.eq.${receiverId}),and(participant_1_id.eq.${receiverId},participant_2_id.eq.${user.id})`)
+        .single();
 
+      let conversationId: string;
+
+      if (existingConversation) {
+        conversationId = existingConversation.id;
+      } else {
+        // Create a new conversation
+        const { data: newConversation, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            participant_1_id: user.id,
+            participant_2_id: receiverId,
+            school_id: user.school_id
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          throw createError;
+        }
+
+        conversationId = newConversation.id;
+      }
+
+      // Send the message
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -141,9 +234,15 @@ export const useMessages = () => {
       };
 
       setMessages(prev => [newMessage, ...prev]);
+      
+      // Reload conversations to get the new one
+      await loadMessages();
+      
       return { error: null };
-    } catch (err) {
-      return { error: { message: 'Failed to send message. Please try again.' } };
+    } catch (err: unknown) {
+      console.error('Error sending message:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message. Please try again.';
+      return { error: { message: errorMessage } };
     }
   };
 
