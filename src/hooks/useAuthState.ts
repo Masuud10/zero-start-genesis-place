@@ -128,6 +128,20 @@ export const useAuthState = () => {
         return;
       }
 
+      // Validate school assignment for non-admin roles
+      const requiresSchoolAssignment = !['edufam_admin', 'elimisha_admin'].includes(resolvedRole);
+      const hasSchoolAssignment = !!profile?.school_id;
+      
+      if (requiresSchoolAssignment && !hasSchoolAssignment) {
+        console.error('🔐 AuthState: Role requires school assignment but none found:', resolvedRole);
+        if (isMountedRef.current) {
+          setError('Your account is not properly configured. Please contact your administrator.');
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
+        return;
+      }
+
       console.log('🔐 AuthState: Using database role:', resolvedRole);
 
       // Determine school assignment
