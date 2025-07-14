@@ -3,6 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Plus,
   Building2,
   MapPin,
@@ -16,11 +23,15 @@ import {
   FileText,
   Search,
   AlertTriangle,
+  Pencil,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { SchoolService, SchoolData } from "@/services/schoolService";
 import SchoolRegistrationModal from "@/components/dashboard/modals/SchoolRegistrationModal";
+import EditSchoolModal from "@/components/modals/EditSchoolModal";
 import { Input } from "@/components/ui/input";
 
 const SchoolsModule: React.FC = () => {
@@ -30,6 +41,12 @@ const SchoolsModule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
+  const [confirmingStatusChange, setConfirmingStatusChange] = useState<{
+    schoolId: string;
+    currentStatus: string;
+    newStatus: string;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const loadSchools = async () => {
@@ -75,6 +92,78 @@ const SchoolsModule: React.FC = () => {
   const handleCreateSuccess = () => {
     setShowCreateDialog(false);
     loadSchools();
+  };
+
+  const handleEditSuccess = () => {
+    setEditingSchoolId(null);
+    loadSchools();
+  };
+
+  const handleToggleSchoolStatus = async (
+    schoolId: string,
+    currentStatus: string
+  ) => {
+    // Check if user has permission to disable/enable schools
+    if (user?.role !== "edufam_admin" && user?.role !== "elimisha_admin") {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to disable/enable schools",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newStatus = currentStatus === "active" ? "disabled" : "active";
+
+    // Show confirmation dialog
+    setConfirmingStatusChange({
+      schoolId,
+      currentStatus,
+      newStatus,
+    });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!confirmingStatusChange) return;
+
+    try {
+      const result = await SchoolService.updateSchool(
+        confirmingStatusChange.schoolId,
+        {
+          status: confirmingStatusChange.newStatus,
+        }
+      );
+
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (result.data) {
+        toast({
+          title: "Success",
+          description: `School ${
+            confirmingStatusChange.newStatus === "active"
+              ? "enabled"
+              : "disabled"
+          } successfully`,
+        });
+        loadSchools(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error updating school status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update school status",
+        variant: "destructive",
+      });
+    } finally {
+      setConfirmingStatusChange(null);
+    }
   };
 
   const formatTermStructure = (structure?: string) => {
@@ -221,7 +310,11 @@ const SchoolsModule: React.FC = () => {
         {filteredSchools.map((school) => (
           <Card
             key={school.id}
-            className="hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-gray-50"
+            className={`hover:shadow-xl transition-all duration-300 border-l-4 ${
+              school.status === "disabled"
+                ? "border-l-red-500 bg-gradient-to-br from-gray-50 to-gray-100 opacity-75"
+                : "border-l-blue-500 bg-gradient-to-br from-white to-gray-50"
+            }`}
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -259,6 +352,54 @@ const SchoolsModule: React.FC = () => {
                       {school.school_type}
                     </Badge>
                   )}
+                  <Badge
+                    variant={
+                      school.status === "disabled" ? "destructive" : "default"
+                    }
+                    className="text-xs"
+                  >
+                    {school.status === "disabled" ? "Disabled" : "Active"}
+                  </Badge>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingSchoolId(school.id)}
+                      className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+                      title="Edit School"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    {(user?.role === "edufam_admin" ||
+                      user?.role === "elimisha_admin") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleToggleSchoolStatus(
+                            school.id,
+                            school.status || "active"
+                          )
+                        }
+                        className={`h-8 w-8 p-0 ${
+                          school.status === "disabled"
+                            ? "hover:bg-green-50 hover:text-green-600"
+                            : "hover:bg-red-50 hover:text-red-600"
+                        }`}
+                        title={
+                          school.status === "disabled"
+                            ? "Enable School"
+                            : "Disable School"
+                        }
+                      >
+                        {school.status === "disabled" ? (
+                          <Power className="h-4 w-4" />
+                        ) : (
+                          <PowerOff className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -428,6 +569,67 @@ const SchoolsModule: React.FC = () => {
         onSuccess={handleCreateSuccess}
         currentUser={user!}
       />
+
+      {/* Edit School Modal */}
+      <EditSchoolModal
+        isOpen={!!editingSchoolId}
+        schoolId={editingSchoolId}
+        onClose={() => setEditingSchoolId(null)}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Status Change Confirmation Dialog */}
+      <Dialog
+        open={!!confirmingStatusChange}
+        onOpenChange={() => setConfirmingStatusChange(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {confirmingStatusChange?.newStatus === "disabled" ? (
+                <PowerOff className="h-5 w-5 text-red-600" />
+              ) : (
+                <Power className="h-5 w-5 text-green-600" />
+              )}
+              {confirmingStatusChange?.newStatus === "disabled"
+                ? "Disable School"
+                : "Enable School"}
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to{" "}
+              {confirmingStatusChange?.newStatus === "disabled"
+                ? "disable"
+                : "enable"}{" "}
+              this school?
+              {confirmingStatusChange?.newStatus === "disabled" && (
+                <span className="block text-red-600 mt-1">
+                  Disabled schools will not be able to access the system.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmingStatusChange(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmStatusChange}
+              className={
+                confirmingStatusChange?.newStatus === "disabled"
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }
+            >
+              {confirmingStatusChange?.newStatus === "disabled"
+                ? "Disable"
+                : "Enable"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

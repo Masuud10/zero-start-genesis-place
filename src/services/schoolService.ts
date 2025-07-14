@@ -105,6 +105,38 @@ export class SchoolService {
     }
   }
 
+  static async updateSchool(schoolId: string, schoolData: Partial<SchoolData>): Promise<ServiceResponse<SchoolData>> {
+    try {
+      const result = await updateSchool(schoolId, schoolData);
+      
+      if (result.error) {
+        return {
+          data: null,
+          error: result.error
+        };
+      }
+
+      if (result.success) {
+        // Fetch the updated school data
+        const updatedSchool = await getSchool(schoolId);
+        return {
+          data: updatedSchool,
+          error: null
+        };
+      }
+
+      return {
+        data: null,
+        error: 'Failed to update school'
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Failed to update school'
+      };
+    }
+  }
+
   static async uploadSchoolLogo(file: File, schoolId: string): Promise<{ url?: string; error?: string }> {
     return SchoolStorageService.uploadSchoolLogo(file, schoolId);
   }
