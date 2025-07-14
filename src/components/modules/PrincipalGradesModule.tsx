@@ -63,6 +63,8 @@ import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
 import { useAcademicFilters } from "@/hooks/useAcademicFilters";
 import GradesOverrideModule from "@/components/grading/GradesOverrideModule";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import GradeSheetSummaryReport from "@/components/grading/GradeSheetSummaryReport";
+import { useGradeReports } from "@/hooks/useGradeReports";
 
 interface GradeRecord {
   id: string;
@@ -150,6 +152,10 @@ const PrincipalGradesModule: React.FC = () => {
   const [selectedExamType, setSelectedExamType] = useState<string>("all");
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [showGradeSheet, setShowGradeSheet] = useState(false);
+
+  // Grade reports hook
+  const { generateGradePDF, generateGradeExcel, printGradeReport, isGenerating } = useGradeReports();
   const [totalGrades, setTotalGrades] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(50); // Fixed page size for performance
@@ -1050,5 +1056,7 @@ const GradesTable: React.FC<GradesTableProps> = ({
     </Card>
   );
 };
+
+export default PrincipalGradesModule;
 
 export default PrincipalGradesModule;

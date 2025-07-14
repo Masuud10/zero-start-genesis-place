@@ -54,6 +54,8 @@ import {
 } from "@/components/ui/dialog";
 import { AttendanceSessionValidator } from "@/utils/AttendanceSessionValidator";
 import { format } from "date-fns";
+import AttendanceSummaryReport from "@/components/attendance/AttendanceSummaryReport";
+import { useAttendanceReports } from "@/hooks/useAttendanceReports";
 
 interface AttendanceRecord {
   id: string;
@@ -101,11 +103,15 @@ const EnhancedAttendanceModule = () => {
   const [viewMode, setViewMode] = useState<"daily" | "summary" | "reports">(
     "daily"
   );
+  const [showSummaryReport, setShowSummaryReport] = useState(false);
 
   // Modal states
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [bulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+
+  // Use attendance reports hook
+  const { generateAttendancePDF, printAttendanceReport, isGenerating } = useAttendanceReports();
 
   // Use academic module integration
   const {
@@ -214,6 +220,7 @@ const EnhancedAttendanceModule = () => {
         description: "Attendance marked successfully",
       });
       refreshData();
+      setShowSummaryReport(true); // Show summary report after attendance is marked
     },
     onError: (error: Error) => {
       toast({
@@ -249,6 +256,7 @@ const EnhancedAttendanceModule = () => {
       });
       refreshData();
       setBulkEditModalOpen(false);
+      setShowSummaryReport(true); // Show summary report after bulk update
     },
     onError: (error: Error) => {
       toast({
@@ -352,11 +360,11 @@ const EnhancedAttendanceModule = () => {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => setViewMode("summary")}
-            className={viewMode === "summary" ? "bg-blue-50" : ""}
+            onClick={() => setViewMode("daily")}
+            className={viewMode === "daily" ? "bg-blue-50" : ""}
           >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Summary
+            <Calendar className="h-4 w-4 mr-2" />
+            Daily View
           </Button>
           <Button
             variant="outline"
@@ -676,6 +684,42 @@ const EnhancedAttendanceModule = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Attendance Summary Report */}
+      {showSummaryReport && filteredAttendance.length > 0 && (
+        <AttendanceSummaryReport
+          className={availableClasses?.find(c => c.id === selectedClass)?.name || "All Classes"}
+          date={selectedDate}
+          attendanceRecords={filteredAttendance.map(record => ({
+            id: record.id,
+            student_id: record.student_id,
+            status: record.status,
+            student_name: record.students?.name,
+            admission_number: record.students?.admission_number,
+            roll_number: record.students?.admission_number, // Using admission_number as fallback
+          }))}
+          onExportPDF={() => {
+            const className = availableClasses?.find(c => c.id === selectedClass)?.name || "All Classes";
+            const attendanceData = filteredAttendance.map(record => ({
+              student_id: record.student_id,
+              student_name: record.students?.name || "Unknown",
+              admission_number: record.students?.admission_number,
+              status: record.status,
+            }));
+            generateAttendancePDF(className, selectedDate, attendanceData);
+          }}
+          onPrint={() => {
+            const className = availableClasses?.find(c => c.id === selectedClass)?.name || "All Classes";
+            const attendanceData = filteredAttendance.map(record => ({
+              student_id: record.student_id,
+              student_name: record.students?.name || "Unknown",
+              admission_number: record.students?.admission_number,
+              status: record.status,
+            }));
+            printAttendanceReport(className, selectedDate, attendanceData);
+          }}
+        />
+      )}
 
       {/* Bulk Edit Modal */}
       <Dialog open={bulkEditModalOpen} onOpenChange={setBulkEditModalOpen}>

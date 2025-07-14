@@ -57,6 +57,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurriculumDisplayName } from "@/utils/curriculum-detector";
 import { CurriculumBasedGradingRouter } from "@/components/grading/CurriculumBasedGradingRouter";
 import { useAcademicFilters } from "@/hooks/useAcademicFilters";
+import GradeSheetSummaryReport from "@/components/grading/GradeSheetSummaryReport";
+import { useGradeReports } from "@/hooks/useGradeReports";
 
 interface Student {
   id: string;
@@ -131,6 +133,9 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     isLoading: academicLoading,
   } = useAcademicFilters(schoolId);
 
+  // Grade reports hook
+  const { generateGradePDF, generateGradeExcel, printGradeReport, isGenerating } = useGradeReports();
+
   // State management
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -148,6 +153,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     Record<string, Record<string, GradeValue>>
   >({});
   const [loading, setLoading] = useState(false);
+  const [showGradeSheet, setShowGradeSheet] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -632,6 +638,9 @@ const RedesignedTeacherGradingModule: React.FC = () => {
         title: "Grades Submitted",
         description: "Grades have been submitted for principal approval.",
       });
+
+      // Show grade sheet summary after submission
+      setShowGradeSheet(true);
 
       console.log("Grades submitted:", {
         classId: selectedClass,
@@ -1345,6 +1354,138 @@ const RedesignedTeacherGradingModule: React.FC = () => {
           <AlertTitle>Curriculum Error</AlertTitle>
           <AlertDescription>{curriculumError}</AlertDescription>
         </Alert>
+      )}
+
+      {/* Grade Sheet Summary Report */}
+      {showGradeSheet && isReadyToGrade && (
+        <GradeSheetSummaryReport
+          className={classes.find(c => c.id === selectedClass)?.name || "Unknown Class"}
+          curriculumType={curriculumType}
+          term={selectedTerm}
+          examType={selectedExamType}
+          academicYear={academicYears.find(y => y.id === selectedAcademicYear)?.year_name || ""}
+          gradeRecords={students.map(student => ({
+            student_id: student.id,
+            student_name: student.name,
+            admission_number: student.admission_number,
+            roll_number: student.roll_number,
+            subjects: subjects.reduce((acc, subject) => {
+              const grade = grades[student.id]?.[subject.id];
+              if (grade) {
+                acc[subject.id] = {
+                  subject_name: subject.name,
+                  score: grade.score,
+                  max_score: 100,
+                  percentage: grade.percentage,
+                  letter_grade: grade.letter_grade,
+                  performance_level: grade.cbc_performance_level,
+                  coursework_score: grade.coursework_score,
+                  exam_score: grade.exam_score,
+                };
+              }
+              return acc;
+            }, {} as any),
+            total_score: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.score || 0), 0),
+            total_possible: subjects.length * 100,
+            overall_percentage: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.percentage || 0), 0) / subjects.length,
+            overall_grade: "A", // Calculate based on average
+            overall_position: 1, // Calculate position
+          }))}
+          subjects={subjects}
+          onExportPDF={() => {
+            const className = classes.find(c => c.id === selectedClass)?.name || "Unknown Class";
+            const academicYear = academicYears.find(y => y.id === selectedAcademicYear)?.year_name || "";
+            const gradeData = students.map(student => ({
+              student_id: student.id,
+              student_name: student.name,
+              admission_number: student.admission_number,
+              subjects: subjects.reduce((acc, subject) => {
+                const grade = grades[student.id]?.[subject.id];
+                if (grade) {
+                  acc[subject.id] = {
+                    subject_name: subject.name,
+                    score: grade.score,
+                    max_score: 100,
+                    percentage: grade.percentage,
+                    letter_grade: grade.letter_grade,
+                    performance_level: grade.cbc_performance_level,
+                    coursework_score: grade.coursework_score,
+                    exam_score: grade.exam_score,
+                  };
+                }
+                return acc;
+              }, {} as any),
+              total_score: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.score || 0), 0),
+              total_possible: subjects.length * 100,
+              overall_percentage: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.percentage || 0), 0) / subjects.length,
+              overall_grade: "A",
+              overall_position: 1,
+            }));
+            generateGradePDF(className, curriculumType, selectedTerm, selectedExamType, academicYear, gradeData, subjects);
+          }}
+          onExportExcel={() => {
+            const className = classes.find(c => c.id === selectedClass)?.name || "Unknown Class";
+            const academicYear = academicYears.find(y => y.id === selectedAcademicYear)?.year_name || "";
+            const gradeData = students.map(student => ({
+              student_id: student.id,
+              student_name: student.name,
+              admission_number: student.admission_number,
+              subjects: subjects.reduce((acc, subject) => {
+                const grade = grades[student.id]?.[subject.id];
+                if (grade) {
+                  acc[subject.id] = {
+                    subject_name: subject.name,
+                    score: grade.score,
+                    max_score: 100,
+                    percentage: grade.percentage,
+                    letter_grade: grade.letter_grade,
+                    performance_level: grade.cbc_performance_level,
+                    coursework_score: grade.coursework_score,
+                    exam_score: grade.exam_score,
+                  };
+                }
+                return acc;
+              }, {} as any),
+              total_score: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.score || 0), 0),
+              total_possible: subjects.length * 100,
+              overall_percentage: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.percentage || 0), 0) / subjects.length,
+              overall_grade: "A",
+              overall_position: 1,
+            }));
+            generateGradeExcel(className, curriculumType, selectedTerm, selectedExamType, academicYear, gradeData, subjects);
+          }}
+          onPrint={() => {
+            const className = classes.find(c => c.id === selectedClass)?.name || "Unknown Class";
+            const academicYear = academicYears.find(y => y.id === selectedAcademicYear)?.year_name || "";
+            const gradeData = students.map(student => ({
+              student_id: student.id,
+              student_name: student.name,
+              admission_number: student.admission_number,
+              subjects: subjects.reduce((acc, subject) => {
+                const grade = grades[student.id]?.[subject.id];
+                if (grade) {
+                  acc[subject.id] = {
+                    subject_name: subject.name,
+                    score: grade.score,
+                    max_score: 100,
+                    percentage: grade.percentage,
+                    letter_grade: grade.letter_grade,
+                    performance_level: grade.cbc_performance_level,
+                    coursework_score: grade.coursework_score,
+                    exam_score: grade.exam_score,
+                  };
+                }
+                return acc;
+              }, {} as any),
+              total_score: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.score || 0), 0),
+              total_possible: subjects.length * 100,
+              overall_percentage: Object.values(grades[student.id] || {}).reduce((sum, grade) => sum + (grade.percentage || 0), 0) / subjects.length,
+              overall_grade: "A",
+              overall_position: 1,
+            }));
+            printGradeReport(className, curriculumType, selectedTerm, selectedExamType, academicYear, gradeData, subjects);
+          }}
+        />
       )}
     </div>
   );
