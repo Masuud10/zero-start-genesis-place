@@ -80,21 +80,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
         {
           event: '*',
           schema: 'public',
-          table: 'conversations',
-          filter: `participant_1_id=eq.${user.id}`
-        },
-        () => {
-          console.log('Conversation updated, refetching...');
-          fetchConversations();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-          filter: `participant_2_id=eq.${user.id}`
+          table: 'conversations'
         },
         () => {
           console.log('Conversation updated, refetching...');
