@@ -2057,36 +2057,18 @@ export type Database = {
       conversations: {
         Row: {
           created_at: string
-          id: string
-          last_message_at: string | null
-          last_message_id: string | null
-          last_message_preview: string | null
-          participant_1_id: string
-          participant_2_id: string
-          school_id: string
-          updated_at: string
+          id: number
+          participant_ids: string[]
         }
         Insert: {
           created_at?: string
-          id?: string
-          last_message_at?: string | null
-          last_message_id?: string | null
-          last_message_preview?: string | null
-          participant_1_id: string
-          participant_2_id: string
-          school_id: string
-          updated_at?: string
+          id?: never
+          participant_ids: string[]
         }
         Update: {
           created_at?: string
-          id?: string
-          last_message_at?: string | null
-          last_message_id?: string | null
-          last_message_preview?: string | null
-          participant_1_id?: string
-          participant_2_id?: string
-          school_id?: string
-          updated_at?: string
+          id?: never
+          participant_ids?: string[]
         }
         Relationships: []
       }
@@ -4093,134 +4075,32 @@ export type Database = {
       }
       messages: {
         Row: {
-          attachments: string[] | null
           content: string
-          conversation_id: string | null
-          created_at: string | null
-          id: string
-          is_read: boolean | null
-          receiver_id: string | null
-          receiver_name: string | null
-          school_id: string
-          sender_id: string | null
-          sender_name: string | null
+          conversation_id: number
+          created_at: string
+          id: number
+          sender_id: string
         }
         Insert: {
-          attachments?: string[] | null
           content: string
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          receiver_id?: string | null
-          receiver_name?: string | null
-          school_id: string
-          sender_id?: string | null
-          sender_name?: string | null
+          conversation_id: number
+          created_at?: string
+          id?: never
+          sender_id: string
         }
         Update: {
-          attachments?: string[] | null
           content?: string
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          receiver_id?: string | null
-          receiver_name?: string | null
-          school_id?: string
-          sender_id?: string | null
-          sender_name?: string | null
+          conversation_id?: number
+          created_at?: string
+          id?: never
+          sender_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_messages_conversation_id"
+            foreignKeyName: "messages_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_messages_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "comprehensive_report_data"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_messages_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_messages_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_messages_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "fk_messages_school_id"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_receiver_id_fkey"
-            columns: ["receiver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "comprehensive_report_data"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_attendance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_finance_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_grades_summary"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "messages_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
