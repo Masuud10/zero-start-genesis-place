@@ -7580,6 +7580,31 @@ export type Database = {
               school_email: string
               school_phone: string
               school_address: string
+              logo_url?: string
+              website_url?: string
+              motto?: string
+              slogan?: string
+              school_type?: string
+              registration_number?: string
+              year_established?: number
+              term_structure?: string
+              owner_information?: string
+              owner_email?: string
+              owner_name?: string
+              owner_phone?: string
+              principal_name?: string
+              principal_contact?: string
+              principal_email?: string
+              mpesa_paybill_number?: string
+              mpesa_consumer_key?: string
+              mpesa_consumer_secret?: string
+              mpesa_passkey?: string
+            }
+          | {
+              school_name: string
+              school_email: string
+              school_phone: string
+              school_address: string
               school_type?: string
               curriculum_type?: string
               term_structure?: string
