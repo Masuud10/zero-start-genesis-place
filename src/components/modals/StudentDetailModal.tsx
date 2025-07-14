@@ -216,7 +216,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
         setGrades(
           gradesData.map((grade) => ({
             ...grade,
-            subject_name: grade.subjects?.name || "Unknown Subject",
+            subject_name: (grade.subjects as any)?.name || "Unknown Subject",
           }))
         );
       }

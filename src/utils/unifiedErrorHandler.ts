@@ -88,11 +88,11 @@ export class UnifiedErrorHandler {
     }
 
     const errorObj = error as Record<string, unknown>;
-    const message = errorObj?.message || String(error);
-    const lowerMessage = message.toLowerCase();
+    const message = (typeof errorObj?.message === 'string' ? errorObj.message : String(error));
+    const lowerMessage = (typeof message === 'string' ? message : String(message)).toLowerCase();
 
     // Determine error type
-    let errorType = this.ERROR_TYPES.UNKNOWN;
+    let errorType: string = this.ERROR_TYPES.UNKNOWN;
     let isNetworkError = false;
     let isAuthError = false;
     let isPermissionError = false;
@@ -151,7 +151,7 @@ export class UnifiedErrorHandler {
       lowerMessage.includes('sql') ||
       lowerMessage.includes('pgrst') ||
       lowerMessage.includes('constraint') ||
-      errorObj?.code?.startsWith('PGRST')
+      (typeof errorObj?.code === 'string' && errorObj.code.startsWith('PGRST'))
     ) {
       errorType = this.ERROR_TYPES.DATABASE;
       isDatabaseError = true;
@@ -159,8 +159,8 @@ export class UnifiedErrorHandler {
 
     return {
       message: this.getUserFriendlyMessage(message, errorType),
-      code: errorObj?.code,
-      statusCode: errorObj?.status,
+      code: typeof errorObj?.code === 'string' ? errorObj.code : undefined,
+      statusCode: typeof errorObj?.status === 'number' ? errorObj.status : undefined,
       isNetworkError,
       isAuthError,
       isPermissionError,
@@ -225,7 +225,7 @@ export class UnifiedErrorHandler {
   private static showUserToast(errorDetails: ErrorDetails): void {
     const { message, isAuthError, isPermissionError, isNetworkError } = errorDetails;
 
-    let variant: 'default' | 'destructive' | 'warning' = 'destructive';
+    let variant: 'default' | 'destructive' = 'destructive';
     let title = 'Error';
 
     if (isAuthError) {
@@ -234,7 +234,6 @@ export class UnifiedErrorHandler {
       title = 'Access Denied';
     } else if (isNetworkError) {
       title = 'Connection Error';
-      variant = 'warning';
     }
 
     toast({
@@ -249,13 +248,15 @@ export class UnifiedErrorHandler {
    */
   private static logToAudit(errorDetails: ErrorDetails, context: ErrorContext): void {
     try {
-      auditLogger.logError({
+      auditLogger.log({
         action: context.action,
-        error: errorDetails.message,
-        errorCode: errorDetails.code,
-        errorType: this.getErrorType(errorDetails),
+        resource: 'error',
+        success: false,
+        error_message: errorDetails.message,
         metadata: {
           ...context.metadata,
+          errorCode: errorDetails.code,
+          errorType: this.getErrorType(errorDetails),
           statusCode: errorDetails.statusCode,
           isRetryable: errorDetails.retryable
         }

@@ -236,11 +236,7 @@ const MessagesModule = () => {
           messages.map((message) => (
             <Card
               key={message.id}
-              className={`hover:shadow-md transition-shadow ${
-                !message.is_read && message.receiver_id === user?.id
-                  ? "border-blue-200 bg-blue-50/30"
-                  : ""
-              }`}
+              className="hover:shadow-md transition-shadow"
             >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -248,12 +244,9 @@ const MessagesModule = () => {
                     <User className="w-4 h-4" />
                     <span className="font-medium">
                       {message.sender_id === user?.id
-                        ? `To: ${message.receiver_name}`
-                        : `From: ${message.sender_name}`}
+                        ? `To: ${message.sender?.name || 'Unknown'}`
+                        : `From: ${message.sender?.name || 'Unknown'}`}
                     </span>
-                    {!message.is_read && message.receiver_id === user?.id && (
-                      <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                    )}
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {new Date(message.created_at).toLocaleString()}
