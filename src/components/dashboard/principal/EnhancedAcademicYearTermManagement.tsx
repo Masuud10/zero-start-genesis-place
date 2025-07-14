@@ -89,7 +89,7 @@ const EnhancedAcademicYearTermManagement = () => {
 
       return {
         totalClasses: classes.length,
-        activeClasses: classes.filter((c) => c.is_active).length,
+        activeClasses: classes.length, // All fetched classes are considered active
         cbcClasses: classes.filter((c) => c.curriculum_type === "CBC").length,
         igcseClasses: classes.filter((c) => c.curriculum_type === "IGCSE")
           .length,

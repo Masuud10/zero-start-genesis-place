@@ -18,7 +18,6 @@ export interface ClassWithCurriculum {
   capacity: number;
   curriculum_type: 'CBC' | 'IGCSE' | 'Standard';
   academic_year_id: string | null;
-  is_active: boolean;
   school_id: string;
 }
 
@@ -124,7 +123,6 @@ export class SystemIntegrationService {
         capacity: cls.capacity || 40,
         curriculum_type: (cls.curriculum_type || 'CBC') as 'CBC' | 'IGCSE' | 'Standard',
         academic_year_id: null,
-        is_active: true,
         school_id: cls.school_id
       }));
 
@@ -408,7 +406,6 @@ export class SystemIntegrationService {
         capacity: cls.capacity || 40,
         curriculum_type: 'CBC' as const,
         academic_year_id: null,
-        is_active: true,
         school_id: cls.school_id
       }));
 
