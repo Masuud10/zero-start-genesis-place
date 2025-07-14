@@ -185,41 +185,43 @@ export const MessageThread: React.FC<MessageThreadProps> = ({ conversation }) =>
   return (
     <div className="h-full flex flex-col">
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-white">
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-teal-500 to-cyan-500 shadow-sm">
         <div className="flex items-center space-x-3">
-          <Avatar className="w-10 h-10">
-            <AvatarFallback className="bg-chat-header-bg text-white font-medium">
+          <Avatar className="w-10 h-10 ring-2 ring-white/30">
+            <AvatarFallback className="bg-white/20 text-white font-semibold">
               {getInitials(conversation.other_participant.name)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold text-foreground">
+            <h3 className="font-semibold text-white">
               {conversation.other_participant.name}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-teal-100">
               {conversation.other_participant.role}
             </p>
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
             <Phone className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
             <Video className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
             <MoreVertical className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 bg-chat-bg space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-3">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
+            <p className="text-slate-500 text-center">
+              No messages yet. Start the conversation!
+            </p>
           </div>
         ) : (
           messages.map((message) => (
@@ -228,15 +230,15 @@ export const MessageThread: React.FC<MessageThreadProps> = ({ conversation }) =>
               className={`flex ${isMyMessage(message) ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm ${
+                className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
                   isMyMessage(message)
-                    ? 'bg-message-own-bg text-message-own-text rounded-br-none'
-                    : 'bg-message-bg text-message-text rounded-bl-none'
-                } border border-message-border`}
+                    ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-br-md'
+                    : 'bg-white text-slate-800 rounded-bl-md border border-slate-200'
+                }`}
               >
                 <p className="text-sm leading-relaxed">{message.content}</p>
                 <p className={`text-xs mt-1 ${
-                  isMyMessage(message) ? 'text-message-own-text/70' : 'text-message-text/70'
+                  isMyMessage(message) ? 'text-teal-100' : 'text-slate-400'
                 }`}>
                   {formatTime(message.created_at)}
                 </p>
@@ -248,21 +250,21 @@ export const MessageThread: React.FC<MessageThreadProps> = ({ conversation }) =>
       </div>
 
       {/* Message Input */}
-      <div className="p-4 border-t border-border bg-white">
-        <div className="flex items-center space-x-2">
+      <div className="p-4 bg-white border-t border-slate-200">
+        <div className="flex items-center space-x-3">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
             disabled={sending}
-            className="flex-1 rounded-full border-border focus:border-primary"
+            className="flex-1 rounded-full border-slate-300 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 px-4 py-2"
           />
           <Button
             onClick={handleSendMessage}
             disabled={sending || !newMessage.trim()}
             size="sm"
-            className="rounded-full bg-chat-header-bg hover:bg-chat-header-bg/90 text-white"
+            className="rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white p-3 disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
           </Button>

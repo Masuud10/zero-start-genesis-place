@@ -142,13 +142,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Messages</h2>
+          <h2 className="text-xl font-bold">Messages</h2>
           <Button
             onClick={() => setIsNewMessageOpen(true)}
             size="sm"
-            className="bg-primary hover:bg-primary/90"
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30 rounded-full"
+            variant="outline"
           >
             <Plus className="w-4 h-4" />
           </Button>
@@ -156,29 +157,29 @@ export const ConversationList: React.FC<ConversationListProps> = ({
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 w-4 h-4" />
           <Input
             placeholder="Search conversations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white/95 border-white/30 rounded-full text-slate-700 placeholder:text-slate-500"
           />
         </div>
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-white">
         {filteredConversations.length === 0 ? (
           <div className="p-8 text-center">
-            <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
+            <MessageSquare className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+            <p className="text-slate-500">
               {searchTerm ? 'No conversations found' : 'No conversations yet'}
             </p>
             {!searchTerm && (
               <Button
                 onClick={() => setIsNewMessageOpen(true)}
                 variant="outline"
-                className="mt-3"
+                className="mt-3 border-teal-300 text-teal-600 hover:bg-teal-50"
               >
                 Start a conversation
               </Button>
@@ -189,36 +190,36 @@ export const ConversationList: React.FC<ConversationListProps> = ({
             <div
               key={conversation.id}
               onClick={() => onConversationSelect(conversation)}
-              className={`p-4 border-b border-border cursor-pointer hover:bg-muted/50 transition-colors ${
+              className={`p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-all duration-200 ${
                 selectedConversation?.id === conversation.id 
-                  ? 'bg-muted border-l-4 border-l-primary' 
+                  ? 'bg-teal-50 border-l-4 border-l-teal-500 shadow-sm' 
                   : ''
               }`}
             >
               <div className="flex items-center space-x-3">
-                <Avatar className="w-12 h-12">
-                  <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                <Avatar className="w-12 h-12 ring-2 ring-slate-100">
+                  <AvatarFallback className="bg-gradient-to-br from-teal-400 to-cyan-400 text-white font-semibold text-sm">
                     {getInitials(conversation.other_participant.name)}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-foreground truncate">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold text-slate-800 truncate">
                       {conversation.other_participant.name}
                     </h3>
                     {conversation.last_message_at && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-slate-400 font-medium">
                         {formatTime(conversation.last_message_at)}
                       </span>
                     )}
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="text-sm text-slate-500 truncate">
                       {conversation.last_message_preview || 'No messages yet'}
                     </p>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                    <span className="text-xs text-teal-600 bg-teal-100 px-2 py-1 rounded-full font-medium">
                       {conversation.other_participant.role}
                     </span>
                   </div>

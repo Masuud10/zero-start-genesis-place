@@ -36,9 +36,9 @@ const MessagesModule = () => {
   }
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-screen flex bg-slate-50">
       {/* Left Sidebar - Conversations */}
-      <div className="w-80 border-r border-border bg-card">
+      <div className="w-80 bg-white shadow-lg border-r border-slate-200">
         <ConversationList 
           onConversationSelect={setSelectedConversation}
           selectedConversation={selectedConversation}
@@ -46,30 +46,30 @@ const MessagesModule = () => {
       </div>
 
       {/* Right Side - Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-slate-50">
         {selectedConversation ? (
           <MessageThread conversation={selectedConversation} />
         ) : (
           <>
             {/* Empty State Header */}
-            <div className="h-16 bg-card border-b border-border flex items-center px-6">
-              <MessageSquare className="w-6 h-6 text-primary mr-3" />
+            <div className="h-16 bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center px-6 shadow-sm">
+              <MessageSquare className="w-6 h-6 text-white mr-3" />
               <div>
-                <h3 className="font-semibold text-foreground">Welcome to Messages</h3>
-                <p className="text-sm text-muted-foreground">Select a conversation to start messaging</p>
+                <h3 className="font-semibold text-white">Welcome to Messages</h3>
+                <p className="text-sm text-teal-100">Select a conversation to start messaging</p>
               </div>
             </div>
 
             {/* Empty State Content */}
-            <div className="flex-1 flex items-center justify-center bg-muted/20">
+            <div className="flex-1 flex items-center justify-center bg-slate-50">
               <div className="text-center max-w-sm">
-                <div className="w-20 h-20 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
-                  <MessageSquare className="w-10 h-10 text-primary" />
+                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center shadow-lg">
+                  <MessageSquare className="w-12 h-12 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">
+                <h3 className="text-2xl font-semibold text-slate-800 mb-2">
                   Start a Conversation
                 </h3>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-slate-500 mb-6 leading-relaxed">
                   Select a conversation from the sidebar or create a new one to begin messaging with other users in your organization.
                 </p>
               </div>
