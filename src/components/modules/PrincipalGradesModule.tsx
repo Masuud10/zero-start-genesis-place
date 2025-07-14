@@ -54,7 +54,6 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { DynamicGradingSheet } from "@/components/grading/DynamicGradingSheet";
-import { StableGradingSheet } from "@/components/grading/StableGradingSheet";
 import { useClasses } from "@/hooks/useClasses";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useClassCurriculum } from "@/hooks/useClassCurriculum";
@@ -849,7 +848,7 @@ const PrincipalGradesModule: React.FC = () => {
           </DialogHeader>
           <div className="overflow-auto max-h-[70vh]">
             {selectedClass && selectedTerm && selectedExamType && (
-              <StableGradingSheet
+              <DynamicGradingSheet
                 classId={selectedClass}
                 term={selectedTerm}
                 examType={selectedExamType}
@@ -862,7 +861,6 @@ const PrincipalGradesModule: React.FC = () => {
                   });
                 }}
                 isReadOnly={false}
-                isPrincipal={true}
               />
             )}
           </div>

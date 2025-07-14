@@ -52,6 +52,10 @@ interface GradeValue {
   teacher_remarks?: string;
   assessment_type?: string;
   performance_level?: "EM" | "AP" | "PR" | "EX";
+  // IGCSE specific fields
+  coursework_score?: number;
+  exam_score?: number;
+  total_score?: number;
 }
 
 interface DynamicGradingSheetProps {
@@ -259,7 +263,6 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
           .eq("term", term)
           .eq("exam_type", examType)
           .eq("curriculum_type", "igcse")
-          .eq("submitted_by", user?.id)
           .in("status", ["draft", "submitted", "rejected"]);
 
         if (igcseError) {
@@ -274,6 +277,8 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
               percentage: grade.percentage,
               letter_grade: grade.letter_grade,
               teacher_remarks: grade.comments || "",
+              coursework_score: grade.coursework_score,
+              exam_score: grade.exam_score,
             };
           });
         }
@@ -433,6 +438,45 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
             }
           }
         }
+      } else if (curriculumType === "igcse") {
+        // Save IGCSE grades as draft
+        const gradesToSave = [];
+        for (const [studentId, studentGrades] of Object.entries(grades)) {
+          for (const [subjectId, gradeValue] of Object.entries(studentGrades)) {
+            if (gradeValue.coursework_score !== undefined || gradeValue.exam_score !== undefined) {
+              gradesToSave.push({
+                school_id: schoolId,
+                student_id: studentId,
+                subject_id: subjectId,
+                class_id: classId,
+                term: term,
+                exam_type: examType,
+                score: gradeValue.score,
+                max_score: 100,
+                percentage: gradeValue.percentage,
+                letter_grade: gradeValue.letter_grade,
+                coursework_score: gradeValue.coursework_score,
+                exam_score: gradeValue.exam_score,
+                curriculum_type: "igcse",
+                status: "draft",
+                submitted_by: user.id,
+                submitted_at: new Date().toISOString(),
+                comments: gradeValue.teacher_remarks || null,
+              });
+            }
+          }
+        }
+
+        if (gradesToSave.length > 0) {
+          const { error } = await supabase.from("grades").upsert(gradesToSave, {
+            onConflict:
+              "school_id,student_id,subject_id,class_id,term,exam_type,submitted_by",
+            ignoreDuplicates: false,
+          });
+
+          if (error) throw error;
+          savedCount = gradesToSave.length;
+        }
       } else {
         // Save standard grades as draft
         const gradesToSave = [];
@@ -546,6 +590,47 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
               }
             }
           }
+        }
+      } else if (curriculumType === "igcse") {
+        // Submit IGCSE grades
+        const gradesToSubmit = [];
+        for (const [studentId, studentGrades] of Object.entries(grades)) {
+          for (const [subjectId, gradeValue] of Object.entries(studentGrades)) {
+            if (gradeValue.coursework_score !== undefined || gradeValue.exam_score !== undefined) {
+              gradesToSubmit.push({
+                school_id: schoolId,
+                student_id: studentId,
+                subject_id: subjectId,
+                class_id: classId,
+                term: term,
+                exam_type: examType,
+                score: gradeValue.score,
+                max_score: 100,
+                percentage: gradeValue.percentage,
+                letter_grade: gradeValue.letter_grade,
+                coursework_score: gradeValue.coursework_score,
+                exam_score: gradeValue.exam_score,
+                curriculum_type: "igcse",
+                status: "submitted",
+                submitted_by: user.id,
+                submitted_at: new Date().toISOString(),
+                comments: gradeValue.teacher_remarks || null,
+              });
+            }
+          }
+        }
+
+        if (gradesToSubmit.length > 0) {
+          const { error } = await supabase
+            .from("grades")
+            .upsert(gradesToSubmit, {
+              onConflict:
+                "school_id,student_id,subject_id,class_id,term,exam_type,submitted_by",
+              ignoreDuplicates: false,
+            });
+
+          if (error) throw error;
+          submittedCount = gradesToSubmit.length;
         }
       } else {
         // Submit standard grades
@@ -734,11 +819,15 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
   }
 
   const hasGradesToSubmit = Object.values(grades).some((studentGrades) =>
-    Object.values(studentGrades).some((grade) =>
-      curriculumType === "cbc"
-        ? grade.strand_scores && Object.keys(grade.strand_scores).length > 0
-        : grade.score !== undefined && grade.score !== null
-    )
+    Object.values(studentGrades).some((grade) => {
+      if (curriculumType === "cbc") {
+        return grade.strand_scores && Object.keys(grade.strand_scores).length > 0;
+      } else if (curriculumType === "igcse") {
+        return grade.coursework_score !== undefined || grade.exam_score !== undefined;
+      } else {
+        return grade.score !== undefined && grade.score !== null;
+      }
+    })
   );
 
   const curriculumInfo = getCurriculumInfo(curriculumType);
