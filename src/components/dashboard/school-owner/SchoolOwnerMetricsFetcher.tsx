@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import SchoolOwnerDashboardLayout from "./SchoolOwnerDashboardLayout";
 import FinancialOverviewReadOnly from "../shared/FinancialOverviewReadOnly";
 
@@ -35,8 +36,9 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchSchoolMetrics = async () => {
+  const fetchSchoolMetrics = useCallback(async () => {
     if (!schoolId && !isSystemAdmin) {
       setError(
         "No school assignment found. Please contact your administrator."
@@ -47,6 +49,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
 
     let attempts = 0;
     const maxAttempts = 3;
+
     while (attempts < maxAttempts) {
       try {
         setLoading(true);
@@ -58,13 +61,22 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
 
         const targetSchoolId = schoolId || user?.school_id;
 
+        // Validate school ID format
+        if (
+          !targetSchoolId ||
+          typeof targetSchoolId !== "string" ||
+          targetSchoolId.length < 10
+        ) {
+          throw new Error("Invalid school ID format");
+        }
+
         // Set timeout for better user experience
         const timeoutId = setTimeout(() => {
           console.warn(
             "📊 SchoolOwnerMetricsFetcher: Query timeout - showing partial data"
           );
           setLoading(false);
-        }, 10000); // 10 second timeout
+        }, 15000); // 15 second timeout
 
         // Fetch basic school metrics with proper error handling
         const [studentsRes, teachersRes, classesRes] = await Promise.all([
@@ -77,11 +89,13 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
             .from("profiles")
             .select("id", { count: "exact" })
             .eq("school_id", targetSchoolId)
-            .eq("role", "teacher"),
+            .eq("role", "teacher")
+            .eq("status", "active"),
           supabase
             .from("classes")
             .select("id", { count: "exact" })
-            .eq("school_id", targetSchoolId),
+            .eq("school_id", targetSchoolId)
+            .eq("is_active", true),
         ]);
 
         clearTimeout(timeoutId);
@@ -110,7 +124,12 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
         const { data: attendanceData, error: attendanceError } = await supabase
           .from("attendance")
           .select("status")
-          .eq("school_id", targetSchoolId);
+          .eq("school_id", targetSchoolId)
+          .gte(
+            "date",
+            new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0]
+          )
+          .limit(1000);
 
         if (attendanceError) {
           console.error("Error fetching attendance:", attendanceError);
@@ -133,7 +152,9 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           .from("financial_transactions")
           .select("amount")
           .eq("school_id", targetSchoolId)
-          .eq("transaction_type", "payment");
+          .eq("transaction_type", "payment")
+          .eq("status", "completed")
+          .limit(500);
 
         if (financialError) {
           console.error("Error fetching financial data:", financialError);
@@ -142,31 +163,36 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
 
         const totalRevenue =
           financialData?.reduce(
-            (sum, transaction) => sum + (transaction.amount || 0),
+            (sum, transaction) => sum + (Number(transaction.amount) || 0),
             0
           ) || 0;
 
         // Calculate fee collection rate and outstanding fees with error handling
         const { data: feeData, error: feeError } = await supabase
           .from("fees")
-          .select("amount, paid_amount")
-          .eq("school_id", targetSchoolId);
+          .select("amount, paid_amount, status")
+          .eq("school_id", targetSchoolId)
+          .limit(500);
 
         if (feeError) {
           console.error("Error fetching fee data:", feeError);
           // Don't throw error, continue with default values
         }
-        if (feeData && feeData.length === 1000) {
-          console.warn("⚠️ Fee data may be truncated (1000 records fetched)");
+        if (feeData && feeData.length === 500) {
+          console.warn("⚠️ Fee data may be truncated (500 records fetched)");
         }
 
         const totalExpected =
-          feeData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+          feeData?.reduce((sum, fee) => sum + (Number(fee.amount) || 0), 0) ||
+          0;
         const totalCollected =
-          feeData?.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0) || 0;
+          feeData?.reduce(
+            (sum, fee) => sum + (Number(fee.paid_amount) || 0),
+            0
+          ) || 0;
         const feeCollectionRate =
           totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0;
-        const outstandingFees = totalExpected - totalCollected;
+        const outstandingFees = Math.max(0, totalExpected - totalCollected);
 
         // Calculate monthly growth (simplified - comparing current month to previous)
         const currentDate = new Date();
@@ -180,6 +206,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           .select("amount")
           .eq("school_id", targetSchoolId)
           .eq("transaction_type", "payment")
+          .eq("status", "completed")
           .gte(
             "created_at",
             new Date(currentYear, currentMonth, 1).toISOString()
@@ -194,6 +221,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           .select("amount")
           .eq("school_id", targetSchoolId)
           .eq("transaction_type", "payment")
+          .eq("status", "completed")
           .gte(
             "created_at",
             new Date(previousYear, previousMonth, 1).toISOString()
@@ -204,9 +232,15 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           );
 
         const currentMonthRevenue =
-          currentMonthData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+          currentMonthData?.reduce(
+            (sum, t) => sum + (Number(t.amount) || 0),
+            0
+          ) || 0;
         const previousMonthRevenue =
-          previousMonthData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+          previousMonthData?.reduce(
+            (sum, t) => sum + (Number(t.amount) || 0),
+            0
+          ) || 0;
 
         const monthlyGrowth =
           previousMonthRevenue > 0
@@ -215,16 +249,23 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
               100
             : 0;
 
-        setMetrics({
+        const calculatedMetrics = {
           totalStudents: studentsRes.count || 0,
           totalTeachers: teachersRes.count || 0,
           totalClasses: classesRes.count || 0,
-          feeCollectionRate: Math.round(feeCollectionRate),
+          feeCollectionRate: Math.round(
+            Math.min(100, Math.max(0, feeCollectionRate))
+          ),
           totalRevenue: Math.round(totalRevenue),
-          attendanceRate: Math.round(attendanceRate),
+          attendanceRate: Math.round(
+            Math.min(100, Math.max(0, attendanceRate))
+          ),
           outstandingFees: Math.round(outstandingFees),
           monthlyGrowth: Math.round(monthlyGrowth * 10) / 10,
-        });
+        };
+
+        setMetrics(calculatedMetrics);
+        setLastUpdated(new Date());
 
         // Warn if all metrics are zero (possible data or access issue)
         if (
@@ -251,7 +292,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           console.warn(
             `Retrying school metrics fetch (attempt ${attempts + 1})`
           );
-          await new Promise((res) => setTimeout(res, 500 * attempts));
+          await new Promise((res) => setTimeout(res, 1000 * attempts));
           continue;
         }
         console.error(
@@ -268,18 +309,35 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
         setLoading(false);
       }
     }
-  };
+  }, [schoolId, user?.school_id, isSystemAdmin]);
 
   useEffect(() => {
     fetchSchoolMetrics();
-  }, [schoolId, user?.school_id]);
+  }, [fetchSchoolMetrics]);
+
+  const handleRetry = () => {
+    fetchSchoolMetrics();
+  };
 
   if (error) {
     return (
-      <Alert variant="destructive" className="m-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <div className="space-y-6">
+        <Alert variant="destructive" className="m-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              className="ml-4"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
@@ -289,10 +347,20 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
         metrics={metrics}
         loading={loading}
         schoolId={schoolId}
+        onManagementAction={(action) => {
+          console.log("School Owner Management Action:", action);
+        }}
       />
 
       {/* Financial Overview - Linked to Finance Officer Dashboard */}
       <FinancialOverviewReadOnly />
+
+      {/* Last Updated Indicator */}
+      {lastUpdated && (
+        <div className="text-xs text-muted-foreground text-center">
+          Last updated: {lastUpdated.toLocaleString()}
+        </div>
+      )}
     </div>
   );
 };

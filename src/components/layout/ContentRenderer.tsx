@@ -159,6 +159,15 @@ const ParentFinanceView = React.lazy(
 const ParentTimetableView = React.lazy(
   () => import("@/components/timetable/ParentTimetableView")
 );
+const SchoolOwnerTimetableView = React.lazy(
+  () => import("@/components/timetable/SchoolOwnerTimetableView")
+);
+const SchoolOwnerReportsModule = React.lazy(
+  () => import("@/components/reports/SchoolOwnerReportsModule")
+);
+const SchoolOwnerSupportModule = React.lazy(
+  () => import("@/components/modules/SchoolOwnerSupportModule")
+);
 const AcademicManagementModule = React.lazy(
   () => import("@/components/modules/AcademicManagementModule")
 );
@@ -287,7 +296,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
     // System Settings - Only for EduFam Admins
     if (activeSection === "settings") {
       if (user?.role === "edufam_admin") {
-        return renderLazyComponent(EduFamSystemSettings, "EduFamSystemSettings");
+        return renderLazyComponent(
+          EduFamSystemSettings,
+          "EduFamSystemSettings"
+        );
       }
       return (
         <div>
@@ -600,6 +612,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
             "ParentTimetableView"
           );
         }
+        // Special case for school owners - they get a comprehensive timetable viewer
+        if (user?.role === "school_owner") {
+          return renderLazyComponent(
+            SchoolOwnerTimetableView,
+            "SchoolOwnerTimetableView"
+          );
+        }
         return renderLazyComponent(TimetableModule, "TimetableModule");
       case "announcements":
         return renderLazyComponent(AnnouncementsModule, "AnnouncementsModule");
@@ -611,6 +630,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           return renderLazyComponent(
             TeacherReportsModule,
             "TeacherReportsModule"
+          );
+        }
+        // School owners get their own comprehensive reports module
+        if (user?.role === "school_owner") {
+          return renderLazyComponent(
+            SchoolOwnerReportsModule,
+            "SchoolOwnerReportsModule"
           );
         }
         return renderLazyComponent(ReportsModule, "ReportsModule");
@@ -634,6 +660,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           return renderLazyComponent(
             TeacherSupportModule,
             "TeacherSupportModule"
+          );
+        }
+        // School owners get their own support module
+        if (user?.role === "school_owner") {
+          return renderLazyComponent(
+            SchoolOwnerSupportModule,
+            "SchoolOwnerSupportModule"
           );
         }
         // All other roles get universal support module
