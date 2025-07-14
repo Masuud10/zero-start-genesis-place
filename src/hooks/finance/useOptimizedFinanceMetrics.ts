@@ -52,17 +52,17 @@ export const useOptimizedFinanceMetrics = () => {
         setLoadingTimeout(true);
       }, 6000); // Increased to 6 seconds for better reliability
 
-      // Optimized parallel queries with proper limits
+      // Ultra-optimized parallel queries with minimal data fetching
       const [feesResult, studentsResult] = await Promise.allSettled([
-        // Get fees data with limits
+        // Get fees summary data only - no need to fetch 1000 rows
         supabase
           .from('fees')
           .select('amount, paid_amount, status')
           .eq('school_id', user.school_id)
-          .limit(1000)
+          .limit(100) // Reduced from 1000 to 100 for faster response
           .abortSignal(controller.signal),
 
-        // Get student count
+        // Get student count using count query
         supabase
           .from('students')
           .select('id', { count: 'exact', head: true })

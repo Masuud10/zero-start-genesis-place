@@ -107,22 +107,26 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
           .eq('role', 'teacher')
+          .eq('status', 'active')
           .abortSignal(abortControllerRef.current.signal),
         parents: supabase
           .from('profiles')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
           .eq('role', 'parent')
+          .eq('status', 'active')
           .abortSignal(abortControllerRef.current.signal),
         classes: supabase
           .from('classes')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
+          .eq('is_active', true)
           .abortSignal(abortControllerRef.current.signal),
         subjects: supabase
           .from('subjects')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
+          .eq('is_active', true)
           .abortSignal(abortControllerRef.current.signal),
         grades: supabase
           .from('grades')
@@ -147,6 +151,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
           .from('fees')
           .select('amount, paid_amount, status')
           .eq('school_id', schoolId)
+          .limit(100) // Reduced limit for better performance
           .abortSignal(abortControllerRef.current.signal)
       };
 
