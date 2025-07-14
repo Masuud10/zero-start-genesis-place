@@ -190,27 +190,58 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
         }
       }
 
-      // If still no subjects, try subject_teacher_assignments for teachers
-      if (subjectsList.length === 0 && user?.role === "teacher") {
+      // If still no subjects, try subject_teacher_assignments
+      if (subjectsList.length === 0) {
         console.log("🔄 Trying subject_teacher_assignments...");
-        const { data: teacherSubjectsData, error: teacherSubjectsError } =
-          await supabase
-            .from("subject_teacher_assignments")
-            .select(
-              `
-            subject:subjects(id, name, code)
-          `
-            )
-            .eq("teacher_id", user.id)
-            .eq("class_id", classId)
-            .eq("school_id", schoolId)
-            .eq("is_active", true);
+        
+        if (user?.role === "teacher") {
+          // For teachers, load only their assigned subjects
+          const { data: teacherSubjectsData, error: teacherSubjectsError } =
+            await supabase
+              .from("subject_teacher_assignments")
+              .select(
+                `
+              subject:subjects(id, name, code)
+            `
+              )
+              .eq("teacher_id", user.id)
+              .eq("class_id", classId)
+              .eq("school_id", schoolId)
+              .eq("is_active", true);
 
-        if (!teacherSubjectsError && teacherSubjectsData) {
-          subjectsList =
-            teacherSubjectsData
-              ?.map((item: { subject: Subject }) => item.subject)
-              .filter(Boolean) || [];
+          if (!teacherSubjectsError && teacherSubjectsData) {
+            subjectsList =
+              teacherSubjectsData
+                ?.map((item: { subject: Subject }) => item.subject)
+                .filter(Boolean) || [];
+          }
+        } else if (isPrincipal) {
+          // For principals, load all subjects assigned to this class
+          const { data: allClassSubjectsData, error: allClassSubjectsError } =
+            await supabase
+              .from("subject_teacher_assignments")
+              .select(
+                `
+              subject:subjects(id, name, code)
+            `
+              )
+              .eq("class_id", classId)
+              .eq("school_id", schoolId)
+              .eq("is_active", true);
+
+          if (!allClassSubjectsError && allClassSubjectsData) {
+            // Remove duplicates by subject ID
+            const uniqueSubjects = allClassSubjectsData
+              .map((item: { subject: Subject }) => item.subject)
+              .filter(Boolean)
+              .reduce((acc: Subject[], current: Subject) => {
+                if (!acc.find(s => s.id === current.id)) {
+                  acc.push(current);
+                }
+                return acc;
+              }, []);
+            subjectsList = uniqueSubjects;
+          }
         }
       }
 
