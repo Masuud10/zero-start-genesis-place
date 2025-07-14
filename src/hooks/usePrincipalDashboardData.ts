@@ -120,13 +120,11 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
           .from('classes')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
-          .eq('is_active', true)
           .abortSignal(abortControllerRef.current.signal),
         subjects: supabase
           .from('subjects')
           .select('id', { count: 'exact', head: true })
           .eq('school_id', schoolId)
-          .eq('is_active', true)
           .abortSignal(abortControllerRef.current.signal),
         grades: supabase
           .from('grades')

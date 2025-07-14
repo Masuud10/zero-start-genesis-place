@@ -29,7 +29,8 @@ import {
   BookOpen,
   UserPlus,
   ArrowUpDown,
-  Archive
+  Archive,
+  MessageSquare
 } from 'lucide-react';
 
 import { LucideIcon } from 'lucide-react';
@@ -46,6 +47,7 @@ export interface MenuItem {
 export const getMenuItems = (userRole?: string): MenuItem[] => {
   const baseItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
   ];
 
   // System admin specific items - ensure Project Hub is prominently placed
