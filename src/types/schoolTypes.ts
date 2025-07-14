@@ -16,6 +16,7 @@ export interface CreateSchoolRequest {
   ownerEmail?: string;
   ownerName?: string;
   ownerPhone?: string;
+  curriculumType?: 'cbc' | 'kcse' | 'cambridge' | 'ib';
 }
 
 export interface CreateSchoolResponse {

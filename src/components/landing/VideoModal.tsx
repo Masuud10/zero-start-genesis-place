@@ -9,17 +9,18 @@ interface VideoModalProps {
 }
 
 const VideoModal = ({ isOpen, onClose }: VideoModalProps) => {
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open - with improved cleanup
   useEffect(() => {
     if (isOpen) {
+      // Store original overflow value
+      const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
+      
+      return () => {
+        // Restore original overflow value
+        document.body.style.overflow = originalOverflow;
+      };
     }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
   }, [isOpen]);
 
   if (!isOpen) return null;

@@ -61,37 +61,58 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
 
-  // Initialize speech synthesis
+  // Initialize speech synthesis with proper cleanup
   useEffect(() => {
+    let mounted = true;
+    
     const initVoices = () => {
+      if (!mounted) return false;
+      
       const voices = window.speechSynthesis.getVoices();
       if (voices.length > 0) {
         console.log("🎤 Voices initialized:", voices.length);
-        setVoicesReady(true);
+        if (mounted) {
+          setVoicesReady(true);
+        }
         return true;
       }
       return false;
     };
 
+    const handleVoicesChanged = () => {
+      if (mounted && initVoices()) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+
     if (!initVoices()) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        if (initVoices()) {
-          window.speechSynthesis.onvoiceschanged = null;
-        }
-      };
+      window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
     }
 
     return () => {
-      window.speechSynthesis.onvoiceschanged = null;
+      mounted = false;
+      // Aggressively stop and clear speech synthesis
+      try {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
+        window.speechSynthesis.onvoiceschanged = null;
+      } catch (error) {
+        console.warn("Speech synthesis cleanup warning:", error);
+      }
     };
   }, []);
 
   const stopAllSpeech = () => {
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+    try {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      speechQueueRef.current = null;
+      setCurrentSpeechIndex(-1);
+    } catch (error) {
+      console.warn("Speech stop warning:", error);
     }
-    speechQueueRef.current = null;
-    setCurrentSpeechIndex(-1);
   };
 
   const speakText = (text: string, index: number) => {
@@ -279,13 +300,32 @@ const PromoVideo: React.FC<PromoVideoProps> = ({ onClose }) => {
     };
   }, [voicesReady, isPlaying, duration, stopAllSpeech]);
 
-  // Cleanup on unmount
+  // Comprehensive cleanup on unmount - CRITICAL for preventing DOM errors
   useEffect(() => {
     return () => {
+      console.log("🎤 PromoVideo unmounting - cleaning up all resources");
+      
+      // Stop and clear interval
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-      stopAllSpeech();
+      
+      // Aggressively stop speech synthesis before React removes DOM nodes
+      try {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
+        // Clear any pending speech utterances
+        window.speechSynthesis.onvoiceschanged = null;
+      } catch (error) {
+        console.warn("Speech cleanup warning during unmount:", error);
+      }
+      
+      // Clear speech queue
+      speechQueueRef.current = null;
+      setCurrentSpeechIndex(-1);
+      setIsPlaying(false);
     };
   }, []);
 
