@@ -90,16 +90,14 @@ serve(async (req) => {
       );
     }
 
-    // Determine participant order (smaller UUID first for consistency)
-    const participant1 = user.id < recipient_id ? user.id : recipient_id;
-    const participant2 = user.id < recipient_id ? recipient_id : user.id;
+    // Create participant_ids array with both users
+    const participantIds = [user.id, recipient_id];
 
-    // Check if conversation already exists
+    // Check if conversation already exists using the new schema
     const { data: existingConversation } = await supabase
       .from('conversations')
       .select('id')
-      .eq('participant_1_id', participant1)
-      .eq('participant_2_id', participant2)
+      .contains('participant_ids', participantIds)
       .single();
 
     if (existingConversation) {
@@ -116,13 +114,11 @@ serve(async (req) => {
       );
     }
 
-    // Create new conversation
+    // Create new conversation with the new schema
     const { data: newConversation, error: conversationError } = await supabase
       .from('conversations')
       .insert({
-        participant_1_id: participant1,
-        participant_2_id: participant2,
-        school_id: userProfile.school_id
+        participant_ids: participantIds
       })
       .select()
       .single();

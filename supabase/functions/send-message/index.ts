@@ -58,10 +58,10 @@ serve(async (req) => {
 
     console.log('Sending message to conversation:', conversationId, 'from user:', user.id);
 
-    // Verify user is a participant in this conversation
+    // Verify user is a participant in this conversation using new schema
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
-      .select('id, participant_1_id, participant_2_id, school_id')
+      .select('id, participant_ids')
       .eq('id', conversationId)
       .single();
 
@@ -73,9 +73,8 @@ serve(async (req) => {
       );
     }
 
-    // Check if user is a participant
-    const isParticipant = conversation.participant_1_id === user.id || 
-                         conversation.participant_2_id === user.id;
+    // Check if user is a participant using the new participant_ids array
+    const isParticipant = conversation.participant_ids.includes(user.id);
 
     if (!isParticipant) {
       return new Response(
@@ -84,36 +83,13 @@ serve(async (req) => {
       );
     }
 
-    // Determine receiver
-    const receiverId = conversation.participant_1_id === user.id 
-      ? conversation.participant_2_id 
-      : conversation.participant_1_id;
-
-    // Get sender and receiver names
-    const { data: senderProfile } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', user.id)
-      .single();
-
-    const { data: receiverProfile } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', receiverId)
-      .single();
-
-    // Insert the message
+    // Insert the message with the new schema
     const { data: newMessage, error: messageError } = await supabase
       .from('messages')
       .insert({
         conversation_id: conversationId,
         sender_id: user.id,
-        receiver_id: receiverId,
-        content: message_content.trim(),
-        school_id: conversation.school_id,
-        sender_name: senderProfile?.name || 'Unknown',
-        receiver_name: receiverProfile?.name || 'Unknown',
-        is_read: false
+        content: message_content.trim()
       })
       .select()
       .single();

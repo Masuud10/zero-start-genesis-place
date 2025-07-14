@@ -48,10 +48,10 @@ serve(async (req) => {
 
     console.log('Getting messages for conversation:', conversationId, 'user:', user.id);
 
-    // First verify user is a participant in this conversation
+    // First verify user is a participant in this conversation using new schema
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
-      .select('id, participant_1_id, participant_2_id')
+      .select('id, participant_ids')
       .eq('id', conversationId)
       .single();
 
@@ -63,9 +63,8 @@ serve(async (req) => {
       );
     }
 
-    // Check if user is a participant
-    const isParticipant = conversation.participant_1_id === user.id || 
-                         conversation.participant_2_id === user.id;
+    // Check if user is a participant using the new participant_ids array
+    const isParticipant = conversation.participant_ids.includes(user.id);
 
     if (!isParticipant) {
       return new Response(
@@ -74,18 +73,15 @@ serve(async (req) => {
       );
     }
 
-    // Get messages for this conversation
+    // Get messages for this conversation with sender details
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
       .select(`
         id,
         content,
         sender_id,
-        receiver_id,
-        created_at,
-        is_read,
-        sender:sender_id(id, name),
-        receiver:receiver_id(id, name)
+        conversation_id,
+        created_at
       `)
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
@@ -100,24 +96,37 @@ serve(async (req) => {
 
     console.log('Found', messages?.length || 0, 'messages');
 
-    // Mark messages as read for the current user
-    if (messages && messages.length > 0) {
-      const unreadMessages = messages.filter(msg => 
-        msg.receiver_id === user.id && !msg.is_read
-      );
+    // Transform messages to include sender details
+    const transformedMessages = [];
+    
+    for (const message of messages || []) {
+      // Get sender profile
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('id, name, role')
+        .eq('id', message.sender_id)
+        .single();
 
-      if (unreadMessages.length > 0) {
-        await supabase
-          .from('messages')
-          .update({ is_read: true })
-          .eq('conversation_id', conversationId)
-          .eq('receiver_id', user.id)
-          .eq('is_read', false);
-      }
+      transformedMessages.push({
+        id: message.id,
+        content: message.content,
+        sender_id: message.sender_id,
+        conversation_id: message.conversation_id,
+        created_at: message.created_at,
+        sender: senderProfile ? {
+          id: senderProfile.id,
+          name: senderProfile.name || 'Unknown',
+          role: senderProfile.role || 'unknown'
+        } : {
+          id: message.sender_id,
+          name: 'Unknown',
+          role: 'unknown'
+        }
+      });
     }
 
     return new Response(
-      JSON.stringify({ messages: messages || [] }),
+      JSON.stringify({ messages: transformedMessages }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

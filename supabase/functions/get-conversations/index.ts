@@ -36,22 +36,12 @@ serve(async (req) => {
 
     console.log('Getting conversations for user:', user.id);
 
-    // Get conversations where user is a participant
+    // Get conversations where user is a participant using the new schema
     const { data: conversations, error: conversationsError } = await supabase
       .from('conversations')
-      .select(`
-        id,
-        created_at,
-        updated_at,
-        last_message_at,
-        last_message_preview,
-        participant_1_id,
-        participant_2_id,
-        participant_1:participant_1_id(id, name, role),
-        participant_2:participant_2_id(id, name, role)
-      `)
-      .or(`participant_1_id.eq.${user.id},participant_2_id.eq.${user.id}`)
-      .order('last_message_at', { ascending: false });
+      .select('*')
+      .contains('participant_ids', [user.id])
+      .order('created_at', { ascending: false });
 
     if (conversationsError) {
       console.error('Error fetching conversations:', conversationsError);
@@ -63,25 +53,47 @@ serve(async (req) => {
 
     console.log('Raw conversations:', conversations);
 
-    // Transform conversations to include other participant info
-    const transformedConversations = conversations?.map(conv => {
-      const otherParticipant = conv.participant_1_id === user.id 
-        ? conv.participant_2 
-        : conv.participant_1;
+    // Transform conversations to include other participant info and last message
+    const transformedConversations = [];
+    
+    for (const conv of conversations || []) {
+      // Find the other participant (not the current user)
+      const otherParticipantId = conv.participant_ids.find(id => id !== user.id);
       
-      return {
-        id: conv.id,
-        created_at: conv.created_at,
-        updated_at: conv.updated_at,
-        last_message_at: conv.last_message_at,
-        last_message_preview: conv.last_message_preview,
-        other_participant: {
-          id: otherParticipant?.id,
-          name: otherParticipant?.name,
-          role: otherParticipant?.role
-        }
-      };
-    }) || [];
+      if (otherParticipantId) {
+        // Get other participant's profile
+        const { data: participantProfile } = await supabase
+          .from('profiles')
+          .select('id, name, role')
+          .eq('id', otherParticipantId)
+          .single();
+
+        // Get the last message in this conversation
+        const { data: lastMessage } = await supabase
+          .from('messages')
+          .select('content, created_at')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        transformedConversations.push({
+          id: conv.id,
+          created_at: conv.created_at,
+          other_participant: participantProfile ? {
+            id: participantProfile.id,
+            name: participantProfile.name || 'Unknown',
+            role: participantProfile.role || 'unknown'
+          } : {
+            id: otherParticipantId,
+            name: 'Unknown',
+            role: 'unknown'
+          },
+          last_message_preview: lastMessage?.content || null,
+          last_message_at: lastMessage?.created_at || null
+        });
+      }
+    }
 
     console.log('Transformed conversations:', transformedConversations);
 
