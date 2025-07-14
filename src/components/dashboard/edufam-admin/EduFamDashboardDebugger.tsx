@@ -27,7 +27,7 @@ import { useSchoolScopedData } from "../../../hooks/useSchoolScopedData";
 import { useAdminSchoolsData } from "../../../hooks/useAdminSchoolsData";
 import { useAdminUsersData } from "../../../hooks/useAdminUsersData";
 import { supabase } from "../../../integrations/supabase/client";
-import { performanceMonitor } from "../../../utils/performanceMonitor";
+import { PerformanceMonitor } from "../../../utils/performanceMonitor";
 import { ApiService } from "../../../services/api/apiService";
 
 // Extend Performance interface for memory usage
@@ -136,7 +136,7 @@ const EduFamDashboardDebugger: React.FC = () => {
     }
 
     // Get performance stats
-    const perfStats = performanceMonitor.getPerformanceReport();
+    const perfStats = PerformanceMonitor.getSummary();
 
     // Get system info
     const memoryUsage = (performance as ExtendedPerformance).memory
@@ -594,7 +594,7 @@ const EduFamDashboardDebugger: React.FC = () => {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => performanceMonitor.clearMetrics()}
+            onClick={() => PerformanceMonitor.clear()}
           >
             Clear Metrics
           </Button>
@@ -602,7 +602,7 @@ const EduFamDashboardDebugger: React.FC = () => {
             size="sm"
             variant="outline"
             onClick={() => {
-              const metrics = performanceMonitor.exportMetrics();
+              const metrics = PerformanceMonitor.getMetrics();
               console.log("Performance Metrics:", metrics);
             }}
           >

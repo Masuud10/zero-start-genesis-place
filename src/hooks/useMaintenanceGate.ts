@@ -13,7 +13,7 @@ export function useMaintenanceGate() {
         
         // Fetch maintenance settings and user session
         const [settingsRes, sessionRes] = await Promise.all([
-          supabase.from('system_settings').select('setting_value').eq('setting_key', 'maintenance_mode').limit(1).single(),
+          supabase.from('system_settings').select('setting_value').eq('setting_key', 'maintenance_mode').limit(1).maybeSingle(),
           supabase.auth.getSession()
         ]);
 
@@ -97,7 +97,7 @@ export function useMaintenanceGate() {
     
     try {
       const [settingsRes, sessionRes] = await Promise.all([
-        supabase.from('system_settings').select('setting_value').eq('setting_key', 'maintenance_mode').limit(1).single(),
+        supabase.from('system_settings').select('setting_value').eq('setting_key', 'maintenance_mode').limit(1).maybeSingle(),
         supabase.auth.getSession()
       ]);
 
