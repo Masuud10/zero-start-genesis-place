@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Plus, MessageSquare, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Plus,
+  MessageSquare,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 
 interface SupportTicket {
   id: string;
@@ -25,51 +32,51 @@ interface UniversalSupportModuleProps {
   description?: string;
 }
 
-const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({ 
+const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
   title = "Support Center",
-  description = "Submit tickets and track your support requests"
+  description = "Submit tickets and track your support requests",
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
-    subject: '',
-    message: ''
+    subject: "",
+    message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch user's support tickets
   const { data: tickets, isLoading } = useQuery({
-    queryKey: ['support-tickets', user?.id],
+    queryKey: ["support-tickets", user?.id],
     queryFn: async (): Promise<SupportTicket[]> => {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
+        .from("support_tickets")
+        .select("*")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
 
   // Create support ticket mutation
   const createTicketMutation = useMutation({
     mutationFn: async (ticketData: { title: string; description: string }) => {
       const { data, error } = await supabase
-        .from('support_tickets')
+        .from("support_tickets")
         .insert({
           title: ticketData.title,
           description: ticketData.description,
           created_by: user?.id,
           school_id: user?.school_id,
-          status: 'open',
-          priority: 'medium',
-          category: 'general'
+          status: "open",
+          priority: "medium",
+          category: "general",
         })
         .select()
         .single();
@@ -78,32 +85,32 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
       toast({
         title: "Support Ticket Created",
         description: "Your support ticket has been submitted successfully.",
       });
-      setFormData({ subject: '', message: '' });
+      setFormData({ subject: "", message: "" });
       setShowCreateForm(false);
     },
     onError: (error) => {
       toast({
         title: "Error",
         description: "Failed to create support ticket. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
-      console.error('Error creating support ticket:', error);
-    }
+      console.error("Error creating support ticket:", error);
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.subject.trim() || !formData.message.trim()) {
       toast({
         title: "Missing Information",
         description: "Please fill in both subject and message fields.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -112,7 +119,7 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
     try {
       await createTicketMutation.mutateAsync({
         title: formData.subject,
-        description: formData.message
+        description: formData.message,
       });
     } finally {
       setIsSubmitting(false);
@@ -121,37 +128,39 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'open':
+      case "open":
         return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'resolved':
+      case "resolved":
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'closed':
+      case "closed":
         return <XCircle className="h-4 w-4 text-gray-600" />;
       default:
         return <MessageSquare className="h-4 w-4 text-blue-600" />;
     }
   };
 
-  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+  const getStatusVariant = (
+    status: string
+  ): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'open':
-        return 'default';
-      case 'resolved':
-        return 'secondary';
-      case 'closed':
-        return 'outline';
+      case "open":
+        return "default";
+      case "resolved":
+        return "secondary";
+      case "closed":
+        return "outline";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -174,9 +183,12 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
           <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
           <p className="text-gray-600 mt-1">{description}</p>
         </div>
-        
+
         {!showCreateForm && (
-          <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center gap-2"
+          >
             <Plus className="h-4 w-4" />
             Create Ticket
           </Button>
@@ -200,7 +212,9 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
                 </label>
                 <Input
                   value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, subject: e.target.value })
+                  }
                   placeholder="Brief description of your issue"
                   disabled={isSubmitting}
                   maxLength={100}
@@ -213,7 +227,9 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
                 </label>
                 <Textarea
                   value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, message: e.target.value })
+                  }
                   placeholder="Detailed description of your issue or question"
                   rows={5}
                   disabled={isSubmitting}
@@ -225,9 +241,13 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || !formData.subject.trim() || !formData.message.trim()}
+                <Button
+                  type="submit"
+                  disabled={
+                    isSubmitting ||
+                    !formData.subject.trim() ||
+                    !formData.message.trim()
+                  }
                   className="flex items-center gap-2"
                 >
                   {isSubmitting ? (
@@ -242,13 +262,13 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
                     </>
                   )}
                 </Button>
-                
-                <Button 
-                  type="button" 
-                  variant="outline" 
+
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setFormData({ subject: '', message: '' });
+                    setFormData({ subject: "", message: "" });
                   }}
                   disabled={isSubmitting}
                 >
@@ -285,7 +305,10 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
           ) : (
             <div className="space-y-4">
               {tickets.map((ticket) => (
-                <div key={ticket.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div
+                  key={ticket.id}
+                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -294,27 +317,37 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
                           {ticket.title}
                         </h3>
                       </div>
-                      
+
                       <p className="text-gray-600 text-sm mb-2 line-clamp-2">
                         {ticket.description}
                       </p>
-                      
+
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span>Created: {formatDate(ticket.created_at)}</span>
                         {ticket.resolved_at && (
-                          <span>Resolved: {formatDate(ticket.resolved_at)}</span>
+                          <span>
+                            Resolved: {formatDate(ticket.resolved_at)}
+                          </span>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="ml-4 flex flex-col items-end gap-2">
-                      <Badge variant={getStatusVariant(ticket.status)} className="text-xs">
-                        {ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
+                      <Badge
+                        variant={getStatusVariant(ticket.status)}
+                        className="text-xs"
+                      >
+                        {ticket.status.charAt(0).toUpperCase() +
+                          ticket.status.slice(1)}
                       </Badge>
-                      
+
                       {ticket.priority && (
-                        <Badge 
-                          variant={ticket.priority === 'high' ? 'destructive' : 'outline'} 
+                        <Badge
+                          variant={
+                            ticket.priority === "high"
+                              ? "destructive"
+                              : "outline"
+                          }
                           className="text-xs"
                         >
                           {ticket.priority} priority
@@ -339,8 +372,9 @@ const UniversalSupportModule: React.FC<UniversalSupportModuleProps> = ({
             <div>
               <h3 className="font-medium text-sm mb-1">Need Quick Help?</h3>
               <p className="text-sm text-muted-foreground">
-                For urgent issues, please contact your school administrator directly. 
-                Support tickets are typically responded to within 24-48 hours during business days.
+                For urgent issues, please contact us directly through 0708066322
+                or info@edufam.org. Support tickets are typically responded to
+                within 24-48 hours during business days.
               </p>
             </div>
           </div>
