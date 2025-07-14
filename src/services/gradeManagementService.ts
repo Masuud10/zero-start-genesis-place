@@ -591,10 +591,17 @@ export class GradeManagementService {
       status?: string;
       term?: string;
       examType?: string;
-    }
-  ): Promise<{ data: any[]; error?: string }> {
+    },
+    pagination: {
+      page: number;
+      pageSize: number;
+    } = { page: 1, pageSize: 50 }
+  ): Promise<{ data: any[]; error?: string; total?: number }> {
     try {
-      console.log('🎓 GradeManagementService: Fetching grades for principal', { schoolId, filters });
+      console.log('🎓 GradeManagementService: Fetching grades for principal', { schoolId, filters, pagination });
+
+      // Calculate offset
+      const offset = (pagination.page - 1) * pagination.pageSize;
 
       let query = supabase
         .from('grades')
@@ -623,7 +630,7 @@ export class GradeManagementService {
           subjects!inner(name, code),
           classes!inner(name),
           profiles!inner(name)
-        `)
+        `, { count: 'exact' })
         .eq('school_id', schoolId);
 
       // Apply filters
@@ -633,15 +640,26 @@ export class GradeManagementService {
       if (filters.term && filters.term !== 'all') query = query.eq('term', filters.term);
       if (filters.examType && filters.examType !== 'all') query = query.eq('exam_type', filters.examType);
 
-      const { data, error } = await query.order('submitted_at', { ascending: false });
+      // Apply pagination
+      query = query
+        .order('submitted_at', { ascending: false })
+        .range(offset, offset + pagination.pageSize - 1);
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
 
       console.log('✅ GradeManagementService: Fetched grades for principal', {
-        count: data?.length || 0
+        count: data?.length || 0,
+        total: count || 0,
+        page: pagination.page,
+        pageSize: pagination.pageSize
       });
 
-      return { data: data || [] };
+      return { 
+        data: data || [], 
+        total: count || 0 
+      };
     } catch (error) {
       console.error('❌ GradeManagementService: Error fetching grades for principal:', error);
       return { data: [], error: error instanceof Error ? error.message : 'Unknown error' };

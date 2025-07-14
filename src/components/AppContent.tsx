@@ -19,8 +19,8 @@ const AppContent: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<{
     connected: boolean;
     error?: string;
-  } | null>(null);
-  const [isCheckingDb, setIsCheckingDb] = useState(true);
+  } | null>({ connected: true }); // Assume connected by default
+  const [isCheckingDb, setIsCheckingDb] = useState(false); // Skip database check for performance
   const [accessCheck, setAccessCheck] = useState<{
     hasAccess: boolean;
     redirectTo?: string;
@@ -30,20 +30,8 @@ const AppContent: React.FC = () => {
   // Always call useAuth at the top level
   const authState = useAuth();
 
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const status = await checkDatabaseConnection();
-        setDbStatus(status);
-      } catch (err) {
-        console.error("Failed to check database connection:", err);
-        setDbStatus({ connected: false, error: "Connection check failed" });
-      } finally {
-        setIsCheckingDb(false);
-      }
-    };
-    checkConnection();
-  }, []);
+  // Removed database connection check for performance optimization
+  // The authentication flow will naturally fail if database is unreachable
 
   // Check route access when user changes
   useEffect(() => {

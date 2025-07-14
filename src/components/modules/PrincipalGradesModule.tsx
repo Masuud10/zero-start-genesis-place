@@ -137,6 +137,9 @@ const PrincipalGradesModule: React.FC = () => {
   const [selectedExamType, setSelectedExamType] = useState<string>("all");
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [totalGrades, setTotalGrades] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(50); // Fixed page size for performance
 
   // Modal states
   const [actionModalOpen, setActionModalOpen] = useState(false);
@@ -211,6 +214,7 @@ const PrincipalGradesModule: React.FC = () => {
   // Load grades when filters change
   useEffect(() => {
     if (schoolId) {
+      setCurrentPage(1); // Reset to first page when filters change
       fetchGrades();
     }
   }, [
@@ -221,6 +225,13 @@ const PrincipalGradesModule: React.FC = () => {
     selectedTerm,
     selectedExamType,
   ]);
+
+  // Load grades when page changes
+  useEffect(() => {
+    if (schoolId) {
+      fetchGrades();
+    }
+  }, [currentPage]);
 
   const fetchGrades = async () => {
     if (!schoolId) return;
@@ -244,6 +255,10 @@ const PrincipalGradesModule: React.FC = () => {
           status: selectedStatus,
           term: selectedTerm,
           examType: selectedExamType,
+        },
+        {
+          page: currentPage,
+          pageSize: pageSize,
         }
       );
 
@@ -252,9 +267,14 @@ const PrincipalGradesModule: React.FC = () => {
       }
 
       setGrades(result.data || []);
+      setTotalGrades(result.total || 0);
       console.log(
         "✅ PrincipalGradesModule: Fetched grades:",
-        result.data?.length || 0
+        result.data?.length || 0,
+        "Total:",
+        result.total || 0,
+        "Page:",
+        currentPage
       );
     } catch (error) {
       console.error("❌ PrincipalGradesModule: Error fetching grades:", error);
@@ -726,6 +746,44 @@ const PrincipalGradesModule: React.FC = () => {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Pagination Controls */}
+      {totalGrades > pageSize && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-gray-600">
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, totalGrades)} of {totalGrades}{" "}
+            grades
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || loading}
+            >
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {Math.ceil(totalGrades / pageSize)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(Math.ceil(totalGrades / pageSize), prev + 1)
+                )
+              }
+              disabled={
+                currentPage >= Math.ceil(totalGrades / pageSize) || loading
+              }
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Action Modal */}
       <Dialog open={actionModalOpen} onOpenChange={setActionModalOpen}>

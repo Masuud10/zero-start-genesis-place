@@ -118,54 +118,90 @@ export const SchoolProvider = ({ children }: { children: ReactNode }) => {
 
       // For system admins, fetch all schools
       if (user.role === "elimisha_admin" || user.role === "edufam_admin") {
-        const { data, error: fetchError } = await supabase
-          .from("schools")
-          .select("*")
-          .order("name");
+        try {
+          const result = await Promise.race([
+            supabase.from("schools").select("*").order("name"),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject(new Error("School fetch timed out")),
+                8000
+              )
+            ),
+          ]);
 
-        if (fetchError) {
-          console.error(
-            "🏫 SchoolProvider: Admin school fetch error:",
-            fetchError
+          const { data, error: fetchError } = result as {
+            data: School[];
+            error: Error | null;
+          };
+
+          if (fetchError) {
+            console.error(
+              "🏫 SchoolProvider: Admin school fetch error:",
+              fetchError
+            );
+            throw fetchError;
+          }
+
+          schoolsData = data || [];
+          console.log(
+            "🏫 SchoolProvider: Fetched",
+            schoolsData.length,
+            "schools for admin"
           );
-          throw fetchError;
+        } catch (error) {
+          console.error("🏫 SchoolProvider: School fetch failed:", error);
+          throw error;
         }
-
-        schoolsData = data || [];
-        console.log(
-          "🏫 SchoolProvider: Fetched",
-          schoolsData.length,
-          "schools for admin"
-        );
       }
       // For school-specific users, fetch their school
       else if (user.school_id) {
-        const { data, error: fetchError } = await supabase
-          .from("schools")
-          .select("*")
-          .eq("id", user.school_id)
-          .maybeSingle();
+        try {
+          const result = await Promise.race([
+            supabase
+              .from("schools")
+              .select("*")
+              .eq("id", user.school_id)
+              .maybeSingle(),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject(new Error("School fetch timed out")),
+                8000
+              )
+            ),
+          ]);
 
-        if (fetchError) {
-          console.warn("🏫 SchoolProvider: School fetch error:", fetchError);
+          const { data, error: fetchError } = result as {
+            data: School | null;
+            error: Error | null;
+          };
+
+          if (fetchError) {
+            console.warn("🏫 SchoolProvider: School fetch error:", fetchError);
+            setSchools([]);
+            setCurrentSchool(null);
+            setError(`Failed to fetch school: ${fetchError.message}`);
+            return;
+          } else if (data) {
+            schoolsData = [data];
+            setCurrentSchool(data);
+            console.log("🏫 SchoolProvider: Fetched user school:", data.name);
+          } else {
+            console.warn(
+              "🏫 SchoolProvider: User school not found:",
+              user.school_id
+            );
+            setSchools([]);
+            setCurrentSchool(null);
+            setError(
+              "Your assigned school was not found. Please contact your administrator."
+            );
+            return;
+          }
+        } catch (error) {
+          console.error("🏫 SchoolProvider: School fetch failed:", error);
           setSchools([]);
           setCurrentSchool(null);
-          setError(`Failed to fetch school: ${fetchError.message}`);
-          return;
-        } else if (data) {
-          schoolsData = [data];
-          setCurrentSchool(data);
-          console.log("🏫 SchoolProvider: Fetched user school:", data.name);
-        } else {
-          console.warn(
-            "🏫 SchoolProvider: User school not found:",
-            user.school_id
-          );
-          setSchools([]);
-          setCurrentSchool(null);
-          setError(
-            "Your assigned school was not found. Please contact your administrator."
-          );
+          setError("Failed to fetch school data. Please try again.");
           return;
         }
       } else {

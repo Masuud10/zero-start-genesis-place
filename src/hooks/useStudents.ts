@@ -20,10 +20,11 @@ interface Student {
   created_at: string;
 }
 
-export const useStudents = (classId?: string) => {
+export const useStudents = (classId?: string, pagination?: { page: number; pageSize: number }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalStudents, setTotalStudents] = useState(0);
   const { isSystemAdmin, schoolId, isReady } = useSchoolScopedData();
   const { toast } = useToast();
 
@@ -37,7 +38,7 @@ export const useStudents = (classId?: string) => {
     setError(null);
     
     try {
-      console.log('📚 Fetching students for school:', schoolId, 'class:', classId);
+      console.log('📚 Fetching students for school:', schoolId, 'class:', classId, 'pagination:', pagination);
 
       let query = supabase.from('students').select(`
         id,
@@ -53,7 +54,7 @@ export const useStudents = (classId?: string) => {
         parent_contact,
         is_active,
         created_at
-      `);
+      `, { count: 'exact' });
 
       // Apply school filter for non-admin users
       if (!isSystemAdmin && schoolId) {
@@ -65,35 +66,38 @@ export const useStudents = (classId?: string) => {
         query = query.eq('class_id', classId);
       }
 
-      // Order by name for consistent results
-      query = query.order('name');
+      // Apply pagination if provided
+      if (pagination) {
+        const offset = (pagination.page - 1) * pagination.pageSize;
+        query = query
+          .order('name')
+          .range(offset, offset + pagination.pageSize - 1);
+      } else {
+        // Default pagination for performance
+        query = query.order('name').limit(50);
+      }
 
-      const { data, error: fetchError } = await query;
+      const { data, error: fetchError, count } = await query;
 
       if (fetchError) {
         console.error('📚 Students fetch error:', fetchError);
         throw fetchError;
       }
 
-      console.log('📚 Students fetched successfully:', data?.length || 0);
+      console.log('📚 Students fetched successfully:', data?.length || 0, 'Total:', count || 0);
       setStudents(data || []);
+      setTotalStudents(count || 0);
       setError(null);
 
-    } catch (err: any) {
-      const message = err?.message || 'Failed to fetch students data';
+    } catch (err) {
       console.error('📚 Students fetch failed:', err);
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Failed to fetch students');
       setStudents([]);
-      
-      toast({
-        title: "Student Fetch Error",
-        description: message,
-        variant: "destructive",
-      });
+      setTotalStudents(0);
     } finally {
       setLoading(false);
     }
-  }, [classId, isSystemAdmin, schoolId, toast, isReady]);
+  }, [isReady, schoolId, classId, isSystemAdmin, pagination]);
 
   useEffect(() => {
     fetchStudents();
@@ -103,6 +107,7 @@ export const useStudents = (classId?: string) => {
     students,
     loading,
     error,
-    retry: fetchStudents
+    retry: fetchStudents,
+    totalStudents
   };
 };

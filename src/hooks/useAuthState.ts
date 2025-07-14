@@ -11,6 +11,16 @@ const isValidRole = (role: string): boolean => {
   return validRoles.includes(role as UserRole);
 };
 
+// Add timeout wrapper for async operations
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    )
+  ]);
+};
+
 export const useAuthState = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -35,11 +45,14 @@ export const useAuthState = () => {
   const fetchProfile = useCallback(async (userId: string): Promise<{ role?: string; name?: string; school_id?: string; avatar_url?: string; mfa_enabled?: boolean; status?: string } | null> => {
     console.log('🔐 AuthState: Fetching profile for', userId);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role, name, school_id, avatar_url, mfa_enabled, status')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await withTimeout(
+        Promise.resolve(supabase
+          .from('profiles')
+          .select('role, name, school_id, avatar_url, mfa_enabled, status')
+          .eq('id', userId)
+          .single()),
+        5000 // 5 second timeout
+      );
       
       if (error) {
         console.error('🔐 AuthState: Profile fetch error:', error);
@@ -96,7 +109,7 @@ export const useAuthState = () => {
         return;
       }
 
-      // Fetch profile synchronously to avoid race conditions
+      // Fetch profile with timeout protection
       console.log('🔐 AuthState: Fetching profile for', authUser.id);
       const profile = await fetchProfile(authUser.id);
       
@@ -182,9 +195,12 @@ export const useAuthState = () => {
           subscriptionRef.current = null;
         }
 
-        // Get initial session FIRST for faster loading
+        // Get initial session with timeout protection
         console.log('🔐 AuthState: Getting initial session');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await withTimeout(
+          supabase.auth.getSession(),
+          8000 // 8 second timeout for session retrieval
+        );
 
         if (!isMountedRef.current) return;
 
