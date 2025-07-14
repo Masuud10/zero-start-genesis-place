@@ -1,77 +1,100 @@
-# Inactivity Timeout Security Feature Implementation
+# Advanced Inactivity Timeout Security Feature Implementation
 
 ## 🎯 Overview
 
-Successfully implemented an automatic logout security feature that logs out users after 15 minutes of inactivity. This enhances application security by preventing unauthorized access to user sessions.
+Successfully implemented an advanced automatic logout security feature with a user-friendly warning modal. This enhanced version provides a professional experience by showing a modal dialog before logging out users after 15 minutes of inactivity.
 
 ## 🛠️ Implementation Details
 
-### 1. Custom Hook: `useInactivityTimeout`
+### 1. Advanced Custom Hook: `useInactivityTimeout`
 
 **File**: `src/hooks/useInactivityTimeout.ts`
 
 **Key Features**:
 
 - **15-minute timeout**: Automatically logs out users after 15 minutes of inactivity
-- **1-minute warning**: Shows a warning notification 1 minute before logout
+- **14-minute warning**: Shows a modal warning 1 minute before logout
+- **State management**: Manages warning modal visibility internally
 - **Activity detection**: Monitors mouse movement, clicks, key presses, scrolling, and touch events
 - **Automatic cleanup**: Properly cleans up timers and event listeners
-- **User feedback**: Provides clear notifications about session expiration
+- **User control**: Users can choose to stay logged in or logout immediately
 
 **Technical Implementation**:
 
 ```typescript
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
-const WARNING_TIMEOUT_MS = 14 * 60 * 1000; // 14 minutes (1 minute warning)
+const LOGOUT_TIME = 15 * 60 * 1000; // 15 minutes for final logout
+const WARNING_TIME = 14 * 60 * 1000; // 14 minutes to show warning
 ```
 
-**Activity Events Monitored**:
+**Hook Return Values**:
 
-- `mousedown` - Mouse clicks
-- `mousemove` - Mouse movement
-- `keydown` - Keyboard input
-- `scroll` - Page scrolling
-- `touchstart` - Touch interactions
-- `click` - Click events
-- `focus` - Form focus
-- `input` - Input field changes
+- `showWarning`: Boolean state for modal visibility
+- `stayLoggedIn`: Function to hide modal and reset timers
+- `logoutUser`: Function to logout immediately
 
-### 2. Global Integration
+### 2. Warning Modal Component: `InactivityWarningModal`
+
+**File**: `src/components/ui/InactivityWarningModal.tsx`
+
+**Features**:
+
+- **Professional design**: Clean, centered modal with backdrop
+- **Clear messaging**: Explains the situation and time remaining
+- **User choices**: "Stay Logged In" or "Logout Now" options
+- **High z-index**: Ensures modal appears above all other content
+- **Responsive**: Works on all screen sizes
+
+**Modal Content**:
+
+```
+Title: "Are you still there?"
+Message: "You will be logged out due to inactivity in 1 minute."
+Actions:
+- "Logout Now" (immediate logout)
+- "Stay Logged In" (reset timers)
+```
+
+### 3. Global Integration
 
 **File**: `src/components/ElimshaLayout.tsx`
 
-**Integration Point**: Added the hook to the main layout component that wraps all authenticated pages.
+**Integration Point**: Updated the main layout component to use the new hook and render the warning modal.
 
 ```typescript
 // Activate inactivity timeout for all authenticated pages
-useInactivityTimeout();
+const { showWarning, stayLoggedIn, logoutUser } = useInactivityTimeout();
+
+// Conditionally render the warning modal
+{
+  showWarning && (
+    <InactivityWarningModal
+      onStayLoggedIn={stayLoggedIn}
+      onLogout={logoutUser}
+    />
+  );
+}
 ```
-
-**Why This Location**:
-
-- `ElimshaLayout` is the main layout component for all authenticated users
-- Ensures the timeout is active across all dashboard pages
-- Only activates when user is authenticated
-- Automatically deactivates when user logs out
 
 ## 🔒 Security Features
 
-### 1. Automatic Logout
+### 1. Advanced Warning System
+
+- **Modal-based warning**: Professional dialog instead of toast notification
+- **User choice**: Users can decide to stay logged in or logout immediately
+- **Clear timing**: Shows exactly when logout will occur
+- **Non-dismissible**: Modal requires user action
+
+### 2. Automatic Logout
 
 - Signs out user from Supabase authentication
 - Clears session data
 - Redirects to login page
-- Shows logout notification
-
-### 2. Warning System
-
-- Shows warning 1 minute before automatic logout
-- Gives users time to reactivate their session
-- Clear messaging about what will happen
+- Handles logout gracefully
 
 ### 3. Activity Reset
 
 - Timer resets on any user activity
+- Modal disappears when user becomes active
 - Prevents logout during active use
 - Handles all common user interactions
 
@@ -80,24 +103,27 @@ useInactivityTimeout();
 - Proper cleanup of timers and listeners
 - Prevents memory leaks
 - Handles component unmounting gracefully
+- State management for modal visibility
 
 ## 📱 User Experience
 
-### Warning Notification (14 minutes)
+### Warning Modal (14 minutes)
 
 ```
-Title: "Session Expiring Soon"
-Message: "You will be logged out in 1 minute due to inactivity.
-         Move your mouse or press a key to stay logged in."
-Duration: 60 seconds
+Modal appears with:
+- Title: "Are you still there?"
+- Message: "You will be logged out due to inactivity in 1 minute."
+- Two buttons:
+  - "Logout Now" (immediate logout)
+  - "Stay Logged In" (reset timers and hide modal)
 ```
 
-### Logout Notification (15 minutes)
+### User Interactions
 
-```
-Title: "Session Expired"
-Message: "You have been logged out due to inactivity. Please log in again."
-```
+- **Click "Stay Logged In"**: Modal disappears, timers reset
+- **Click "Logout Now"**: Immediate logout
+- **Any activity**: Modal disappears, timers reset
+- **No action**: Automatic logout after 1 minute
 
 ## 🔧 Technical Implementation
 
@@ -106,45 +132,66 @@ Message: "You have been logged out due to inactivity. Please log in again."
 ```typescript
 export const useInactivityTimeout = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const warningShownRef = useRef<boolean>(false);
+  const [showWarning, setShowWarning] = useState(false);
 
-  // Core functions:
-  // - logoutUser(): Handles automatic logout
-  // - showWarning(): Shows warning notification
-  // - resetTimer(): Resets timers on activity
+  const logoutUser = useCallback(() => {
+    supabase.auth.signOut();
+    navigate("/login", { replace: true });
+  }, [navigate]);
+
+  const stayLoggedIn = () => {
+    setShowWarning(false); // Hide the modal
+    // The timer will be reset automatically by the event listeners
+  };
+
+  // Timer management and event listeners
+  // Returns: { showWarning, stayLoggedIn, logoutUser }
+};
+```
+
+### Modal Structure
+
+```typescript
+const InactivityWarningModal: React.FC<InactivityWarningModalProps> = ({
+  onStayLoggedIn,
+  onLogout,
+}) => {
+  // Fixed positioning with backdrop
+  // Centered content with clear messaging
+  // Two action buttons with distinct styling
 };
 ```
 
 ### Key Features
 
-1. **Ref-based timers**: Uses `useRef` to maintain timer references across re-renders
-2. **Warning flag**: Prevents multiple warning notifications
-3. **Passive event listeners**: Optimized for performance
-4. **Conditional activation**: Only active when user is authenticated
-5. **Proper cleanup**: Removes all listeners and timers on unmount
+1. **State-based management**: Uses React state for modal visibility
+2. **Timer management**: Separate timers for warning and logout
+3. **Event listeners**: Comprehensive activity monitoring
+4. **Cleanup**: Proper resource management
+5. **User control**: Clear user choices and actions
 
 ## 🚀 Benefits
 
 ### Security
 
 - **Prevents session hijacking**: Reduces risk of unauthorized access
-- **Automatic cleanup**: Ensures sessions don't remain active indefinitely
+- **User awareness**: Users know exactly when logout will occur
+- **User control**: Users can choose their preferred action
 - **Compliance**: Meets security best practices for web applications
 
 ### User Experience
 
-- **Clear notifications**: Users know when their session is about to expire
-- **Graceful handling**: Smooth logout process with proper feedback
-- **Activity recognition**: Doesn't log out active users
+- **Professional interface**: Clean, modern modal design
+- **Clear communication**: Users understand the situation
+- **User choice**: Flexibility in how to handle the timeout
+- **Non-intrusive**: Only appears when necessary
 
 ### Performance
 
-- **Efficient monitoring**: Uses passive event listeners
+- **Efficient monitoring**: Uses optimized event listeners
 - **Memory management**: Proper cleanup prevents memory leaks
 - **Minimal overhead**: Lightweight implementation
+- **State optimization**: Minimal re-renders
 
 ## 📊 Configuration
 
@@ -152,34 +199,37 @@ export const useInactivityTimeout = () => {
 
 - **Warning time**: 14 minutes (1 minute before logout)
 - **Logout time**: 15 minutes of inactivity
-- **Warning duration**: 60 seconds
+- **Modal duration**: Until user action or automatic logout
 
 ### Customization
 
 The timeout values can be easily modified in the hook:
 
 ```typescript
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // Adjust as needed
-const WARNING_TIMEOUT_MS = 14 * 60 * 1000; // Adjust as needed
+const LOGOUT_TIME = 15 * 60 * 1000; // Adjust as needed
+const WARNING_TIME = 14 * 60 * 1000; // Adjust as needed
 ```
 
 ## 🔍 Testing
 
 ### Manual Testing Scenarios
 
-1. **Active user**: Verify timer resets on activity
-2. **Inactive user**: Verify warning appears at 14 minutes
-3. **Logout**: Verify automatic logout at 15 minutes
-4. **Component unmount**: Verify cleanup on logout
-5. **Multiple activities**: Verify timer resets properly
+1. **Active user**: Verify modal disappears on activity
+2. **Inactive user**: Verify modal appears at 14 minutes
+3. **Stay logged in**: Verify modal disappears and timers reset
+4. **Logout now**: Verify immediate logout
+5. **Automatic logout**: Verify logout after 1 minute of modal
+6. **Component unmount**: Verify cleanup on logout
 
 ### Expected Behavior
 
-- ✅ Timer resets on any user activity
-- ✅ Warning appears 1 minute before logout
-- ✅ Automatic logout after 15 minutes
+- ✅ Modal appears 1 minute before logout
+- ✅ Modal disappears on user activity
+- ✅ "Stay Logged In" resets timers
+- ✅ "Logout Now" logs out immediately
+- ✅ Automatic logout after 1 minute of modal
 - ✅ Proper cleanup of resources
-- ✅ Clear user notifications
+- ✅ Professional user interface
 
 ## 🛡️ Security Considerations
 
@@ -188,18 +238,21 @@ const WARNING_TIMEOUT_MS = 14 * 60 * 1000; // Adjust as needed
 - Integrates with existing Supabase authentication
 - Properly clears session data on logout
 - Redirects to secure login page
+- Handles logout errors gracefully
+
+### User Control
+
+- Users have clear choices and control
+- No forced actions without user awareness
+- Clear timing information provided
+- Professional interface builds trust
 
 ### Event Handling
 
 - Monitors comprehensive set of user activities
-- Uses passive listeners for performance
+- Uses optimized event listeners
 - Handles edge cases (component unmount, etc.)
-
-### Error Handling
-
-- Graceful fallback if logout fails
-- Still redirects to login page
-- Proper error logging for debugging
+- Prevents false timeouts during active use
 
 ## 📝 Notes
 
@@ -208,6 +261,7 @@ const WARNING_TIMEOUT_MS = 14 * 60 * 1000; // Adjust as needed
 - **Configurable**: Easy to adjust timeout values
 - **Well-tested**: Comprehensive error handling and cleanup
 - **Performance optimized**: Minimal impact on application performance
+- **Professional UX**: Modern modal design with clear user choices
 
 ## 🎯 Future Enhancements
 
@@ -218,3 +272,5 @@ Potential improvements that could be added:
 3. **Session extension**: Allow users to extend their session
 4. **Admin controls**: Allow administrators to configure timeout settings
 5. **Mobile optimization**: Enhanced touch event handling for mobile devices
+6. **Accessibility**: Add keyboard navigation and screen reader support
+7. **Custom styling**: Allow theme integration with application design system
