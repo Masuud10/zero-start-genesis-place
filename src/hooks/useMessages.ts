@@ -4,14 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
-  id: string;
+  id: number;
   sender_id: string;
-  receiver_id: string;
   content: string;
   created_at: string;
-  is_read: boolean;
-  sender_name: string;
-  receiver_name: string;
+  conversation_id: number;
+  sender?: { id: string; name: string };
 }
 
 interface Conversation {
@@ -110,12 +108,10 @@ export const useMessages = () => {
       const newMessage: Message = {
         id: messageResponse.message.id,
         sender_id: user.id,
-        receiver_id: receiverId,
         content: content.trim(),
         created_at: messageResponse.message.created_at,
-        is_read: false,
-        sender_name: user.name || 'Unknown',
-        receiver_name: 'Unknown' // Will be populated from edge function response if needed
+        conversation_id: conversationId,
+        sender: { id: user.id, name: user.name || 'Unknown' }
       };
 
       setMessages(prev => [newMessage, ...prev]);
@@ -131,27 +127,10 @@ export const useMessages = () => {
     }
   };
 
-  const markAsRead = async (messageId: string) => {
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('id', messageId)
-        .eq('receiver_id', user?.id);
-
-      if (error) {
-        throw error;
-      }
-
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === messageId ? { ...msg, is_read: true } : msg
-        )
-      );
-      return { error: null };
-    } catch (err) {
-      return { error: { message: 'Failed to mark message as read' } };
-    }
+  const markAsRead = async (messageId: number) => {
+    // Note: With the new schema, read status is not tracked per message
+    // This function is kept for compatibility but doesn't do anything
+    return { error: null };
   };
 
   return {

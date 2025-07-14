@@ -61,7 +61,7 @@ const AnnouncementsModule = React.lazy(
   () => import("@/components/modules/AnnouncementsModule")
 );
 const MessagesModule = React.lazy(
-  () => import("@/components/modules/MessagesModule")
+  () => import("@/components/modules/MessagesModuleNew")
 );
 const ReportsModule = React.lazy(
   () => import("@/components/modules/ReportsModule")
@@ -604,7 +604,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
       case "announcements":
         return renderLazyComponent(AnnouncementsModule, "AnnouncementsModule");
       case "messages":
-        return React.createElement(React.lazy(() => import("@/components/messaging/MessagesPage").then(module => ({ default: module.MessagesPage }))));
+        return renderLazyComponent(MessagesModule, "MessagesModule");
       case "reports":
         // Teachers get restricted access to only grade and attendance reports
         if (user?.role === "teacher") {
