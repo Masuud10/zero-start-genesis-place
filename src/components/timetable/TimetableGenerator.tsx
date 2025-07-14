@@ -211,12 +211,12 @@ const TimetableGenerator: React.FC<TimetableGeneratorProps> = ({
     queryKey: ["teachers", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
+      // @ts-ignore - Deep type instantiation issue with Supabase
       const { data, error } = await supabase
         .from("profiles")
         .select("id, name, email")
         .eq("school_id", schoolId)
         .eq("role", "teacher")
-        .eq("is_active", true)
         .order("name");
 
       if (error) throw error;

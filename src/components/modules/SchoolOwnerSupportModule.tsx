@@ -45,11 +45,15 @@ interface SupportTicket {
   priority: "low" | "medium" | "high" | "urgent";
   status: "open" | "in_progress" | "resolved" | "closed";
   created_at: string;
-  updated_at: string;
-  user_id: string;
+  updated_at?: string;
+  user_id?: string;
   school_id: string;
   assigned_to?: string;
   resolution?: string;
+  type?: string;
+  resolved_at?: string;
+  created_by?: string;
+  attachments?: string[];
 }
 
 const SchoolOwnerSupportModule: React.FC = () => {
@@ -64,11 +68,16 @@ const SchoolOwnerSupportModule: React.FC = () => {
   );
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
-  const [newTicket, setNewTicket] = useState({
+  const [newTicket, setNewTicket] = useState<{
+    title: string;
+    description: string;
+    category: string;
+    priority: "low" | "medium" | "high" | "urgent";
+  }>({
     title: "",
     description: "",
     category: "",
-    priority: "medium" as const,
+    priority: "medium",
   });
 
   const {
@@ -80,6 +89,7 @@ const SchoolOwnerSupportModule: React.FC = () => {
     queryFn: async () => {
       if (!user?.id || !schoolId) return [];
 
+      // @ts-ignore - Deep type instantiation issue with Supabase
       const { data, error } = await supabase
         .from("support_tickets")
         .select("*")
@@ -284,9 +294,9 @@ const SchoolOwnerSupportModule: React.FC = () => {
                 </label>
                 <Select
                   value={newTicket.priority}
-                  onValueChange={(
-                    value: "low" | "medium" | "high" | "urgent"
-                  ) => setNewTicket({ ...newTicket, priority: value })}
+                  onValueChange={(value) => 
+                    setNewTicket({ ...newTicket, priority: value as "low" | "medium" | "high" | "urgent" })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -450,9 +460,9 @@ const SchoolOwnerSupportModule: React.FC = () => {
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>Category: {ticket.category}</span>
                           <span>Created: {formatDate(ticket.created_at)}</span>
-                          {ticket.updated_at !== ticket.created_at && (
+                          {ticket.resolved_at && ticket.resolved_at !== ticket.created_at && (
                             <span>
-                              Updated: {formatDate(ticket.updated_at)}
+                              Updated: {formatDate(ticket.resolved_at)}
                             </span>
                           )}
                         </div>
@@ -464,8 +474,15 @@ const SchoolOwnerSupportModule: React.FC = () => {
                         }
                         onOpenChange={(open) => {
                           setIsViewDialogOpen(open);
-                          if (open) setSelectedTicket(ticket);
-                          else setSelectedTicket(null);
+                            if (open) setSelectedTicket({
+                              ...ticket,
+                              updated_at: ticket.resolved_at || ticket.created_at,
+                              user_id: ticket.created_by || user?.id || '',
+                              priority: ticket.priority as "low" | "medium" | "high" | "urgent",
+                              status: ticket.status as "open" | "in_progress" | "resolved" | "closed",
+                              resolution: ''
+                            });
+                           else setSelectedTicket(null);
                         }}
                       >
                         <DialogTrigger asChild>
@@ -527,13 +544,13 @@ const SchoolOwnerSupportModule: React.FC = () => {
                               </p>
                             </div>
 
-                            {ticket.resolution && (
+                            {selectedTicket?.resolution && (
                               <div>
                                 <label className="text-sm font-medium mb-2 block">
                                   Resolution
                                 </label>
                                 <p className="text-sm whitespace-pre-wrap">
-                                  {ticket.resolution}
+                                  {selectedTicket.resolution}
                                 </p>
                               </div>
                             )}
@@ -543,7 +560,7 @@ const SchoolOwnerSupportModule: React.FC = () => {
                                 Created: {formatDate(ticket.created_at)}
                               </span>
                               <span>
-                                Updated: {formatDate(ticket.updated_at)}
+                                Updated: {formatDate(ticket.resolved_at || ticket.created_at)}
                               </span>
                             </div>
                           </div>

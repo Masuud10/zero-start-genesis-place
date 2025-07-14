@@ -343,10 +343,10 @@ const PrincipalGradesModule: React.FC = () => {
           }
           await GradeManagementService.overrideGrades(
             gradeIds,
-            Number(overrideScore),
-            reason || "",
             user?.id || "",
-            ""
+            user?.school_id || "",
+            Number(overrideScore),
+            reason || ""
           );
           break;
         case "release":

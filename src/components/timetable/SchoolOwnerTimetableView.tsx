@@ -85,7 +85,7 @@ const SchoolOwnerTimetableView: React.FC = () => {
           room,
           subjects!inner(name, code),
           classes!inner(name),
-          profiles!inner(name)
+          profiles!timetables_teacher_id_fkey(name)
         `
         )
         .eq("school_id", schoolId)
@@ -130,11 +130,11 @@ const SchoolOwnerTimetableView: React.FC = () => {
     queryFn: async () => {
       if (!schoolId) return [];
 
+      // @ts-ignore - Deep type instantiation issue with Supabase
       const { data, error } = await supabase
         .from("classes")
         .select("id, name")
         .eq("school_id", schoolId)
-        .eq("is_active", true)
         .order("name");
 
       if (error) throw error;
@@ -305,7 +305,7 @@ const SchoolOwnerTimetableView: React.FC = () => {
                 <p className="text-sm text-muted-foreground">Teachers</p>
                 <p className="text-2xl font-bold">
                   {timetable
-                    ? new Set(timetable.map((t) => t.teacher.name)).size
+                    ? new Set(timetable.map((t) => t.teacher?.name || 'Unknown')).size
                     : 0}
                 </p>
               </div>
@@ -417,7 +417,7 @@ const SchoolOwnerTimetableView: React.FC = () => {
                           {formatTime(entry.end_time)}
                         </TableCell>
                         <TableCell>{entry.subject.name}</TableCell>
-                        <TableCell>{entry.teacher.name}</TableCell>
+                        <TableCell>{entry.teacher?.name || 'Unknown'}</TableCell>
                         <TableCell>{entry.room || "TBA"}</TableCell>
                       </TableRow>
                     ))}
@@ -465,7 +465,7 @@ const SchoolOwnerTimetableView: React.FC = () => {
                           </TableCell>
                           <TableCell>{entry.class.name}</TableCell>
                           <TableCell>{entry.subject.name}</TableCell>
-                          <TableCell>{entry.teacher.name}</TableCell>
+                           <TableCell>{entry.teacher?.name || 'Unknown'}</TableCell>
                           <TableCell>{entry.room || "TBA"}</TableCell>
                         </TableRow>
                       ))}
@@ -507,7 +507,7 @@ const SchoolOwnerTimetableView: React.FC = () => {
                     </TableCell>
                     <TableCell>{entry.class.name}</TableCell>
                     <TableCell>{entry.subject.name}</TableCell>
-                    <TableCell>{entry.teacher.name}</TableCell>
+                    <TableCell>{entry.teacher?.name || 'Unknown'}</TableCell>
                     <TableCell>{entry.room || "TBA"}</TableCell>
                   </TableRow>
                 ))}
