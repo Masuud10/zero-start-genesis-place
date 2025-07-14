@@ -61,7 +61,7 @@ export const useMessages = () => {
       const conversationIds = conversationsData?.map(conv => conv.id) || [];
 
       if (conversationIds.length > 0) {
-        // Get messages for all conversations
+        // Get messages for all conversations with proper joins
         const { data: messagesData, error: messagesError } = await supabase
           .from('messages')
           .select(`
@@ -72,8 +72,8 @@ export const useMessages = () => {
             content,
             created_at,
             is_read,
-            sender:profiles!messages_sender_id_fkey(name),
-            receiver:profiles!messages_receiver_id_fkey(name)
+            sender_name,
+            receiver_name
           `)
           .in('conversation_id', conversationIds)
           .order('created_at', { ascending: false });
@@ -90,8 +90,8 @@ export const useMessages = () => {
           content: msg.content,
           created_at: msg.created_at,
           is_read: msg.is_read,
-          sender_name: msg.sender?.name || 'Unknown',
-          receiver_name: msg.receiver?.name || 'Unknown'
+          sender_name: msg.sender_name || 'Unknown',
+          receiver_name: msg.receiver_name || 'Unknown'
         }));
 
         setMessages(transformedMessages);
@@ -202,6 +202,15 @@ export const useMessages = () => {
         conversationId = newConversation.id;
       }
 
+      // Get receiver's name for the message
+      const { data: receiverProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', receiverId)
+        .single();
+
+      const receiverName = receiverProfile?.name || 'Unknown';
+
       // Send the message
       const { data, error } = await supabase
         .from('messages')
@@ -210,7 +219,9 @@ export const useMessages = () => {
           receiver_id: receiverId,
           content: content.trim(),
           school_id: user.school_id,
-          conversation_id: conversationId
+          conversation_id: conversationId,
+          sender_name: user.name || 'Unknown',
+          receiver_name: receiverName
         })
         .select()
         .single();
@@ -218,9 +229,6 @@ export const useMessages = () => {
       if (error) {
         throw error;
       }
-
-      // Refresh messages
-      const receiverName = conversations.find(c => c.id === receiverId)?.name || 'Unknown';
 
       const newMessage: Message = {
         id: data.id,
