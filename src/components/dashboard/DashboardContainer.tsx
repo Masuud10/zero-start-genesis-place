@@ -13,8 +13,13 @@ import UserProfileDropdown from "./UserProfileDropdown";
 import NotificationsDropdown from "@/components/notifications/NotificationsDropdown";
 import MaintenanceNotification from "@/components/common/MaintenanceNotification";
 import CommunicationBanner from "@/components/ui/CommunicationBanner";
+import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 import { useAdminCommunications } from "@/hooks/useAdminCommunications";
 import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationService } from "@/services/NotificationService";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Bell } from "lucide-react";
 
 interface DashboardContainerProps {
   user: AuthUser;
@@ -34,20 +39,101 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   children,
 }) => {
   // PHASE 2: Use the new notifications system instead of admin communications
-  const { notifications, unreadCount, isLoading, markAsRead } = useNotifications();
-  
+  const { notifications, unreadCount, isLoading, markAsRead, refetch } =
+    useNotifications();
+  const { communications: adminCommunications } = useAdminCommunications();
+  const { toast } = useToast();
+
   console.log(
     "🏗️ DashboardContainer: Rendering with user:",
     user?.email,
     "school:",
     currentSchool?.name,
     "showGreetings:",
-    showGreetings
+    showGreetings,
+    "notifications:",
+    notifications?.length,
+    "unreadCount:",
+    unreadCount
   );
 
   // PHASE 2: Handle banner dismiss by marking notification as read
   const handleBannerDismiss = (notificationId: string) => {
     markAsRead(notificationId);
+  };
+
+  // Debug function to test notifications
+  const handleTestNotification = async () => {
+    if (!user?.id) return;
+
+    try {
+      const result = await NotificationService.createTestNotification(user.id);
+      if (result.success) {
+        toast({
+          title: "Test Notification Created",
+          description:
+            "A test notification has been created. Check the bell icon!",
+        });
+        // Refetch notifications to show the new one
+        refetch();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to create test notification",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error creating test notification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create test notification",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestAnnouncement = async () => {
+    try {
+      const result = await NotificationService.createTestAnnouncement();
+      if (result.success) {
+        toast({
+          title: "Test Announcement Created",
+          description:
+            "A test system announcement has been created. Check the bell icon!",
+        });
+        // Refetch notifications to show the new one
+        refetch();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to create test announcement",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error creating test announcement:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create test announcement",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Debug function to check current state
+  const handleDebugNotifications = () => {
+    console.log("🔍 DEBUG NOTIFICATIONS:");
+    console.log("User:", user);
+    console.log("User Role:", user?.role);
+    console.log("Notifications:", notifications);
+    console.log("Unread Count:", unreadCount);
+    console.log("Is Loading:", isLoading);
+
+    toast({
+      title: "Debug Info",
+      description: `User: ${user?.email}, Role: ${user?.role}, Notifications: ${notifications?.length}, Unread: ${unreadCount}`,
+    });
   };
 
   if (!user) {
@@ -116,10 +202,13 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
   };
 
   // PHASE 2: Find the SINGLE latest unread notification (definitive single banner rule)
-  const latestNotification = (!isLoading && notifications && notifications.length > 0) ? 
-    notifications
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-    : null;
+  const latestNotification =
+    !isLoading && notifications && notifications.length > 0
+      ? notifications.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )[0]
+      : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -197,7 +286,13 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
             <CommunicationBanner
               title={latestNotification.title}
               message={latestNotification.content}
-              priority={latestNotification.priority as 'low' | 'medium' | 'high' | 'critical'}
+              priority={
+                latestNotification.priority as
+                  | "low"
+                  | "medium"
+                  | "high"
+                  | "critical"
+              }
               onDismiss={() => handleBannerDismiss(latestNotification.id)}
             />
           </div>
@@ -209,6 +304,9 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
         <div className="px-4 py-6 sm:px-0">
           {/* Maintenance Notification - shows across all dashboards */}
           <MaintenanceNotification />
+
+          {/* Admin Communications Banner - shows across all dashboards */}
+          <AdminCommunicationsBanner />
 
           {children}
         </div>

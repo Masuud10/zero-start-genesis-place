@@ -21,8 +21,17 @@ const AdminCommunicationsBanner: React.FC = () => {
     useAdminCommunications();
   const [dismissingId, setDismissingId] = useState<string | null>(null);
 
+  // Debug logging
+  console.log("🔔 AdminCommunicationsBanner: communications:", communications);
+  console.log("🔔 AdminCommunicationsBanner: isLoading:", isLoading);
+  console.log(
+    "🔔 AdminCommunicationsBanner: communications length:",
+    communications?.length
+  );
+
   // Don't render if no communications
   if (!communications || communications.length === 0) {
+    console.log("🔔 AdminCommunicationsBanner: No communications to display");
     return null;
   }
 

@@ -64,7 +64,7 @@ export const useOptimizedFinanceMetrics = () => {
             .from('fees')
             .select('amount, paid_amount, status')
             .eq('school_id', user.school_id)
-            .limit(200) // Increased limit for better accuracy
+            .limit(100) // Reduced limit for better performance
             .abortSignal(controller.signal),
 
           // Get student count using count query

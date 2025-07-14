@@ -26,23 +26,141 @@ export class NotificationService {
     notification: Omit<Notification, 'id' | 'user_id' | 'is_read' | 'created_at'>
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Use announcements table instead of notifications
-      const { error } = await supabase
-        .from('announcements')
+      // First, create an admin communication
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const communicationData = {
+        title: notification.title,
+        message: notification.message,
+        created_by: user.id,
+        target_roles: ['all'], // Target all roles for system notifications
+        priority: notification.type === 'error' ? 'high' : 
+                  notification.type === 'warning' ? 'medium' : 'low',
+        dismissible: true,
+        is_active: true
+      };
+
+      const { data: communication, error: commError } = await supabase
+        .from('admin_communications')
+        .insert(communicationData)
+        .select()
+        .single();
+
+      if (commError) throw commError;
+
+      // The trigger will automatically create notifications for all users
+      // But we can also manually create one for the specific user
+      const { error: notifError } = await supabase
+        .from('notifications')
         .insert({
-          title: notification.title,
-          content: notification.message,
-          target_audience: ['user'],
-          priority: notification.type === 'error' ? 'high' : 'medium',
-          is_global: false,
-          created_by: userId
+          user_id: userId,
+          announcement_id: communication.id,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (notifError) throw notifError;
 
       return { success: true };
     } catch (error: any) {
       console.error('Error creating notification:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create notifications for multiple users
+   */
+  static async createNotificationsForUsers(
+    userIds: string[],
+    notification: Omit<Notification, 'id' | 'user_id' | 'is_read' | 'created_at'>
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // First, create an admin communication
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const communicationData = {
+        title: notification.title,
+        message: notification.message,
+        created_by: user.id,
+        target_roles: ['all'], // Target all roles for system notifications
+        priority: notification.type === 'error' ? 'high' : 
+                  notification.type === 'warning' ? 'medium' : 'low',
+        dismissible: true,
+        is_active: true
+      };
+
+      const { data: communication, error: commError } = await supabase
+        .from('admin_communications')
+        .insert(communicationData)
+        .select()
+        .single();
+
+      if (commError) throw commError;
+
+      // Create notifications for specific users
+      const notifications = userIds.map(userId => ({
+        user_id: userId,
+        announcement_id: communication.id,
+        is_read: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (notifError) throw notifError;
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error creating notifications for users:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create a system-wide announcement that creates notifications for all users
+   */
+  static async createSystemAnnouncement(
+    announcement: {
+      title: string;
+      message: string;
+      priority: 'low' | 'medium' | 'high';
+      targetRoles?: string[];
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // First create the admin communication
+      const { data: commData, error: commError } = await supabase
+        .from('admin_communications')
+        .insert({
+          title: announcement.title,
+          message: announcement.message,
+          priority: announcement.priority,
+          target_roles: announcement.targetRoles || ['all'],
+          is_active: true,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (commError) throw commError;
+
+      // The trigger will automatically create notifications for all target users
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error creating system announcement:', error);
       return { success: false, error: error.message };
     }
   }
@@ -59,30 +177,21 @@ export class NotificationService {
     try {
       const offset = (page - 1) * limit;
       
-      // Use announcements as notifications
-      const { data, error, count } = await supabase
-        .from('announcements')
+      let query = supabase
+        .from('notifications')
         .select('*', { count: 'exact' })
-        .contains('target_audience', ['user'])
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (unreadOnly) {
+        query = query.eq('is_read', false);
+      }
+
+      const { data, error, count } = await query.range(offset, offset + limit - 1);
 
       if (error) throw error;
 
-      // Transform data to match Notification interface
-      const transformedData: Notification[] = (data || []).map(item => ({
-        id: item.id,
-        user_id: userId,
-        title: item.title,
-        message: item.content,
-        type: item.priority === 'high' ? 'error' : 'info',
-        category: 'system',
-        is_read: false,
-        created_at: item.created_at || new Date().toISOString(),
-        data: item
-      }));
-
-      return { data: transformedData, count: count || 0 };
+      return { data: data || [], count: count || 0 };
     } catch (error: any) {
       console.error('Error fetching user notifications:', error);
       return { data: [], count: 0, error: error.message };
@@ -96,8 +205,17 @@ export class NotificationService {
     notificationId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Since we're using announcements, we'll track read status differently
-      // For now, just return success
+      const { error } = await supabase
+        .from('notifications')
+        .update({ 
+          is_read: true,
+          read_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
       return { success: true };
     } catch (error: any) {
       console.error('Error marking notification as read:', error);
@@ -112,8 +230,18 @@ export class NotificationService {
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Since we're using announcements, we'll track read status differently
-      // For now, just return success
+      const { error } = await supabase
+        .from('notifications')
+        .update({ 
+          is_read: true,
+          read_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
       return { success: true };
     } catch (error: any) {
       console.error('Error marking all notifications as read:', error);
@@ -129,7 +257,7 @@ export class NotificationService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabase
-        .from('announcements')
+        .from('notifications')
         .delete()
         .eq('id', notificationId);
 
@@ -150,9 +278,10 @@ export class NotificationService {
   ): Promise<{ count: number; error?: string }> {
     try {
       const { count, error } = await supabase
-        .from('announcements')
+        .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .contains('target_audience', ['user']);
+        .eq('user_id', userId)
+        .eq('is_read', false);
 
       if (error) throw error;
 
@@ -164,33 +293,6 @@ export class NotificationService {
   }
 
   /**
-   * Create a system-wide notification
-   */
-  static async createSystemNotification(
-    notification: Omit<Notification, 'id' | 'user_id' | 'is_read' | 'created_at'>,
-    targetRoles?: string[]
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { error } = await supabase
-        .from('announcements')
-        .insert({
-          title: notification.title,
-          content: notification.message,
-          target_audience: targetRoles || ['all'],
-          priority: notification.type === 'error' ? 'high' : 'medium',
-          is_global: true
-        });
-
-      if (error) throw error;
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error creating system notification:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
    * Academic context-aware notifications
    */
   static async notifyGradeSubmission(
@@ -198,24 +300,44 @@ export class NotificationService {
     principalId: string,
     gradeData: any
   ): Promise<void> {
-    await this.createNotification(principalId, {
-      title: 'Grades Submitted for Review',
-      message: `New grades have been submitted by teacher for ${gradeData.subject} - ${gradeData.class}`,
-      type: 'info',
-      data: gradeData
-    });
+    try {
+      // Notify principal about new grade submission
+      await this.createNotification(principalId, {
+        title: 'New Grade Submission',
+        message: `Teacher ${gradeData.teacher_name} has submitted grades for ${gradeData.subject} - ${gradeData.class_name}`,
+        type: 'info',
+        category: 'grades',
+        action_url: `/grades/pending`,
+        academic_context: {
+          class_id: gradeData.class_id,
+          subject_id: gradeData.subject_id
+        }
+      });
+    } catch (error) {
+      console.error('Error notifying grade submission:', error);
+    }
   }
 
   static async notifyGradeApproval(
     teacherId: string,
     gradeData: any
   ): Promise<void> {
-    await this.createNotification(teacherId, {
-      title: 'Grades Approved',
-      message: `Your grades for ${gradeData.subject} - ${gradeData.class} have been approved`,
-      type: 'success',
-      data: gradeData
-    });
+    try {
+      // Notify teacher about grade approval
+      await this.createNotification(teacherId, {
+        title: 'Grade Approved',
+        message: `Your grades for ${gradeData.subject} - ${gradeData.class_name} have been approved by the principal.`,
+        type: 'success',
+        category: 'grades',
+        action_url: `/grades`,
+        academic_context: {
+          class_id: gradeData.class_id,
+          subject_id: gradeData.subject_id
+        }
+      });
+    } catch (error) {
+      console.error('Error notifying grade approval:', error);
+    }
   }
 
   static async notifyGradeRejection(
@@ -223,90 +345,137 @@ export class NotificationService {
     gradeData: any,
     reason: string
   ): Promise<void> {
-    await this.createNotification(teacherId, {
-      title: 'Grades Rejected',
-      message: `Your grades for ${gradeData.subject} - ${gradeData.class} have been rejected. Reason: ${reason}`,
-      type: 'warning',
-      data: { ...gradeData, rejection_reason: reason }
-    });
+    try {
+      // Notify teacher about grade rejection
+      await this.createNotification(teacherId, {
+        title: 'Grade Rejected',
+        message: `Your grades for ${gradeData.subject} - ${gradeData.class_name} have been rejected. Reason: ${reason}`,
+        type: 'warning',
+        category: 'grades',
+        action_url: `/grades/pending`,
+        academic_context: {
+          class_id: gradeData.class_id,
+          subject_id: gradeData.subject_id
+        }
+      });
+    } catch (error) {
+      console.error('Error notifying grade rejection:', error);
+    }
   }
 
   static async notifyExamCreated(
     teacherIds: string[],
     examData: any
   ): Promise<void> {
-    const promises = teacherIds.map(teacherId =>
-      this.createNotification(teacherId, {
-        title: 'New Exam Scheduled',
-        message: `${examData.name} has been scheduled from ${examData.start_date} to ${examData.end_date}`,
+    try {
+      // Notify teachers about new exam
+      await this.createNotificationsForUsers(teacherIds, {
+        title: 'New Examination Created',
+        message: `A new examination "${examData.title}" has been created for ${examData.subject} - ${examData.class_name}`,
         type: 'info',
-        data: examData
-      })
-    );
-
-    await Promise.all(promises);
+        category: 'examinations',
+        action_url: `/examinations`,
+        academic_context: {
+          class_id: examData.class_id,
+          subject_id: examData.subject_id
+        }
+      });
+    } catch (error) {
+      console.error('Error notifying exam creation:', error);
+    }
   }
 
   static async notifyAttendanceReminder(
     teacherId: string,
     classData: any
   ): Promise<void> {
-    await this.createNotification(teacherId, {
-      title: 'Attendance Reminder',
-      message: `Please mark attendance for ${classData.name}`,
-      type: 'info',
-      data: classData
-    });
+    try {
+      // Notify teacher about attendance reminder
+      await this.createNotification(teacherId, {
+        title: 'Attendance Reminder',
+        message: `Please mark attendance for ${classData.class_name} today.`,
+        type: 'info',
+        category: 'attendance',
+        action_url: `/attendance`,
+        academic_context: {
+          class_id: classData.class_id
+        }
+      });
+    } catch (error) {
+      console.error('Error notifying attendance reminder:', error);
+    }
   }
 
   static async notifyReportGenerated(
     userId: string,
     reportData: any
   ): Promise<void> {
-    await this.createNotification(userId, {
-      title: 'Report Generated',
-      message: `Your ${reportData.type} report has been generated and is ready for download`,
-      type: 'success',
-      data: reportData
-    });
+    try {
+      // Notify user about report generation
+      await this.createNotification(userId, {
+        title: 'Report Generated',
+        message: `Your ${reportData.type} report for ${reportData.period} has been generated successfully.`,
+        type: 'success',
+        category: 'reports',
+        action_url: `/reports`,
+        data: reportData
+      });
+    } catch (error) {
+      console.error('Error notifying report generation:', error);
+    }
   }
 
   static async notifyDataIssue(
     adminIds: string[],
     issueData: any
   ): Promise<void> {
-    const promises = adminIds.map(adminId =>
-      this.createNotification(adminId, {
-        title: 'Data Integrity Issue',
-        message: `Data integrity issue detected: ${issueData.description}`,
-        type: 'error',
+    try {
+      // Notify admins about data issues
+      await this.createNotificationsForUsers(adminIds, {
+        title: 'Data Issue Detected',
+        message: `A data issue has been detected: ${issueData.description}`,
+        type: 'warning',
+        category: 'system',
+        action_url: `/admin/issues`,
         data: issueData
-      })
-    );
-
-    await Promise.all(promises);
+      });
+    } catch (error) {
+      console.error('Error notifying data issue:', error);
+    }
   }
 
   static async notifySystemMaintenance(
     message: string,
     scheduledTime: string
-  ): Promise<void> {
-    await this.createSystemNotification({
-      title: 'Scheduled System Maintenance',
-      message: `${message}. Scheduled for: ${scheduledTime}`,
-      type: 'warning'
-    });
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await this.createSystemAnnouncement({
+        title: 'System Maintenance Notice',
+        message: `Scheduled maintenance will occur on ${scheduledTime}. ${message}`,
+        priority: 'high',
+        targetRoles: ['all']
+      });
+    } catch (error: any) {
+      console.error('Error notifying system maintenance:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   static async notifyFeatureUpdate(
     message: string,
     targetRoles?: string[]
-  ): Promise<void> {
-    await this.createSystemNotification({
-      title: 'New Feature Available',
-      message,
-      type: 'success'
-    }, targetRoles);
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await this.createSystemAnnouncement({
+        title: 'Feature Update',
+        message,
+        priority: 'medium',
+        targetRoles: targetRoles || ['all']
+      });
+    } catch (error: any) {
+      console.error('Error notifying feature update:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   /**
@@ -316,16 +485,17 @@ export class NotificationService {
     userId: string
   ): Promise<{ data: any; error?: string }> {
     try {
-      // Return default preferences since we don't have a preferences table
-      const defaultPreferences = {
-        email_notifications: true,
-        push_notifications: true,
-        grade_submissions: true,
-        grade_approvals: true,
-        attendance_alerts: true
-      };
-      
-      return { data: defaultPreferences };
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // Not found error
+        throw error;
+      }
+
+      return { data: data || null };
     } catch (error: any) {
       console.error('Error fetching notification preferences:', error);
       return { data: null, error: error.message };
@@ -340,10 +510,109 @@ export class NotificationService {
     preferences: any
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // For now, just return success since we don't have a preferences table
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: userId,
+          ...preferences,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
       return { success: true };
     } catch (error: any) {
       console.error('Error updating notification preferences:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create a test notification for debugging
+   */
+  static async createTestNotification(
+    userId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Create an admin communication for testing
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const communicationData = {
+        title: 'Test Notification',
+        message: 'This is a test notification to verify the notification system is working properly.',
+        created_by: user.id,
+        target_roles: ['teacher', 'principal', 'school_owner', 'finance_officer', 'parent', 'edufam_admin'], // Target all roles for testing
+        priority: 'medium',
+        dismissible: true,
+        is_active: true
+      };
+
+      const { data: communication, error: commError } = await supabase
+        .from('admin_communications')
+        .insert(communicationData)
+        .select()
+        .single();
+
+      if (commError) throw commError;
+
+      // Create a specific notification for the user
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          announcement_id: communication.id,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (notifError) throw notifError;
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error creating test notification:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create a test system announcement
+   */
+  static async createTestAnnouncement(): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Create an admin communication for testing
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const communicationData = {
+        title: 'Test System Announcement',
+        message: 'This is a test system announcement to verify the notification system is working properly.',
+        created_by: user.id,
+        target_roles: ['teacher', 'principal', 'school_owner', 'finance_officer', 'parent', 'edufam_admin'], // Target all roles for testing
+        priority: 'medium',
+        dismissible: true,
+        is_active: true
+      };
+
+      const { data: communication, error: commError } = await supabase
+        .from('admin_communications')
+        .insert(communicationData)
+        .select()
+        .single();
+
+      if (commError) throw commError;
+
+      // The trigger will automatically create notifications for all users
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error creating test announcement:', error);
       return { success: false, error: error.message };
     }
   }

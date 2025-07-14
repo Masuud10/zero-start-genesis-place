@@ -1,60 +1,79 @@
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { User, Palette, Settings, Save } from "lucide-react";
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useUserSettings } from '@/hooks/useUserSettings';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { User, Palette, Settings, Save } from 'lucide-react';
-
-type Theme = 'light' | 'dark' | 'system';
+type Theme = "light" | "dark" | "system";
 
 const UserProfileSettings = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { updateUserSettings, isUpdating } = useUserSettings();
-  
+
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    name: user?.name || "",
     theme_preference: theme,
-    showGreetings: true,
     compactMode: false,
-    defaultView: 'dashboard'
+    defaultView: "dashboard",
   });
 
   useEffect(() => {
     if (user) {
+      const dashboardPrefs = user.user_metadata?.dashboard_preferences as
+        | {
+            compactMode?: boolean;
+            defaultView?: string;
+          }
+        | undefined;
+
       setFormData({
-        name: user.name || '',
-        theme_preference: (user.user_metadata?.theme_preference as Theme) || theme,
-        showGreetings: (user.user_metadata?.dashboard_preferences as any)?.showGreetings ?? true,
-        compactMode: (user.user_metadata?.dashboard_preferences as any)?.compactMode ?? false,
-        defaultView: (user.user_metadata?.dashboard_preferences as any)?.defaultView || 'dashboard'
+        name: user.name || "",
+        theme_preference:
+          (user.user_metadata?.theme_preference as Theme) || theme,
+        compactMode: dashboardPrefs?.compactMode ?? false,
+        defaultView: dashboardPrefs?.defaultView || "dashboard",
       });
     }
   }, [user, theme]);
 
   const handleThemeChange = (newTheme: string) => {
-    const themeValue = newTheme as 'light' | 'dark' | 'system';
-    setFormData(prev => ({ ...prev, theme_preference: themeValue }));
+    const themeValue = newTheme as "light" | "dark" | "system";
+    setFormData((prev) => ({ ...prev, theme_preference: themeValue }));
     // Apply theme immediately for preview
     setTheme(themeValue);
   };
 
   const handleSave = () => {
+    // Validate form data
+    if (!formData.name?.trim()) {
+      // Show error toast
+      return;
+    }
+
     updateUserSettings.mutate({
-      name: formData.name,
-      theme_preference: formData.theme_preference as 'light' | 'dark' | 'system',
+      name: formData.name.trim(),
+      theme_preference: formData.theme_preference as
+        | "light"
+        | "dark"
+        | "system",
       dashboard_preferences: {
-        showGreetings: formData.showGreetings,
         compactMode: formData.compactMode,
-        defaultView: formData.defaultView
-      }
+        defaultView: formData.defaultView,
+      },
     });
   };
 
@@ -73,20 +92,24 @@ const UserProfileSettings = () => {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
               placeholder="Enter your display name"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <Input
               id="email"
-              value={user?.email || ''}
+              value={user?.email || ""}
               disabled
               className="bg-gray-50 dark:bg-gray-800"
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">Email cannot be changed</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Email cannot be changed
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -95,12 +118,12 @@ const UserProfileSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="h-5 w-5" />
-            Appearance
+            Appearance Settings
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="theme">Theme Preference</Label>
+            <Label htmlFor="theme">Theme</Label>
             <Select
               value={formData.theme_preference}
               onValueChange={handleThemeChange}
@@ -109,29 +132,11 @@ const UserProfileSettings = () => {
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="light">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                    Light
-                  </div>
-                </SelectItem>
-                <SelectItem value="dark">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-800"></div>
-                    Dark
-                  </div>
-                </SelectItem>
-                <SelectItem value="system">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 to-gray-800"></div>
-                    System
-                  </div>
-                </SelectItem>
+                <SelectItem value="light">Light</SelectItem>
+                <SelectItem value="dark">Dark</SelectItem>
+                <SelectItem value="system">System</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Choose your preferred color scheme. System will match your device settings.
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -146,27 +151,16 @@ const UserProfileSettings = () => {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="showGreetings">Show Greetings</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Display welcome message on dashboard</p>
+              <Label>Compact Mode</Label>
+              <p className="text-sm text-muted-foreground">
+                Use compact layout for dashboard
+              </p>
             </div>
             <Switch
-              id="showGreetings"
-              checked={formData.showGreetings}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, showGreetings: checked }))}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="compactMode">Compact Mode</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Reduce spacing and card sizes</p>
-            </div>
-            <Switch
-              id="compactMode"
               checked={formData.compactMode}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, compactMode: checked }))}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, compactMode: checked }))
+              }
             />
           </div>
 
@@ -176,7 +170,9 @@ const UserProfileSettings = () => {
             <Label htmlFor="defaultView">Default View</Label>
             <Select
               value={formData.defaultView}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, defaultView: value }))}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, defaultView: value }))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select default view" />
@@ -192,7 +188,11 @@ const UserProfileSettings = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isUpdating} className="flex items-center gap-2">
+        <Button
+          onClick={handleSave}
+          disabled={isUpdating}
+          className="flex items-center gap-2"
+        >
           {isUpdating ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           ) : (

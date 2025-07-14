@@ -18,8 +18,14 @@ export const useAdminCommunications = () => {
   } = useQuery({
     queryKey: ['admin-communications', user?.role, user?.id],
     queryFn: async () => {
-      if (!user?.role || !user?.id) return [];
-      return await CommunicationsService.getUserCommunications(user.role, user.id);
+      if (!user?.role || !user?.id) {
+        console.log('🔔 useAdminCommunications: No user role or ID, returning empty array');
+        return [];
+      }
+      console.log('🔔 useAdminCommunications: Fetching communications for role:', user.role, 'user ID:', user.id);
+      const result = await CommunicationsService.getUserCommunications(user.role, user.id);
+      console.log('🔔 useAdminCommunications: Result:', result);
+      return result;
     },
     enabled: !!user?.role && !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes

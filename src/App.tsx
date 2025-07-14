@@ -21,21 +21,26 @@ import "./utils/maintenanceDebugConsole";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 10, // 10 minutes - increased for better performance
+      gcTime: 1000 * 60 * 15, // 15 minutes garbage collection
       retry: (failureCount, error: unknown) => {
-        // Don't retry auth errors
+        // Don't retry auth errors or validation errors
         if (
           error instanceof Error &&
           (error.message?.includes("auth") ||
-            error.message?.includes("unauthorized"))
+            error.message?.includes("unauthorized") ||
+            error.message?.includes("validation") ||
+            error.message?.includes("permission"))
         ) {
           return false;
         }
-        return failureCount < 2;
+        return failureCount < 1; // Reduced retries for better performance
       },
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: "always",
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Reduced max delay
+      refetchOnWindowFocus: false, // Disabled to reduce unnecessary requests
+      refetchOnMount: false, // Disabled to reduce unnecessary requests
+      refetchOnReconnect: false, // Disabled to reduce unnecessary requests
+      refetchInterval: false, // Disabled by default, enable per query if needed
     },
     mutations: {
       retry: false, // Don't retry mutations to prevent data inconsistency

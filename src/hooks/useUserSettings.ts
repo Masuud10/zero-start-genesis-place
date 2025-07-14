@@ -9,7 +9,6 @@ interface UserSettings {
   name: string;
   theme_preference: 'light' | 'dark' | 'system';
   dashboard_preferences: {
-    showGreetings: boolean;
     compactMode: boolean;
     defaultView: string;
   };
@@ -61,10 +60,11 @@ export const useUserSettings = () => {
         description: "Your profile settings have been saved successfully.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update settings";
       toast({
         title: "Error",
-        description: error.message || "Failed to update settings",
+        description: errorMessage,
         variant: "destructive",
       });
     },

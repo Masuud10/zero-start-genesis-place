@@ -296,10 +296,19 @@ export const useAnalyticsData = (schoolId?: string) => {
       }
     },
     enabled: !!effectiveSchoolId && !!user && effectiveSchoolId !== 'null' && effectiveSchoolId !== 'undefined',
-    staleTime: 2 * 60 * 1000, // 2 minutes - reduced for more real-time updates
-    refetchInterval: 5 * 60 * 1000, // 5 minutes - auto refresh
-    refetchOnWindowFocus: true,
-    retry: 2,
-    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes - increased for better performance
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - reduced frequency
+    refetchOnWindowFocus: false, // Disabled to reduce unnecessary requests
+    retry: (failureCount, error) => {
+      // Don't retry on auth or validation errors
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMessage = String(error.message).toLowerCase();
+        if (errorMessage.includes('auth') || errorMessage.includes('validation')) {
+          return false;
+        }
+      }
+      return failureCount < 2; // Reduced retries
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Reduced max delay
   });
 };

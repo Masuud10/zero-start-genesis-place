@@ -226,6 +226,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         
         if (isMountedRef.current) {
           setStats(newStats);
+          setLoading(false); // FIXED: Set loading to false on success
           setLoadingTimeout(false);
         }
         return; // Success, exit loop
@@ -250,6 +251,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         if (isMountedRef.current) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
           setError(errorMessage);
+          setLoading(false); // FIXED: Set loading to false on error
           setLoadingTimeout(false);
           
           // Only show toast for non-timeout errors
@@ -263,6 +265,11 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         }
         break;
       }
+    }
+    
+    // FIXED: Ensure loading is set to false if we somehow exit the loop without setting it
+    if (isMountedRef.current) {
+      setLoading(false);
     }
   }, [schoolId, user?.id, toast]);
 

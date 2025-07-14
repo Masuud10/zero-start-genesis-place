@@ -10,7 +10,7 @@ export class CommunicationsService {
   // Get communications for a specific user role
   static async getUserCommunications(userRole: string, userId: string): Promise<AdminCommunication[]> {
     try {
-      console.log('📢 CommunicationsService: Fetching communications for role:', userRole);
+      console.log('📢 CommunicationsService: Fetching communications for role:', userRole, 'user ID:', userId);
       
       const now = new Date().toISOString();
       
@@ -23,6 +23,9 @@ export class CommunicationsService {
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order('created_at', { ascending: false });
 
+      console.log('📢 CommunicationsService: Raw communications from DB:', communications);
+      console.log('📢 CommunicationsService: DB error:', error);
+
       if (error) {
         console.error('📢 CommunicationsService: Error fetching communications:', error);
         throw error;
@@ -34,6 +37,9 @@ export class CommunicationsService {
         .select('communication_id')
         .eq('user_id', userId);
 
+      console.log('📢 CommunicationsService: Dismissed communications:', dismissedCommunications);
+      console.log('📢 CommunicationsService: Dismissed error:', dismissedError);
+
       if (dismissedError) {
         console.error('📢 CommunicationsService: Error fetching dismissed communications:', dismissedError);
         throw dismissedError;
@@ -42,7 +48,8 @@ export class CommunicationsService {
       const dismissedIds = dismissedCommunications?.map(d => d.communication_id) || [];
       const filteredCommunications = communications?.filter(comm => !dismissedIds.includes(comm.id)) || [];
 
-      console.log('📢 CommunicationsService: Returning communications:', filteredCommunications.length);
+      console.log('📢 CommunicationsService: Final filtered communications:', filteredCommunications.length);
+      console.log('📢 CommunicationsService: Dismissed IDs:', dismissedIds);
       return filteredCommunications as AdminCommunication[];
     } catch (error) {
       console.error('📢 CommunicationsService: Error in getUserCommunications:', error);
