@@ -42,8 +42,8 @@ export const useAuthState = () => {
     };
   }, []);
 
-  const fetchProfile = useCallback(async (userId: string): Promise<{ role?: string; name?: string; school_id?: string; avatar_url?: string; mfa_enabled?: boolean; status?: string } | null> => {
-    console.log('🔐 AuthState: Fetching profile for', userId);
+  const fetchProfile = useCallback(async (userId: string, retryCount: number = 0): Promise<{ role?: string; name?: string; school_id?: string; avatar_url?: string; mfa_enabled?: boolean; status?: string } | null> => {
+    console.log('🔐 AuthState: Fetching profile for', userId, 'retry:', retryCount);
     try {
       const { data, error } = await withTimeout(
         Promise.resolve(supabase
@@ -56,12 +56,26 @@ export const useAuthState = () => {
       
       if (error) {
         console.error('🔐 AuthState: Profile fetch error:', error);
+        
+        // Retry up to 2 times for network/temporary errors
+        if (retryCount < 2 && (error.code === 'PGRST301' || error.message?.includes('timeout') || error.message?.includes('network'))) {
+          console.log('🔐 AuthState: Retrying profile fetch...');
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Progressive delay
+          return fetchProfile(userId, retryCount + 1);
+        }
         return null;
       }
 
       return data;
     } catch (err: unknown) {
       console.error('🔐 AuthState: Profile fetch exception:', err);
+      
+      // Retry for timeout or network errors
+      if (retryCount < 2) {
+        console.log('🔐 AuthState: Retrying profile fetch after exception...');
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        return fetchProfile(userId, retryCount + 1);
+      }
       return null;
     }
   }, []);
@@ -109,7 +123,7 @@ export const useAuthState = () => {
         return;
       }
 
-      // Fetch profile with timeout protection
+      // Fetch profile with timeout protection and retry logic
       console.log('🔐 AuthState: Fetching profile for', authUser.id);
       const profile = await fetchProfile(authUser.id);
       
@@ -119,13 +133,29 @@ export const useAuthState = () => {
       const resolvedRole = profile?.role;
       
       if (!resolvedRole || !isValidRole(resolvedRole)) {
-        console.error('🔐 AuthState: No valid role found in database');
-        if (isMountedRef.current) {
-          setError('Your account is not properly configured. Please contact your administrator.');
-          setIsLoading(false);
-          setIsInitialized(true);
+        console.error('🔐 AuthState: No valid role found in database - profile:', profile);
+        
+        // Only show error if we definitely have a profile but it's invalid
+        // If profile is null, it might be a temporary fetch issue
+        if (profile !== null) {
+          if (isMountedRef.current) {
+            setError('Your account is not properly configured. Please contact your administrator.');
+            setIsLoading(false);
+            setIsInitialized(true);
+          }
+          return;
+        } else {
+          // Profile fetch failed completely - try to sign out and force re-auth
+          console.log('🔐 AuthState: Profile fetch failed completely, signing out');
+          await supabase.auth.signOut();
+          if (isMountedRef.current) {
+            setUser(null);
+            setError('Session expired. Please sign in again.');
+            setIsLoading(false);
+            setIsInitialized(true);
+          }
+          return;
         }
-        return;
       }
 
       // Validate school assignment for non-admin roles
