@@ -241,14 +241,24 @@ const RedesignedTeacherGradingModule: React.FC = () => {
   useEffect(() => {
     if (currentAcademicYear && !selectedAcademicYear) {
       setSelectedAcademicYear(currentAcademicYear.id);
+      console.log('Set current academic year:', currentAcademicYear.year_name);
     }
   }, [currentAcademicYear, selectedAcademicYear]);
 
   useEffect(() => {
     if (currentAcademicTerm && !selectedTerm) {
-      setSelectedTerm(currentAcademicTerm.id);
+      setSelectedTerm(currentAcademicTerm.term_name); // Use term_name for consistency
+      console.log('Set current academic term:', currentAcademicTerm.term_name);
     }
   }, [currentAcademicTerm, selectedTerm]);
+
+  // Auto-select first available exam type if none selected
+  useEffect(() => {
+    if (activeExamTypes.length > 0 && !selectedExamType) {
+      setSelectedExamType(activeExamTypes[0].exam_type);
+      console.log('Set default exam type:', activeExamTypes[0].session_name);
+    }
+  }, [activeExamTypes, selectedExamType]);
 
   // Load subjects for selected class
   const loadClassSubjects = useCallback(async () => {
@@ -483,6 +493,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             subject_id: subjectId,
             term: selectedTerm,
             exam_type: selectedExamType,
+            academic_year: selectedAcademicYear,
             score: gradeData.score || gradeData.total_score,
             letter_grade: gradeData.letter_grade,
             cbc_performance_level: gradeData.cbc_performance_level,
@@ -590,6 +601,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
               subject_id: subjectId,
               term: selectedTerm,
               exam_type: selectedExamType,
+              academic_year: selectedAcademicYear,
               score: gradeData.score || gradeData.total_score,
               letter_grade: gradeData.letter_grade,
               cbc_performance_level: gradeData.cbc_performance_level,
@@ -1067,7 +1079,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {academicTerms.map((term) => (
-                    <SelectItem key={term.id} value={term.id}>
+                    <SelectItem key={term.id} value={term.term_name}>
                       {term.term_name} {term.is_current && "(Current)"}
                     </SelectItem>
                   ))}

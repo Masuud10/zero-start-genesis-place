@@ -601,7 +601,7 @@ const PrincipalGradesModule: React.FC = () => {
                   <SelectItem value="all">All Exam Types</SelectItem>
                   {activeExamTypes.map((exam) => (
                     <SelectItem key={exam.id} value={exam.exam_type}>
-                      {exam.session_name}
+                      {exam.session_name || exam.exam_type}
                     </SelectItem>
                   ))}
                 </SelectContent>

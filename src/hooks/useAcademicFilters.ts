@@ -79,7 +79,7 @@ export const useAcademicFilters = (schoolId: string | null) => {
     enabled: !!schoolId,
   });
 
-  // Load active exam types from exam_sessions table
+  // Load active exam types from exam_sessions table with better fallback
   const { 
     data: examTypes = [], 
     isLoading: loadingExamTypes 
@@ -88,16 +88,44 @@ export const useAcademicFilters = (schoolId: string | null) => {
     queryFn: async () => {
       if (!schoolId) return [];
       
-      const { data, error } = await supabase
-        .from('exam_sessions')
-        .select('id, exam_type, session_name, is_active, start_date, end_date, created_by')
-        .eq('school_id', schoolId)
-        .eq('is_active', true)
-        .order('start_date', { ascending: false });
-      
-      if (error) {
-        console.error('Error loading exam types:', error);
-        // Fallback to hardcoded exam types if no exam_sessions
+      try {
+        // First try to get exam sessions
+        const { data: examSessionsData, error: examSessionsError } = await supabase
+          .from('exam_sessions')
+          .select('id, exam_type, session_name, is_active, start_date, end_date, created_by, academic_year, term')
+          .eq('school_id', schoolId)
+          .eq('is_active', true)
+          .order('start_date', { ascending: false });
+        
+        if (!examSessionsError && examSessionsData && examSessionsData.length > 0) {
+          console.log('Loaded exam sessions:', examSessionsData);
+          return examSessionsData as ExamType[];
+        }
+        
+        // Fallback: check if there are any existing exam types from grades table
+        const { data: existingExamTypes, error: gradesError } = await supabase
+          .from('grades')
+          .select('exam_type')
+          .eq('school_id', schoolId)
+          .not('exam_type', 'is', null);
+        
+        if (!gradesError && existingExamTypes && existingExamTypes.length > 0) {
+          const uniqueExamTypes = [...new Set(existingExamTypes.map(g => g.exam_type))];
+          console.log('Found existing exam types from grades:', uniqueExamTypes);
+          
+          return uniqueExamTypes.map((examType, index) => ({
+            id: `existing_${index}`,
+            exam_type: examType,
+            session_name: examType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            is_active: true,
+            start_date: '',
+            end_date: '',
+            created_by: ''
+          }));
+        }
+        
+        // Final fallback to default exam types
+        console.log('Using default exam types fallback');
         return [
           { id: 'opener', exam_type: 'OPENER', session_name: 'Opener Exam', is_active: true, start_date: '', end_date: '', created_by: '' },
           { id: 'mid_term', exam_type: 'MID_TERM', session_name: 'Mid Term Exam', is_active: true, start_date: '', end_date: '', created_by: '' },
@@ -106,11 +134,18 @@ export const useAcademicFilters = (schoolId: string | null) => {
           { id: 'test', exam_type: 'TEST', session_name: 'Test', is_active: true, start_date: '', end_date: '', created_by: '' },
           { id: 'project', exam_type: 'PROJECT', session_name: 'Project', is_active: true, start_date: '', end_date: '', created_by: '' },
         ];
+      } catch (error) {
+        console.error('Error in exam types query:', error);
+        return [
+          { id: 'opener', exam_type: 'OPENER', session_name: 'Opener Exam', is_active: true, start_date: '', end_date: '', created_by: '' },
+          { id: 'mid_term', exam_type: 'MID_TERM', session_name: 'Mid Term Exam', is_active: true, start_date: '', end_date: '', created_by: '' },
+          { id: 'end_term', exam_type: 'END_TERM', session_name: 'End Term Exam', is_active: true, start_date: '', end_date: '', created_by: '' },
+        ];
       }
-      
-      return data as ExamType[];
     },
     enabled: !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
   });
 
   // Get current academic year
