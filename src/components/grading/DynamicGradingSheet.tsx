@@ -221,13 +221,19 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
 
       if (curriculumType === "cbc") {
         // Load CBC assessments
-        const { data: cbcData, error: cbcError } = await supabase
+        const cbcQuery = supabase
           .from("cbc_strand_assessments")
           .select("*")
           .eq("class_id", classId)
           .eq("term", term)
-          .eq("assessment_type", examType.toLowerCase())
-          .eq("teacher_id", user?.id);
+          .eq("assessment_type", examType.toLowerCase());
+        
+        // For teachers, only load their own assessments. For principals, load all assessments.
+        if (!isPrincipal) {
+          cbcQuery.eq("teacher_id", user?.id);
+        }
+        
+        const { data: cbcData, error: cbcError } = await cbcQuery;
 
         if (cbcError) {
           console.warn("⚠️ Error loading CBC assessments:", cbcError);
@@ -256,7 +262,7 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
         }
       } else if (curriculumType === "igcse") {
         // Load IGCSE grades
-        const { data: igcseData, error: igcseError } = await supabase
+        const igcseQuery = supabase
           .from("grades")
           .select("*")
           .eq("class_id", classId)
@@ -264,6 +270,13 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
           .eq("exam_type", examType)
           .eq("curriculum_type", "igcse")
           .in("status", ["draft", "submitted", "rejected"]);
+        
+        // For teachers, only load their own grades. For principals, load all grades.
+        if (!isPrincipal) {
+          igcseQuery.eq("submitted_by", user?.id);
+        }
+        
+        const { data: igcseData, error: igcseError } = await igcseQuery;
 
         if (igcseError) {
           console.warn("⚠️ Error loading IGCSE grades:", igcseError);
@@ -284,14 +297,20 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
         }
       } else {
         // Load standard grades
-        const { data: gradesData, error: gradesError } = await supabase
+        const standardQuery = supabase
           .from("grades")
           .select("*")
           .eq("class_id", classId)
           .eq("term", term)
           .eq("exam_type", examType)
-          .eq("submitted_by", user?.id)
           .in("status", ["draft", "submitted", "rejected"]);
+        
+        // For teachers, only load their own grades. For principals, load all grades.
+        if (!isPrincipal) {
+          standardQuery.eq("submitted_by", user?.id);
+        }
+        
+        const { data: gradesData, error: gradesError } = await standardQuery;
 
         if (gradesError) {
           console.warn("⚠️ Error loading standard grades:", gradesError);
@@ -940,7 +959,7 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
                   ) : (
                     <>
                       <Send className="h-4 w-4" />
-                      Submit for Approval
+                      {isPrincipal ? "Submit" : "Submit for Approval"}
                     </>
                   )}
                 </Button>
@@ -1064,7 +1083,7 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
                   ) : (
                     <>
                       <Send className="h-4 w-4" />
-                      Submit for Principal Approval
+                      {isPrincipal ? "Submit" : "Submit for Principal Approval"}
                     </>
                   )}
                 </Button>
