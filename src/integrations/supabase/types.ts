@@ -7649,6 +7649,44 @@ export type Database = {
         Args: { p_school_id: string; p_class_id: string; p_created_by: string }
         Returns: Json
       }
+      get_accurate_activity_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_logins: number
+          active_sessions: number
+          system_uptime: number
+          api_success_rate: number
+        }[]
+      }
+      get_accurate_billing_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_revenue: number
+          monthly_revenue: number
+          revenue_growth_rate: number
+          transaction_count: number
+        }[]
+      }
+      get_accurate_school_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_schools: number
+          active_schools: number
+          new_schools_this_month: number
+          school_growth_rate: number
+          schools_by_type: Json
+        }[]
+      }
+      get_accurate_user_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_users: number
+          active_users: number
+          new_users_this_month: number
+          user_growth_rate: number
+          user_role_distribution: Json
+        }[]
+      }
       get_class_report_data: {
         Args: { p_class_id: string; p_academic_year: string; p_term?: string }
         Returns: Json
@@ -7679,6 +7717,10 @@ export type Database = {
       }
       get_student_report_data: {
         Args: { p_student_id: string; p_academic_year: string; p_term?: string }
+        Returns: Json
+      }
+      get_system_analytics_accurate: {
+        Args: Record<PropertyKey, never>
         Returns: Json
       }
       get_user_role: {
