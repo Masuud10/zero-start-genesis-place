@@ -56,6 +56,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurriculumDisplayName } from "@/utils/curriculum-detector";
 import { CurriculumBasedGradingRouter } from "@/components/grading/CurriculumBasedGradingRouter";
+import { useAcademicFilters } from "@/hooks/useAcademicFilters";
 
 interface Student {
   id: string;
@@ -120,13 +121,20 @@ const RedesignedTeacherGradingModule: React.FC = () => {
   const { schoolId } = useSchoolScopedData();
   const { toast } = useToast();
 
+  // Academic filters
+  const {
+    academicYears,
+    academicTerms,
+    activeExamTypes,
+    currentAcademicYear,
+    currentAcademicTerm,
+    isLoading: academicLoading,
+  } = useAcademicFilters(schoolId);
+
   // State management
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [academicTerms, setAcademicTerms] = useState<AcademicTerm[]>([]);
-  const [examTypes, setExamTypes] = useState<string[]>([]);
 
   // Selection state
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -229,55 +237,18 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     }
   }, [user?.id, schoolId, toast]);
 
-  // Load academic years
-  const loadAcademicYears = useCallback(async () => {
-    if (!schoolId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("academic_years")
-        .select("id, year_name, is_current")
-        .eq("school_id", schoolId)
-        .order("year_name", { ascending: false });
-
-      if (error) throw error;
-
-      setAcademicYears(data || []);
-
-      // Set current academic year if available
-      const currentYear = data?.find((year) => year.is_current);
-      if (currentYear) {
-        setSelectedAcademicYear(currentYear.id);
-      }
-    } catch (error) {
-      console.error("Error loading academic years:", error);
+  // Initialize current selections from academic filters
+  useEffect(() => {
+    if (currentAcademicYear && !selectedAcademicYear) {
+      setSelectedAcademicYear(currentAcademicYear.id);
     }
-  }, [schoolId]);
+  }, [currentAcademicYear, selectedAcademicYear]);
 
-  // Load academic terms
-  const loadAcademicTerms = useCallback(async () => {
-    if (!schoolId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("academic_terms")
-        .select("id, term_name, is_current")
-        .eq("school_id", schoolId)
-        .order("term_name", { ascending: true });
-
-      if (error) throw error;
-
-      setAcademicTerms(data || []);
-
-      // Set current term if available
-      const currentTerm = data?.find((term) => term.is_current);
-      if (currentTerm) {
-        setSelectedTerm(currentTerm.id);
-      }
-    } catch (error) {
-      console.error("Error loading academic terms:", error);
+  useEffect(() => {
+    if (currentAcademicTerm && !selectedTerm) {
+      setSelectedTerm(currentAcademicTerm.id);
     }
-  }, [schoolId]);
+  }, [currentAcademicTerm, selectedTerm]);
 
   // Load subjects for selected class
   const loadClassSubjects = useCallback(async () => {
@@ -438,9 +409,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
   // Initialize data
   useEffect(() => {
     loadTeacherClasses();
-    loadAcademicYears();
-    loadAcademicTerms();
-  }, [loadTeacherClasses, loadAcademicYears, loadAcademicTerms]);
+  }, [loadTeacherClasses]);
 
   // Load subjects when class changes
   useEffect(() => {
@@ -1119,12 +1088,11 @@ const RedesignedTeacherGradingModule: React.FC = () => {
                   <SelectValue placeholder="Select exam" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Mid Term">Mid Term</SelectItem>
-                  <SelectItem value="End Term">End Term</SelectItem>
-                  <SelectItem value="Final">Final</SelectItem>
-                  <SelectItem value="Continuous Assessment">
-                    Continuous Assessment
-                  </SelectItem>
+                  {activeExamTypes.map((exam) => (
+                    <SelectItem key={exam.id} value={exam.exam_type}>
+                      {exam.session_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

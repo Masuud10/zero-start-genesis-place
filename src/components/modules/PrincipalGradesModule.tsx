@@ -60,6 +60,8 @@ import { useClassCurriculum } from "@/hooks/useClassCurriculum";
 import { GradeManagementService } from "@/services/gradeManagementService";
 import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegration";
 import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
+import { useAcademicFilters } from "@/hooks/useAcademicFilters";
+import GradesOverrideModule from "@/components/grading/GradesOverrideModule";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface GradeRecord {
@@ -128,6 +130,15 @@ const PrincipalGradesModule: React.FC = () => {
   const { subjects, loading: subjectsLoading } = useSubjects();
   const { academicInfo, loading: academicInfoLoading } =
     useCurrentAcademicInfo(schoolId);
+  
+  // Academic filters for proper data integration
+  const {
+    academicYears,
+    academicTerms,
+    activeExamTypes,
+    currentAcademicYear,
+    currentAcademicTerm,
+  } = useAcademicFilters(schoolId);
 
   // State management
   const [grades, setGrades] = useState<GradeRecord[]>([]);
@@ -566,9 +577,9 @@ const PrincipalGradesModule: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Terms</SelectItem>
-                  {availableTerms.map((term) => (
-                    <SelectItem key={term} value={term}>
-                      {term}
+                  {academicTerms.map((term) => (
+                    <SelectItem key={term.id} value={term.term_name}>
+                      {term.term_name} {term.is_current && "(Current)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -588,9 +599,9 @@ const PrincipalGradesModule: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Exam Types</SelectItem>
-                  {availableExamTypes.map((examType) => (
-                    <SelectItem key={examType} value={examType}>
-                      {examType}
+                  {activeExamTypes.map((exam) => (
+                    <SelectItem key={exam.id} value={exam.exam_type}>
+                      {exam.session_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -663,10 +674,14 @@ const PrincipalGradesModule: React.FC = () => {
 
       {/* Grades Tabs */}
       <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="override" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            Override
+          </TabsTrigger>
           <TabsTrigger value="pending" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
-            Pending Review ({pendingGrades.length})
+            Pending ({pendingGrades.length})
           </TabsTrigger>
           <TabsTrigger value="approved" className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
@@ -681,6 +696,10 @@ const PrincipalGradesModule: React.FC = () => {
             Released ({releasedGrades.length})
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="override" className="space-y-4">
+          <GradesOverrideModule />
+        </TabsContent>
 
         <TabsContent value="pending" className="space-y-4">
           <GradesTable
