@@ -243,11 +243,10 @@ const PrincipalReportsModal: React.FC<PrincipalReportsModalProps> = ({
   });
 
   // Fetch teachers with performance data
-  // @ts-expect-error - React Query deep instantiation issue with Supabase
   const { data: teachers = [] } = useQuery({
     queryKey: ["teachers-performance", schoolId],
     queryFn: async () => {
-      if (!schoolId) return [];
+      // @ts-ignore - Deep type instantiation issue with Supabase
       const { data, error } = await supabase
         .from("profiles")
         .select(

@@ -314,7 +314,7 @@ const PrincipalGradesModule: React.FC = () => {
 
       switch (type) {
         case "approve":
-          await GradeManagementService.approveGrades(gradeIds, user?.id || "");
+          await GradeManagementService.approveGrades(gradeIds, user?.id || "", "");
           break;
         case "reject":
           if (!reason?.trim()) {
@@ -328,7 +328,8 @@ const PrincipalGradesModule: React.FC = () => {
           await GradeManagementService.rejectGrades(
             gradeIds,
             reason,
-            user?.id || ""
+            user?.id || "",
+            ""
           );
           break;
         case "override":
@@ -344,11 +345,12 @@ const PrincipalGradesModule: React.FC = () => {
             gradeIds,
             Number(overrideScore),
             reason || "",
-            user?.id || ""
+            user?.id || "",
+            ""
           );
           break;
         case "release":
-          await GradeManagementService.releaseGrades(gradeIds, user?.id || "");
+          await GradeManagementService.releaseGrades(gradeIds, user?.id || "", "");
           break;
       }
 

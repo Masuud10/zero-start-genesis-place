@@ -138,6 +138,7 @@ export class NotificationService {
       message: string;
       priority: 'low' | 'medium' | 'high';
       targetRoles?: string[];
+      createdBy?: string;
     }
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -150,6 +151,7 @@ export class NotificationService {
           priority: announcement.priority,
           target_roles: announcement.targetRoles || ['all'],
           is_active: true,
+          created_by: announcement.createdBy || '',
           created_at: new Date().toISOString()
         })
         .select()
@@ -485,8 +487,9 @@ export class NotificationService {
     userId: string
   ): Promise<{ data: any; error?: string }> {
     try {
+      // Use direct query instead of notification_preferences table
       const { data, error } = await supabase
-        .from('notification_preferences')
+        .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .single();

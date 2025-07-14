@@ -21,7 +21,7 @@ export const useFeeActions = () => {
     }
 
     // Validate fee data
-    if (!feeData.amount || feeData.amount <= 0) {
+    if (!feeData.amount || (feeData.amount as number) <= 0) {
       toast({
         title: "Error",
         description: "Invalid fee amount",

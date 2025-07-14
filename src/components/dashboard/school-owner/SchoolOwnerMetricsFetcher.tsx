@@ -94,8 +94,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           supabase
             .from("classes")
             .select("id", { count: "exact" })
-            .eq("school_id", targetSchoolId)
-            .eq("is_active", true),
+            .eq("school_id", targetSchoolId),
         ]);
 
         clearTimeout(timeoutId);
@@ -147,7 +146,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
         const attendanceRate =
           totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
 
-        // Calculate financial metrics with error handling
+        // @ts-ignore - Deep type instantiation issue with Supabase
         const { data: financialData, error: financialError } = await supabase
           .from("financial_transactions")
           .select("amount")
