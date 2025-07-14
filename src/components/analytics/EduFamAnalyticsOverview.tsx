@@ -30,11 +30,14 @@ import {
   RefreshCw,
   Download,
   Loader2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSystemAnalytics } from "@/hooks/useSystemAnalytics";
 import { useToast } from "@/hooks/use-toast";
+import SystemAnalyticsChartsSection from "./sections/SystemAnalyticsChartsSection";
 
 interface EduFamAnalyticsOverviewProps {
   onAnalyticsAction?: (action: string) => void;
@@ -48,6 +51,7 @@ const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({
   const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "1y">(
     "30d"
   );
+  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
 
   const {
     analyticsData,
@@ -70,7 +74,8 @@ const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({
   };
 
   const handleViewDetailedAnalytics = () => {
-    console.log("📊 EduFamAnalyticsOverview: Opening detailed analytics");
+    console.log("📊 EduFamAnalyticsOverview: Toggling detailed analytics view");
+    setIsDetailsVisible(!isDetailsVisible);
     onAnalyticsAction?.("view-detailed-analytics");
   };
 
@@ -149,7 +154,8 @@ const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({
   }
 
   return (
-    <Card>
+    <>
+      <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
@@ -376,9 +382,19 @@ const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({
           <Button
             onClick={handleViewDetailedAnalytics}
             variant="default"
-            className="flex-1"
+            className="flex-1 flex items-center gap-2"
           >
-            View Detailed Analytics
+            {isDetailsVisible ? (
+              <>
+                <ChevronUp className="h-4 w-4" />
+                Hide Detailed Analytics
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                View Detailed Analytics
+              </>
+            )}
           </Button>
           <Button
             onClick={handleExportAnalytics}
@@ -395,6 +411,29 @@ const EduFamAnalyticsOverview: React.FC<EduFamAnalyticsOverviewProps> = ({
         </div>
       </CardContent>
     </Card>
+    
+    {/* Detailed Analytics Section - Conditionally Rendered */}
+    {isDetailsVisible && (
+      <div className="detailed-analytics-container mt-6 w-full">
+        <Card className="animate-in slide-in-from-top-5 duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <TrendingUp className="h-6 w-6" />
+              Detailed System Analytics
+            </CardTitle>
+            <CardDescription>
+              Comprehensive analytics with detailed charts and insights
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="w-full overflow-hidden">
+              <SystemAnalyticsChartsSection />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )}
+  </>
   );
 };
 

@@ -56,9 +56,9 @@ const SystemAnalyticsChartsSection = () => {
   const avgPerformance = analytics?.averageResponseTime || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Stats Icons at the Top */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -123,8 +123,8 @@ const SystemAnalyticsChartsSection = () => {
       </div>
 
       {/* Bar Charts and Line Graphs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>System Usage Trends</CardTitle>
           </CardHeader>
@@ -133,7 +133,7 @@ const SystemAnalyticsChartsSection = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Network-wide Growth</CardTitle>
           </CardHeader>
@@ -144,8 +144,8 @@ const SystemAnalyticsChartsSection = () => {
       </div>
 
       {/* Revenue and Performance Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Revenue Analytics</CardTitle>
           </CardHeader>
@@ -154,7 +154,7 @@ const SystemAnalyticsChartsSection = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Performance Metrics</CardTitle>
           </CardHeader>
@@ -165,8 +165,8 @@ const SystemAnalyticsChartsSection = () => {
       </div>
 
       {/* Pie Charts for Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>User Role Distribution</CardTitle>
           </CardHeader>
@@ -175,7 +175,7 @@ const SystemAnalyticsChartsSection = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Curriculum Distribution</CardTitle>
           </CardHeader>
@@ -184,7 +184,7 @@ const SystemAnalyticsChartsSection = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Financial Summary</CardTitle>
           </CardHeader>
@@ -195,8 +195,8 @@ const SystemAnalyticsChartsSection = () => {
       </div>
 
       {/* School-specific Analytics */}
-      <div className="grid grid-cols-1 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 gap-4 lg:gap-6">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>School Enrollment Overview</CardTitle>
           </CardHeader>
