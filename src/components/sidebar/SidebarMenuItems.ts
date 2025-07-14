@@ -47,7 +47,6 @@ export interface MenuItem {
 export const getMenuItems = (userRole?: string): MenuItem[] => {
   const baseItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
   ];
 
   // System admin specific items - ensure Project Hub is prominently placed
@@ -68,6 +67,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'support', label: 'Support Center', icon: Headphones, roles: ['edufam_admin'] },
       { id: 'security', label: 'Security', icon: Shield, roles: ['edufam_admin'] },
       { id: 'settings', label: 'System Settings', icon: Settings, roles: ['edufam_admin'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['edufam_admin'] },
     ];
   }
 
@@ -84,6 +84,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['school_owner'] },
       { id: 'reports', label: 'School Reports', icon: FileText, roles: ['school_owner'] },
       { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['school_owner'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner'] },
     ];
   }
 
@@ -104,6 +105,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['principal'] },
       { id: 'reports', label: 'School Reports', icon: FileText, roles: ['principal'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['principal'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['principal'] },
     ];
   }
 
@@ -119,6 +121,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'announcements', label: 'Class Announcements', icon: Megaphone, roles: ['teacher'] },
       { id: 'reports', label: 'Class Reports', icon: FileText, roles: ['teacher'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['teacher'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['teacher'] },
     ];
   }
 
@@ -136,6 +139,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'announcements', label: 'Finance Notices', icon: Megaphone, roles: ['finance_officer'] },
       { id: 'finance-settings', label: 'Finance Settings', icon: Settings, roles: ['finance_officer'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['finance_officer'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['finance_officer'] },
     ];
   }
 
@@ -150,6 +154,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'announcements', label: 'School News', icon: Megaphone, roles: ['parent'] },
       { id: 'reports', label: 'Progress Reports', icon: FileText, roles: ['parent'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['parent'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['parent'] },
     ];
   }
 

@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { ConversationList } from './ConversationList';
 import { ChatWindow } from './ChatWindow';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { LogIn, MessageSquare } from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -16,7 +20,34 @@ interface Conversation {
 }
 
 export const MessagesPage: React.FC = () => {
+  const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background p-6">
+        <div className="max-w-md w-full space-y-6 text-center">
+          <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
+            <MessageSquare className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
+              Authentication Required
+            </h2>
+            <p className="text-muted-foreground">
+              Please log in to access your messages and start conversations.
+            </p>
+          </div>
+          <Alert>
+            <LogIn className="h-4 w-4" />
+            <AlertDescription>
+              You need to be logged in to use the messaging feature.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex bg-background">
