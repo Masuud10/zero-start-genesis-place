@@ -48,6 +48,7 @@ const SchoolOwnerReportsModule: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "excel">("pdf");
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // @ts-ignore - Deep type instantiation issue
   const { data: schoolStats } = useQuery({
     queryKey: ["school-owner-stats", schoolId],
     queryFn: async () => {
@@ -69,8 +70,7 @@ const SchoolOwnerReportsModule: React.FC = () => {
           supabase
             .from("classes")
             .select("id", { count: "exact" })
-            .eq("school_id", schoolId)
-            .eq("is_active", true),
+            .eq("school_id", schoolId),
           supabase
             .from("fees")
             .select("amount, paid_amount")

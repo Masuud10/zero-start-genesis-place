@@ -32,7 +32,6 @@ interface TestClass {
   id: string;
   name: string;
   curriculum_type?: string;
-  curriculum?: string;
 }
 
 export const CurriculumGradingTest: React.FC<CurriculumGradingTestProps> = ({
@@ -63,7 +62,7 @@ export const CurriculumGradingTest: React.FC<CurriculumGradingTestProps> = ({
     try {
       const { data, error } = await supabase
         .from("classes")
-        .select("id, name, curriculum_type, curriculum")
+        .select("id, name, curriculum_type")
         .limit(10);
 
       if (error) throw error;
@@ -98,7 +97,6 @@ export const CurriculumGradingTest: React.FC<CurriculumGradingTestProps> = ({
                   single: () => Promise<{
                     data: {
                       curriculum_type?: string;
-                      curriculum?: string;
                       name?: string;
                     } | null;
                     error: { message: string } | null;
@@ -145,8 +143,8 @@ export const CurriculumGradingTest: React.FC<CurriculumGradingTestProps> = ({
     setShowGradingSheet(false);
   };
 
-  const getCurriculumBadge = (curriculumType?: string, curriculum?: string) => {
-    const type = curriculumType || curriculum;
+  const getCurriculumBadge = (curriculumType?: string) => {
+    const type = curriculumType;
     if (!type)
       return (
         <Badge variant="outline" className="text-red-600">
@@ -210,10 +208,7 @@ export const CurriculumGradingTest: React.FC<CurriculumGradingTestProps> = ({
                       <SelectItem key={cls.id} value={cls.id}>
                         <div className="flex items-center gap-2">
                           <span>{cls.name}</span>
-                          {getCurriculumBadge(
-                            cls.curriculum_type,
-                            cls.curriculum
-                          )}
+                          {getCurriculumBadge(cls.curriculum_type)}
                         </div>
                       </SelectItem>
                     ))

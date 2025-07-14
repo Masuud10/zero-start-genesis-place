@@ -9,7 +9,6 @@ interface SchoolCurriculumData {
   id: string;
   name: string;
   curriculum_type?: string;
-  curriculum?: string;
 }
 
 export const useSchoolCurriculum = () => {
@@ -38,7 +37,7 @@ export const useSchoolCurriculum = () => {
       // Get curriculum type from first class in school
       const { data: classData, error: classError } = await supabase
         .from('classes')
-        .select('id, name, curriculum_type, curriculum')
+        .select('id, name, curriculum_type')
         .eq('school_id', schoolId)
         .limit(1)
         .single();
@@ -59,13 +58,12 @@ export const useSchoolCurriculum = () => {
         return;
       }
 
-      const curriculumValue = classData.curriculum_type || classData.curriculum;
+      const curriculumValue = classData.curriculum_type;
       
       console.log('🎓 useSchoolCurriculum: Class-based curriculum data:', {
         schoolId,
         className: classData.name,
         curriculum_type: classData.curriculum_type,
-        curriculum: classData.curriculum,
         resolvedValue: curriculumValue
       });
 
@@ -98,8 +96,7 @@ export const useSchoolCurriculum = () => {
       setSchoolData({
         id: schoolId,
         name: classData.name,
-        curriculum_type: classData.curriculum_type,
-        curriculum: classData.curriculum
+        curriculum_type: classData.curriculum_type
       });
       setError(null);
     } catch (error) {

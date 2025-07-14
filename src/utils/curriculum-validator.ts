@@ -12,7 +12,6 @@ export interface ClassCurriculumData {
   id: string;
   name: string;
   curriculum_type?: string;
-  curriculum?: string;
   school_id: string;
 }
 
@@ -136,7 +135,7 @@ export async function validateClassCurriculum(classId: string): Promise<Curricul
     // Fetch class data including curriculum information
     const { data, error } = await supabase
       .from('classes')
-      .select('id, name, curriculum_type, curriculum, school_id')
+      .select('id, name, curriculum_type, school_id')
       .eq('id', classId)
       .single();
 
@@ -158,8 +157,8 @@ export async function validateClassCurriculum(classId: string): Promise<Curricul
       };
     }
 
-    // Check both curriculum_type and curriculum fields
-    const curriculumValue = data.curriculum_type || data.curriculum;
+    // Check curriculum_type field
+    const curriculumValue = data.curriculum_type;
     
     if (!curriculumValue) {
       return {
@@ -198,8 +197,7 @@ export async function validateClassCurriculum(classId: string): Promise<Curricul
       const { error: updateError } = await supabase
         .from('classes')
         .update({ 
-          curriculum_type: dbCurriculumType,
-          curriculum: dbCurriculumType 
+          curriculum_type: dbCurriculumType
         })
         .eq('id', classId);
 
@@ -234,7 +232,7 @@ export async function getClassCurriculumType(classId: string): Promise<string> {
   try {
     const { data, error } = await supabase
       .from('classes')
-      .select('curriculum_type, curriculum')
+      .select('curriculum_type')
       .eq('id', classId)
       .single();
 
@@ -242,7 +240,7 @@ export async function getClassCurriculumType(classId: string): Promise<string> {
       return 'Standard'; // Default fallback
     }
 
-    return (data.curriculum_type || data.curriculum || 'Standard').toUpperCase();
+    return (data.curriculum_type || 'Standard').toUpperCase();
   } catch (error) {
     console.error('Error getting class curriculum type:', error);
     return 'Standard'; // Default fallback
@@ -270,7 +268,7 @@ export const validateClassCurriculumSetup = async (classId: string, supabase: {
     select: (columns: string) => {
       eq: (column: string, value: string) => {
         single: () => Promise<{ 
-          data: { curriculum_type?: string; curriculum?: string; name?: string } | null; 
+          data: { curriculum_type?: string; name?: string } | null; 
           error: { message: string } | null 
         }>;
       };
@@ -280,7 +278,7 @@ export const validateClassCurriculumSetup = async (classId: string, supabase: {
   try {
     const { data, error } = await supabase
       .from('classes')
-      .select('curriculum_type, curriculum, name')
+      .select('curriculum_type, name')
       .eq('id', classId)
       .single();
 
@@ -292,7 +290,7 @@ export const validateClassCurriculumSetup = async (classId: string, supabase: {
       };
     }
 
-    const curriculumValue = data?.curriculum_type || data?.curriculum;
+    const curriculumValue = data?.curriculum_type;
     const validation = validateCurriculumType(curriculumValue);
 
     return {
