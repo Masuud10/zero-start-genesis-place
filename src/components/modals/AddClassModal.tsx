@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,7 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
   const [className, setClassName] = useState('');
   const [level, setLevel] = useState('');
   const [year, setYear] = useState('');
+  const [curriculumType, setCurriculumType] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -27,10 +29,10 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!className.trim() || !level.trim() || !year.trim()) {
+    if (!className.trim() || !level.trim() || !year.trim() || !curriculumType.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please fill all required fields: Class Name, Level, and Year.",
+        description: "Please fill all required fields: Class Name, Level, Year, and Curriculum Type.",
         variant: "destructive",
       });
       return;
@@ -55,6 +57,7 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
           school_id: schoolId,
           level: level.trim(),
           year: year.trim(),
+          curriculum_type: curriculumType.trim(),
         }]);
 
       if (error) throw error;
@@ -83,6 +86,7 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
     setClassName('');
     setLevel('');
     setYear('');
+    setCurriculumType('');
     onClose();
   };
 
@@ -127,6 +131,20 @@ const AddClassModal: React.FC<AddClassModalProps> = ({ open, onClose, onClassCre
               onChange={(e) => setYear(e.target.value)}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="curriculumType">Curriculum Type</Label>
+            <Select value={curriculumType} onValueChange={setCurriculumType} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select curriculum type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CBC">CBC (Competency Based Curriculum)</SelectItem>
+                <SelectItem value="IGCSE">IGCSE</SelectItem>
+                <SelectItem value="Standard">Standard</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="flex justify-end space-x-2 pt-4">

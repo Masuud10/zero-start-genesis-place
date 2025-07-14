@@ -1663,7 +1663,6 @@ export type Database = {
           capacity: number | null
           class_type: string | null
           created_at: string | null
-          curriculum: string | null
           curriculum_type: string
           id: string
           level: string | null
@@ -1680,7 +1679,6 @@ export type Database = {
           capacity?: number | null
           class_type?: string | null
           created_at?: string | null
-          curriculum?: string | null
           curriculum_type?: string
           id?: string
           level?: string | null
@@ -1697,7 +1695,6 @@ export type Database = {
           capacity?: number | null
           class_type?: string | null
           created_at?: string | null
-          curriculum?: string | null
           curriculum_type?: string
           id?: string
           level?: string | null

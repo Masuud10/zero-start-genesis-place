@@ -8,7 +8,6 @@ interface ClassCurriculumData {
   id: string;
   name: string;
   curriculum_type?: string;
-  curriculum?: string;
   school_id?: string;
 }
 
@@ -37,7 +36,7 @@ export const useClassCurriculum = (classId: string | null) => {
       // Get curriculum type from the specific class
       const { data, error: fetchError } = await supabase
         .from('classes')
-        .select('id, name, curriculum_type, curriculum, school_id')
+        .select('id, name, curriculum_type, school_id')
         .eq('id', classId)
         .single();
 
@@ -59,14 +58,13 @@ export const useClassCurriculum = (classId: string | null) => {
 
       setClassData(data);
 
-      // Check both curriculum_type and curriculum fields
-      const curriculumValue = data?.curriculum_type || data?.curriculum;
+      // Use curriculum_type field only
+      const curriculumValue = data?.curriculum_type;
       
       console.log('🎓 useClassCurriculum: Raw curriculum data:', {
         classId,
         className: data?.name,
         curriculum_type: data?.curriculum_type,
-        curriculum: data?.curriculum,
         resolvedValue: curriculumValue
       });
       

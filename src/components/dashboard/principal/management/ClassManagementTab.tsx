@@ -39,7 +39,7 @@ const ClassManagementTab = () => {
     level: "",
     stream: "",
     year: "",
-    curriculum: "",
+    curriculum_type: "",
   });
 
   useEffect(() => {
@@ -107,7 +107,7 @@ const ClassManagementTab = () => {
       return false;
     }
 
-    if (!form.curriculum.trim()) {
+    if (!form.curriculum_type?.trim()) {
       toast({
         title: "Curriculum Type Required",
         description:
@@ -155,8 +155,7 @@ const ClassManagementTab = () => {
           level: form.level,
           stream: form.stream,
           year: form.year,
-          curriculum: form.curriculum,
-          curriculum_type: form.curriculum, // Ensure both fields are updated
+          curriculum_type: form.curriculum_type,
         })
         .eq("id", editingId);
       result = { error };
@@ -167,8 +166,7 @@ const ClassManagementTab = () => {
         level: form.level,
         stream: form.stream,
         year: form.year,
-        curriculum: form.curriculum,
-        curriculum_type: form.curriculum, // Ensure both fields are set
+        curriculum_type: form.curriculum_type,
       });
       result = { error };
     }
@@ -184,9 +182,9 @@ const ClassManagementTab = () => {
         title: editingId ? "Class Updated" : "Class Created",
         description: editingId
           ? `Class "${form.name}" updated successfully.`
-          : `Class "${form.name}" created successfully with ${form.curriculum} curriculum.`,
+          : `Class "${form.name}" created successfully with ${form.curriculum_type} curriculum.`,
       });
-      setForm({ name: "", level: "", stream: "", year: "", curriculum: "" });
+      setForm({ name: "", level: "", stream: "", year: "", curriculum_type: "" });
       setEditingId(null);
       fetchClasses();
     }
@@ -199,7 +197,7 @@ const ClassManagementTab = () => {
       level: row.level || "",
       stream: row.stream || "",
       year: row.year || "",
-      curriculum: row.curriculum || row.curriculum_type || "",
+      curriculum_type: row.curriculum_type || "",
     });
   };
 
@@ -226,7 +224,7 @@ const ClassManagementTab = () => {
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setForm({ name: "", level: "", stream: "", year: "", curriculum: "" });
+    setForm({ name: "", level: "", stream: "", year: "", curriculum_type: "" });
   };
 
   const getCurriculumBadge = (curriculum: string) => {
@@ -328,13 +326,13 @@ const ClassManagementTab = () => {
         <div className="space-y-2">
           <Label htmlFor="curriculum">Curriculum Type *</Label>
           <Select
-            value={form.curriculum}
+            value={form.curriculum_type}
             onValueChange={(value) =>
-              setForm((f) => ({ ...f, curriculum: value }))
+              setForm((f) => ({ ...f, curriculum_type: value }))
             }
             required
           >
-            <SelectTrigger className={!form.curriculum ? "border-red-500" : ""}>
+            <SelectTrigger className={!form.curriculum_type ? "border-red-500" : ""}>
               <SelectValue placeholder="Select Curriculum Type" />
             </SelectTrigger>
             <SelectContent>
@@ -349,13 +347,13 @@ const ClassManagementTab = () => {
               </SelectItem>
             </SelectContent>
           </Select>
-          {!form.curriculum && (
+          {!form.curriculum_type && (
             <p className="text-sm text-red-600">Curriculum type is required</p>
           )}
         </div>
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={loading || !form.curriculum}>
+          <Button type="submit" disabled={loading || !form.curriculum_type}>
             {loading
               ? editingId
                 ? "Saving..."
@@ -400,7 +398,7 @@ const ClassManagementTab = () => {
                   <td className="border px-2 py-1">{row.stream ?? "-"}</td>
                   <td className="border px-2 py-1">{row.year ?? "-"}</td>
                   <td className="border px-2 py-1">
-                    {getCurriculumBadge(row.curriculum || row.curriculum_type)}
+                    {getCurriculumBadge(row.curriculum_type || "")}
                   </td>
                   <td className="border px-2 py-1 flex gap-2">
                     <Button

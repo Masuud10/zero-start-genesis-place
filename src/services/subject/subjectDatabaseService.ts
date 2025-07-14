@@ -9,7 +9,6 @@ export interface SubjectData {
   class_id: string;
   teacher_id?: string;
   curriculum_type?: string;
-  curriculum?: string;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -33,8 +32,7 @@ export async function createSubject(data: SubjectData): Promise<CreateSubjectRes
       description: data.description,
       class_id: data.class_id,
       teacher_id: data.teacher_id,
-      curriculum_type: data.curriculum, // Store in both fields for consistency
-      curriculum: data.curriculum,
+      curriculum_type: data.curriculum_type,
       is_active: data.is_active ?? true
     };
 

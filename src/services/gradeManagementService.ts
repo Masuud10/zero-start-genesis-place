@@ -74,7 +74,7 @@ export class GradeManagementService {
       // Get class curriculum type
       const { data: classData, error: classError } = await supabase
         .from('classes')
-        .select('curriculum_type, curriculum, name')
+        .select('curriculum_type, name')
         .eq('id', classId)
         .single();
 
@@ -82,7 +82,7 @@ export class GradeManagementService {
         throw new Error(`Failed to fetch class data: ${classError.message}`);
       }
 
-      const curriculumType = detectCurriculumType(classData.curriculum_type || classData.curriculum);
+      const curriculumType = detectCurriculumType(classData.curriculum_type || 'Standard');
       const curriculumInfo = getCurriculumInfo(curriculumType);
 
       console.log('🎓 GradeManagementService: Curriculum detected', {

@@ -476,7 +476,7 @@ const PrincipalGradesModule: React.FC = () => {
             }
           >
             <FileSpreadsheet className="h-4 w-4 mr-2" />
-            View Grading Sheet
+            Open Grading Sheet
           </Button>
         </div>
       </div>
