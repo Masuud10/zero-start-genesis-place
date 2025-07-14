@@ -69,6 +69,11 @@ interface CleanGradingSheetProps {
   className?: string;
   termName?: string;
   academicYearName?: string;
+  // Save and submit functions
+  onSaveDraft?: () => void;
+  onSubmitForApproval?: () => void;
+  saving?: boolean;
+  submitting?: boolean;
 }
 
 const CBC_PERFORMANCE_LEVELS = [
@@ -93,6 +98,10 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
   className,
   termName,
   academicYearName,
+  onSaveDraft,
+  onSubmitForApproval,
+  saving: savingProp,
+  submitting: submittingProp,
 }) => {
   const { user } = useAuth();
   const { schoolId } = useSchoolScopedData();
@@ -596,11 +605,11 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleSave}
-                  disabled={saving}
+                  onClick={onSaveDraft || handleSave}
+                  disabled={savingProp || saving}
                   className="bg-white hover:bg-blue-50"
                 >
-                  {saving ? (
+                  {(savingProp || saving) ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
@@ -609,11 +618,11 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                 </Button>
                 <Button
                   size="sm"
-                  onClick={handleSubmit}
-                  disabled={submitting}
+                  onClick={onSubmitForApproval || handleSubmit}
+                  disabled={submittingProp || submitting}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  {submitting ? (
+                  {(submittingProp || submitting) ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
                     <Send className="h-4 w-4 mr-2" />

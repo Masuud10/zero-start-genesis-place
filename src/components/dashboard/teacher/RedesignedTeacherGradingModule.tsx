@@ -407,6 +407,10 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             is_locked:
               existingGrade?.status === "released" ||
               existingGrade?.status === "approved",
+            // IGCSE specific fields
+            coursework_score: existingGrade?.coursework_score || null,
+            exam_score: existingGrade?.exam_score || null,
+            total_score: existingGrade?.score || null,
           };
         });
       });
@@ -510,7 +514,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             subject_id: subjectId,
             term: selectedTerm,
             exam_type: selectedExamType,
-            score: gradeData.score,
+            score: gradeData.score || gradeData.total_score,
             letter_grade: gradeData.letter_grade,
             cbc_performance_level: gradeData.cbc_performance_level,
             percentage: gradeData.percentage,
@@ -518,6 +522,10 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             status: "draft",
             submitted_by: user?.id,
             curriculum_type: curriculumType,
+            // IGCSE specific fields
+            coursework_score: gradeData.coursework_score,
+            exam_score: gradeData.exam_score,
+            max_score: 100, // Default for IGCSE
           }))
       );
 
@@ -603,7 +611,8 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             .filter(
               ([_, gradeData]) =>
                 gradeData.score !== null ||
-                gradeData.cbc_performance_level !== null
+                gradeData.cbc_performance_level !== null ||
+                (gradeData.coursework_score !== null && gradeData.exam_score !== null)
             )
             .map(([subjectId, gradeData]) => ({
               school_id: schoolId,
@@ -612,7 +621,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
               subject_id: subjectId,
               term: selectedTerm,
               exam_type: selectedExamType,
-              score: gradeData.score,
+              score: gradeData.score || gradeData.total_score,
               letter_grade: gradeData.letter_grade,
               cbc_performance_level: gradeData.cbc_performance_level,
               percentage: gradeData.percentage,
@@ -621,6 +630,10 @@ const RedesignedTeacherGradingModule: React.FC = () => {
               submitted_by: user?.id,
               submitted_at: new Date().toISOString(),
               curriculum_type: curriculumType,
+              // IGCSE specific fields
+              coursework_score: gradeData.coursework_score,
+              exam_score: gradeData.exam_score,
+              max_score: 100, // Default for IGCSE
             }))
       );
 
@@ -1334,6 +1347,10 @@ const RedesignedTeacherGradingModule: React.FC = () => {
                     academicYears.find((y) => y.id === selectedAcademicYear)
                       ?.year_name
                   }
+                  onSaveDraft={saveGrades}
+                  onSubmitForApproval={submitGrades}
+                  saving={saving}
+                  submitting={submitting}
                 />
               </div>
             </div>

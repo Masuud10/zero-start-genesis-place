@@ -68,6 +68,11 @@ interface CurriculumBasedGradingRouterProps {
   className?: string;
   termName?: string;
   academicYearName?: string;
+  // Save and submit functions
+  onSaveDraft?: () => void;
+  onSubmitForApproval?: () => void;
+  saving?: boolean;
+  submitting?: boolean;
 }
 
 export const CurriculumBasedGradingRouter: React.FC<
@@ -86,6 +91,10 @@ export const CurriculumBasedGradingRouter: React.FC<
   className,
   termName,
   academicYearName,
+  onSaveDraft,
+  onSubmitForApproval,
+  saving,
+  submitting,
 }) => {
   const { schoolId } = useSchoolScopedData();
 
@@ -246,6 +255,10 @@ export const CurriculumBasedGradingRouter: React.FC<
         className={className}
         termName={termName}
         academicYearName={academicYearName}
+        onSaveDraft={onSaveDraft}
+        onSubmitForApproval={onSubmitForApproval}
+        saving={saving}
+        submitting={submitting}
       />
     );
   };
