@@ -79,7 +79,7 @@ export class GradeService {
       .eq('term', gradeData.term!)
       .eq('exam_type', gradeData.exam_type!)
       .eq('submitted_by', gradeData.submitted_by!)
-      .eq('academic_year', gradeData.academic_year || new Date().getFullYear().toString());
+      .eq('academic_year', (gradeData.academic_year || new Date().getFullYear().toString()).slice(0, 4));
 
     if (checkError) {
       console.error('Error checking existing grades:', checkError);
@@ -113,7 +113,7 @@ export class GradeService {
       position: gradeData.position,
       term: gradeData.term!,
       exam_type: gradeData.exam_type!,
-      academic_year: gradeData.academic_year || new Date().getFullYear().toString(),
+      academic_year: (gradeData.academic_year || new Date().getFullYear().toString()).slice(0, 4),
       submitted_by: gradeData.submitted_by!,
       submitted_at: gradeData.submitted_at,
       status: gradeData.status || 'draft',

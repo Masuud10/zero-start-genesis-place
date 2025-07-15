@@ -50,6 +50,7 @@ export const useGradeSubmissionWithAudit = () => {
       const completeGradeData = {
         ...gradeData,
         school_id: classData.school_id,
+        academic_year: (gradeData.academic_year || new Date().getFullYear().toString()).slice(0, 4),
       };
 
       // Use upsert to handle duplicates properly

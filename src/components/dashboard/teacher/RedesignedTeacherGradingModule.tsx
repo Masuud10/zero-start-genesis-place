@@ -370,7 +370,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
         .eq("class_id", selectedClass)
         .eq("term", selectedTerm)
         .eq("exam_type", selectedExamType)
-        .eq("academic_year", selectedAcademicYear || currentAcademicYear?.year_name || new Date().getFullYear().toString());
+        .eq("academic_year", (selectedAcademicYear || currentAcademicYear?.year_name || new Date().getFullYear().toString()).slice(0, 4));
 
       if (error) {
         console.error("Error loading grades:", error);

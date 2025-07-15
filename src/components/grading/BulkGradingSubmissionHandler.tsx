@@ -67,7 +67,7 @@ export const useBulkGradingSubmissionHandler = ({
               subject_id: subjectId,
               term: selectedTerm,
               exam_type: selectedExamType.toUpperCase(), // Ensure uppercase format
-              academic_year: new Date().getFullYear().toString(),
+              academic_year: new Date().getFullYear().toString().slice(0, 4),
               score: grade.isAbsent ? null : Number(grade.score),
               max_score: maxScore,
               percentage: percentage,
@@ -117,7 +117,7 @@ export const useBulkGradingSubmissionHandler = ({
           submitted_by: userId,
           batch_name: `${selectedTerm} - ${selectedExamType} - ${new Date().toLocaleDateString()}`,
           curriculum_type: 'standard',
-          academic_year: new Date().getFullYear().toString(),
+          academic_year: new Date().getFullYear().toString().slice(0, 4),
           total_students: Object.keys(grades).length,
           grades_entered: validGradeCount,
           status: 'submitted'
