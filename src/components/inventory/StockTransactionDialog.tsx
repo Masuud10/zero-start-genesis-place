@@ -40,7 +40,7 @@ const StockTransactionDialog: React.FC<StockTransactionDialogProps> = ({
     }
 
     await createTransaction.mutateAsync({
-      item_id: itemId,
+      item_id: parseInt(itemId),
       transaction_type: transactionType,
       quantity_change: transactionType === 'stock_out' ? -quantityNum : quantityNum,
       notes: notes || undefined,
@@ -86,7 +86,7 @@ const StockTransactionDialog: React.FC<StockTransactionDialogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {items.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
+                  <SelectItem key={item.id} value={item.id.toString()}>
                     {item.name} {item.sku && `(${item.sku})`}
                   </SelectItem>
                 ))}

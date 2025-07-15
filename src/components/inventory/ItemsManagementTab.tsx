@@ -3,22 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useInventoryItems } from '@/hooks/inventory/useInventoryItems';
+import { useInventoryItems, type InventoryItem } from '@/hooks/inventory/useInventoryItems';
 
 export const ItemsManagementTab: React.FC = () => {
   const { data: items = [], isLoading } = useInventoryItems();
 
   const columns = [
     {
-      accessorKey: 'name',
+      accessorKey: 'name' as keyof InventoryItem,
       header: 'Item Name',
     },
     {
-      accessorKey: 'sku',
+      accessorKey: 'sku' as keyof InventoryItem,
       header: 'SKU',
     },
     {
-      accessorKey: 'current_quantity',
+      accessorKey: 'current_quantity' as keyof InventoryItem,
       header: 'Current Stock',
       cell: ({ row }: any) => {
         const quantity = row.original.current_quantity;
@@ -34,17 +34,18 @@ export const ItemsManagementTab: React.FC = () => {
       },
     },
     {
-      accessorKey: 'reorder_level',
+      accessorKey: 'reorder_level' as keyof InventoryItem,
       header: 'Reorder Level',
     },
     {
-      accessorKey: 'unit_of_measurement',
-      header: 'Unit',
+      accessorKey: 'category_id' as keyof InventoryItem,
+      header: 'Category',
+      cell: ({ row }: any) => row.original.category_id ? `Category ${row.original.category_id}` : '-',
     },
     {
-      accessorKey: 'unit_cost',
+      accessorKey: 'unit_cost' as keyof InventoryItem,
       header: 'Unit Cost',
-      cell: ({ row }: any) => `KSh ${row.original.unit_cost?.toLocaleString()}`,
+      cell: ({ row }: any) => row.original.unit_cost ? `KSh ${row.original.unit_cost?.toLocaleString()}` : '-',
     },
     {
       id: 'actions',

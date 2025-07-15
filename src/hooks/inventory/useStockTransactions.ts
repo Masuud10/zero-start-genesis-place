@@ -102,7 +102,7 @@ export const useCreateStockTransaction = () => {
 
   return useMutation({
     mutationFn: async (transactionData: {
-      item_id: string;
+      item_id: number;
       transaction_type: 'stock_in' | 'stock_out' | 'adjustment';
       quantity_change: number;
       notes?: string;
