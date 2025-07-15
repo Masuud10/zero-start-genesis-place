@@ -211,6 +211,16 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       return;
     }
 
+    // === PHASE 1: FORENSIC LOGGING - DATA BEING SENT TO BACKEND ===
+    console.log("--- CREATE USER: FORENSIC LOG ---");
+    console.log("Data being sent to backend:", JSON.stringify(userData, null, 2));
+    console.log("Current user context:", JSON.stringify({
+      role: currentUser.role,
+      school_id: currentUser.school_id
+    }, null, 2));
+    console.log("Validation errors:", JSON.stringify(validationErrors, null, 2));
+    // === END FORENSIC LOGGING ===
+
     setIsSubmitting(true);
     createUserMutation.mutate(userData);
   };
