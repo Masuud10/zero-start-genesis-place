@@ -11,9 +11,9 @@ interface DatabaseGradeInsert {
   percentage?: number;
   position?: number;
   term: string;
-  exam_type?: string;
+  exam_type: string;
   academic_year?: string;
-  submitted_by?: string;
+  submitted_by: string;
   submitted_at?: string;
   status?: 'draft' | 'submitted' | 'approved' | 'released';
   reviewed_by?: string;
@@ -49,16 +49,27 @@ export interface GradeData {
 
 export class GradeService {
   static async createGrade(gradeData: Partial<GradeData>) {
-    // Validate required fields
-    if (!gradeData.student_id || !gradeData.subject_id || !gradeData.class_id || !gradeData.term || !gradeData.exam_type) {
-      throw new Error("Missing required grade data: student_id, subject_id, class_id, term, and exam_type are required");
+    // Validate all required constraint fields
+    if (!gradeData.student_id) {
+      throw new Error("student_id is required to create a grade");
     }
-
+    if (!gradeData.subject_id) {
+      throw new Error("subject_id is required to create a grade");
+    }
     if (!gradeData.class_id) {
       throw new Error("class_id is required to create a grade");
     }
+    if (!gradeData.term) {
+      throw new Error("term is required to create a grade");
+    }
+    if (!gradeData.exam_type) {
+      throw new Error("exam_type is required to create a grade");
+    }
+    if (!gradeData.submitted_by) {
+      throw new Error("submitted_by is required to create a grade");
+    }
 
-    // Check for existing grade with same criteria
+    // Check for existing grade with same criteria (all constraint fields)
     const { data: existingGrades, error: checkError } = await supabase
       .from('grades')
       .select('id, status, submitted_by')
@@ -67,6 +78,7 @@ export class GradeService {
       .eq('class_id', gradeData.class_id!)
       .eq('term', gradeData.term!)
       .eq('exam_type', gradeData.exam_type!)
+      .eq('submitted_by', gradeData.submitted_by!)
       .eq('academic_year', gradeData.academic_year || new Date().getFullYear().toString());
 
     if (checkError) {
@@ -100,9 +112,9 @@ export class GradeService {
       percentage: gradeData.percentage,
       position: gradeData.position,
       term: gradeData.term!,
-      exam_type: gradeData.exam_type,
+      exam_type: gradeData.exam_type!,
       academic_year: gradeData.academic_year || new Date().getFullYear().toString(),
-      submitted_by: gradeData.submitted_by,
+      submitted_by: gradeData.submitted_by!,
       submitted_at: gradeData.submitted_at,
       status: gradeData.status || 'draft',
       reviewed_by: gradeData.reviewed_by,
