@@ -7836,6 +7836,10 @@ export type Database = {
         Args: { user_email: string; success?: boolean }
         Returns: Json
       }
+      hash_password_simple: {
+        Args: { password: string }
+        Returns: string
+      }
       initiate_mpesa_payment: {
         Args: {
           p_phone_number: string
