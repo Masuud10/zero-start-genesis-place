@@ -96,15 +96,9 @@ const ItemFormDialog: React.FC<ItemFormDialogProps> = ({
   }, [item, form]);
 
   const onSubmit = (data: ItemFormData) => {
-    const formData = {
-      ...data,
-      category_id: data.category_id || undefined,
-      supplier_id: data.supplier_id || undefined,
-    };
-
     if (item) {
       // For updates, exclude current_quantity from the payload
-      const { current_quantity, ...updateData } = formData;
+      const { current_quantity, ...updateData } = data;
       updateMutation.mutate(
         { id: item.id, data: updateData },
         {
@@ -115,6 +109,20 @@ const ItemFormDialog: React.FC<ItemFormDialogProps> = ({
         }
       );
     } else {
+      // Ensure name is not empty when creating
+      if (!data.name.trim()) {
+        form.setError('name', { message: 'Item name is required' });
+        return;
+      }
+      const formData = {
+        name: data.name,
+        description: data.description,
+        category_id: data.category_id || null,
+        supplier_id: data.supplier_id || null,
+        sku: data.sku,
+        reorder_level: data.reorder_level,
+        current_quantity: data.current_quantity || 0,
+      };
       createMutation.mutate(formData, {
         onSuccess: () => {
           onClose();

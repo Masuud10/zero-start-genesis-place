@@ -76,7 +76,12 @@ const CategoryFormDialog: React.FC<CategoryFormDialogProps> = ({
         }
       );
     } else {
-      createMutation.mutate(data, {
+      // Ensure name is not empty when creating
+      if (!data.name.trim()) {
+        form.setError('name', { message: 'Category name is required' });
+        return;
+      }
+      createMutation.mutate(data as { name: string; description?: string }, {
         onSuccess: () => {
           onClose();
           form.reset();

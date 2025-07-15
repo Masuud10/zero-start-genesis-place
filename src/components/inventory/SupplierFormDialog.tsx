@@ -77,14 +77,9 @@ const SupplierFormDialog: React.FC<SupplierFormDialogProps> = ({
   }, [supplier, form]);
 
   const onSubmit = (data: SupplierFormData) => {
-    const formData = {
-      ...data,
-      email: data.email || undefined,
-    };
-
     if (supplier) {
       updateMutation.mutate(
-        { id: supplier.id, data: formData },
+        { id: supplier.id, data },
         {
           onSuccess: () => {
             onClose();
@@ -93,6 +88,18 @@ const SupplierFormDialog: React.FC<SupplierFormDialogProps> = ({
         }
       );
     } else {
+      // Ensure name is not empty when creating
+      if (!data.name.trim()) {
+        form.setError('name', { message: 'Supplier name is required' });
+        return;
+      }
+      const formData = {
+        name: data.name,
+        contact_person: data.contact_person,
+        phone_number: data.phone_number,
+        email: data.email || '',
+        address: data.address,
+      };
       createMutation.mutate(formData, {
         onSuccess: () => {
           onClose();

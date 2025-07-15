@@ -71,10 +71,16 @@ const StockTransactionDialog: React.FC<StockTransactionDialogProps> = ({
   }, [open, form]);
 
   const onSubmit = (data: TransactionFormData) => {
+    if (!data.item_id || data.item_id === 0) {
+      form.setError('item_id', { message: 'Please select an item' });
+      return;
+    }
+    
     const transactionData = {
-      ...data,
+      item_id: data.item_id,
       transaction_type: transactionType,
       quantity_change: transactionType === 'stock_out' ? -data.quantity_change : data.quantity_change,
+      notes: data.notes,
     };
 
     createMutation.mutate(transactionData, {
