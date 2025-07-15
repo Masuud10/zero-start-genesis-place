@@ -6,167 +6,84 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface CreateUserRequest {
-  email: string;
-  password: string;
-  name: string;
-  role: string;
-  school_id?: string;
-}
-
-interface CreateUserResponse {
-  success: boolean;
-  user_id?: string;
-  school_id?: string;
-  message?: string;
-  error?: string;
-}
-
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // 1. Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // IMPORTANT: Use the Service Role Key
+    )
 
-    // Parse request body
-    const userData: CreateUserRequest = await req.json();
-    
-    console.log('--- CREATE USER EDGE FUNCTION: START ---');
-    console.log('Request data:', JSON.stringify(userData, null, 2));
+    const userData = await req.json()
 
-    // Validate required fields
-    if (!userData.email || !userData.password || !userData.name || !userData.role) {
-      throw new Error('Missing required fields: email, password, name, role');
-    }
+    // --- START OF FORENSIC LOGGING ---
+    console.log('--- FORENSIC LOG 1: INCOMING DATA ---');
+    console.log('Received user data from frontend:', JSON.stringify(userData, null, 2));
 
-    // Validate role
-    const validRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
-    if (!validRoles.includes(userData.role)) {
-      throw new Error(`Invalid role: ${userData.role}`);
-    }
-
-    // Validate school assignment for non-admin roles
-    if (!['edufam_admin', 'elimisha_admin'].includes(userData.role) && !userData.school_id) {
-      throw new Error('School assignment is required for this role');
-    }
-
-    // Verify school exists if school_id is provided
-    if (userData.school_id) {
-      const { data: school, error: schoolError } = await supabase
-        .from('schools')
-        .select('id')
-        .eq('id', userData.school_id)
-        .single();
-
-      if (schoolError || !school) {
-        throw new Error('Invalid school ID specified');
-      }
-    }
-
-    // **STEP 1: CREATE AUTHENTICATION USER FIRST**
-    console.log('--- STEP 1: Creating auth user ---');
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    // Step A: Create the Authentication User
+    console.log('--- FORENSIC LOG 2: ATTEMPTING AUTH USER CREATION ---');
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userData.email,
-      password: userData.password,
-      email_confirm: true, // Auto-confirm email
+      password: userData.password, // Ensure a password is provided
+      email_confirm: true,
       user_metadata: {
         name: userData.name,
         role: userData.role,
-        school_id: userData.school_id,
-        created_by_admin: true
+        school_id: userData.school_id
       }
-    });
-
-    console.log('Auth creation result:', { 
-      success: !!authData.user, 
-      user_id: authData.user?.id,
-      error: authError?.message 
     });
 
     if (authError) {
+      console.error('--- FORENSIC LOG 3: AUTH CREATION FAILED ---');
+      console.error('Supabase Auth Error:', authError);
       throw new Error(`Auth user creation failed: ${authError.message}`);
     }
 
-    if (!authData.user) {
-      throw new Error('Failed to create authentication user - no user returned');
-    }
-
+    console.log('--- FORENSIC LOG 3: AUTH CREATION SUCCESSFUL ---');
+    console.log('Auth User Response:', JSON.stringify(authData.user, null, 2));
     const newUserId = authData.user.id;
+    console.log('Extracted New User ID:', newUserId);
 
-    // **STEP 2: CREATE PUBLIC PROFILE SECOND**
-    console.log('--- STEP 2: Creating profile with user ID:', newUserId);
-    const { data: profileData, error: profileError } = await supabase
+    // Step B: Create the Public Profile
+    const profileToInsert = {
+      id: newUserId, // Use the ID from the auth user
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
+      school_id: userData.school_id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('--- FORENSIC LOG 4: ATTEMPTING PROFILE INSERTION ---');
+    console.log('Data being inserted into public.profiles:', JSON.stringify(profileToInsert, null, 2));
+
+    const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: newUserId, // Use the ID from the auth user
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        school_id: userData.school_id || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    console.log('Profile creation result:', { 
-      success: !!profileData, 
-      profile_id: profileData?.id,
-      error: profileError?.message 
-    });
+      .insert(profileToInsert);
 
     if (profileError) {
-      // If profile creation fails, clean up the auth user
-      console.log('--- CLEANUP: Removing auth user due to profile error ---');
-      try {
-        await supabase.auth.admin.deleteUser(newUserId);
-      } catch (cleanupError) {
-        console.error('Failed to cleanup auth user:', cleanupError);
-      }
-      
+      console.error('--- FORENSIC LOG 5: PROFILE INSERTION FAILED ---');
+      console.error('Supabase Profile Insert Error:', profileError);
       throw new Error(`Profile creation failed: ${profileError.message}`);
     }
 
-    // Success response
-    const response: CreateUserResponse = {
-      success: true,
-      user_id: newUserId,
-      school_id: userData.school_id,
-      message: 'User created successfully with proper authentication and profile setup'
-    };
+    console.log('--- FORENSIC LOG 5: PROFILE INSERTION SUCCESSFUL ---');
+    // --- END OF FORENSIC LOGGING ---
 
-    console.log('--- CREATE USER EDGE FUNCTION: SUCCESS ---');
-    console.log('Response:', response);
-
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify({ success: true, user: authData.user }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (error) {
-    console.error('--- CREATE USER EDGE FUNCTION: ERROR ---');
-    console.error('Error details:', error);
-
-    const errorResponse: CreateUserResponse = {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-
-    return new Response(JSON.stringify(errorResponse), {
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });
   }
-});
+})
