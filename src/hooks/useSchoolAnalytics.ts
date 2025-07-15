@@ -25,6 +25,59 @@ interface SchoolAnalytics {
   };
 }
 
+// New types for detailed analytics
+interface ClassAnalytics {
+  class_id: string;
+  class_name: string;
+  student_count: number;
+  average_grade: number;
+  attendance_rate: number;
+}
+
+interface StudentAnalytics {
+  total_students: number;
+  enrollment_trends: {
+    month: string;
+    count: number;
+  }[];
+  grade_distribution: {
+    grade_range: string;
+    count: number;
+  }[];
+}
+
+interface FinancialAnalytics {
+  total_revenue: number;
+  total_expenses: number;
+  net_income: number;
+  revenue_breakdown: {
+    category: string;
+    amount: number;
+  }[];
+  monthly_trends: {
+    month: string;
+    revenue: number;
+    expenses: number;
+  }[];
+}
+
+interface AttendanceAnalytics {
+  overall_attendance_rate: number;
+  total_students: number;
+  present_today: number;
+  absent_today: number;
+  students_with_most_absences: {
+    student_id: string;
+    student_name: string;
+    absence_count: number;
+    attendance_rate: number;
+  }[];
+  daily_trends: {
+    date: string;
+    attendance_rate: number;
+  }[];
+}
+
 export const useSchoolAnalytics = () => {
   const { user } = useAuth();
 
@@ -182,5 +235,85 @@ export const useSchoolAnalytics = () => {
     refetchInterval: 5 * 60 * 1000, // 5 minutes
     retry: 2,
     refetchOnWindowFocus: true,
+  });
+};
+
+// New detailed analytics hooks for school owners
+export const useClassAnalytics = (schoolId: string) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['class-analytics', schoolId],
+    queryFn: async (): Promise<ClassAnalytics[]> => {
+      const { data, error } = await supabase.functions.invoke('school-class-analytics', {
+        body: { school_id: schoolId }
+      });
+      
+      if (error) throw error;
+      return data.data;
+    },
+    enabled: !!user && !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useStudentAnalytics = (schoolId: string) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['student-analytics', schoolId],
+    queryFn: async (): Promise<StudentAnalytics> => {
+      const { data, error } = await supabase.functions.invoke('school-student-analytics', {
+        body: { school_id: schoolId }
+      });
+      
+      if (error) throw error;
+      return data.data;
+    },
+    enabled: !!user && !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useFinancialAnalytics = (schoolId: string, dateRange?: { start: string; end: string }) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['financial-analytics', schoolId, dateRange],
+    queryFn: async (): Promise<FinancialAnalytics> => {
+      const params = new URLSearchParams();
+      if (dateRange?.start) params.append('start_date', dateRange.start);
+      if (dateRange?.end) params.append('end_date', dateRange.end);
+      
+      const { data, error } = await supabase.functions.invoke('school-financial-analytics', {
+        body: { 
+          school_id: schoolId,
+          ...(dateRange && { date_range: dateRange })
+        }
+      });
+      
+      if (error) throw error;
+      return data.data;
+    },
+    enabled: !!user && !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useAttendanceAnalytics = (schoolId: string) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['attendance-analytics', schoolId],
+    queryFn: async (): Promise<AttendanceAnalytics> => {
+      const { data, error } = await supabase.functions.invoke('school-attendance-analytics', {
+        body: { school_id: schoolId }
+      });
+      
+      if (error) throw error;
+      return data.data;
+    },
+    enabled: !!user && !!schoolId,
+    staleTime: 2 * 60 * 1000, // 2 minutes (fresher data for attendance)
   });
 };

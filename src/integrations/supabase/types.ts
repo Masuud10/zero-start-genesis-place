@@ -8335,6 +8335,10 @@ export type Database = {
         Args: { p_class_id: string; p_academic_year: string; p_term?: string }
         Returns: Json
       }
+      get_current_user_owned_school_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
