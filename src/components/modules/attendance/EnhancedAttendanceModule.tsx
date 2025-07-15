@@ -685,6 +685,31 @@ const EnhancedAttendanceModule = () => {
         </CardContent>
       </Card>
 
+      {/* Show/Hide Summary Report Button */}
+      {filteredAttendance.length > 0 && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                <div>
+                  <h4 className="font-medium text-green-800">Attendance Summary</h4>
+                  <p className="text-sm text-green-600">View detailed attendance report for {selectedDate}</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowSummaryReport(!showSummaryReport)}
+                className="border-green-300 text-green-700 hover:bg-green-100"
+              >
+                {showSummaryReport ? <Eye className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {showSummaryReport ? 'Hide Summary' : 'Show Summary'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Attendance Summary Report */}
       {showSummaryReport && filteredAttendance.length > 0 && (
         <AttendanceSummaryReport
