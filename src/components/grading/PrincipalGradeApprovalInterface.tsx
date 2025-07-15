@@ -81,31 +81,53 @@ export const PrincipalGradeApprovalInterface: React.FC<
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterSubject, setFilterSubject] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   // Use provided grades or hook grades
   const grades = propGrades || hookGrades || [];
   const currentProcessing = processing || hookProcessing;
 
-  // Enhanced school context validation
+  // ENHANCED: School context validation with detailed error
   if (!schoolId) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          No school context available for grade management.
+          No school context available for grade management. Please contact support.
         </AlertDescription>
       </Alert>
     );
   }
 
-  // Filter grades with enhanced validation
+  // ENHANCED: Filter grades with improved validation and search
   const filteredGrades = grades.filter((grade) => {
     if (!grade || !grade.id) return false;
 
+    // Status filter
     if (filterStatus !== "all" && grade.status !== filterStatus) return false;
+    
+    // Class filter
     if (filterClass !== "all" && grade.class_id !== filterClass) return false;
-    if (filterSubject !== "all" && grade.subject_id !== filterSubject)
-      return false;
+    
+    // Subject filter
+    if (filterSubject !== "all" && grade.subject_id !== filterSubject) return false;
+    
+    // Search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const studentName = grade.students?.name?.toLowerCase() || '';
+      const subjectName = grade.subjects?.name?.toLowerCase() || '';
+      const className = grade.classes?.name?.toLowerCase() || '';
+      const admissionNumber = grade.students?.admission_number?.toLowerCase() || '';
+      
+      if (!studentName.includes(searchLower) && 
+          !subjectName.includes(searchLower) && 
+          !className.includes(searchLower) &&
+          !admissionNumber.includes(searchLower)) {
+        return false;
+      }
+    }
+    
     return true;
   });
 
@@ -139,6 +161,31 @@ export const PrincipalGradeApprovalInterface: React.FC<
         variant: "destructive",
       });
       return;
+    }
+
+    // ENHANCED: Validate action permissions
+    const selectedGradeObjects = grades.filter(g => selectedGrades.includes(g.id));
+    
+    if (action === "approve") {
+      const invalidGrades = selectedGradeObjects.filter(g => g.status !== 'submitted');
+      if (invalidGrades.length > 0) {
+        toast({
+          title: "Invalid Selection",
+          description: "Only submitted grades can be approved.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (action === "release") {
+      const invalidGrades = selectedGradeObjects.filter(g => g.status !== 'approved');
+      if (invalidGrades.length > 0) {
+        toast({
+          title: "Invalid Selection", 
+          description: "Only approved grades can be released.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     try {
@@ -213,16 +260,27 @@ export const PrincipalGradeApprovalInterface: React.FC<
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Filters */}
+      {/* ENHANCED Filters with Search */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
-            Filter Grades
+            Filter and Search Grades
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search Field */}
+            <div>
+              <Label>Search</Label>
+              <Input
+                placeholder="Student name, subject, class..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            
             <div>
               <Label>Status</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -271,10 +329,27 @@ export const PrincipalGradeApprovalInterface: React.FC<
               </Select>
             </div>
           </div>
+          
+          {/* Clear Filters Button */}
+          {(filterStatus !== "all" || filterClass !== "all" || filterSubject !== "all" || searchTerm) && (
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterStatus("all");
+                  setFilterClass("all");
+                  setFilterSubject("all");
+                  setSearchTerm("");
+                }}
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Enhanced Bulk Actions */}
+      {/* ENHANCED Bulk Actions with validation */}
       {!readOnly && selectedGrades.length > 0 && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="pt-6">
@@ -329,12 +404,12 @@ export const PrincipalGradeApprovalInterface: React.FC<
         </Card>
       )}
 
-      {/* Enhanced Grades Table */}
+      {/* ENHANCED Grades Table with better data display */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Grade Details ({filteredGrades.length})</CardTitle>
-            {!readOnly && (
+            <CardTitle>Grade Details ({filteredGrades.length} of {grades.length})</CardTitle>
+            {!readOnly && filteredGrades.length > 0 && (
               <Button
                 size="sm"
                 variant="outline"
@@ -352,7 +427,24 @@ export const PrincipalGradeApprovalInterface: React.FC<
           {filteredGrades.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No grades found matching the current filters.</p>
+              <p>
+                {grades.length === 0 
+                  ? "No grades found for this school." 
+                  : "No grades found matching the current filters."}
+              </p>
+              {grades.length > 0 && (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setFilterStatus("all");
+                    setFilterClass("all");
+                    setFilterSubject("all");
+                    setSearchTerm("");
+                  }}
+                >
+                  Clear filters to see all grades
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -378,6 +470,11 @@ export const PrincipalGradeApprovalInterface: React.FC<
                       <div>
                         <h4 className="font-medium">
                           {grade.students?.name || "Unknown Student"}
+                          {grade.students?.admission_number && (
+                            <span className="text-sm text-gray-500 ml-2">
+                              ({grade.students.admission_number})
+                            </span>
+                          )}
                         </h4>
                         <p className="text-sm text-gray-600">
                           {grade.classes?.name || "Unknown Class"} -{" "}

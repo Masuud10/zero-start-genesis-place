@@ -58,6 +58,15 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       return;
     }
 
+    // CRITICAL SECURITY: Validate user is a principal for this school
+    if (user.role !== 'principal' || user.school_id !== schoolId) {
+      console.error('🔍 usePrincipalDashboardData: Access denied - user is not principal for this school');
+      setError('Access denied: You are not authorized to view this school\'s data');
+      setLoading(false);
+      setLoadingTimeout(false);
+      return;
+    }
+
     // Validate school ID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(schoolId)) {
@@ -97,7 +106,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
           }
         }, 8000); // Increased to 8 seconds for better reliability
 
-        // Optimized parallel queries with proper error handling
+        // Enhanced queries with explicit school validation for security
         const queries = {
           students: supabase
             .from('students')
@@ -179,8 +188,15 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
           return;
         }
 
-        // Process results safely with better error handling
+        // Process results safely with enhanced error handling
         const [studentsResult, teachersResult, parentsResult, classesResult, subjectsResult, gradesResult, certificatesResult, attendanceResult, feesResult] = results;
+        
+        // ENHANCED: Check for security errors in each result
+        for (const result of results) {
+          if (result.status === 'rejected' && result.reason?.message?.includes('policy')) {
+            throw new Error('Access denied: Insufficient permissions to view school data');
+          }
+        }
         
         const totalStudents = studentsResult.status === 'fulfilled' ? (studentsResult.value.count || 0) : 0;
         const totalTeachers = teachersResult.status === 'fulfilled' ? (teachersResult.value.count || 0) : 0;
@@ -189,7 +205,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         const totalSubjects = subjectsResult.status === 'fulfilled' ? (subjectsResult.value.count || 0) : 0;
         const totalCertificates = certificatesResult.status === 'fulfilled' ? (certificatesResult.value.count || 0) : 0;
 
-        // Calculate pending approvals
+        // Calculate pending approvals with enhanced validation
         const pendingApprovals = gradesResult.status === 'fulfilled' && gradesResult.value.data 
           ? gradesResult.value.data.filter((grade: { status: string }) => grade.status === 'submitted').length 
           : 0;
@@ -199,13 +215,19 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         const presentCount = attendanceData.filter((record: { status: string }) => record.status === 'present').length;
         const attendanceRate = attendanceData.length > 0 ? Math.round((presentCount / attendanceData.length) * 100) : 0;
 
-        // Calculate financial data with better error handling
+        // Calculate financial data with better error handling and validation
         const feesData = feesResult.status === 'fulfilled' && feesResult.value.data ? feesResult.value.data : [];
-        const totalFees = feesData.reduce((sum: number, fee: { amount: number | null }) => sum + (parseFloat(String(fee.amount || 0))), 0);
-        const totalPaid = feesData.reduce((sum: number, fee: { paid_amount: number | null }) => sum + (parseFloat(String(fee.paid_amount || 0))), 0);
+        const totalFees = feesData.reduce((sum: number, fee: { amount: number | null }) => {
+          const amount = parseFloat(String(fee.amount || 0));
+          return isNaN(amount) ? sum : sum + amount;
+        }, 0);
+        const totalPaid = feesData.reduce((sum: number, fee: { paid_amount: number | null }) => {
+          const paid = parseFloat(String(fee.paid_amount || 0));
+          return isNaN(paid) ? sum : sum + paid;
+        }, 0);
         const outstandingFees = Math.max(0, totalFees - totalPaid);
 
-        // Get recent grades
+        // Get recent grades with validation
         const recentGrades = gradesResult.status === 'fulfilled' && gradesResult.value.data ? gradesResult.value.data : [];
 
         const newStats: PrincipalStats = {
@@ -226,7 +248,7 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         
         if (isMountedRef.current) {
           setStats(newStats);
-          setLoading(false); // FIXED: Set loading to false on success
+          setLoading(false);
           setLoadingTimeout(false);
         }
         return; // Success, exit loop
@@ -235,6 +257,19 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         const isNetwork = error instanceof Error && error.message && (
           error.message.includes('Network') || error.message.includes('timeout')
         );
+        const isAccess = error instanceof Error && error.message.includes('Access denied');
+        
+        // Don't retry access denied errors
+        if (isAccess) {
+          console.error('❌ usePrincipalDashboardData: Access denied:', error);
+          if (isMountedRef.current) {
+            setError(error instanceof Error ? error.message : 'Access denied');
+            setLoading(false);
+            setLoadingTimeout(false);
+          }
+          break;
+        }
+        
         if (attempts < maxAttempts && isNetwork) {
           console.warn(`Retrying dashboard data fetch (attempt ${attempts + 1})`);
           await new Promise(res => setTimeout(res, 500 * attempts));
@@ -251,11 +286,11 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
         if (isMountedRef.current) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
           setError(errorMessage);
-          setLoading(false); // FIXED: Set loading to false on error
+          setLoading(false);
           setLoadingTimeout(false);
           
           // Only show toast for non-timeout errors
-          if (error instanceof Error && error.name !== 'AbortError') {
+          if (error instanceof Error && error.name !== 'AbortError' && !isAccess) {
             toast({
               title: "Error",
               description: "Failed to load dashboard data. Please try again.",
@@ -267,11 +302,11 @@ export const usePrincipalDashboardData = (schoolId: string | null) => {
       }
     }
     
-    // FIXED: Ensure loading is set to false if we somehow exit the loop without setting it
+    // Ensure loading is set to false if we somehow exit the loop without setting it
     if (isMountedRef.current) {
       setLoading(false);
     }
-  }, [schoolId, user?.id, toast]);
+  }, [schoolId, user?.id, user?.role, user?.school_id, toast]);
 
   useEffect(() => {
     isMountedRef.current = true;
