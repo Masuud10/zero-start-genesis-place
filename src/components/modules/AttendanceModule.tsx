@@ -99,8 +99,8 @@ const AttendanceModule: React.FC = () => {
         loading={loading}
         error={null}
         attendanceSummary={{
-          overall_attendance_percentage: attendanceSummary.attendance_rate ?? null,
-          trend: attendanceSummary.performance_trend ?? '—'
+          overall_attendance_percentage: attendanceSummary?.attendance_rate ?? null,
+          trend: attendanceSummary?.performance_trend ?? '—'
         }}
         schools={schools}
         schoolFilter={schoolFilter}
