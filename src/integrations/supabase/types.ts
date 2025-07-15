@@ -6707,6 +6707,125 @@ export type Database = {
           },
         ]
       }
+      support_staff: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          created_by: string | null
+          date_of_hire: string
+          department: string | null
+          email: string | null
+          employee_id: string | null
+          employment_type: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          phone: string | null
+          profile_photo_url: string | null
+          role_title: string
+          salary_amount: number | null
+          salary_currency: string | null
+          school_id: string
+          supervisor_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_hire?: string
+          department?: string | null
+          email?: string | null
+          employee_id?: string | null
+          employment_type?: string
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          phone?: string | null
+          profile_photo_url?: string | null
+          role_title: string
+          salary_amount?: number | null
+          salary_currency?: string | null
+          school_id: string
+          supervisor_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_hire?: string
+          department?: string | null
+          email?: string | null
+          employee_id?: string | null
+          employment_type?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          phone?: string | null
+          profile_photo_url?: string | null
+          role_title?: string
+          salary_amount?: number | null
+          salary_currency?: string | null
+          school_id?: string
+          supervisor_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_staff_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_staff_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "support_staff_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "support_staff_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "support_staff_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "support_staff_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_staff_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
@@ -7639,6 +7758,10 @@ export type Database = {
         Returns: Json
       }
       generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_support_staff_employee_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
