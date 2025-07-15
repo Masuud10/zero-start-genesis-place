@@ -95,6 +95,16 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     mutationFn: async (user: typeof userData) => {
       return ApiCallWrapper.execute(
         async () => {
+          // === PHASE 2: FORENSIC LOGGING - BACKEND API CALL ===
+          console.log("--- BACKEND API CALL: FORENSIC LOG ---");
+          console.log("About to call Supabase auth admin API with data:", {
+            email: user.email,
+            role: user.role,
+            schoolId: user.schoolId,
+            hasPassword: !!user.password
+          });
+          // === END FORENSIC LOGGING ===
+
           // Ensure non-admin users are assigned to a school
           let finalSchoolId = user.schoolId;
 
@@ -118,16 +128,83 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             UuidValidator.validateAndThrow(finalSchoolId, "School ID");
           }
 
-          const { data, error } = await supabase.rpc("create_admin_user", {
-            user_email: user.email,
-            user_password: user.password,
-            user_name: user.name,
-            user_role: user.role,
-            user_school_id: finalSchoolId || null,
-          });
+          // **SURGICAL FIX**: Use Supabase auth admin API instead of database function
+          try {
+            console.log("--- CREATING AUTH USER: FORENSIC LOG ---");
+            
+            // Create the authentication user first
+            const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+              email: user.email,
+              password: user.password,
+              email_confirm: true, // Auto-confirm email
+              user_metadata: {
+                name: user.name,
+                role: user.role,
+                school_id: finalSchoolId,
+                created_by_admin: true
+              }
+            });
 
-          if (error) throw error;
-          return data as unknown as CreateUserRpcResponse;
+            console.log("--- AUTH USER CREATION RESULT: FORENSIC LOG ---");
+            console.log("Auth data:", authData);
+            console.log("Auth error:", authError);
+
+            if (authError) {
+              console.error("--- AUTH ERROR: FORENSIC LOG ---");
+              console.error("Full Auth Error:", authError);
+              throw new Error(`Authentication error: ${authError.message}`);
+            }
+
+            if (!authData.user) {
+              throw new Error("Failed to create authentication user - no user returned");
+            }
+
+            // Now create/update the profile with the actual auth user ID
+            console.log("--- CREATING PROFILE: FORENSIC LOG ---");
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .upsert({
+                id: authData.user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                school_id: finalSchoolId || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }, {
+                onConflict: 'id'
+              });
+
+            console.log("--- PROFILE CREATION RESULT: FORENSIC LOG ---");
+            console.log("Profile data:", profileData);
+            console.log("Profile error:", profileError);
+
+            if (profileError) {
+              console.error("--- PROFILE ERROR: FORENSIC LOG ---");
+              console.error("Full Profile Error:", profileError);
+              
+              // If profile creation fails, we should clean up the auth user
+              try {
+                await supabase.auth.admin.deleteUser(authData.user.id);
+              } catch (cleanupError) {
+                console.error("Failed to cleanup auth user after profile error:", cleanupError);
+              }
+              
+              throw new Error(`Profile creation error: ${profileError.message}`);
+            }
+
+            return {
+              success: true,
+              user_id: authData.user.id,
+              school_id: finalSchoolId,
+              message: 'User created successfully with proper school assignment'
+            } as CreateUserRpcResponse;
+
+          } catch (createError) {
+            console.error("--- USER CREATION FAILED: FORENSIC LOG ---");
+            console.error("Full Creation Error:", createError);
+            throw createError;
+          }
         },
         { context: "Create User" }
       );
@@ -136,8 +213,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       if (result && result.success) {
         toast({
           title: "Success",
-          description:
-            "User created successfully with proper school assignment",
+          description: result.message || "User created successfully with proper school assignment",
         });
         handleReset();
         onSuccess();
@@ -147,7 +223,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       }
     },
     onError: (error: unknown) => {
-      console.error("Error creating user:", error);
+      console.error("--- MUTATION ERROR: FORENSIC LOG ---");
+      console.error("Full Mutation Error:", error);
       toast({
         title: "Error",
         description:

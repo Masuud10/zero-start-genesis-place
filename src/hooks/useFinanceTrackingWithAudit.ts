@@ -80,8 +80,8 @@ export const useFinanceTrackingWithAudit = () => {
         { p_transaction_data: validationData }
       );
 
-      if (validationError || !validationResult?.valid) {
-        throw new Error(validationResult?.error || 'Transaction validation failed');
+      if (validationError || !(validationResult as any)?.valid) {
+        throw new Error((validationResult as any)?.error || 'Transaction validation failed');
       }
 
       const completePaymentData = {
