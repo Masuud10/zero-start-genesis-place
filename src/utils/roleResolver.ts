@@ -41,7 +41,9 @@ export class RoleResolver {
       'teacher',
       'parent',
       'finance_officer',
-      'edufam_admin'
+      'edufam_admin',
+      'elimisha_admin',
+      'hr'
     ];
     return validRoles.includes(role as UserRole);
   }
@@ -86,7 +88,8 @@ export class RoleResolver {
       'school_owner',
       'principal',
       'teacher', 
-      'finance_officer'
+      'finance_officer',
+      'hr'
     ];
     return schoolRequiredRoles.includes(role);
   }
@@ -97,7 +100,10 @@ export class RoleResolver {
   static getDefaultRedirectPath(role: UserRole, hasSchoolAssignment: boolean): string {
     switch (role) {
       case 'edufam_admin':
+      case 'elimisha_admin':
         return '/dashboard';
+      case 'hr':
+        return hasSchoolAssignment ? '/hr' : '/setup';
       case 'school_owner':
       case 'principal':
       case 'teacher':

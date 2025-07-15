@@ -9,6 +9,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   teacher: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports', 'support'],
   school_owner: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
   finance_officer: ['dashboard', 'analytics', 'finance', 'students', 'reports', 'announcements', 'messages', 'attendance', 'timetable', 'support'],
+  hr: ['dashboard', 'analytics', 'attendance', 'students', 'announcements', 'messages', 'reports', 'support', 'users'],
   parent: ['dashboard', 'grades', 'attendance', 'finance', 'timetable', 'announcements', 'messages', 'support']
 };
 
@@ -43,7 +44,7 @@ export const hasAccess = (userRole: UserRole | undefined, section: string): bool
   
   // User management permissions
   if (section === 'users') {
-    return ['edufam_admin', 'school_owner', 'principal'].includes(userRole);
+    return ['edufam_admin', 'school_owner', 'principal', 'hr'].includes(userRole);
   }
   
   // Billing management only for edufam_admin
@@ -121,7 +122,7 @@ export const canManageSchools = (userRole: UserRole | undefined): boolean => {
 };
 
 export const canManageUsers = (userRole: UserRole | undefined): boolean => {
-  return ['edufam_admin', 'school_owner', 'principal'].includes(userRole || '');
+  return ['edufam_admin', 'school_owner', 'principal', 'hr'].includes(userRole || '');
 };
 
 export const canAccessBilling = (userRole: UserRole | undefined): boolean => {
@@ -152,6 +153,7 @@ export const getRoleDisplayName = (role: UserRole): string => {
     principal: 'Principal',
     teacher: 'Teacher',
     finance_officer: 'Finance Officer',
+    hr: 'HR Manager',
     parent: 'Parent'
   };
   

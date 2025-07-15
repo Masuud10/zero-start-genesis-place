@@ -77,7 +77,7 @@ export const useRoleBasedRouting = () => {
   };
 
   const isSystemAdmin = (): boolean => {
-    return user?.role === 'edufam_admin';
+    return ['edufam_admin', 'elimisha_admin'].includes(user?.role || '');
   };
 
   const isSchoolAdmin = (): boolean => {
@@ -85,7 +85,11 @@ export const useRoleBasedRouting = () => {
   };
 
   const isSchoolStaff = (): boolean => {
-    return ['school_owner', 'principal', 'teacher', 'finance_officer'].includes(user?.role || '');
+    return ['school_owner', 'principal', 'teacher', 'finance_officer', 'hr'].includes(user?.role || '');
+  };
+
+  const isHRStaff = (): boolean => {
+    return user?.role === 'hr';
   };
 
   return {
@@ -98,6 +102,7 @@ export const useRoleBasedRouting = () => {
     getRedirectPath,
     isSystemAdmin,
     isSchoolAdmin,
-    isSchoolStaff
+    isSchoolStaff,
+    isHRStaff
   };
 };

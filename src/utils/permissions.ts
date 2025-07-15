@@ -175,6 +175,20 @@ export const ROLE_PERMISSIONS: Record<UserRole, PermissionConfig> = {
     ],
     scope: 'school'
   },
+  hr: {
+    permissions: [
+      PERMISSIONS.VIEW_ATTENDANCE,
+      PERMISSIONS.VIEW_CLASS_INFO,
+      PERMISSIONS.VIEW_ANNOUNCEMENTS,
+      PERMISSIONS.CREATE_ANNOUNCEMENTS,
+      PERMISSIONS.SEND_MESSAGES,
+      PERMISSIONS.VIEW_REPORTS,
+      PERMISSIONS.GENERATE_REPORTS,
+      PERMISSIONS.MANAGE_USERS,
+      PERMISSIONS.ACCESS_SUPPORT
+    ],
+    scope: 'school'
+  },
   parent: {
     permissions: [
       PERMISSIONS.VIEW_GRADEBOOK,
