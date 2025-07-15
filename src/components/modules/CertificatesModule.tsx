@@ -2,6 +2,7 @@ import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import CertificateGenerator from "@/components/certificates/CertificateGenerator";
 import CertificatesList from "@/components/certificates/CertificatesList";
+import CertificateTemplateManager from "@/components/certificates/CertificateTemplateManager";
 import RoleGuard from "@/components/common/RoleGuard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Award, Eye, Plus } from "lucide-react";
@@ -10,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const CertificatesModule = () => {
   const { user } = useAuth();
   const [showGenerator, setShowGenerator] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("certificates");
 
   // Role-based content rendering
   const renderContent = () => {
@@ -26,16 +28,34 @@ const CertificatesModule = () => {
                   Generate and manage academic certificates for students.
                 </p>
               </div>
-              <button
-                onClick={() => setShowGenerator(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Generate Certificate
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveTab("templates")}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    activeTab === "templates" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  Templates
+                </button>
+                <button
+                  onClick={() => setActiveTab("certificates")}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    activeTab === "certificates" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  Certificates
+                </button>
+                <button
+                  onClick={() => setShowGenerator(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Generate Certificate
+                </button>
+              </div>
             </div>
 
-            <CertificatesList />
+            {activeTab === "templates" ? <CertificateTemplateManager /> : <CertificatesList />}
 
             <CertificateGenerator
               open={showGenerator}

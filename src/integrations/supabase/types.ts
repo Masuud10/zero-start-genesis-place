@@ -1455,6 +1455,81 @@ export type Database = {
           },
         ]
       }
+      certificate_templates: {
+        Row: {
+          body_text: string
+          created_at: string
+          id: number
+          layout_config: Json
+          school_id: string
+          signature_1_name: string
+          signature_2_name: string
+          template_name: string
+          template_type: string
+          title_text: string
+        }
+        Insert: {
+          body_text?: string
+          created_at?: string
+          id?: never
+          layout_config?: Json
+          school_id: string
+          signature_1_name?: string
+          signature_2_name?: string
+          template_name: string
+          template_type: string
+          title_text?: string
+        }
+        Update: {
+          body_text?: string
+          created_at?: string
+          id?: never
+          layout_config?: Json
+          school_id?: string
+          signature_1_name?: string
+          signature_2_name?: string
+          template_name?: string
+          template_type?: string
+          title_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificate_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "certificate_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "certificate_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "certificate_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "certificate_templates_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           academic_year: string
