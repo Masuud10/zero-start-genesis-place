@@ -104,11 +104,16 @@ export const AttendanceSummaryReport: React.FC<AttendanceSummaryReportProps> = (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={onPrint}>
                 <Printer className="h-4 w-4 mr-2" />
-                Print
+                Print Report
               </Button>
-              <Button variant="outline" size="sm" onClick={onExportPDF}>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={onExportPDF}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
                 <Download className="h-4 w-4 mr-2" />
-                Export PDF
+                Download PDF
               </Button>
             </div>
           </div>
