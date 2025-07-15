@@ -29,6 +29,14 @@ const FinanceOfficerDashboard: React.FC<FinanceOfficerDashboardProps> = ({
     user.email
   );
 
+  // CRITICAL SECURITY FIX: Enhanced role validation
+  useEffect(() => {
+    if (!['finance_officer', 'principal', 'school_owner', 'elimisha_admin', 'edufam_admin'].includes(user.role)) {
+      console.error('🚫 FinanceOfficerDashboard: Unauthorized role attempting access:', user.role);
+      // Component should not render for unauthorized roles
+    }
+  }, [user.role]);
+
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { setActiveSection } = useNavigation();

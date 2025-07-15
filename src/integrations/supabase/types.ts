@@ -7859,6 +7859,10 @@ export type Database = {
         }
         Returns: Json
       }
+      is_finance_officer_authorized_for_school: {
+        Args: { p_school_id: string }
+        Returns: boolean
+      }
       is_grade_in_user_school: {
         Args: { grade_student_id: string }
         Returns: boolean
@@ -7937,6 +7941,10 @@ export type Database = {
       }
       update_user_status: {
         Args: { target_user_id: string; new_status: string }
+        Returns: Json
+      }
+      validate_finance_officer_transaction: {
+        Args: { p_transaction_data: Json }
         Returns: Json
       }
       validate_grade_edit_permission: {

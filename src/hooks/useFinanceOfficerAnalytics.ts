@@ -45,9 +45,14 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
   return useQuery({
     queryKey: ['finance-officer-analytics', user?.school_id, filters],
     queryFn: async (): Promise<FinanceOfficerAnalyticsData> => {
-      // Validate user and school access
+      // CRITICAL SECURITY FIX: Enhanced authorization validation
       if (!user) {
         throw new Error('User authentication required');
+      }
+
+      // Enhanced role validation for finance officers
+      if (!['finance_officer', 'principal', 'school_owner', 'elimisha_admin', 'edufam_admin'].includes(user.role)) {
+        throw new Error('Insufficient permissions to view financial analytics');
       }
 
       const schoolValidation = validateSchoolAccess(user.school_id);
@@ -56,6 +61,17 @@ export const useFinanceOfficerAnalytics = (filters: { term: string; class: strin
       }
 
       const validSchoolId = schoolValidation.sanitizedValue!;
+      
+      // CRITICAL: Validate finance officer authorization using server-side function
+      const { data: authResult, error: authError } = await supabase.rpc(
+        'is_finance_officer_authorized_for_school', 
+        { p_school_id: validSchoolId }
+      );
+
+      if (authError || !authResult) {
+        throw new Error('Unauthorized access to financial data');
+      }
+
       console.log('🔍 Finance Analytics: Fetching data for school:', validSchoolId);
 
       // Create an AbortController for timeout handling

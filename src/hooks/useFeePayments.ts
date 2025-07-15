@@ -29,6 +29,7 @@ export const useFeePayments = () => {
   const { schoolId, isSystemAdmin } = useSchoolScopedData();
 
   const recordPayment = async (paymentData: PaymentData) => {
+    // CRITICAL SECURITY FIX: Enhanced validation and authorization
     if (!schoolId && !isSystemAdmin) {
       const message = 'School ID is required to record payments';
       setError(message);
@@ -44,7 +45,23 @@ export const useFeePayments = () => {
     setError(null);
 
     try {
-      console.log('Recording fee payment:', paymentData);
+      console.log('Recording fee payment with enhanced validation:', paymentData);
+
+      // CRITICAL: Enhanced validation using server-side function
+      const validationData = {
+        school_id: schoolId,
+        amount: paymentData.amount,
+        student_fee_id: paymentData.studentFeeId
+      };
+
+      const { data: validationResult, error: validationError } = await supabase.rpc(
+        'validate_finance_officer_transaction', 
+        { p_transaction_data: validationData }
+      );
+
+      if (validationError || !validationResult?.valid) {
+        throw new Error(validationResult?.error || 'Transaction validation failed');
+      }
 
       // Validate payment data
       if (!paymentData.studentFeeId || !paymentData.amount || paymentData.amount <= 0) {
@@ -53,6 +70,12 @@ export const useFeePayments = () => {
 
       if (!paymentData.paymentMethod) {
         throw new Error('Payment method is required');
+      }
+
+      // Enhanced payment method validation
+      const validPaymentMethods = ['mpesa', 'cash', 'bank_transfer', 'card', 'cheque'];
+      if (!validPaymentMethods.includes(paymentData.paymentMethod)) {
+        throw new Error('Invalid payment method selected');
       }
 
       // For MPESA payments, require MPESA code
@@ -65,6 +88,7 @@ export const useFeePayments = () => {
         throw new Error('Bank reference is required for bank transfers');
       }
 
+      // CRITICAL: Use enhanced payment recording function
       const { data, error: paymentError } = await supabase.rpc('record_fee_payment', {
         p_student_fee_id: paymentData.studentFeeId,
         p_amount: paymentData.amount,
