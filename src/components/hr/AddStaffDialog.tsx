@@ -20,7 +20,7 @@ import { SupportStaffService } from '@/services/supportStaffService';
 
 const staffSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
-  role_title: z.enum(SUPPORT_STAFF_ROLES as [string, ...string[]]),
+  role_title: z.enum(['Driver', 'Receptionist', 'Cleaner', 'Secretary', 'Chef', 'Nurse', 'Watchman', 'Librarian', 'Support Staff']),
   department: z.string().optional(),
   salary_amount: z.number().positive('Salary must be positive').optional(),
   salary_currency: z.string().default('KES'),
