@@ -395,7 +395,7 @@ export const PrincipalGradeApprovalInterface: React.FC<
                       <Badge className={getStatusBadge(grade.status)}>
                         {grade.status}
                       </Badge>
-                      {!readOnly && grade.status === "approved" && (
+                      {!readOnly && (grade.status === "approved" || grade.status === "submitted") && (
                         <Button
                           size="sm"
                           variant="outline"

@@ -490,7 +490,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     }
 
     // Auto-set academic year if not selected
-    const academicYearToUse = selectedAcademicYear || currentAcademicYear?.id;
+    const academicYearToUse = selectedAcademicYear || currentAcademicYear?.year_name || new Date().getFullYear().toString();
     if (!academicYearToUse) {
       toast({
         title: "Missing Academic Year",
@@ -522,16 +522,18 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             status: "draft",
             submitted_by: user?.id,
             curriculum_type: curriculumType,
+            max_score: gradeData.coursework_score && gradeData.exam_score ? 100 : (gradeData.score ? 100 : null),
             // IGCSE specific fields
             coursework_score: gradeData.coursework_score,
             exam_score: gradeData.exam_score,
-            max_score: 100, // Default for IGCSE
           }))
       );
 
+      // Use proper onConflict specification
       const { error } = await supabase.from("grades").upsert(gradesToSave, {
         onConflict:
-          "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
+          "student_id,subject_id,term,exam_type,academic_year,class_id",
+        ignoreDuplicates: false
       });
 
       if (error) throw error;
@@ -554,6 +556,9 @@ const RedesignedTeacherGradingModule: React.FC = () => {
         examType: selectedExamType,
         gradeCount: gradesToSave.length,
       });
+
+      // Reload existing grades to reflect updated status
+      loadExistingGrades();
     } catch (error) {
       console.error("Error saving grades:", error);
       setSaving(false);
@@ -568,10 +573,13 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     selectedClass,
     selectedTerm,
     selectedExamType,
+    selectedAcademicYear,
+    currentAcademicYear,
     grades,
     user?.id,
     curriculumType,
     toast,
+    loadExistingGrades,
   ]);
 
   // Submit grades for approval
@@ -587,7 +595,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     }
 
     // Auto-set academic year if not selected
-    const academicYearToUse = selectedAcademicYear || currentAcademicYear?.id;
+    const academicYearToUse = selectedAcademicYear || currentAcademicYear?.year_name || new Date().getFullYear().toString();
     if (!academicYearToUse) {
       toast({
         title: "Missing Academic Year",
@@ -645,16 +653,18 @@ const RedesignedTeacherGradingModule: React.FC = () => {
               submitted_by: user?.id,
               submitted_at: new Date().toISOString(),
               curriculum_type: curriculumType,
+              max_score: gradeData.coursework_score && gradeData.exam_score ? 100 : (gradeData.score ? 100 : null),
               // IGCSE specific fields
               coursework_score: gradeData.coursework_score,
               exam_score: gradeData.exam_score,
-              max_score: 100, // Default for IGCSE
             }))
       );
 
+      // Use proper onConflict specification with all required fields
       const { error } = await supabase.from("grades").upsert(gradesToSubmit, {
         onConflict:
-          "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
+          "student_id,subject_id,term,exam_type,academic_year,class_id",
+        ignoreDuplicates: false
       });
 
       if (error) throw error;
@@ -679,6 +689,9 @@ const RedesignedTeacherGradingModule: React.FC = () => {
         examType: selectedExamType,
         gradeCount: gradesToSubmit.length,
       });
+
+      // Reload existing grades to reflect submitted status
+      loadExistingGrades();
     } catch (error) {
       console.error("Error submitting grades:", error);
       setSubmitting(false);
@@ -693,10 +706,13 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     selectedClass,
     selectedTerm,
     selectedExamType,
+    selectedAcademicYear,
+    currentAcademicYear,
     grades,
     user?.id,
     curriculumType,
     toast,
+    loadExistingGrades,
   ]);
 
   // Export to PDF

@@ -62,6 +62,7 @@ import { useAcademicModuleIntegration } from "@/hooks/useAcademicModuleIntegrati
 import { useCurrentAcademicInfo } from "@/hooks/useCurrentAcademicInfo";
 import { useAcademicFilters } from "@/hooks/useAcademicFilters";
 import GradesOverrideModule from "@/components/grading/GradesOverrideModule";
+import { GradeOverrideModal } from "@/components/grading/GradeOverrideModal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import GradeSheetSummaryReport from "@/components/grading/GradeSheetSummaryReport";
 import { useGradeReports } from "@/hooks/useGradeReports";
@@ -88,10 +89,10 @@ interface GradeRecord {
   term: string;
   exam_type: string;
   curriculum_type: string;
-  students?: { name: string; admission_number: string };
-  subjects?: { name: string; code: string };
-  classes?: { name: string };
-  profiles?: { name: string };
+  students?: { id: string; name: string; admission_number: string };
+  subjects?: { id: string; name: string; code: string };
+  classes?: { id: string; name: string };
+  profiles?: { id: string; name: string };
 }
 
 interface GradeAction {
@@ -164,6 +165,8 @@ const PrincipalGradesModule: React.FC = () => {
   // Modal states
   const [actionModalOpen, setActionModalOpen] = useState(false);
   const [gradingSheetModalOpen, setGradingSheetModalOpen] = useState(false);
+  const [gradeOverrideModalOpen, setGradeOverrideModalOpen] = useState(false);
+  const [selectedGradeForOverride, setSelectedGradeForOverride] = useState<GradeRecord | null>(null);
   const [currentAction, setCurrentAction] = useState<GradeAction | null>(null);
   const [actionReason, setActionReason] = useState("");
   const [overrideScore, setOverrideScore] = useState("");
@@ -431,6 +434,11 @@ const PrincipalGradesModule: React.FC = () => {
     }
 
     setGradingSheetModalOpen(true);
+  };
+
+  const handleGradeOverride = (grade: GradeRecord) => {
+    setSelectedGradeForOverride(grade);
+    setGradeOverrideModalOpen(true);
   };
 
   const getFilteredGrades = (status: string) => {
@@ -916,6 +924,24 @@ const PrincipalGradesModule: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Grade Override Modal */}
+      <GradeOverrideModal
+        isOpen={gradeOverrideModalOpen}
+        onClose={() => {
+          setGradeOverrideModalOpen(false);
+          setSelectedGradeForOverride(null);
+        }}
+        grade={selectedGradeForOverride}
+        onSuccess={() => {
+          fetchGrades();
+          toast({
+            title: "Grade Override Successful",
+            description: "Grade has been overridden successfully.",
+          });
+        }}
+        principalId={user?.id || ""}
+      />
     </div>
   );
 };
@@ -1038,13 +1064,14 @@ const GradesTable: React.FC<GradesTableProps> = ({
                   <TableCell>
                     {new Date(grade.submitted_at).toLocaleDateString()}
                   </TableCell>
-                  {showActions && (
+                   {showActions && (
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => onAction("approve")}
+                          title="Approve Grade"
                         >
                           <CheckCircle className="h-3 w-3" />
                         </Button>
@@ -1052,6 +1079,7 @@ const GradesTable: React.FC<GradesTableProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onAction("reject")}
+                          title="Reject Grade"
                         >
                           <XCircle className="h-3 w-3" />
                         </Button>
@@ -1059,16 +1087,20 @@ const GradesTable: React.FC<GradesTableProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onAction("override")}
+                          title="Override Grade"
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onAction("release")}
-                        >
-                          <Send className="h-3 w-3" />
-                        </Button>
+                        {grade.status === "approved" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onAction("release")}
+                            title="Release Grade"
+                          >
+                            <Send className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   )}
