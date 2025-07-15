@@ -14,16 +14,20 @@ export class DataServiceCore {
       // The client-side school scope enforcement has been removed.
       // This logic is now handled by the caller preparing the data
       // and is securely enforced by database-level RLS policies.
+      console.log(`DataServiceCore.createRecord: Inserting into ${table}`, data);
       const { data: result, error } = await supabase
         .from(table as any)
         .insert(data as any)
         .select()
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error(`Error creating ${table} record:`, error);
+        return { data: null, error };
+      }
       return { data: result, error: null };
     } catch (error) {
-      console.error(`Error creating ${table} record:`, error);
+      console.error(`Unexpected error creating ${table} record:`, error);
       return { data: null, error };
     }
   }

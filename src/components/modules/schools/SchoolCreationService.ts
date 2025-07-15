@@ -107,6 +107,28 @@ export class SchoolCreationService {
         };
       }
 
+      // Log the payload for the RPC call
+      console.log('🏫 SchoolCreationService: Payload for create_comprehensive_school:', {
+        school_name: schoolData.school_name,
+        school_email: schoolData.school_email,
+        school_phone: schoolData.school_phone,
+        school_address: schoolData.school_address,
+        school_type: schoolData.school_type || 'primary',
+        term_structure: schoolData.term_structure || '3-term',
+        registration_number: schoolData.registration_number || null,
+        year_established: schoolData.year_established || null,
+        logo_url: schoolData.logo_url || null,
+        website_url: schoolData.website_url || null,
+        motto: schoolData.motto || null,
+        slogan: schoolData.slogan || null,
+        owner_name: schoolData.owner_name || null,
+        owner_email: schoolData.owner_email || null,
+        owner_phone: schoolData.owner_phone || null,
+        principal_name: schoolData.principal_name || null,
+        principal_email: schoolData.principal_email || null,
+        principal_phone: schoolData.principal_contact || null,
+        mpesa_passkey: schoolData.mpesa_passkey || null
+      });
       // Call the comprehensive school creation function
       const { data, error } = await supabase.rpc('create_comprehensive_school', {
         school_name: schoolData.school_name,
@@ -131,11 +153,8 @@ export class SchoolCreationService {
       });
 
       if (error) {
-        console.error('🏫 SchoolCreationService: RPC Error:', error);
-        return {
-          success: false,
-          error: `Database error: ${error.message}`
-        };
+        console.error('🏫 SchoolCreationService: Error from create_comprehensive_school:', error);
+        return { success: false, error: error.message, details: error };
       }
 
       console.log('🏫 SchoolCreationService: RPC Response:', data);
@@ -165,10 +184,7 @@ export class SchoolCreationService {
 
     } catch (error: any) {
       console.error('🏫 SchoolCreationService: Service error:', error);
-      return {
-        success: false,
-        error: error.message || 'Failed to create school'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to create school', details: error };
     }
   }
 }

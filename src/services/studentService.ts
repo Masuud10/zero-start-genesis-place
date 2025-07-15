@@ -42,24 +42,31 @@ export interface StudentData {
 
 export class StudentService {
   static async createStudent(studentData: Partial<StudentData>) {
-    const dbData: DatabaseStudentInsert = {
-      name: studentData.name!,
-      admission_number: studentData.admission_number!,
-      class_id: studentData.class_id,
-      school_id: studentData.school_id,
-      parent_id: studentData.parent_id,
-      roll_number: studentData.roll_number,
-      date_of_birth: studentData.date_of_birth,
-      gender: studentData.gender,
-      address: studentData.address,
-      parent_contact: studentData.parent_contact,
-      emergency_contact: studentData.emergency_contact,
-      medical_notes: studentData.medical_notes,
-      avatar_url: studentData.avatar_url,
-      is_active: studentData.is_active ?? true
-    };
-
-    return DataServiceCore.createRecord('students', dbData);
+    try {
+      console.log('StudentService.createStudent called with:', studentData);
+      const dbData: DatabaseStudentInsert = {
+        name: studentData.name!,
+        admission_number: studentData.admission_number!,
+        class_id: studentData.class_id,
+        school_id: studentData.school_id,
+        parent_id: studentData.parent_id,
+        roll_number: studentData.roll_number,
+        date_of_birth: studentData.date_of_birth,
+        gender: studentData.gender,
+        address: studentData.address,
+        parent_contact: studentData.parent_contact,
+        emergency_contact: studentData.emergency_contact,
+        medical_notes: studentData.medical_notes,
+        avatar_url: studentData.avatar_url,
+        is_active: studentData.is_active ?? true
+      };
+      // Log the dbData being sent to the database
+      console.log('StudentService.createStudent dbData:', dbData);
+      return await DataServiceCore.createRecord('students', dbData);
+    } catch (error) {
+      console.error('StudentService.createStudent error:', error);
+      return { data: null, error };
+    }
   }
 
   static async updateStudent(id: string, updates: Partial<StudentData>) {

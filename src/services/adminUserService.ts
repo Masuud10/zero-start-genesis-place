@@ -26,6 +26,8 @@ interface UpdateUserStatusResponse {
 export const AdminUserService = {
   createUser: async (params: CreateUserParams) => {
     try {
+      // Log the incoming params
+      console.log('AdminUserService.createUser called with:', params);
       // Call the 'create_admin_user' RPC function. The return data is not strongly typed by default.
       const { data, error } = await supabase.rpc('create_admin_user', {
         user_email: params.email,
@@ -37,7 +39,7 @@ export const AdminUserService = {
 
       if (error) {
         console.error('Error calling create_admin_user RPC:', error);
-        return { error: error.message };
+        return { error: error.message, details: error };
       }
 
       // The RPC returns a JSONB object, which we cast to our interface for type safety.
@@ -62,7 +64,7 @@ export const AdminUserService = {
 
     } catch (error) {
       console.error('Unexpected error in createUser:', error);
-      return { error: error instanceof Error ? error.message : 'Unknown error occurred' };
+      return { error: error instanceof Error ? error.message : 'Unknown error occurred', details: error };
     }
   },
 
