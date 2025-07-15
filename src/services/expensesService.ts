@@ -13,6 +13,9 @@ export interface Expense {
   title?: string;
   expense_date?: string;
   approved_by?: string;
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected';
+  approval_date?: string;
+  rejection_reason?: string;
 }
 
 export interface CreateExpenseData {
@@ -22,6 +25,7 @@ export interface CreateExpenseData {
   date: string;
   receipt_url?: string;
   title?: string;
+  status?: 'draft' | 'pending_approval';
 }
 
 export interface UpdateExpenseData {
@@ -86,7 +90,7 @@ class ExpensesService {
         throw new Error('Failed to fetch expenses');
       }
 
-      return data || [];
+      return (data || []) as Expense[];
     } catch (error) {
       console.error('ExpensesService.getExpenses error:', error);
       throw error;
@@ -116,6 +120,7 @@ class ExpensesService {
         .insert([{
           ...expenseData,
           school_id: schoolId,
+          status: expenseData.status || 'draft',
         }])
         .select()
         .single();
@@ -125,9 +130,97 @@ class ExpensesService {
         throw new Error('Failed to create expense');
       }
 
-      return data;
+      return data as Expense;
     } catch (error) {
       console.error('ExpensesService.createExpense error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit expense for approval (Finance Officer only)
+   */
+  async submitExpenseForApproval(expenseData: CreateExpenseData, schoolId: string): Promise<Expense> {
+    return this.createExpense({ ...expenseData, status: 'pending_approval' }, schoolId);
+  }
+
+  /**
+   * Get pending expenses for approval (School Owner only)
+   */
+  async getPendingExpenses(): Promise<Expense[]> {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('status', 'pending_approval')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching pending expenses:', error);
+        throw new Error('Failed to fetch pending expenses');
+      }
+
+      return (data || []) as Expense[];
+    } catch (error) {
+      console.error('ExpensesService.getPendingExpenses error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Approve expense (School Owner only)
+   */
+  async approveExpense(id: string): Promise<Expense> {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .update({
+          status: 'approved',
+          approval_date: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('status', 'pending_approval')
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error approving expense:', error);
+        throw new Error('Failed to approve expense');
+      }
+
+      return data as Expense;
+    } catch (error) {
+      console.error('ExpensesService.approveExpense error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reject expense (School Owner only)
+   */
+  async rejectExpense(id: string, rejectionReason: string): Promise<Expense> {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .update({
+          status: 'rejected',
+          rejection_reason: rejectionReason,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('status', 'pending_approval')
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error rejecting expense:', error);
+        throw new Error('Failed to reject expense');
+      }
+
+      return data as Expense;
+    } catch (error) {
+      console.error('ExpensesService.rejectExpense error:', error);
       throw error;
     }
   }
@@ -162,7 +255,7 @@ class ExpensesService {
         throw new Error('Failed to update expense');
       }
 
-      return data;
+      return data as Expense;
     } catch (error) {
       console.error('ExpensesService.updateExpense error:', error);
       throw error;

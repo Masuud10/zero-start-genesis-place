@@ -7,6 +7,7 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SchoolOwnerDashboardLayout from "./SchoolOwnerDashboardLayout";
 import FinancialOverviewReadOnly from "../shared/FinancialOverviewReadOnly";
+import ExpenseApprovalQueue from "@/components/finance/ExpenseApprovalQueue";
 
 export interface SchoolMetrics {
   totalStudents: number;
@@ -350,6 +351,9 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
           console.log("School Owner Management Action:", action);
         }}
       />
+
+      {/* Expense Approval Queue */}
+      <ExpenseApprovalQueue />
 
       {/* Financial Overview - Linked to Finance Officer Dashboard */}
       <FinancialOverviewReadOnly />

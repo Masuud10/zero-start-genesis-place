@@ -237,6 +237,116 @@ export const useExpenses = () => {
     }
   }, [user, toast]);
 
+  // Submit expense for approval
+  const submitExpenseForApproval = useCallback(async (expenseData: CreateExpenseData) => {
+    if (!user || user.role !== 'finance_officer') {
+      throw new Error('Access denied: Only finance officers can submit expenses for approval');
+    }
+
+    try {
+      const newExpense = await expensesService.submitExpenseForApproval(expenseData, user.school_id!);
+      setExpenses(prev => [newExpense, ...prev]);
+      
+      // Update stats
+      setStats(prev => ({
+        totalExpenses: prev.totalExpenses + 1,
+        totalAmount: prev.totalAmount + newExpense.amount,
+        categoryBreakdown: {
+          ...prev.categoryBreakdown,
+          [newExpense.category]: (prev.categoryBreakdown[newExpense.category] || 0) + newExpense.amount,
+        },
+      }));
+
+      return newExpense;
+    } catch (err) {
+      console.error('Error submitting expense for approval:', err);
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to submit expense for approval',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  }, [user, toast]);
+
+  // Get pending expenses (for School Owner)
+  const getPendingExpenses = useCallback(async () => {
+    if (!user || user.role !== 'school_owner') {
+      throw new Error('Access denied: Only school owners can view pending expenses');
+    }
+
+    try {
+      const data = await expensesService.getPendingExpenses();
+      return data;
+    } catch (err) {
+      console.error('Error getting pending expenses:', err);
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to get pending expenses',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  }, [user, toast]);
+
+  // Approve expense (for School Owner)
+  const approveExpense = useCallback(async (id: string) => {
+    if (!user || user.role !== 'school_owner') {
+      throw new Error('Access denied: Only school owners can approve expenses');
+    }
+
+    try {
+      const updatedExpense = await expensesService.approveExpense(id);
+      setExpenses(prev => prev.map(expense => 
+        expense.id === id ? updatedExpense : expense
+      ));
+
+      toast({
+        title: 'Success',
+        description: 'Expense approved successfully',
+      });
+
+      return updatedExpense;
+    } catch (err) {
+      console.error('Error approving expense:', err);
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to approve expense',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  }, [user, toast]);
+
+  // Reject expense (for School Owner)
+  const rejectExpense = useCallback(async (id: string, rejectionReason: string) => {
+    if (!user || user.role !== 'school_owner') {
+      throw new Error('Access denied: Only school owners can reject expenses');
+    }
+
+    try {
+      const updatedExpense = await expensesService.rejectExpense(id, rejectionReason);
+      setExpenses(prev => prev.map(expense => 
+        expense.id === id ? updatedExpense : expense
+      ));
+
+      toast({
+        title: 'Success',
+        description: 'Expense rejected successfully',
+      });
+
+      return updatedExpense;
+    } catch (err) {
+      console.error('Error rejecting expense:', err);
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to reject expense',
+        variant: 'destructive',
+      });
+      throw err;
+    }
+  }, [user, toast]);
+
   return {
     expenses,
     loading,
@@ -247,5 +357,9 @@ export const useExpenses = () => {
     updateExpense,
     deleteExpense,
     exportExpenses,
+    submitExpenseForApproval,
+    getPendingExpenses,
+    approveExpense,
+    rejectExpense,
   };
 };

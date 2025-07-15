@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Loader2 } from "lucide-react";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ExpenseFormData {
   title: string;
@@ -40,8 +41,9 @@ const CreateExpenseDialog: React.FC = () => {
     description: "",
   });
 
-  const { createExpense } = useExpenses();
+  const { createExpense, submitExpenseForApproval } = useExpenses();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const expenseCategories = [
     "salaries",
@@ -56,7 +58,7 @@ const CreateExpenseDialog: React.FC = () => {
     "other",
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, submitForApproval = false) => {
     e.preventDefault();
 
     if (!formData.title || !formData.amount || !formData.category) {
@@ -78,10 +80,23 @@ const CreateExpenseDialog: React.FC = () => {
         description: formData.description || undefined,
       };
 
-      const result = await createExpense(expenseData);
+      let result;
+      if (submitForApproval) {
+        result = await submitExpenseForApproval(expenseData);
+        toast({
+          title: "Success",
+          description: "Expense submitted for approval",
+        });
+      } else {
+        result = await createExpense(expenseData);
+        toast({
+          title: "Success", 
+          description: "Expense saved as draft",
+        });
+      }
 
       if (!result) {
-        throw new Error("Failed to create expense");
+        throw new Error("Failed to process expense");
       }
 
       // Reset form and close dialog
@@ -94,11 +109,11 @@ const CreateExpenseDialog: React.FC = () => {
       });
       setOpen(false);
     } catch (error: unknown) {
-      console.error("Error creating expense:", error);
+      console.error("Error processing expense:", error);
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to create expense";
+        error instanceof Error ? error.message : "Failed to process expense";
       toast({
-        title: "Error Creating Expense",
+        title: "Error Processing Expense",
         description: errorMessage,
         variant: "destructive",
       });
@@ -116,14 +131,14 @@ const CreateExpenseDialog: React.FC = () => {
       <DialogTrigger asChild>
         <Button className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />
-          Add Expense
+          Request Expense
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Expense</DialogTitle>
+          <DialogTitle>Request New Expense</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
           <div>
             <Label htmlFor="title">Expense Name *</Label>
             <Input
@@ -200,14 +215,33 @@ const CreateExpenseDialog: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button 
+              type="button" 
+              variant="secondary" 
+              disabled={loading}
+              onClick={(e) => handleSubmit(e as any, false)}
+            >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  Saving...
                 </>
               ) : (
-                "Create Expense"
+                "Save as Draft"
+              )}
+            </Button>
+            <Button 
+              type="button" 
+              disabled={loading}
+              onClick={(e) => handleSubmit(e as any, true)}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit for Approval"
               )}
             </Button>
           </div>

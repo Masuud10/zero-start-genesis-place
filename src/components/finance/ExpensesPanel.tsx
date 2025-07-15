@@ -49,6 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import ExpenseStatusBadge from "./ExpenseStatusBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Plus,
@@ -528,6 +529,7 @@ const ExpensesPanel: React.FC = () => {
                     <TableHead>Category</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Amount (KSH)</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Receipt</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -560,6 +562,14 @@ const ExpensesPanel: React.FC = () => {
                         <div className="font-medium">
                           KSH {expense.amount.toLocaleString()}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <ExpenseStatusBadge status={expense.status || 'approved'} />
+                        {expense.status === 'rejected' && expense.rejection_reason && (
+                          <div className="text-xs text-red-600 mt-1">
+                            {expense.rejection_reason}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         {expense.receipt_url ? (
