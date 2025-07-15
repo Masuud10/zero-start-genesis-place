@@ -32,6 +32,17 @@ const SchoolOwnerDashboard = React.lazy(
   () => import("@/components/dashboard/SchoolOwnerDashboard")
 );
 
+// Analytics and Management Components
+const SystemAnalyticsPage = React.lazy(
+  () => import("@/components/analytics/SystemAnalyticsPage")
+);
+const TransportManagement = React.lazy(
+  () => import("@/components/transport/TransportManagement")
+);
+const InventoryManagement = React.lazy(
+  () => import("@/components/inventory/InventoryManagement")
+);
+
 // Lazy load heavy components with better chunking
 const GradesModule = React.lazy(
   () => import("@/components/modules/GradesModule")
@@ -674,6 +685,12 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           UniversalSupportModule,
           "UniversalSupportModule"
         );
+      case "analytics":
+        return renderLazyComponent(SystemAnalyticsPage, "SystemAnalyticsPage");
+      case "transport":
+        return renderLazyComponent(TransportManagement, "TransportManagement");
+      case "inventory":
+        return renderLazyComponent(InventoryManagement, "InventoryManagement");
       case "certificates":
         return renderLazyComponent(CertificatesModule, "CertificatesModule");
       default:

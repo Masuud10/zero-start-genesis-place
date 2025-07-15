@@ -130,6 +130,8 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       ...baseItems,
       { id: 'finance', label: 'Financial Overview', icon: DollarSign, roles: ['finance_officer'] },
       { id: 'fee-management', label: 'Fee Management', icon: Coins, roles: ['finance_officer'] },
+      { id: 'transport', label: 'Transport Management', icon: ArrowUpDown, roles: ['finance_officer'] },
+      { id: 'inventory', label: 'Inventory Management', icon: Archive, roles: ['finance_officer'] },
       { id: 'mpesa-payments', label: 'MPESA Payments', icon: CreditCard, roles: ['finance_officer'] },
       { id: 'expenses', label: 'Expenses', icon: ArrowUpDown, roles: ['finance_officer'] },
       { id: 'financial-reports', label: 'Financial Reports', icon: FileText, roles: ['finance_officer'] },
