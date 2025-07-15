@@ -5972,6 +5972,51 @@ export type Database = {
           },
         ]
       }
+      student_transport_assignments: {
+        Row: {
+          assignment_date: string
+          created_at: string
+          id: number
+          is_active: boolean
+          route_id: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_date?: string
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          route_id: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_date?: string
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          route_id?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_transport_assignments_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "transport_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_transport_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           address: string | null
@@ -7256,6 +7301,148 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_routes: {
+        Row: {
+          created_at: string
+          id: number
+          monthly_fee: number
+          route_description: string | null
+          route_name: string
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          monthly_fee: number
+          route_description?: string | null
+          route_name: string
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          monthly_fee?: number
+          route_description?: string | null
+          route_name?: string
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_routes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_routes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_routes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_routes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_routes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_vehicles: {
+        Row: {
+          assigned_route_id: number | null
+          capacity: number
+          created_at: string
+          id: number
+          registration_number: string
+          school_id: string
+          updated_at: string
+          vehicle_name: string
+        }
+        Insert: {
+          assigned_route_id?: number | null
+          capacity: number
+          created_at?: string
+          id?: never
+          registration_number: string
+          school_id: string
+          updated_at?: string
+          vehicle_name: string
+        }
+        Update: {
+          assigned_route_id?: number | null
+          capacity?: number
+          created_at?: string
+          id?: never
+          registration_number?: string
+          school_id?: string
+          updated_at?: string
+          vehicle_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_vehicles_assigned_route_id_fkey"
+            columns: ["assigned_route_id"]
+            isOneToOne: false
+            referencedRelation: "transport_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_vehicles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_vehicles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_vehicles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_vehicles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "transport_vehicles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]

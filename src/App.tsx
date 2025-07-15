@@ -92,6 +92,7 @@ const AppRouter: React.FC = () => {
         <Route path="/messages" element={<AppContent />} />
         <Route path="/audit" element={<AppContent />} />
         <Route path="/debug" element={<AppContent />} />
+        <Route path="/transport" element={<AppContent />} />
       </Route>
 
       {/* ====================================================== */}

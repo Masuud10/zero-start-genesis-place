@@ -21,6 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
     { id: 'attendance', label: 'Attendance', icon: '📅', roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'students', label: 'Students', icon: '👥', roles: ['school_owner', 'principal', 'teacher'] },
     { id: 'finance', label: 'Finance', icon: '💰', roles: ['school_owner', 'principal', 'finance_officer', 'parent'] },
+    { id: 'transport', label: 'Transport Management', icon: '🚌', roles: ['finance_officer'] },
     { id: 'timetable', label: 'Timetable', icon: '🗓️', roles: ['school_owner', 'principal', 'teacher'] },
     { id: 'announcements', label: 'Announcements', icon: '📢', roles: ['school_owner', 'principal', 'teacher', 'parent'] },
     { id: 'messages', label: 'Messages', icon: '💬', roles: ['school_owner', 'principal', 'teacher', 'parent'] },
