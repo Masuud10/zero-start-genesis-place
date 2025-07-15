@@ -12,9 +12,12 @@ export const useRoleBasedRouting = () => {
       return false;
     }
     
-    const isValid = allowedRoles.includes(user.role as UserRole);
+    const normalizedRole = user.role.toLowerCase() as UserRole;
+    const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase() as UserRole);
+    const isValid = normalizedAllowedRoles.includes(normalizedRole);
     console.log('🔍 useRoleBasedRouting: Role validation:', {
       userRole: user.role,
+      normalizedRole,
       allowedRoles,
       isValid
     });
@@ -77,19 +80,27 @@ export const useRoleBasedRouting = () => {
   };
 
   const isSystemAdmin = (): boolean => {
-    return ['edufam_admin', 'elimisha_admin'].includes(user?.role || '');
+    if (!user?.role) return false;
+    const normalizedRole = user.role.toLowerCase();
+    return ['edufam_admin', 'elimisha_admin'].includes(normalizedRole);
   };
 
   const isSchoolAdmin = (): boolean => {
-    return ['school_owner', 'principal'].includes(user?.role || '');
+    if (!user?.role) return false;
+    const normalizedRole = user.role.toLowerCase();
+    return ['school_owner', 'principal'].includes(normalizedRole);
   };
 
   const isSchoolStaff = (): boolean => {
-    return ['school_owner', 'principal', 'teacher', 'finance_officer', 'hr'].includes(user?.role || '');
+    if (!user?.role) return false;
+    const normalizedRole = user.role.toLowerCase();
+    return ['school_owner', 'principal', 'teacher', 'finance_officer', 'hr'].includes(normalizedRole);
   };
 
   const isHRStaff = (): boolean => {
-    return user?.role === 'hr';
+    if (!user?.role) return false;
+    const normalizedRole = user.role.toLowerCase();
+    return normalizedRole === 'hr';
   };
 
   return {

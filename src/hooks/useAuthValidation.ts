@@ -35,7 +35,8 @@ export const useAuthValidation = () => {
 
         // Check school assignment for non-admin roles
         const adminRoles = ['elimisha_admin', 'edufam_admin'];
-        if (!adminRoles.includes(user.role) && !user.school_id) {
+        const normalizedRole = user.role.toLowerCase();
+        if (!adminRoles.includes(normalizedRole) && !user.school_id) {
           errors.push('School assignment required for this role');
         } else {
           hasSchoolAssignment = true;

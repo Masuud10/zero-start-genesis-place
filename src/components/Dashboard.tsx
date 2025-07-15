@@ -105,8 +105,10 @@ const Dashboard: React.FC = () => {
     "parent",
     "school_owner",
     "finance_officer",
+    "hr",
   ];
-  if (!validRoles.includes(user.role)) {
+  const normalizedRole = user.role.toLowerCase();
+  if (!validRoles.includes(normalizedRole)) {
     console.warn("🎯 Dashboard: Unknown user role:", user.role);
     return (
       <div className="flex items-center justify-center h-64">
@@ -124,7 +126,7 @@ const Dashboard: React.FC = () => {
   console.log("🎯 Dashboard: Routing based on role:", user.role);
 
   try {
-    switch (user.role) {
+    switch (normalizedRole) {
       case "edufam_admin":
       case "elimisha_admin":
         console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard");
@@ -164,6 +166,16 @@ const Dashboard: React.FC = () => {
             <MaintenanceNotification />
             <AdminCommunicationsBanner />
             <FinanceOfficerDashboard user={user} />
+          </div>
+        );
+
+      case "hr":
+        console.log("🎯 Dashboard: Routing to HR Dashboard");
+        return (
+          <div>
+            <MaintenanceNotification />
+            <AdminCommunicationsBanner />
+            <PrincipalDashboard user={user} />
           </div>
         );
 

@@ -83,7 +83,7 @@ const isValidRole = (role: string): boolean => {
   }
 
   const normalizedRole = normalizeRole(role);
-  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'];
+  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin', 'hr'];
   const isValid = validRoles.includes(normalizedRole as UserRole);
   
   console.log('🔍 RoleUtils: Role validation for', role, '(normalized:', normalizedRole, ') =', isValid);
@@ -98,9 +98,14 @@ const determineRoleFromEmail = (email: string): UserRole => {
 };
 
 export const getRoleDisplayName = (role: UserRole): string => {
-  switch (role) {
+  if (!role || typeof role !== 'string') return 'Unknown';
+  
+  const normalizedRole = role.toLowerCase() as UserRole;
+  switch (normalizedRole) {
     case 'edufam_admin':
       return 'EduFam Admin';
+    case 'elimisha_admin':
+      return 'Elimisha Admin';
     case 'school_owner':
       return 'School Owner';
     case 'principal':
@@ -109,6 +114,8 @@ export const getRoleDisplayName = (role: UserRole): string => {
       return 'Teacher';
     case 'finance_officer':
       return 'Finance Officer';
+    case 'hr':
+      return 'HR Manager';
     case 'parent':
       return 'Parent';
     default:
@@ -117,9 +124,14 @@ export const getRoleDisplayName = (role: UserRole): string => {
 };
 
 export const getRoleBadgeColor = (role: UserRole): string => {
-  switch (role) {
+  if (!role || typeof role !== 'string') return 'bg-gray-100 text-gray-800';
+  
+  const normalizedRole = role.toLowerCase() as UserRole;
+  switch (normalizedRole) {
     case 'edufam_admin':
       return 'bg-blue-100 text-blue-800';
+    case 'elimisha_admin':
+      return 'bg-purple-100 text-purple-800';
     case 'school_owner':
       return 'bg-green-100 text-green-800';
     case 'principal':
@@ -128,6 +140,8 @@ export const getRoleBadgeColor = (role: UserRole): string => {
       return 'bg-cyan-100 text-cyan-800';
     case 'finance_officer':
       return 'bg-yellow-100 text-yellow-800';
+    case 'hr':
+      return 'bg-indigo-100 text-indigo-800';
     case 'parent':
       return 'bg-pink-100 text-pink-800';
     default:

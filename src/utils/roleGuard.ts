@@ -16,7 +16,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
 export const hasAccess = (userRole: UserRole | undefined, section: string): boolean => {
   if (!userRole) return false;
   
-  const permissions = ROLE_PERMISSIONS[userRole];
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  const permissions = ROLE_PERMISSIONS[normalizedRole];
   if (!permissions) return false;
   
   // Admin roles have full access
@@ -24,47 +25,47 @@ export const hasAccess = (userRole: UserRole | undefined, section: string): bool
   
   // Security section is ONLY accessible to edufam_admin
   if (section === 'security') {
-    return userRole === 'edufam_admin';
+    return normalizedRole === 'edufam_admin';
   }
   
   // School analytics should be accessible to edufam_admin
   if (section === 'school-analytics') {
-    return userRole === 'edufam_admin';
+    return normalizedRole === 'edufam_admin';
   }
   
   // Company management should be accessible to edufam_admin
   if (section === 'company-management') {
-    return userRole === 'edufam_admin';
+    return normalizedRole === 'edufam_admin';
   }
   
   // Schools management should be accessible to edufam_admin
   if (section === 'schools') {
-    return userRole === 'edufam_admin';
+    return normalizedRole === 'edufam_admin';
   }
   
   // User management permissions
   if (section === 'users') {
-    return ['edufam_admin', 'school_owner', 'principal', 'hr'].includes(userRole);
+    return ['edufam_admin', 'school_owner', 'principal', 'hr'].includes(normalizedRole);
   }
   
   // Billing management only for edufam_admin
   if (section === 'billing') {
-    return userRole === 'edufam_admin';
+    return normalizedRole === 'edufam_admin';
   }
   
   // System health only for edufam_admin
   if (section === 'system-health') {
-    return userRole === 'edufam_admin';
+    return normalizedRole === 'edufam_admin';
   }
   
   // Settings access
   if (section === 'settings') {
-    return ['edufam_admin', 'school_owner', 'principal'].includes(userRole);
+    return ['edufam_admin', 'school_owner', 'principal'].includes(normalizedRole);
   }
   
   // Reports section restrictions for teachers
   if (section === 'reports') {
-    if (userRole === 'teacher') {
+    if (normalizedRole === 'teacher') {
       // Teachers can access reports but with restrictions
       return true;
     }
@@ -82,16 +83,18 @@ export const canAccessModule = (userRole: UserRole | undefined, module: string):
 export const canAccessReportType = (userRole: UserRole | undefined, reportType: string): boolean => {
   if (!userRole) return false;
   
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  
   // Admin roles have full access
-  if (userRole === 'edufam_admin') return true;
+  if (normalizedRole === 'edufam_admin') return true;
   
   // Teachers can only access grade and attendance reports
-  if (userRole === 'teacher') {
+  if (normalizedRole === 'teacher') {
     return ['grades', 'attendance', 'grade_report', 'attendance_report'].includes(reportType);
   }
   
   // Other roles have different permissions
-  const permissions = ROLE_PERMISSIONS[userRole];
+  const permissions = ROLE_PERMISSIONS[normalizedRole];
   if (!permissions) return false;
   
   return permissions.includes('reports');
@@ -100,7 +103,8 @@ export const canAccessReportType = (userRole: UserRole | undefined, reportType: 
 export const getAccessibleSections = (userRole: UserRole | undefined): string[] => {
   if (!userRole) return [];
   
-  const permissions = ROLE_PERMISSIONS[userRole];
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  const permissions = ROLE_PERMISSIONS[normalizedRole];
   if (!permissions) return [];
   
   // If admin, return all sections
@@ -118,31 +122,45 @@ export const getAccessibleSections = (userRole: UserRole | undefined): string[] 
 
 // Additional utility functions for specific checks
 export const canManageSchools = (userRole: UserRole | undefined): boolean => {
-  return userRole === 'edufam_admin';
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  return normalizedRole === 'edufam_admin';
 };
 
 export const canManageUsers = (userRole: UserRole | undefined): boolean => {
-  return ['edufam_admin', 'school_owner', 'principal', 'hr'].includes(userRole || '');
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  return ['edufam_admin', 'school_owner', 'principal', 'hr'].includes(normalizedRole);
 };
 
 export const canAccessBilling = (userRole: UserRole | undefined): boolean => {
-  return userRole === 'edufam_admin';
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  return normalizedRole === 'edufam_admin';
 };
 
 export const canAccessSystemHealth = (userRole: UserRole | undefined): boolean => {
-  return userRole === 'edufam_admin';
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  return normalizedRole === 'edufam_admin';
 };
 
 export const canAccessSecurity = (userRole: UserRole | undefined): boolean => {
-  return userRole === 'edufam_admin';
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  return normalizedRole === 'edufam_admin';
 };
 
 export const canAccessCompanyManagement = (userRole: UserRole | undefined): boolean => {
-  return userRole === 'edufam_admin';
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  return normalizedRole === 'edufam_admin';
 };
 
 export const canAccessSchoolAnalytics = (userRole: UserRole | undefined): boolean => {
-  return userRole === 'edufam_admin';
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase() as UserRole;
+  return normalizedRole === 'edufam_admin';
 };
 
 export const getRoleDisplayName = (role: UserRole): string => {

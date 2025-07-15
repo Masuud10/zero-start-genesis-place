@@ -16,14 +16,14 @@ export class RoleResolver {
     // STRICT: Database role is primary and authoritative
     if (profileRole && this.isValidRole(profileRole)) {
       console.log('🔍 RoleResolver: Using database profile role:', profileRole);
-      return profileRole as UserRole;
+      return profileRole.toLowerCase() as UserRole;
     }
 
     // Secondary: Check metadata (for admin-assigned roles)
     const metadataRole = authUser.app_metadata?.role || authUser.user_metadata?.role;
     if (metadataRole && this.isValidRole(metadataRole)) {
       console.log('🔍 RoleResolver: Using metadata role:', metadataRole);
-      return metadataRole as UserRole;
+      return metadataRole.toLowerCase() as UserRole;
     }
 
     // If no valid role found, return 'parent' as default
@@ -35,6 +35,8 @@ export class RoleResolver {
    * Validates if a role is one of the allowed UserRole values
    */
   static isValidRole(role: string): boolean {
+    if (!role || typeof role !== 'string') return false;
+    
     const validRoles: UserRole[] = [
       'school_owner',
       'principal', 
@@ -45,7 +47,7 @@ export class RoleResolver {
       'elimisha_admin',
       'hr'
     ];
-    return validRoles.includes(role as UserRole);
+    return validRoles.includes(role.toLowerCase() as UserRole);
   }
 
   /**
@@ -84,6 +86,8 @@ export class RoleResolver {
    * Checks if a role requires school assignment
    */
   static requiresSchoolAssignment(role: UserRole): boolean {
+    if (!role || typeof role !== 'string') return false;
+    
     const schoolRequiredRoles: UserRole[] = [
       'school_owner',
       'principal',
@@ -91,14 +95,17 @@ export class RoleResolver {
       'finance_officer',
       'hr'
     ];
-    return schoolRequiredRoles.includes(role);
+    return schoolRequiredRoles.includes(role.toLowerCase() as UserRole);
   }
 
   /**
    * Gets the default redirect path for a role
    */
   static getDefaultRedirectPath(role: UserRole, hasSchoolAssignment: boolean): string {
-    switch (role) {
+    if (!role || typeof role !== 'string') return '/';
+    
+    const normalizedRole = role.toLowerCase() as UserRole;
+    switch (normalizedRole) {
       case 'edufam_admin':
       case 'elimisha_admin':
         return '/dashboard';
