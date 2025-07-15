@@ -128,53 +128,51 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             UuidValidator.validateAndThrow(finalSchoolId, "School ID");
           }
 
-          // **SURGICAL FIX**: Use database function approach with proper error handling
+          // **SURGICAL FIX**: Use Edge Function with correct sequence
           try {
-            console.log("--- CREATING USER VIA DATABASE FUNCTION: FORENSIC LOG ---");
+            console.log("--- CALLING CREATE USER EDGE FUNCTION: FORENSIC LOG ---");
             
-            // Use the database function that handles both auth and profile creation
-            const { data: rpcData, error: rpcError } = await supabase
-              .rpc('create_admin_user', {
-                user_email: user.email,
-                user_password: user.password,
-                user_name: user.name,
-                user_role: user.role,
-                user_school_id: finalSchoolId || null
-              });
+            // Call the edge function that handles the correct sequence
+            const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
+              body: {
+                email: user.email,
+                password: user.password,
+                name: user.name,
+                role: user.role,
+                school_id: finalSchoolId
+              }
+            });
 
-            console.log("--- RPC RESULT: FORENSIC LOG ---");
-            console.log("RPC data:", rpcData);
-            console.log("RPC error:", rpcError);
+            console.log("--- EDGE FUNCTION RESULT: FORENSIC LOG ---");
+            console.log("Function data:", functionData);
+            console.log("Function error:", functionError);
 
-            if (rpcError) {
-              console.error("--- RPC ERROR: FORENSIC LOG ---");
-              console.error("Full RPC Error:", rpcError);
-              throw new Error(`Database function error: ${rpcError.message}`);
+            if (functionError) {
+              console.error("--- EDGE FUNCTION ERROR: FORENSIC LOG ---");
+              console.error("Full Function Error:", functionError);
+              throw new Error(`Edge function error: ${functionError.message}`);
             }
 
-            if (!rpcData) {
-              throw new Error("No response from database function");
+            if (!functionData) {
+              throw new Error("No response from edge function");
             }
 
-            // Parse the response from the database function
-            const response = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData;
-            
-            console.log("--- PARSED RPC RESPONSE: FORENSIC LOG ---");
-            console.log("Parsed response:", response);
+            console.log("--- EDGE FUNCTION RESPONSE: FORENSIC LOG ---");
+            console.log("Response data:", functionData);
 
-            if (response.error) {
-              throw new Error(response.error);
+            if (functionData.error) {
+              throw new Error(functionData.error);
             }
 
-            if (!response.success) {
-              throw new Error(response.message || "Unknown error occurred");
+            if (!functionData.success) {
+              throw new Error(functionData.message || "Unknown error occurred");
             }
 
             return {
               success: true,
-              user_id: response.user_id,
+              user_id: functionData.user_id,
               school_id: finalSchoolId,
-              message: response.message || 'User created successfully with proper school assignment'
+              message: functionData.message || 'User created successfully with proper school assignment'
             } as CreateUserRpcResponse;
 
           } catch (createError) {
