@@ -609,8 +609,14 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
               Term: {academicInfo.term || "Not Set"}
             </Badge>
             <Badge variant="outline">
-              Year: {academicInfo.year || "Not Set"}
+              Academic Year: {academicInfo.year || "Not Set"}
             </Badge>
+            {/* Debug info - can be removed later */}
+            {process.env.NODE_ENV === 'development' && (
+              <Badge variant="outline" className="bg-yellow-50">
+                Debug: {JSON.stringify({term: academicInfo.term, year: academicInfo.year})}
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -694,7 +700,15 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
                   {exportLoading ? "Exporting..." : "Quick PDF"}
                 </Button>
                 <Button
-                  onClick={() => submitAttendance.mutate()}
+                  onClick={() => {
+                    console.log("Save attendance clicked. Current state:", {
+                      attendance: Object.keys(attendance).length,
+                      showSummaryReport,
+                      selectedClass,
+                      students: students?.length
+                    });
+                    submitAttendance.mutate();
+                  }}
                   disabled={
                     Object.keys(attendance).length === 0 ||
                     submitAttendance.isPending
@@ -823,23 +837,35 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
 
       {/* Attendance Summary Report */}
       {showSummaryReport && selectedClass && students && Object.keys(attendance).length > 0 && (
-        <AttendanceSummaryReport
-          className={classes?.find(c => c.id === selectedClass)?.name || "Selected Class"}
-          date={selectedDate}
-          attendanceRecords={students.map(student => ({
-            id: student.id,
-            student_id: student.id,
-            status: (attendance[student.id]?.status as "present" | "absent" | "late" | "excused") || "present",
-            student_name: student.name,
-            admission_number: student.admission_number,
-            roll_number: student.admission_number, // Using admission_number as roll_number fallback
-          }))}
-          onExportPDF={() => exportAttendance("pdf")}
-          onPrint={() => {
-            // Create a simple print functionality
-            window.print();
-          }}
-        />
+        <div className="mt-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Daily Attendance Summary</h3>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowSummaryReport(false)}
+            >
+              Hide Summary
+            </Button>
+          </div>
+          <AttendanceSummaryReport
+            className={classes?.find(c => c.id === selectedClass)?.name || "Selected Class"}
+            date={selectedDate}
+            attendanceRecords={students.map(student => ({
+              id: student.id,
+              student_id: student.id,
+              status: (attendance[student.id]?.status as "present" | "absent" | "late" | "excused") || "present",
+              student_name: student.name,
+              admission_number: student.admission_number,
+              roll_number: student.admission_number, // Using admission_number as roll_number fallback
+            }))}
+            onExportPDF={() => exportAttendance("pdf")}
+            onPrint={() => {
+              // Create a simple print functionality
+              window.print();
+            }}
+          />
+        </div>
       )}
 
       {/* Advanced Export Modal */}
