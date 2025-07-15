@@ -14,10 +14,15 @@ export const useCurrentAcademicInfo = (schoolId: string | null) => {
         };
       }
 
-      // Try to get current academic term
+      // Try to get current academic term with academic year name
       const { data: terms, error } = await supabase
         .from('academic_terms')
-        .select('*')
+        .select(`
+          *,
+          academic_years!inner(
+            year_name
+          )
+        `)
         .eq('school_id', schoolId)
         .eq('is_current', true)
         .maybeSingle(); // Use maybeSingle to handle no results gracefully
@@ -27,11 +32,27 @@ export const useCurrentAcademicInfo = (schoolId: string | null) => {
         console.warn('Error fetching academic terms:', error);
       }
 
-      if (terms) {
+      if (terms && terms.academic_years) {
         return {
           term: terms.term_name,
-          year: terms.academic_year_id,
-          academicYear: terms.academic_year_id
+          year: terms.academic_years.year_name,
+          academicYear: terms.academic_years.year_name
+        };
+      }
+
+      // Fallback: try to get current academic year directly
+      const { data: currentYear } = await supabase
+        .from('academic_years')
+        .select('year_name')
+        .eq('school_id', schoolId)
+        .eq('is_current', true)
+        .maybeSingle();
+
+      if (currentYear) {
+        return {
+          term: 'Term 1',
+          year: currentYear.year_name,
+          academicYear: currentYear.year_name
         };
       }
 

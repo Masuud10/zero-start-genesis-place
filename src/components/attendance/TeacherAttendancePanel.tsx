@@ -40,6 +40,7 @@ import {
   AttendanceExportService,
   ExportOptions,
 } from "@/services/attendanceExportService";
+import AttendanceSummaryReport from "./AttendanceSummaryReport";
 
 interface TeacherAttendancePanelProps {
   userId: string;
@@ -67,6 +68,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
   >({});
   const [exportLoading, setExportLoading] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [showSummaryReport, setShowSummaryReport] = useState(false);
 
   const { data: classes } = useQuery({
     queryKey: ["classes", schoolId],
@@ -207,6 +209,8 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
       });
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
       setSessionError("");
+      // Automatically show summary report after successful save
+      setShowSummaryReport(true);
     },
     onError: (error) => {
       console.error("Attendance submission error:", error);
@@ -815,6 +819,27 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Attendance Summary Report */}
+      {showSummaryReport && selectedClass && students && Object.keys(attendance).length > 0 && (
+        <AttendanceSummaryReport
+          className={classes?.find(c => c.id === selectedClass)?.name || "Selected Class"}
+          date={selectedDate}
+          attendanceRecords={students.map(student => ({
+            id: student.id,
+            student_id: student.id,
+            status: (attendance[student.id]?.status as "present" | "absent" | "late" | "excused") || "present",
+            student_name: student.name,
+            admission_number: student.admission_number,
+            roll_number: student.admission_number, // Using admission_number as roll_number fallback
+          }))}
+          onExportPDF={() => exportAttendance("pdf")}
+          onPrint={() => {
+            // Create a simple print functionality
+            window.print();
+          }}
+        />
       )}
 
       {/* Advanced Export Modal */}
