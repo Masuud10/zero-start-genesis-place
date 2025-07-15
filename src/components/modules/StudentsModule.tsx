@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -29,9 +30,11 @@ import {
   UserX,
   RefreshCw,
   AlertCircle,
+  CreditCard,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useStudents } from "@/hooks/useStudents";
+import StudentIdCardGenerator from "@/components/id_cards/StudentIdCardGenerator";
 
 // Import Student type from the hook
 interface Student {
@@ -57,6 +60,7 @@ import { useParents } from "@/hooks/useParents";
 import { useAuth } from "@/contexts/AuthContext";
 
 const StudentsModule = () => {
+  const [activeTab, setActiveTab] = useState("management");
   const [searchTerm, setSearchTerm] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -202,16 +206,31 @@ const StudentsModule = () => {
             Student Management
           </h1>
           <p className="text-muted-foreground">
-            Manage student records and information
+            Manage student records, information, and ID cards
           </p>
         </div>
-        {canAddStudents && (
+        {canAddStudents && activeTab === "management" && (
           <Button onClick={() => setAdmitStudentOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Student
           </Button>
         )}
       </div>
+
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="management" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Student Management
+          </TabsTrigger>
+          <TabsTrigger value="id-cards" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            ID Card Generator
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="management" className="space-y-6">
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -387,6 +406,12 @@ const StudentsModule = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="id-cards">
+          <StudentIdCardGenerator />
+        </TabsContent>
+      </Tabs>
 
       {/* Student Admission Modal */}
       <StudentAdmissionModal
