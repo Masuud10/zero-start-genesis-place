@@ -56,7 +56,7 @@ export const useGradeSubmissionWithAudit = () => {
       const { data, error } = await supabase
         .from('grades')
         .upsert(completeGradeData, {
-          onConflict: 'student_id,subject_id,term,exam_type,academic_year,class_id',
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
           ignoreDuplicates: false
         })
         .select()

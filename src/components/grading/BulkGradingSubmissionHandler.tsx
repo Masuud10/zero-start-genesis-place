@@ -98,7 +98,7 @@ export const useBulkGradingSubmissionHandler = ({
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToUpsert, {
-          onConflict: 'student_id,subject_id,term,exam_type,academic_year,class_id',
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
           ignoreDuplicates: false
         });
 

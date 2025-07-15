@@ -492,7 +492,7 @@ export class AcademicIntegrationService {
       const { data, error } = await supabase
         .from('grades')
         .upsert(enrichedGradesData, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type',
+          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
           ignoreDuplicates: false
         })
         .select();
