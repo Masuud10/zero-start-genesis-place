@@ -8375,6 +8375,17 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+      handle_inventory_transaction: {
+        Args: {
+          p_item_id: number
+          p_quantity_change: number
+          p_transaction_type: string
+          p_user_id: string
+          p_supplier_id?: number
+          p_notes?: string
+        }
+        Returns: Json
+      }
       handle_login_attempt: {
         Args: { user_email: string; success?: boolean }
         Returns: Json

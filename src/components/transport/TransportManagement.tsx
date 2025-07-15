@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bus, Users, MapPin, Clock, DollarSign } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Bus, Users, MapPin, DollarSign } from 'lucide-react';
+import { RoutesTab } from './RoutesTab';
+import { VehiclesTab } from './VehiclesTab';
+import { StudentAssignmentsTab } from './StudentAssignmentsTab';
 
 const TransportManagement: React.FC = () => {
   return (
@@ -58,18 +62,25 @@ const TransportManagement: React.FC = () => {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Transport Routes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Bus className="h-16 w-16 mx-auto mb-4 opacity-50" />
-            <p>Transport management features are being developed.</p>
-            <p>Route management, vehicle tracking, and fee collection will be available soon.</p>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="routes" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="routes">Routes</TabsTrigger>
+          <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+          <TabsTrigger value="students">Student Assignments</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="routes">
+          <RoutesTab />
+        </TabsContent>
+
+        <TabsContent value="vehicles">
+          <VehiclesTab />
+        </TabsContent>
+
+        <TabsContent value="students">
+          <StudentAssignmentsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { InventoryDashboardTab } from './InventoryDashboardTab';
+import { StockMovementsTab } from './StockMovementsTab';
+import { ItemsManagementTab } from './ItemsManagementTab';
 
 const InventoryManagement: React.FC = () => {
   return (
@@ -58,18 +62,25 @@ const InventoryManagement: React.FC = () => {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
-            <p>Inventory management features are being developed.</p>
-            <p>Stock tracking, automated reordering, and supplier management will be available soon.</p>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="dashboard" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="movements">Stock Movements</TabsTrigger>
+          <TabsTrigger value="items">Items Management</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard">
+          <InventoryDashboardTab />
+        </TabsContent>
+
+        <TabsContent value="movements">
+          <StockMovementsTab />
+        </TabsContent>
+
+        <TabsContent value="items">
+          <ItemsManagementTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
