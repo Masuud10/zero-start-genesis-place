@@ -114,6 +114,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ children, onUserCre
     { value: 'principal', label: 'Principal' },
     { value: 'school_owner', label: 'School Owner' },
     { value: 'finance_officer', label: 'Finance Officer' },
+    { value: 'hr', label: 'HR' },
     ...(user?.role === 'edufam_admin' ? [
       { value: 'edufam_admin', label: 'EduFam Admin' }
     ] : [])
