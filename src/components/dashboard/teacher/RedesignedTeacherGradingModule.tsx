@@ -532,7 +532,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
       // Use proper onConflict specification
       const { error } = await supabase.from("grades").upsert(gradesToSave, {
         onConflict:
-          "student_id,subject_id,term,exam_type,academic_year,class_id",
+          "school_id,student_id,subject_id,class_id,term,exam_type,submitted_by",
         ignoreDuplicates: false
       });
 
@@ -663,7 +663,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
       // Use proper onConflict specification with all required fields
       const { error } = await supabase.from("grades").upsert(gradesToSubmit, {
         onConflict:
-          "student_id,subject_id,term,exam_type,academic_year,class_id",
+          "school_id,student_id,subject_id,class_id,term,exam_type,submitted_by",
         ignoreDuplicates: false
       });
 

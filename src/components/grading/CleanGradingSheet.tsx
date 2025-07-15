@@ -216,7 +216,7 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
       if (gradesToSave.length > 0) {
         const { error } = await supabase.from("grades").upsert(gradesToSave, {
           onConflict:
-            "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
+            "school_id,student_id,subject_id,class_id,term,exam_type,submitted_by",
         });
 
         if (error) throw error;
@@ -307,7 +307,7 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
       if (gradesToSubmit.length > 0) {
         const { error } = await supabase.from("grades").upsert(gradesToSubmit, {
           onConflict:
-            "school_id,student_id,subject_id,class_id,term,exam_type,academic_year,submitted_by",
+            "school_id,student_id,subject_id,class_id,term,exam_type,submitted_by",
         });
 
         if (error) throw error;
