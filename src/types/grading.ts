@@ -118,9 +118,14 @@ export interface Grade {
   maxScore: number;
   percentage: number;
   letter_grade?: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'released';
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'released';
   submittedBy: string;
   submittedAt: string;
+  approved_by?: string;
+  approved_at?: string;
+  released_by?: string;
+  released_at?: string;
+  principal_notes?: string;
   curriculum_type?: string;
   comments?: string;
 }

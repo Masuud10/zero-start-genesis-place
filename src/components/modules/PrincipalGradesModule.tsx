@@ -52,6 +52,7 @@ import {
   Download,
   Printer,
   FileSpreadsheet,
+  Clock,
 } from "lucide-react";
 import { DynamicGradingSheet } from "@/components/grading/DynamicGradingSheet";
 import { useClasses } from "@/hooks/useClasses";
@@ -66,6 +67,7 @@ import { GradeOverrideModal } from "@/components/grading/GradeOverrideModal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import GradeSheetSummaryReport from "@/components/grading/GradeSheetSummaryReport";
 import { useGradeReports } from "@/hooks/useGradeReports";
+import GradeWorkflowManager from "@/components/grading/GradeWorkflowManager";
 
 interface GradeRecord {
   id: string;
@@ -713,7 +715,11 @@ const PrincipalGradesModule: React.FC = () => {
 
       {/* Grades Tabs */}
       <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="workflow" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Workflow
+          </TabsTrigger>
           <TabsTrigger value="override" className="flex items-center gap-2">
             <Edit className="h-4 w-4" />
             Override
@@ -735,6 +741,10 @@ const PrincipalGradesModule: React.FC = () => {
             Released ({releasedGrades.length})
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="workflow">
+          <GradeWorkflowManager onRefresh={fetchGrades} />
+        </TabsContent>
 
         <TabsContent value="override" className="space-y-4">
           <GradesOverrideModule />

@@ -88,7 +88,7 @@ export const useGradeSubmissionMutation = () => {
         school_id: schoolId,
         submitted_by: user.id,
         submitted_at: new Date().toISOString(),
-        status: gradeData.status || 'submitted', // Default to 'submitted' for principal approval
+        status: gradeData.status || 'draft', // Default to 'draft' for new grades
         exam_type: gradeData.exam_type.toUpperCase() // Ensure uppercase format
       };
 

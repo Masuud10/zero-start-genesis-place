@@ -146,7 +146,7 @@ export const canEditGrade = (grade: Grade, userRole: UserRole, userId: string): 
 
 export const canApproveGrade = (grade: Grade, userRole: UserRole): boolean => {
   const permissions = getGradingPermissions(userRole);
-  return permissions.canApproveGrades && grade.status === 'submitted';
+  return permissions.canApproveGrades && grade.status === 'pending_approval';
 };
 
 export const canReleaseResults = (submission: BulkGradeSubmission, userRole: UserRole): boolean => {
@@ -157,8 +157,7 @@ export const canReleaseResults = (submission: BulkGradeSubmission, userRole: Use
 export const getGradeStatusColor = (status: Grade['status']): string => {
   switch (status) {
     case 'draft': return 'bg-gray-100 text-gray-700';
-    case 'submitted': return 'bg-blue-100 text-blue-700';
-    case 'under_review': return 'bg-yellow-100 text-yellow-700';
+    case 'pending_approval': return 'bg-blue-100 text-blue-700';
     case 'approved': return 'bg-green-100 text-green-700';
     case 'rejected': return 'bg-red-100 text-red-700';
     case 'released': return 'bg-purple-100 text-purple-700';
