@@ -7867,6 +7867,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_teacher_authorized_for_class: {
+        Args: { p_class_id: string }
+        Returns: boolean
+      }
+      is_teacher_authorized_for_subject: {
+        Args: { p_subject_id: string; p_class_id: string }
+        Returns: boolean
+      }
       log_audit_action: {
         Args: {
           p_action: string
@@ -7949,6 +7957,10 @@ export type Database = {
       }
       validate_password_strength: {
         Args: { password: string }
+        Returns: Json
+      }
+      validate_teacher_grade_submission: {
+        Args: { p_grade_data: Json }
         Returns: Json
       }
     }

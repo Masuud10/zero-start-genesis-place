@@ -17,6 +17,40 @@ export const useGradeSubmissionWithAudit = () => {
       return { success: false, error: 'User not authenticated' };
     }
 
+    // CRITICAL: Validate required fields first
+    if (!gradeData.class_id || !gradeData.subject_id || !gradeData.student_id) {
+      const error = 'Missing required fields: class_id, subject_id, or student_id';
+      await logGradeSubmission(gradeData, false, error);
+      return { success: false, error };
+    }
+
+    // CRITICAL: Use database function to validate teacher authorization and data
+    try {
+      const { data: validationResult, error: validationError } = await supabase
+        .rpc('validate_teacher_grade_submission', {
+          p_grade_data: gradeData
+        });
+
+      if (validationError) {
+        console.error('Validation function error:', validationError);
+        throw new Error('Authorization validation failed');
+      }
+
+      // Type guard for validation result
+      const result = validationResult as { valid: boolean; error?: string } | null;
+      
+      if (!result?.valid) {
+        const error = result?.error || 'Grade submission validation failed';
+        await logGradeSubmission(gradeData, false, error);
+        return { success: false, error };
+      }
+    } catch (error: any) {
+      console.error('Teacher authorization validation failed:', error);
+      const errorMsg = error.message || 'Failed to validate teacher authorization';
+      await logGradeSubmission(gradeData, false, errorMsg);
+      return { success: false, error: errorMsg };
+    }
+
     // Check rate limiting for grade submissions
     const rateLimit = rateLimiter.checkLimit({
       ...RateLimiter.GRADE_SUBMISSION_LIMIT,
@@ -34,10 +68,6 @@ export const useGradeSubmissionWithAudit = () => {
 
     setIsSubmitting(true);
     try {
-      if (!gradeData.class_id) {
-        throw new Error("class_id is required to submit a grade");
-      }
-
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('school_id')
@@ -51,7 +81,16 @@ export const useGradeSubmissionWithAudit = () => {
         ...gradeData,
         school_id: classData.school_id,
         academic_year: (gradeData.academic_year || new Date().getFullYear().toString()).slice(0, 4),
+        submitted_by: user.id, // CRITICAL: Ensure submitted_by is always set
+        status: gradeData.status || 'draft', // Default to draft status
       };
+
+      // CRITICAL: Validate score ranges if provided
+      if (completeGradeData.score !== null && completeGradeData.max_score !== null) {
+        if (completeGradeData.score < 0 || completeGradeData.score > completeGradeData.max_score) {
+          throw new Error(`Score must be between 0 and ${completeGradeData.max_score}`);
+        }
+      }
 
       // Use upsert to handle duplicates properly
       const { data, error } = await supabase
@@ -63,7 +102,10 @@ export const useGradeSubmissionWithAudit = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Grade upsert error:', error);
+        throw error;
+      }
 
       // Track the grade submission event
       await trackGradeSubmission({
@@ -83,7 +125,7 @@ export const useGradeSubmissionWithAudit = () => {
       // Log failed grade submission
       await logGradeSubmission(gradeData, false, error.message);
       
-      return { success: false, error };
+      return { success: false, error: error.message || 'Grade submission failed' };
     } finally {
       setIsSubmitting(false);
     }

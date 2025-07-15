@@ -33,12 +33,37 @@ const TeacherDashboard = () => {
       try {
         console.log('Fetching teacher stats for:', user.id, schoolId);
 
-        // Get teacher's assigned classes
+        // CRITICAL: Validate user authorization first
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, school_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error validating user profile:', profileError);
+          throw new Error('Failed to validate user permissions');
+        }
+
+        // CRITICAL: Role and school validation
+        if (userProfile.role !== 'teacher' && 
+            !['principal', 'school_owner', 'edufam_admin', 'elimisha_admin'].includes(userProfile.role)) {
+          throw new Error('Access denied: Insufficient permissions for teacher dashboard');
+        }
+
+        if (userProfile.school_id !== schoolId && 
+            !['edufam_admin', 'elimisha_admin'].includes(userProfile.role)) {
+          throw new Error('Access denied: School assignment mismatch');
+        }
+
+        // Get teacher's assigned classes with enhanced validation
         const { data: teacherAssignments, error: assignmentsError } = await supabase
           .from('subject_teacher_assignments')
           .select(`
             class_id,
             subject_id,
+            teacher_id,
+            school_id,
             classes!inner(id, name, level, stream),
             subjects!inner(id, name, code)
           `)
@@ -49,6 +74,16 @@ const TeacherDashboard = () => {
         if (assignmentsError) {
           console.error('Error fetching teacher assignments:', assignmentsError);
           throw assignmentsError;
+        }
+
+        // CRITICAL: Validate all assignments belong to current teacher and school
+        const invalidAssignments = teacherAssignments?.filter(
+          ta => ta.teacher_id !== user.id || ta.school_id !== schoolId
+        );
+
+        if (invalidAssignments && invalidAssignments.length > 0) {
+          console.error('Invalid teacher assignments detected:', invalidAssignments);
+          throw new Error('Access denied: Invalid teacher assignments detected');
         }
 
         const uniqueClasses = teacherAssignments
@@ -67,13 +102,22 @@ const TeacherDashboard = () => {
 
         const classIds = uniqueClasses.map(c => c.id);
 
-        // Get total students in teacher's classes
-        const { count: studentCount } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
-          .in('class_id', classIds)
-          .eq('school_id', schoolId)
-          .eq('is_active', true);
+        // Get total students in teacher's classes with validation
+        let studentCount = 0;
+        if (classIds.length > 0) {
+          const { count, error: studentError } = await supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true })
+            .in('class_id', classIds)
+            .eq('school_id', schoolId)
+            .eq('is_active', true);
+
+          if (studentError) {
+            console.error('Error fetching student count:', studentError);
+          } else {
+            studentCount = count || 0;
+          }
+        }
 
         // Get today's attendance submissions
         const today = new Date().toISOString().split('T')[0];
@@ -104,7 +148,7 @@ const TeacherDashboard = () => {
 
         return {
           classCount: uniqueClasses.length,
-          studentCount: studentCount || 0,
+          studentCount: studentCount,
           subjectCount: uniqueSubjects.length,
           todayAttendance: todayAttendance || 0,
           pendingGrades: pendingGrades || 0,

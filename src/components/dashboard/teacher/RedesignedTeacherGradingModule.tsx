@@ -173,7 +173,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     error: curriculumError,
   } = useClassCurriculum(selectedClass);
 
-  // Load teacher's classes
+  // Load teacher's classes with enhanced authorization
   const loadTeacherClasses = useCallback(async () => {
     if (!user?.id || !schoolId) return;
 
@@ -181,12 +181,15 @@ const RedesignedTeacherGradingModule: React.FC = () => {
       setLoading(true);
       console.log("Loading teacher classes for:", user.id, schoolId);
 
+      // CRITICAL: Enhanced query with proper authorization check
       const { data, error } = await supabase
         .from("subject_teacher_assignments")
         .select(
           `
           class_id,
-          classes!inner(id, name, curriculum_type)
+          subject_id,
+          classes!inner(id, name, curriculum_type),
+          subjects!inner(id, name, code)
         `
         )
         .eq("teacher_id", user.id)
@@ -201,6 +204,29 @@ const RedesignedTeacherGradingModule: React.FC = () => {
 
       console.log("Raw class data from database:", data);
 
+      // CRITICAL: Validate that user is actually a teacher
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, school_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Error validating user profile:", profileError);
+        throw new Error("Failed to validate user permissions");
+      }
+
+      if (userProfile.role !== 'teacher' && userProfile.role !== 'principal' && 
+          userProfile.role !== 'school_owner' && userProfile.role !== 'edufam_admin' && 
+          userProfile.role !== 'elimisha_admin') {
+        throw new Error("Access denied: Insufficient permissions for grade management");
+      }
+
+      if (userProfile.school_id !== schoolId && 
+          !['edufam_admin', 'elimisha_admin'].includes(userProfile.role)) {
+        throw new Error("Access denied: School assignment mismatch");
+      }
+
       const uniqueClasses =
         data
           ?.filter(
@@ -214,7 +240,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             }) => ({
               id: item.classes.id,
               name: item.classes.name,
-              curriculum_type: item.classes.curriculum_type || 'standard', // Default to standard if not set
+              curriculum_type: item.classes.curriculum_type || 'standard',
             })
           )
           .filter(
@@ -237,7 +263,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
       console.error("Error loading teacher classes:", error);
       toast({
         title: "Error Loading Classes",
-        description: "Failed to load your assigned classes. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to load your assigned classes. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -268,7 +294,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     }
   }, [activeExamTypes, selectedExamType]);
 
-  // Load subjects for selected class
+  // Load subjects for selected class with enhanced validation
   const loadClassSubjects = useCallback(async () => {
     if (!selectedClass || !user?.id) {
       setSubjects([]);
@@ -278,20 +304,35 @@ const RedesignedTeacherGradingModule: React.FC = () => {
     try {
       console.log("Loading subjects for class:", selectedClass);
 
+      // CRITICAL: Enhanced query with proper authorization validation
       const { data, error } = await supabase
         .from("subject_teacher_assignments")
         .select(
           `
-          subject:subjects(id, name, code)
+          subject:subjects(id, name, code),
+          class_id,
+          teacher_id,
+          school_id
         `
         )
         .eq("teacher_id", user.id)
         .eq("class_id", selectedClass)
+        .eq("school_id", schoolId)
         .eq("is_active", true);
 
       if (error) {
         console.error("Error loading subjects:", error);
         throw error;
+      }
+
+      // CRITICAL: Validate that all assignments belong to the current teacher and school
+      const invalidAssignments = data?.filter(
+        (item) => item.teacher_id !== user.id || item.school_id !== schoolId
+      );
+
+      if (invalidAssignments && invalidAssignments.length > 0) {
+        console.error("Invalid subject assignments detected:", invalidAssignments);
+        throw new Error("Access denied: Invalid subject assignments detected");
       }
 
       const subjectsList =
@@ -304,15 +345,23 @@ const RedesignedTeacherGradingModule: React.FC = () => {
 
       console.log("Loaded subjects:", subjectsList);
       setSubjects(subjectsList);
+
+      if (subjectsList.length === 0) {
+        toast({
+          title: "No Subjects Found",
+          description: "No subjects assigned for this class. Please contact your administrator.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error loading subjects:", error);
       toast({
         title: "Error Loading Subjects",
-        description: "Failed to load subjects for this class.",
+        description: error instanceof Error ? error.message : "Failed to load subjects for this class.",
         variant: "destructive",
       });
     }
-  }, [selectedClass, user?.id, toast]);
+  }, [selectedClass, user?.id, schoolId, toast]);
 
   // Load students for selected class
   const loadClassStudents = useCallback(async () => {

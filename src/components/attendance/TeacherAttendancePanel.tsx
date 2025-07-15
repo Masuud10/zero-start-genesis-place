@@ -71,19 +71,33 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
   const [showSummaryReport, setShowSummaryReport] = useState(false);
 
   const { data: classes } = useQuery({
-    queryKey: ["classes", schoolId],
+    queryKey: ["teacher-classes", schoolId, userId],
     queryFn: async () => {
-      if (!schoolId) return [];
+      if (!schoolId || !userId) return [];
+      
+      // CRITICAL: Only load classes the teacher is assigned to
       const { data, error } = await supabase
-        .from("classes")
-        .select("id, name")
+        .from("subject_teacher_assignments")
+        .select(`
+          class_id,
+          classes!inner(id, name)
+        `)
+        .eq("teacher_id", userId)
         .eq("school_id", schoolId)
-        .order("name");
+        .eq("is_active", true);
 
       if (error) throw new Error(error.message);
-      return data || [];
+      
+      const uniqueClasses = data
+        ?.filter(item => item.classes)
+        .map(item => item.classes)
+        .filter((cls, index, self) => 
+          index === self.findIndex(c => c.id === cls.id)
+        ) || [];
+      
+      return uniqueClasses;
     },
-    enabled: !!schoolId,
+    enabled: !!schoolId && !!userId,
   });
 
   const { data: students, isLoading: loadingStudents } = useQuery({
@@ -145,6 +159,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
 
   const submitAttendance = useMutation({
     mutationFn: async () => {
+      // CRITICAL: Enhanced validation with teacher authorization
       if (
         !selectedSession ||
         !["morning", "afternoon", "full_day"].includes(selectedSession)
@@ -170,6 +185,43 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
         throw new Error("No attendance data to submit");
       }
 
+      // CRITICAL: Validate teacher authorization for this class
+      const { data: authCheck, error: authError } = await supabase
+        .rpc('is_teacher_authorized_for_class', {
+          p_class_id: selectedClass
+        });
+
+      if (authError) {
+        console.error('Teacher authorization check failed:', authError);
+        throw new Error('Failed to verify teacher authorization');
+      }
+
+      if (!authCheck) {
+        throw new Error('Access denied: You are not authorized to manage attendance for this class');
+      }
+
+      // CRITICAL: Validate all students belong to the selected class
+      const studentIds = Object.keys(attendance);
+      const { data: validStudents, error: studentError } = await supabase
+        .from('students')
+        .select('id')
+        .in('id', studentIds)
+        .eq('class_id', selectedClass)
+        .eq('school_id', schoolId)
+        .eq('is_active', true);
+
+      if (studentError) {
+        console.error('Student validation error:', studentError);
+        throw new Error('Failed to validate student records');
+      }
+
+      const validStudentIds = validStudents?.map(s => s.id) || [];
+      const invalidStudents = studentIds.filter(id => !validStudentIds.includes(id));
+
+      if (invalidStudents.length > 0) {
+        throw new Error(`Invalid students detected: ${invalidStudents.length} students not found in this class`);
+      }
+
       const attendanceRecords = Object.entries(attendance).map(
         ([studentId, record]) => ({
           student_id: studentId,
@@ -177,7 +229,7 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
           school_id: schoolId,
           date: selectedDate,
           status: record.status,
-          session: selectedSession, // Ensure session is always included
+          session: selectedSession,
           remarks: record.remarks || null,
           term: academicInfo.term,
           academic_year: academicInfo.year,
