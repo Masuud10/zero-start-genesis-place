@@ -7808,6 +7808,10 @@ export type Database = {
         Args: { target_user_id: string; new_status: string }
         Returns: Json
       }
+      validate_grade_edit_permission: {
+        Args: { grade_id: string; user_id: string }
+        Returns: boolean
+      }
       validate_grade_submission: {
         Args: {
           p_student_id: string

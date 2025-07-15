@@ -150,6 +150,7 @@ const PrincipalGradesModule: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [selectedExamType, setSelectedExamType] = useState<string>("all");
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("all");
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [showGradeSheet, setShowGradeSheet] = useState(false);
@@ -240,6 +241,7 @@ const PrincipalGradesModule: React.FC = () => {
     selectedStatus,
     selectedTerm,
     selectedExamType,
+    selectedAcademicYear,
     currentPage,
   ]);
 
@@ -254,6 +256,7 @@ const PrincipalGradesModule: React.FC = () => {
         status: selectedStatus !== "all" ? selectedStatus : undefined,
         term: selectedTerm !== "all" ? selectedTerm : undefined,
         examType: selectedExamType !== "all" ? selectedExamType : undefined,
+        academicYear: selectedAcademicYear !== "all" ? selectedAcademicYear : undefined,
       };
 
       const pagination = {
@@ -517,7 +520,7 @@ const PrincipalGradesModule: React.FC = () => {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-700">Class</label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -586,6 +589,28 @@ const PrincipalGradesModule: React.FC = () => {
                   {academicTerms.map((term) => (
                     <SelectItem key={term.id} value={term.term_name}>
                       {term.term_name} {term.is_current && "(Current)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-700">
+                Academic Year
+              </label>
+              <Select
+                value={selectedAcademicYear}
+                onValueChange={setSelectedAcademicYear}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {academicYears.map((year) => (
+                    <SelectItem key={year.id} value={year.year_name}>
+                      {year.year_name} {year.is_current && "(Current)"}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -52,10 +52,13 @@ export const useGradeSubmissionWithAudit = () => {
         school_id: classData.school_id,
       };
 
-      // Submit grade to database
+      // Use upsert to handle duplicates properly
       const { data, error } = await supabase
         .from('grades')
-        .insert(completeGradeData)
+        .upsert(completeGradeData, {
+          onConflict: 'student_id,subject_id,term,exam_type,academic_year,class_id',
+          ignoreDuplicates: false
+        })
         .select()
         .single();
 

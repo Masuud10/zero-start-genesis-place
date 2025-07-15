@@ -591,6 +591,7 @@ export class GradeManagementService {
       status?: string;
       term?: string;
       examType?: string;
+      academicYear?: string;
     },
     pagination: {
       page: number;
@@ -639,6 +640,7 @@ export class GradeManagementService {
       if (filters.status && filters.status !== 'all') query = query.eq('status', filters.status);
       if (filters.term && filters.term !== 'all') query = query.eq('term', filters.term);
       if (filters.examType && filters.examType !== 'all') query = query.eq('exam_type', filters.examType);
+      if (filters.academicYear && filters.academicYear !== 'all') query = query.eq('academic_year', filters.academicYear);
 
       // Apply pagination
       query = query
