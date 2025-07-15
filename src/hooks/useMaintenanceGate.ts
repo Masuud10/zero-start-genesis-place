@@ -31,7 +31,7 @@ export function useMaintenanceGate() {
             .from('profiles')
             .select('role')
             .eq('id', sessionRes.data.session.user.id)
-            .single();
+            .maybeSingle();
           
           userRole = profile?.role || null;
           isAdmin = userRole === 'edufam_admin';
@@ -111,7 +111,7 @@ export function useMaintenanceGate() {
           .from('profiles')
           .select('role')
           .eq('id', sessionRes.data.session.user.id)
-          .single();
+          .maybeSingle();
         
         userRole = profile?.role || null;
         isAdmin = userRole === 'edufam_admin';
