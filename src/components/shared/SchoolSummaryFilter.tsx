@@ -20,15 +20,15 @@ const SchoolSummaryFilter: React.FC<SchoolSummaryFilterProps> = ({
       Filter by School
     </label>
     <Select
-      value={value || ""}
-      onValueChange={val => onChange(val || null)}
+      value={value || "all"}
+      onValueChange={val => onChange(val === "all" ? null : val)}
       disabled={loading}
     >
       <SelectTrigger id="school-summary-filter" className="bg-white">
         <SelectValue placeholder={loading ? "Loading schools..." : "All Schools"} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">All Schools</SelectItem>
+        <SelectItem value="all">All Schools</SelectItem>
         {schools.map(s => (
           <SelectItem key={s.id} value={s.id}>
             {s.name}
