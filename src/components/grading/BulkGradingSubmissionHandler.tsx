@@ -67,6 +67,7 @@ export const useBulkGradingSubmissionHandler = ({
               subject_id: subjectId,
               term: selectedTerm,
               exam_type: selectedExamType.toUpperCase(), // Ensure uppercase format
+              academic_year: new Date().getFullYear().toString(),
               score: grade.isAbsent ? null : Number(grade.score),
               max_score: maxScore,
               percentage: percentage,
@@ -97,7 +98,7 @@ export const useBulkGradingSubmissionHandler = ({
       const { error } = await supabase
         .from('grades')
         .upsert(gradesToUpsert, {
-          onConflict: 'school_id,student_id,subject_id,class_id,term,exam_type,submitted_by',
+          onConflict: 'student_id,subject_id,term,exam_type,academic_year,class_id',
           ignoreDuplicates: false
         });
 
