@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import SchoolOwnerStatsCards, { SchoolMetrics } from "./SchoolOwnerStatsCards";
 import SchoolManagementActions from "./SchoolManagementActions";
+import ExpenseApprovalsSection from "./ExpenseApprovalsSection";
 import AnalyticsSecurityGuard from "../../analytics/AnalyticsSecurityGuard";
 import SecureSchoolOwnerAnalytics from "../../analytics/SecureSchoolOwnerAnalytics";
 
@@ -51,6 +52,9 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
         </CardContent>
       </Card>
     </AnalyticsSecurityGuard>
+
+    {/* Expense Approvals Section */}
+    <ExpenseApprovalsSection schoolId={schoolId} />
 
     <div className="rounded-lg bg-white/75 border shadow-sm">
       <div className="p-4">

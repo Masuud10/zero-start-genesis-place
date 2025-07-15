@@ -2450,6 +2450,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
+          approval_date: string | null
           approved_by: string | null
           category: string
           created_at: string
@@ -2458,12 +2459,15 @@ export type Database = {
           expense_date: string | null
           id: string
           receipt_url: string | null
+          rejection_reason: string | null
           school_id: string
+          status: string
           title: string | null
           updated_at: string
         }
         Insert: {
           amount: number
+          approval_date?: string | null
           approved_by?: string | null
           category: string
           created_at?: string
@@ -2472,12 +2476,15 @@ export type Database = {
           expense_date?: string | null
           id?: string
           receipt_url?: string | null
+          rejection_reason?: string | null
           school_id: string
+          status?: string
           title?: string | null
           updated_at?: string
         }
         Update: {
           amount?: number
+          approval_date?: string | null
           approved_by?: string | null
           category?: string
           created_at?: string
@@ -2486,7 +2493,9 @@ export type Database = {
           expense_date?: string | null
           id?: string
           receipt_url?: string | null
+          rejection_reason?: string | null
           school_id?: string
+          status?: string
           title?: string | null
           updated_at?: string
         }
