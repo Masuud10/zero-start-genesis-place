@@ -93,17 +93,6 @@ const AttendanceModule: React.FC = () => {
       return <AttendanceAdminSummary schools={schools} schoolFilter={schoolFilter} setSchoolFilter={setSchoolFilter} attendanceSummary={null} loading={false} error={null} />;
     }
       
-    if (!attendanceSummary) {
-      const message = user?.role === 'edufam_admin' && schools.length === 0
-        ? "No schools found."
-        : "There is no attendance summary available for this school.";
-      return (
-        <Alert className="my-8">
-          <AlertTitle>No Summary Data</AlertTitle>
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      );
-    }
 
     return (
       <AttendanceAdminSummary
