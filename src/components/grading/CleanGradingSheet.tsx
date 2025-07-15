@@ -109,6 +109,57 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [existingGradeData, setExistingGradeData] = useState<{status?: string; submitted_by?: string}>({});
+
+  // Load existing grade metadata for permission checking
+  useEffect(() => {
+    const loadGradeMetadata = async () => {
+      if (!schoolId || !selectedClass || !selectedTerm || !selectedExamType) return;
+      
+      try {
+        const { data: existingGrades } = await supabase
+          .from("grades")
+          .select("status, submitted_by")
+          .eq("class_id", selectedClass)
+          .eq("term", selectedTerm)
+          .eq("exam_type", selectedExamType)
+          .eq("school_id", schoolId)
+          .limit(1)
+          .maybeSingle();
+          
+        if (existingGrades) {
+          setExistingGradeData({
+            status: existingGrades.status,
+            submitted_by: existingGrades.submitted_by
+          });
+        }
+      } catch (error) {
+        console.error("Error loading grade metadata:", error);
+      }
+    };
+    
+    loadGradeMetadata();
+  }, [schoolId, selectedClass, selectedTerm, selectedExamType]);
+
+  // Check if current user can edit grades based on status and ownership
+  const canEditGrades = () => {
+    // If no existing grades, teachers can create new ones
+    if (!existingGradeData.status && !existingGradeData.submitted_by) {
+      return user?.role === 'teacher' || isPrincipal;
+    }
+    
+    // For teachers: can only edit if they own the grade and it's in draft status
+    if (user?.role === 'teacher') {
+      return existingGradeData.status === 'draft' && existingGradeData.submitted_by === user.id;
+    }
+    
+    // Principals can edit any grade except released ones
+    if (isPrincipal) {
+      return existingGradeData.status !== 'released';
+    }
+    
+    return false;
+  };
 
   // Convert marks to performance level for CBC
   const getPerformanceLevelFromMarks = (marks: number): string => {
@@ -602,47 +653,75 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                   )}
                   Export PDF
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    console.log("Save Draft clicked", { onSaveDraft: !!onSaveDraft });
-                    if (onSaveDraft) {
-                      onSaveDraft();
-                    } else {
-                      handleSave();
-                    }
-                  }}
-                  disabled={savingProp || saving}
-                  className="bg-white hover:bg-blue-50"
-                >
-                  {(savingProp || saving) ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Save Draft
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    console.log("Submit for Approval clicked", { onSubmitForApproval: !!onSubmitForApproval });
-                    if (onSubmitForApproval) {
-                      onSubmitForApproval();
-                    } else {
-                      handleSubmit();
-                    }
-                  }}
-                  disabled={submittingProp || submitting}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {(submittingProp || submitting) ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  Submit for Approval
-                </Button>
+                {canEditGrades() && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        console.log("Save Draft clicked", { onSaveDraft: !!onSaveDraft });
+                        if (onSaveDraft) {
+                          onSaveDraft();
+                        } else {
+                          handleSave();
+                        }
+                      }}
+                      disabled={savingProp || saving || !canEditGrades()}
+                      className="bg-white hover:bg-blue-50"
+                    >
+                      {(savingProp || saving) ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Save Draft
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        console.log("Submit for Approval clicked", { onSubmitForApproval: !!onSubmitForApproval });
+                        if (onSubmitForApproval) {
+                          onSubmitForApproval();
+                        } else {
+                          handleSubmit();
+                        }
+                      }}
+                      disabled={submittingProp || submitting || !canEditGrades()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {(submittingProp || submitting) ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Submit for Approval
+                    </Button>
+                  </>
+                )}
+                {!canEditGrades() && existingGradeData.status && (
+                  <div className="text-sm text-muted-foreground">
+                    {existingGradeData.status === 'submitted' && (
+                      <span className="text-amber-600">
+                        ⚠️ Grades already submitted - only principals can edit
+                      </span>
+                    )}
+                    {existingGradeData.status === 'approved' && (
+                      <span className="text-green-600">
+                        ✅ Grades approved - only principals can edit
+                      </span>
+                    )}
+                    {existingGradeData.status === 'released' && (
+                      <span className="text-purple-600">
+                        🔒 Grades released - cannot be edited
+                      </span>
+                    )}
+                    {existingGradeData.submitted_by && existingGradeData.submitted_by !== user?.id && (
+                      <span className="text-red-600">
+                        🔒 These grades were created by another teacher
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -714,8 +793,8 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                                       marks
                                     );
                                   }}
-                                  disabled={isReadOnly || isViewOnly}
-                                  className="w-16 text-center"
+                                disabled={isReadOnly || isViewOnly || !canEditGrades()}
+                                className="w-16 text-center"
                                   placeholder="0-100"
                                 />
                                 <Badge
@@ -742,7 +821,7 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                                     score
                                   );
                                 }}
-                                disabled={isReadOnly || isViewOnly}
+                                disabled={isReadOnly || isViewOnly || !canEditGrades()}
                                 className="w-16 text-center"
                                 placeholder="0-100"
                               />
@@ -760,7 +839,7 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                                 )
                               }
                               placeholder="Remarks..."
-                              disabled={isReadOnly || isViewOnly}
+                              disabled={isReadOnly || isViewOnly || !canEditGrades()}
                               className="w-full text-xs min-h-[40px] resize-none"
                             />
                           </div>

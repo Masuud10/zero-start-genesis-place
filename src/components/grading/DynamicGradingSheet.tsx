@@ -93,6 +93,8 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
   const [dataLoaded, setDataLoaded] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [existingGradeStatus, setExistingGradeStatus] = useState<string>("");
+  const [existingGradeSubmittedBy, setExistingGradeSubmittedBy] = useState<string>("");
 
   // Determine if user is principal
   const isPrincipal =
@@ -101,6 +103,26 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
   // Determine if view-only mode should be enforced (e.g., for past terms/years)
   // For now, treat isReadOnly as the main flag, but you can add logic for past terms/years
   const isViewOnly = isReadOnly;
+
+  // Check if current user can edit grades based on status and ownership
+  const canEditGrades = () => {
+    // If no existing grades, teachers can create new ones
+    if (!existingGradeStatus && !existingGradeSubmittedBy) {
+      return user?.role === 'teacher' || isPrincipal;
+    }
+    
+    // For teachers: can only edit if they own the grade and it's in draft status
+    if (user?.role === 'teacher') {
+      return existingGradeStatus === 'draft' && existingGradeSubmittedBy === user.id;
+    }
+    
+    // Principals can edit any grade except released ones
+    if (isPrincipal) {
+      return existingGradeStatus !== 'released';
+    }
+    
+    return false;
+  };
 
   const loadGradingData = async () => {
     if (!schoolId || !classId || !term || !examType) {
@@ -247,8 +269,10 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
 
       console.log("📚 Subjects found:", subjectsList.length);
 
-      // Load existing grades if any
+      // Load existing grades if any and capture permission info
       const existingGrades: Record<string, Record<string, GradeValue>> = {};
+      let gradeStatus = "";
+      let gradeSubmittedBy = "";
 
       if (curriculumType === "cbc") {
         // Load CBC assessments
@@ -324,6 +348,9 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
               coursework_score: grade.coursework_score,
               exam_score: grade.exam_score,
             };
+            // Capture status and submitted_by for permission checking
+            if (!gradeStatus && grade.status) gradeStatus = grade.status;
+            if (!gradeSubmittedBy && grade.submitted_by) gradeSubmittedBy = grade.submitted_by;
           });
         }
       } else {
@@ -356,6 +383,9 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
               letter_grade: grade.letter_grade,
               teacher_remarks: grade.comments || "",
             };
+            // Capture status and submitted_by for permission checking
+            if (!gradeStatus && grade.status) gradeStatus = grade.status;
+            if (!gradeSubmittedBy && grade.submitted_by) gradeSubmittedBy = grade.submitted_by;
           });
         }
       }
@@ -364,6 +394,8 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
       setSubjects(subjectsList);
       setGrades(existingGrades);
       setDataLoaded(true);
+      setExistingGradeStatus(gradeStatus);
+      setExistingGradeSubmittedBy(gradeSubmittedBy);
       setLastSaved(
         existingGrades && Object.keys(existingGrades).length > 0
           ? new Date()
@@ -957,11 +989,11 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
                 {curriculumDisplayName}
               </Badge>
             </div>
-            {!isReadOnly && (
+            {!isReadOnly && canEditGrades() && (
               <div className="flex gap-2">
                 <Button
                   onClick={saveAsDraft}
-                  disabled={saving || !hasGradesToSubmit}
+                  disabled={saving || !hasGradesToSubmit || !canEditGrades()}
                   variant="outline"
                   className="flex items-center gap-2"
                 >
@@ -979,7 +1011,7 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
                 </Button>
                 <Button
                   onClick={handleSubmitGrades}
-                  disabled={submitting || !hasGradesToSubmit}
+                  disabled={submitting || !hasGradesToSubmit || !canEditGrades()}
                   className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
                 >
                   {submitting ? (
@@ -994,6 +1026,30 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
                     </>
                   )}
                 </Button>
+              </div>
+            )}
+            {!isReadOnly && !canEditGrades() && existingGradeStatus && (
+              <div className="text-sm text-muted-foreground">
+                {existingGradeStatus === 'submitted' && (
+                  <span className="text-amber-600">
+                    ⚠️ Grades already submitted - only principals can edit
+                  </span>
+                )}
+                {existingGradeStatus === 'approved' && (
+                  <span className="text-green-600">
+                    ✅ Grades approved - only principals can edit
+                  </span>
+                )}
+                {existingGradeStatus === 'released' && (
+                  <span className="text-purple-600">
+                    🔒 Grades released - cannot be edited
+                  </span>
+                )}
+                {existingGradeSubmittedBy && existingGradeSubmittedBy !== user?.id && (
+                  <span className="text-red-600">
+                    🔒 These grades were created by another teacher
+                  </span>
+                )}
               </div>
             )}
           </CardTitle>
@@ -1070,7 +1126,7 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
       {renderGradingSheet()}
 
       {/* Submit Section */}
-      {!isReadOnly && hasGradesToSubmit && (
+      {!isReadOnly && hasGradesToSubmit && canEditGrades() && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -1085,7 +1141,7 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
               <div className="flex gap-2">
                 <Button
                   onClick={saveAsDraft}
-                  disabled={saving}
+                  disabled={saving || !canEditGrades()}
                   variant="outline"
                   className="flex items-center gap-2"
                 >
@@ -1103,7 +1159,7 @@ export const DynamicGradingSheet: React.FC<DynamicGradingSheetProps> = ({
                 </Button>
                 <Button
                   onClick={handleSubmitGrades}
-                  disabled={submitting}
+                  disabled={submitting || !canEditGrades()}
                   className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
                 >
                   {submitting ? (
