@@ -157,7 +157,7 @@ export class AuthService {
   } {
     // Define which roles can access which login types
     const adminRoles = ['edufam_admin', 'elimisha_admin'];
-    const schoolRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'];
+    const schoolRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'hr'];
 
     if (accessType === 'admin') {
       // Only admin roles can access admin login
@@ -327,7 +327,7 @@ export class AuthService {
    * Check if user is a school user (non-admin)
    */
   static isSchoolUser(role: string): boolean {
-    return ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer'].includes(role);
+    return ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'hr'].includes(role);
   }
 
   /**
@@ -366,7 +366,8 @@ export class AuthService {
       'principal': 'Principal',
       'teacher': 'Teacher',
       'parent': 'Parent',
-      'finance_officer': 'Finance Officer'
+      'finance_officer': 'Finance Officer',
+      'hr': 'HR Manager'
     };
     
     return roleNames[role] || role;
