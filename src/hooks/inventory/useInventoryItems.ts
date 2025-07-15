@@ -1,147 +1,70 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface InventoryItem {
   id: number;
-  school_id: string;
   name: string;
+  sku?: string;
   description?: string;
   category_id?: number;
-  supplier_id?: number;
-  sku?: string;
-  reorder_level: number;
+  school_id: string;
   current_quantity: number;
+  reorder_level: number;
+  unit_cost?: number;
+  supplier_id?: number;
   created_at: string;
   updated_at: string;
-  // Relations
-  inventory_categories?: {
-    id: number;
-    name: string;
-  };
-  inventory_suppliers?: {
-    id: number;
-    name: string;
-  };
-}
-
-export interface CreateInventoryItemData {
-  name: string;
-  description?: string;
-  category_id?: number;
-  supplier_id?: number;
-  sku?: string;
-  reorder_level?: number;
-  current_quantity?: number;
-}
-
-export interface UpdateInventoryItemData {
-  name?: string;
-  description?: string;
-  category_id?: number;
-  supplier_id?: number;
-  sku?: string;
-  reorder_level?: number;
 }
 
 export const useInventoryItems = () => {
-  const { user } = useAuth();
-  
   return useQuery({
-    queryKey: ['inventory-items', user?.school_id],
-    queryFn: async (): Promise<InventoryItem[]> => {
-      if (!user?.school_id) {
-        throw new Error('User school not found');
-      }
-
+    queryKey: ['inventory-items'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('inventory_items')
-        .select(`
-          *,
-          inventory_categories:category_id (
-            id,
-            name
-          ),
-          inventory_suppliers:supplier_id (
-            id,
-            name
-          )
-        `)
-        .eq('school_id', user.school_id)
-        .order('name');
+        .select('*')
+        .order('name', { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return data as InventoryItem[];
     },
-    enabled: !!user?.school_id && user?.role === 'finance_officer',
   });
 };
 
-export const useInventoryItem = (id: number) => {
-  const { user } = useAuth();
-  
+export const useLowStockItems = () => {
   return useQuery({
-    queryKey: ['inventory-item', id],
-    queryFn: async (): Promise<InventoryItem> => {
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select(`
-          *,
-          inventory_categories:category_id (
-            id,
-            name
-          ),
-          inventory_suppliers:supplier_id (
-            id,
-            name
-          )
-        `)
-        .eq('id', id)
-        .single();
+    queryKey: ['low-stock-items'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('inventory-low-stock');
 
       if (error) throw error;
-      return data;
+      return data as InventoryItem[];
     },
-    enabled: !!id && !!user?.school_id && user?.role === 'finance_officer',
   });
 };
 
 export const useCreateInventoryItem = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (data: CreateInventoryItemData): Promise<InventoryItem> => {
-      if (!user?.school_id) {
-        throw new Error('User school not found');
-      }
-
-      const { data: item, error } = await supabase
+    mutationFn: async (itemData: Omit<InventoryItem, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data, error } = await supabase
         .from('inventory_items')
-        .insert({
-          ...data,
-          school_id: user.school_id,
-        })
+        .insert([itemData])
         .select()
         .single();
 
       if (error) throw error;
-      return item;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast({
-        title: 'Success',
-        description: 'Item created successfully',
-      });
+      queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+      toast.success('Item created successfully');
     },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create item');
     },
   });
 };
@@ -150,37 +73,24 @@ export const useUpdateInventoryItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: UpdateInventoryItemData;
-    }): Promise<InventoryItem> => {
-      const { data: item, error } = await supabase
+    mutationFn: async ({ id, ...updateData }: Partial<InventoryItem> & { id: number }) => {
+      const { data, error } = await supabase
         .from('inventory_items')
-        .update(data)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return item;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-item'] });
-      toast({
-        title: 'Success',
-        description: 'Item updated successfully',
-      });
+      queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+      toast.success('Item updated successfully');
     },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update item');
     },
   });
 };
@@ -189,7 +99,7 @@ export const useDeleteInventoryItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number): Promise<void> => {
+    mutationFn: async (id: number) => {
       const { error } = await supabase
         .from('inventory_items')
         .delete()
@@ -199,17 +109,11 @@ export const useDeleteInventoryItem = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast({
-        title: 'Success',
-        description: 'Item deleted successfully',
-      });
+      queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+      toast.success('Item deleted successfully');
     },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete item');
     },
   });
 };

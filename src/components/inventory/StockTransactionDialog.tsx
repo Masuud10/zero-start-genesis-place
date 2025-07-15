@@ -1,41 +1,12 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useCreateStockTransaction } from '@/hooks/inventory/useStockTransactions';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useInventoryItems } from '@/hooks/inventory/useInventoryItems';
-
-const transactionFormSchema = z.object({
-  item_id: z.number().min(1, 'Please select an item'),
-  quantity_change: z.number().min(1, 'Quantity must be greater than 0'),
-  notes: z.string().optional(),
-});
-
-type TransactionFormData = z.infer<typeof transactionFormSchema>;
+import { useCreateStockTransaction } from '@/hooks/inventory/useStockTransactions';
 
 interface StockTransactionDialogProps {
   open: boolean;
@@ -48,47 +19,43 @@ const StockTransactionDialog: React.FC<StockTransactionDialogProps> = ({
   onClose,
   transactionType,
 }) => {
+  const [itemId, setItemId] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [notes, setNotes] = useState('');
+  const [supplierId, setSupplierId] = useState('');
+
   const { data: items = [] } = useInventoryItems();
-  const createMutation = useCreateStockTransaction();
+  const createTransaction = useCreateStockTransaction();
 
-  const form = useForm<TransactionFormData>({
-    resolver: zodResolver(transactionFormSchema),
-    defaultValues: {
-      item_id: 0,
-      quantity_change: 0,
-      notes: '',
-    },
-  });
-
-  React.useEffect(() => {
-    if (open) {
-      form.reset({
-        item_id: 0,
-        quantity_change: 0,
-        notes: '',
-      });
-    }
-  }, [open, form]);
-
-  const onSubmit = (data: TransactionFormData) => {
-    if (!data.item_id || data.item_id === 0) {
-      form.setError('item_id', { message: 'Please select an item' });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!itemId || !quantity) {
       return;
     }
-    
-    const transactionData = {
-      item_id: data.item_id,
-      transaction_type: transactionType,
-      quantity_change: transactionType === 'stock_out' ? -data.quantity_change : data.quantity_change,
-      notes: data.notes,
-    };
 
-    createMutation.mutate(transactionData, {
-      onSuccess: () => {
-        onClose();
-        form.reset();
-      },
+    const quantityNum = parseInt(quantity);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
+      return;
+    }
+
+    await createTransaction.mutateAsync({
+      item_id: itemId,
+      transaction_type: transactionType,
+      quantity_change: transactionType === 'stock_out' ? -quantityNum : quantityNum,
+      notes: notes || undefined,
+      supplier_id: supplierId || undefined,
     });
+
+    handleClose();
+  };
+
+  const handleClose = () => {
+    setItemId('');
+    setQuantity('');
+    setNotes('');
+    setSupplierId('');
+    onClose();
   };
 
   const getTitle = () => {
@@ -104,112 +71,78 @@ const StockTransactionDialog: React.FC<StockTransactionDialogProps> = ({
     }
   };
 
-  const getQuantityLabel = () => {
-    switch (transactionType) {
-      case 'stock_in':
-        return 'Quantity to Add';
-      case 'stock_out':
-        return 'Quantity to Remove';
-      case 'adjustment':
-        return 'Adjustment Quantity';
-      default:
-        return 'Quantity';
-    }
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
         </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="item">Item</Label>
+            <Select value={itemId} onValueChange={setItemId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an item" />
+              </SelectTrigger>
+              <SelectContent>
+                {items.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name} {item.sku && `(${item.sku})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="item_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Select Item</FormLabel>
-                  <Select
-                    value={field.value?.toString()}
-                    onValueChange={(value) => field.onChange(Number(value))}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose an item" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {items.map((item) => (
-                        <SelectItem key={item.id} value={item.id.toString()}>
-                          <div className="flex flex-col">
-                            <span>{item.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              Current: {item.current_quantity} | SKU: {item.sku || 'N/A'}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+          <div className="space-y-2">
+            <Label htmlFor="quantity">Quantity</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Enter quantity"
+              required
             />
+          </div>
 
-            <FormField
-              control={form.control}
-              name="quantity_change"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{getQuantityLabel()}</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="1"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Add any notes about this transaction..."
-                      rows={3}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={createMutation.isPending} 
-                className="gradient-navy"
-              >
-                {createMutation.isPending ? 'Processing...' : getTitle()}
-              </Button>
+          {transactionType === 'stock_in' && (
+            <div className="space-y-2">
+              <Label htmlFor="supplier">Supplier (Optional)</Label>
+              <Input
+                id="supplier"
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+                placeholder="Enter supplier name"
+              />
             </div>
-          </form>
-        </Form>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Enter any additional notes"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={createTransaction.isPending}
+              className="gradient-navy"
+            >
+              {createTransaction.isPending ? 'Processing...' : 'Confirm'}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

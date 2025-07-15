@@ -2,9 +2,9 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, BarChart3, TrendingUp, Users, Building2 } from 'lucide-react';
-import InventoryDashboardTab from '@/components/inventory/InventoryDashboardTab';
-import InventoryItemsTab from '@/components/inventory/InventoryItemsTab';
-import StockMovementsTab from '@/components/inventory/StockMovementsTab';
+import { InventoryDashboardTab } from '@/components/inventory/InventoryDashboardTab';
+import { ItemsManagementTab } from '@/components/inventory/ItemsManagementTab';
+import { StockMovementsTab } from '@/components/inventory/StockMovementsTab';
 import SuppliersTab from '@/components/inventory/SuppliersTab';
 import CategoriesTab from '@/components/inventory/CategoriesTab';
 
@@ -50,7 +50,7 @@ const InventoryManagementPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="items">
-          <InventoryItemsTab />
+          <ItemsManagementTab />
         </TabsContent>
 
         <TabsContent value="movements">

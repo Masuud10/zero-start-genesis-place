@@ -169,4 +169,4 @@ const InventoryDashboardTab: React.FC = () => {
   );
 };
 
-export default InventoryDashboardTab;
+export { InventoryDashboardTab };

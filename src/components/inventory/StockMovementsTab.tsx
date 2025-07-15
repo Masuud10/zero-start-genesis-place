@@ -176,4 +176,4 @@ const StockMovementsTab: React.FC = () => {
   );
 };
 
-export default StockMovementsTab;
+export { StockMovementsTab };
