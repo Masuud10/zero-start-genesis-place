@@ -605,7 +605,14 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={onSaveDraft || handleSave}
+                  onClick={() => {
+                    console.log("Save Draft clicked", { onSaveDraft: !!onSaveDraft });
+                    if (onSaveDraft) {
+                      onSaveDraft();
+                    } else {
+                      handleSave();
+                    }
+                  }}
                   disabled={savingProp || saving}
                   className="bg-white hover:bg-blue-50"
                 >
@@ -618,7 +625,14 @@ export const CleanGradingSheet: React.FC<CleanGradingSheetProps> = ({
                 </Button>
                 <Button
                   size="sm"
-                  onClick={onSubmitForApproval || handleSubmit}
+                  onClick={() => {
+                    console.log("Submit for Approval clicked", { onSubmitForApproval: !!onSubmitForApproval });
+                    if (onSubmitForApproval) {
+                      onSubmitForApproval();
+                    } else {
+                      handleSubmit();
+                    }
+                  }}
                   disabled={submittingProp || submitting}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >

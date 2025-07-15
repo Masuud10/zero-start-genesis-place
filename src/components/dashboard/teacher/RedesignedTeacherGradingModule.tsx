@@ -488,6 +488,17 @@ const RedesignedTeacherGradingModule: React.FC = () => {
       return;
     }
 
+    // Auto-set academic year if not selected
+    const academicYearToUse = selectedAcademicYear || currentAcademicYear?.id;
+    if (!academicYearToUse) {
+      toast({
+        title: "Missing Academic Year",
+        description: "Please select an academic year before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setSaving(true);
       console.log("Saving grades as draft...");
@@ -501,7 +512,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
             subject_id: subjectId,
             term: selectedTerm,
             exam_type: selectedExamType,
-            academic_year: selectedAcademicYear,
+            academic_year: academicYearToUse,
             score: gradeData.score || gradeData.total_score,
             letter_grade: gradeData.letter_grade,
             cbc_performance_level: gradeData.cbc_performance_level,
@@ -574,6 +585,17 @@ const RedesignedTeacherGradingModule: React.FC = () => {
       return;
     }
 
+    // Auto-set academic year if not selected
+    const academicYearToUse = selectedAcademicYear || currentAcademicYear?.id;
+    if (!academicYearToUse) {
+      toast({
+        title: "Missing Academic Year",
+        description: "Please select an academic year before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setSubmitting(true);
       console.log("Submitting grades for approval...");
@@ -612,7 +634,7 @@ const RedesignedTeacherGradingModule: React.FC = () => {
               subject_id: subjectId,
               term: selectedTerm,
               exam_type: selectedExamType,
-              academic_year: selectedAcademicYear,
+              academic_year: academicYearToUse,
               score: gradeData.score || gradeData.total_score,
               letter_grade: gradeData.letter_grade,
               cbc_performance_level: gradeData.cbc_performance_level,
