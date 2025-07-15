@@ -110,10 +110,13 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       refetch();
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to mark notification as read",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to mark notification as read",
         variant: "destructive",
       });
     },
@@ -133,19 +136,34 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         description: "All notifications marked as read",
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
         description:
-          error.message || "Failed to mark all notifications as read",
+          error instanceof Error
+            ? error.message
+            : "Failed to mark all notifications as read",
         variant: "destructive",
       });
     },
   });
 
+  // Define a type for notification preferences
+  interface NotificationPreferences {
+    email_notifications: boolean;
+    push_notifications: boolean;
+    grade_submissions: boolean;
+    grade_approvals: boolean;
+    attendance_alerts: boolean;
+    exam_reminders: boolean;
+    report_generation: boolean;
+    system_alerts: boolean;
+    [key: string]: boolean;
+  }
+
   // Update preferences mutation
   const updatePreferencesMutation = useMutation({
-    mutationFn: async (newPreferences: any) => {
+    mutationFn: async (newPreferences: Partial<NotificationPreferences>) => {
       if (!user?.id) throw new Error("User not authenticated");
       return await NotificationService.updateNotificationPreferences(
         user.id,
@@ -160,10 +178,13 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       });
       setPreferencesModalOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update preferences",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to update preferences",
         variant: "destructive",
       });
     },
