@@ -128,76 +128,53 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             UuidValidator.validateAndThrow(finalSchoolId, "School ID");
           }
 
-          // **SURGICAL FIX**: Use Supabase auth admin API instead of database function
+          // **SURGICAL FIX**: Use database function approach with proper error handling
           try {
-            console.log("--- CREATING AUTH USER: FORENSIC LOG ---");
+            console.log("--- CREATING USER VIA DATABASE FUNCTION: FORENSIC LOG ---");
             
-            // Create the authentication user first
-            const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-              email: user.email,
-              password: user.password,
-              email_confirm: true, // Auto-confirm email
-              user_metadata: {
-                name: user.name,
-                role: user.role,
-                school_id: finalSchoolId,
-                created_by_admin: true
-              }
-            });
-
-            console.log("--- AUTH USER CREATION RESULT: FORENSIC LOG ---");
-            console.log("Auth data:", authData);
-            console.log("Auth error:", authError);
-
-            if (authError) {
-              console.error("--- AUTH ERROR: FORENSIC LOG ---");
-              console.error("Full Auth Error:", authError);
-              throw new Error(`Authentication error: ${authError.message}`);
-            }
-
-            if (!authData.user) {
-              throw new Error("Failed to create authentication user - no user returned");
-            }
-
-            // Now create/update the profile with the actual auth user ID
-            console.log("--- CREATING PROFILE: FORENSIC LOG ---");
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .upsert({
-                id: authData.user.id,
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                school_id: finalSchoolId || null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }, {
-                onConflict: 'id'
+            // Use the database function that handles both auth and profile creation
+            const { data: rpcData, error: rpcError } = await supabase
+              .rpc('create_admin_user', {
+                user_email: user.email,
+                user_password: user.password,
+                user_name: user.name,
+                user_role: user.role,
+                user_school_id: finalSchoolId || null
               });
 
-            console.log("--- PROFILE CREATION RESULT: FORENSIC LOG ---");
-            console.log("Profile data:", profileData);
-            console.log("Profile error:", profileError);
+            console.log("--- RPC RESULT: FORENSIC LOG ---");
+            console.log("RPC data:", rpcData);
+            console.log("RPC error:", rpcError);
 
-            if (profileError) {
-              console.error("--- PROFILE ERROR: FORENSIC LOG ---");
-              console.error("Full Profile Error:", profileError);
-              
-              // If profile creation fails, we should clean up the auth user
-              try {
-                await supabase.auth.admin.deleteUser(authData.user.id);
-              } catch (cleanupError) {
-                console.error("Failed to cleanup auth user after profile error:", cleanupError);
-              }
-              
-              throw new Error(`Profile creation error: ${profileError.message}`);
+            if (rpcError) {
+              console.error("--- RPC ERROR: FORENSIC LOG ---");
+              console.error("Full RPC Error:", rpcError);
+              throw new Error(`Database function error: ${rpcError.message}`);
+            }
+
+            if (!rpcData) {
+              throw new Error("No response from database function");
+            }
+
+            // Parse the response from the database function
+            const response = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData;
+            
+            console.log("--- PARSED RPC RESPONSE: FORENSIC LOG ---");
+            console.log("Parsed response:", response);
+
+            if (response.error) {
+              throw new Error(response.error);
+            }
+
+            if (!response.success) {
+              throw new Error(response.message || "Unknown error occurred");
             }
 
             return {
               success: true,
-              user_id: authData.user.id,
+              user_id: response.user_id,
               school_id: finalSchoolId,
-              message: 'User created successfully with proper school assignment'
+              message: response.message || 'User created successfully with proper school assignment'
             } as CreateUserRpcResponse;
 
           } catch (createError) {
