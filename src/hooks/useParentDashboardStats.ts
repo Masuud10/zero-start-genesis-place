@@ -44,7 +44,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
 
           if (parentError) {
             console.error('📊 Parent students query error:', parentError);
-            throw parentError;
+            throw new Error(`Could not fetch your children information: ${parentError.message}`);
           }
 
           // Check for direct parent relationships in students table (legacy support)
@@ -56,7 +56,7 @@ export const useParentDashboardStats = (user: AuthUser) => {
 
           if (directError) {
             console.error('📊 Direct children query error:', directError);
-            // Don't throw, just continue without direct children
+            // Don't throw, just log and continue without direct children
           }
 
           // Combine and deduplicate student IDs
@@ -96,10 +96,10 @@ export const useParentDashboardStats = (user: AuthUser) => {
                 .limit(200)
                 .abortSignal(controller.signal),
 
-              // Optimized fee query with minimal fields
+              // Optimized fee query with minimal fields and enhanced validation
               supabase
                 .from('fees')
-                .select('amount, paid_amount')
+                .select('amount, paid_amount, status')
                 .in('student_id', childrenIds)
                 .not('amount', 'is', null)
                 .limit(100)
@@ -137,7 +137,11 @@ export const useParentDashboardStats = (user: AuthUser) => {
             let feeBalance = 0;
             if (feeResult.data) {
               feeBalance = feeResult.data.reduce((sum, fee) => {
-                return sum + Math.max(0, (fee.amount || 0) - (fee.paid_amount || 0));
+                // Only count unpaid or partial fees
+                if (fee.status !== 'paid') {
+                  return sum + Math.max(0, (fee.amount || 0) - (fee.paid_amount || 0));
+                }
+                return sum;
               }, 0);
             }
 

@@ -30,16 +30,35 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({
     }
   };
 
-  // Validate user role and parent relationships
-  if (!user || user.role !== "parent") {
-    console.error("ParentDashboard: Invalid user role", user?.role);
+  // Enhanced role validation with security logging
+  if (!user) {
+    console.error("ParentDashboard: No user found");
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="bg-card p-8 rounded-lg border shadow-sm max-w-md w-full">
+          <div className="text-center text-red-600">
+            <p>Authentication Required</p>
+            <p className="text-sm mt-1">
+              Please log in to access the parent dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== "parent") {
+    console.error("ParentDashboard: Invalid user role", user.role, "for user", user.email);
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="bg-card p-8 rounded-lg border shadow-sm max-w-md w-full">
           <div className="text-center text-red-600">
             <p>Access Denied</p>
             <p className="text-sm mt-1">
-              This dashboard is only available for parents.
+              This dashboard is only available for parents. Your role: {user.role}
+            </p>
+            <p className="text-sm mt-2">
+              Please contact your school administrator if this is incorrect.
             </p>
           </div>
         </div>

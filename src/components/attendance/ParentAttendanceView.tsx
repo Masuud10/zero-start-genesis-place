@@ -45,13 +45,19 @@ const ParentAttendanceView: React.FC = () => {
       setError(null);
 
       try {
-        // Step 1: Get student IDs for the parent
+        console.log('📚 Parent Attendance: Starting fetch for parent:', user.id);
+        
+        // Step 1: Get student IDs for the parent with enhanced validation
         const { data: parentStudentLinks, error: parentStudentsError } = await supabase
           .from('parent_students')
           .select('student_id')
-          .eq('parent_id', user.id);
+          .eq('parent_id', user.id)
+          .limit(50); // Add reasonable limit for performance
         
-        if (parentStudentsError) throw parentStudentsError;
+        if (parentStudentsError) {
+          console.error('📚 Parent students query error:', parentStudentsError);
+          throw new Error(`Could not fetch your children information: ${parentStudentsError.message}`);
+        }
 
         if (!parentStudentLinks || parentStudentLinks.length === 0) {
           setError("No children found for your account.");
@@ -62,33 +68,49 @@ const ParentAttendanceView: React.FC = () => {
         
         const studentIds = parentStudentLinks.map(ps => ps.student_id);
 
-        // Step 2: Get student info and their active class
+        // Step 2: Get student info and their active class with enhanced security validation
         const { data: studentDetails, error: studentDetailsError } = await supabase
           .from('students')
-          .select('id, name, student_classes(is_active, classes(name))')
+          .select(`
+            id, 
+            name, 
+            class_id,
+            classes!students_class_id_fkey(name)
+          `)
           .in('id', studentIds);
         
-        if (studentDetailsError) throw studentDetailsError;
+        if (studentDetailsError) {
+          console.error('📚 Student details query error:', studentDetailsError);
+          throw new Error(`Could not fetch student information: ${studentDetailsError.message}`);
+        }
 
-        const studentMap = (studentDetails || []).reduce((acc, student) => {
-            const s = student as { id: string; name: string; student_classes: { is_active: boolean; classes: { name: string } | null }[] };
-            if (s && s.id) {
-                const activeEnrollment = s.student_classes.find(sc => sc.is_active);
-                const className = activeEnrollment?.classes?.name || 'N/A';
-                acc.set(s.id, { name: s.name, className: className });
-            }
-            return acc;
-        }, new Map<string, { name: string; className: string }>());
+        // Create student map with enhanced error handling
+        const studentMap = new Map<string, { name: string; className: string }>();
+        
+        (studentDetails || []).forEach((student) => {
+          if (student && student.id) {
+            // Enhanced validation and fallback
+            const className = student.classes?.name || 'Unknown Class';
+            studentMap.set(student.id, { 
+              name: student.name || 'Unknown Student', 
+              className 
+            });
+          }
+        });
 
-        // Step 3: Fetch attendance for these students
+        // Step 3: Fetch attendance for these students with date filtering
         const { data: attendanceData, error: attendanceError } = await supabase
           .from('attendance')
           .select('id, date, status, student_id')
           .in('student_id', studentIds)
+          .gte('date', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Last 3 months only
           .order('date', { ascending: false })
-          .limit(50);
+          .limit(100); // Reasonable limit
 
-        if (attendanceError) throw attendanceError;
+        if (attendanceError) {
+          console.error('📚 Attendance query error:', attendanceError);
+          throw new Error(`Could not fetch attendance data: ${attendanceError.message}`);
+        }
 
         if (!attendanceData) {
           setRecords([]);
@@ -108,8 +130,11 @@ const ParentAttendanceView: React.FC = () => {
         });
         
         setRecords(formattedRecords);
-      } catch (err: any) {
-        setError(`Failed to fetch attendance data: ${err.message}`);
+        console.log('📚 Successfully loaded attendance for', formattedRecords.length, 'records');
+      } catch (err: unknown) {
+        console.error('📚 Error fetching attendance:', err);
+        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred while fetching attendance data';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }

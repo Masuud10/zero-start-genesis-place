@@ -111,20 +111,21 @@ const ParentFeeOverview: React.FC = () => {
               return acc;
             }, {} as Record<string, string>) || {};
 
-          // Get fees for these students
+          // Get fees for these students - using the correct fees table
           const { data: fees, error: feesError } = await supabase
-            .from("student_fees")
+            .from("fees")
             .select(
               `
-              *,
-              fee:fee_id(
-                id,
-                category,
-                amount,
-                term,
-                academic_year,
-                due_date
-              )
+              id,
+              student_id,
+              amount,
+              paid_amount,
+              due_date,
+              status,
+              category,
+              term,
+              academic_year,
+              created_at
             `
             )
             .in("student_id", studentIds)
@@ -147,10 +148,25 @@ const ParentFeeOverview: React.FC = () => {
                 (s) => s.id === fee.student_id
               );
               return {
-                ...fee,
+                id: fee.id,
+                student_id: fee.student_id,
+                amount: fee.amount || 0,
+                amount_paid: fee.paid_amount || 0,
+                due_date: fee.due_date,
+                status: fee.status || 'unpaid',
+                fee: {
+                  id: fee.id,
+                  category: fee.category || 'General',
+                  amount: fee.amount || 0,
+                  term: fee.term || 'Unknown',
+                  academic_year: fee.academic_year || 'Unknown',
+                  due_date: fee.due_date
+                },
                 student: student
                   ? {
-                      ...student,
+                      id: student.id,
+                      name: student.name || 'Unknown Student',
+                      admission_number: student.admission_number || 'N/A',
                       class_name: student.class_id
                         ? classMap[student.class_id] || "Unknown Class"
                         : "No Class",

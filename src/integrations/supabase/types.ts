@@ -7867,6 +7867,10 @@ export type Database = {
         Args: { grade_student_id: string }
         Returns: boolean
       }
+      is_parent_authorized_for_student: {
+        Args: { p_student_id: string }
+        Returns: boolean
+      }
       is_system_in_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: boolean
