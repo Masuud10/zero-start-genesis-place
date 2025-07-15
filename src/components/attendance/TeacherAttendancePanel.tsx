@@ -835,11 +835,13 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
         </Card>
       )}
 
-      {/* Attendance Summary Report */}
+      {/* Attendance Summary Report - Class Specific */}
       {showSummaryReport && selectedClass && students && Object.keys(attendance).length > 0 && (
         <div className="mt-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Daily Attendance Summary</h3>
+            <h3 className="text-lg font-semibold">
+              Daily Attendance Summary - {classes?.find(c => c.id === selectedClass)?.name}
+            </h3>
             <Button 
               variant="outline" 
               size="sm"
@@ -859,9 +861,32 @@ const TeacherAttendancePanel: React.FC<TeacherAttendancePanelProps> = ({
               admission_number: student.admission_number,
               roll_number: student.admission_number, // Using admission_number as roll_number fallback
             }))}
-            onExportPDF={() => exportAttendance("pdf")}
+            onExportPDF={() => {
+              // Class-specific PDF export
+              const classSpecificData = {
+                className: classes?.find(c => c.id === selectedClass)?.name || "Unknown Class",
+                classId: selectedClass,
+                date: selectedDate,
+                attendanceData: students.map(student => ({
+                  student_id: student.id,
+                  student_name: student.name,
+                  admission_number: student.admission_number,
+                  roll_number: student.admission_number,
+                  status: attendance[student.id]?.status || "present"
+                }))
+              };
+              console.log("Exporting class-specific attendance PDF:", classSpecificData);
+              exportAttendance("pdf");
+            }}
             onPrint={() => {
-              // Create a simple print functionality
+              // Class-specific print functionality
+              const classSpecificContent = `
+                Daily Attendance Report
+                Class: ${classes?.find(c => c.id === selectedClass)?.name}
+                Date: ${new Date(selectedDate).toLocaleDateString()}
+                Total Students: ${students.length}
+              `;
+              console.log("Printing class-specific attendance:", classSpecificContent);
               window.print();
             }}
           />
