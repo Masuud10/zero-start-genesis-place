@@ -26,9 +26,44 @@ interface UpdateUserStatusResponse {
 export const AdminUserService = {
   createUser: async (params: CreateUserParams) => {
     try {
-      // Log the incoming params
-      console.log('AdminUserService.createUser called with:', params);
-      // Call the 'create_admin_user' RPC function. The return data is not strongly typed by default.
+      // Validate input parameters
+      if (!params.email || !params.password || !params.name || !params.role) {
+        return { error: 'Missing required fields: email, password, name, and role are required' };
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(params.email)) {
+        return { error: 'Invalid email format' };
+      }
+
+      // Validate password strength
+      if (params.password.length < 8) {
+        return { error: 'Password must be at least 8 characters long' };
+      }
+
+      // Validate role
+      const validRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
+      if (!validRoles.includes(params.role)) {
+        return { error: `Invalid role. Must be one of: ${validRoles.join(', ')}` };
+      }
+
+      // Validate school_id format if provided
+      if (params.school_id) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(params.school_id)) {
+          return { error: 'Invalid school ID format' };
+        }
+      }
+
+      console.log('AdminUserService.createUser called with validated params:', {
+        email: params.email,
+        name: params.name,
+        role: params.role,
+        school_id: params.school_id
+      });
+
+      // Call the 'create_admin_user' RPC function
       const { data, error } = await supabase.rpc('create_admin_user', {
         user_email: params.email,
         user_password: params.password,
@@ -39,10 +74,13 @@ export const AdminUserService = {
 
       if (error) {
         console.error('Error calling create_admin_user RPC:', error);
-        return { error: error.message, details: error };
+        return { 
+          error: error.message || 'Database error occurred while creating user',
+          details: error 
+        };
       }
 
-      // The RPC returns a JSONB object, which we cast to our interface for type safety.
+      // The RPC returns a JSONB object, which we cast to our interface for type safety
       const rpcData = data as CreateUserRpcResponse;
 
       if (rpcData && rpcData.error) {
@@ -51,20 +89,24 @@ export const AdminUserService = {
       }
       
       if (rpcData && rpcData.success && rpcData.user_id) {
+        console.log('User created successfully:', rpcData.user_id);
         return {
           success: true,
-          // The RPC returns the user ID. We can form a partial user object for the client.
-          data: { id: rpcData.user_id, email: params.email }, 
+          data: { id: rpcData.user_id, email: params.email },
           user_id: rpcData.user_id,
           error: null,
         };
       }
 
-      return { error: 'Unknown response from user creation function.' };
+      return { error: 'Unexpected response format from user creation function' };
 
     } catch (error) {
       console.error('Unexpected error in createUser:', error);
-      return { error: error instanceof Error ? error.message : 'Unknown error occurred', details: error };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return { 
+        error: `Failed to create user: ${errorMessage}`,
+        details: error 
+      };
     }
   },
 

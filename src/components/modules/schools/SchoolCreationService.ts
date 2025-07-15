@@ -154,7 +154,7 @@ export class SchoolCreationService {
 
       if (error) {
         console.error('🏫 SchoolCreationService: Error from create_comprehensive_school:', error);
-        return { success: false, error: error.message, details: error };
+        return { success: false, error: error.message };
       }
 
       console.log('🏫 SchoolCreationService: RPC Response:', data);
@@ -184,7 +184,7 @@ export class SchoolCreationService {
 
     } catch (error: any) {
       console.error('🏫 SchoolCreationService: Service error:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to create school', details: error };
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to create school' };
     }
   }
 }

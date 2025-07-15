@@ -11,13 +11,13 @@ export function useAdminUsersData(refreshKey = 0) {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['admin-users', refreshKey],
+    queryKey: ['admin-users', refreshKey, user?.id, user?.role],
     queryFn: async () => {
       console.log('👥 Fetching admin users data...');
       const startTime = Date.now();
       
-      // Guard: Check if user is authenticated and has admin role
-      if (!user) {
+      // Enhanced guard: Check if user is authenticated and has admin role
+      if (!user?.id) {
         throw new Error('User authentication required');
       }
       
@@ -34,35 +34,56 @@ export function useAdminUsersData(refreshKey = 0) {
           // Validate query parameters
           QueryOptimizer.validateQueryParams({ user_id: user.id, role: user.role });
           
-          // Explicit join: assumes you want the schools!fk_profiles_school relationship
+          // Optimized query with proper error handling and data validation
           const { data, error } = await supabase
             .from('profiles')
             .select(`
-              id, name, email, role, created_at, school_id,
+              id, name, email, role, created_at, updated_at, status, school_id,
               school:schools!fk_profiles_school(
-                id, name
+                id, name, status
               )
             `)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(1000); // Prevent excessive data loading
 
           if (error) {
             console.error('❌ Error fetching users:', error);
-            throw new Error(`Failed to fetch users: ${error.message}`);
+            
+            // Provide more specific error messages
+            if (error.code === 'PGRST116') {
+              throw new Error('Access denied: Insufficient permissions to view user data');
+            } else if (error.code === 'PGRST301') {
+              throw new Error('Database connection error. Please try again later.');
+            } else {
+              throw new Error(`Failed to fetch users: ${error.message}`);
+            }
           }
 
           console.log('✅ Users data fetched successfully:', data?.length || 0, 'users');
           
-          // Ensure we always return an array and validate data
+          // Enhanced data validation and sanitization
           const users = Array.isArray(data) ? data : [];
-          const validatedUsers = users.filter(user => {
-            if (!user || !user.id) {
-              console.warn('👥 useAdminUsersData: Filtering out invalid user:', user);
+          const validatedUsers = users.filter(userRecord => {
+            // Basic validation
+            if (!userRecord?.id || !userRecord.email) {
+              console.warn('👥 useAdminUsersData: Filtering out invalid user:', userRecord);
               return false;
             }
+            
+            // Role validation
+            const validRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
+            if (!validRoles.includes(userRecord.role)) {
+              console.warn('👥 useAdminUsersData: Filtering out user with invalid role:', userRecord.role);
+              return false;
+            }
+            
             return true;
           });
           
-          return validatedUsers;
+          // Sort by most recent first for better UX
+          return validatedUsers.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         }, { 
           context: 'Admin Users Data Fetch',
           timeoutMs: 15000, // 15 second timeout for large datasets
