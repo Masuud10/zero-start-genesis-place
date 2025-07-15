@@ -100,7 +100,7 @@ const ItemFormDialog: React.FC<ItemFormDialogProps> = ({
       // For updates, exclude current_quantity from the payload
       const { current_quantity, ...updateData } = data;
       updateMutation.mutate(
-        { id: item.id, data: updateData },
+        { id: item.id, ...updateData },
         {
           onSuccess: () => {
             onClose();
@@ -122,6 +122,7 @@ const ItemFormDialog: React.FC<ItemFormDialogProps> = ({
         sku: data.sku,
         reorder_level: data.reorder_level,
         current_quantity: data.current_quantity || 0,
+        school_id: '', // This will be set by the backend trigger
       };
       createMutation.mutate(formData, {
         onSuccess: () => {

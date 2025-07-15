@@ -22,7 +22,7 @@ const ItemDetailsDialog: React.FC<ItemDetailsDialogProps> = ({
   onClose,
   item,
 }) => {
-  const { data: transactions = [], isLoading } = useStockTransactions(item?.id);
+  const { data: transactions = [], isLoading } = useStockTransactions();
 
   if (!item) return null;
 
@@ -53,13 +53,13 @@ const ItemDetailsDialog: React.FC<ItemDetailsDialogProps> = ({
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Category</p>
                 <p className="text-foreground">
-                  {item.inventory_categories?.name || 'Uncategorized'}
+                  Category {item.category_id || 'None'}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Supplier</p>
                 <p className="text-foreground">
-                  {item.inventory_suppliers?.name || 'No supplier'}
+                  Supplier {item.supplier_id || 'None'}
                 </p>
               </div>
               <div>

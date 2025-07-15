@@ -22,8 +22,7 @@ const InventoryItemsTab: React.FC = () => {
 
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.inventory_categories?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    item.sku?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleEdit = (item: InventoryItem) => {
@@ -63,11 +62,11 @@ const InventoryItemsTab: React.FC = () => {
       ),
     },
     {
-      accessorKey: 'inventory_categories' as keyof InventoryItem,
+      accessorKey: 'category_id' as keyof InventoryItem,
       header: 'Category',
       cell: ({ row }: { row: { original: InventoryItem } }) => (
         <span className="text-sm">
-          {row.original.inventory_categories?.name || 'Uncategorized'}
+          Category {row.original.category_id || 'None'}
         </span>
       ),
     },
@@ -92,11 +91,11 @@ const InventoryItemsTab: React.FC = () => {
       ),
     },
     {
-      accessorKey: 'inventory_suppliers' as keyof InventoryItem,
+      accessorKey: 'supplier_id' as keyof InventoryItem,
       header: 'Supplier',
       cell: ({ row }: { row: { original: InventoryItem } }) => (
         <span className="text-sm">
-          {row.original.inventory_suppliers?.name || 'No supplier'}
+          Supplier {row.original.supplier_id || 'None'}
         </span>
       ),
     },

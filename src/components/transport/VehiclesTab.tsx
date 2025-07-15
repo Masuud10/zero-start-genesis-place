@@ -3,47 +3,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useTransportVehicles } from '@/hooks/transport/useTransportVehicles';
+import { useTransportVehicles, type TransportVehicle } from '@/hooks/transport/useTransportData';
 
 export const VehiclesTab: React.FC = () => {
-  const { vehicles, loading } = useTransportVehicles();
+  const { data: vehicles = [], isLoading: loading } = useTransportVehicles();
 
   const columns = [
     {
-      accessorKey: 'vehicle_number',
-      header: 'Vehicle Number',
+      accessorKey: 'vehicle_name' as keyof TransportVehicle,
+      header: 'Vehicle Name',
     },
     {
-      accessorKey: 'vehicle_type',
-      header: 'Type',
+      accessorKey: 'registration_number' as keyof TransportVehicle,
+      header: 'Registration',
     },
     {
-      accessorKey: 'capacity',
+      accessorKey: 'capacity' as keyof TransportVehicle,
       header: 'Capacity',
-      cell: ({ row }: any) => `${row.original.capacity} seats`,
+      cell: ({ row }: any) => `${row.original.capacity} passengers`,
     },
     {
-      accessorKey: 'route_name',
-      header: 'Assigned Route',
+      accessorKey: 'assigned_route_id' as keyof TransportVehicle,
+      header: 'Route Assignment',
       cell: ({ row }: any) => (
-        row.original.route_name ? (
-          <Badge variant="default">{row.original.route_name}</Badge>
+        row.original.assigned_route_id ? (
+          <Badge variant="default">Route {row.original.assigned_route_id}</Badge>
         ) : (
           <Badge variant="secondary">Not Assigned</Badge>
         )
-      ),
-    },
-    {
-      accessorKey: 'driver_name',
-      header: 'Driver',
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }: any) => (
-        <Badge variant={row.original.status === 'active' ? 'default' : 'secondary'}>
-          {row.original.status}
-        </Badge>
       ),
     },
     {
