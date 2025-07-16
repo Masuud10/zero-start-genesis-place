@@ -33,6 +33,9 @@ verify_jwt = false
 [functions.mpesa-confirmation]
 verify_jwt = false
 
+[functions.send-password-reset]
+verify_jwt = false
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"

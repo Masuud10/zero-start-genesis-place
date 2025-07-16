@@ -149,6 +149,17 @@ function UniversalLoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
+  // Load remembered email on component mount
+  useEffect(() => {
+    const rememberedEmail = AuthService.getRememberedEmail();
+    const isRememberEnabled = AuthService.isRememberMeEnabled();
+    
+    if (rememberedEmail && isRememberEnabled) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
   // Redirect to dashboard after successful authentication
   useEffect(() => {
     if (user && !isLoading) {
@@ -180,6 +191,13 @@ function UniversalLoginForm() {
       if (!result.success) {
         setError(result.error || "Login failed. Please try again.");
         return;
+      }
+
+      // Handle remember me functionality
+      if (rememberMe) {
+        AuthService.saveRememberedEmail(email.trim());
+      } else {
+        AuthService.clearRememberedEmail();
       }
 
       // Call the auth context signIn method with the validated user
@@ -252,22 +270,26 @@ function UniversalLoginForm() {
           />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <Checkbox
               id="remember-me"
               checked={rememberMe}
               onCheckedChange={(v) => setRememberMe(!!v)}
-              className="rounded"
+              className="rounded data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
             />
-            <label htmlFor="remember-me" className="text-sm text-gray-600">
+            <label 
+              htmlFor="remember-me" 
+              className="text-sm text-gray-600 cursor-pointer select-none"
+            >
               Remember me
             </label>
           </div>
           <button
             type="button"
             onClick={() => setShowForgotPassword(true)}
-            className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+            className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium text-left sm:text-right"
+            disabled={isSubmitting}
           >
             Forgot password?
           </button>
@@ -299,12 +321,12 @@ function UniversalLoginForm() {
 
 const UniversalLoginPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-2 sm:p-4">
       <Card className="w-full max-w-6xl shadow-2xl rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
-          {/* Left Column - Branding/Image */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px] lg:min-h-[600px]">
+          {/* Left Column - Branding/Image - Hidden on mobile, visible on lg+ */}
           <div
-            className="relative bg-cover bg-center bg-no-repeat flex flex-col justify-between p-8 text-white"
+            className="hidden lg:flex relative bg-cover bg-center bg-no-repeat flex-col justify-between p-6 xl:p-8 text-white"
             style={{
               backgroundImage: `linear-gradient(rgba(0, 71, 171, 0.7), rgba(0, 58, 140, 0.7)), url(${loginBackground})`,
             }}
@@ -314,16 +336,16 @@ const UniversalLoginPage: React.FC = () => {
               <img
                 src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png"
                 alt="Edufam Logo"
-                className="h-12 w-auto"
+                className="h-10 xl:h-12 w-auto"
               />
             </div>
 
             {/* Content at bottom */}
             <div>
-              <h2 className="text-3xl font-bold mb-4">
+              <h2 className="text-2xl xl:text-3xl font-bold mb-4">
                 Empowering Education in Kenya
               </h2>
-              <p className="text-lg opacity-90">
+              <p className="text-base xl:text-lg opacity-90">
                 Modern school management system designed for the future of
                 education.
               </p>
@@ -331,17 +353,28 @@ const UniversalLoginPage: React.FC = () => {
           </div>
 
           {/* Right Column - Form */}
-          <div className="bg-white p-8 lg:p-12 flex flex-col justify-center">
+          <div className="bg-white p-6 sm:p-8 lg:p-12 flex flex-col justify-center min-h-[500px]">
+            {/* Mobile Logo - Only visible on small screens */}
+            <div className="lg:hidden flex justify-center mb-6">
+              <img
+                src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png"
+                alt="Edufam Logo"
+                className="h-10 w-auto"
+              />
+            </div>
+
             {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <div className="mb-6 lg:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center lg:text-left">
                 Welcome to Edufam
               </h1>
-              <p className="text-gray-600 text-lg">Sign in to your dashboard</p>
+              <p className="text-gray-600 text-base sm:text-lg text-center lg:text-left">
+                Sign in to your dashboard
+              </p>
             </div>
 
             {/* Login Form */}
-            <div className="mb-8">
+            <div className="mb-6 lg:mb-8">
               <UniversalLoginForm />
             </div>
 

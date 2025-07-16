@@ -484,7 +484,7 @@ export class AuthService {
       // First, check if the user exists and get their profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, status')
+        .select('role, status, name')
         .eq('email', email)
         .single();
 
@@ -502,8 +502,8 @@ export class AuthService {
         };
       }
 
-      // Send password reset email
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Generate password reset token
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
@@ -515,7 +515,28 @@ export class AuthService {
         };
       }
 
-      console.log('🔐 AuthService: Universal password reset email sent successfully');
+      // Send custom email using our edge function
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-password-reset', {
+          body: {
+            email: email,
+            resetUrl: `${window.location.origin}/reset-password`,
+            userRole: profile.role,
+            userName: profile.name
+          }
+        });
+
+        if (emailError) {
+          console.error('🔐 AuthService: Custom email send error:', emailError);
+          // Fall back to default Supabase email - reset was already sent above
+        } else {
+          console.log('🔐 AuthService: Custom password reset email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('🔐 AuthService: Custom email function error:', emailError);
+        // Continue with success since the reset token was generated
+      }
+
       return { success: true };
 
     } catch (error) {
@@ -524,6 +545,48 @@ export class AuthService {
         success: false,
         error: 'Failed to send password reset email. Please try again.'
       };
+    }
+  }
+
+  /**
+   * Remember Me functionality
+   */
+  static saveRememberedEmail(email: string): void {
+    try {
+      localStorage.setItem('edufam_remembered_email', email);
+      localStorage.setItem('edufam_remember_me', 'true');
+    } catch (error) {
+      console.warn('🔐 AuthService: Failed to save remembered email:', error);
+    }
+  }
+
+  static getRememberedEmail(): string | null {
+    try {
+      const shouldRemember = localStorage.getItem('edufam_remember_me');
+      if (shouldRemember === 'true') {
+        return localStorage.getItem('edufam_remembered_email');
+      }
+      return null;
+    } catch (error) {
+      console.warn('🔐 AuthService: Failed to get remembered email:', error);
+      return null;
+    }
+  }
+
+  static clearRememberedEmail(): void {
+    try {
+      localStorage.removeItem('edufam_remembered_email');
+      localStorage.removeItem('edufam_remember_me');
+    } catch (error) {
+      console.warn('🔐 AuthService: Failed to clear remembered email:', error);
+    }
+  }
+
+  static isRememberMeEnabled(): boolean {
+    try {
+      return localStorage.getItem('edufam_remember_me') === 'true';
+    } catch (error) {
+      return false;
     }
   }
 } 
