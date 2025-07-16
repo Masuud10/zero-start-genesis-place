@@ -145,9 +145,9 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
         </div>
       );
 
-    case "school_owner":
+    case "school_director":
       console.log(
-        "📊 DashboardRoleBasedContent: Rendering SchoolOwnerDashboard for school_owner"
+        "📊 DashboardRoleBasedContent: Rendering SchoolOwnerDashboard for school_director"
       );
       return (
         <div>

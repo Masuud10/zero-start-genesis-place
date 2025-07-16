@@ -50,7 +50,7 @@ const CertificatesList = () => {
       if (user?.role === "principal") {
         // Principals can see certificates for their school only
         query = query.eq("school_id", schoolId);
-      } else if (user?.role === "school_owner") {
+      } else if (user?.role === "school_director") {
         // School directors can view certificates for their school only
         query = query.eq("school_id", schoolId);
       } else if (user?.role === "edufam_admin") {
@@ -135,7 +135,7 @@ const CertificatesList = () => {
 
   // Access control check - only allowed roles can view certificates
   if (
-    !["principal", "school_owner", "edufam_admin"].includes(user?.role || "")
+    !["principal", "school_director", "edufam_admin"].includes(user?.role || "")
   ) {
     return (
       <div className="p-6">

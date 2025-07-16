@@ -156,7 +156,7 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
     switch (role) {
       case "edufam_admin":
         return "EduFam Admin";
-      case "school_owner":
+      case "school_director":
         return "School Director";
       case "principal":
         return "Principal";
@@ -175,7 +175,7 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
     switch (role) {
       case "edufam_admin":
         return "bg-blue-100 text-blue-800 border-blue-200";
-      case "school_owner":
+      case "school_director":
         return "bg-green-100 text-green-800 border-green-200";
       case "principal":
         return "bg-orange-100 text-orange-800 border-orange-200";

@@ -50,7 +50,7 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
   const { user } = useAuth();
 
   // Role-based access control
-  const allowedRoles = ["principal", "school_owner", "edufam_admin"];
+  const allowedRoles = ["principal", "school_director", "edufam_admin"];
   const hasAccess = user?.role && allowedRoles.includes(user.role);
 
   // Get classes

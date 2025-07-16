@@ -13,7 +13,7 @@ interface UserLoginChartProps {
     principal: number;
     parent: number;
     finance_officer: number;
-    school_owner: number;
+    school_director: number;
   }>;
 }
 
@@ -42,7 +42,7 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
     if (!data || !Array.isArray(data) || data.length === 0) {
       console.warn('⚠️ UserLoginChart: No data provided, using fallback');
       return [
-        { date: 'No Data', admin: 0, teacher: 0, principal: 0, parent: 0, finance_officer: 0, school_owner: 0 }
+        { date: 'No Data', admin: 0, teacher: 0, principal: 0, parent: 0, finance_officer: 0, school_director: 0 }
       ];
     }
     
@@ -54,7 +54,7 @@ const UserLoginChart = ({ data }: UserLoginChartProps) => {
       principal: Number(item.principal) || 0,
       parent: Number(item.parent) || 0,
       finance_officer: Number(item.finance_officer) || 0,
-      school_owner: Number(item.school_owner) || 0,
+      school_director: Number(item.school_director) || 0,
     }));
     
     console.log('📊 UserLoginChart: Processed data:', processedData);

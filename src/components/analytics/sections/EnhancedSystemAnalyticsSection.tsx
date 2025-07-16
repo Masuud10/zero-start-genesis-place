@@ -58,7 +58,7 @@ const EnhancedSystemAnalyticsSection = ({
                 principal: 0,
                 parent: 0,
                 finance_officer: 0,
-                school_owner: 0,
+                school_director: 0,
                 // Optionally, you can try to infer from item.users or item.logins if you want to distribute
               }))}
             />
