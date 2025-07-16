@@ -27,7 +27,7 @@ const DashboardGreeting = ({ user, currentSchool }: DashboardGreetingProps) => {
       case "elimisha_admin":
       case "edufam_admin":
         return "Monitor and manage your entire educational ecosystem";
-      case "school_owner":
+      case "school_director":
         return "Monitor your school's financial and operational performance.";
       case "principal":
         return "Oversee daily operations and academic excellence at your school.";

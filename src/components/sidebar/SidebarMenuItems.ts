@@ -46,7 +46,7 @@ export interface MenuItem {
 
 export const getMenuItems = (userRole?: string): MenuItem[] => {
   const baseItems: MenuItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
   ];
 
   // System admin specific items - ensure Project Hub is prominently placed
@@ -70,20 +70,20 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     ];
   }
 
-  // School Owner - school-wide access, excluding grades and attendance
-  if (userRole === 'school_owner') {
+  // School Director - school-wide access, excluding grades and attendance
+  if (userRole === 'school_director') {
     return [
       ...baseItems,
-      { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['school_owner'] },
-      { id: 'users', label: 'Staff Management', icon: UserCheck, roles: ['school_owner'] },
-      { id: 'students', label: 'Student Management', icon: Users, roles: ['school_owner'] },
-      { id: 'finance', label: 'Financial Overview', icon: DollarSign, roles: ['school_owner'] },
-      { id: 'certificates', label: 'View Certificates', icon: Award, roles: ['school_owner'] },
-      { id: 'timetable', label: 'School Timetables', icon: Calendar, roles: ['school_owner'] },
-      { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['school_owner'] },
-      { id: 'reports', label: 'School Reports', icon: FileText, roles: ['school_owner'] },
-      { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['school_owner'] },
-      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_owner'] },
+      { id: 'analytics', label: 'School Analytics', icon: BarChart3, roles: ['school_director'] },
+      { id: 'users', label: 'Staff Management', icon: UserCheck, roles: ['school_director'] },
+      { id: 'students', label: 'Student Management', icon: Users, roles: ['school_director'] },
+      { id: 'finance', label: 'Financial Overview', icon: DollarSign, roles: ['school_director'] },
+      { id: 'certificates', label: 'View Certificates', icon: Award, roles: ['school_director'] },
+      { id: 'timetable', label: 'School Timetables', icon: Calendar, roles: ['school_director'] },
+      { id: 'announcements', label: 'School Announcements', icon: Megaphone, roles: ['school_director'] },
+      { id: 'reports', label: 'School Reports', icon: FileText, roles: ['school_director'] },
+      { id: 'support', label: 'Support Tickets', icon: Headphones, roles: ['school_director'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['school_director'] },
     ];
   }
 

@@ -71,7 +71,7 @@ export function useAdminUsersData(refreshKey = 0) {
             }
             
             // Role validation
-            const validRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
+            const validRoles = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
             if (!validRoles.includes(userRecord.role)) {
               console.warn('👥 useAdminUsersData: Filtering out user with invalid role:', userRecord.role);
               return false;

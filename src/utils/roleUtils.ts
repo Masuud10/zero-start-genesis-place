@@ -83,7 +83,7 @@ const isValidRole = (role: string): boolean => {
   }
 
   const normalizedRole = normalizeRole(role);
-  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin', 'hr'];
+  const validRoles: UserRole[] = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin', 'hr'];
   const isValid = validRoles.includes(normalizedRole as UserRole);
   
   console.log('🔍 RoleUtils: Role validation for', role, '(normalized:', normalizedRole, ') =', isValid);
@@ -106,7 +106,7 @@ export const getRoleDisplayName = (role: UserRole): string => {
       return 'EduFam Admin';
     case 'elimisha_admin':
       return 'Elimisha Admin';
-    case 'school_owner':
+    case 'school_director':
       return 'School Director';
     case 'principal':
       return 'Principal';
@@ -132,7 +132,7 @@ export const getRoleBadgeColor = (role: UserRole): string => {
       return 'bg-blue-100 text-blue-800';
     case 'elimisha_admin':
       return 'bg-purple-100 text-purple-800';
-    case 'school_owner':
+    case 'school_director':
       return 'bg-green-100 text-green-800';
     case 'principal':
       return 'bg-orange-100 text-orange-800';

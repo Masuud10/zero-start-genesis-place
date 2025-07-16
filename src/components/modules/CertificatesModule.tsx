@@ -126,7 +126,7 @@ const CertificatesModule = () => {
 
   return (
     <RoleGuard
-      allowedRoles={["principal", "school_owner", "edufam_admin"]}
+      allowedRoles={["principal", "school_director", "edufam_admin"]}
       requireSchoolAssignment
     >
       {renderContent()}

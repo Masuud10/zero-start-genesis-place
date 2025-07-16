@@ -103,7 +103,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, PermissionConfig> = {
     ],
     scope: 'all'
   },
-  school_owner: {
+  school_director: {
     permissions: [
       PERMISSIONS.VIEW_GRADEBOOK,
       PERMISSIONS.EDIT_GRADEBOOK,

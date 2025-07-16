@@ -26,7 +26,7 @@ interface GradesModalProps {
 }
 
 const GRADING_ROLES: UserRole[] = [
-  'school_owner',
+  'school_director',
   'principal',
   'teacher',
   'parent',

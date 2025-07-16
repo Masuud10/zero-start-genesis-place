@@ -23,12 +23,12 @@ export const useAnalyticsPermissions = () => {
       if (user.role === 'edufam_admin') return true;
       if (!schoolId) return false;
       if (targetSchoolId && targetSchoolId !== schoolId) return false;
-      return ['principal', 'school_owner', 'teacher'].includes(user.role);
+      return ['principal', 'school_director', 'teacher'].includes(user.role);
     };
 
     const analyticsScope = (() => {
       if (user.role === 'edufam_admin') return 'system';
-      if (['principal', 'school_owner'].includes(user.role)) return 'school';
+      if (['principal', 'school_director'].includes(user.role)) return 'school';
       if (user.role === 'teacher') return 'class';
       if (user.role === 'parent') return 'student';
       return 'none';

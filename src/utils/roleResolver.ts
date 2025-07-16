@@ -38,7 +38,7 @@ export class RoleResolver {
     if (!role || typeof role !== 'string') return false;
     
     const validRoles: UserRole[] = [
-      'school_owner',
+      'school_director',
       'principal', 
       'teacher',
       'parent',
@@ -71,7 +71,7 @@ export class RoleResolver {
     }
 
     if (email.includes('owner') || email.includes('director')) {
-      return 'school_owner';
+      return 'school_director';
     }
 
     if (email.includes('finance') || email.includes('accounts')) {
@@ -89,7 +89,7 @@ export class RoleResolver {
     if (!role || typeof role !== 'string') return false;
     
     const schoolRequiredRoles: UserRole[] = [
-      'school_owner',
+      'school_director',
       'principal',
       'teacher', 
       'finance_officer',
@@ -111,7 +111,7 @@ export class RoleResolver {
         return '/dashboard';
       case 'hr':
         return hasSchoolAssignment ? '/dashboard' : '/setup';
-      case 'school_owner':
+      case 'school_director':
       case 'principal':
       case 'teacher':
       case 'finance_officer':

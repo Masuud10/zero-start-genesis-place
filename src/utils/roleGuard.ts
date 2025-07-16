@@ -7,7 +7,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   elimisha_admin: ['*'], // Mirror edufam_admin
   principal: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
   teacher: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'timetable', 'announcements', 'messages', 'reports', 'support'],
-  school_owner: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
+  school_director: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
   finance_officer: ['dashboard', 'analytics', 'finance', 'students', 'reports', 'announcements', 'messages', 'attendance', 'timetable', 'support'],
   hr: ['dashboard', 'analytics', 'attendance', 'students', 'announcements', 'messages', 'reports', 'support', 'users'],
   parent: ['dashboard', 'grades', 'attendance', 'finance', 'timetable', 'announcements', 'messages', 'support']
@@ -167,7 +167,7 @@ export const getRoleDisplayName = (role: UserRole): string => {
   const roleNames: Record<UserRole, string> = {
     edufam_admin: 'EduFam Administrator',
     elimisha_admin: 'Elimisha Administrator',
-    school_owner: 'School Director',
+    school_director: 'School Director',
     principal: 'Principal',
     teacher: 'Teacher',
     finance_officer: 'Finance Officer',

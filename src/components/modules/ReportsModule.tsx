@@ -86,7 +86,7 @@ const ReportsModule = () => {
   // Principals and School Directors get comprehensive reports
   return (
     <RoleGuard
-      allowedRoles={["principal", "school_owner"]}
+      allowedRoles={["principal", "school_director"]}
       requireSchoolAssignment
     >
       <div className="space-y-6">

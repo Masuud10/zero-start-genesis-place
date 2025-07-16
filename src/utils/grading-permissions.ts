@@ -48,7 +48,7 @@ export const getGradingPermissions = (role: UserRole): GradingPermissions => {
         canViewAttendance: true,
       };
 
-    case 'school_owner':
+    case 'school_director':
       return {
         canCreateGrades: false,
         canEditGrades: false,

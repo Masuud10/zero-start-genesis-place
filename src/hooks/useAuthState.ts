@@ -7,7 +7,7 @@ import { AuthService } from '@/services/authService';
 
 // Simple role validation function to avoid external dependencies
 const isValidRole = (role: string): boolean => {
-  const validRoles: UserRole[] = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin'];
+  const validRoles: UserRole[] = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin', 'hr'];
   return validRoles.includes(role as UserRole);
 };
 
