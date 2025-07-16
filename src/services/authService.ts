@@ -258,7 +258,7 @@ export class AuthService {
       // First, check if the user exists and validate their role
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, status')
+        .select('role, status, name')
         .eq('email', email)
         .single();
 
@@ -285,19 +285,38 @@ export class AuthService {
         };
       }
 
-      // Send password reset email
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Generate password reset link using Supabase Auth
+      const { data: resetData, error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) {
-        console.error('🔐 AuthService: Password reset error:', error);
+      if (resetError) {
+        console.error('🔐 AuthService: Password reset token generation error:', resetError);
         return {
           success: false,
-          error: this.getUserFriendlyError(error.message)
+          error: this.getUserFriendlyError(resetError.message)
         };
       }
 
+      // Send custom branded email using our edge function
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-password-reset', {
+        body: {
+          email: email,
+          resetUrl: `${window.location.origin}/reset-password`,
+          userRole: profile.role,
+          userName: profile.name || profile.role
+        }
+      });
+
+      if (emailError) {
+        console.error('🔐 AuthService: Custom email sending error:', emailError);
+        return {
+          success: false,
+          error: 'Failed to send password reset email. Please try again.'
+        };
+      }
+
+      console.log('✅ AuthService: Password reset email sent successfully via edge function');
       return { success: true };
 
     } catch (error) {
