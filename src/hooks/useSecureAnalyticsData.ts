@@ -34,7 +34,7 @@ export const useSecureAnalyticsData = (schoolId?: string) => {
         .from('schools')
         .select('id, name')
         .eq('id', validSchoolId)
-        .single();
+        .maybeSingle();
 
       if (schoolError || !schoolCheck) {
         console.error('School verification failed:', schoolError);

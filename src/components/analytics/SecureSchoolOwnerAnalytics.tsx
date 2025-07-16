@@ -30,12 +30,12 @@ const SecureSchoolOwnerAnalytics = ({ filters }: SecureSchoolOwnerAnalyticsProps
     financeLoading,
     hasAnalytics: !!analytics,
     hasFinanceData: !!financeData,
-    roleCheck: userRole === 'school_owner',
-    expectedRole: 'school_owner'
+    roleCheck: userRole === 'school_director',
+    expectedRole: 'school_director'
   });
 
   // Security check: Ensure user has proper role
-  if (isReady && userRole !== 'school_owner') {
+  if (isReady && userRole !== 'school_director') {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />

@@ -59,7 +59,7 @@ const AnalyticsDashboard = () => {
 
   const getRoleTitle = () => {
     switch (user?.role) {
-      case "school_owner":
+      case "school_director":
         return "School Director Analytics";
       case "principal":
         return "Principal Analytics";
@@ -80,7 +80,7 @@ const AnalyticsDashboard = () => {
     switch (user?.role) {
       case "edufam_admin":
         return "Network-wide performance and insights";
-      case "school_owner":
+      case "school_director":
       case "principal":
         return "School performance metrics and insights";
       case "teacher":
@@ -94,7 +94,7 @@ const AnalyticsDashboard = () => {
     }
   };
 
-  const needsSchoolAssignment = ["school_owner", "principal", "teacher", "finance_officer"].includes(user.role);
+  const needsSchoolAssignment = ["school_director", "principal", "teacher", "finance_officer"].includes(user.role);
 
   if (needsSchoolAssignment && !schoolId) {
     return (
@@ -117,7 +117,7 @@ const AnalyticsDashboard = () => {
     );
   }
 
-  const showFilters = ["school_owner", "principal", "teacher", "finance_officer"].includes(user?.role || "");
+  const showFilters = ["school_director", "principal", "teacher", "finance_officer"].includes(user?.role || "");
 
   return (
     <div className="space-y-6 animate-fade-in">

@@ -22,7 +22,7 @@ interface RoleAnalyticsRendererProps {
 const RoleAnalyticsRenderer: React.FC<RoleAnalyticsRendererProps> = ({ role, filters }) => {
   try {
     switch (role) {
-      case "school_owner":
+      case "school_director":
         return <SchoolOwnerAnalytics filters={filters} />;
       case "principal":
         return <PrincipalAnalytics />;

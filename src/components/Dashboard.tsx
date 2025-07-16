@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
     "principal",
     "teacher",
     "parent",
-    "school_owner",
+    "school_director",
     "finance_officer",
     "hr",
   ];
@@ -142,7 +142,7 @@ const Dashboard: React.FC = () => {
         );
 
       case "principal":
-      case "school_owner":
+      case "school_director":
         console.log("🎯 Dashboard: Routing to Principal Dashboard");
         return (
           <div>
