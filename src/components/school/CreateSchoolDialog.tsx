@@ -113,29 +113,23 @@ const CreateSchoolDialog = ({
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc(
-        "create_comprehensive_school",
-        {
-          school_name: formData.school_name,
-          school_email: formData.school_email,
-          school_phone: formData.school_phone,
-          school_address: formData.school_address,
-          logo_url: formData.logo_url || null,
-          website_url: formData.website_url || null,
-          motto: formData.motto || null,
-          slogan: formData.slogan || null,
-          school_type: formData.school_type,
-          registration_number: formData.registration_number || null,
-          year_established: formData.year_established,
-          term_structure: formData.term_structure,
-          owner_name: formData.owner_name || null,
-          owner_email: formData.owner_email || null,
-          owner_phone: formData.owner_phone || null,
-          principal_name: formData.principal_name || null,
-          principal_email: formData.principal_email || null,
-          principal_phone: formData.principal_phone || null,
-        }
-      );
+      const { data, error } = await supabase.rpc("create_enhanced_school", {
+        school_name: formData.school_name,
+        school_email: formData.school_email,
+        school_phone: formData.school_phone,
+        school_address: formData.school_address,
+        logo_url: formData.logo_url || null,
+        website_url: formData.website_url || null,
+        motto: formData.motto || null,
+        slogan: formData.slogan || null,
+        school_type: formData.school_type,
+        registration_number: formData.registration_number || null,
+        year_established: formData.year_established,
+        term_structure: formData.term_structure,
+        owner_name: formData.owner_name || null,
+        owner_email: formData.owner_email || null,
+        owner_phone: formData.owner_phone || null,
+      });
 
       if (error) throw error;
 

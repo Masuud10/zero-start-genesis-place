@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserCheck, UserX, Shield } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, UserCheck, UserX, Shield } from "lucide-react";
 
 interface User {
   id: string;
@@ -15,10 +14,14 @@ interface UserStatsCardsProps {
 
 const UserStatsCards: React.FC<UserStatsCardsProps> = ({ users }) => {
   const totalUsers = users.length;
-  const activeUsers = users.filter(user => user.status === 'active').length;
-  const inactiveUsers = users.filter(user => user.status === 'inactive').length;
-  const adminUsers = users.filter(user => 
-    ['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role)
+  const activeUsers = users.filter((user) => user.status === "active").length;
+  const inactiveUsers = users.filter(
+    (user) => user.status === "inactive"
+  ).length;
+  const adminUsers = users.filter((user) =>
+    ["elimisha_admin", "edufam_admin", "school_director", "principal"].includes(
+      user.role
+    )
   ).length;
 
   return (
@@ -30,9 +33,7 @@ const UserStatsCards: React.FC<UserStatsCardsProps> = ({ users }) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalUsers}</div>
-          <p className="text-xs text-muted-foreground">
-            All registered users
-          </p>
+          <p className="text-xs text-muted-foreground">All registered users</p>
         </CardContent>
       </Card>
 
@@ -43,9 +44,7 @@ const UserStatsCards: React.FC<UserStatsCardsProps> = ({ users }) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">{activeUsers}</div>
-          <p className="text-xs text-muted-foreground">
-            Currently active
-          </p>
+          <p className="text-xs text-muted-foreground">Currently active</p>
         </CardContent>
       </Card>
 
@@ -56,9 +55,7 @@ const UserStatsCards: React.FC<UserStatsCardsProps> = ({ users }) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-red-600">{inactiveUsers}</div>
-          <p className="text-xs text-muted-foreground">
-            Suspended/Inactive
-          </p>
+          <p className="text-xs text-muted-foreground">Suspended/Inactive</p>
         </CardContent>
       </Card>
 
@@ -69,9 +66,7 @@ const UserStatsCards: React.FC<UserStatsCardsProps> = ({ users }) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">{adminUsers}</div>
-          <p className="text-xs text-muted-foreground">
-            Administrative roles
-          </p>
+          <p className="text-xs text-muted-foreground">Administrative roles</p>
         </CardContent>
       </Card>
     </div>

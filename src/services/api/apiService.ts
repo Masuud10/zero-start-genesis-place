@@ -53,9 +53,6 @@ export interface School {
   slogan?: string;
   registration_number?: string;
   year_established?: number;
-  principal_name?: string;
-  principal_contact?: string;
-  principal_email?: string;
   owner_information?: string;
   school_type?: string;
   status?: string;
@@ -136,9 +133,6 @@ export interface CreateSchoolParams {
   school_type?: string;
   registration_number?: string;
   year_established?: number;
-  principal_name?: string;
-  principal_contact?: string;
-  principal_email?: string;
   owner_information?: string;
   subscription_plan?: string;
   max_students?: number;

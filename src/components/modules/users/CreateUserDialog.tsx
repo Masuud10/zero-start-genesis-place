@@ -96,14 +96,14 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         user_school_id: finalSchoolId || null,
       });
 
-      const { data, error } = await supabase.functions.invoke('create-user', {
+      const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
           email: formData.email,
           password: formData.password,
           name: formData.name,
           role: formData.role,
           school_id: finalSchoolId || null,
-        }
+        },
       });
 
       if (error) throw error;
@@ -145,7 +145,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     { value: "parent", label: "Parent" },
     { value: "teacher", label: "Teacher" },
     { value: "principal", label: "Principal" },
-    { value: "school_owner", label: "School Owner" },
+    { value: "school_director", label: "School Director" },
     { value: "finance_officer", label: "Finance Officer" },
     { value: "hr", label: "HR" },
     ...(user?.role === "edufam_admin"

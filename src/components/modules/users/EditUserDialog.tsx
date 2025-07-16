@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Edit, Save, X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Edit, Save, X } from "lucide-react";
 
 interface EditUserDialogProps {
   user: {
@@ -27,26 +39,31 @@ interface School {
   name: string;
 }
 
-const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogProps) => {
+const EditUserDialog = ({
+  user,
+  open,
+  onClose,
+  onUserUpdated,
+}: EditUserDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
   const [editedUser, setEditedUser] = useState({
-    name: '',
-    email: '',
-    role: '',
-    school_id: '',
-    phone: ''
+    name: "",
+    email: "",
+    role: "",
+    school_id: "",
+    phone: "",
   });
   const { toast } = useToast();
 
   useEffect(() => {
     if (user && open) {
       setEditedUser({
-        name: user.name || '',
-        email: user.email || '',
-        role: user.role || '',
-        school_id: user.school_id || '',
-        phone: user.phone || ''
+        name: user.name || "",
+        email: user.email || "",
+        role: user.role || "",
+        school_id: user.school_id || "",
+        phone: user.phone || "",
       });
       fetchSchools();
     }
@@ -55,14 +72,14 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
   const fetchSchools = async () => {
     try {
       const { data, error } = await supabase
-        .from('schools')
-        .select('id, name')
-        .order('name');
+        .from("schools")
+        .select("id, name")
+        .order("name");
 
       if (error) throw error;
       setSchools(data || []);
     } catch (error) {
-      console.error('Error fetching schools:', error);
+      console.error("Error fetching schools:", error);
       toast({
         title: "Error",
         description: "Failed to fetch schools",
@@ -100,7 +117,10 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
     }
 
     // School assignment validation
-    if (!['elimisha_admin', 'edufam_admin'].includes(editedUser.role) && !editedUser.school_id) {
+    if (
+      !["elimisha_admin", "edufam_admin"].includes(editedUser.role) &&
+      !editedUser.school_id
+    ) {
       toast({
         title: "Validation Error",
         description: "Please select a school for this role",
@@ -122,16 +142,20 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
 
       // Update profile
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           name: editedUser.name,
           email: editedUser.email,
           role: editedUser.role,
-          school_id: ['elimisha_admin', 'edufam_admin'].includes(editedUser.role) ? null : editedUser.school_id,
+          school_id: ["elimisha_admin", "edufam_admin"].includes(
+            editedUser.role
+          )
+            ? null
+            : editedUser.school_id,
           phone: editedUser.phone,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id);
+        .eq("id", user.id);
 
       if (profileError) {
         throw new Error(profileError.message);
@@ -144,13 +168,13 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
 
       onClose();
       onUserUpdated();
-
     } catch (error: any) {
-      console.error('Error updating user:', error);
-      
+      console.error("Error updating user:", error);
+
       toast({
         title: "Error Updating User",
-        description: error.message || "Failed to update user. Please try again.",
+        description:
+          error.message || "Failed to update user. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -159,17 +183,17 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
   };
 
   const getAvailableRoles = () => [
-    { value: 'elimisha_admin', label: 'Elimisha Admin' },
-    { value: 'edufam_admin', label: 'EduFam Admin' },
-    { value: 'school_owner', label: 'School Director' },
-    { value: 'principal', label: 'Principal' },
-    { value: 'teacher', label: 'Teacher' },
-    { value: 'parent', label: 'Parent' },
-    { value: 'finance_officer', label: 'Finance Officer' }
+    { value: "elimisha_admin", label: "Elimisha Admin" },
+    { value: "edufam_admin", label: "EduFam Admin" },
+    { value: "school_director", label: "School Director" },
+    { value: "principal", label: "Principal" },
+    { value: "teacher", label: "Teacher" },
+    { value: "parent", label: "Parent" },
+    { value: "finance_officer", label: "Finance Officer" },
   ];
 
   const shouldShowSchoolSelector = () => {
-    return !['elimisha_admin', 'edufam_admin'].includes(editedUser.role);
+    return !["elimisha_admin", "edufam_admin"].includes(editedUser.role);
   };
 
   if (!user) return null;
@@ -193,18 +217,22 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
             <Input
               id="edit-name"
               value={editedUser.name}
-              onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })}
+              onChange={(e) =>
+                setEditedUser({ ...editedUser, name: e.target.value })
+              }
               placeholder="Enter full name"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="edit-email">Email Address *</Label>
             <Input
               id="edit-email"
               type="email"
               value={editedUser.email}
-              onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
+              onChange={(e) =>
+                setEditedUser({ ...editedUser, email: e.target.value })
+              }
               placeholder="Enter email address"
             />
           </div>
@@ -214,14 +242,21 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
             <Input
               id="edit-phone"
               value={editedUser.phone}
-              onChange={(e) => setEditedUser({ ...editedUser, phone: e.target.value })}
+              onChange={(e) =>
+                setEditedUser({ ...editedUser, phone: e.target.value })
+              }
               placeholder="Enter phone number"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="edit-role">User Role *</Label>
-            <Select value={editedUser.role} onValueChange={(value) => setEditedUser({ ...editedUser, role: value })}>
+            <Select
+              value={editedUser.role}
+              onValueChange={(value) =>
+                setEditedUser({ ...editedUser, role: value })
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select user role" />
               </SelectTrigger>
@@ -238,7 +273,12 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
           {shouldShowSchoolSelector() && (
             <div>
               <Label htmlFor="edit-school">Assign to School *</Label>
-              <Select value={editedUser.school_id} onValueChange={(value) => setEditedUser({ ...editedUser, school_id: value })}>
+              <Select
+                value={editedUser.school_id}
+                onValueChange={(value) =>
+                  setEditedUser({ ...editedUser, school_id: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select school" />
                 </SelectTrigger>
@@ -252,15 +292,20 @@ const EditUserDialog = ({ user, open, onClose, onUserUpdated }: EditUserDialogPr
               </Select>
             </div>
           )}
-          
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             <Button onClick={handleUpdateUser} disabled={isSubmitting}>
               <Save className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Updating...' : 'Update User'}
+              {isSubmitting ? "Updating..." : "Update User"}
             </Button>
           </div>
         </div>

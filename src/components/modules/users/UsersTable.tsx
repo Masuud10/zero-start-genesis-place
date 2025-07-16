@@ -1,11 +1,17 @@
-
-import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import UserActivationToggle from './UserActivationToggle';
+import React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import UserActivationToggle from "./UserActivationToggle";
 
 interface User {
   id: string;
@@ -27,35 +33,35 @@ interface UsersTableProps {
   onUserUpdated: () => void;
 }
 
-const UsersTable: React.FC<UsersTableProps> = ({ 
-  users, 
-  loading, 
-  error, 
+const UsersTable: React.FC<UsersTableProps> = ({
+  users,
+  loading,
+  error,
   onRetry,
-  onUserUpdated 
+  onUserUpdated,
 }) => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'elimisha_admin':
-      case 'edufam_admin':
-        return 'bg-red-100 text-red-800';
-      case 'school_owner':
-        return 'bg-purple-100 text-purple-800';
-      case 'principal':
-        return 'bg-blue-100 text-blue-800';
-      case 'teacher':
-        return 'bg-green-100 text-green-800';
-      case 'finance_officer':
-        return 'bg-orange-100 text-orange-800';
+      case "elimisha_admin":
+      case "edufam_admin":
+        return "bg-red-100 text-red-800";
+      case "school_director":
+        return "bg-purple-100 text-purple-800";
+      case "principal":
+        return "bg-blue-100 text-blue-800";
+      case "teacher":
+        return "bg-green-100 text-green-800";
+      case "finance_officer":
+        return "bg-orange-100 text-orange-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusBadgeColor = (status: string) => {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-red-100 text-red-800';
+    return status === "active"
+      ? "bg-green-100 text-green-800"
+      : "bg-red-100 text-red-800";
   };
 
   if (loading) {
@@ -122,11 +128,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <Badge className={getRoleBadgeColor(user.role)}>
-                        {user.role.replace('_', ' ')}
+                        {user.role.replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {user.school?.name || 'No school assigned'}
+                      {user.school?.name || "No school assigned"}
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusBadgeColor(user.status)}>

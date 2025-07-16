@@ -122,7 +122,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
         return <User className="h-4 w-4" />;
       case "edufam_admin":
         return <Shield className="h-4 w-4" />;
-      case "school_owner":
+      case "school_director":
         return <Building className="h-4 w-4" />;
       case "finance_officer":
         return <BarChart3 className="h-4 w-4" />;
@@ -204,7 +204,7 @@ const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
           {/* Audit Logs Button - Only for admins and principals */}
           {(user?.role === "edufam_admin" ||
             user?.role === "principal" ||
-            user?.role === "school_owner") && (
+            user?.role === "school_director") && (
             <Button
               variant="ghost"
               size="sm"

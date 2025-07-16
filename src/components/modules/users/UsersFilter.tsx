@@ -1,9 +1,14 @@
-
-import React from 'react';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { Search } from 'lucide-react';
+import React from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Search } from "lucide-react";
 
 interface UsersFilterProps {
   searchTerm: string;
@@ -20,7 +25,7 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
   roleFilter,
   onRoleFilterChange,
   statusFilter,
-  onStatusFilterChange
+  onStatusFilterChange,
 }) => {
   return (
     <Card>
@@ -35,7 +40,7 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
               className="pl-10"
             />
           </div>
-          
+
           <Select value={roleFilter} onValueChange={onRoleFilterChange}>
             <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Filter by role" />
@@ -44,7 +49,7 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="elimisha_admin">Elimisha Admin</SelectItem>
               <SelectItem value="edufam_admin">EduFam Admin</SelectItem>
-              <SelectItem value="school_owner">School Owner</SelectItem>
+              <SelectItem value="school_director">School Director</SelectItem>
               <SelectItem value="principal">Principal</SelectItem>
               <SelectItem value="teacher">Teacher</SelectItem>
               <SelectItem value="finance_officer">Finance Officer</SelectItem>

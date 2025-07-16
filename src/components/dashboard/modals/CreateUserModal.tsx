@@ -101,7 +101,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             email: user.email,
             role: user.role,
             schoolId: user.schoolId,
-            hasPassword: !!user.password
+            hasPassword: !!user.password,
           });
           // === END FORENSIC LOGGING ===
 
@@ -130,18 +130,21 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
           // **SURGICAL FIX**: Use Edge Function with correct sequence
           try {
-            console.log("--- CALLING CREATE USER EDGE FUNCTION: FORENSIC LOG ---");
-            
+            console.log(
+              "--- CALLING CREATE USER EDGE FUNCTION: FORENSIC LOG ---"
+            );
+
             // Call the edge function that handles the correct sequence
-            const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
-              body: {
-                email: user.email,
-                password: user.password,
-                name: user.name,
-                role: user.role,
-                school_id: finalSchoolId
-              }
-            });
+            const { data: functionData, error: functionError } =
+              await supabase.functions.invoke("create-user", {
+                body: {
+                  email: user.email,
+                  password: user.password,
+                  name: user.name,
+                  role: user.role,
+                  school_id: finalSchoolId,
+                },
+              });
 
             console.log("--- EDGE FUNCTION RESULT: FORENSIC LOG ---");
             console.log("Function data:", functionData);
@@ -172,9 +175,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               success: true,
               user_id: functionData.user_id,
               school_id: finalSchoolId,
-              message: functionData.message || 'User created successfully with proper school assignment'
+              message:
+                functionData.message ||
+                "User created successfully with proper school assignment",
             } as CreateUserRpcResponse;
-
           } catch (createError) {
             console.error("--- USER CREATION FAILED: FORENSIC LOG ---");
             console.error("Full Creation Error:", createError);
@@ -188,7 +192,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       if (result && result.success) {
         toast({
           title: "Success",
-          description: result.message || "User created successfully with proper school assignment",
+          description:
+            result.message ||
+            "User created successfully with proper school assignment",
         });
         handleReset();
         onSuccess();
@@ -265,12 +271,25 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
     // === PHASE 1: FORENSIC LOGGING - DATA BEING SENT TO BACKEND ===
     console.log("--- CREATE USER: FORENSIC LOG ---");
-    console.log("Data being sent to backend:", JSON.stringify(userData, null, 2));
-    console.log("Current user context:", JSON.stringify({
-      role: currentUser.role,
-      school_id: currentUser.school_id
-    }, null, 2));
-    console.log("Validation errors:", JSON.stringify(validationErrors, null, 2));
+    console.log(
+      "Data being sent to backend:",
+      JSON.stringify(userData, null, 2)
+    );
+    console.log(
+      "Current user context:",
+      JSON.stringify(
+        {
+          role: currentUser.role,
+          school_id: currentUser.school_id,
+        },
+        null,
+        2
+      )
+    );
+    console.log(
+      "Validation errors:",
+      JSON.stringify(validationErrors, null, 2)
+    );
     // === END FORENSIC LOGGING ===
 
     setIsSubmitting(true);
@@ -301,7 +320,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const roleOptions = [
     { value: "elimisha_admin", label: "Elimisha Admin" },
     { value: "edufam_admin", label: "EduFam Admin" },
-    { value: "school_owner", label: "School Director" },
+    { value: "school_director", label: "School Director" },
     { value: "principal", label: "Principal" },
     { value: "teacher", label: "Teacher" },
     { value: "parent", label: "Parent" },

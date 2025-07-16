@@ -1,28 +1,27 @@
-
-import React from 'react';
-import { SidebarHeader as ShadcnSidebarHeader } from '@/components/ui/sidebar';
-import { useAuth } from '@/contexts/AuthContext';
-import { BookOpen } from 'lucide-react';
+import React from "react";
+import { SidebarHeader as ShadcnSidebarHeader } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { BookOpen } from "lucide-react";
 
 const SidebarHeader = () => {
   const { user } = useAuth();
 
   const getRoleDisplay = (role: string) => {
     switch (role) {
-      case 'school_owner':
-        return 'School Director';
-      case 'principal':
-        return 'Principal';
-      case 'teacher':
-        return 'Teacher';
-      case 'parent':
-        return 'Parent';
-      case 'finance_officer':
-        return 'Finance Officer';
-      case 'edufam_admin':
-        return 'EduFam Admin';
-      case 'elimisha_admin':
-        return 'Elimisha Admin';
+      case "school_director":
+        return "School Director";
+      case "principal":
+        return "Principal";
+      case "teacher":
+        return "Teacher";
+      case "parent":
+        return "Parent";
+      case "finance_officer":
+        return "Finance Officer";
+      case "edufam_admin":
+        return "EduFam Admin";
+      case "elimisha_admin":
+        return "Elimisha Admin";
       default:
         return role;
     }
@@ -36,7 +35,9 @@ const SidebarHeader = () => {
         </div>
         <div>
           <h2 className="font-bold text-xl text-foreground">Elimisha</h2>
-          <p className="text-sm text-muted-foreground">{getRoleDisplay(user?.role || '')}</p>
+          <p className="text-sm text-muted-foreground">
+            {getRoleDisplay(user?.role || "")}
+          </p>
         </div>
       </div>
     </ShadcnSidebarHeader>
