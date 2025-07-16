@@ -204,8 +204,10 @@ const SchoolOwnerSupportModule = React.lazy(
 const AcademicManagementModule = React.lazy(
   () => import("@/components/modules/AcademicManagementModule")
 );
-const StaffManagement = React.lazy(
-  () => import("@/pages/hr/StaffManagement").then(module => ({ default: module.StaffManagement }))
+const StaffManagement = React.lazy(() =>
+  import("@/pages/hr/StaffManagement").then((module) => ({
+    default: module.StaffManagement,
+  }))
 );
 
 interface ContentRendererProps {
@@ -276,9 +278,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
 
     // Render other sections with lazy loading and error boundaries
     const renderLazyComponent = (
-      Component: React.LazyExoticComponent<
-        React.ComponentType<any>
-      >,
+      Component: React.LazyExoticComponent<React.ComponentType<any>>,
       componentName?: string,
       props?: any
     ) => {
@@ -735,32 +735,57 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return <HRDashboard user={user} />;
       case "staff-management":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRStaffManagement, "HRStaffManagement", { user });
+          return renderLazyComponent(HRStaffManagement, "HRStaffManagement", {
+            user,
+          });
         }
         return renderUnauthorizedAccess();
       case "payroll":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRPayrollModule, "HRPayrollModule", { user });
+          return renderLazyComponent(HRPayrollModule, "HRPayrollModule", {
+            user,
+          });
         }
         return renderUnauthorizedAccess();
       case "attendance-monitoring":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRAttendanceModule, "HRAttendanceModule", { user });
+          return renderLazyComponent(HRAttendanceModule, "HRAttendanceModule", {
+            user,
+          });
         }
         return renderUnauthorizedAccess();
       case "hr-reports":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRReportsModule, "HRReportsModule", { user });
+          return renderLazyComponent(HRReportsModule, "HRReportsModule", {
+            user,
+          });
         }
         return renderUnauthorizedAccess();
       case "hr-analytics":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRAnalyticsOverview, "HRAnalyticsOverview", { user });
+          return renderLazyComponent(
+            HRAnalyticsOverview,
+            "HRAnalyticsOverview",
+            { user }
+          );
         }
         return renderUnauthorizedAccess();
       case "user-management":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRUserManagementModule, "HRUserManagementModule", { user });
+          return renderLazyComponent(
+            HRUserManagementModule,
+            "HRUserManagementModule",
+            { user }
+          );
+        }
+        return renderUnauthorizedAccess();
+      case "debug":
+        // Only allow debug access for admin users
+        if (user?.role === "edufam_admin" || user?.role === "elimisha_admin") {
+          const DebugTestRunner = React.lazy(
+            () => import("@/components/debug/DebugTestRunner")
+          );
+          return renderLazyComponent(DebugTestRunner, "DebugTestRunner");
         }
         return renderUnauthorizedAccess();
       default:
