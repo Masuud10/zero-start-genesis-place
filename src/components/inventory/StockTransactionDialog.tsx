@@ -44,7 +44,6 @@ const StockTransactionDialog: React.FC<StockTransactionDialogProps> = ({
       transaction_type: transactionType,
       quantity_change: transactionType === 'stock_out' ? -quantityNum : quantityNum,
       notes: notes || undefined,
-      supplier_id: supplierId || undefined,
     });
 
     handleClose();
