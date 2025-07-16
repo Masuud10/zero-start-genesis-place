@@ -163,7 +163,6 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
   if (userRole === 'hr') {
     return [
       ...baseItems,
-      { id: 'hr-dashboard', label: 'HR Dashboard', icon: LayoutDashboard, roles: ['hr'] },
       { id: 'staff-management', label: 'Staff Management', icon: Users, roles: ['hr'] },
       { id: 'payroll', label: 'Payroll Management', icon: DollarSign, roles: ['hr'] },
       { id: 'attendance-monitoring', label: 'Attendance Monitoring', icon: CalendarCheck, roles: ['hr'] },

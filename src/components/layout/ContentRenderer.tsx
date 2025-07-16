@@ -46,6 +46,15 @@ const HRReportsModule = React.lazy(
 const HRAnalyticsOverview = React.lazy(
   () => import("@/components/hr/HRAnalyticsOverview")
 );
+const HRPayrollModule = React.lazy(
+  () => import("@/components/hr/HRPayrollModule")
+);
+const HRAttendanceModule = React.lazy(
+  () => import("@/components/hr/HRAttendanceModule")
+);
+const HRUserManagementModule = React.lazy(
+  () => import("@/components/hr/HRUserManagementModule")
+);
 
 // Analytics and Management Components
 const SystemAnalyticsPage = React.lazy(
@@ -733,18 +742,12 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return renderUnauthorizedAccess();
       case "payroll":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRStaffManagement, "PayrollManagement", { 
-            user, 
-            mode: "payroll" 
-          });
+          return renderLazyComponent(HRPayrollModule, "HRPayrollModule", { user });
         }
         return renderUnauthorizedAccess();
       case "attendance-monitoring":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRStaffManagement, "AttendanceMonitoring", { 
-            user, 
-            mode: "attendance" 
-          });
+          return renderLazyComponent(HRAttendanceModule, "HRAttendanceModule", { user });
         }
         return renderUnauthorizedAccess();
       case "hr-reports":
@@ -759,10 +762,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return renderUnauthorizedAccess();
       case "user-management":
         if (user?.role === "hr") {
-          return renderLazyComponent(HRStaffManagement, "UserManagement", { 
-            user, 
-            mode: "users" 
-          });
+          return renderLazyComponent(HRUserManagementModule, "HRUserManagementModule", { user });
         }
         return renderUnauthorizedAccess();
       default:
