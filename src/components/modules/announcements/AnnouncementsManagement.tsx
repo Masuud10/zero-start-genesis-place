@@ -198,7 +198,7 @@ const AnnouncementsManagement = () => {
     { value: 'principal', label: 'Principals' },
     { value: 'teacher', label: 'Teachers' },
     { value: 'parent', label: 'Parents' },
-    { value: 'school_owner', label: 'School Owners' },
+    { value: 'school_owner', label: 'School Directors' },
     { value: 'finance_officer', label: 'Finance Officers' },
   ];
 

@@ -38,7 +38,7 @@ const SecureSchoolOwnerAnalytics = ({ filters }: SecureSchoolOwnerAnalyticsProps
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Access denied. This feature is only available to School Owners.
+          Access denied. This feature is only available to School Directors.
         </AlertDescription>
       </Alert>
     );

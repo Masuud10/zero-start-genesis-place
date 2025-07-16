@@ -83,7 +83,7 @@ const ReportsModule = () => {
     );
   }
 
-  // Principals and School Owners get comprehensive reports
+  // Principals and School Directors get comprehensive reports
   return (
     <RoleGuard
       allowedRoles={["principal", "school_owner"]}

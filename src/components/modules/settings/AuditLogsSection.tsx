@@ -112,7 +112,7 @@ const AuditLogsSection = () => {
                 <SelectItem value="edufam_admin">EduFam Admin</SelectItem>
                 <SelectItem value="elimisha_admin">Elimisha Admin</SelectItem>
                 <SelectItem value="principal">Principal</SelectItem>
-                <SelectItem value="school_owner">School Owner</SelectItem>
+                <SelectItem value="school_owner">School Director</SelectItem>
                 <SelectItem value="teacher">Teacher</SelectItem>
                 <SelectItem value="finance_officer">Finance Officer</SelectItem>
               </SelectContent>

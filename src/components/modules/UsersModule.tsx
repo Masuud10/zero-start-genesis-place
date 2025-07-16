@@ -163,7 +163,7 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
         </CardHeader>
         <CardContent>
           <p className="text-red-600">
-            Only school owners, principals, and system administrators can manage users.
+            Only school directors, principals, and system administrators can manage users.
           </p>
         </CardContent>
       </Card>

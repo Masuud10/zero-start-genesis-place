@@ -33,7 +33,7 @@ const UserManagementSettings = () => {
     },
     {
       id: '2',
-      name: 'School Owner',
+      name: 'School Director',
       permissions: ['school_management', 'user_creation', 'reports'],
       description: 'Manage school operations and staff',
       isActive: true

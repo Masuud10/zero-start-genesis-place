@@ -26,7 +26,7 @@ const AnnouncementFilters: React.FC<AnnouncementFiltersProps> = ({
   ];
 
   const audienceOptions = [
-    { value: 'school_owners', label: 'School Owners' },
+    { value: 'school_owners', label: 'School Directors' },
     { value: 'principals', label: 'Principals' },
     { value: 'teachers', label: 'Teachers' },
     { value: 'parents', label: 'Parents' },

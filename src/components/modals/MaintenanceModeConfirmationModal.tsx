@@ -82,7 +82,7 @@ const MaintenanceModeConfirmationModal: React.FC<
                 <li>• Teachers</li>
                 <li>• Parents</li>
                 <li>• Finance Officers</li>
-                <li>• School Owners</li>
+                <li>• School Directors</li>
                 <li>• All other user roles</li>
               </ul>
             </div>

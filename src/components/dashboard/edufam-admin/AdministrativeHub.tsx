@@ -145,7 +145,7 @@ const AdministrativeHub = ({
       actions: [
         { label: "Create Admin User", action: "create-admin", icon: UserPlus },
         {
-          label: "Create School Owner",
+          label: "Create School Director",
           action: "create-owner",
           icon: Building2,
         },
@@ -171,7 +171,7 @@ const AdministrativeHub = ({
           icon: Building2,
           isSpecial: true,
         },
-        { label: "Assign School Owner", action: "assign-owner", icon: Users },
+        { label: "Assign School Director", action: "assign-owner", icon: Users },
         { label: "School Settings", action: "school-settings", icon: Settings },
         {
           label: "School Analytics",

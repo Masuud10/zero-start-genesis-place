@@ -161,7 +161,7 @@ const MaintenanceModeSection = () => {
             <AlertDescription className="text-amber-800">
               <strong>⚠️ System is in maintenance mode.</strong> All users except EduFam Admins are currently locked out.
               <div className="mt-2 text-sm">
-                <p><strong>Affected roles:</strong> Teachers, Principals, Parents, Finance Officers, School Owners</p>
+                <p><strong>Affected roles:</strong> Teachers, Principals, Parents, Finance Officers, School Directors</p>
                 <p><strong>Admin access:</strong> Only EduFam Admins can access the system</p>
               </div>
             </AlertDescription>

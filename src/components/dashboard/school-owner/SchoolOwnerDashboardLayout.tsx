@@ -33,7 +33,7 @@ const SchoolOwnerDashboardLayout: React.FC<SchoolOwnerDashboardLayoutProps> = ({
     <AnalyticsSecurityGuard
       requiredPermission="school"
       schoolId={schoolId}
-      fallbackMessage="You need school owner permissions to view analytics."
+      fallbackMessage="You need school director permissions to view analytics."
     >
       <Card className="shadow-lg border-0">
         <CardHeader className="rounded-t-lg">

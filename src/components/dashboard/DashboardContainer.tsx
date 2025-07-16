@@ -157,7 +157,7 @@ const DashboardContainer: React.FC<DashboardContainerProps> = ({
       case "edufam_admin":
         return "EduFam Admin";
       case "school_owner":
-        return "School Owner";
+        return "School Director";
       case "principal":
         return "Principal";
       case "teacher":

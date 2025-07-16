@@ -340,7 +340,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
       );
     }
 
-    // Analytics sections - Fix access for teachers, principals, and school owners
+    // Analytics sections - Fix access for teachers, principals, and school directors
     if (activeSection === "analytics") {
       if (user?.role === "edufam_admin" || user?.role === "elimisha_admin") {
         return renderLazyComponent(
@@ -348,7 +348,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           "EduFamAnalyticsOverview"
         );
       }
-      // Allow principals and school owners to access their school analytics
+      // Allow principals and school directors to access their school analytics
       if (user?.role === "principal" || user?.role === "school_owner") {
         return renderLazyComponent(AnalyticsDashboard, "AnalyticsDashboard");
       }
@@ -623,7 +623,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
             "ParentTimetableView"
           );
         }
-        // Special case for school owners - they get a comprehensive timetable viewer
+        // Special case for school directors - they get a comprehensive timetable viewer
         if (user?.role === "school_owner") {
           return renderLazyComponent(
             SchoolOwnerTimetableView,
@@ -643,7 +643,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
             "TeacherReportsModule"
           );
         }
-        // School owners get their own comprehensive reports module
+        // School directors get their own comprehensive reports module
         if (user?.role === "school_owner") {
           return renderLazyComponent(
             SchoolOwnerReportsModule,
@@ -673,7 +673,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
             "TeacherSupportModule"
           );
         }
-        // School owners get their own support module
+        // School directors get their own support module
         if (user?.role === "school_owner") {
           return renderLazyComponent(
             SchoolOwnerSupportModule,

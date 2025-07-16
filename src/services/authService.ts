@@ -362,7 +362,7 @@ export class AuthService {
     const roleNames: Record<string, string> = {
       'edufam_admin': 'EduFam Admin Staff',
       'elimisha_admin': 'Elimisha Admin Staff',
-      'school_owner': 'School Owner',
+      'school_owner': 'School Director',
       'principal': 'Principal',
       'teacher': 'Teacher',
       'parent': 'Parent',

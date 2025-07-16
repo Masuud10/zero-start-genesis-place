@@ -264,7 +264,7 @@ const CreateSchoolDialog = ({ onSchoolCreated }: CreateSchoolDialogProps) => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">School Owner (Optional)</CardTitle>
+              <CardTitle className="text-lg">School Director (Optional)</CardTitle>
               <CardDescription>
                 Create an owner account for this school. If left blank, you can
                 assign an owner later.

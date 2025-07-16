@@ -51,7 +51,7 @@ const CertificatesList = () => {
         // Principals can see certificates for their school only
         query = query.eq("school_id", schoolId);
       } else if (user?.role === "school_owner") {
-        // School owners can view certificates for their school only
+        // School directors can view certificates for their school only
         query = query.eq("school_id", schoolId);
       } else if (user?.role === "edufam_admin") {
         // EduFam admins can view all certificates across all schools

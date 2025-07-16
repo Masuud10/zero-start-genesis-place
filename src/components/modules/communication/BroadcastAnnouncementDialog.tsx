@@ -43,7 +43,7 @@ const BroadcastAnnouncementDialog: React.FC<BroadcastAnnouncementDialogProps> = 
   const [tagInput, setTagInput] = useState('');
 
   const audienceOptions = [
-    { value: 'school_owners', label: 'School Owners', icon: Users },
+    { value: 'school_owners', label: 'School Directors', icon: Users },
     { value: 'principals', label: 'Principals', icon: Users },
     { value: 'teachers', label: 'Teachers', icon: Users },
     { value: 'parents', label: 'Parents', icon: Users },

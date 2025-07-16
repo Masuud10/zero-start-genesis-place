@@ -17,7 +17,7 @@ const UserRoleBreakdown: React.FC<UserRoleBreakdownProps> = ({
   const roleConfig = {
     'edufam_admin': { icon: Crown, label: 'EduFam Admin', color: 'text-purple-600' },
     'elimisha_admin': { icon: Crown, label: 'Elimisha Admin', color: 'text-indigo-600' },
-    'school_owner': { icon: UserCheck, label: 'School Owner', color: 'text-blue-600' },
+    'school_owner': { icon: UserCheck, label: 'School Director', color: 'text-blue-600' },
     'principal': { icon: GraduationCap, label: 'Principal', color: 'text-green-600' },
     'teacher': { icon: Book, label: 'Teacher', color: 'text-orange-600' },
     'finance_officer': { icon: Calculator, label: 'Finance Officer', color: 'text-emerald-600' },

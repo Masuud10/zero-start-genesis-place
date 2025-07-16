@@ -60,7 +60,7 @@ const AdminCommunicationsManager: React.FC = () => {
   const availableRoles = [
     { value: "teacher", label: "Teachers" },
     { value: "principal", label: "Principals" },
-    { value: "school_owner", label: "School Owners" },
+    { value: "school_owner", label: "School Directors" },
     { value: "finance_officer", label: "Finance Officers" },
     { value: "parent", label: "Parents" },
     { value: "edufam_admin", label: "EduFam Admins" },

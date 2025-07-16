@@ -38,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   const getRoleDisplay = (role: string) => {
     switch (role) {
       case 'school_owner':
-        return 'School Owner';
+        return 'School Director';
       case 'principal':
         return 'Principal';
       case 'teacher':

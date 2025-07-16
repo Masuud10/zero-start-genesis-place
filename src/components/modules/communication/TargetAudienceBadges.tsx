@@ -17,7 +17,7 @@ const TargetAudienceBadges: React.FC<TargetAudienceBadgesProps> = ({
       case 'school_owners':
         return {
           icon: UserCheck,
-          label: 'School Owners',
+          label: 'School Directors',
           color: 'bg-purple-100 text-purple-700'
         };
       case 'principals':

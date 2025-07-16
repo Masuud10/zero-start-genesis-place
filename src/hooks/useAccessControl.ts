@@ -30,19 +30,19 @@ export const useAccessControl = () => {
         return hasSchoolManagementAccess;
       }
       case 'analytics': {
-        // Teachers can access analytics for their classes, principals and school owners can access analytics for their school
+        // Teachers can access analytics for their classes, principals and school directors can access analytics for their school
         const hasAnalyticsAccess = user.role === 'teacher' || user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
         console.log('🔒 useAccessControl: Analytics access:', hasAnalyticsAccess);
         return hasAnalyticsAccess;
       }
       case 'certificates':
-        // Principals can generate certificates, school owners and EduFam admins can view
+        // Principals can generate certificates, school directors and EduFam admins can view
         return user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
       case 'certificate-generation':
         // Only principals and EduFam admins can generate certificates
         return user.role === 'principal' || user.role === 'edufam_admin';
       case 'certificate-viewing':
-        // Principals, school owners, and EduFam admins can view certificates
+        // Principals, school directors, and EduFam admins can view certificates
         return user.role === 'principal' || user.role === 'school_owner' || user.role === 'edufam_admin';
       case 'grades':
         // Principals can access grades for approval/oversight, teachers for entry, parents for viewing

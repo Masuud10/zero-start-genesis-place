@@ -672,7 +672,7 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-purple-600" />
               <h3 className="text-lg font-semibold">
-                School Owner Information (Optional)
+                School Director Information (Optional)
               </h3>
             </div>
 
@@ -732,7 +732,7 @@ const SchoolRegistrationModal: React.FC<SchoolRegistrationModalProps> = ({
                   onChange={(e) =>
                     handleInputChange("owner_information", e.target.value)
                   }
-                  placeholder="Additional details about the school owner"
+                  placeholder="Additional details about the school director"
                   rows={2}
                 />
               </div>

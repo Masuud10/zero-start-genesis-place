@@ -127,7 +127,7 @@ const CertificateGenerator: React.FC<CertificateGeneratorProps> = ({
               Access Denied
             </DialogTitle>
             <DialogDescription>
-              Only principals, school owners, and EduFam administrators can
+              Only principals, school directors, and EduFam administrators can
               generate certificates.
             </DialogDescription>
           </DialogHeader>

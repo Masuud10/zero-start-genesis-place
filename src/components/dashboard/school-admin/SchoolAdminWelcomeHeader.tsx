@@ -37,7 +37,7 @@ const SchoolAdminWelcomeHeader: React.FC<SchoolAdminWelcomeHeaderProps> = ({ use
           {currentTime}
         </Badge>
         <Badge variant="secondary">
-          {user?.role === 'principal' ? 'Principal' : 'School Owner'}
+          {user?.role === 'principal' ? 'Principal' : 'School Director'}
         </Badge>
       </div>
     </div>

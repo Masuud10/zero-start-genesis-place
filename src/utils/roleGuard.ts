@@ -167,7 +167,7 @@ export const getRoleDisplayName = (role: UserRole): string => {
   const roleNames: Record<UserRole, string> = {
     edufam_admin: 'EduFam Administrator',
     elimisha_admin: 'Elimisha Administrator',
-    school_owner: 'School Owner',
+    school_owner: 'School Director',
     principal: 'Principal',
     teacher: 'Teacher',
     finance_officer: 'Finance Officer',

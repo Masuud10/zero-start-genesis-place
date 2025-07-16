@@ -532,7 +532,7 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
                 id="owner_information"
                 value={formData.owner_information}
                 onChange={(e) => handleInputChange('owner_information', e.target.value)}
-                placeholder="Enter additional information about the school owner"
+                placeholder="Enter additional information about the school director"
                 rows={3}
               />
             </div>

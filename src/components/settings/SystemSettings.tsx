@@ -222,7 +222,7 @@ const SystemSettings = () => {
         <Alert className="max-w-md mx-auto">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Access denied. Only school owners and system administrators can
+            Access denied. Only school directors and system administrators can
             manage system settings.
           </AlertDescription>
         </Alert>

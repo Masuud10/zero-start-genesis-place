@@ -94,7 +94,7 @@ const DashboardAuditResults: React.FC = () => {
       ]
     },
     {
-      dashboard: 'School Owner Dashboard',
+      dashboard: 'School Director Dashboard',
       icon: Building2,
       overallStatus: 'healthy',
       results: [

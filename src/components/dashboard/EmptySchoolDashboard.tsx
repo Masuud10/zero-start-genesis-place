@@ -14,7 +14,7 @@ const EmptySchoolDashboard = ({ user, schoolName }: EmptySchoolDashboardProps) =
   const getRoleBasedWelcomeMessage = () => {
     switch (user.role) {
       case 'school_owner':
-        return "As the school owner, you can manage all aspects of your school including staff, students, and administrative settings.";
+        return "As the school director, you can manage all aspects of your school including staff, students, and administrative settings.";
       case 'principal':
         return "As the principal, you can oversee academic activities, manage staff, and monitor student progress.";
       case 'teacher':

@@ -348,7 +348,7 @@ const SchoolOwnerMetricsFetcher: React.FC = () => {
         loading={loading}
         schoolId={schoolId}
         onManagementAction={(action) => {
-          console.log("School Owner Management Action:", action);
+          console.log("School Director Management Action:", action);
         }}
       />
 

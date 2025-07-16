@@ -60,7 +60,7 @@ const AnalyticsDashboard = () => {
   const getRoleTitle = () => {
     switch (user?.role) {
       case "school_owner":
-        return "School Owner Analytics";
+        return "School Director Analytics";
       case "principal":
         return "Principal Analytics";
       case "teacher":

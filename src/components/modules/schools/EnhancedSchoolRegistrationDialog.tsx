@@ -445,12 +445,12 @@ const EnhancedSchoolRegistrationDialog: React.FC<
             </CardContent>
           </Card>
 
-          {/* School Owner Information */}
+          {/* School Director Information */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <User className="h-5 w-5" />
-                School Owner (Optional)
+                School Director (Optional)
               </CardTitle>
               <CardDescription>
                 Create an owner account for this school. If left blank, you can

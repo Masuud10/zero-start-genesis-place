@@ -107,7 +107,7 @@ export const getRoleDisplayName = (role: UserRole): string => {
     case 'elimisha_admin':
       return 'Elimisha Admin';
     case 'school_owner':
-      return 'School Owner';
+      return 'School Director';
     case 'principal':
       return 'Principal';
     case 'teacher':

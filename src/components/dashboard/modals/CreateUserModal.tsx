@@ -301,7 +301,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const roleOptions = [
     { value: "elimisha_admin", label: "Elimisha Admin" },
     { value: "edufam_admin", label: "EduFam Admin" },
-    { value: "school_owner", label: "School Owner" },
+    { value: "school_owner", label: "School Director" },
     { value: "principal", label: "Principal" },
     { value: "teacher", label: "Teacher" },
     { value: "parent", label: "Parent" },
