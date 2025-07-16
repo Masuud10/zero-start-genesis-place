@@ -52,8 +52,9 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
         "principal",
         "teacher",
         "parent",
-        "school_owner",
+        "school_director",
         "finance_officer",
+        "hr",
       ],
     },
     {
@@ -72,31 +73,31 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: "analytics",
       label: "Analytics",
       icon: BarChart3,
-      roles: ["edufam_admin", "principal", "school_owner"],
+      roles: ["edufam_admin", "principal", "school_director"],
     },
     {
       id: "grades",
       label: "Grades",
       icon: GraduationCap,
-      roles: ["principal", "teacher", "parent", "school_owner"],
+      roles: ["principal", "teacher", "parent", "school_director"],
     },
     {
       id: "attendance",
       label: "Attendance",
       icon: UserCheck,
-      roles: ["principal", "teacher", "school_owner"],
+      roles: ["principal", "teacher", "school_director"],
     },
     {
       id: "students",
       label: "Students",
       icon: Users,
-      roles: ["principal", "teacher", "school_owner"],
+      roles: ["principal", "teacher", "school_director"],
     },
     {
       id: "finance",
       label: "Finance Overview",
       icon: DollarSign,
-      roles: ["finance_officer", "school_owner", "principal"],
+      roles: ["finance_officer", "school_director", "principal"],
     },
     {
       id: "finance-management",
@@ -146,25 +147,25 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: "financial-analytics",
       label: "Financial Analytics",
       icon: BarChart3,
-      roles: ["finance_officer", "principal", "school_owner"],
+      roles: ["finance_officer", "principal", "school_director"],
     },
     {
       id: "certificates",
       label: "Certificates",
       icon: Award,
-      roles: ["principal", "school_owner", "edufam_admin"],
+      roles: ["principal", "school_director", "edufam_admin"],
     },
     {
       id: "timetable",
       label: "Timetable",
       icon: Calendar,
-      roles: ["principal", "teacher", "school_owner"],
+      roles: ["principal", "teacher", "school_director"],
     },
     {
       id: "announcements",
       label: "Announcements",
       icon: Megaphone,
-      roles: ["edufam_admin", "principal", "teacher", "school_owner"],
+      roles: ["edufam_admin", "principal", "teacher", "school_director"],
     },
     {
       id: "messages",
@@ -175,8 +176,9 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
         "principal",
         "teacher",
         "parent",
-        "school_owner",
+        "school_director",
         "finance_officer",
+        "hr",
       ],
     },
     {
@@ -188,15 +190,16 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
         "principal",
         "teacher",
         "parent",
-        "school_owner",
+        "school_director",
         "finance_officer",
+        "hr",
       ],
     },
     {
       id: "school-activity-logs",
       label: "School Activity Logs",
       icon: ClipboardList,
-      roles: ["principal", "school_owner"],
+      roles: ["principal", "school_director"],
     },
     {
       id: "system-audit-logs",
@@ -213,8 +216,9 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
         "principal",
         "teacher",
         "parent",
-        "school_owner",
+        "school_director",
         "finance_officer",
+        "hr",
       ],
     },
   ];
@@ -271,7 +275,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: "settings",
       label: "Settings",
       icon: Settings,
-      roles: ["principal", "school_owner"],
+      roles: ["principal", "school_director"],
     });
   }
 
@@ -280,7 +284,7 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       id: "security",
       label: "Security",
       icon: Shield,
-      roles: ["principal", "school_owner"],
+      roles: ["principal", "school_director"],
     },
     {
       id: "schools",
@@ -308,12 +312,13 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     }
   );
 
-  // School Director Sidebar Items
+  // School Director Sidebar Items - inherits all school_owner functionality
   if (userRole === "school_director") {
+    // School Director has same access as former school_owner role + additional management features
     baseItems.push(
       {
         id: "school-analytics",
-        label: "School Analytics",
+        label: "School Analytics", 
         icon: TrendingUp,
         roles: ["school_director"],
       },
@@ -322,34 +327,28 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
         label: "Principal Management",
         icon: Users,
         roles: ["school_director"],
-      },
-      {
-        id: "reports",
-        label: "Reports",
-        icon: FileText,
-        roles: ["school_director"],
-      },
-      {
-        id: "support",
-        label: "Support Tickets",
-        icon: HelpCircle,
-        roles: ["school_director"],
       }
     );
   }
 
-  // HR Sidebar Items
+  // HR Sidebar Items - comprehensive HR management features
   if (userRole === "hr") {
     baseItems.push(
       {
-        id: "staff-management",
+        id: "hr-dashboard",
+        label: "HR Dashboard",
+        icon: Home,
+        roles: ["hr"],
+      },
+      {
+        id: "staff-management", 
         label: "Staff Management",
         icon: Users,
         roles: ["hr"],
       },
       {
         id: "payroll",
-        label: "Salaries/Payroll",
+        label: "Salaries/Payroll", 
         icon: DollarSign,
         roles: ["hr"],
       },
@@ -360,9 +359,21 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
         roles: ["hr"],
       },
       {
-        id: "support",
-        label: "Support Tickets",
-        icon: HelpCircle,
+        id: "hr-reports",
+        label: "HR Reports",
+        icon: FileText,
+        roles: ["hr"],
+      },
+      {
+        id: "user-management",
+        label: "User Management", 
+        icon: UserPlus,
+        roles: ["hr"],
+      },
+      {
+        id: "hr-analytics",
+        label: "HR Analytics",
+        icon: BarChart3,
         roles: ["hr"],
       }
     );

@@ -34,6 +34,25 @@ const RoleAnalyticsRenderer: React.FC<RoleAnalyticsRendererProps> = ({ role, fil
         return <FinanceOfficerAnalytics filters={filters} />;
       case "edufam_admin":
         return <EduFamAdminAnalytics />;
+      case "hr":
+        // HR has separate analytics in their dedicated dashboard
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>HR Analytics</CardTitle>
+              <CardDescription>
+                Human Resources analytics and reporting
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <AlertDescription>
+                  HR analytics are available in the dedicated HR Dashboard. Navigate to your dashboard to access HR-specific analytics and reports.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        );
       default:
         return (
           <Card>

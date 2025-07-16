@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  HelpCircle,
 } from "lucide-react";
 import { AuthUser } from "@/types/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -332,15 +333,90 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
         </TabsContent>
 
         <TabsContent value="payroll" className="space-y-4">
-          {/* TODO: Fetch and display staff payrolls (read-only or editable by permission) */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Payroll Management</CardTitle>
+              <CardDescription>
+                Manage staff salaries and compensation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {supportStaff && supportStaff.length > 0 ? (
+                <div className="space-y-4">
+                  {supportStaff
+                    .filter(staff => staff.salary_amount)
+                    .map((staff) => (
+                      <div
+                        key={staff.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div>
+                            <h4 className="font-medium">{staff.full_name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {staff.role_title} • {staff.employee_id}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">
+                            {staff.salary_currency} {staff.salary_amount?.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {staff.employment_type}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    No payroll information available. Add salary details to staff records.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="attendance" className="space-y-4">
-          {/* TODO: Fetch and display staff attendance logs if applicable */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Staff Attendance Monitoring</CardTitle>
+              <CardDescription>
+                Monitor and track staff attendance patterns
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <Calendar className="h-4 w-4" />
+                <AlertDescription>
+                  Staff attendance tracking will be integrated with the main attendance system. Contact your system administrator for setup assistance.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="support" className="space-y-4">
-          {/* TODO: Fetch, submit, and view support tickets scoped to HR user */}
+          <Card>
+            <CardHeader>
+              <CardTitle>HR Support Tickets</CardTitle>
+              <CardDescription>
+                Submit and track HR-related support requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <HelpCircle className="h-4 w-4" />
+                <AlertDescription>
+                  HR support ticket system is available through the main Support section in the sidebar. Navigate to Support to create and manage tickets.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
