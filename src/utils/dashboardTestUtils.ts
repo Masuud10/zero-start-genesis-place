@@ -89,7 +89,7 @@ export class DashboardTestUtils {
         throw new Error('User has no role assigned');
       }
       
-      const validRoles = ['edufam_admin', 'elimisha_admin', 'school_owner', 'principal', 'teacher', 'parent', 'finance_officer'];
+      const validRoles = ['edufam_admin', 'elimisha_admin', 'school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr'];
       if (!validRoles.includes(profile.role)) {
         throw new Error(`Invalid role: ${profile.role}`);
       }

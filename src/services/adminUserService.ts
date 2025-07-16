@@ -43,7 +43,7 @@ export const AdminUserService = {
       }
 
       // Validate role
-      const validRoles = ['school_owner', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
+      const validRoles = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'];
       if (!validRoles.includes(params.role)) {
         return { error: `Invalid role. Must be one of: ${validRoles.join(', ')}` };
       }
@@ -203,7 +203,7 @@ export const AdminUserService = {
       }
 
       const isSystemAdmin = ['elimisha_admin', 'edufam_admin'].includes(profile.role);
-      const isSchoolAdmin = ['school_owner', 'principal'].includes(profile.role);
+      const isSchoolAdmin = ['school_director', 'principal'].includes(profile.role);
 
       return {
         canCreateUsers: isSystemAdmin || isSchoolAdmin,

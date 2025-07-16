@@ -88,13 +88,13 @@ export const useRoleBasedRouting = () => {
   const isSchoolAdmin = (): boolean => {
     if (!user?.role) return false;
     const normalizedRole = user.role.toLowerCase();
-    return ['school_owner', 'principal'].includes(normalizedRole);
+    return ['school_director', 'principal'].includes(normalizedRole);
   };
 
   const isSchoolStaff = (): boolean => {
     if (!user?.role) return false;
     const normalizedRole = user.role.toLowerCase();
-    return ['school_owner', 'principal', 'teacher', 'finance_officer', 'hr'].includes(normalizedRole);
+    return ['school_director', 'principal', 'teacher', 'finance_officer', 'hr'].includes(normalizedRole);
   };
 
   const isHRStaff = (): boolean => {

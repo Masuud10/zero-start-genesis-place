@@ -31,6 +31,12 @@ const FinanceOfficerDashboard = React.lazy(
 const SchoolOwnerDashboard = React.lazy(
   () => import("@/components/dashboard/SchoolOwnerDashboard")
 );
+const SchoolDirectorDashboard = React.lazy(
+  () => import("@/components/dashboard/SchoolDirectorDashboard")
+);
+const HRDashboard = React.lazy(
+  () => import("@/components/dashboard/HRDashboard")
+);
 
 // Analytics and Management Components
 const SystemAnalyticsPage = React.lazy(
@@ -182,6 +188,9 @@ const SchoolOwnerSupportModule = React.lazy(
 const AcademicManagementModule = React.lazy(
   () => import("@/components/modules/AcademicManagementModule")
 );
+const StaffManagement = React.lazy(
+  () => import("@/pages/hr/StaffManagement").then(module => ({ default: module.StaffManagement }))
+);
 
 interface ContentRendererProps {
   activeSection: string;
@@ -207,7 +216,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
       const financeRoles = [
         "finance_officer",
         "principal",
-        "school_owner",
+        "school_director",
         "edufam_admin",
       ];
       return financeRoles.includes(user?.role || "");
@@ -221,14 +230,16 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         case "edufam_admin":
         case "elimisha_admin":
           return <EduFamAdminDashboard />;
-        case "school_owner":
-          return <SchoolOwnerDashboard />;
+        case "school_director":
+          return <SchoolDirectorDashboard />;
         case "principal":
           return <PrincipalDashboard user={user} />;
         case "teacher":
           return <TeacherDashboard user={user} />;
         case "finance_officer":
           return <FinanceOfficerDashboard user={user} />;
+        case "hr":
+          return <HRDashboard user={user} />;
         case "parent":
           return <ParentDashboard user={user} />;
         default:
@@ -285,6 +296,16 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         </div>
       );
     };
+
+    // Render unauthorized access message
+    const renderUnauthorizedAccess = () => (
+      <div>
+        <MaintenanceNotification />
+        <div className="p-8 text-center text-red-600">
+          Access Denied: You don't have permission to view this section.
+        </div>
+      </div>
+    );
 
     // School Management - Fix access for principals
     if (activeSection === "school-management") {
@@ -349,7 +370,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         );
       }
       // Allow principals and school directors to access their school analytics
-      if (user?.role === "principal" || user?.role === "school_owner") {
+      if (user?.role === "principal" || user?.role === "school_director") {
         return renderLazyComponent(AnalyticsDashboard, "AnalyticsDashboard");
       }
       // Allow teachers to access their class analytics
@@ -624,10 +645,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         // Special case for school directors - they get a comprehensive timetable viewer
-        if (user?.role === "school_owner") {
+        if (user?.role === "school_director") {
           return renderLazyComponent(
             SchoolOwnerTimetableView,
-            "SchoolOwnerTimetableView"
+            "SchoolDirectorTimetableView"
           );
         }
         return renderLazyComponent(TimetableModule, "TimetableModule");
@@ -644,10 +665,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         // School directors get their own comprehensive reports module
-        if (user?.role === "school_owner") {
+        if (user?.role === "school_director") {
           return renderLazyComponent(
             SchoolOwnerReportsModule,
-            "SchoolOwnerReportsModule"
+            "SchoolDirectorReportsModule"
           );
         }
         return renderLazyComponent(ReportsModule, "ReportsModule");
@@ -674,10 +695,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
           );
         }
         // School directors get their own support module
-        if (user?.role === "school_owner") {
+        if (user?.role === "school_director") {
           return renderLazyComponent(
             SchoolOwnerSupportModule,
-            "SchoolOwnerSupportModule"
+            "SchoolDirectorSupportModule"
           );
         }
         // All other roles get universal support module
@@ -693,6 +714,20 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return renderLazyComponent(InventoryManagement, "InventoryManagement");
       case "certificates":
         return renderLazyComponent(CertificatesModule, "CertificatesModule");
+      case "hr-dashboard":
+        return <HRDashboard user={user} />;
+      case "staff-management":
+        if (user?.role === "hr") {
+          return renderLazyComponent(StaffManagement, "StaffManagement");
+        }
+        return renderUnauthorizedAccess();
+      case "hr-reports":
+      case "hr-analytics":
+      case "user-management":
+        if (user?.role === "hr") {
+          return <HRDashboard user={user} />;
+        }
+        return renderUnauthorizedAccess();
       default:
         console.warn("📋 ContentRenderer: Unknown section:", activeSection);
         return (
