@@ -118,26 +118,6 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-accent/5 p-8">
-        <div className="relative z-10">
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
-                HR Dashboard
-              </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl">
-                Welcome to your Human Resources command center. Monitor staff performance, manage payroll, and gain insights into your workforce.
-              </p>
-            </div>
-            <div className="hidden md:flex items-center justify-center w-20 h-20 rounded-full bg-primary/10">
-              <Users className="w-10 h-10 text-primary" />
-            </div>
-          </div>
-        </div>
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/20 to-transparent rounded-full -translate-y-4 translate-x-4"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-accent/20 to-transparent rounded-full translate-y-4 -translate-x-4"></div>
-      </div>
 
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
