@@ -104,9 +104,7 @@ const ReportsModule = React.lazy(
 const SchoolsModule = React.lazy(
   () => import("@/components/modules/SchoolsModule")
 );
-const UsersModule = React.lazy(
-  () => import("@/components/modules/UsersModule")
-);
+import UsersModule from "@/components/modules/UsersModule";
 const BillingModule = React.lazy(
   () => import("@/components/modules/BillingModule")
 );
@@ -694,7 +692,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
       case "schools":
         return renderLazyComponent(SchoolsModule, "SchoolsModule");
       case "users":
-        return renderLazyComponent(UsersModule, "UsersModule");
+        return <UsersModule />;
       case "billing":
         return renderLazyComponent(BillingModule, "BillingModule");
       case "system-health":
