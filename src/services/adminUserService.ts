@@ -8,7 +8,7 @@ interface CreateUserParams {
   school_id?: string;
 }
 
-// Define the expected response shape from the 'create_admin_user' RPC
+// Define the expected response shape from the 'create-user' edge function
 interface CreateUserRpcResponse {
   error?: string;
   success?: boolean;
@@ -63,17 +63,19 @@ export const AdminUserService = {
         school_id: params.school_id
       });
 
-      // Call the 'create_admin_user' RPC function
-      const { data, error } = await supabase.rpc('create_admin_user', {
-        user_email: params.email,
-        user_password: params.password,
-        user_name: params.name,
-        user_role: params.role,
-        user_school_id: params.school_id || null,
+      // Call the 'create-user' edge function for proper auth setup
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: params.email,
+          password: params.password,
+          name: params.name,
+          role: params.role,
+          school_id: params.school_id || null,
+        }
       });
 
       if (error) {
-        console.error('Error calling create_admin_user RPC:', error);
+        console.error('Error calling create-user edge function:', error);
         return { 
           error: error.message || 'Database error occurred while creating user',
           details: error 
@@ -84,7 +86,7 @@ export const AdminUserService = {
       const rpcData = data as CreateUserRpcResponse;
 
       if (rpcData && rpcData.error) {
-        console.error('Error from create_admin_user RPC:', rpcData.error);
+        console.error('Error from create-user edge function:', rpcData.error);
         return { error: rpcData.error };
       }
       

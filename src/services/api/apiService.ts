@@ -555,7 +555,15 @@ export class ApiService {
       const sanitizedData = ApiService.sanitizeInput(userData);
       
       return ApiService.fetch(async () => {
-        const { data, error } = await supabase.rpc('create_admin_user', sanitizedData);
+        const { data, error } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: sanitizedData.user_email,
+            password: sanitizedData.user_password,
+            name: sanitizedData.user_name,
+            role: sanitizedData.user_role,
+            school_id: sanitizedData.user_school_id,
+          }
+        });
         
         // Clear cache after successful creation
         if (data && !error) {

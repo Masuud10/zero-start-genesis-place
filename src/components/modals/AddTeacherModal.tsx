@@ -45,13 +45,15 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({ open, onClose, onTeac
 
     setLoading(true);
     try {
-      // Use the admin function to create teacher with proper school assignment
-      const { data, error } = await supabase.rpc('create_admin_user', {
-        user_email: form.email,
-        user_password: 'TempPassword123!', // Temporary password
-        user_name: form.name,
-        user_role: 'teacher',
-        user_school_id: schoolId
+      // Use the edge function to create teacher with proper auth setup
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: form.email,
+          password: 'TempPassword123!', // Temporary password
+          name: form.name,
+          role: 'teacher',
+          school_id: schoolId
+        }
       });
 
       if (error) throw error;

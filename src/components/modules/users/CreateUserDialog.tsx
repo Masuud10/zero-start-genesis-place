@@ -96,12 +96,14 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
         user_school_id: finalSchoolId || null,
       });
 
-      const { data, error } = await supabase.rpc("create_admin_user", {
-        user_email: formData.email,
-        user_password: formData.password,
-        user_name: formData.name,
-        user_role: formData.role,
-        user_school_id: finalSchoolId || null,
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role: formData.role,
+          school_id: finalSchoolId || null,
+        }
       });
 
       if (error) throw error;
