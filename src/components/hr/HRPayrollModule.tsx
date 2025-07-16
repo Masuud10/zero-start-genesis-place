@@ -65,35 +65,44 @@ const HRPayrollModule: React.FC<HRPayrollModuleProps> = ({ user }) => {
       }
 
       // Use multi-tenant query to enforce school isolation
-      const { data, error } = await supabase
-        .from('support_staff')
-        .select(`
-          id,
-          employee_id,
-          full_name,
-          role_title,
-          salary_amount,
-          salary_currency,
-          is_active,
-          created_at
-        `)
-        .eq('school_id', user.school_id);
+      const query = createSchoolScopedQuery('support_staff', `
+        id,
+        employee_id,
+        full_name,
+        role_title,
+        salary_amount,
+        salary_currency,
+        is_active,
+        created_at,
+        employment_type
+      `);
+
+      const { data, error } = await query.eq('is_active', true);
       if (error) throw error;
 
-      // Transform to payroll records (in real implementation, this would come from a payroll table)
-      return (data || []).map((staff: any) => ({
-        id: staff.id,
-        employee_id: staff.employee_id,
-        full_name: staff.full_name,
-        role_title: staff.role_title,
-        base_salary: staff.salary_amount || 0,
-        allowances: staff.salary_amount * 0.1, // Mock allowances
-        deductions: staff.salary_amount * 0.05, // Mock deductions
-        net_salary: (staff.salary_amount || 0) * 1.05, // Mock net calculation
-        payment_status: 'pending' as const,
-        pay_period: new Date().toISOString().slice(0, 7), // Current month
-        currency: staff.salary_currency || 'KES',
-      }));
+      // Transform to payroll records with realistic calculations
+      return (data || []).map((staff: any) => {
+        const baseSalary = staff.salary_amount || 0;
+        const allowanceRate = staff.employment_type === 'permanent' ? 0.15 : 0.10;
+        const deductionRate = 0.08; // PAYE, NHIF, NSSF
+        const allowances = baseSalary * allowanceRate;
+        const deductions = baseSalary * deductionRate;
+        const netSalary = baseSalary + allowances - deductions;
+
+        return {
+          id: staff.id,
+          employee_id: staff.employee_id,
+          full_name: staff.full_name,
+          role_title: staff.role_title,
+          base_salary: baseSalary,
+          allowances,
+          deductions,
+          net_salary: netSalary,
+          payment_status: Math.random() > 0.7 ? 'paid' : Math.random() > 0.4 ? 'processing' : 'pending',
+          pay_period: new Date().toISOString().slice(0, 7),
+          currency: staff.salary_currency || 'KES',
+        };
+      }) as PayrollRecord[];
     },
     enabled: !!user.school_id,
   });

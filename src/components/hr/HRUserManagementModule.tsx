@@ -69,7 +69,8 @@ const HRUserManagementModule: React.FC<HRUserManagementModuleProps> = ({ user })
         throw new Error("No school access");
       }
 
-      const { data, error } = await supabase
+      // Get all profiles for the school
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
@@ -83,23 +84,47 @@ const HRUserManagementModule: React.FC<HRUserManagementModuleProps> = ({ user })
         .eq('school_id', user.school_id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      // Transform to system users (mock additional data)
-      return (data || []).map((profile: any) => ({
-        id: profile.id,
-        email: profile.email,
-        name: profile.name,
-        role: profile.role,
-        school_id: profile.school_id,
-        is_active: true, // Mock - in real implementation, check auth.users
-        last_login: null, // Mock - would come from auth logs
-        created_at: profile.created_at,
-        permissions: ['read', 'write'], // Mock permissions
-      })) as SystemUser[];
+      // Get support staff data for additional user info
+      const { data: supportStaff, error: staffError } = await supabase
+        .from('support_staff')
+        .select('id, employee_id, full_name, role_title, phone, email, is_active')
+        .eq('school_id', user.school_id);
+
+      if (staffError) throw staffError;
+
+      // Merge profile and support staff data
+      return (profiles || []).map((profile: any) => {
+        const staffInfo = supportStaff?.find(staff => staff.email === profile.email);
+        
+        return {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name || staffInfo?.full_name || 'Unnamed User',
+          role: profile.role,
+          school_id: profile.school_id,
+          is_active: staffInfo?.is_active ?? true,
+          last_login: null, // Would come from auth logs in real implementation
+          created_at: profile.created_at,
+          permissions: getRolePermissions(profile.role),
+        };
+      }) as SystemUser[];
     },
     enabled: !!user.school_id,
   });
+
+  const getRolePermissions = (role: string): string[] => {
+    const rolePermissions = {
+      'principal': ['all'],
+      'teacher': ['read', 'write_own', 'grade'],
+      'finance_officer': ['read', 'financial_write'],
+      'parent': ['read_own_child'],
+      'school_owner': ['all'],
+      'hr': ['read', 'user_management', 'staff_management'],
+    };
+    return rolePermissions[role as keyof typeof rolePermissions] || ['read'];
+  };
 
   // Calculate user summary
   const userSummary = React.useMemo(() => {

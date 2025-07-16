@@ -8,7 +8,8 @@ const VALID_TABLES = [
   'students', 'classes', 'subjects', 'timetables', 'announcements',
   'support_tickets', 'messages', 'grades', 'attendance', 'fees',
   'profiles', 'schools', 'academic_years', 'academic_terms',
-  'cbc_assessments', 'competency_progress', 'learner_portfolios', 'parent_engagements'
+  'cbc_assessments', 'competency_progress', 'learner_portfolios', 'parent_engagements',
+  'support_staff'
 ] as const;
 
 type ValidTableName = typeof VALID_TABLES[number];
@@ -41,6 +42,7 @@ export const useMultiTenantQuery = () => {
       case 'grades':
       case 'attendance':
       case 'fees':
+      case 'support_staff':
         return query.eq('school_id', schoolId);
       
       case 'profiles':
