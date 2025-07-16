@@ -26,6 +26,7 @@ import { AuthUser } from "@/types/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EditStaffDialog } from "@/components/hr/EditStaffDialog";
 import { SupportStaff } from "@/types/supportStaff";
+import HRAnalyticsOverview from "@/components/hr/HRAnalyticsOverview";
 
 interface HRDashboardProps {
   user: AuthUser;
@@ -171,6 +172,19 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* HR Analytics Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>HR Analytics Overview</CardTitle>
+          <CardDescription>
+            Comprehensive analytics and insights for human resources
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <HRAnalyticsOverview user={user} />
+        </CardContent>
+      </Card>
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="staff" className="space-y-4">

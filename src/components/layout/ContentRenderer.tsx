@@ -37,6 +37,15 @@ const SchoolDirectorDashboard = React.lazy(
 const HRDashboard = React.lazy(
   () => import("@/components/dashboard/HRDashboard")
 );
+const HRStaffManagement = React.lazy(
+  () => import("@/components/hr/HRStaffManagement")
+);
+const HRReportsModule = React.lazy(
+  () => import("@/components/hr/HRReportsModule")
+);
+const HRAnalyticsOverview = React.lazy(
+  () => import("@/components/hr/HRAnalyticsOverview")
+);
 
 // Analytics and Management Components
 const SystemAnalyticsPage = React.lazy(
