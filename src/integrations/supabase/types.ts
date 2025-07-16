@@ -8470,6 +8470,10 @@ export type Database = {
         Args: { user_role: string }
         Returns: boolean
       }
+      test_hr_authentication: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       update_company_metrics: {
         Args: Record<PropertyKey, never>
         Returns: undefined
