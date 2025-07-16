@@ -8977,6 +8977,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      test_sharon_hr_authentication: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       update_company_metrics: {
         Args: Record<PropertyKey, never>
         Returns: undefined
