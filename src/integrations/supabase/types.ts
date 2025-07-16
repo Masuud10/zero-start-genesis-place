@@ -9032,6 +9032,10 @@ export type Database = {
         Args: { p_grade_data: Json }
         Returns: Json
       }
+      verify_hr_access: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
