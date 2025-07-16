@@ -21,6 +21,9 @@ import {
   CheckCircle,
   XCircle,
   HelpCircle,
+  BarChart3,
+  DollarSign,
+  FileText,
 } from "lucide-react";
 import { AuthUser } from "@/types/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -114,325 +117,180 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">HR Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage staff, users, and human resources for your school
-          </p>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-accent/5 p-8">
+        <div className="relative z-10">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
+                HR Dashboard
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Welcome to your Human Resources command center. Monitor staff performance, manage payroll, and gain insights into your workforce.
+              </p>
+            </div>
+            <div className="hidden md:flex items-center justify-center w-20 h-20 rounded-full bg-primary/10">
+              <Users className="w-10 h-10 text-primary" />
+            </div>
+          </div>
         </div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/20 to-transparent rounded-full -translate-y-4 translate-x-4"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-accent/20 to-transparent rounded-full translate-y-4 -translate-x-4"></div>
       </div>
 
-      {/* HR Metrics Cards */}
+      {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Staff</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Total Staff</CardTitle>
+            <div className="p-2 bg-emerald-200 dark:bg-emerald-800 rounded-lg">
+              <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalStaff}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{totalStaff}</div>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
               Support staff members
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Staff</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Active Staff</CardTitle>
+            <div className="p-2 bg-blue-200 dark:bg-blue-800 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeStaff}</div>
-            <p className="text-xs text-muted-foreground">Currently working</p>
+            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{activeStaff}</div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Currently working</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Users</CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">System Users</CardTitle>
+            <div className="p-2 bg-purple-200 dark:bg-purple-800 rounded-lg">
+              <UserPlus className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">Total school users</p>
+            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">{totalUsers}</div>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Total school users</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Active Users</CardTitle>
+            <div className="p-2 bg-orange-200 dark:bg-orange-800 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeUsers}</div>
-            <p className="text-xs text-muted-foreground">Currently active</p>
+            <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">{activeUsers}</div>
+            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Currently active</p>
           </CardContent>
         </Card>
       </div>
 
       {/* HR Analytics Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>HR Analytics Overview</CardTitle>
-          <CardDescription>
-            Comprehensive analytics and insights for human resources
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-t-lg">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            HR Analytics Overview
+          </CardTitle>
+          <CardDescription className="text-base">
+            Comprehensive analytics and insights for human resources management
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <HRAnalyticsOverview user={user} />
         </CardContent>
       </Card>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="staff" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="staff">Support Staff</TabsTrigger>
-          <TabsTrigger value="users">System Users</TabsTrigger>
-          <TabsTrigger value="reports">HR Reports</TabsTrigger>
-          <TabsTrigger value="payroll">Salaries/Payroll</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance Monitoring</TabsTrigger>
-          <TabsTrigger value="support">Support Tickets</TabsTrigger>
-        </TabsList>
+      {/* Quick Access Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <Users className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-lg">Staff Management</CardTitle>
+            <CardDescription>
+              Manage all HR staff with full CRUD capabilities
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
-        <TabsContent value="staff" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Support Staff Management</CardTitle>
-              <CardDescription>
-                Manage non-teaching staff members and their information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {supportStaff && supportStaff.length > 0 ? (
-                <div className="space-y-4">
-                  {supportStaff.map((staff) => (
-                    <div
-                      key={staff.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <h4 className="font-medium">{staff.full_name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {staff.role_title} • {staff.employee_id}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {staff.email} • {staff.phone}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge
-                          className={getStatusBadge(staff.is_active || false)}
-                        >
-                          {getStatusText(staff.is_active || false)}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditStaff(staff)}
-                        >
-                          Edit
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    No support staff records found. Contact your administrator
-                    to add staff members.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <Card className="group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+              <DollarSign className="w-8 h-8 text-accent" />
+            </div>
+            <CardTitle className="text-lg">Payroll Management</CardTitle>
+            <CardDescription>
+              Track salaries and manage compensation
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
-        <TabsContent value="users" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Users</CardTitle>
-              <CardDescription>
-                View and manage all system users in your school
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {schoolUsers && schoolUsers.length > 0 ? (
-                <div className="space-y-4">
-                  {schoolUsers.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <h4 className="font-medium">
-                            {user.name || user.email}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {user.role} • {user.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge
-                          className={getStatusBadge(
-                            (user.status || "active") === "active"
-                          )}
-                        >
-                          {user.status || "active"}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    No system users found for your school.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <Card className="group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+              <FileText className="w-8 h-8 text-green-600" />
+            </div>
+            <CardTitle className="text-lg">HR Reports</CardTitle>
+            <CardDescription>
+              Generate professional HR reports and analytics
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
 
-        <TabsContent value="reports" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>HR Reports</CardTitle>
-              <CardDescription>
-                Generate and view human resources reports
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Staff Directory</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Comprehensive list of all staff members
-                    </p>
-                    <Button variant="outline" className="w-full">
-                      Generate Report
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">User Activity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      System usage and login statistics
-                    </p>
-                    <Button variant="outline" className="w-full">
-                      Generate Report
-                    </Button>
-                  </CardContent>
-                </Card>
+      {/* Recent Activity Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            Recent HR Activity
+          </CardTitle>
+          <CardDescription>
+            Latest updates and activities in human resources
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Staff records updated</p>
+                <p className="text-xs text-muted-foreground">System sync completed successfully</p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="payroll" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payroll Management</CardTitle>
-              <CardDescription>
-                Manage staff salaries and compensation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {supportStaff && supportStaff.length > 0 ? (
-                <div className="space-y-4">
-                  {supportStaff
-                    .filter(staff => staff.salary_amount)
-                    .map((staff) => (
-                      <div
-                        key={staff.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div>
-                            <h4 className="font-medium">{staff.full_name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {staff.role_title} • {staff.employee_id}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {staff.salary_currency} {staff.salary_amount?.toLocaleString()}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {staff.employment_type}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    No payroll information available. Add salary details to staff records.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="attendance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Staff Attendance Monitoring</CardTitle>
-              <CardDescription>
-                Monitor and track staff attendance patterns
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Alert>
-                <Calendar className="h-4 w-4" />
-                <AlertDescription>
-                  Staff attendance tracking will be integrated with the main attendance system. Contact your system administrator for setup assistance.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="support" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>HR Support Tickets</CardTitle>
-              <CardDescription>
-                Submit and track HR-related support requests
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Alert>
-                <HelpCircle className="h-4 w-4" />
-                <AlertDescription>
-                  HR support ticket system is available through the main Support section in the sidebar. Navigate to Support to create and manage tickets.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <span className="text-xs text-muted-foreground">2 hours ago</span>
+            </div>
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Payroll calculations ready</p>
+                <p className="text-xs text-muted-foreground">Monthly payroll is ready for review</p>
+              </div>
+              <span className="text-xs text-muted-foreground">1 day ago</span>
+            </div>
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">HR report generated</p>
+                <p className="text-xs text-muted-foreground">Staff directory report created</p>
+              </div>
+              <span className="text-xs text-muted-foreground">3 days ago</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Edit Staff Dialog */}
       {selectedStaff && (

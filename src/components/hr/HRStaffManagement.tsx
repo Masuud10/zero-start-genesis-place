@@ -27,9 +27,10 @@ import { EditStaffDialog } from "@/components/hr/EditStaffDialog";
 
 interface HRStaffManagementProps {
   user: AuthUser;
+  mode?: 'staff' | 'payroll' | 'attendance' | 'users';
 }
 
-const HRStaffManagement: React.FC<HRStaffManagementProps> = ({ user }) => {
+const HRStaffManagement: React.FC<HRStaffManagementProps> = ({ user, mode = 'staff' }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -93,13 +94,144 @@ const HRStaffManagement: React.FC<HRStaffManagementProps> = ({ user }) => {
     return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
+  const getPageTitle = () => {
+    switch (mode) {
+      case 'payroll': return 'Payroll Management';
+      case 'attendance': return 'Attendance Monitoring';
+      case 'users': return 'User Management';
+      default: return 'Staff Management';
+    }
+  };
+
+  const getPageDescription = () => {
+    switch (mode) {
+      case 'payroll': return 'Manage staff salaries and compensation';
+      case 'attendance': return 'Monitor and track staff attendance patterns';
+      case 'users': return 'Manage system users and permissions';
+      default: return 'Manage and monitor all support staff members';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <Users className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading staff data...</p>
+          <p className="text-muted-foreground">Loading {getPageTitle().toLowerCase()}...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Payroll Mode - Show salary-focused view
+  if (mode === 'payroll') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{getPageTitle()}</h2>
+            <p className="text-muted-foreground">{getPageDescription()}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {filteredStaff.filter(staff => staff.salary_amount).map((staff) => (
+            <Card key={staff.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-primary font-semibold">
+                        {staff.full_name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-lg">{staff.full_name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {staff.role_title} • {staff.employee_id}
+                      </p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {staff.employment_type} Employee
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-2xl text-primary">
+                      {staff.salary_currency} {staff.salary_amount?.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Monthly Salary
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredStaff.filter(staff => staff.salary_amount).length === 0 && (
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">
+              No payroll data available
+            </h3>
+            <p className="text-muted-foreground">
+              Staff members need salary information to appear in payroll management.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Attendance Mode - Show attendance tracking placeholder
+  if (mode === 'attendance') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{getPageTitle()}</h2>
+            <p className="text-muted-foreground">{getPageDescription()}</p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-12 text-center">
+            <UserCheck className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-medium text-muted-foreground mb-2">
+              Attendance Monitoring Coming Soon
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Staff attendance tracking integration is in development. This will sync with the main attendance system for comprehensive monitoring.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Users Mode - Show user management placeholder
+  if (mode === 'users') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{getPageTitle()}</h2>
+            <p className="text-muted-foreground">{getPageDescription()}</p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-medium text-muted-foreground mb-2">
+              User Management Enhancement
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Advanced user management features are being developed. This will include role management, permissions, and user activity monitoring.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -108,10 +240,8 @@ const HRStaffManagement: React.FC<HRStaffManagementProps> = ({ user }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Staff Management</h2>
-          <p className="text-muted-foreground">
-            Manage and monitor all support staff members
-          </p>
+          <h2 className="text-2xl font-bold tracking-tight">{getPageTitle()}</h2>
+          <p className="text-muted-foreground">{getPageDescription()}</p>
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />

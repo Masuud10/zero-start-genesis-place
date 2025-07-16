@@ -733,12 +733,18 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return renderUnauthorizedAccess();
       case "payroll":
         if (user?.role === "hr") {
-          return <HRDashboard user={user} />;
+          return renderLazyComponent(HRStaffManagement, "PayrollManagement", { 
+            user, 
+            mode: "payroll" 
+          });
         }
         return renderUnauthorizedAccess();
       case "attendance-monitoring":
         if (user?.role === "hr") {
-          return <HRDashboard user={user} />;
+          return renderLazyComponent(HRStaffManagement, "AttendanceMonitoring", { 
+            user, 
+            mode: "attendance" 
+          });
         }
         return renderUnauthorizedAccess();
       case "hr-reports":
@@ -753,7 +759,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         return renderUnauthorizedAccess();
       case "user-management":
         if (user?.role === "hr") {
-          return <HRDashboard user={user} />;
+          return renderLazyComponent(HRStaffManagement, "UserManagement", { 
+            user, 
+            mode: "users" 
+          });
         }
         return renderUnauthorizedAccess();
       default:
