@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSchoolScopedData } from '@/hooks/useSchoolScopedData';
 import { AdminUserService } from '@/services/adminUserService';
+import { useAdminUsersData } from '@/hooks/useAdminUsersData';
 import UserStatsCards from './users/UserStatsCards';
 import CreateUserDialog from './users/CreateUserDialog';
 import UsersFilter from './users/UsersFilter';
@@ -32,111 +33,44 @@ interface User {
 }
 
 const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const { isSystemAdmin, schoolId } = useSchoolScopedData();
 
-  useEffect(() => {
-    if (user) {
-      fetchUsers();
-    }
-  }, [user]);
+  // Use the secure admin users data hook
+  const { data: adminUsersData, isLoading: loading, error: queryError, refetch } = useAdminUsersData(refreshKey);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Check if user has permission to view users
-      if (!user || !['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role)) {
-        throw new Error('You do not have permission to view users');
-      }
+  // Transform admin users data to match User interface
+  const users: User[] = adminUsersData ? adminUsersData.map((userData: any) => ({
+    id: userData.id,
+    name: userData.name || '',
+    email: userData.email || '',
+    role: userData.role || '',
+    status: userData.status || 'active',
+    created_at: userData.created_at || '',
+    updated_at: userData.updated_at || '',
+    school_id: userData.school_id || undefined,
+    phone: userData.phone || '',
+    school: userData.school_name ? { name: userData.school_name } : undefined
+  })) : [];
 
-      // Add timeout protection
-      const fetchTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('User fetch timeout after 15 seconds')), 15000)
-      );
+  const error = queryError?.message || null;
 
-      const fetchPromise = AdminUserService.getUsersForSchool();
-
-      const { data, error: fetchError } = await Promise.race([
-        fetchPromise,
-        fetchTimeout
-      ]) as any;
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      if (!data) {
-        setUsers([]);
-        return;
-      }
-
-      // Transform the data to match our User interface
-      const transformedUsers: User[] = data.map((profile: any) => {
-        let schoolInfo: { name: string } | undefined = undefined;
-        
-        // Handle school data - it can come as null, object, or array
-        if (profile.school) {
-          if (Array.isArray(profile.school)) {
-            // If school is an array, take the first element
-            schoolInfo = profile.school.length > 0 ? { name: profile.school[0].name } : undefined;
-          } else if (profile.school && typeof profile.school === 'object' && profile.school.name) {
-            // If school is already an object with name property
-            schoolInfo = { name: profile.school.name };
-          }
-        }
-        
-        return {
-          id: profile.id,
-          name: profile.name || '',
-          email: profile.email || '',
-          role: profile.role || '',
-          status: profile.status || 'active',
-          created_at: profile.created_at || '',
-          updated_at: profile.updated_at || '',
-          school_id: profile.school_id || undefined,
-          phone: profile.phone || '',
-          school: schoolInfo
-        };
-      });
-      
-      // Additional filtering for non-system admins
-      const finalUsers = isSystemAdmin ? transformedUsers : transformedUsers.filter(u => {
-        const userSchoolId = schoolId;
-        return userSchoolId && u.school_id === userSchoolId;
-      });
-      
-      setUsers(finalUsers);
-
-      if (onDataChanged) onDataChanged();
-
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Unknown error occurred while fetching users';
-      setError(errorMessage);
-      
-      toast({
-        title: "Error",
-        description: `Failed to fetch users: ${errorMessage}`,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const fetchUsers = () => {
+    setRefreshKey(prev => prev + 1);
+    refetch();
+    if (onDataChanged) onDataChanged();
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+  const filteredUsers = users.filter(userItem => {
+    const matchesSearch = userItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         userItem.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || userItem.role === roleFilter;
+    const matchesStatus = statusFilter === 'all' || userItem.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 

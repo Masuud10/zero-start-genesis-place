@@ -35,8 +35,17 @@ export class EduFamAdminService {
         throw healthResult.error;
       }
 
-      const analytics = analyticsResult.data;
-      const health = healthResult.data;
+      const analytics = analyticsResult.data as {
+        total_schools?: number;
+        total_users?: number;
+        active_users?: number;
+      };
+      
+      const health = healthResult.data as {
+        uptime_percentage?: number;
+        performance_score?: number;
+        recent_errors?: number;
+      };
 
       return {
         totalSchools: analytics.total_schools || 0,
@@ -71,8 +80,9 @@ export class EduFamAdminService {
         throw error;
       }
 
-      console.log('✅ User status updated successfully:', data);
-      return data.success;
+      const response = data as { success?: boolean };
+      console.log('✅ User status updated successfully:', response);
+      return response.success || false;
     } catch (error) {
       console.error('❌ EduFamAdminService: Error updating user status:', error);
       throw error;

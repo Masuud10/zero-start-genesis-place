@@ -80,17 +80,27 @@ export class SystemAnalyticsService {
         console.warn('⚠️ SystemAnalyticsService: Some supplementary data failed to load');
       }
 
+      // Type the analytics response
+      const typedAnalytics = analyticsData as {
+        total_schools?: number;
+        total_users?: number;
+        active_users?: number;
+        new_users_this_month?: number;
+        new_schools_this_month?: number;
+        user_role_distribution?: Record<string, number>;
+      };
+
       const realAnalytics = {
-        totalSchools: analyticsData.total_schools || 0,
-        activeSchools: analyticsData.total_schools || 0,
-        totalUsers: analyticsData.total_users || 0,
-        activeUsers: analyticsData.active_users || 0,
-        newUsersThisMonth: analyticsData.new_users_this_month || 0,
-        newSchoolsThisMonth: analyticsData.new_schools_this_month || 0,
-        userRoleDistribution: analyticsData.user_role_distribution || {},
-        schoolsByStatus: { active: analyticsData.total_schools || 0 },
-        totalRevenue: (analyticsData.total_schools || 0) * 25000, // Estimate based on schools
-        monthlyRevenue: (analyticsData.total_schools || 0) * 5000 // Monthly estimate
+        totalSchools: typedAnalytics.total_schools || 0,
+        activeSchools: typedAnalytics.total_schools || 0,
+        totalUsers: typedAnalytics.total_users || 0,
+        activeUsers: typedAnalytics.active_users || 0,
+        newUsersThisMonth: typedAnalytics.new_users_this_month || 0,
+        newSchoolsThisMonth: typedAnalytics.new_schools_this_month || 0,
+        userRoleDistribution: typedAnalytics.user_role_distribution || {},
+        schoolsByStatus: { active: typedAnalytics.total_schools || 0 },
+        totalRevenue: (typedAnalytics.total_schools || 0) * 25000, // Estimate based on schools
+        monthlyRevenue: (typedAnalytics.total_schools || 0) * 5000 // Monthly estimate
       };
 
       const { data: accurateAnalytics, error } = { data: realAnalytics, error: null };

@@ -52,6 +52,15 @@ const SystemHealthStatusCard = () => {
     );
   }
 
+  // Type the health data response
+  const healthInfo = healthData as {
+    active_connections?: number;
+    database_size_mb?: number;
+    recent_errors?: number;
+    performance_score?: number;
+    last_checked?: string;
+  } | null;
+
   // Use real data or fallback to mock data
   const healthMetrics = [
     {
@@ -64,32 +73,32 @@ const SystemHealthStatusCard = () => {
     },
     {
       name: 'Database',
-      status: healthData?.active_connections > 0 ? 'healthy' : 'warning',
-      value: healthData ? `${healthData.active_connections} connections` : 'Connected',
+      status: (healthInfo?.active_connections || 0) > 0 ? 'healthy' : 'warning',
+      value: healthInfo ? `${healthInfo.active_connections || 0} connections` : 'Connected',
       icon: Database,
-      color: healthData?.active_connections > 0 ? 'text-green-600' : 'text-yellow-600',
-      bgColor: healthData?.active_connections > 0 ? 'bg-green-50' : 'bg-yellow-50'
+      color: (healthInfo?.active_connections || 0) > 0 ? 'text-green-600' : 'text-yellow-600',
+      bgColor: (healthInfo?.active_connections || 0) > 0 ? 'bg-green-50' : 'bg-yellow-50'
     },
     {
       name: 'Storage',
       status: 'healthy',
-      value: healthData ? `${healthData.database_size_mb} MB` : '< 100MB',
+      value: healthInfo ? `${healthInfo.database_size_mb || 0} MB` : '< 100MB',
       icon: Database,
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
       name: 'Security',
-      status: healthData?.recent_errors === 0 ? 'healthy' : 'warning',
-      value: healthData ? `${healthData.recent_errors} errors` : 'Secure',
+      status: (healthInfo?.recent_errors || 0) === 0 ? 'healthy' : 'warning',
+      value: healthInfo ? `${healthInfo.recent_errors || 0} errors` : 'Secure',
       icon: Shield,
-      color: healthData?.recent_errors === 0 ? 'text-green-600' : 'text-yellow-600',
-      bgColor: healthData?.recent_errors === 0 ? 'bg-green-50' : 'bg-yellow-50'
+      color: (healthInfo?.recent_errors || 0) === 0 ? 'text-green-600' : 'text-yellow-600',
+      bgColor: (healthInfo?.recent_errors || 0) === 0 ? 'bg-green-50' : 'bg-yellow-50'
     },
     {
       name: 'Performance',
       status: 'healthy',
-      value: healthData ? `${healthData.performance_score}%` : '99.9%',
+      value: healthInfo ? `${healthInfo.performance_score || 99.9}%` : '99.9%',
       icon: Clock,
       color: 'text-green-600',
       bgColor: 'bg-green-50'
@@ -137,15 +146,15 @@ const SystemHealthStatusCard = () => {
               <p className="text-sm text-blue-700">
                 {overallStatus === 'healthy' ? 'All systems running optimally' : 'Some systems need attention'}
               </p>
-              {healthData && (
+              {healthInfo && healthInfo.last_checked && (
                 <div className="text-xs text-blue-600 mt-1">
-                  Last checked: {new Date(healthData.last_checked).toLocaleTimeString()}
+                  Last checked: {new Date(healthInfo.last_checked).toLocaleTimeString()}
                 </div>
               )}
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-blue-600">
-                {healthData ? `${healthData.performance_score}%` : '98.7%'}
+                {healthInfo ? `${healthInfo.performance_score || 98.7}%` : '98.7%'}
               </div>
               <div className="text-xs text-blue-500">Performance Score</div>
             </div>
