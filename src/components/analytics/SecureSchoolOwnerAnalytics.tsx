@@ -29,7 +29,9 @@ const SecureSchoolOwnerAnalytics = ({ filters }: SecureSchoolOwnerAnalyticsProps
     analyticsLoading,
     financeLoading,
     hasAnalytics: !!analytics,
-    hasFinanceData: !!financeData
+    hasFinanceData: !!financeData,
+    roleCheck: userRole === 'school_owner',
+    expectedRole: 'school_owner'
   });
 
   // Security check: Ensure user has proper role
