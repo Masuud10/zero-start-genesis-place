@@ -82,6 +82,28 @@ const UsersModule: React.FC<UsersModuleProps> = ({ onDataChanged }) => {
     user.role === 'principal'
   );
 
+  // Authentication check - show error if user is not logged in
+  if (!user) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5" />
+            Authentication Required
+          </CardTitle>
+          <CardDescription>
+            You must be logged in to access the user management module.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-600">
+            Please log in as an EduFam administrator to continue.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Permission check - show error if user doesn't have access
   if (user && !['elimisha_admin', 'edufam_admin', 'school_owner', 'principal'].includes(user.role)) {
     return (
