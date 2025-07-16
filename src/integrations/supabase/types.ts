@@ -8500,6 +8500,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_update_user_status: {
+        Args: { target_user_id: string; new_status: string }
+        Returns: Json
+      }
       armor: {
         Args: { "": string }
         Returns: string
@@ -8780,6 +8784,44 @@ export type Database = {
           user_role_distribution: Json
         }[]
       }
+      get_admin_schools_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          email: string
+          phone: string
+          address: string
+          location: string
+          created_at: string
+          updated_at: string
+          owner_id: string
+          logo_url: string
+          website_url: string
+          motto: string
+          slogan: string
+          registration_number: string
+          year_established: number
+          owner_information: string
+          school_type: string
+          status: string
+          term_structure: string
+        }[]
+      }
+      get_admin_users_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          email: string
+          role: string
+          created_at: string
+          updated_at: string
+          status: string
+          school_id: string
+          school_name: string
+        }[]
+      }
       get_class_report_data: {
         Args: { p_class_id: string; p_academic_year: string; p_term?: string }
         Returns: Json
@@ -8816,7 +8858,15 @@ export type Database = {
         Args: { p_student_id: string; p_academic_year: string; p_term?: string }
         Returns: Json
       }
+      get_system_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_system_analytics_accurate: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_system_health: {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
@@ -8850,6 +8900,10 @@ export type Database = {
           p_student_fee_id: string
         }
         Returns: Json
+      }
+      is_edufam_admin: {
+        Args: { user_id?: string }
+        Returns: boolean
       }
       is_finance_officer_authorized_for_school: {
         Args: { p_school_id: string }

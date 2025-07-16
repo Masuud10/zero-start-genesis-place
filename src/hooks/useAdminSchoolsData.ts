@@ -33,30 +33,8 @@ export function useAdminSchoolsData(refreshKey = 0) {
           // Validate query parameters
           QueryOptimizer.validateQueryParams({ user_id: user.id, role: user.role });
           
-          const { data, error } = await supabase
-            .from('schools')
-            .select(`
-              id, 
-              name, 
-              email, 
-              phone, 
-              address, 
-              location,
-              created_at,
-              updated_at,
-              owner_id,
-              logo_url,
-              website_url,
-              motto,
-              slogan,
-              registration_number,
-              year_established,
-              owner_information,
-              school_type,
-              status,
-              term_structure
-            `)
-            .order('created_at', { ascending: false });
+          // Use the secure database function for EduFam admins
+          const { data, error } = await supabase.rpc('get_admin_schools_data');
 
           if (error) {
             console.error('❌ useAdminSchoolsData: Supabase error:', error);

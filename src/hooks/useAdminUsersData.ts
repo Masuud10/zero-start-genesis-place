@@ -34,17 +34,8 @@ export function useAdminUsersData(refreshKey = 0) {
           // Validate query parameters
           QueryOptimizer.validateQueryParams({ user_id: user.id, role: user.role });
           
-          // Optimized query with proper error handling and data validation
-          const { data, error } = await supabase
-            .from('profiles')
-            .select(`
-              id, name, email, role, created_at, updated_at, status, school_id,
-              school:schools!fk_profiles_school(
-                id, name, status
-              )
-            `)
-            .order('created_at', { ascending: false })
-            .limit(1000); // Prevent excessive data loading
+          // Use the secure database function for EduFam admins
+          const { data, error } = await supabase.rpc('get_admin_users_data');
 
           if (error) {
             console.error('❌ Error fetching users:', error);
