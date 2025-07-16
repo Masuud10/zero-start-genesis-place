@@ -171,7 +171,7 @@ export class SupportStaffService {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, name, role')
-      .in('role', ['principal', 'school_owner', 'teacher', 'hr'])
+      .in('role', ['principal', 'school_director', 'teacher', 'hr'])
       .eq('school_id', await this.getCurrentUserSchoolId());
 
     if (error) {
