@@ -46,7 +46,7 @@ export interface MenuItem {
 
 export const getMenuItems = (userRole?: string): MenuItem[] => {
   const baseItems: MenuItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'hr'] },
   ];
 
   // System admin specific items - ensure Project Hub is prominently placed
@@ -156,6 +156,23 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
       { id: 'reports', label: 'Progress Reports', icon: FileText, roles: ['parent'] },
       { id: 'support', label: 'Support', icon: Headphones, roles: ['parent'] },
       { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['parent'] },
+    ];
+  }
+
+  // HR - Human Resources role access
+  if (userRole === 'hr') {
+    return [
+      ...baseItems,
+      { id: 'hr-dashboard', label: 'HR Dashboard', icon: LayoutDashboard, roles: ['hr'] },
+      { id: 'staff-management', label: 'Staff Management', icon: Users, roles: ['hr'] },
+      { id: 'payroll', label: 'Payroll Management', icon: DollarSign, roles: ['hr'] },
+      { id: 'attendance-monitoring', label: 'Attendance Monitoring', icon: CalendarCheck, roles: ['hr'] },
+      { id: 'hr-reports', label: 'HR Reports', icon: FileText, roles: ['hr'] },
+      { id: 'user-management', label: 'User Management', icon: UserPlus, roles: ['hr'] },
+      { id: 'hr-analytics', label: 'HR Analytics', icon: BarChart3, roles: ['hr'] },
+      { id: 'announcements', label: 'HR Announcements', icon: Megaphone, roles: ['hr'] },
+      { id: 'support', label: 'Support', icon: Headphones, roles: ['hr'] },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['hr'] },
     ];
   }
 
