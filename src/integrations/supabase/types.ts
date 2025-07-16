@@ -8734,6 +8734,10 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_hr_user_reset_instructions: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       generate_invoice_number: {
         Args: Record<PropertyKey, never>
         Returns: string
