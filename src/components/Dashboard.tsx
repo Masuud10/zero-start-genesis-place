@@ -125,6 +125,8 @@ const Dashboard: React.FC = () => {
 
   // Route to appropriate dashboard based on user role with proper logging
   console.log("🎯 Dashboard: Routing based on role:", user.role);
+  console.log("🎯 Dashboard: Normalized role:", normalizedRole);
+  console.log("🎯 Dashboard: User object:", user);
 
   try {
     switch (normalizedRole) {

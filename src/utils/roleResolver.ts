@@ -110,7 +110,7 @@ export class RoleResolver {
       case 'elimisha_admin':
         return '/dashboard';
       case 'hr':
-        return hasSchoolAssignment ? '/hr' : '/setup';
+        return hasSchoolAssignment ? '/dashboard' : '/setup';
       case 'school_owner':
       case 'principal':
       case 'teacher':
