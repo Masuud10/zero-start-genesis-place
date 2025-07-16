@@ -5641,6 +5641,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string | null
+          director_id: string | null
           email: string | null
           id: string
           location: string | null
@@ -5662,6 +5663,7 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string | null
+          director_id?: string | null
           email?: string | null
           id?: string
           location?: string | null
@@ -5683,6 +5685,7 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string | null
+          director_id?: string | null
           email?: string | null
           id?: string
           location?: string | null
@@ -5702,6 +5705,13 @@ export type Database = {
           year_established?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "schools_director_id_fkey"
+            columns: ["director_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "schools_owner_id_fkey"
             columns: ["owner_id"]
@@ -8568,13 +8578,14 @@ export type Database = {
           user_email: string
           user_password: string
           user_name: string
-          user_role?: string
+          user_role: string
           user_school_id?: string
         }
         Returns: Json
       }
       create_comprehensive_school: {
         Args:
+          | { school_data: Json }
           | {
               school_name: string
               school_email: string
@@ -8648,44 +8659,24 @@ export type Database = {
         Returns: Json
       }
       create_enhanced_school: {
-        Args:
-          | {
-              school_name: string
-              school_email: string
-              school_phone: string
-              school_address: string
-              logo_url?: string
-              website_url?: string
-              motto?: string
-              slogan?: string
-              school_type?: string
-              registration_number?: string
-              year_established?: number
-              term_structure?: string
-              owner_information?: string
-              owner_email?: string
-              owner_name?: string
-              owner_phone?: string
-            }
-          | {
-              school_name: string
-              school_email: string
-              school_phone: string
-              school_address: string
-              logo_url?: string
-              website_url?: string
-              motto?: string
-              slogan?: string
-              school_type?: string
-              registration_number?: string
-              year_established?: number
-              term_structure?: string
-              owner_information?: string
-              owner_email?: string
-              owner_name?: string
-              owner_phone?: string
-              curriculum_type?: string
-            }
+        Args: {
+          school_name: string
+          school_email: string
+          school_phone: string
+          school_address: string
+          logo_url?: string
+          website_url?: string
+          motto?: string
+          slogan?: string
+          school_type?: string
+          registration_number?: string
+          year_established?: number
+          term_structure?: string
+          owner_information?: string
+          owner_email?: string
+          owner_name?: string
+          owner_phone?: string
+        }
         Returns: Json
       }
       create_monthly_subscription_fees: {
