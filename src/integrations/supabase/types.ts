@@ -5076,6 +5076,128 @@ export type Database = {
         }
         Relationships: []
       }
+      recruitment_applications: {
+        Row: {
+          applicant_name: string
+          application_date: string
+          cover_letter_url: string | null
+          created_at: string
+          cv_url: string | null
+          department: string | null
+          email: string
+          experience_years: number | null
+          hired_as_staff_id: string | null
+          id: string
+          interview_date: string | null
+          interview_notes: string | null
+          interviewer_id: string | null
+          notes: string | null
+          phone: string | null
+          position_title: string
+          qualifications: Json | null
+          salary_offered: number | null
+          school_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_name: string
+          application_date?: string
+          cover_letter_url?: string | null
+          created_at?: string
+          cv_url?: string | null
+          department?: string | null
+          email: string
+          experience_years?: number | null
+          hired_as_staff_id?: string | null
+          id?: string
+          interview_date?: string | null
+          interview_notes?: string | null
+          interviewer_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          position_title: string
+          qualifications?: Json | null
+          salary_offered?: number | null
+          school_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_name?: string
+          application_date?: string
+          cover_letter_url?: string | null
+          created_at?: string
+          cv_url?: string | null
+          department?: string | null
+          email?: string
+          experience_years?: number | null
+          hired_as_staff_id?: string | null
+          id?: string
+          interview_date?: string | null
+          interview_notes?: string | null
+          interviewer_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          position_title?: string
+          qualifications?: Json | null
+          salary_offered?: number | null
+          school_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_recruitment_applications_hired_as_staff_id"
+            columns: ["hired_as_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_recruitment_applications_interviewer_id"
+            columns: ["interviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_recruitment_applications_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_recruitment_applications_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_recruitment_applications_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_recruitment_applications_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_recruitment_applications_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           created_at: string | null
@@ -5816,6 +5938,211 @@ export type Database = {
           },
         ]
       }
+      staff_announcements: {
+        Row: {
+          announcement_type: string
+          content: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          priority: string
+          read_by: Json | null
+          scheduled_date: string | null
+          school_id: string
+          target_audience: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          announcement_type?: string
+          content: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string
+          read_by?: Json | null
+          scheduled_date?: string | null
+          school_id: string
+          target_audience?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          announcement_type?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: string
+          read_by?: Json | null
+          scheduled_date?: string | null
+          school_id?: string
+          target_audience?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_staff_announcements_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_staff_announcements_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_announcements_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_announcements_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_announcements_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_announcements_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          document_type: string
+          file_size: number | null
+          file_url: string
+          id: string
+          is_verified: boolean | null
+          mime_type: string | null
+          notes: string | null
+          school_id: string
+          staff_id: string
+          updated_at: string
+          uploaded_by: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          document_type: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_verified?: boolean | null
+          mime_type?: string | null
+          notes?: string | null
+          school_id: string
+          staff_id: string
+          updated_at?: string
+          uploaded_by: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          document_type?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_verified?: boolean | null
+          mime_type?: string | null
+          notes?: string | null
+          school_id?: string
+          staff_id?: string
+          updated_at?: string
+          uploaded_by?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_staff_documents_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_documents_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_documents_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_documents_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_documents_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_staff_documents_staff_id"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_staff_documents_uploaded_by"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_staff_documents_verified_by"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_leave_balances: {
         Row: {
           academic_year: string
@@ -5925,6 +6252,128 @@ export type Database = {
           },
           {
             foreignKeyName: "staff_leaves_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_performance_reviews: {
+        Row: {
+          achievements: string | null
+          acknowledged_at: string | null
+          acknowledged_by_staff: boolean | null
+          areas_for_improvement: string | null
+          comments: string | null
+          contribution_rating: number
+          created_at: string
+          discipline_rating: number
+          goals_objectives: string | null
+          id: string
+          overall_rating: number | null
+          punctuality_rating: number
+          review_date: string
+          review_period: string
+          reviewer_id: string
+          school_id: string
+          staff_id: string
+          status: string
+          teamwork_rating: number
+          updated_at: string
+          work_quality_rating: number
+        }
+        Insert: {
+          achievements?: string | null
+          acknowledged_at?: string | null
+          acknowledged_by_staff?: boolean | null
+          areas_for_improvement?: string | null
+          comments?: string | null
+          contribution_rating: number
+          created_at?: string
+          discipline_rating: number
+          goals_objectives?: string | null
+          id?: string
+          overall_rating?: number | null
+          punctuality_rating: number
+          review_date?: string
+          review_period: string
+          reviewer_id: string
+          school_id: string
+          staff_id: string
+          status?: string
+          teamwork_rating: number
+          updated_at?: string
+          work_quality_rating: number
+        }
+        Update: {
+          achievements?: string | null
+          acknowledged_at?: string | null
+          acknowledged_by_staff?: boolean | null
+          areas_for_improvement?: string | null
+          comments?: string | null
+          contribution_rating?: number
+          created_at?: string
+          discipline_rating?: number
+          goals_objectives?: string | null
+          id?: string
+          overall_rating?: number | null
+          punctuality_rating?: number
+          review_date?: string
+          review_period?: string
+          reviewer_id?: string
+          school_id?: string
+          staff_id?: string
+          status?: string
+          teamwork_rating?: number
+          updated_at?: string
+          work_quality_rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_staff_performance_reviews_reviewer_id"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_staff_performance_reviews_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_report_data"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_performance_reviews_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_attendance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_performance_reviews_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_finance_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_performance_reviews_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_grades_summary"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "fk_staff_performance_reviews_school_id"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_staff_performance_reviews_staff_id"
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
