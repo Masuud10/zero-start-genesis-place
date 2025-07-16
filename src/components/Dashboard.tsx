@@ -5,6 +5,7 @@ import PrincipalDashboard from "./dashboard/PrincipalDashboard";
 import TeacherDashboard from "./dashboard/TeacherDashboard";
 import ParentDashboard from "./dashboard/ParentDashboard";
 import FinanceOfficerDashboard from "./dashboard/FinanceOfficerDashboard";
+import HRDashboard from "./dashboard/HRDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
@@ -175,7 +176,7 @@ const Dashboard: React.FC = () => {
           <div>
             <MaintenanceNotification />
             <AdminCommunicationsBanner />
-            <PrincipalDashboard user={user} />
+            <HRDashboard user={user} />
           </div>
         );
 
