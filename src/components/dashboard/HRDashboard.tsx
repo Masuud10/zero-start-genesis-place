@@ -1,77 +1,97 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Users, 
-  UserPlus, 
-  Calendar, 
+import {
+  Users,
+  UserPlus,
+  Calendar,
   Clock,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
 } from "lucide-react";
 import { AuthUser } from "@/types/auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EditStaffDialog } from "@/components/hr/EditStaffDialog";
+import { SupportStaff } from "@/types/supportStaff";
 
 interface HRDashboardProps {
   user: AuthUser;
 }
 
 const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
-  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const [selectedStaff, setSelectedStaff] = useState<SupportStaff | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Fetch support staff data
-  const { data: supportStaff, isLoading: isLoadingStaff, refetch: refetchStaff } = useQuery({
-    queryKey: ['support-staff', user.school_id],
+  const {
+    data: supportStaff,
+    isLoading: isLoadingStaff,
+    refetch: refetchStaff,
+  } = useQuery<SupportStaff[]>({
+    queryKey: ["support-staff", user.school_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('support_staff')
-        .select('*')
-        .eq('school_id', user.school_id)
-        .order('created_at', { ascending: false });
+        .from("support_staff")
+        .select(
+          "id, school_id, employee_id, full_name, role_title, department, profile_photo_url, salary_amount, salary_currency, employment_type, phone, email, address, date_of_hire, supervisor_id, notes, is_active, created_at, updated_at, created_by"
+        )
+        .eq("school_id", user.school_id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      // Map role_title to SupportStaffRole
+      return (data || []).map((staff) => ({
+        ...staff,
+        role_title:
+          staff.role_title as import("@/types/supportStaff").SupportStaffRole,
+      })) as SupportStaff[];
     },
-    enabled: !!user.school_id
+    enabled: !!user.school_id,
   });
 
   // Fetch school users for HR management
   const { data: schoolUsers, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ['school-users', user.school_id],
+    queryKey: ["school-users", user.school_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('school_id', user.school_id)
-        .order('created_at', { ascending: false });
+        .from("profiles")
+        .select("*")
+        .eq("school_id", user.school_id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user.school_id
+    enabled: !!user.school_id,
   });
 
   // Calculate HR metrics
   const totalStaff = supportStaff?.length || 0;
-  const activeStaff = supportStaff?.filter(staff => staff.is_active === true).length || 0;
+  const activeStaff =
+    supportStaff?.filter((staff) => staff.is_active === true).length || 0;
   const totalUsers = schoolUsers?.length || 0;
-  const activeUsers = schoolUsers?.filter(user => user.status === 'active').length || 0;
+  const activeUsers =
+    schoolUsers?.filter((user) => user.status === "active").length || 0;
 
-  const handleEditStaff = (staff: any) => {
+  const handleEditStaff = (staff: SupportStaff) => {
     setSelectedStaff(staff);
     setEditDialogOpen(true);
   };
 
   const getStatusBadge = (isActive: boolean) => {
-    return isActive 
+    return isActive
       ? "bg-green-100 text-green-800"
       : "bg-gray-100 text-gray-800";
   };
@@ -124,9 +144,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeStaff}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently working
-            </p>
+            <p className="text-xs text-muted-foreground">Currently working</p>
           </CardContent>
         </Card>
 
@@ -137,9 +155,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              Total school users
-            </p>
+            <p className="text-xs text-muted-foreground">Total school users</p>
           </CardContent>
         </Card>
 
@@ -150,9 +166,7 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently active
-            </p>
+            <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
       </div>
@@ -163,6 +177,9 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
           <TabsTrigger value="staff">Support Staff</TabsTrigger>
           <TabsTrigger value="users">System Users</TabsTrigger>
           <TabsTrigger value="reports">HR Reports</TabsTrigger>
+          <TabsTrigger value="payroll">Salaries/Payroll</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance Monitoring</TabsTrigger>
+          <TabsTrigger value="support">Support Tickets</TabsTrigger>
         </TabsList>
 
         <TabsContent value="staff" className="space-y-4">
@@ -177,7 +194,10 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
               {supportStaff && supportStaff.length > 0 ? (
                 <div className="space-y-4">
                   {supportStaff.map((staff) => (
-                    <div key={staff.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div
+                      key={staff.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex items-center space-x-4">
                         <div>
                           <h4 className="font-medium">{staff.full_name}</h4>
@@ -190,7 +210,9 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge className={getStatusBadge(staff.is_active || false)}>
+                        <Badge
+                          className={getStatusBadge(staff.is_active || false)}
+                        >
                           {getStatusText(staff.is_active || false)}
                         </Badge>
                         <Button
@@ -208,7 +230,8 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    No support staff records found. Contact your administrator to add staff members.
+                    No support staff records found. Contact your administrator
+                    to add staff members.
                   </AlertDescription>
                 </Alert>
               )}
@@ -228,18 +251,27 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
               {schoolUsers && schoolUsers.length > 0 ? (
                 <div className="space-y-4">
                   {schoolUsers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex items-center space-x-4">
                         <div>
-                          <h4 className="font-medium">{user.name || user.email}</h4>
+                          <h4 className="font-medium">
+                            {user.name || user.email}
+                          </h4>
                           <p className="text-sm text-muted-foreground">
                             {user.role} • {user.email}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge className={getStatusBadge((user.status || 'active') === 'active')}>
-                          {user.status || 'active'}
+                        <Badge
+                          className={getStatusBadge(
+                            (user.status || "active") === "active"
+                          )}
+                        >
+                          {user.status || "active"}
                         </Badge>
                       </div>
                     </div>
@@ -297,6 +329,18 @@ const HRDashboard: React.FC<HRDashboardProps> = ({ user }) => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="payroll" className="space-y-4">
+          {/* TODO: Fetch and display staff payrolls (read-only or editable by permission) */}
+        </TabsContent>
+
+        <TabsContent value="attendance" className="space-y-4">
+          {/* TODO: Fetch and display staff attendance logs if applicable */}
+        </TabsContent>
+
+        <TabsContent value="support" className="space-y-4">
+          {/* TODO: Fetch, submit, and view support tickets scoped to HR user */}
         </TabsContent>
       </Tabs>
 

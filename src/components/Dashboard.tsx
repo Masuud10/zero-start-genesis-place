@@ -11,6 +11,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
 import MaintenanceNotification from "@/components/common/MaintenanceNotification";
 import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
+import SchoolDirectorDashboard from "./dashboard/SchoolDirectorDashboard";
 
 const Dashboard: React.FC = () => {
   const { user, isLoading, error: authError } = useAuth();
@@ -141,8 +142,17 @@ const Dashboard: React.FC = () => {
           </div>
         );
 
-      case "principal":
       case "school_director":
+        console.log("🎯 Dashboard: Routing to School Director Dashboard");
+        return (
+          <div>
+            <MaintenanceNotification />
+            <AdminCommunicationsBanner />
+            <SchoolDirectorDashboard />
+          </div>
+        );
+
+      case "principal":
         console.log("🎯 Dashboard: Routing to Principal Dashboard");
         return (
           <div>

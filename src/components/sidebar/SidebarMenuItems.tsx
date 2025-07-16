@@ -308,5 +308,65 @@ export const getMenuItems = (userRole?: string): MenuItem[] => {
     }
   );
 
+  // School Director Sidebar Items
+  if (userRole === "school_director") {
+    baseItems.push(
+      {
+        id: "school-analytics",
+        label: "School Analytics",
+        icon: TrendingUp,
+        roles: ["school_director"],
+      },
+      {
+        id: "principal-management",
+        label: "Principal Management",
+        icon: Users,
+        roles: ["school_director"],
+      },
+      {
+        id: "reports",
+        label: "Reports",
+        icon: FileText,
+        roles: ["school_director"],
+      },
+      {
+        id: "support",
+        label: "Support Tickets",
+        icon: HelpCircle,
+        roles: ["school_director"],
+      }
+    );
+  }
+
+  // HR Sidebar Items
+  if (userRole === "hr") {
+    baseItems.push(
+      {
+        id: "staff-management",
+        label: "Staff Management",
+        icon: Users,
+        roles: ["hr"],
+      },
+      {
+        id: "payroll",
+        label: "Salaries/Payroll",
+        icon: DollarSign,
+        roles: ["hr"],
+      },
+      {
+        id: "attendance-monitoring",
+        label: "Attendance Monitoring",
+        icon: Calendar,
+        roles: ["hr"],
+      },
+      {
+        id: "support",
+        label: "Support Tickets",
+        icon: HelpCircle,
+        roles: ["hr"],
+      }
+    );
+  }
+
   return baseItems;
 };

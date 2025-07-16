@@ -19,6 +19,7 @@ import SchoolOwnerDashboard from "./SchoolOwnerDashboard";
 import PrincipalDashboard from "./PrincipalDashboard";
 import MaintenanceNotification from "@/components/common/MaintenanceNotification";
 import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
+import SchoolDirectorDashboard from "./SchoolDirectorDashboard";
 
 interface DashboardRoleBasedContentProps {
   user: AuthUser;
@@ -147,13 +148,13 @@ const DashboardRoleBasedContent: React.FC<DashboardRoleBasedContentProps> = ({
 
     case "school_director":
       console.log(
-        "📊 DashboardRoleBasedContent: Rendering SchoolOwnerDashboard for school_director"
+        "📊 DashboardRoleBasedContent: Rendering SchoolDirectorDashboard for school_director"
       );
       return (
         <div>
           <MaintenanceNotification />
           <AdminCommunicationsBanner />
-          <SchoolOwnerDashboard />
+          <SchoolDirectorDashboard />
         </div>
       );
 
