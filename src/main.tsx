@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 
 const AppGate = () => {
+  console.log("🚀 AppGate: Starting application");
   return <App />;
 };
 
