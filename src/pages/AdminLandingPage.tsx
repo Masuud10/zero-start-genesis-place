@@ -1,409 +1,257 @@
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
-import Lottie from 'lottie-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Eye, EyeOff, GraduationCap, Shield, Database, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Shield, Building } from "lucide-react";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
+import { useToast } from "@/hooks/use-toast";
+import loginBackground from "@/assets/login-background.jpg";
 
-// Professional data analytics animation
-const animationData = {
-  "v": "5.9.1",
-  "fr": 30,
-  "ip": 0,
-  "op": 180,
-  "w": 500,
-  "h": 500,
-  "nm": "Network Analytics",
-  "ddd": 0,
-  "assets": [],
-  "layers": [
-    {
-      "ddd": 0,
-      "ind": 1,
-      "ty": 4,
-      "nm": "Outer Ring",
-      "sr": 1,
-      "ks": {
-        "o": { "a": 0, "k": 100 },
-        "r": { "a": 1, "k": [
-          { "i": { "x": [0.833], "y": [0.833] }, "o": { "x": [0.167], "y": [0.167] }, "t": 0, "s": [0] },
-          { "t": 180, "s": [360] }
-        ]},
-        "p": { "a": 0, "k": [250, 250, 0] },
-        "a": { "a": 0, "k": [0, 0, 0] },
-        "s": { "a": 0, "k": [100, 100, 100] }
-      },
-      "ao": 0,
-      "shapes": [
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": { "a": 0, "k": [180, 180] },
-              "p": { "a": 0, "k": [0, 0] }
-            },
-            {
-              "ty": "st",
-              "c": { "a": 0, "k": [0.2, 0.6, 1, 1] },
-              "o": { "a": 0, "k": 80 },
-              "w": { "a": 0, "k": 2 }
-            },
-            {
-              "ty": "tr",
-              "p": { "a": 0, "k": [0, 0] },
-              "a": { "a": 0, "k": [0, 0] },
-              "s": { "a": 0, "k": [100, 100] },
-              "r": { "a": 0, "k": 0 },
-              "o": { "a": 0, "k": 100 }
-            }
-          ]
-        }
-      ],
-      "ip": 0,
-      "op": 180,
-      "st": 0,
-      "bm": 0
-    },
-    {
-      "ddd": 0,
-      "ind": 2,
-      "ty": 4,
-      "nm": "Inner Ring",
-      "sr": 1,
-      "ks": {
-        "o": { "a": 0, "k": 100 },
-        "r": { "a": 1, "k": [
-          { "i": { "x": [0.833], "y": [0.833] }, "o": { "x": [0.167], "y": [0.167] }, "t": 0, "s": [360] },
-          { "t": 180, "s": [0] }
-        ]},
-        "p": { "a": 0, "k": [250, 250, 0] },
-        "a": { "a": 0, "k": [0, 0, 0] },
-        "s": { "a": 0, "k": [100, 100, 100] }
-      },
-      "ao": 0,
-      "shapes": [
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": { "a": 0, "k": [120, 120] },
-              "p": { "a": 0, "k": [0, 0] }
-            },
-            {
-              "ty": "st",
-              "c": { "a": 0, "k": [0.1, 0.8, 0.6, 1] },
-              "o": { "a": 0, "k": 90 },
-              "w": { "a": 0, "k": 3 }
-            },
-            {
-              "ty": "tr",
-              "p": { "a": 0, "k": [0, 0] },
-              "a": { "a": 0, "k": [0, 0] },
-              "s": { "a": 0, "k": [100, 100] },
-              "r": { "a": 0, "k": 0 },
-              "o": { "a": 0, "k": 100 }
-            }
-          ]
-        }
-      ],
-      "ip": 0,
-      "op": 180,
-      "st": 0,
-      "bm": 0
-    },
-    {
-      "ddd": 0,
-      "ind": 3,
-      "ty": 4,
-      "nm": "Center",
-      "sr": 1,
-      "ks": {
-        "o": { "a": 1, "k": [
-          { "i": { "x": [0.833], "y": [0.833] }, "o": { "x": [0.167], "y": [0.167] }, "t": 0, "s": [50] },
-          { "i": { "x": [0.833], "y": [0.833] }, "o": { "x": [0.167], "y": [0.167] }, "t": 90, "s": [100] },
-          { "t": 180, "s": [50] }
-        ]},
-        "r": { "a": 0, "k": 0 },
-        "p": { "a": 0, "k": [250, 250, 0] },
-        "a": { "a": 0, "k": [0, 0, 0] },
-        "s": { "a": 0, "k": [100, 100, 100] }
-      },
-      "ao": 0,
-      "shapes": [
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": { "a": 0, "k": [60, 60] },
-              "p": { "a": 0, "k": [0, 0] }
-            },
-            {
-              "ty": "fl",
-              "c": { "a": 0, "k": [0.3, 0.7, 1, 1] },
-              "o": { "a": 0, "k": 100 }
-            },
-            {
-              "ty": "tr",
-              "p": { "a": 0, "k": [0, 0] },
-              "a": { "a": 0, "k": [0, 0] },
-              "s": { "a": 0, "k": [100, 100] },
-              "r": { "a": 0, "k": 0 },
-              "o": { "a": 0, "k": 100 }
-            }
-          ]
-        }
-      ],
-      "ip": 0,
-      "op": 180,
-      "st": 0,
-      "bm": 0
+interface AdminLoginFormProps {
+  onSuccess: () => void;
+}
+
+function AdminLoginForm({ onSuccess }: AdminLoginFormProps) {
+  const { signIn, isLoading, user, adminUser, error } = useAdminAuthContext();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && adminUser && !isLoading) {
+      console.log("🔐 AdminLoginForm: Already authenticated, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
     }
-  ]
-};
-
-const AdminLandingPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const { signIn, adminUser, isLoading, error } = useAdminAuthContext();
-  const [submitLoading, setSubmitLoading] = useState(false);
-
-  // If user is already authenticated, redirect to appropriate dashboard
-  if (!isLoading && adminUser) {
-    if (adminUser.role === 'support_hr') {
-      return <Navigate to="/support-hr" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
-  }
+  }, [user, adminUser, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError("");
+
     if (!email || !password) {
+      setLoginError("Please enter both email and password.");
       return;
     }
 
-    setSubmitLoading(true);
+    setIsSubmitting(true);
+
     try {
-      await signIn(email, password);
-    } catch (err) {
-      console.error('Login error:', err);
+      console.log("🔐 AdminLoginForm: Attempting admin login for:", email);
+      const result = await signIn(email.trim(), password);
+
+      if (result.error) {
+        setLoginError(result.error);
+        toast({
+          title: "Login Failed",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Success
+      toast({
+        title: "Login Successful",
+        description: "Welcome to the EduFam Admin Dashboard!",
+      });
+      
+      onSuccess();
+    } catch (error) {
+      const errorMessage = "An unexpected error occurred. Please try again.";
+      setLoginError(errorMessage);
+      toast({
+        title: "Login Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
-      setSubmitLoading(false);
+      setIsSubmitting(false);
     }
   };
 
+  const displayError = loginError || error;
+
   return (
-    <div className="min-h-screen flex">
-      {/* Left Column - Dark with Animation */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 relative overflow-hidden">
-        {/* Animated Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-32 h-32 border border-white/20 rounded-full animate-pulse"></div>
-          <div className="absolute bottom-20 right-20 w-24 h-24 border border-white/20 rounded-full animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/4 w-16 h-16 border border-white/20 rounded-full animate-pulse delay-500"></div>
-          <div className="absolute top-1/4 right-1/3 w-20 h-20 border border-white/20 rounded-full animate-pulse delay-700"></div>
-        </div>
-        
-        {/* Floating Icons */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 right-1/4 animate-float">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <Shield className="w-6 h-6 text-blue-300" />
-            </div>
-          </div>
-          <div className="absolute bottom-32 left-1/4 animate-float delay-1000">
-            <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-              <Database className="w-6 h-6 text-emerald-300" />
-            </div>
-          </div>
-          <div className="absolute top-1/3 left-12 animate-float delay-500">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-300" />
-            </div>
-          </div>
-        </div>
-        
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
-          {/* Logo and Branding */}
-          <div className="mb-8 text-center">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-400 to-emerald-400 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-2xl">
-              <GraduationCap className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
-              EduFam
-            </h1>
-            <p className="text-2xl text-slate-300 font-medium mb-2">
-              Company Administration Portal
-            </p>
-            <div className="w-16 h-0.5 bg-gradient-to-r from-blue-400 to-emerald-400 mx-auto"></div>
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {displayError && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertDescription className="text-red-700">
+            {displayError}
+          </AlertDescription>
+        </Alert>
+      )}
 
-          {/* Animation */}
-          <div className="w-80 h-80 mb-8">
-            <Lottie
-              animationData={animationData}
-              loop={true}
-              className="w-full h-full drop-shadow-lg"
-            />
-          </div>
-
-          {/* Tagline */}
-          <div className="text-center max-w-md">
-            <h2 className="text-3xl font-semibold mb-6 text-white">
-              Manage. Monitor. Excel.
-            </h2>
-            <p className="text-slate-300 text-lg leading-relaxed mb-8">
-              Your command center for overseeing educational excellence across all partner schools.
-            </p>
-            
-            {/* Features List */}
-            <div className="text-left space-y-3">
-              <div className="flex items-center text-slate-300">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mr-3"></div>
-                <span>Real-time school analytics</span>
-              </div>
-              <div className="flex items-center text-slate-300">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></div>
-                <span>Comprehensive user management</span>
-              </div>
-              <div className="flex items-center text-slate-300">
-                <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
-                <span>Business intelligence dashboard</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="space-y-2">
+        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+          Admin Email Address
+        </label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          placeholder="Enter your admin email"
+          required
+          autoComplete="email"
+          disabled={isLoading || isSubmitting}
+        />
       </div>
 
-      {/* Right Column - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md space-y-8">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <GraduationCap className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">EduFam Admin</h1>
-          </div>
+      <div className="space-y-2">
+        <label htmlFor="password" className="text-sm font-medium text-gray-700">
+          Password
+        </label>
+        <Input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          placeholder="Enter your password"
+          required
+          autoComplete="current-password"
+          disabled={isLoading || isSubmitting}
+        />
+      </div>
 
-          {/* Header */}
-          <div className="text-center">
-            <h2 className="text-4xl font-bold text-foreground mb-3">
-              EduFam Mission Control
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Sign in to manage the platform
-            </p>
-            <div className="w-12 h-0.5 bg-gradient-to-r from-primary to-primary/60 mx-auto mt-4"></div>
-          </div>
+      <Button
+        type="submit"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition-colors duration-200"
+        disabled={isLoading || isSubmitting}
+      >
+        {isLoading || isSubmitting ? (
+          <span className="flex items-center justify-center">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Signing in...
+          </span>
+        ) : (
+          <span className="flex items-center justify-center">
+            <Shield className="h-4 w-4 mr-2" />
+            Sign In to Admin Dashboard
+          </span>
+        )}
+      </Button>
+    </form>
+  );
+}
 
-          {/* Error Alert */}
-          {error && (
-            <Alert variant="destructive" className="animate-fade-in border-red-200 bg-red-50">
-              <AlertDescription className="text-red-800">{error}</AlertDescription>
-            </Alert>
-          )}
+const AdminLandingPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, adminUser, isLoading } = useAdminAuthContext();
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold text-foreground">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@edufam.com"
-                required
-                disabled={isLoading}
-                className="h-12 text-base border-2 focus:border-primary transition-colors"
+  // Check if already authenticated
+  useEffect(() => {
+    if (user && adminUser && !isLoading) {
+      console.log("🔐 AdminLandingPage: User already authenticated, redirecting");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, adminUser, isLoading, navigate]);
+
+  const handleLoginSuccess = () => {
+    console.log("🔐 AdminLandingPage: Login successful, navigating to dashboard");
+    navigate("/dashboard", { replace: true });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-2 sm:p-4">
+      <Card className="w-full max-w-6xl shadow-2xl rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px] lg:min-h-[600px]">
+          {/* Left Column - Branding/Image */}
+          <div
+            className="hidden lg:flex relative bg-cover bg-center bg-no-repeat flex-col justify-between p-6 xl:p-8 text-white"
+            style={{
+              backgroundImage: `linear-gradient(rgba(0, 71, 171, 0.7), rgba(0, 58, 140, 0.7)), url(${loginBackground})`,
+            }}
+          >
+            {/* Logo at top */}
+            <div className="flex items-center">
+              <img
+                src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png"
+                alt="Edufam Logo"
+                className="h-10 xl:h-12 w-auto"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-semibold text-foreground">
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your secure password"
-                  required
-                  disabled={isLoading}
-                  className="h-12 text-base pr-12 border-2 focus:border-primary transition-colors"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </Button>
+            {/* Content at bottom */}
+            <div>
+              <div className="flex items-center mb-4">
+                <Building className="h-8 w-8 mr-3" />
+                <h2 className="text-2xl xl:text-3xl font-bold">
+                  Admin Dashboard
+                </h2>
+              </div>
+              <p className="text-base xl:text-lg opacity-90">
+                Secure access to EduFam's administrative tools and analytics.
+                Monitor schools, manage users, and oversee system operations.
+              </p>
+            </div>
+          </div>
+
+          {/* Right Column - Admin Login Form */}
+          <div className="bg-white p-6 sm:p-8 lg:p-12 flex flex-col justify-center min-h-[500px]">
+            {/* Mobile Logo */}
+            <div className="lg:hidden flex justify-center mb-6">
+              <img
+                src="/lovable-uploads/b42612dd-99c7-4d0b-94d0-fcf611535608.png"
+                alt="Edufam Logo"
+                className="h-10 w-auto"
+              />
+            </div>
+
+            {/* Header */}
+            <div className="mb-6 lg:mb-8">
+              <div className="flex items-center justify-center lg:justify-start mb-3">
+                <Shield className="h-6 w-6 text-blue-600 mr-2" />
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Admin Access
+                </h1>
+              </div>
+              <p className="text-gray-600 text-base sm:text-lg text-center lg:text-left">
+                Sign in to your admin dashboard
+              </p>
+              <div className="mt-2 text-center lg:text-left">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Restricted Access
+                </span>
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full h-14 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-200"
-              disabled={submitLoading || isLoading || !email || !password}
-            >
-              {(submitLoading || isLoading) ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                <>
-                  <Shield className="mr-2 h-5 w-5" />
-                  Sign In Securely
-                </>
-              )}
-            </Button>
-          </form>
-
-          {/* Security Notice */}
-          <div className="text-center text-sm text-muted-foreground bg-muted/30 p-6 rounded-xl border">
-            <div className="flex items-center justify-center mb-2">
-              <Shield className="w-5 h-5 mr-2 text-primary" />
-              <span className="font-semibold text-foreground">Secure Access Portal</span>
+            {/* Admin Login Form */}
+            <div className="mb-6 lg:mb-8">
+              <AdminLoginForm onSuccess={handleLoginSuccess} />
             </div>
-            <p>This area is restricted to authorized EduFam administrators only.</p>
-            <p className="mt-1 text-xs">All access attempts are logged and monitored.</p>
-          </div>
 
-          {/* Footer */}
-          <div className="text-center pt-8 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              © 2025 EduFam Technologies. All Rights Reserved.
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Proudly serving educational institutions across Kenya
-            </p>
+            {/* Footer */}
+            <div className="text-center">
+              <p className="text-sm text-gray-400">
+                EduFam Administration Portal
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Authorized personnel only
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

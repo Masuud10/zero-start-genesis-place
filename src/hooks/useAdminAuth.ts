@@ -125,29 +125,29 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       setIsLoading(true);
       setError(null);
 
+      console.log('🔐 useAdminAuth: Starting admin login for:', email);
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (authError) {
+        console.error('🔐 useAdminAuth: Auth error:', authError);
         setError(authError.message);
         return { error: authError.message };
       }
 
       if (data.user) {
-        // Check if user is an admin
-        const adminUserData = await fetchAdminUser(data.user.id);
-        if (!adminUserData) {
-          await supabase.auth.signOut();
-          const errorMsg = 'Access denied. Only authorized admin users can access this application.';
-          setError(errorMsg);
-          return { error: errorMsg };
-        }
+        console.log('🔐 useAdminAuth: User authenticated, checking admin status');
+        // Check if user is an admin - this will be handled by the auth state change listener
+        // The listener will fetch admin user data and set adminUser state
+        return { error: null };
       }
 
-      return { error: null };
+      return { error: 'Authentication failed' };
     } catch (err) {
+      console.error('🔐 useAdminAuth: Sign in exception:', err);
       const errorMsg = 'An unexpected error occurred during sign in.';
       setError(errorMsg);
       return { error: errorMsg };
