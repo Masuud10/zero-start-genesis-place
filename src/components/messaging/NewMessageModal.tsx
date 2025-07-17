@@ -58,25 +58,28 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, role, email')
-        .neq('id', user.id) // Exclude current user
-        .eq('school_id', (user.user_metadata?.school_id as string) || '') // Same school only
-        .or(`name.ilike.%${term}%,email.ilike.%${term}%`)
-        .limit(10);
+      // Use edge function for strict multi-tenant user listing
+      const { data, error } = await supabase.functions.invoke('get-school-users', {
+        body: { 
+          search: term,
+          limit: 10 
+        }
+      });
 
       if (error) {
         console.error('Error searching users:', error);
         toast({
           title: "Error",
-          description: "Failed to search users",
+          description: "Failed to search users from your school",
           variant: "destructive"
         });
         return;
       }
 
-      setUsers(data || []);
+      const users = data?.users || [];
+      setUsers(users);
+      
+      console.log(`Found ${users.length} users in school for search: "${term}"`);
     } catch (error) {
       console.error('Error:', error);
       toast({

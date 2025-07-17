@@ -351,39 +351,96 @@ class ExpensesService {
     }
   }
 
-  /**
-   * Export expenses to PDF format
-   */
   async exportToPDF(filters?: ExpenseFilters): Promise<Blob> {
     try {
+      // Import jsPDF dynamically to avoid build issues
+      const { jsPDF } = await import('jspdf');
+      
       const expenses = await this.getExpenses(filters);
       const stats = await this.getExpenseStats(filters);
       
-      // This would typically use a PDF library like jsPDF
-      // For now, we'll return a simple text representation
-      const pdfContent = `
-        EXPENSES REPORT
-        Generated on: ${new Date().toLocaleDateString()}
+      // Create PDF document
+      const doc = new jsPDF();
+      
+      // Add header
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Expenses Report', 20, 20);
+      
+      // Add generation date
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
+      
+      // Add summary section
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Summary', 20, 55);
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total Expenses: ${stats.totalExpenses}`, 20, 70);
+      doc.text(`Total Amount: KES ${stats.totalAmount.toLocaleString()}`, 20, 80);
+      
+      // Add expenses table if jsPDF autoTable is available
+      let yPosition = 100;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Expense Details', 20, yPosition);
+      
+      yPosition += 20;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      expenses.forEach((expense, index) => {
+        if (yPosition > 280) { // Page break
+          doc.addPage();
+          yPosition = 20;
+        }
         
-        SUMMARY:
-        Total Expenses: ${stats.totalExpenses}
-        Total Amount: KSH ${stats.totalAmount.toLocaleString()}
-        
-        DETAILS:
-        ${expenses.map(expense => `
-          Date: ${expense.date}
-          Category: ${expense.category}
-          Description: ${expense.description || 'N/A'}
-          Amount: KSH ${expense.amount.toLocaleString()}
-          ---
-        `).join('')}
-      `;
-
-      const blob = new Blob([pdfContent], { type: 'application/pdf' });
-      return blob;
+        doc.text(`${index + 1}. ${expense.title || 'No title'}`, 20, yPosition);
+        doc.text(`Date: ${expense.date}`, 25, yPosition + 8);
+        doc.text(`Category: ${expense.category}`, 25, yPosition + 16);
+        doc.text(`Amount: KES ${expense.amount.toLocaleString()}`, 25, yPosition + 24);
+        if (expense.description) {
+          doc.text(`Description: ${expense.description}`, 25, yPosition + 32);
+          yPosition += 45;
+        } else {
+          yPosition += 37;
+        }
+      });
+      
+      // Convert to blob
+      const pdfBlob = new Blob([doc.output('blob')], { type: 'application/pdf' });
+      return pdfBlob;
     } catch (error) {
       console.error('ExpensesService.exportToPDF error:', error);
-      throw error;
+      // Fallback to simple text export if PDF generation fails
+      const expenses = await this.getExpenses(filters);
+      const stats = await this.getExpenseStats(filters);
+      
+      const textContent = `
+EXPENSES REPORT
+Generated on: ${new Date().toLocaleDateString()}
+
+SUMMARY:
+Total Expenses: ${stats.totalExpenses}
+Total Amount: KES ${stats.totalAmount.toLocaleString()}
+
+DETAILS:
+${expenses.map((expense, index) => `
+${index + 1}. ${expense.title || 'No title'}
+   Date: ${expense.date}
+   Category: ${expense.category}
+   Amount: KES ${expense.amount.toLocaleString()}
+   Description: ${expense.description || 'N/A'}
+   Status: ${expense.status}
+   ---
+`).join('')}
+      `;
+
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      return blob;
     }
   }
 }
