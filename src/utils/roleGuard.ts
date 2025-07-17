@@ -10,7 +10,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   school_director: ['dashboard', 'analytics', 'grades', 'attendance', 'students', 'finance', 'timetable', 'announcements', 'messages', 'reports', 'support'],
   finance_officer: ['dashboard', 'analytics', 'finance', 'students', 'reports', 'announcements', 'messages', 'attendance', 'timetable', 'support'],
   hr: ['dashboard', 'analytics', 'attendance', 'students', 'announcements', 'messages', 'reports', 'support', 'users'],
-  parent: ['dashboard', 'grades', 'attendance', 'finance', 'timetable', 'announcements', 'messages', 'support']
+  parent: ['dashboard', 'grades', 'attendance', 'finance', 'timetable', 'announcements', 'messages', 'support'],
+  support_hr: ['dashboard', 'client-relations', 'internal-hr', 'support', 'users', 'analytics'],
+  super_admin: ['*'] // Full access like edufam_admin
 };
 
 export const hasAccess = (userRole: UserRole | undefined, section: string): boolean => {
@@ -172,7 +174,9 @@ export const getRoleDisplayName = (role: UserRole): string => {
     teacher: 'Teacher',
     finance_officer: 'Finance Officer',
     hr: 'HR Manager',
-    parent: 'Parent'
+    parent: 'Parent',
+    support_hr: 'Support & HR',
+    super_admin: 'Super Administrator'
   };
   
   return roleNames[role] || role;

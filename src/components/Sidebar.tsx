@@ -4,6 +4,7 @@ import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   activeSection?: string;
@@ -13,28 +14,42 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
   const { adminUser } = useAdminAuthContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Admin Dashboard', icon: '📊', roles: ['super_admin'] },
-    { id: 'analytics', label: 'System Analytics', icon: '📈', roles: ['super_admin'] },
-    { id: 'schools', label: 'Schools Management', icon: '🏫', roles: ['super_admin'] },
-    { id: 'users', label: 'User Management', icon: '👥', roles: ['super_admin'] },
-    { id: 'billing', label: 'Billing & Subscriptions', icon: '💰', roles: ['super_admin'] },
-    { id: 'company-management', label: 'Company Management', icon: '🏢', roles: ['super_admin'] },
-    { id: 'maintenance', label: 'System Health', icon: '🔧', roles: ['super_admin'] },
-    { id: 'security', label: 'Security', icon: '🔒', roles: ['super_admin'] },
-    { id: 'support', label: 'Support', icon: '🎧', roles: ['super_admin'] },
-    { id: 'settings', label: 'System Settings', icon: '⚙️', roles: ['super_admin'] },
-  ];
+  // Define different menu items for different roles
+  const getMenuItems = () => {
+    const userRole = adminUser?.role;
+    
+    if (userRole === 'super_admin') {
+      return [
+        { id: 'dashboard', label: 'Admin Dashboard', icon: '📊', path: '/dashboard' },
+        { id: 'analytics', label: 'System Analytics', icon: '📈', path: '/analytics' },
+        { id: 'schools', label: 'Schools Management', icon: '🏫', path: '/schools' },
+        { id: 'users', label: 'User Management', icon: '👥', path: '/users' },
+        { id: 'billing', label: 'Billing & Subscriptions', icon: '💰', path: '/billing' },
+        { id: 'company-management', label: 'Company Management', icon: '🏢', path: '/company-management' },
+        { id: 'maintenance', label: 'System Health', icon: '🔧', path: '/maintenance' },
+        { id: 'security', label: 'Security', icon: '🔒', path: '/security' },
+        { id: 'support', label: 'Support', icon: '🎧', path: '/support' },
+        { id: 'settings', label: 'System Settings', icon: '⚙️', path: '/settings' },
+      ];
+    } else if (userRole === 'support_hr') {
+      return [
+        { id: 'support-hr', label: 'Support & HR', icon: '🤝', path: '/support-hr' },
+      ];
+    }
+    
+    return [];
+  };
 
-  const filteredItems = menuItems.filter(item => 
-    item.roles.includes('super_admin') // Only show super admin items
-  );
+  const menuItems = getMenuItems();
 
   const getRoleDisplay = (role: string) => {
     switch (role) {
       case 'super_admin':
         return 'Super Admin';
+      case 'support_hr':
+        return 'Support & HR';
       case 'elimisha_admin':
         return 'Elimisha Admin';
       default:
@@ -42,8 +57,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
     }
   };
 
-  const handleSectionChange = (section: string) => {
-    onSectionChange?.(section);
+  const handleSectionChange = (section: string, path?: string) => {
+    if (path) {
+      // Navigate to the specific path for special routes like support-hr
+      navigate(path);
+    } else {
+      // Use the traditional section change for dashboard sections
+      onSectionChange?.(section);
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -56,13 +77,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
           </div>
           <div>
             <h2 className="font-semibold text-foreground text-sm md:text-base">EduFam</h2>
-            <p className="text-xs md:text-sm text-muted-foreground">{getRoleDisplay('super_admin')}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">{getRoleDisplay(adminUser?.role || '')}</p>
           </div>
         </div>
       </div>
 
       <nav className="p-3 md:p-4 space-y-1 md:space-y-2 flex-1 overflow-y-auto">
-        {filteredItems.map((item) => (
+        {menuItems.map((item) => (
           <Button
             key={item.id}
             variant={activeSection === item.id ? "default" : "ghost"}
@@ -72,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
                 ? "gradient-navy text-white shadow-lg" 
                 : "hover:bg-accent"
             )}
-            onClick={() => handleSectionChange(item.id)}
+            onClick={() => handleSectionChange(item.id, item.path)}
           >
             <span className="mr-2 md:mr-3 text-base md:text-lg">{item.icon}</span>
             {item.label}

@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
 import AppContent from "@/components/AppContent";
 import AdminLandingPage from "@/pages/AdminLandingPage";
+import SupportHrDashboard from "@/pages/SupportHrDashboard";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import "./App.css";
 
@@ -46,6 +47,13 @@ const AppRouter: React.FC = () => {
     <Routes>
       {/* Public Admin Landing Page */}
       <Route path="/" element={<AdminLandingPage />} />
+      
+      {/* Support HR Dashboard Route */}
+      <Route path="/support-hr" element={
+        <ProtectedRoute>
+          <SupportHrDashboard />
+        </ProtectedRoute>
+      } />
       
       {/* All admin routes are protected */}
       <Route path="/*" element={
