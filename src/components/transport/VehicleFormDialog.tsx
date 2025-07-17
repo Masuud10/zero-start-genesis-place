@@ -137,17 +137,17 @@ export const VehicleFormDialog = ({ open, onOpenChange, vehicle, onSuccess }: Ve
             <div className="grid gap-2">
               <Label htmlFor="assigned_route">Assigned Route</Label>
               <Select 
-                value={formData.assigned_route_id?.toString()} 
+                value={formData.assigned_route_id ? formData.assigned_route_id.toString() : "none"}
                 onValueChange={(value) => setFormData(prev => ({ 
                   ...prev, 
-                  assigned_route_id: value ? parseInt(value) : undefined 
+                  assigned_route_id: value === "none" ? undefined : parseInt(value) 
                 }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a route (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Route Assigned</SelectItem>
+                  <SelectItem value="none">No Route Assigned</SelectItem>
                   {routes.map((route) => (
                     <SelectItem key={route.id} value={route.id.toString()}>
                       {route.route_name}
