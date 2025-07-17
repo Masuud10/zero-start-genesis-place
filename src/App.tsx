@@ -55,7 +55,7 @@ const AppRouter: React.FC = () => {
         </ProtectedRoute>
       } />
       
-      {/* All admin routes are protected */}
+      {/* All other admin routes are protected */}
       <Route path="/*" element={
         <ProtectedRoute>
           <AppContent />

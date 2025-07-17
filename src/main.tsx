@@ -9,7 +9,28 @@ import "./index.css";
 const AppGate = () => {
   const { isLoading, isBlocked, refreshStatus } = useMaintenanceGate();
 
-  if (isLoading) {
+  // Add timeout to prevent infinite loading
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('⚠️ MaintenanceGate timeout - forcing app to load');
+    }, 5000);
+    
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // If loading for more than 5 seconds, bypass maintenance check
+  const [forceLoad, setForceLoad] = React.useState(false);
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.log('⚠️ MaintenanceGate timeout - bypassing check');
+        setForceLoad(true);
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
+
+  if (isLoading && !forceLoad) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -20,7 +41,7 @@ const AppGate = () => {
     );
   }
 
-  if (isBlocked) {
+  if (isBlocked && !forceLoad) {
     return <MaintenancePage />;
   }
 

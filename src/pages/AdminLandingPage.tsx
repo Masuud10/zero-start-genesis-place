@@ -177,6 +177,14 @@ const AdminLandingPage = () => {
   const { signIn, adminUser, isLoading, error } = useAdminAuthContext();
   const [submitLoading, setSubmitLoading] = useState(false);
 
+  // If user is already authenticated, redirect to appropriate dashboard
+  if (!isLoading && adminUser) {
+    if (adminUser.role === 'support_hr') {
+      return <Navigate to="/support-hr" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -192,11 +200,6 @@ const AdminLandingPage = () => {
       setSubmitLoading(false);
     }
   };
-
-  // Redirect to dashboard if authenticated
-  if (adminUser) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   return (
     <div className="min-h-screen flex">
