@@ -92,28 +92,26 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Only allow Super Admin access - all other roles are unauthorized
-  const validRoles = ["super_admin"];
-  const normalizedRole = user?.email ? 'super_admin' : null; // Temp logic for super admin
+  // Check if user has admin access via AdminAuthProvider
+  const { adminUser } = useAdminAuthContext();
   
-  if (!normalizedRole || !validRoles.includes(normalizedRole)) {
-    console.warn("🎯 Dashboard: Unauthorized user role:", user?.email);
+  if (!adminUser || !adminUser.is_active) {
+    console.warn("🎯 Dashboard: No active admin user found");
     return (
       <div className="flex items-center justify-center h-64">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Access denied. This is an internal EduFam admin application. 
-            Your email ({user?.email}) does not have access to this system.
+            Your account does not have active admin privileges.
             Please contact your administrator.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
-
-  // Route to EduFam Admin Dashboard only
-  console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard for email:", user?.email);
+  // Route to EduFam Admin Dashboard for authorized users
+  console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard for admin:", adminUser.email, "role:", adminUser.role);
 
   try {
     return (

@@ -9,7 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
+import { AuthUser } from "@/types/auth";
 import { useAdminSchoolsData } from "@/hooks/useAdminSchoolsData";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -66,14 +67,34 @@ interface School {
 }
 
 const EduFamAdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, adminUser } = useAdminAuthContext();
+
+  // Create AuthUser from admin data for compatibility with modals
+  const authUser: AuthUser | null = adminUser ? {
+    id: adminUser.user_id || adminUser.id,
+    email: adminUser.email,
+    name: adminUser.name,
+    role: adminUser.role,
+    school_id: null, // Admin users don't have school assignments
+    avatar_url: null,
+    created_at: adminUser.created_at,
+    updated_at: adminUser.updated_at,
+    user_metadata: {},
+    app_metadata: {},
+    mfa_enabled: false,
+    last_login_at: adminUser.last_login_at,
+    last_login_ip: undefined,
+  } : null;
 
   // Debug user info
   console.log("🏫 EduFamAdminDashboard: User info:", {
     user: user?.email,
-    role: user?.role,
+    adminUser: adminUser?.email,
+    role: adminUser?.role,
     id: user?.id,
   });
+  
+  // Use admin schools data
   const {
     data: schools = [],
     isLoading: schoolsLoading,
@@ -518,54 +539,68 @@ const EduFamAdminDashboard = () => {
       </Card>
 
       {/* All Modals */}
-      <SchoolRegistrationModal
-        isOpen={showSchoolRegistration}
-        onClose={() => setShowSchoolRegistration(false)}
-        onSuccess={handleModalSuccess}
-        currentUser={user!}
-      />
+      {authUser && (
+        <SchoolRegistrationModal
+          isOpen={showSchoolRegistration}
+          onClose={() => setShowSchoolRegistration(false)}
+          onSuccess={handleModalSuccess}
+          currentUser={authUser}
+        />
+      )}
 
-      <UserManagementModal
-        isOpen={showUserManagement}
-        onClose={() => setShowUserManagement(false)}
-        onSuccess={handleModalSuccess}
-        currentUser={user!}
-      />
+      {authUser && (
+        <UserManagementModal
+          isOpen={showUserManagement}
+          onClose={() => setShowUserManagement(false)}
+          onSuccess={handleModalSuccess}
+          currentUser={authUser}
+        />
+      )}
 
-      <MaintenanceModeModal
-        isOpen={showMaintenanceMode}
-        onClose={() => setShowMaintenanceMode(false)}
-        onSuccess={handleModalSuccess}
-        currentUser={user!}
-      />
+      {authUser && (
+        <MaintenanceModeModal
+          isOpen={showMaintenanceMode}
+          onClose={() => setShowMaintenanceMode(false)}
+          onSuccess={handleModalSuccess}
+          currentUser={authUser}
+        />
+      )}
 
-      <DatabaseSettingsModal
-        isOpen={showDatabaseSettings}
-        onClose={() => setShowDatabaseSettings(false)}
-        onSuccess={handleModalSuccess}
-        currentUser={user!}
-      />
+      {authUser && (
+        <DatabaseSettingsModal
+          isOpen={showDatabaseSettings}
+          onClose={() => setShowDatabaseSettings(false)}
+          onSuccess={handleModalSuccess}
+          currentUser={authUser}
+        />
+      )}
 
-      <SecuritySettingsModal
-        isOpen={showSecuritySettings}
-        onClose={() => setShowSecuritySettings(false)}
-        onSuccess={handleModalSuccess}
-        currentUser={user!}
-      />
+      {authUser && (
+        <SecuritySettingsModal
+          isOpen={showSecuritySettings}
+          onClose={() => setShowSecuritySettings(false)}
+          onSuccess={handleModalSuccess}
+          currentUser={authUser}
+        />
+      )}
 
-      <NotificationSettingsModal
-        isOpen={showNotificationSettings}
-        onClose={() => setShowNotificationSettings(false)}
-        onSuccess={handleModalSuccess}
-        currentUser={user!}
-      />
+      {authUser && (
+        <NotificationSettingsModal
+          isOpen={showNotificationSettings}
+          onClose={() => setShowNotificationSettings(false)}
+          onSuccess={handleModalSuccess}
+          currentUser={authUser}
+        />
+      )}
 
-      <CompanyDetailsModal
-        isOpen={showCompanyDetails}
-        onClose={() => setShowCompanyDetails(false)}
-        onSuccess={handleModalSuccess}
-        currentUser={user!}
-      />
+      {authUser && (
+        <CompanyDetailsModal
+          isOpen={showCompanyDetails}
+          onClose={() => setShowCompanyDetails(false)}
+          onSuccess={handleModalSuccess}
+          currentUser={authUser}
+        />
+      )}
 
       {/* School Details Modal */}
       {selectedSchool && (
