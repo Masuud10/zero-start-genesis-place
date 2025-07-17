@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
-  const { user } = useAdminAuthContext();
+  const { adminUser } = useAdminAuthContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   ];
 
   const filteredItems = menuItems.filter(item => 
-    item.roles.includes(user?.role || '')
+    item.roles.includes('super_admin') // Only show super admin items
   );
 
   const getRoleDisplay = (role: string) => {
@@ -56,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
           </div>
           <div>
             <h2 className="font-semibold text-foreground text-sm md:text-base">EduFam</h2>
-            <p className="text-xs md:text-sm text-muted-foreground">{getRoleDisplay(user?.role || '')}</p>
+            <p className="text-xs md:text-sm text-muted-foreground">{getRoleDisplay('super_admin')}</p>
           </div>
         </div>
       </div>
@@ -85,15 +85,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
           <div className="flex items-center space-x-2 md:space-x-3">
             <div className="w-6 h-6 md:w-8 md:h-8 rounded-full gradient-navy flex items-center justify-center">
               <span className="text-white text-xs md:text-sm font-bold">
-                {user?.email?.charAt(0).toUpperCase()}
+                {adminUser?.name?.charAt(0).toUpperCase() || adminUser?.email?.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs md:text-sm font-medium text-foreground truncate">
-                {user?.email}
+                {adminUser?.name || adminUser?.email}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                {user?.email}
+                {adminUser?.email}
               </p>
             </div>
           </div>

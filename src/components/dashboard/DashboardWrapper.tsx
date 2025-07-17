@@ -1,28 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
-import { ErrorMessage } from "@/components/common/ErrorMessage";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Shield, Database, User } from "lucide-react";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
+import { AdminRole } from "@/types/admin";
 
 interface DashboardWrapperProps {
   children: React.ReactNode;
-  requiredRole?: string[];
-  requireSchoolAssignment?: boolean;
+  requiredRole?: AdminRole[];
   title?: string;
 }
 
 const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
   children,
   requiredRole = [],
-  requireSchoolAssignment = false,
   title = "Dashboard",
 }) => {
-  const { user, isLoading: authLoading, error: authError } = useAuth();
-  const { schoolId, isReady: schoolReady } = useSchoolScopedData();
+  const { user, adminUser, isLoading: authLoading, error: authError } = useAdminAuthContext();
   const [dbStatus, setDbStatus] = useState<{
     connected: boolean;
     error?: string;
@@ -31,7 +27,6 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
   const [healthChecks, setHealthChecks] = useState({
     auth: false,
     database: false,
-    school: false,
     role: false,
   });
 
@@ -54,33 +49,29 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
     checkConnection();
   }, []);
 
-  // Update health checks based on auth and school state
+  // Update health checks based on auth state
   useEffect(() => {
     setHealthChecks((prev) => ({
       ...prev,
-      auth: !authLoading && !authError && !!user,
-      school: schoolReady && (!requireSchoolAssignment || !!schoolId),
+      auth: !authLoading && !authError && !!user && !!adminUser,
       role:
         !authLoading &&
-        !!user &&
-        (requiredRole.length === 0 || requiredRole.includes(user.role)),
+        !!adminUser &&
+        (requiredRole.length === 0 || requiredRole.includes(adminUser.role)),
     }));
   }, [
     authLoading,
     authError,
     user,
-    schoolReady,
-    schoolId,
-    requireSchoolAssignment,
+    adminUser,
     requiredRole,
   ]);
 
   console.log("🛡️ DashboardWrapper: Health checks:", healthChecks, {
     authLoading,
     authError,
-    userRole: user?.role,
-    schoolId,
-    schoolReady,
+    userEmail: user?.email,
+    adminUserRole: adminUser?.role,
     dbStatus,
   });
 
@@ -120,8 +111,8 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
     );
   }
 
-  // Handle missing user
-  if (!user) {
+  // Handle missing user or admin user
+  if (!user || !adminUser) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Alert variant="destructive" className="max-w-md">
@@ -135,7 +126,7 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
   }
 
   // Handle role validation
-  if (requiredRole.length > 0 && !requiredRole.includes(user.role)) {
+  if (requiredRole.length > 0 && !requiredRole.includes(adminUser.role)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Alert variant="destructive" className="max-w-md">
@@ -143,21 +134,6 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
           <AlertDescription>
             You don't have permission to access this dashboard. Required role:{" "}
             {requiredRole.join(" or ")}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // Handle school assignment requirement
-  if (requireSchoolAssignment && !schoolId) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Your account needs to be assigned to a school. Please contact your
-            administrator.
           </AlertDescription>
         </Alert>
       </div>
@@ -175,9 +151,9 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
         {title && (
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            {user && (
+            {adminUser && (
               <p className="text-sm text-gray-600 mt-1">
-                Welcome back, {user.name || user.email}
+                Welcome back, {adminUser.name} ({adminUser.role})
               </p>
             )}
           </div>
@@ -187,7 +163,7 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
         {process.env.NODE_ENV === "development" && (
           <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
             <div className="font-medium mb-1">Health Status:</div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div
                 className={`flex items-center gap-1 ${
                   healthChecks.auth ? "text-green-600" : "text-red-600"
@@ -211,18 +187,6 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
                   }`}
                 />
                 DB: {healthChecks.database ? "OK" : "Failed"}
-              </div>
-              <div
-                className={`flex items-center gap-1 ${
-                  healthChecks.school ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    healthChecks.school ? "bg-green-500" : "bg-red-500"
-                  }`}
-                />
-                School: {healthChecks.school ? "OK" : "Failed"}
               </div>
               <div
                 className={`flex items-center gap-1 ${

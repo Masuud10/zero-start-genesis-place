@@ -36,7 +36,7 @@ interface EduFamAdminDashboardProps {
 const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user } = useAdminAuthContext();
+  const { adminUser } = useAdminAuthContext();
   const { isReady, userRole } = useSchoolScopedData();
   const { toast } = useToast();
 
@@ -58,7 +58,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   return (
     <DashboardWrapper
       requiredRole={["super_admin"]}
-      title="EduFam Admin Dashboard"
+      title="EduFam Administration"
     >
       <div className="space-y-6">
         {/* Header with quick actions */}
@@ -73,7 +73,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {userRole === "super_admin" ? "Super Admin" : "Admin"}
+              Super Admin
             </Badge>
             <Button
               onClick={handleRefresh}

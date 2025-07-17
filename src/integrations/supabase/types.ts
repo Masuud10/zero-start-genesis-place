@@ -8978,6 +8978,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["admin_role"]
       }
+      get_current_admin_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_user_owned_school_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -9071,6 +9075,10 @@ export type Database = {
       }
       is_parent_authorized_for_student: {
         Args: { p_student_id: string }
+        Returns: boolean
+      }
+      is_super_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_system_in_maintenance: {

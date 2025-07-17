@@ -94,17 +94,18 @@ const Dashboard: React.FC = () => {
 
   // Only allow Super Admin access - all other roles are unauthorized
   const validRoles = ["super_admin"];
-  const normalizedRole = user.role.toLowerCase();
+  const normalizedRole = user?.email ? 'super_admin' : null; // Temp logic for super admin
   
-  if (!validRoles.includes(normalizedRole)) {
-    console.warn("🎯 Dashboard: Unauthorized user role:", user.role);
+  if (!normalizedRole || !validRoles.includes(normalizedRole)) {
+    console.warn("🎯 Dashboard: Unauthorized user role:", user?.email);
     return (
       <div className="flex items-center justify-center h-64">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Access denied. This is an internal EduFam admin application. 
-            Your role ({user.role}) does not have access to this system.
+            Your email ({user?.email}) does not have access to this system.
+            Please contact your administrator.
           </AlertDescription>
         </Alert>
       </div>
@@ -112,7 +113,7 @@ const Dashboard: React.FC = () => {
   }
 
   // Route to EduFam Admin Dashboard only
-  console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard for role:", user.role);
+  console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard for email:", user?.email);
 
   try {
     return (

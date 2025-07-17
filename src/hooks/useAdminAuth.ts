@@ -178,7 +178,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     if (adminUser.role === 'super_admin') return true;
     
     // Check specific permission
-    return Boolean(adminUser.permissions[permission]);
+    return Boolean(adminUser.permissions?.[permission]);
   };
 
   const isRole = (role: AdminRole | AdminRole[]): boolean => {
