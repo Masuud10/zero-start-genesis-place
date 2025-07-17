@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import EduFamAdminDashboard from "./dashboard/EduFamAdminDashboard";
-import PrincipalDashboard from "./dashboard/PrincipalDashboard";
-import TeacherDashboard from "./dashboard/TeacherDashboard";
-import ParentDashboard from "./dashboard/ParentDashboard";
-import FinanceOfficerDashboard from "./dashboard/FinanceOfficerDashboard";
-import HRDashboard from "./dashboard/HRDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { checkDatabaseConnection } from "@/integrations/supabase/client";
 import MaintenanceNotification from "@/components/common/MaintenanceNotification";
 import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
-import SchoolDirectorDashboard from "./dashboard/SchoolDirectorDashboard";
 
 const Dashboard: React.FC = () => {
   const { user, isLoading, error: authError } = useAuth();
@@ -98,121 +92,36 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Validate user role
-  const validRoles = [
-    "edufam_admin",
-    "elimisha_admin",
-    "principal",
-    "teacher",
-    "parent",
-    "school_director",
-    "finance_officer",
-    "hr",
-  ];
+  // Only allow EduFam Admin access - all other roles are unauthorized
+  const validRoles = ["edufam_admin", "elimisha_admin"];
   const normalizedRole = user.role.toLowerCase();
+  
   if (!validRoles.includes(normalizedRole)) {
-    console.warn("🎯 Dashboard: Unknown user role:", user.role);
+    console.warn("🎯 Dashboard: Unauthorized user role:", user.role);
     return (
       <div className="flex items-center justify-center h-64">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Unknown user role: {user.role}. Please contact your administrator.
+            Access denied. This is an internal EduFam admin application. 
+            Your role ({user.role}) does not have access to this system.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  // Route to appropriate dashboard based on user role with proper logging
-  console.log("🎯 Dashboard: Routing based on role:", user.role);
-  console.log("🎯 Dashboard: Normalized role:", normalizedRole);
-  console.log("🎯 Dashboard: User object:", user);
+  // Route to EduFam Admin Dashboard only
+  console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard for role:", user.role);
 
   try {
-    switch (normalizedRole) {
-      case "edufam_admin":
-      case "elimisha_admin":
-        console.log("🎯 Dashboard: Routing to EduFam Admin Dashboard");
-        return (
-          <div>
-            <MaintenanceNotification />
-            <AdminCommunicationsBanner />
-            <EduFamAdminDashboard />
-          </div>
-        );
-
-      case "school_director":
-        console.log("🎯 Dashboard: Routing to School Director Dashboard");
-        return (
-          <div>
-            <MaintenanceNotification />
-            <AdminCommunicationsBanner />
-            <SchoolDirectorDashboard />
-          </div>
-        );
-
-      case "principal":
-        console.log("🎯 Dashboard: Routing to Principal Dashboard");
-        return (
-          <div>
-            <MaintenanceNotification />
-            <AdminCommunicationsBanner />
-            <PrincipalDashboard user={user} />
-          </div>
-        );
-
-      case "teacher":
-        console.log("🎯 Dashboard: Routing to Teacher Dashboard");
-        return (
-          <div>
-            <MaintenanceNotification />
-            <AdminCommunicationsBanner />
-            <TeacherDashboard user={user} />
-          </div>
-        );
-
-      case "finance_officer":
-        console.log("🎯 Dashboard: Routing to Finance Officer Dashboard");
-        return (
-          <div>
-            <MaintenanceNotification />
-            <AdminCommunicationsBanner />
-            <FinanceOfficerDashboard user={user} />
-          </div>
-        );
-
-      case "hr":
-        console.log("🎯 Dashboard: Routing to HR Dashboard");
-        return (
-          <div>
-            <MaintenanceNotification />
-            <AdminCommunicationsBanner />
-            <HRDashboard user={user} />
-          </div>
-        );
-
-      case "parent":
-        console.log("🎯 Dashboard: Routing to Parent Dashboard");
-        return (
-          <div>
-            <MaintenanceNotification />
-            <AdminCommunicationsBanner />
-            <ParentDashboard user={user} />
-          </div>
-        );
-
-      default:
-        console.warn("🎯 Dashboard: Unknown user role:", user.role);
-        return (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Unknown user role: {user.role}. Please contact your administrator.
-            </AlertDescription>
-          </Alert>
-        );
-    }
+    return (
+      <div>
+        <MaintenanceNotification />
+        <AdminCommunicationsBanner />
+        <EduFamAdminDashboard />
+      </div>
+    );
   } catch (error) {
     console.error("🎯 Dashboard: Error rendering dashboard:", error);
     return (

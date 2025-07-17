@@ -15,20 +15,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊', roles: ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin'] },
-    { id: 'analytics', label: 'Analytics', icon: '📈', roles: ['school_director', 'principal', 'teacher', 'finance_officer', 'edufam_admin'] },
-    { id: 'grades', label: 'Grades', icon: '📝', roles: ['school_director', 'principal', 'teacher', 'parent'] },
-    { id: 'attendance', label: 'Attendance', icon: '📅', roles: ['school_director', 'principal', 'teacher', 'parent'] },
-    { id: 'students', label: 'Students', icon: '👥', roles: ['school_director', 'principal', 'teacher'] },
-    { id: 'finance', label: 'Finance', icon: '💰', roles: ['school_director', 'principal', 'finance_officer', 'parent'] },
-    { id: 'transport', label: 'Transport Management', icon: '🚌', roles: ['finance_officer'] },
-    { id: 'inventory', label: 'Inventory Management', icon: '📦', roles: ['finance_officer'] },
-    { id: 'timetable', label: 'Timetable', icon: '🗓️', roles: ['school_director', 'principal', 'teacher'] },
-    { id: 'announcements', label: 'Announcements', icon: '📢', roles: ['school_director', 'principal', 'teacher', 'parent'] },
-    { id: 'messages', label: 'Messages', icon: '💬', roles: ['school_director', 'principal', 'teacher', 'parent'] },
-    { id: 'reports', label: 'Reports', icon: '📋', roles: ['school_director', 'principal', 'teacher', 'finance_officer'] },
-    { id: 'support', label: 'Support', icon: '🎧', roles: ['school_director', 'principal'] },
-    { id: 'settings', label: 'Settings', icon: '⚙️', roles: ['school_director', 'principal', 'edufam_admin'] },
+    { id: 'dashboard', label: 'Admin Dashboard', icon: '📊', roles: ['edufam_admin'] },
+    { id: 'analytics', label: 'System Analytics', icon: '📈', roles: ['edufam_admin'] },
+    { id: 'schools', label: 'Schools Management', icon: '🏫', roles: ['edufam_admin'] },
+    { id: 'users', label: 'User Management', icon: '👥', roles: ['edufam_admin'] },
+    { id: 'billing', label: 'Billing & Subscriptions', icon: '💰', roles: ['edufam_admin'] },
+    { id: 'company-management', label: 'Company Management', icon: '🏢', roles: ['edufam_admin'] },
+    { id: 'maintenance', label: 'System Health', icon: '🔧', roles: ['edufam_admin'] },
+    { id: 'security', label: 'Security', icon: '🔒', roles: ['edufam_admin'] },
+    { id: 'support', label: 'Support', icon: '🎧', roles: ['edufam_admin'] },
+    { id: 'settings', label: 'System Settings', icon: '⚙️', roles: ['edufam_admin'] },
   ];
 
   const filteredItems = menuItems.filter(item => 
@@ -37,20 +33,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
 
   const getRoleDisplay = (role: string) => {
     switch (role) {
-      case 'school_director':
-        return 'School Director';
-      case 'principal':
-        return 'Principal';
-      case 'teacher':
-        return 'Teacher';
-      case 'parent':
-        return 'Parent';
-      case 'finance_officer':
-        return 'Finance Officer';
       case 'edufam_admin':
         return 'EduFam Admin';
+      case 'elimisha_admin':
+        return 'Elimisha Admin';
       default:
-        return role;
+        return 'Unauthorized User';
     }
   };
 
