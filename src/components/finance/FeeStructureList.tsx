@@ -117,13 +117,7 @@ const FeeStructureList: React.FC<FeeStructureListProps> = ({ refreshTrigger, onE
   }
 
   if (feeStructures.length === 0) {
-    return (
-      <Card>
-        <CardContent className="text-center py-8">
-          <p className="text-muted-foreground">No fee structures found. Create your first fee structure to get started.</p>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (
