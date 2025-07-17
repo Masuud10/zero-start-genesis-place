@@ -1,356 +1,311 @@
 
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  BarChart3, 
   Users, 
+  Database, 
   Settings, 
   Shield, 
-  Database, 
+  BarChart3, 
   Activity,
   Bell,
   Search,
   Plus,
-  Filter,
-  Download,
-  Upload,
-  Eye,
-  UserCheck,
-  AlertTriangle,
-  Zap,
-  Clock,
+  ChevronRight,
   TrendingUp,
-  FileText,
-  Lock
+  TrendingDown,
+  Clock,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 
 const NewLandingPage = () => {
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Admin Header */}
-      <header className="bg-background border-b border-border sticky top-0 z-50">
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-primary-foreground" />
+            <div className="flex items-center">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl flex items-center justify-center mr-3">
+                  <Settings className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-foreground">EduFam Admin</h1>
+                <h1 className="text-2xl font-bold text-slate-900">EduFam Admin</h1>
               </div>
             </div>
-            
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Search admin panel..." 
-                  className="pl-10 pr-4 py-2 bg-muted rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring w-80"
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              
               <Button variant="outline" size="sm">
                 <Bell className="w-4 h-4 mr-2" />
                 Notifications
               </Button>
-              
-              <Button size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                New Task
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Quick Stats Dashboard */}
-      <section className="py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">System Overview</h2>
-            <p className="text-muted-foreground">Monitor and manage your EduFam platform</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">12,485</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600">+2.5%</span> from last month
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-                  <Activity className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">8,947</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600">+12.3%</span> from yesterday
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">System Alerts</CardTitle>
-                  <AlertTriangle className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">23</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-red-600">+5</span> new alerts
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">Uptime</CardTitle>
-                  <Zap className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">99.9%</div>
-                <p className="text-xs text-muted-foreground">
-                  Last 30 days
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome to EduFam Admin Dashboard</h2>
+          <p className="text-slate-600">Manage your educational platform with comprehensive administrative tools</p>
         </div>
-      </section>
 
-      {/* Admin Actions Grid */}
-      <section className="py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Administration Tools</h2>
-            <p className="text-muted-foreground">Manage users, data, and system configurations</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">User Management</CardTitle>
-                    <CardDescription>Manage user accounts and permissions</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    View All Users
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add New User
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                    <Database className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Data Management</CardTitle>
-                    <CardDescription>Handle data operations and backups</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Data
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import Data
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Analytics Dashboard</CardTitle>
-                    <CardDescription>View detailed system analytics</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    View Reports
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Live Monitoring
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Security Center</CardTitle>
-                    <CardDescription>Monitor security and access controls</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Lock className="w-4 h-4 mr-2" />
-                    Access Logs
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Security Audit
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">System Settings</CardTitle>
-                    <CardDescription>Configure platform settings</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Settings className="w-4 h-4 mr-2" />
-                    General Settings
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Clock className="w-4 h-4 mr-2" />
-                    Scheduled Tasks
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Reports & Logs</CardTitle>
-                    <CardDescription>Access system reports and logs</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <FileText className="w-4 h-4 mr-2" />
-                    System Logs
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Reports
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Recent Activity Section */}
-      <section className="py-8 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Recent Activity</h2>
-            <p className="text-muted-foreground">Latest system events and administrative actions</p>
-          </div>
-          
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>System Activity Log</CardTitle>
-                <Button variant="outline" size="sm">
-                  <Eye className="w-4 h-4 mr-2" />
-                  View All
-                </Button>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Total Users</p>
+                  <p className="text-2xl font-bold text-slate-900">1,247</p>
+                  <p className="text-xs text-emerald-600 flex items-center">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    +12% from last month
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { action: "New user registration", user: "admin@edufam.com", time: "2 minutes ago", type: "success" },
-                  { action: "Database backup completed", user: "System", time: "15 minutes ago", type: "info" },
-                  { action: "Security alert triggered", user: "Security Monitor", time: "1 hour ago", type: "warning" },
-                  { action: "User permissions updated", user: "admin@edufam.com", time: "2 hours ago", type: "success" },
-                  { action: "System maintenance completed", user: "System", time: "3 hours ago", type: "info" }
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-2 h-2 rounded-full ${
-                        activity.type === 'success' ? 'bg-green-500' :
-                        activity.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                      }`} />
-                      <div>
-                        <p className="font-medium text-foreground">{activity.action}</p>
-                        <p className="text-sm text-muted-foreground">by {activity.user}</p>
-                      </div>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{activity.time}</span>
-                  </div>
-                ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">System Status</p>
+                  <p className="text-2xl font-bold text-slate-900">99.8%</p>
+                  <p className="text-xs text-emerald-600 flex items-center">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    All systems operational
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Data Storage</p>
+                  <p className="text-2xl font-bold text-slate-900">847 GB</p>
+                  <p className="text-xs text-orange-600 flex items-center">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    +5% usage this week
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Database className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Security Alerts</p>
+                  <p className="text-2xl font-bold text-slate-900">3</p>
+                  <p className="text-xs text-red-600 flex items-center">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    Requires attention
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-red-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      </section>
+
+        {/* Admin Tools Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Administration Tools */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Settings className="w-5 h-5 mr-2" />
+                Administration Tools
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                  <div className="flex items-center">
+                    <Users className="w-5 h-5 text-blue-600 mr-3" />
+                    <div>
+                      <p className="font-medium">User Management</p>
+                      <p className="text-sm text-slate-600">Manage user accounts and permissions</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                  <div className="flex items-center">
+                    <Database className="w-5 h-5 text-purple-600 mr-3" />
+                    <div>
+                      <p className="font-medium">Data Management</p>
+                      <p className="text-sm text-slate-600">Import, export, and backup data</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                  <div className="flex items-center">
+                    <Settings className="w-5 h-5 text-emerald-600 mr-3" />
+                    <div>
+                      <p className="font-medium">System Configuration</p>
+                      <p className="text-sm text-slate-600">Configure platform settings</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                  <div className="flex items-center">
+                    <Shield className="w-5 h-5 text-red-600 mr-3" />
+                    <div>
+                      <p className="font-medium">Security Center</p>
+                      <p className="text-sm text-slate-600">Monitor and manage security</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Analytics Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2" />
+                Analytics Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">User Activity</span>
+                    <span className="text-sm text-slate-600">85%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">System Performance</span>
+                    <span className="text-sm text-slate-600">92%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '92%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Storage Usage</span>
+                    <span className="text-sm text-slate-600">67%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div className="bg-purple-600 h-2 rounded-full" style={{ width: '67%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Security Score</span>
+                    <span className="text-sm text-slate-600">98%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '98%' }}></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Clock className="w-5 h-5 mr-2" />
+              Recent Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Users className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">New user registered: john.doe@example.com</p>
+                  <p className="text-xs text-slate-600">2 minutes ago</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">System backup completed successfully</p>
+                  <p className="text-xs text-slate-600">15 minutes ago</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-4 h-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Security alert: Unusual login pattern detected</p>
+                  <p className="text-xs text-slate-600">1 hour ago</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Database className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Database optimization completed</p>
+                  <p className="text-xs text-slate-600">3 hours ago</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 };
