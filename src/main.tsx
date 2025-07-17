@@ -16,8 +16,5 @@ if (!rootElement) {
 
 console.log("🚀 Application starting...");
 
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
-    <AppGate />
-  </React.StrictMode>
-);
+const root = ReactDOM.createRoot(rootElement);
+root.render(<AppGate />);
