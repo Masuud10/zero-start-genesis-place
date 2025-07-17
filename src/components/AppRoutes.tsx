@@ -7,11 +7,10 @@ import SupportHrDashboard from "@/pages/SupportHrDashboard";
 import AppContent from "@/components/AppContent";
 
 // Import dashboard components for different roles
-// These will be created as needed
-const SuperAdminDashboard = () => <div>Super Admin Dashboard</div>;
-const SoftwareEngineerDashboard = () => <div>Software Engineer Dashboard</div>;
-const SalesMarketingDashboard = () => <div>Sales & Marketing Dashboard</div>;
-const FinanceDashboard = () => <div>Finance Dashboard</div>;
+import SuperAdminDashboard from "@/components/dashboard/EduFamAdminDashboard";
+import SoftwareEngineerDashboard from "@/components/dashboards/SoftwareEngineerDashboard";
+import SalesMarketingDashboard from "@/components/dashboards/SalesMarketingDashboard";
+import FinanceDashboard from "@/components/dashboards/FinanceDashboard";
 
 const AppRoutes = () => {
   const { user, isLoading } = useAuthState();

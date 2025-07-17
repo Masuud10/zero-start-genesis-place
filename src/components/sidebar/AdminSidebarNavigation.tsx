@@ -86,7 +86,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Megaphone,
     path: '/marketing',
     permission: 'manage_marketing_campaigns',
-    roles: ['super_admin', 'marketing_sales'],
+    roles: ['super_admin', 'sales_marketing'],
     description: 'Marketing campaigns and events'
   },
   {
@@ -104,7 +104,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: FileText,
     path: '/logs',
     permission: 'view_logs',
-    roles: ['super_admin', 'engineer'],
+    roles: ['super_admin', 'software_engineer'],
     description: 'Application and system logs'
   },
   {
@@ -113,7 +113,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Database,
     path: '/database',
     permission: 'manage_database',
-    roles: ['super_admin', 'engineer'],
+    roles: ['super_admin', 'software_engineer'],
     description: 'Database management tools'
   },
   {
@@ -122,7 +122,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Code,
     path: '/api-usage',
     permission: 'view_api_usage',
-    roles: ['super_admin', 'engineer'],
+    roles: ['super_admin', 'software_engineer'],
     description: 'API usage and performance metrics'
   },
   {
