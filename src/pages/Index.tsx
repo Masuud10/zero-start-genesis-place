@@ -1,11 +1,11 @@
 
 import React from 'react';
-import AdminLandingPage from '@/components/AdminLandingPage';
+import AdminDashboard from '@/components/AdminDashboard';
 
 const Index = () => {
   return (
     <div className="min-h-screen">
-      <AdminLandingPage />
+      <AdminDashboard />
     </div>
   );
 };
