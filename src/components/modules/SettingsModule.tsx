@@ -33,7 +33,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import SystemMaintenanceControl from "./settings/SystemMaintenanceControl";
+// SystemMaintenanceControl removed as part of school-specific cleanup
 import AdminCommunicationsManager from "./settings/AdminCommunicationsManager";
 
 interface SystemSettings {
@@ -236,8 +236,7 @@ const SettingsModule = () => {
         </Alert>
       )}
 
-      {/* System Maintenance Control */}
-      <SystemMaintenanceControl />
+      {/* System Maintenance Control - Removed as part of school-specific cleanup */}
 
       {/* System Configuration */}
       <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">

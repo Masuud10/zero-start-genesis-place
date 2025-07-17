@@ -1,108 +1,103 @@
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import TeacherReportsModule from "@/components/reports/TeacherReportsModule";
-import PrincipalReportsModule from "@/components/reports/PrincipalReportsModule";
-import FinanceReportsModule from "@/components/reports/FinanceReportsModule";
-import ParentReportsModule from "@/components/reports/ParentReportsModule";
 import SystemReportsModule from "@/components/reports/SystemReportsModule";
-import RoleGuard from "@/components/common/RoleGuard";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, BarChart3, TrendingUp, Users } from "lucide-react";
 
 const ReportsModule = () => {
   const { user } = useAuth();
 
-  // EduFam Admin gets system-wide reports
-  if (user?.role === "edufam_admin") {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-            System Reports
-          </h1>
-          <p className="text-muted-foreground">
-            Generate comprehensive system-wide reports and analytics.
-          </p>
-        </div>
-
-        <SystemReportsModule />
-      </div>
-    );
-  }
-
-  // Teachers get limited reports
-  if (user?.role === "teacher") {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-            Teacher Reports
-          </h1>
-          <p className="text-muted-foreground">
-            Generate grade and attendance reports for your classes.
-          </p>
-        </div>
-
-        <TeacherReportsModule />
-      </div>
-    );
-  }
-
-  // Finance officers get financial reports
-  if (user?.role === "finance_officer") {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-            Finance Reports
-          </h1>
-          <p className="text-muted-foreground">
-            Generate financial summaries, fee collection, and transaction
-            reports.
-          </p>
-        </div>
-
-        <FinanceReportsModule />
-      </div>
-    );
-  }
-
-  // Parents get student reports
-  if (user?.role === "parent") {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-            Student Reports
-          </h1>
-          <p className="text-muted-foreground">
-            View your child's academic progress and attendance reports.
-          </p>
-        </div>
-
-        <ParentReportsModule />
-      </div>
-    );
-  }
-
-  // Principals and School Directors get comprehensive reports
+  // Company internal reports
   return (
-    <RoleGuard
-      allowedRoles={["principal", "school_director"]}
-      requireSchoolAssignment
-    >
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-            School Reports
-          </h1>
-          <p className="text-muted-foreground">
-            Generate comprehensive academic, financial, and administrative
-            reports.
-          </p>
-        </div>
-
-        <PrincipalReportsModule />
+    <div className="space-y-6">
+      <div className="border-b pb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Company Reports</h2>
+        <p className="text-gray-600">
+          Generate internal company reports and analytics.
+        </p>
       </div>
-    </RoleGuard>
+
+      {user?.role === "edufam_admin" && <SystemReportsModule />}
+
+      {/* Role-specific report sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {user?.role === "finance" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Financial Reports
+              </CardTitle>
+              <CardDescription>
+                Company financial analytics and metrics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Access financial reports and budget analytics.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {user?.role === "sales_marketing" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Sales & Marketing Reports
+              </CardTitle>
+              <CardDescription>
+                Sales metrics and marketing performance
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Track sales performance and marketing campaigns.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {user?.role === "support_hr" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                HR Reports
+              </CardTitle>
+              <CardDescription>
+                Employee and support metrics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Generate employee reports and support analytics.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {user?.role === "software_engineer" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Technical Reports
+              </CardTitle>
+              <CardDescription>
+                Development and system metrics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Access development metrics and system performance reports.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
   );
 };
 
