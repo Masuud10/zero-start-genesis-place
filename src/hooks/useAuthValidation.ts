@@ -33,7 +33,7 @@ export const useAuthValidation = () => {
       } else {
         hasValidRole = true;
 
-        // Check school assignment for non-admin roles
+        // Check school assignment for non-admin roles  
         const adminRoles = ['elimisha_admin', 'edufam_admin'];
         const normalizedRole = user.role.toLowerCase();
         if (!adminRoles.includes(normalizedRole) && !user.school_id) {
