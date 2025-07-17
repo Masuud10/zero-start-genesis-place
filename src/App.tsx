@@ -82,15 +82,13 @@ function App() {
     return (
       <GlobalErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <h1 className="text-2xl font-bold mb-4">EduFam Admin</h1>
-                <p className="text-gray-600 mb-4">System is loading...</p>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              </div>
-            </div>
-          </BrowserRouter>
+          <AdminAuthProvider>
+            <ThemeProvider>
+              <BrowserRouter>
+                <AppLogic />
+              </BrowserRouter>
+            </ThemeProvider>
+          </AdminAuthProvider>
         </QueryClientProvider>
       </GlobalErrorBoundary>
     );
