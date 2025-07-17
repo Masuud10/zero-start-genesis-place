@@ -11,8 +11,8 @@ const isValidRole = (role: string): boolean => {
   return validRoles.includes(role as UserRole);
 };
 
-// Add timeout wrapper for async operations
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> => {
+// Add timeout wrapper for async operations - reduced timeout for faster failure
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> => {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) => 
@@ -223,11 +223,11 @@ export const useAuthState = () => {
           subscriptionRef.current = null;
         }
 
-        // Get initial session with timeout protection
+        // Get initial session with reduced timeout
         console.log('🔐 AuthState: Getting initial session');
         const { data: { session }, error: sessionError } = await withTimeout(
           supabase.auth.getSession(),
-          8000 // 8 second timeout for session retrieval
+          3000 // 3 second timeout for session retrieval
         );
 
         if (!isMountedRef.current) return;

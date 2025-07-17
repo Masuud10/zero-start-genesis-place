@@ -7,7 +7,7 @@ import SupportHrDashboard from "@/pages/SupportHrDashboard";
 import AppContent from "@/components/AppContent";
 
 // Import dashboard components for different roles
-import SuperAdminDashboard from "@/components/dashboard/EduFamAdminDashboard";
+import SuperAdminDashboard from "@/components/dashboard/SuperAdminDashboard";
 import SoftwareEngineerDashboard from "@/components/dashboards/SoftwareEngineerDashboard";
 import SalesMarketingDashboard from "@/components/dashboards/SalesMarketingDashboard";
 import FinanceDashboard from "@/components/dashboards/FinanceDashboard";
@@ -32,12 +32,12 @@ const AppRoutes = () => {
 
   // If a user IS logged in, route them based on their role.
   switch (user.role) {
-    case "super_admin":
+    case "edufam_admin":
       return (
         <Routes>
           <Route path="/dashboard" element={<SuperAdminDashboard />} />
           <Route path="/support-hr" element={<SupportHrDashboard />} />
-          {/* Add other super_admin specific routes here */}
+          {/* Add other edufam_admin specific routes here */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       );
