@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStudentFees } from "@/hooks/useStudentFees";
 import { useMpesaTransactions } from "@/hooks/useMpesaTransactions";
 import FeeAssignmentDialog from "./FeeAssignmentDialog";
-import MpesaTransactionsPanel from "./MpesaTransactionsPanel";
 import FeeManagementSummaryCards from "./FeeManagementSummaryCards";
 import FeeCollectionsTable from "./FeeCollectionsTable";
 import OutstandingBalancesTable from "./OutstandingBalancesTable";
@@ -66,12 +65,10 @@ const EnhancedFeeManagementPanel: React.FC = () => {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="structures">Fee Structures</TabsTrigger>
           <TabsTrigger value="collections">Collections</TabsTrigger>
           <TabsTrigger value="outstanding">Outstanding</TabsTrigger>
-          <TabsTrigger value="mpesa">M-PESA</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="structures" className="space-y-4">
@@ -94,19 +91,6 @@ const EnhancedFeeManagementPanel: React.FC = () => {
 
         <TabsContent value="outstanding" className="space-y-4">
           <OutstandingBalancesTable studentFees={studentFees} />
-        </TabsContent>
-
-        <TabsContent value="mpesa" className="space-y-4">
-          <MpesaTransactionsPanel />
-        </TabsContent>
-
-        <TabsContent value="reports" className="space-y-4">
-          <div className="text-center py-8">
-            <p className="text-gray-500">
-              Financial reports are available in the main Financial Reports
-              section
-            </p>
-          </div>
         </TabsContent>
       </Tabs>
 
