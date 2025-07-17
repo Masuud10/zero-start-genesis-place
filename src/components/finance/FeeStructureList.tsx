@@ -22,11 +22,10 @@ interface FeeStructure {
 }
 
 interface FeeStructureListProps {
-  refreshTrigger: number;
   onEdit: (feeStructure: FeeStructure) => void;
 }
 
-const FeeStructureList: React.FC<FeeStructureListProps> = ({ refreshTrigger, onEdit }) => {
+const FeeStructureList: React.FC<FeeStructureListProps> = ({ onEdit }) => {
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -36,7 +35,7 @@ const FeeStructureList: React.FC<FeeStructureListProps> = ({ refreshTrigger, onE
     if (user?.school_id) {
       fetchFeeStructures();
     }
-  }, [user?.school_id, refreshTrigger]);
+  }, [user?.school_id]);
 
   const fetchFeeStructures = async () => {
     if (!user?.school_id) return;

@@ -73,7 +73,6 @@ const EnhancedFeeManagementPanel: React.FC = () => {
 
         <TabsContent value="structures" className="space-y-4">
           <FeeStructureList
-            refreshTrigger={refreshTrigger}
             onEdit={(structure) => {
               // Handle edit functionality
               console.log("Edit structure:", structure);
