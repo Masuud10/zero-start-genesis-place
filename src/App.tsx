@@ -1,14 +1,11 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AdminAuthProvider } from "@/components/auth/AdminAuthProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
-import AppContent from "@/components/AppContent";
-import AdminLandingPage from "@/pages/AdminLandingPage";
-import SupportHrDashboard from "@/pages/SupportHrDashboard";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import AppRoutes from "@/components/AppRoutes";
 import "./App.css";
 
 const queryClient = new QueryClient({
@@ -43,26 +40,7 @@ const queryClient = new QueryClient({
 
 // Core App Router Component
 const AppRouter: React.FC = () => {
-  return (
-    <Routes>
-      {/* Public Admin Landing Page */}
-      <Route path="/" element={<AdminLandingPage />} />
-      
-      {/* Support HR Dashboard Route */}
-      <Route path="/support-hr" element={
-        <ProtectedRoute>
-          <SupportHrDashboard />
-        </ProtectedRoute>
-      } />
-      
-      {/* All other admin routes are protected */}
-      <Route path="/*" element={
-        <ProtectedRoute>
-          <AppContent />
-        </ProtectedRoute>
-      } />
-    </Routes>
-  );
+  return <AppRoutes />;
 };
 
 // Main App Logic Component
@@ -77,7 +55,7 @@ const AppLogic: React.FC = () => {
 
 function App() {
   console.log("🚀 App component rendering");
-  
+
   try {
     return (
       <GlobalErrorBoundary>
@@ -97,10 +75,14 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-red-600 mb-4">Application Error</h1>
-          <p className="text-gray-600 mb-4">Something went wrong initializing the application.</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <h1 className="text-xl font-bold text-red-600 mb-4">
+            Application Error
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Something went wrong initializing the application.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Reload Page

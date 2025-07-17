@@ -7,7 +7,7 @@ import { AuthService } from '@/services/authService';
 
 // Simple role validation function to avoid external dependencies
 const isValidRole = (role: string): boolean => {
-  const validRoles: UserRole[] = ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'edufam_admin', 'elimisha_admin', 'hr'];
+  const validRoles: UserRole[] = ['super_admin', 'support_hr', 'software_engineer', 'sales_marketing', 'finance'];
   return validRoles.includes(role as UserRole);
 };
 
@@ -158,26 +158,10 @@ export const useAuthState = () => {
         }
       }
 
-      // Validate school assignment for non-admin roles
-      const requiresSchoolAssignment = !['edufam_admin', 'elimisha_admin'].includes(resolvedRole);
-      const hasSchoolAssignment = !!profile?.school_id;
-      
-      if (requiresSchoolAssignment && !hasSchoolAssignment) {
-        console.error('🔐 AuthState: Role requires school assignment but none found:', resolvedRole);
-        if (isMountedRef.current) {
-          setError('Your account is not properly configured. Please contact your administrator.');
-          setIsLoading(false);
-          setIsInitialized(true);
-        }
-        return;
-      }
+      // Internal company users don't need school assignment
+      // All internal roles are valid without school assignment
 
       console.log('🔐 AuthState: Using database role:', resolvedRole);
-
-      // Determine school assignment
-      const userSchoolId = profile?.school_id ||
-                        authUser.user_metadata?.school_id ||
-                        authUser.app_metadata?.school_id;
 
       const userData: AuthUser = {
         id: authUser.id,
@@ -188,7 +172,7 @@ export const useAuthState = () => {
               authUser.user_metadata?.full_name ||
               authUser.email.split('@')[0] ||
               'User',
-        school_id: userSchoolId,
+        school_id: null, // Internal users don't have school assignment
         avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
         created_at: authUser.created_at,
         updated_at: authUser.updated_at,

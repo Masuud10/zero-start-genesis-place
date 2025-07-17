@@ -1,4 +1,4 @@
-export type AdminRole = 'super_admin' | 'engineer' | 'support_hr' | 'marketing_sales' | 'finance';
+export type AdminRole = 'super_admin' | 'software_engineer' | 'support_hr' | 'sales_marketing' | 'finance';
 
 export interface AdminUser {
   id: string;
@@ -100,7 +100,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AdminRole, Partial<AdminPermission
     manage_global_settings: true,
     view_audit_logs: true,
   },
-  engineer: {
+  software_engineer: {
     // Technical modules only
     view_logs: true,
     manage_database: true,
@@ -118,7 +118,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AdminRole, Partial<AdminPermission
     view_school_analytics: true,
     view_schools: true,
   },
-  marketing_sales: {
+  sales_marketing: {
     // Sales, marketing, events
     manage_marketing_campaigns: true,
     view_marketing_analytics: true,
@@ -138,16 +138,16 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AdminRole, Partial<AdminPermission
 
 export const ROLE_LABELS: Record<AdminRole, string> = {
   super_admin: 'Super Admin',
-  engineer: 'Software Engineer',
+  software_engineer: 'Software Engineer',
   support_hr: 'Support & HR Analyst',
-  marketing_sales: 'Sales & Marketing Associate',
+  sales_marketing: 'Sales & Marketing Associate',
   finance: 'Finance Officer',
 };
 
 export const ROLE_DESCRIPTIONS: Record<AdminRole, string> = {
   super_admin: 'Full access to everything in the Admin Application. Can manage other admin users and override any role.',
-  engineer: 'Access to all technical modules including logs, database, deployments, and API usage analytics.',
+  software_engineer: 'Access to all technical modules including logs, database, deployments, and API usage analytics.',
   support_hr: 'Access to CRM, support tickets, school feedback, and internal HR modules.',
-  marketing_sales: 'Access to sales, marketing dashboard, leads, academic trips, and event modules.',
+  sales_marketing: 'Access to sales, marketing dashboard, leads, academic trips, and event modules.',
   finance: 'Access to all finance and billing tools only. Can manage subscriptions and generate financial reports.',
 };
