@@ -10,40 +10,8 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: sessionStorage,
+    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: { 'x-my-custom-header': 'edufam-app' }
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
   }
 });
-
-// Add connection health check
-export const checkDatabaseConnection = async () => {
-  try {
-    // Use the more robust database connection test
-    const { DatabaseConnectionTest } = await import('../../utils/databaseConnectionTest');
-    const result = await DatabaseConnectionTest.runFullTest();
-    
-    if (!result.connected) {
-      console.error('Database connection check failed:', result.error);
-      return { connected: false, error: result.error || 'Connection failed' };
-    }
-    
-    return { connected: true, status: 'connected' };
-  } catch (err) {
-    console.error('Database connection check exception:', err);
-    return { connected: false, error: 'Connection failed' };
-  }
-};
