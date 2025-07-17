@@ -11,7 +11,7 @@ interface DailyTransactionsChartProps {
 }
 
 const chartConfig = {
-    amount: { label: 'Amount', color: '#8b5cf6' },
+    amount: { label: 'Amount', color: 'hsl(262, 83%, 58%)' },
 };
 
 const DailyTransactionsChart: React.FC<DailyTransactionsChartProps> = ({ data }) => {

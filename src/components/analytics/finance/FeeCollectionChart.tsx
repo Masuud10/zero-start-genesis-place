@@ -12,8 +12,8 @@ interface FeeCollectionChartProps {
 }
 
 const chartConfig = {
-    collected: { label: 'Collected', color: '#10b981' },
-    expected: { label: 'Expected', color: '#3b82f6' },
+    collected: { label: 'Collected', color: 'hsl(142, 76%, 36%)' },
+    expected: { label: 'Expected', color: 'hsl(221, 83%, 53%)' },
 };
 
 const FeeCollectionChart: React.FC<FeeCollectionChartProps> = ({ data }) => {

@@ -30,7 +30,7 @@ const AssignFeeStructureDialog: React.FC<AssignFeeStructureDialogProps> = ({ isO
   const [isAssigning, setIsAssigning] = useState(false);
   const { classes, isLoading: isLoadingClasses, error: classesError } = useSchoolClasses();
 
-  const handleAssign = async () => {
+    const handleAssign = async () => {
     if (!selectedClassId) {
       toast({
         title: 'Validation Error',
@@ -42,10 +42,16 @@ const AssignFeeStructureDialog: React.FC<AssignFeeStructureDialogProps> = ({ isO
 
     setIsAssigning(true);
     try {
+      // Generate a default due date (30 days from now)
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+      const formattedDueDate = dueDate.toISOString().split('T')[0];
+
       const { error } = await supabase.functions.invoke('assign-fee-structure', {
         body: {
-          fee_structure_id: feeStructure.id,
-          class_id: selectedClassId,
+          feeStructureId: feeStructure.id,
+          classId: selectedClassId,
+          dueDate: formattedDueDate,
         },
       });
 
