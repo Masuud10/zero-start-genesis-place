@@ -14,7 +14,11 @@ import { checkDatabaseConnection } from "@/integrations/supabase/client";
 import { RouteGuard } from "@/utils/routeGuard";
 import { AuthService } from "@/services/authService";
 
-const AppContent: React.FC = () => {
+interface AppContentProps {
+  children?: React.ReactNode;
+}
+
+const AppContent: React.FC<AppContentProps> = ({ children }) => {
   const [showLogin, setShowLogin] = useState(false);
   const [dbStatus, setDbStatus] = useState<{
     connected: boolean;
@@ -181,6 +185,19 @@ const AppContent: React.FC = () => {
   console.log(
     "🎯 AppContent: User authenticated and authorized, showing main app"
   );
+
+  // If children are passed, render them instead of the default layout
+  if (children) {
+    return (
+      <NavigationProvider>
+        <SchoolProvider>
+          <ElimshaLayout>
+            {children}
+          </ElimshaLayout>
+        </SchoolProvider>
+      </NavigationProvider>
+    );
+  }
 
   return (
     <NavigationProvider>

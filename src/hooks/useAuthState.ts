@@ -7,12 +7,12 @@ import { AuthService } from '@/services/authService';
 
 // Simple role validation function to avoid external dependencies
 const isValidRole = (role: string): boolean => {
-  const validRoles: UserRole[] = ['super_admin', 'support_hr', 'software_engineer', 'sales_marketing', 'finance'];
+  const validRoles: UserRole[] = ['edufam_admin', 'support_hr', 'software_engineer', 'sales_marketing', 'finance'];
   return validRoles.includes(role as UserRole);
 };
 
-// Add timeout wrapper for async operations - reduced timeout for faster failure
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> => {
+// Add timeout wrapper for async operations - increased timeout for better reliability
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 15000): Promise<T> => {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) => 
@@ -51,7 +51,7 @@ export const useAuthState = () => {
           .select('role, name, school_id, avatar_url, mfa_enabled, status')
           .eq('id', userId)
           .single()),
-        5000 // 5 second timeout
+        15000 // 15 second timeout
       );
       
       if (error) {
@@ -227,7 +227,7 @@ export const useAuthState = () => {
         console.log('🔐 AuthState: Getting initial session');
         const { data: { session }, error: sessionError } = await withTimeout(
           supabase.auth.getSession(),
-          3000 // 3 second timeout for session retrieval
+          10000 // 10 second timeout for session retrieval
         );
 
         if (!isMountedRef.current) return;

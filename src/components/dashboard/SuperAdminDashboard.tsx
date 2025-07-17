@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, UserPlus, Shield, Activity, Database, Settings } from 'lucide-react';
+import AppContent from '@/components/AppContent';
 
 interface AdminUser {
   id: string;
@@ -190,12 +191,13 @@ const SuperAdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Super Admin Dashboard</h2>
-          <p className="text-muted-foreground">Manage EduFam admin users and system settings</p>
-        </div>
+    <AppContent>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Super Admin Dashboard</h2>
+            <p className="text-muted-foreground">Manage EduFam admin users and system settings</p>
+          </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -345,7 +347,8 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AppContent>
   );
 };
 

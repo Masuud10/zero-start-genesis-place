@@ -10,7 +10,11 @@ import { useNavigation } from "@/contexts/NavigationContext";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 import InactivityWarningModal from "@/components/ui/InactivityWarningModal";
 
-const ElimshaLayout = () => {
+interface ElimshaLayoutProps {
+  children?: React.ReactNode;
+}
+
+const ElimshaLayout: React.FC<ElimshaLayoutProps> = ({ children }) => {
   const { user, signOut } = useAuth();
   const { currentSchool } = useSchool();
   const { activeSection } = useNavigation();
@@ -116,10 +120,12 @@ const ElimshaLayout = () => {
             showHeader={true}
             showGreetings={activeSection === "dashboard"}
           >
-            <ContentRenderer
-              activeSection={activeSection}
-              onModalOpen={handleModalOpen}
-            />
+            {children || (
+              <ContentRenderer
+                activeSection={activeSection}
+                onModalOpen={handleModalOpen}
+              />
+            )}
           </DashboardContainer>
         </SidebarInset>
       </div>
