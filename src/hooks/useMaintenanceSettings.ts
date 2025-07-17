@@ -1,12 +1,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { SystemMaintenanceService } from '@/services/system/systemMaintenanceService';
+import { MaintenanceService } from '@/services/maintenanceService';
 import { useToast } from '@/hooks/use-toast';
 
 export const useMaintenanceSettings = () => {
   return useQuery({
     queryKey: ['maintenance-settings'],
-    queryFn: () => SystemMaintenanceService.getMaintenanceStatus(),
+    queryFn: () => MaintenanceService.getMaintenanceStatus(),
     select: (response) => response.data,
     staleTime: 1 * 60 * 1000, // 1 minute
   });
@@ -18,8 +18,8 @@ export const useUpdateMaintenanceSettings = () => {
 
   return useMutation({
     mutationFn: ({ enabled, message }: { enabled: boolean; message: string }) => 
-      SystemMaintenanceService.updateMaintenanceStatus(enabled, message),
-    onSuccess: (result) => {
+      MaintenanceService.updateMaintenanceStatus(enabled, message),
+    onSuccess: (result: any) => {
       if (result.success) {
         toast({
           title: "Settings Updated",

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface MaintenanceSettings {
@@ -7,18 +6,17 @@ export interface MaintenanceSettings {
   updated_at: string;
 }
 
-export class SystemMaintenanceService {
+export class MaintenanceService {
   static async getMaintenanceStatus(): Promise<{ data: MaintenanceSettings | null; error: any }> {
     try {
       const { data, error } = await supabase
         .from('system_settings')
         .select('setting_value')
         .eq('setting_key', 'maintenance_mode')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      // Safely cast the Json type to MaintenanceSettings
       const maintenanceSettings = data?.setting_value as unknown as MaintenanceSettings;
 
       return { 
