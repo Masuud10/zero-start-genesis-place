@@ -50,7 +50,6 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
     ownerEmail: '',
     ownerName: '',
     ownerPhone: '',
-    curriculumType: 'cbc'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -220,7 +219,7 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
           ownerEmail: '',
           ownerName: '',
           ownerPhone: '',
-          curriculumType: 'cbc'
+          
         });
         setLogoFile(null);
         setLogoPreview('');
@@ -468,22 +467,6 @@ const EnhancedCreateSchoolDialog: React.FC<EnhancedCreateSchoolDialogProps> = ({
                   </SelectContent>
                 </Select>
                 {errors.term_structure && <p className="text-sm text-red-500">{errors.term_structure}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="curriculumType">Curriculum Type</Label>
-                <Select 
-                  value={formData.curriculumType} 
-                  onValueChange={(value) => handleInputChange('curriculumType', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select curriculum" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cbc">CBC (Competency-Based Curriculum)</SelectItem>
-                    <SelectItem value="igcse">IGCSE</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
