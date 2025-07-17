@@ -2,21 +2,13 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AdminAuthProvider } from "@/components/auth/AdminAuthProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { SchoolProvider } from "@/contexts/SchoolContext";
-import { NavigationProvider } from "@/contexts/NavigationContext";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
 import AppContent from "@/components/AppContent";
-import ResetPasswordPage from "@/components/ResetPasswordPage";
-import UnauthorizedPage from "@/components/UnauthorizedPage";
-import CertificateVerification from "@/pages/CertificateVerification";
-import MaintenanceModeTest from "@/components/debug/MaintenanceModeTest";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import UniversalLoginPage from "@/components/UniversalLoginPage";
 import AdminLandingPage from "@/pages/AdminLandingPage";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import "./App.css";
-import "./utils/maintenanceDebugConsole";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,43 +44,15 @@ const queryClient = new QueryClient({
 const AppRouter: React.FC = () => {
   return (
     <Routes>
-      {/* ====================================================== */}
-      {/* PUBLIC ROUTES - Anyone can access these.              */}
-      {/* They are NOT wrapped by ProtectedRoute.               */}
-      {/* ====================================================== */}
+      {/* Public Admin Landing Page */}
       <Route path="/" element={<AdminLandingPage />} />
-      <Route path="/login" element={<UniversalLoginPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/unauthorized" element={<UnauthorizedPage />} />
-      <Route
-        path="/verify-certificate/:certificateId"
-        element={<CertificateVerification />}
-      />
-      <Route path="/debug/maintenance-test" element={<MaintenanceModeTest />} />
-
-      {/* ====================================================== */}
-      {/* PROTECTED ROUTES - Only logged-in users can access.   */}
-      {/* These are all nested inside the ProtectedRoute element. */}
-      {/* ====================================================== */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<AppContent />} />
-        <Route path="/admin" element={<AppContent />} />
-        <Route path="/settings" element={<AppContent />} />
-        <Route path="/analytics" element={<AppContent />} />
-        <Route path="/schools" element={<AppContent />} />
-        <Route path="/users" element={<AppContent />} />
-        <Route path="/billing" element={<AppContent />} />
-        <Route path="/maintenance" element={<AppContent />} />
-        <Route path="/support" element={<AppContent />} />
-        <Route path="/security" element={<AppContent />} />
-        <Route path="/company-management" element={<AppContent />} />
-      </Route>
-
-      {/* ====================================================== */}
-      {/* CATCH-ALL ROUTE - If no other route matches,          */}
-      {/* redirect to the landing page.                         */}
-      {/* ====================================================== */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      
+      {/* All admin routes are protected */}
+      <Route path="/*" element={
+        <ProtectedRoute>
+          <AppContent />
+        </ProtectedRoute>
+      } />
     </Routes>
   );
 };
@@ -108,15 +72,11 @@ function App() {
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AuthProvider>
+          <AdminAuthProvider>
             <ThemeProvider>
-              <SchoolProvider>
-                <NavigationProvider>
-                  <AppLogic />
-                </NavigationProvider>
-              </SchoolProvider>
+              <AppLogic />
             </ThemeProvider>
-          </AuthProvider>
+          </AdminAuthProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </GlobalErrorBoundary>

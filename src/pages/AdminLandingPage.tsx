@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import Lottie from 'lottie-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, GraduationCap, Shield, Database, TrendingUp } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 // Professional data analytics animation
 const animationData = {
@@ -171,57 +171,32 @@ const animationData = {
 };
 
 const AdminLandingPage = () => {
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { signIn, adminUser, isLoading, error } = useAdminAuthContext();
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    if (!email || !password) {
+      return;
+    }
 
+    setSubmitLoading(true);
     try {
-      // First, attempt to sign in with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) {
-        throw new Error('Invalid credentials');
-      }
-
-      // Check if user is an admin
-      if (authData.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          throw new Error('Unable to verify user profile');
-        }
-
-        // Only allow edufam_admin and elimisha_admin roles
-        if (!['edufam_admin', 'elimisha_admin'].includes(profile.role)) {
-          // Sign out the user since they don't have admin access
-          await supabase.auth.signOut();
-          throw new Error('Access denied. This portal is restricted to EduFam administrators only.');
-        }
-
-        // Redirect to admin dashboard on success
-        navigate('/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      await signIn(email, password);
+    } catch (err) {
+      console.error('Login error:', err);
     } finally {
-      setIsLoading(false);
+      setSubmitLoading(false);
     }
   };
+
+  // Redirect to dashboard if authenticated
+  if (adminUser) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -389,9 +364,9 @@ const AdminLandingPage = () => {
             <Button
               type="submit"
               className="w-full h-14 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-200"
-              disabled={isLoading || !email || !password}
+              disabled={submitLoading || isLoading || !email || !password}
             >
-              {isLoading ? (
+              {(submitLoading || isLoading) ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Authenticating...
