@@ -1,10 +1,9 @@
 
 import React from 'react';
-import AppContent from '@/components/AppContent';
+import NewLandingPage from '@/components/NewLandingPage';
 
 const Index = () => {
-  console.log('📄 Index: Rendering AppContent');
-  return <AppContent />;
+  return <NewLandingPage />;
 };
 
 export default Index;
