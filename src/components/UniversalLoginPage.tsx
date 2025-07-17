@@ -10,7 +10,7 @@ import { Mail, Lock, Loader2, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/services/authService";
-import HRLoginTest from "@/components/debug/HRLoginTest";
+
 import loginBackground from "@/assets/login-background.jpg";
 
 function ForgotPasswordModal({
@@ -382,11 +382,6 @@ const UniversalLoginPage: React.FC = () => {
             {/* Footer */}
             <div className="text-center">
               <p className="text-sm text-gray-400">Powered by Edufam</p>
-            </div>
-            
-            {/* HR Login Test - Remove in production */}
-            <div className="mt-8">
-              <HRLoginTest />
             </div>
           </div>
         </div>
