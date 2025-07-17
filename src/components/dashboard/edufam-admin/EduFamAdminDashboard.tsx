@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import { useSchoolScopedData } from "@/hooks/useSchoolScopedData";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ import DashboardWrapper from "../DashboardWrapper";
 // Import dashboard modules
 import SchoolsModule from "@/components/modules/SchoolsModule";
 import UsersModule from "@/components/modules/UsersModule";
-import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
+// Analytics dashboard component removed as part of cleanup
 import BillingModule from "@/components/modules/BillingModule";
 import ReportsModule from "@/components/modules/ReportsModule";
 import SupportModule from "@/components/modules/SupportModule";
@@ -36,7 +36,7 @@ interface EduFamAdminDashboardProps {
 const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user } = useAuth();
+  const { user } = useAdminAuthContext();
   const { isReady, userRole } = useSchoolScopedData();
   const { toast } = useToast();
 
@@ -57,7 +57,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
   return (
     <DashboardWrapper
-      requiredRole={["edufam_admin", "elimisha_admin"]}
+      requiredRole={["super_admin"]}
       title="EduFam Admin Dashboard"
     >
       <div className="space-y-6">
@@ -73,7 +73,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {userRole === "edufam_admin" ? "EduFam Admin" : "Elimisha Admin"}
+              {userRole === "super_admin" ? "Super Admin" : "Admin"}
             </Badge>
             <Button
               onClick={handleRefresh}
@@ -227,7 +227,7 @@ const EduFamAdminDashboard = ({ onModalOpen }: EduFamAdminDashboardProps) => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <AnalyticsDashboard />
+            <div className="p-6 text-center text-muted-foreground">Analytics dashboard coming soon</div>
           </TabsContent>
 
           {/* Billing Tab */}

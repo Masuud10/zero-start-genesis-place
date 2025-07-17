@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -21,7 +21,7 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user } = useAdminAuthContext();
   const [theme, setTheme] = useState<Theme>('system');
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
 

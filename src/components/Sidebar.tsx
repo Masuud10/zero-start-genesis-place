@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuthContext } from '@/components/auth/AdminAuthProvider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -11,20 +11,20 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
-  const { user } = useAuth();
+  const { user } = useAdminAuthContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Admin Dashboard', icon: '📊', roles: ['edufam_admin'] },
-    { id: 'analytics', label: 'System Analytics', icon: '📈', roles: ['edufam_admin'] },
-    { id: 'schools', label: 'Schools Management', icon: '🏫', roles: ['edufam_admin'] },
-    { id: 'users', label: 'User Management', icon: '👥', roles: ['edufam_admin'] },
-    { id: 'billing', label: 'Billing & Subscriptions', icon: '💰', roles: ['edufam_admin'] },
-    { id: 'company-management', label: 'Company Management', icon: '🏢', roles: ['edufam_admin'] },
-    { id: 'maintenance', label: 'System Health', icon: '🔧', roles: ['edufam_admin'] },
-    { id: 'security', label: 'Security', icon: '🔒', roles: ['edufam_admin'] },
-    { id: 'support', label: 'Support', icon: '🎧', roles: ['edufam_admin'] },
-    { id: 'settings', label: 'System Settings', icon: '⚙️', roles: ['edufam_admin'] },
+    { id: 'dashboard', label: 'Admin Dashboard', icon: '📊', roles: ['super_admin'] },
+    { id: 'analytics', label: 'System Analytics', icon: '📈', roles: ['super_admin'] },
+    { id: 'schools', label: 'Schools Management', icon: '🏫', roles: ['super_admin'] },
+    { id: 'users', label: 'User Management', icon: '👥', roles: ['super_admin'] },
+    { id: 'billing', label: 'Billing & Subscriptions', icon: '💰', roles: ['super_admin'] },
+    { id: 'company-management', label: 'Company Management', icon: '🏢', roles: ['super_admin'] },
+    { id: 'maintenance', label: 'System Health', icon: '🔧', roles: ['super_admin'] },
+    { id: 'security', label: 'Security', icon: '🔒', roles: ['super_admin'] },
+    { id: 'support', label: 'Support', icon: '🎧', roles: ['super_admin'] },
+    { id: 'settings', label: 'System Settings', icon: '⚙️', roles: ['super_admin'] },
   ];
 
   const filteredItems = menuItems.filter(item => 
@@ -33,8 +33,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
 
   const getRoleDisplay = (role: string) => {
     switch (role) {
-      case 'edufam_admin':
-        return 'EduFam Admin';
+      case 'super_admin':
+        return 'Super Admin';
       case 'elimisha_admin':
         return 'Elimisha Admin';
       default:
@@ -85,12 +85,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
           <div className="flex items-center space-x-2 md:space-x-3">
             <div className="w-6 h-6 md:w-8 md:h-8 rounded-full gradient-navy flex items-center justify-center">
               <span className="text-white text-xs md:text-sm font-bold">
-                {user?.name?.charAt(0)}
+                {user?.email?.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs md:text-sm font-medium text-foreground truncate">
-                {user?.name}
+                {user?.email}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {user?.email}

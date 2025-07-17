@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAuthContext } from "@/components/auth/AdminAuthProvider";
 import EduFamAdminDashboard from "./dashboard/EduFamAdminDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -8,7 +8,7 @@ import MaintenanceNotification from "@/components/common/MaintenanceNotification
 import AdminCommunicationsBanner from "@/components/common/AdminCommunicationsBanner";
 
 const Dashboard: React.FC = () => {
-  const { user, isLoading, error: authError } = useAuth();
+  const { user, isLoading, error: authError } = useAdminAuthContext();
   const [dbStatus, setDbStatus] = useState<{
     connected: boolean;
     error?: string;
@@ -92,8 +92,8 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Only allow EduFam Admin access - all other roles are unauthorized
-  const validRoles = ["edufam_admin", "elimisha_admin"];
+  // Only allow Super Admin access - all other roles are unauthorized
+  const validRoles = ["super_admin"];
   const normalizedRole = user.role.toLowerCase();
   
   if (!validRoles.includes(normalizedRole)) {

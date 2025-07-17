@@ -108,7 +108,7 @@ export class RouteGuard {
         pathname.startsWith('/edufam') || 
         pathname.startsWith('/system')) {
       return {
-        allowedRoles: ['edufam_admin', 'elimisha_admin'],
+        allowedRoles: ['super_admin'],
         redirectTo: '/unauthorized',
         requireAuth: true
       };
@@ -124,7 +124,7 @@ export class RouteGuard {
         pathname.startsWith('/finance') ||
         pathname.startsWith('/reports')) {
       return {
-        allowedRoles: ['school_director', 'principal', 'teacher', 'parent', 'finance_officer', 'hr', 'edufam_admin', 'elimisha_admin'],
+        allowedRoles: ['super_admin'],
         redirectTo: '/unauthorized',
         requireAuth: true
       };
