@@ -15,3 +15,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Add connection health check
+export const checkDatabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('company_details').select('id').limit(1);
+    
+    if (error) {
+      console.error('Database connection check failed:', error);
+      return { connected: false, error: error.message };
+    }
+    
+    return { connected: true, status: 'connected' };
+  } catch (err) {
+    console.error('Database connection check exception:', err);
+    return { connected: false, error: 'Connection failed' };
+  }
+};

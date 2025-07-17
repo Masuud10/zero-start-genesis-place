@@ -14,7 +14,7 @@ import CertificateVerification from "@/pages/CertificateVerification";
 import MaintenanceModeTest from "@/components/debug/MaintenanceModeTest";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import UniversalLoginPage from "@/components/UniversalLoginPage";
-import LandingPage from "@/components/LandingPage";
+import Index from "@/pages/Index";
 import "./App.css";
 import "./utils/maintenanceDebugConsole";
 
@@ -56,7 +56,7 @@ const AppRouter: React.FC = () => {
       {/* PUBLIC ROUTES - Anyone can access these.              */}
       {/* They are NOT wrapped by ProtectedRoute.               */}
       {/* ====================================================== */}
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<Index />} />
       <Route path="/login" element={<UniversalLoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
