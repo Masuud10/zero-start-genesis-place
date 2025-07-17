@@ -780,13 +780,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = memo(
         }
         return renderUnauthorizedAccess();
       case "debug":
-        // Only allow debug access for admin users
-        if (user?.role === "edufam_admin" || user?.role === "elimisha_admin") {
-          const DebugTestRunner = React.lazy(
-            () => import("@/components/debug/DebugTestRunner")
-          );
-          return renderLazyComponent(DebugTestRunner, "DebugTestRunner");
-        }
+        // Debug module removed - redirect to unauthorized
         return renderUnauthorizedAccess();
       default:
         console.warn("📋 ContentRenderer: Unknown section:", activeSection);
