@@ -55,6 +55,7 @@ export const AssignStudentDialog = ({ open, onOpenChange, routeId, onSuccess }: 
 
       if (success) {
         setSelectedStudentId('');
+        onOpenChange(false);
         onSuccess();
       }
     } finally {

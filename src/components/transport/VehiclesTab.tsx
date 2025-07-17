@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useTransportVehicles, type TransportVehicle } from '@/hooks/transport/useTransportData';
+import { useTransportVehicles, type TransportVehicle } from '@/hooks/transport/useTransportVehicles';
+import { VehicleFormDialog } from './VehicleFormDialog';
 
 export const VehiclesTab: React.FC = () => {
-  const { data: vehicles = [], isLoading: loading } = useTransportVehicles();
+  const { vehicles, loading } = useTransportVehicles();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<TransportVehicle | null>(null);
 
   const columns = [
     {
@@ -23,11 +26,11 @@ export const VehiclesTab: React.FC = () => {
       cell: ({ row }: any) => `${row.original.capacity} passengers`,
     },
     {
-      accessorKey: 'assigned_route_id' as keyof TransportVehicle,
+      accessorKey: 'route_name' as keyof TransportVehicle,
       header: 'Route Assignment',
       cell: ({ row }: any) => (
-        row.original.assigned_route_id ? (
-          <Badge variant="default">Route {row.original.assigned_route_id}</Badge>
+        row.original.route_name ? (
+          <Badge variant="default">{row.original.route_name}</Badge>
         ) : (
           <Badge variant="secondary">Not Assigned</Badge>
         )
@@ -37,12 +40,25 @@ export const VehiclesTab: React.FC = () => {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }: any) => (
-        <Button variant="outline" size="sm">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setEditingVehicle(row.original)}
+        >
           Edit
         </Button>
       ),
     },
   ];
+
+  const handleDialogClose = () => {
+    setShowCreateDialog(false);
+    setEditingVehicle(null);
+  };
+
+  const handleSuccess = () => {
+    handleDialogClose();
+  };
 
   return (
     <div className="space-y-6">
@@ -53,7 +69,7 @@ export const VehiclesTab: React.FC = () => {
             Manage school transport vehicles and assignments
           </p>
         </div>
-        <Button>Add New Vehicle</Button>
+        <Button onClick={() => setShowCreateDialog(true)}>Add New Vehicle</Button>
       </div>
 
       <Card>
@@ -68,6 +84,13 @@ export const VehiclesTab: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <VehicleFormDialog
+        open={showCreateDialog || !!editingVehicle}
+        onOpenChange={handleDialogClose}
+        vehicle={editingVehicle}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 };

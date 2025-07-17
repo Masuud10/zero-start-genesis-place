@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { useTransportRoutes, type TransportRoute } from '@/hooks/transport/useTransportData';
+import { useTransportRoutes, type TransportRoute } from '@/hooks/transport/useTransportRoutes';
+import { RouteFormDialog } from './RouteFormDialog';
 
 export const RoutesTab: React.FC = () => {
-  const { data: routes = [], isLoading: loading } = useTransportRoutes();
+  const { routes, loading } = useTransportRoutes();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingRoute, setEditingRoute] = useState<TransportRoute | null>(null);
 
   const columns = [
     {
@@ -21,7 +24,29 @@ export const RoutesTab: React.FC = () => {
       header: 'Monthly Fee',
       cell: ({ row }: any) => `KSh ${row.original.monthly_fee?.toLocaleString()}`,
     },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }: any) => (
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setEditingRoute(row.original)}
+        >
+          Edit
+        </Button>
+      ),
+    },
   ];
+
+  const handleDialogClose = () => {
+    setShowCreateDialog(false);
+    setEditingRoute(null);
+  };
+
+  const handleSuccess = () => {
+    handleDialogClose();
+  };
 
   return (
     <div className="space-y-6">
@@ -32,7 +57,7 @@ export const RoutesTab: React.FC = () => {
             Manage school transport routes and schedules
           </p>
         </div>
-        <Button>Add New Route</Button>
+        <Button onClick={() => setShowCreateDialog(true)}>Add New Route</Button>
       </div>
 
       <Card>
@@ -47,6 +72,13 @@ export const RoutesTab: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <RouteFormDialog
+        open={showCreateDialog || !!editingRoute}
+        onOpenChange={handleDialogClose}
+        route={editingRoute}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 };

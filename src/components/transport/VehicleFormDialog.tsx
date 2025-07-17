@@ -67,6 +67,7 @@ export const VehicleFormDialog = ({ open, onOpenChange, vehicle, onSuccess }: Ve
 
       if (success) {
         onSuccess();
+        onOpenChange(false);
       }
     } finally {
       setLoading(false);

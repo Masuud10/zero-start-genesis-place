@@ -10,7 +10,7 @@ import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog';
 
 export const StudentAssignmentsTab = () => {
   const { routes } = useTransportRoutes();
-  const { assignments, loading, removeAssignment, fetchAssignmentsByRoute } = useStudentTransportAssignments();
+  const { assignments, loading, removeAssignment, fetchAllAssignments, fetchAssignmentsByRoute } = useStudentTransportAssignments();
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);

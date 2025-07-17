@@ -62,6 +62,7 @@ export const RouteFormDialog = ({ open, onOpenChange, route, onSuccess }: RouteF
 
       if (success) {
         onSuccess();
+        onOpenChange(false);
       }
     } finally {
       setLoading(false);
