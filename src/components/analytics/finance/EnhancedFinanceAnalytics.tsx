@@ -13,7 +13,7 @@ interface EnhancedFinanceAnalyticsProps {
   };
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['hsl(220, 100%, 50%)', 'hsl(142, 76%, 36%)', 'hsl(48, 100%, 50%)', 'hsl(25, 100%, 50%)', 'hsl(262, 83%, 58%)'];
 
 const chartConfig = {
   amount: { label: 'Amount', color: '#3b82f6' },
